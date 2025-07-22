@@ -1081,7 +1081,7 @@ export namespace Session {
               // if not part id jump to the last user message
               messageID: !partID && lastUser ? lastUser.id : msg.info.id,
               partID,
-              snapshot,
+              snapshot: draft.revert?.snapshot ?? snapshot,
             }
           })
           return session
