@@ -13,6 +13,7 @@ import { App } from "../app/app"
 import { File } from "../file"
 import { Bus } from "../bus"
 import { FileTime } from "../file/time"
+import { Config } from "../config/config"
 
 export const EditTool = Tool.define("edit", {
   description: DESCRIPTION,
@@ -34,16 +35,18 @@ export const EditTool = Tool.define("edit", {
     const app = App.info()
     const filepath = path.isAbsolute(params.filePath) ? params.filePath : path.join(app.path.cwd, params.filePath)
 
-    await Permission.ask({
-      id: "edit",
-      sessionID: ctx.sessionID,
-      title: "Edit this file: " + filepath,
-      metadata: {
-        filePath: filepath,
-        oldString: params.oldString,
-        newString: params.newString,
-      },
-    })
+    const cfg = await Config.get()
+    if (cfg.permission?.edit === "ask")
+      await Permission.ask({
+        id: "edit",
+        sessionID: ctx.sessionID,
+        title: "Edit this file: " + filepath,
+        metadata: {
+          filePath: filepath,
+          oldString: params.oldString,
+          newString: params.newString,
+        },
+      })
 
     let contentOld = ""
     let contentNew = ""
