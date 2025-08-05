@@ -2,6 +2,7 @@ import { Log } from "../util/log"
 import { Bus } from "../bus"
 import { describeRoute, generateSpecs, openAPISpecs } from "hono-openapi"
 import { Hono } from "hono"
+import { cors } from "hono/cors"
 import { streamSSE } from "hono/streaming"
 import { Session } from "../session"
 import { resolver, validator as zValidator } from "hono-openapi/zod"
@@ -112,6 +113,7 @@ export namespace Server {
         return next()
       })
     })
+    .use(cors())
     .use(zValidator("query", z.object({ directory: z.string().optional() })))
     .get(
       "/doc",
