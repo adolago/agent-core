@@ -92,6 +92,15 @@ export namespace Config {
       }
       throw new InvalidError({ path: item }, { cause: parsed.error })
     }
+    // Migrate deprecated mode field to agent field
+    for (const [name, mode] of Object.entries(result.mode)) {
+      result.agent = mergeDeep(result.agent ?? {}, {
+        [name]: {
+          ...mode,
+          mode: "primary" as const,
+        },
+      })
+    }
 
     result.plugin = result.plugin || []
     result.plugin.push(

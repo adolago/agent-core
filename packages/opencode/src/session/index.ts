@@ -577,28 +577,25 @@ export namespace Session {
           }
         }
 
-        if (part.type === "text") {
-          const match = part.text.match(/\@agent:(\w+)/)
-          if (match?.length) {
-            return [
-              {
-                id: Identifier.ascending("part"),
-                ...part,
-                messageID: userMsg.id,
-                sessionID: input.sessionID,
-              },
-              {
-                id: Identifier.ascending("part"),
-                messageID: userMsg.id,
-                sessionID: input.sessionID,
-                type: "text",
-                synthetic: true,
-                text:
-                  "Use the above message and context to generate a prompt that calls the task tool with subagent: " +
-                  match[1],
-              },
-            ]
-          }
+        if (part.type === "agent") {
+          return [
+            {
+              id: Identifier.ascending("part"),
+              ...part,
+              messageID: userMsg.id,
+              sessionID: input.sessionID,
+            },
+            {
+              id: Identifier.ascending("part"),
+              messageID: userMsg.id,
+              sessionID: input.sessionID,
+              type: "text",
+              synthetic: true,
+              text:
+                "Use the above message and context to generate a prompt and call the task tool with subagent: " +
+                part.name,
+            },
+          ]
         }
 
         return [
