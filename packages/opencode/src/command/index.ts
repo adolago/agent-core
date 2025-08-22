@@ -3,13 +3,17 @@ import { App } from "../app/app"
 import { Config } from "../config/config"
 
 export namespace Command {
-  export const Info = z.object({
-    name: z.string(),
-    description: z.string().optional(),
-    agent: z.string().optional(),
-    model: z.string().optional(),
-    template: z.string(),
-  })
+  export const Info = z
+    .object({
+      name: z.string(),
+      description: z.string().optional(),
+      agent: z.string().optional(),
+      model: z.string().optional(),
+      template: z.string(),
+    })
+    .openapi({
+      ref: "Command",
+    })
   export type Info = z.infer<typeof Info>
 
   const state = App.state("command", async () => {
