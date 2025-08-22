@@ -632,7 +632,16 @@ export namespace Server {
         async (c) => {
           const sessionID = c.req.valid("param").id
           const body = c.req.valid("json")
-          if (body.parts.length === 1 && body.parts[0].type === "text" && body.parts[0].text.startsWith("/")) {
+          const text = body.parts.find((x) => x.type === "text")?.text
+          if (text?.startsWith("/")) {
+            const [command, ...args] = text.split(" ")
+            const msg = await Session.command({
+              command: command.slice(1),
+              arguments: args.join(" "),
+              sessionID,
+              ...body,
+            })
+            return c.json(msg)
           }
           const msg = await Session.chat({ ...body, sessionID })
           return c.json(msg)

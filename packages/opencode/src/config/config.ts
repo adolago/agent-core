@@ -107,6 +107,32 @@ export namespace Config {
       }
       throw new InvalidError({ path: item }, { cause: parsed.error })
     }
+
+    // Load command markdown files
+    result.command = result.command || {}
+    const markdownCommands = [
+      ...(await Filesystem.globUp("command/*.md", Global.Path.config, Global.Path.config)),
+      ...(await Filesystem.globUp(".opencode/command/*.md", app.path.cwd, app.path.root)),
+    ]
+    for (const item of markdownCommands) {
+      const content = await Bun.file(item).text()
+      const md = matter(content)
+      if (!md.data) continue
+
+      const config = {
+        name: path.basename(item, ".md"),
+        ...md.data,
+        template: md.content.trim(),
+      }
+      const parsed = Command.safeParse(config)
+      if (parsed.success) {
+        result.command = mergeDeep(result.command, {
+          [config.name]: parsed.data,
+        })
+        continue
+      }
+      throw new InvalidError({ path: item }, { cause: parsed.error })
+    }
     // Migrate deprecated mode field to agent field
     for (const [name, mode] of Object.entries(result.mode)) {
       result.agent = mergeDeep(result.agent ?? {}, {

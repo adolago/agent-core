@@ -484,6 +484,7 @@ export namespace Session {
               }
               break
             case "file:":
+              log.info("file", { url })
               // have to normalize, symbol search returns absolute paths
               // Decode the pathname since URL constructor doesn't automatically decode it
               const filePath = decodeURIComponent(url.pathname)
@@ -524,6 +525,7 @@ export namespace Session {
                   }
                 }
                 const args = { filePath, offset, limit }
+                log.info("file", args)
                 const result = await ReadTool.init().then((t) =>
                   t.execute(args, {
                     sessionID: input.sessionID,
@@ -1161,6 +1163,7 @@ export namespace Session {
     sessionID: Identifier.schema("session"),
     agent: z.string().optional(),
     model: z.string().optional(),
+    arguments: z.string(),
     command: z.string(),
   })
   export type CommandInput = z.infer<typeof CommandInput>
@@ -1172,17 +1175,35 @@ export namespace Session {
       command.model ??
       (await Agent.get(agent).then((x) => (x.model ? `${x.model.providerID}/${x.model.modelID}` : undefined))) ??
       (await Provider.defaultModel().then((x) => `${x.providerID}/${x.modelID}`))
+    let template = command.template.replace("$ARGUMENTS", input.arguments)
+    const parts = [
+      {
+        type: "text",
+        text: template,
+      },
+    ] as ChatInput["parts"]
+
+    const pattern = /@([^\s]+)/g
+    const matches = template.matchAll(pattern)
+    const app = App.info()
+
+    for (const match of matches) {
+      const file = path.join(app.path.cwd, match[1])
+      log.info("file", { file })
+      parts.push({
+        type: "file",
+        url: `file://${file}`,
+        filename: match[1],
+        mime: "text/plain",
+      })
+    }
+
     return chat({
       sessionID: input.sessionID,
+      messageID: input.messageID,
       ...Provider.parseModel(model!),
       agent,
-      parts: [
-        {
-          type: "text",
-          text: command.template,
-        },
-      ],
-      messageID: input.messageID,
+      parts,
     })
   }
 
