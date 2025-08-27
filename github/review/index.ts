@@ -2,11 +2,11 @@ import { $ } from "bun"
 import os from "node:os"
 import * as core from "@actions/core"
 import type { PullRequestReviewCommentEditedEvent } from "@octokit/webhooks-types"
-import { Context } from "./src/context"
-import { Auth } from "./src/auth"
-import { Git } from "./src/git"
-import { GitHub } from "./src/github"
-import { Opencode } from "./src/opencode"
+import { Context } from "../src/context"
+import { Auth } from "../src/auth"
+import { Git } from "../src/git"
+import { GitHub } from "../src/github"
+import { Opencode } from "../src/opencode"
 
 type Finding = {
   file: string
