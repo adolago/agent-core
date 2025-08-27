@@ -129,6 +129,69 @@ function createOpencode() {
   }
 }
 
+function defineCommentMode() {
+  const payload = Context.payload<IssueCommentEvent>()
+  return {
+    type: "comment" as const,
+    isPR: () => Boolean(payload.issue.pull_request),
+    entity: () => payload.issue,
+    createComment: async () => {
+      console.log("Creating comment...")
+      const rest = await GitHub.rest()
+      return await rest.issues.createComment({
+        owner: Context.repo().owner,
+        repo: Context.repo().repo,
+        issue_number: mode.entity().number,
+        body: `[Working...](${GitHub.runUrl()})`,
+      })
+    },
+    updateComment: async (body: string) => {
+      if (!commentId) return
+      console.log("Updating comment...")
+      const rest = await GitHub.rest()
+      await rest.issues.updateComment({
+        owner: Context.repo().owner,
+        repo: Context.repo().repo,
+        issue_number: mode.entity().number,
+        comment_id: commentId,
+        body,
+      })
+    },
+  }
+}
+
+function defineReviewCommentMode() {
+  const payload = Context.payload<PullRequestReviewCommentCreatedEvent>()
+  return {
+    type: "review_comment" as const,
+    isPR: () => true,
+    entity: () => payload.pull_request,
+    createComment: async () => {
+      console.log("Creating review comment...")
+      const rest = await GitHub.rest()
+      return await rest.pulls.createReplyForReviewComment({
+        owner: Context.repo().owner,
+        repo: Context.repo().repo,
+        pull_number: mode.entity().number,
+        body: `[Working...](${GitHub.runUrl()})`,
+        comment_id: Context.payload<PullRequestReviewCommentCreatedEvent>().comment.id,
+      })
+    },
+    updateComment: async (body: string) => {
+      if (!commentId) return
+      console.log("Updating review comment...")
+      const rest = await GitHub.rest()
+      await rest.pulls.updateReviewComment({
+        owner: Context.repo().owner,
+        repo: Context.repo().repo,
+        pull_number: mode.entity().number,
+        comment_id: commentId,
+        body,
+      })
+    },
+  }
+}
+
 function assertPayloadKeyword() {
   const payload = Context.payload<IssueCommentEvent | PullRequestReviewCommentCreatedEvent>()
   const body = payload.comment.body.trim()
@@ -485,69 +548,6 @@ async function assertPermissions() {
 
   if (!["admin", "write"].includes(permission))
     throw new Error(`User ${Context.actor()} does not have write permissions`)
-}
-
-function defineCommentMode() {
-  const payload = Context.payload<IssueCommentEvent>()
-  return {
-    type: "comment" as const,
-    isPR: () => Boolean(payload.issue.pull_request),
-    entity: () => payload.issue,
-    createComment: async () => {
-      console.log("Creating comment...")
-      const rest = await GitHub.rest()
-      return await rest.pulls.createReplyForReviewComment({
-        owner: Context.repo().owner,
-        repo: Context.repo().repo,
-        pull_number: mode.entity().number,
-        body: `[Working...](${GitHub.runUrl()})`,
-        comment_id: Context.payload<PullRequestReviewCommentCreatedEvent>().comment.id,
-      })
-    },
-    updateComment: async (body: string) => {
-      if (!commentId) return
-      console.log("Updating comment...")
-      const rest = await GitHub.rest()
-      await rest.pulls.updateReviewComment({
-        owner: Context.repo().owner,
-        repo: Context.repo().repo,
-        pull_number: mode.entity().number,
-        comment_id: commentId,
-        body,
-      })
-    },
-  }
-}
-
-function defineReviewCommentMode() {
-  const payload = Context.payload<PullRequestReviewCommentCreatedEvent>()
-  return {
-    type: "review_comment" as const,
-    isPR: () => true,
-    entity: () => payload.pull_request,
-    createComment: async () => {
-      console.log("Creating comment...")
-      const rest = await GitHub.rest()
-      return await rest.issues.createComment({
-        owner: Context.repo().owner,
-        repo: Context.repo().repo,
-        issue_number: mode.entity().number,
-        body: `[Working...](${GitHub.runUrl()})`,
-      })
-    },
-    updateComment: async (body: string) => {
-      if (!commentId) return
-      console.log("Updating comment...")
-      const rest = await GitHub.rest()
-      await rest.issues.updateComment({
-        owner: Context.repo().owner,
-        repo: Context.repo().repo,
-        issue_number: mode.entity().number,
-        comment_id: commentId,
-        body,
-      })
-    },
-  }
 }
 
 async function createPR(base: string, branch: string, title: string, body: string) {
