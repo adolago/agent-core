@@ -742,7 +742,9 @@ export namespace Session {
               draft.title = title.trim()
             })
         })
-        .catch(() => {})
+        .catch((error) => {
+          log.error("failed to generate title", { error, model: small.info.id })
+        })
     }
 
     const agent = await Agent.get(inputAgent)
