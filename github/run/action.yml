@@ -26,7 +26,7 @@ runs:
   steps:
     - name: Install opencode
       shell: bash
-      run: OPENCODE_VERSION=0.5.29 curl -fsSL https://opencode.ai/install | bash
+      run: OPENCODE_VERSION=0.5.28 curl -fsSL https://opencode.ai/install | bash
 
     - name: Check opencode version
       shell: bash
