@@ -175,7 +175,9 @@ export default function Page() {
     setInputValue("")
     inputRef?.blur()
 
-    const session = local.session.active() ?? (await sdk.session.create().then((x) => x.data!))
+    const session =
+      (local.layout.rightPane() ? local.session.active() : undefined) ??
+      (await sdk.session.create().then((x) => x.data!))
     local.session.setActive(session!.id)
     local.layout.openRightPane()
 
