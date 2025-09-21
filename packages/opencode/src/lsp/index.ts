@@ -126,13 +126,11 @@ export namespace LSP {
         result.push(match)
         continue
       }
-      log.info("spawning lsp server", { serverID: server.id })
       const handle = await server
         .spawn(root)
         .then((h) => {
           if (h === undefined) {
             s.broken.add(root + server.id)
-            log.info("LSP server not spawned", { serverID: server.id })
           }
           return h
         })
@@ -142,6 +140,8 @@ export namespace LSP {
           return undefined
         })
       if (!handle) continue
+      log.info("spawned lsp server", { serverID: server.id })
+
       const client = await LSPClient.create({
         serverID: server.id,
         server: handle,
