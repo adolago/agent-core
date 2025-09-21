@@ -132,6 +132,7 @@ export namespace LSP {
         .then((h) => {
           if (h === undefined) {
             s.broken.add(root + server.id)
+            log.info("LSP server not spawned", { serverID: server.id })
           }
           return h
         })
