@@ -165,7 +165,6 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
 function Option(props: { id: string; title: string; description?: string; active?: boolean; current?: boolean }) {
   return (
     <box
-      // @ts-expect-error
       id={props.id}
       flexDirection="row"
       backgroundColor={props.active ? Theme.primary : RGBA.fromInts(0, 0, 0, 0)}
