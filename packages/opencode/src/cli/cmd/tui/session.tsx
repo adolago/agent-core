@@ -62,7 +62,7 @@ export function Session() {
                 <text fg={Theme.textMuted}>{session().share!.url}</text>
               </Match>
               <Match when={true}>
-                <text>
+                <text wrap={false}>
                   /share <span style={{ fg: Theme.textMuted }}>to create a shareable link</span>
                 </text>
               </Match>
