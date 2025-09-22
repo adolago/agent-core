@@ -18,8 +18,14 @@ function init() {
       current: agents()[0].name,
     })
     return {
+      list() {
+        return agents()
+      },
       current() {
         return agents().find((x) => x.name === store.current)!
+      },
+      set(name: string) {
+        setStore("current", name)
       },
       move(direction: 1 | -1) {
         let next = agents().findIndex((x) => x.name === store.current) + direction

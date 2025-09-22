@@ -3,6 +3,7 @@ import { DialogModel } from "./dialog-model"
 import { DialogSelect } from "../ui/dialog-select"
 import { useRoute } from "../context/route"
 import { DialogSessionList } from "./dialog-session-list"
+import { DialogAgent } from "./dialog-agent"
 
 export function DialogCommand() {
   const dialog = useDialog()
@@ -17,6 +18,14 @@ export function DialogCommand() {
           category: "Agent",
           onSelect: () => {
             dialog.replace(() => <DialogModel />)
+          },
+        },
+        {
+          title: "Switch agent",
+          value: "switch-agent",
+          category: "Agent",
+          onSelect: () => {
+            dialog.replace(() => <DialogAgent />)
           },
         },
         {

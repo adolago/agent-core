@@ -1,6 +1,6 @@
 import { InputRenderable, TextAttributes, BoxRenderable, type ParsedKey } from "@opentui/core"
 import { createEffect, createMemo, createResource, For, Match, onMount, Show, Switch } from "solid-js"
-
+import { firstBy } from "remeda"
 import { useLocal } from "../context/local"
 import { Theme } from "../context/theme"
 import { useDialog } from "../ui/dialog"
@@ -12,6 +12,8 @@ import { Identifier } from "../../../../id/id"
 import { createStore, produce } from "solid-js/store"
 import type { FilePart } from "@opencode-ai/sdk"
 import fuzzysort from "fuzzysort"
+import { DialogModel } from "./dialog-model"
+import { DialogAgent } from "./dialog-agent"
 
 export type PromptProps = {
   sessionID?: string
@@ -57,6 +59,7 @@ export function Prompt(props: PromptProps) {
   return (
     <>
       <Autocomplete
+        sessionID={props.sessionID}
         ref={(r) => (autocomplete = r)}
         anchor={() => anchor}
         input={() => input}
@@ -205,20 +208,24 @@ type AutocompleteRef = {
 }
 
 type AutocompleteOption = {
-  type: string
-  value: string
   display: string
+  disabled?: boolean
   description?: string
+  onSelect?: () => void
 }
 
 function Autocomplete(props: {
   value: string
+  sessionID?: string
   setPrompt: (input: (prompt: Prompt) => void) => void
   anchor: () => BoxRenderable
   input: () => InputRenderable
   ref: (ref: AutocompleteRef) => void
 }) {
   const sdk = useSDK()
+  const local = useLocal()
+  const sync = useSync()
+
   const [store, setStore] = createStore({
     index: 0,
     selected: 0,
@@ -240,39 +247,158 @@ function Autocomplete(props: {
         },
       })
       if (result.error) return []
-      return result.data ?? []
+      return (result.data ?? []).map(
+        (item): AutocompleteOption => ({
+          display: item,
+          onSelect: () => {
+            const part: Prompt["parts"][number] = {
+              type: "file",
+              mime: "text/plain",
+              filename: item,
+              url: `file://${process.cwd()}/${item}`,
+              source: {
+                type: "file",
+                text: {
+                  start: store.index,
+                  end: store.index + item.length + 1,
+                  value: "@" + item,
+                },
+                path: item,
+              },
+            }
+            props.setPrompt((draft) => {
+              const append = "@" + item + " "
+              if (store.index === 0) draft.input = append
+              if (store.index > 0) draft.input = draft.input.slice(0, store.index) + append
+              draft.parts.push(part)
+            })
+          },
+        }),
+      )
     },
     {
       initialValue: [],
     },
   )
 
-  const commands: {
-    name: string
-    description: string
-  }[] = {}
+  const route = useRoute()
+  const session = createMemo(() => (props.sessionID ? sync.session.get(props.sessionID) : undefined))
+  const commands = createMemo((): AutocompleteOption[] => {
+    const results: AutocompleteOption[] = []
+    const s = session()
+    const dialog = useDialog()
+    if (s) {
+      for (const command of sync.data.command) {
+        results.push({
+          display: "/" + command.name,
+          description: command.description,
+          onSelect: () => {
+            sdk.session.command({
+              path: {
+                id: s.id,
+              },
+              body: {
+                command: command.name,
+                agent: local.agent.current().name,
+                model: `${local.model.current().providerID}/${local.model.current().modelID}`,
+                arguments: "",
+              },
+            })
+          },
+        })
+      }
+      results.push(
+        {
+          display: "/undo",
+          description: "undo the last message",
+          onSelect: () => {},
+        },
+        {
+          display: "/redo",
+          description: "redo the last message",
+          onSelect: () => {},
+        },
+        {
+          display: "/compact",
+          description: "compact the session",
+          onSelect: () => {
+            sdk.session.summarize({
+              path: {
+                id: s.id,
+              },
+              body: {
+                modelID: local.model.current().modelID,
+                providerID: local.model.current().providerID,
+              },
+            })
+          },
+        },
+        {
+          display: "/share",
+          disabled: !!s.share?.url,
+          description: "share a session",
+          onSelect: () => {
+            sdk.session.share({
+              path: {
+                id: s.id,
+              },
+            })
+          },
+        },
+        {
+          display: "/unshare",
+          disabled: !s.share,
+          description: "unshare a session",
+          onSelect: () => {
+            sdk.session.unshare({
+              path: {
+                id: s.id,
+              },
+            })
+          },
+        },
+      )
+    }
+    results.push(
+      {
+        display: "/new",
+        description: "create a new session",
+        onSelect: () => {
+          route.navigate({
+            type: "home",
+          })
+        },
+      },
+      {
+        display: "/models",
+        description: "list models",
+        onSelect: () => {
+          dialog.replace(() => <DialogModel />)
+        },
+      },
+      {
+        display: "/agents",
+        description: "list agents",
+        onSelect: () => {
+          dialog.replace(() => <DialogAgent />)
+        },
+      },
+    )
+    const max = firstBy(results, [(x) => x.display.length, "desc"])?.display.length
+    if (!max) return results
+    return results.map((item) => ({
+      ...item,
+      display: item.display.padEnd(max + 2),
+    }))
+  })
 
   const options = createMemo(() => {
-    const mixed: AutocompleteOption[] =
-      store.visible === "@"
-        ? [...files().map((x) => ({ type: "file", value: x, display: x }))]
-        : [
-            {
-              type: "command",
-              value: "foo",
-              description: "This is a foo command",
-              display: "/foo".padEnd(10),
-            },
-            {
-              type: "command",
-              value: "model",
-              description: "This is a bar command",
-              display: "/model".padEnd(10),
-            },
-          ]
+    const mixed: AutocompleteOption[] = (store.visible === "@" ? [...files()] : [...commands()]).filter(
+      (x) => x.disabled !== true,
+    )
     if (!filter()) return mixed
     const result = fuzzysort.go(filter(), mixed, {
-      keys: ["display"],
+      keys: ["display", "description"],
     })
     return result.map((arr) => arr.obj)
   })
@@ -293,34 +419,7 @@ function Autocomplete(props: {
   function select() {
     const selected = options()[store.selected]
     if (!selected) return
-
-    if (selected.type === "file") {
-      const part: Prompt["parts"][number] = {
-        type: "file",
-        mime: "text/plain",
-        filename: selected.value,
-        url: `file://${process.cwd()}/${selected.value}`,
-        source: {
-          type: "file",
-          text: {
-            start: store.index,
-            end: store.index + selected.value.length + 1,
-            value: "@" + selected,
-          },
-          path: selected.value,
-        },
-      }
-      props.setPrompt((draft) => {
-        const append = "@" + selected.value + " "
-        if (store.index === 0) draft.input = append
-        if (store.index > 0) draft.input = draft.input.slice(0, store.index) + append
-        draft.parts.push(part)
-      })
-    }
-
-    if (selected.type === "command") {
-    }
-
+    selected.onSelect?.()
     setTimeout(() => hide(), 0)
   }
 

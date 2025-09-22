@@ -62,7 +62,10 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     if (next < 0) next = flat().length - 1
     if (next >= flat().length) next = 0
     setStore("selected", next)
-    const target = scroll.findDescendantById(JSON.stringify(selected()?.value))
+    const target = scroll.getChildren().find((child) => {
+      console.log(child.id)
+      return child.id === JSON.stringify(selected()?.value)
+    })
     if (!target) return
     const y = target.y - scroll.y
     if (y >= scroll.height) {
@@ -123,7 +126,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       >
         <For each={grouped()}>
           {([category, options], index) => (
-            <box flexShrink={0}>
+            <>
               <Show when={category}>
                 <box paddingTop={index() > 0 ? 1 : 0} paddingLeft={1}>
                   <text fg={Theme.accent} attributes={TextAttributes.BOLD}>
@@ -144,7 +147,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                   )
                 }}
               </For>
-            </box>
+            </>
           )}
         </For>
       </scrollbox>

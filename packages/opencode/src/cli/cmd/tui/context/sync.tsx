@@ -1,4 +1,4 @@
-import type { Message, Agent, Provider, Session, Part, Config, Todo } from "@opencode-ai/sdk"
+import type { Message, Agent, Provider, Session, Part, Config, Todo, Command } from "@opencode-ai/sdk"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useSDK } from "./sdk"
 import { createContext, Show, useContext, type ParentProps } from "solid-js"
@@ -9,6 +9,7 @@ function init() {
     ready: boolean
     provider: Provider[]
     agent: Agent[]
+    command: Command[]
     config: Config
     session: Session[]
     todo: {
@@ -24,6 +25,7 @@ function init() {
     config: {},
     ready: false,
     agent: [],
+    command: [],
     provider: [],
     session: [],
     todo: {},
@@ -101,6 +103,7 @@ function init() {
     sdk.app.agents().then((x) => setStore("agent", x.data ?? [])),
     sdk.session.list().then((x) => setStore("session", x.data ?? [])),
     sdk.config.get().then((x) => setStore("config", x.data!)),
+    sdk.command.list().then((x) => setStore("command", x.data ?? [])),
   ]).then(() => setStore("ready", true))
 
   return {

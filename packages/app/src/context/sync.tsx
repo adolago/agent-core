@@ -1,4 +1,4 @@
-import type { Message, Agent, Provider, Session, Part, Config, Path, File, FileNode } from "@opencode-ai/sdk"
+import type { Message, Agent, Provider, Session, Part, Config, Path, File, FileNode, Command } from "@opencode-ai/sdk"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useSDK } from "./sdk"
 import { createContext, Show, useContext, type ParentProps } from "solid-js"
@@ -18,6 +18,7 @@ function init() {
     part: {
       [messageID: string]: Part[]
     }
+    command: Command[]
     node: FileNode[]
     changes: File[]
   }>({
@@ -25,6 +26,7 @@ function init() {
     path: { state: "", config: "", worktree: "", directory: "" },
     ready: false,
     agent: [],
+    command: [],
     provider: [],
     session: [],
     message: {},
@@ -35,11 +37,8 @@ function init() {
 
   const sdk = useSDK()
 
-  console.log("connected")
   sdk.event.subscribe().then(async (events) => {
-    console.log("connected")
     for await (const event of events.stream) {
-      console.log(event.type)
       switch (event.type) {
         case "session.updated": {
           const result = Binary.search(store.session, event.properties.info.id, (s) => s.id)
@@ -101,6 +100,7 @@ function init() {
 
   Promise.all([
     sdk.config.providers().then((x) => setStore("provider", x.data!.providers)),
+    sdk.command.list().then((x) => setStore("command", x.data ?? [])),
     sdk.path.get().then((x) => setStore("path", x.data!)),
     sdk.app.agents().then((x) => setStore("agent", x.data ?? [])),
     sdk.session.list().then((x) =>
