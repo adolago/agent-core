@@ -1,5 +1,4 @@
-name: publish
-run-name: "${{ format('release {0}', inputs.bump) }}"
+name: snapshot
 
 on:
   push:
