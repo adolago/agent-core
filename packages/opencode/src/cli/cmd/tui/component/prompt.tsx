@@ -307,17 +307,17 @@ function Autocomplete(props: {
     const results: AutocompleteOption[] = []
     const s = session()
     const dialog = useDialog()
+    for (const command of sync.data.command) {
+      results.push({
+        display: "/" + command.name,
+        description: command.description,
+        onSelect: () => {
+          props.input().value = "/" + command.name + " "
+          props.input().cursorPosition = props.input().value.length
+        },
+      })
+    }
     if (s) {
-      for (const command of sync.data.command) {
-        results.push({
-          display: "/" + command.name,
-          description: command.description,
-          onSelect: () => {
-            props.input().value = "/" + command.name + " "
-            props.input().cursorPosition = props.input().value.length
-          },
-        })
-      }
       results.push(
         {
           display: "/undo",

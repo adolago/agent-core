@@ -192,7 +192,7 @@ function TextPart(props: { part: TextPart; message: AssistantMessage }) {
   const local = useLocal()
 
   return (
-    <box paddingLeft={3} marginTop={1}>
+    <box paddingLeft={3} marginTop={1} flexShrink={0}>
       <text>{props.part.text.trim()}</text>
       <text>
         <span style={{ fg: local.agent.color(agent().name) }}>{Locale.titlecase(agent().name)}</span>{" "}
