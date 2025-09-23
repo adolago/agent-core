@@ -71,7 +71,6 @@ export const TuiCommand = cmd({
             await Instance.disposeAll()
             renderer.destroy()
             await EventLoop.wait()
-            process.exit(0)
           }
         })
         return (
@@ -111,7 +110,7 @@ function App() {
       return
     }
 
-    if (evt.ctrl && evt.name === "p") {
+    if (evt.ctrl && evt.name === "k") {
       dialog.replace(() => <DialogCommand />)
       return
     }
@@ -164,8 +163,8 @@ function App() {
             <text fg={Theme.textMuted}>{process.cwd().replace(Global.Path.home, "~")}</text>
           </box>
         </box>
-        <box flexDirection="row">
-          <text paddingRight={1} fg={Theme.textMuted}>
+        <box flexDirection="row" flexShrink={0}>
+          <text fg={Theme.textMuted} paddingRight={1}>
             tab
           </text>
           <text fg={local.agent.color(local.agent.current().name)}>┃</text>

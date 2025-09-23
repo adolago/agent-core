@@ -200,21 +200,26 @@ export function Prompt(props: PromptProps) {
           </box>
           <box backgroundColor={Theme.backgroundElement} width={1} justifyContent="center" alignItems="center"></box>
         </box>
-        <box paddingLeft={2} paddingRight={1} flexDirection="row" justifyContent="space-between">
-          <Switch>
-            <Match when={working()}>
-              <text>working...</text>
-            </Match>
-            <Match when={true}>
-              <text>
-                enter <span style={{ fg: Theme.textMuted }}>send</span>
-              </text>
-            </Match>
-          </Switch>
+        <box flexDirection="row" justifyContent="space-between">
           <text flexShrink={0} wrap={false}>
             <span style={{ fg: Theme.textMuted }}>{local.model.parsed().provider}</span>{" "}
             <span style={{ bold: true }}>{local.model.parsed().model}</span>
           </text>
+          <Switch>
+            <Match when={working()}>
+              <box flexDirection="row" gap={1}>
+                <text>
+                  esc <span style={{ fg: Theme.textMuted }}>interrupt</span>
+                </text>
+                <text fg={Theme.textMuted}>working...</text>
+              </box>
+            </Match>
+            <Match when={true}>
+              <text>
+                ctrl+k <span style={{ fg: Theme.textMuted }}>commands</span>
+              </text>
+            </Match>
+          </Switch>
         </box>
       </box>
     </>
