@@ -18,6 +18,7 @@ import { EventLoop } from "../../../util/eventloop"
 import { CommandProvider, useCommandDialog } from "./component/dialog-command"
 import { DialogAgent } from "./component/dialog-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
+import { KeybindProvider, useKeybind } from "./context/keybind"
 
 export const TuiCommand = cmd({
   command: "$0 [project]",
@@ -81,11 +82,13 @@ export const TuiCommand = cmd({
               <SDKProvider>
                 <SyncProvider>
                   <LocalProvider>
-                    <DialogProvider>
-                      <CommandProvider>
-                        <App />
-                      </CommandProvider>
-                    </DialogProvider>
+                    <KeybindProvider>
+                      <DialogProvider>
+                        <CommandProvider>
+                          <App />
+                        </CommandProvider>
+                      </DialogProvider>
+                    </KeybindProvider>
                   </LocalProvider>
                 </SyncProvider>
               </SDKProvider>
@@ -136,6 +139,8 @@ function App() {
     console.log(JSON.stringify(route.data))
   })
 
+  const keybind = useKeybind()
+
   command.register(() => [
     {
       title: "Switch session",
@@ -159,6 +164,7 @@ function App() {
     {
       title: "Switch model",
       value: "model.list",
+      keybind: "model_list",
       category: "Agent",
       onSelect: () => {
         dialog.replace(() => <DialogModel />)

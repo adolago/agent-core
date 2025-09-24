@@ -13,6 +13,8 @@ import { createStore, produce } from "solid-js/store"
 import type { FilePart } from "@opencode-ai/sdk"
 import fuzzysort from "fuzzysort"
 import { useCommandDialog } from "./dialog-command"
+import { useKeybind } from "../context/keybind"
+import { useRenderer } from "@opentui/solid"
 
 export type PromptProps = {
   sessionID?: string
@@ -29,6 +31,7 @@ export function Prompt(props: PromptProps) {
   let autocomplete: AutocompleteRef
 
   const dialog = useDialog()
+  const keybind = useKeybind()
   const local = useLocal()
   const sdk = useSDK()
   const route = useRoute()
@@ -59,7 +62,7 @@ export function Prompt(props: PromptProps) {
         value={store.input}
       />
       <box ref={(r) => (anchor = r)}>
-        <box flexDirection="row" {...SplitBorder}>
+        <box flexDirection="row" {...SplitBorder} borderColor={keybind.leader ? Theme.accent : undefined}>
           <box backgroundColor={Theme.backgroundElement} width={3} justifyContent="center" alignItems="center">
             <text attributes={TextAttributes.BOLD} fg={Theme.primary}>
               {">"}

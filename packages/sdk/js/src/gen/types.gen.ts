@@ -127,6 +127,10 @@ export type KeybindsConfig = {
    */
   model_list?: string
   /**
+   * List available commands
+   */
+  command_list?: string
+  /**
    * Next recent model
    */
   model_cycle_recent?: string

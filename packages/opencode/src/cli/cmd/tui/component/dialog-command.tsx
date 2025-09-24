@@ -10,6 +10,8 @@ import {
   type ParentProps,
 } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
+import { Keybind } from "../../../../util/keybind"
+import { useKeybind } from "../context/keybind"
 
 type Context = ReturnType<typeof init>
 const ctx = createContext<Context>()
@@ -19,6 +21,25 @@ function init() {
   const dialog = useDialog()
   const options = createMemo(() => {
     return registrations().flatMap((x) => x())
+  })
+  const keybind = useKeybind()
+
+  useKeyboard((evt) => {
+    for (const option of options()) {
+      if (
+        option.keybind &&
+        Keybind.match(option.keybind, {
+          ctrl: evt.ctrl,
+          name: evt.name,
+          shift: evt.shift,
+          leader: keybind.leader,
+          option: evt.option,
+        })
+      ) {
+        option.onSelect?.(dialog)
+        return
+      }
+    }
   })
 
   return {

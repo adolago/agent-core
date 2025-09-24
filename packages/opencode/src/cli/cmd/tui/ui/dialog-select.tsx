@@ -7,6 +7,7 @@ import { useKeyboard } from "@opentui/solid"
 import * as fuzzysort from "fuzzysort"
 import { isDeepEqual } from "remeda"
 import { useDialog, type DialogContext } from "./dialog"
+import type { KeybindsConfig } from "@opencode-ai/sdk"
 
 export interface DialogSelectProps<T> {
   title: string
@@ -19,6 +20,7 @@ export interface DialogSelectProps<T> {
 export interface DialogSelectOption<T = any> {
   title: string
   value: T
+  keybind?: keyof KeybindsConfig
   description?: string
   category?: string
   disabled?: boolean
