@@ -259,6 +259,7 @@ function Autocomplete(props: {
     () => [filter()],
     async () => {
       if (!store.visible) return []
+      if (store.visible === "/") return []
       const result = await sdk.find.files({
         query: {
           query: filter(),

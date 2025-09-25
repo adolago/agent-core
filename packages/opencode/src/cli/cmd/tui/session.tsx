@@ -171,8 +171,18 @@ export function Session() {
   )
 }
 
+const MIME_BADGE: Record<string, string> = {
+  "text/plain": "txt",
+  "image/png": "img",
+  "image/jpeg": "img",
+  "image/gif": "img",
+  "image/webp": "img",
+  "application/pdf": "pdf",
+}
+
 function UserMessage(props: { message: UserMessage; parts: Part[] }) {
   const text = createMemo(() => props.parts.flatMap((x) => (x.type === "text" && !x.synthetic ? [x] : []))[0])
+  const files = createMemo(() => props.parts.flatMap((x) => (x.type === "file" ? [x] : [])))
   const sync = useSync()
   return (
     <box
@@ -187,6 +197,25 @@ function UserMessage(props: { message: UserMessage; parts: Part[] }) {
       flexShrink={0}
     >
       <text>{text()?.text}</text>
+      <Show when={files().length}>
+        <box flexDirection="row" paddingBottom={1} paddingTop={1} gap={1} flexWrap="wrap">
+          <For each={files()}>
+            {(file) => {
+              const bg = createMemo(() => {
+                if (file.mime.startsWith("image/")) return Theme.accent
+                if (file.mime === "application/pdf") return Theme.primary
+                return Theme.secondary
+              })
+              return (
+                <text>
+                  <span style={{ bg: bg(), fg: Theme.background }}> {MIME_BADGE[file.mime] ?? file.mime} </span>
+                  <span style={{ bg: Theme.backgroundElement, fg: Theme.textMuted }}> {file.filename} </span>
+                </text>
+              )
+            }}
+          </For>
+        </box>
+      </Show>
       <text>
         {sync.data.config.username ?? "You"}{" "}
         <span style={{ fg: Theme.textMuted }}>({Locale.time(props.message.time.created)})</span>
