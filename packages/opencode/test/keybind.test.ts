@@ -14,7 +14,7 @@ describe("Keybind.toString", () => {
 
   test("should convert leader key to string", () => {
     const info: Keybind.Info = { ctrl: false, option: false, shift: false, leader: true, name: "f" }
-    expect(Keybind.toString(info)).toBe("<leader>f")
+    expect(Keybind.toString(info)).toBe("<leader>,f")
   })
 
   test("should convert multiple modifiers to string", () => {
@@ -24,7 +24,7 @@ describe("Keybind.toString", () => {
 
   test("should convert all modifiers to string", () => {
     const info: Keybind.Info = { ctrl: true, option: true, shift: true, leader: true, name: "h" }
-    expect(Keybind.toString(info)).toBe("<leader>ctrl+alt+shift+h")
+    expect(Keybind.toString(info)).toBe("<leader>,ctrl+alt+shift+h")
   })
 
   test("should convert shift modifier to string", () => {
@@ -49,7 +49,7 @@ describe("Keybind.toString", () => {
 
   test("should handle only modifiers", () => {
     const info: Keybind.Info = { ctrl: true, option: true, shift: true, leader: true, name: "" }
-    expect(Keybind.toString(info)).toBe("<leader>ctrl+alt+shift")
+    expect(Keybind.toString(info)).toBe("<leader>,ctrl+alt+shift")
   })
 
   test("should handle only leader with no other parts", () => {
