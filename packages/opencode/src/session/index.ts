@@ -242,12 +242,12 @@ export namespace Session {
     return result
   }
 
-  export async function remove(sessionID: string, emitEvent = true) {
+  export async function remove(sessionID: string) {
     const project = Instance.project
     try {
       const session = await get(sessionID)
       for (const child of await children(sessionID)) {
-        await remove(child.id, false)
+        await remove(child.id)
       }
       await unshare(sessionID).catch(() => {})
       for (const msg of await Storage.list(["message", sessionID])) {
@@ -257,11 +257,9 @@ export namespace Session {
         await Storage.remove(msg)
       }
       await Storage.remove(["session", project.id, sessionID])
-      if (emitEvent) {
-        Bus.publish(Event.Deleted, {
-          info: session,
-        })
-      }
+      Bus.publish(Event.Deleted, {
+        info: session,
+      })
     } catch (e) {
       log.error(e)
     }

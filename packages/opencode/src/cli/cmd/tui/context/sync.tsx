@@ -44,6 +44,18 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           case "todo.updated":
             setStore("todo", event.properties.sessionID, event.properties.todos)
             break
+          case "session.deleted": {
+            const result = Binary.search(store.session, event.properties.info.id, (s) => s.id)
+            if (result.found) {
+              setStore(
+                "session",
+                produce((draft) => {
+                  draft.splice(result.index, 1)
+                }),
+              )
+            }
+            break
+          }
           case "session.updated":
             const result = Binary.search(store.session, event.properties.info.id, (s) => s.id)
             if (result.found) {

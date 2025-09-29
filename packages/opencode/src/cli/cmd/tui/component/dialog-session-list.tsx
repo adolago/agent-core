@@ -2,14 +2,19 @@ import { useDialog } from "@tui/ui/dialog"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
-import { createMemo, onMount } from "solid-js"
+import { createMemo, createSignal, onMount } from "solid-js"
 import { Locale } from "@/util/locale"
 import { Keybind } from "@/util/keybind"
+import { Theme } from "../context/theme"
+import { useSDK } from "../context/sdk"
 
 export function DialogSessionList() {
   const dialog = useDialog()
   const sync = useSync()
   const route = useRoute()
+  const sdk = useSDK()
+
+  const [toDelete, setToDelete] = createSignal<string>()
 
   const options = createMemo(() => {
     const today = new Date().toDateString()
@@ -21,8 +26,10 @@ export function DialogSessionList() {
         if (category === today) {
           category = "Today"
         }
+        const isDeleting = toDelete() === x.id
         return {
-          title: x.title,
+          title: isDeleting ? "Press delete again to confirm" : x.title,
+          bg: isDeleting ? Theme.error : undefined,
           value: x.id,
           category,
           footer: Locale.time(x.time.updated),
@@ -39,6 +46,9 @@ export function DialogSessionList() {
       title="Sessions"
       options={options()}
       limit={50}
+      onMove={() => {
+        setToDelete(undefined)
+      }}
       onSelect={(option) => {
         route.navigate({
           type: "session",
@@ -48,9 +58,20 @@ export function DialogSessionList() {
       }}
       keybind={[
         {
-          keybind: Keybind.parse("del")[0],
+          keybind: Keybind.parse("delete")[0],
           title: "delete",
-          onTrigger: () => {},
+          onTrigger: async (option) => {
+            if (toDelete() === option.value) {
+              sdk.session.delete({
+                path: {
+                  id: option.value,
+                },
+              })
+              setToDelete(undefined)
+              return
+            }
+            setToDelete(option.value)
+          },
         },
       ]}
     />

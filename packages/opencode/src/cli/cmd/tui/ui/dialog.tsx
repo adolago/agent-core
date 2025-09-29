@@ -124,7 +124,7 @@ export function DialogProvider(props: ParentProps) {
       <box position="absolute">
         <For each={value.stack}>
           {(item, index) => (
-            <Show when={index() === 0}>
+            <Show when={index() === value.stack.length - 1}>
               <Dialog size={value.size}>{item.element}</Dialog>
             </Show>
           )}

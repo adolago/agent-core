@@ -13,6 +13,7 @@ import { Keybind } from "@/util/keybind"
 export interface DialogSelectProps<T> {
   title: string
   options: DialogSelectOption<T>[]
+  onMove?: (option: DialogSelectOption<T>) => void
   onFilter?: (query: string) => void
   onSelect?: (option: DialogSelectOption<T>) => void
   keybind?: {
@@ -31,6 +32,7 @@ export interface DialogSelectOption<T = any> {
   footer?: string
   category?: string
   disabled?: boolean
+  bg?: string
   onSelect?: (ctx: DialogContext) => void
 }
 
@@ -87,6 +89,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
 
   function moveTo(next: number) {
     setStore("selected", next)
+    props.onMove?.(selected()!)
     const target = scroll.getChildren().find((child) => {
       return child.id === JSON.stringify(selected()?.value)
     })
@@ -117,7 +120,8 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
 
     for (const item of props.keybind ?? []) {
       if (Keybind.match(item.keybind, keybind.parse(evt))) {
-        item.onTrigger(selected())
+        const s = selected()
+        if (s) item.onTrigger(s)
       }
     }
   })
@@ -183,7 +187,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                         if (index === -1) return
                         moveTo(index)
                       }}
-                      backgroundColor={active() ? Theme.primary : RGBA.fromInts(0, 0, 0, 0)}
+                      backgroundColor={active() ? (option.bg ?? Theme.primary) : RGBA.fromInts(0, 0, 0, 0)}
                       paddingLeft={1}
                       paddingRight={1}
                     >
