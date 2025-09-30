@@ -5,6 +5,7 @@ import { Message } from "./message"
 import { convertToModelMessages, type ModelMessage, type UIMessage } from "ai"
 import { Identifier } from "../id/id"
 import { LSP } from "../lsp"
+import type { Tool } from "../tool/tool"
 
 export namespace MessageV2 {
   export const OutputLengthError = NamedError.create("MessageOutputLengthError", z.object({}))

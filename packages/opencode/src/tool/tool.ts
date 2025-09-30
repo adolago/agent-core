@@ -4,6 +4,18 @@ export namespace Tool {
   interface Metadata {
     [key: string]: any
   }
+
+  export type PartOutput =
+    | { type: "text"; text: string }
+    | { type: "file"; url: string; mime: string; filename?: string }
+
+  export type ExecuteResult<M extends Metadata = Metadata> = {
+    title: string
+    metadata: M
+    output: string
+    part?: PartOutput
+  }
+
   export type Context<M extends Metadata = Metadata> = {
     sessionID: string
     messageID: string
@@ -18,14 +30,7 @@ export namespace Tool {
     init: () => Promise<{
       description: string
       parameters: Parameters
-      execute(
-        args: z.infer<Parameters>,
-        ctx: Context,
-      ): Promise<{
-        title: string
-        metadata: M
-        output: string
-      }>
+      execute(args: z.infer<Parameters>, ctx: Context): Promise<ExecuteResult<M>>
     }>
   }
 

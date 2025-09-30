@@ -23,6 +23,8 @@ export const ReadTool = Tool.define("read", {
     if (!path.isAbsolute(filepath)) {
       filepath = path.join(process.cwd(), filepath)
     }
+    const title = path.relative(Instance.worktree, filepath)
+
     if (!ctx.extra?.["bypassCwdCheck"] && !Filesystem.contains(Instance.directory, filepath)) {
       throw new Error(`File ${filepath} is not in the current working directory`)
     }
@@ -48,12 +50,30 @@ export const ReadTool = Tool.define("read", {
       throw new Error(`File not found: ${filepath}`)
     }
 
-    const limit = params.limit ?? DEFAULT_READ_LIMIT
-    const offset = params.offset || 0
     const isImage = isImageFile(filepath)
-    if (isImage) throw new Error(`This is an image file of type: ${isImage}\nUse a different tool to process images`)
+    if (isImage) {
+      const mime = file.type
+      const msg = `Image read successfully`
+      return {
+        title,
+        output: msg,
+        part: {
+          type: "file",
+          url: Buffer.from(await file.bytes()).toString("base64"),
+          mime,
+          filename: filepath,
+        },
+        metadata: {
+          preview: msg,
+        },
+      }
+    }
+
     const isBinary = await isBinaryFile(filepath, file)
     if (isBinary) throw new Error(`Cannot read binary file: ${filepath}`)
+
+    const limit = params.limit ?? DEFAULT_READ_LIMIT
+    const offset = params.offset || 0
     const lines = await file.text().then((text) => text.split("\n"))
     const raw = lines.slice(offset, offset + limit).map((line) => {
       return line.length > MAX_LINE_LENGTH ? line.substring(0, MAX_LINE_LENGTH) + "..." : line
@@ -76,7 +96,7 @@ export const ReadTool = Tool.define("read", {
     FileTime.read(ctx.sessionID, filepath)
 
     return {
-      title: path.relative(Instance.worktree, filepath),
+      title,
       output,
       metadata: {
         preview,

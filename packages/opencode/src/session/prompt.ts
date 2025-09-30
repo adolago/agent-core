@@ -49,6 +49,7 @@ import { spawn } from "child_process"
 import { Command } from "../command"
 import { $ } from "bun"
 import { ConfigMarkdown } from "../config/markdown"
+import type { Tool } from "../tool/tool"
 
 export namespace SessionPrompt {
   const log = Log.create({ service: "session.prompt" })
@@ -432,7 +433,6 @@ export namespace SessionPrompt {
       if (Wildcard.all(item.id, enabledTools) === false) continue
       const schema = ProviderTransform.schema(input.providerID, input.modelID, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
-        id: item.id as any,
         description: item.description,
         inputSchema: jsonSchema(schema as any),
         async execute(args, options) {
@@ -482,10 +482,30 @@ export namespace SessionPrompt {
           )
           return result
         },
-        toModelOutput(result) {
+        toModelOutput: (result: any) => {
+          const res = result as Tool.ExecuteResult
+          if (res.part) {
+            if (res.part.type === "text") {
+              return {
+                type: "text",
+                value: res.part.text,
+              }
+            }
+            return {
+              type: "content",
+              value: [
+                {
+                  type: "media",
+                  mediaType: res.part.mime,
+                  data: res.part.url,
+                },
+              ],
+            }
+          }
+
           return {
             type: "text",
-            value: result.output,
+            value: res.output,
           }
         },
       })
