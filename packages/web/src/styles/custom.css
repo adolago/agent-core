@@ -160,6 +160,18 @@ site-search > button span {
   text-decoration: none !important;
 }
 
+.starlight-aside {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+
+  .starlight-aside__content {
+    margin-top: 0;
+  }
+}
+
+
+
 site-search > button > kbd {
   font-size: 14px !important;
 }
@@ -206,7 +218,7 @@ ul, ol {
 }
 
 .sl-markdown-content .tab > [role="tab"][aria-selected="true"] {
-  border-color: var(--color-border-weak);
+  border-color: var(--color-text-strong);
 }
 
 body > .page > header, :root[data-has-sidebar] body > .page > header {
@@ -248,14 +260,16 @@ body > .page > header, :root[data-has-sidebar] body > .page > header {
   }
 }
 
+.sl-container ul li ul li {
+  padding: 4px 12px 0 12px !important;
+}
+
+
 .sl-container ul li a[aria-current="true"] {
   color: var(--color-text-strong) !important;
   opacity: 100%;
 }
 
-.sl-container ul li ul li {
-  padding: 4px 12px !important;
-}
 
 h2#starlight__on-this-page {
   font-size: 14px !important;
