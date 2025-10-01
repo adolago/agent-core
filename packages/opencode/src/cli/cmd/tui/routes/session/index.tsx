@@ -482,22 +482,7 @@ function ReasoningPart(props: { part: ReasoningPart; message: AssistantMessage }
   )
 }
 
-function resize(el: BoxRenderable) {
-  const parent = el.parent
-  if (!parent) return
-  if (el.height > 1) {
-    el.marginTop = 1
-    return
-  }
-  const children = parent.getChildren()
-  const index = children.indexOf(el)
-  const previous = children[index - 1]
-  if (!previous) return
-  if (previous.height > 1 || previous.id.startsWith("text-")) {
-    el.marginTop = 1
-    return
-  }
-}
+function resize(el: BoxRenderable) {}
 
 function TextPart(props: { part: TextPart; message: AssistantMessage }) {
   return (
@@ -511,6 +496,7 @@ function TextPart(props: { part: TextPart; message: AssistantMessage }) {
 
 function ToolPart(props: { part: ToolPart; message: AssistantMessage }) {
   const sync = useSync()
+  const [margin, setMargin] = createSignal(0)
   const component = createMemo(() => {
     const ready = ToolRegistry.ready(props.part.tool)
     if (!ready) return
@@ -541,9 +527,29 @@ function ToolPart(props: { part: ToolPart; message: AssistantMessage }) {
 
     return (
       <box
+        marginTop={margin()}
         {...style}
-        renderAfter={function () {
-          resize(this as BoxRenderable)
+        renderBefore={function () {
+          const el = this as BoxRenderable
+          const parent = el.parent
+          if (!parent) {
+            setMargin(0)
+            return
+          }
+          if (el.height > 1) {
+            setMargin(1)
+            return
+          }
+          const children = parent.getChildren()
+          const index = children.indexOf(el)
+          const previous = children[index - 1]
+          if (!previous) {
+            setMargin(0)
+          }
+          if (previous.height > 1 || previous.id.startsWith("text-")) {
+            setMargin(1)
+            return
+          }
         }}
       >
         <Dynamic

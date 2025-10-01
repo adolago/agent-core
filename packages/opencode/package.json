@@ -9,7 +9,7 @@
     "test": "bun test",
     "build": "./script/build.ts",
     "dev": "bun run --conditions=browser ./src/index.ts",
-    "random": "echo 'This is a random script'"
+    "random": "echo 'This is a modified random script'"
   },
   "bin": {
     "opencode": "./bin/opencode"
@@ -38,8 +38,8 @@
     "@openauthjs/openauth": "catalog:",
     "@opencode-ai/plugin": "workspace:*",
     "@opencode-ai/sdk": "workspace:*",
-    "@opentui/core": "0.0.0-20250924-9d06e8e4",
-    "@opentui/solid": "0.0.0-20250924-9d06e8e4",
+    "@opentui/core": "0.0.0-20251001-886e38c1",
+    "@opentui/solid": "0.0.0-20251001-886e38c1",
     "@standard-schema/spec": "1.0.0",
     "@zip.js/zip.js": "2.7.62",
     "ai": "catalog:",
