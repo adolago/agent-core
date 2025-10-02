@@ -357,49 +357,51 @@ function UserMessage(props: { message: UserMessage; parts: Part[]; onMouseUp: ()
   const [hover, setHover] = createSignal(false)
 
   return (
-    <box
-      onMouseOver={() => {
-        setHover(true)
-      }}
-      onMouseOut={() => {
-        setHover(false)
-      }}
-      onMouseUp={props.onMouseUp}
-      border={["left"]}
-      paddingTop={1}
-      paddingBottom={1}
-      paddingLeft={2}
-      marginTop={1}
-      backgroundColor={hover() ? Theme.backgroundElement : Theme.backgroundPanel}
-      customBorderChars={SplitBorder.customBorderChars}
-      borderColor={Theme.secondary}
-      flexShrink={0}
-    >
-      <text>{text()?.text}</text>
-      <Show when={files().length}>
-        <box flexDirection="row" paddingBottom={1} paddingTop={1} gap={1} flexWrap="wrap">
-          <For each={files()}>
-            {(file) => {
-              const bg = createMemo(() => {
-                if (file.mime.startsWith("image/")) return Theme.accent
-                if (file.mime === "application/pdf") return Theme.primary
-                return Theme.secondary
-              })
-              return (
-                <text>
-                  <span style={{ bg: bg(), fg: Theme.background }}> {MIME_BADGE[file.mime] ?? file.mime} </span>
-                  <span style={{ bg: Theme.backgroundElement, fg: Theme.textMuted }}> {file.filename} </span>
-                </text>
-              )
-            }}
-          </For>
-        </box>
-      </Show>
-      <text>
-        {sync.data.config.username ?? "You"}{" "}
-        <span style={{ fg: Theme.textMuted }}>({Locale.time(props.message.time.created)})</span>
-      </text>
-    </box>
+    <Show when={text()}>
+      <box
+        onMouseOver={() => {
+          setHover(true)
+        }}
+        onMouseOut={() => {
+          setHover(false)
+        }}
+        onMouseUp={props.onMouseUp}
+        border={["left"]}
+        paddingTop={1}
+        paddingBottom={1}
+        paddingLeft={2}
+        marginTop={1}
+        backgroundColor={hover() ? Theme.backgroundElement : Theme.backgroundPanel}
+        customBorderChars={SplitBorder.customBorderChars}
+        borderColor={Theme.secondary}
+        flexShrink={0}
+      >
+        <text>{text()?.text}</text>
+        <Show when={files().length}>
+          <box flexDirection="row" paddingBottom={1} paddingTop={1} gap={1} flexWrap="wrap">
+            <For each={files()}>
+              {(file) => {
+                const bg = createMemo(() => {
+                  if (file.mime.startsWith("image/")) return Theme.accent
+                  if (file.mime === "application/pdf") return Theme.primary
+                  return Theme.secondary
+                })
+                return (
+                  <text>
+                    <span style={{ bg: bg(), fg: Theme.background }}> {MIME_BADGE[file.mime] ?? file.mime} </span>
+                    <span style={{ bg: Theme.backgroundElement, fg: Theme.textMuted }}> {file.filename} </span>
+                  </text>
+                )
+              }}
+            </For>
+          </box>
+        </Show>
+        <text>
+          {sync.data.config.username ?? "You"}{" "}
+          <span style={{ fg: Theme.textMuted }}>({Locale.time(props.message.time.created)})</span>
+        </text>
+      </box>
+    </Show>
   )
 }
 
@@ -633,14 +635,14 @@ ToolRegistry.register<typeof BashTool>({
     return (
       <>
         <ToolTitle icon="#" fallback="Writing command..." when={props.input.command}>
-          {props.input.description}
+          {props.input.description || "Shell"}
         </ToolTitle>
         <Show when={props.input.command}>
           <text fg={Theme.text}>$ {props.input.command}</text>
         </Show>
         <Show when={props.output?.trim()}>
           <box>
-            <text fg={Theme.text}>{props.output?.trim()}</text>
+            <text fg={Theme.text}>{Bun.stripANSI(props.output!.trim())}</text>
           </box>
         </Show>
       </>

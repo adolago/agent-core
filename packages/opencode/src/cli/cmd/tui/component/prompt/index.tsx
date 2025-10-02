@@ -47,9 +47,15 @@ export function Prompt(props: PromptProps) {
     if (!props.disabled) input.cursorColor = Theme.primary
   })
 
-  const [store, setStore] = createStore<PromptInfo>({
-    input: "",
-    parts: [],
+  const [store, setStore] = createStore<{
+    prompt: PromptInfo
+    mode: "normal" | "shell"
+  }>({
+    prompt: {
+      input: "",
+      parts: [],
+    },
+    mode: "normal",
   })
 
   createEffect(() => {
@@ -67,16 +73,92 @@ export function Prompt(props: PromptProps) {
       input.blur()
     },
     set(prompt) {
-      setStore(prompt)
+      setStore("prompt", prompt)
       input.cursorPosition = prompt.input.length
     },
     reset() {
-      setStore({
+      setStore("prompt", {
         input: "",
         parts: [],
       })
     },
   })
+
+  async function submit() {
+    if (props.disabled) return
+    if (autocomplete.visible) return
+    if (!store.prompt.input) return
+    const sessionID = props.sessionID
+      ? props.sessionID
+      : await (async () => {
+          const sessionID = await sdk.session.create({}).then((x) => x.data!.id)
+          route.navigate({
+            type: "session",
+            sessionID,
+          })
+          return sessionID
+        })()
+    const messageID = Identifier.ascending("message")
+    const input = store.prompt.input
+    if (store.mode === "shell") {
+      sdk.session.shell({
+        path: {
+          id: sessionID,
+        },
+        body: {
+          agent: local.agent.current().name,
+          command: input,
+        },
+      })
+    } else if (input.startsWith("/")) {
+      const [command, ...args] = input.split(" ")
+      sdk.session.command({
+        path: {
+          id: sessionID,
+        },
+        body: {
+          command: command.slice(1),
+          arguments: args.join(" "),
+          agent: local.agent.current().name,
+          model: `${local.model.current().providerID}/${local.model.current().modelID}`,
+          messageID,
+        },
+      })
+      setStore("prompt", {
+        input: "",
+        parts: [],
+      })
+      return
+    } else {
+      sdk.session.prompt({
+        path: {
+          id: sessionID,
+        },
+        body: {
+          ...local.model.current(),
+          messageID,
+          agent: local.agent.current().name,
+          model: local.model.current(),
+          parts: [
+            {
+              id: Identifier.ascending("part"),
+              type: "text",
+              text: input,
+            },
+            ...store.prompt.parts.map((x) => ({
+              id: Identifier.ascending("part"),
+              ...x,
+            })),
+          ],
+        },
+      })
+    }
+    setStore("prompt", {
+      input: "",
+      parts: [],
+    })
+    props.onSubmit?.()
+  }
 
   return (
     <>
@@ -86,16 +168,20 @@ export function Prompt(props: PromptProps) {
         anchor={() => anchor}
         input={() => input}
         setPrompt={(cb) => {
-          setStore(produce(cb))
-          input.cursorPosition = store.input.length
+          setStore("prompt", produce(cb))
+          input.cursorPosition = store.prompt.input.length
         }}
-        value={store.input}
+        value={store.prompt.input}
       />
       <box ref={(r) => (anchor = r)}>
-        <box flexDirection="row" {...SplitBorder} borderColor={keybind.leader ? Theme.accent : undefined}>
+        <box
+          flexDirection="row"
+          {...SplitBorder}
+          borderColor={keybind.leader ? Theme.accent : store.mode === "shell" ? Theme.secondary : undefined}
+        >
           <box backgroundColor={Theme.backgroundElement} width={3} justifyContent="center" alignItems="center">
             <text attributes={TextAttributes.BOLD} fg={Theme.primary}>
-              {">"}
+              {store.mode === "normal" ? ">" : "!"}
             </text>
           </box>
           <box paddingTop={1} paddingBottom={2} backgroundColor={Theme.backgroundElement} flexGrow={1}>
@@ -107,23 +193,24 @@ export function Prompt(props: PromptProps) {
                 }
               }}
               onInput={(value) => {
-                let diff = value.length - store.input.length
+                let diff = value.length - store.prompt.input.length
                 setStore(
                   produce((draft) => {
-                    draft.input = value
-                    for (let i = 0; i < draft.parts.length; i++) {
-                      const part = draft.parts[i]
+                    draft.prompt.input = value
+                    for (let i = 0; i < draft.prompt.parts.length; i++) {
+                      const part = draft.prompt.parts[i]
                       if (!part.source) continue
                       const source = part.type === "agent" ? part.source : part.source.text
                       if (source.start >= input.cursorPosition) {
                         source.start += diff
                         source.end += diff
                       }
-                      const sliced = draft.input.slice(source.start, source.end)
+                      const sliced = draft.prompt.input.slice(source.start, source.end)
                       if (sliced != source.value && diff < 0) {
                         diff -= source.value.length
-                        draft.input = draft.input.slice(0, source.start) + draft.input.slice(source.end)
-                        draft.parts.splice(i, 1)
+                        draft.prompt.input =
+                          draft.prompt.input.slice(0, source.start) + draft.prompt.input.slice(source.end)
+                        draft.prompt.parts.splice(i, 1)
                         input.cursorPosition = Math.max(0, source.start - 1)
                         i--
                       }
@@ -132,18 +219,28 @@ export function Prompt(props: PromptProps) {
                 )
                 autocomplete.onInput(value)
               }}
-              value={store.input}
+              value={store.prompt.input}
               onKeyDown={async (e) => {
                 if (props.disabled) {
                   e.preventDefault()
                   return
                 }
-                autocomplete.onKeyDown(e)
+                if (e.name === "!" && input.cursorPosition === 0) {
+                  setStore("mode", "shell")
+                  e.preventDefault()
+                  return
+                }
+                if (e.name === "backspace" && input.cursorPosition === 0 && store.mode === "shell") {
+                  setStore("mode", "normal")
+                  e.preventDefault()
+                  return
+                }
+                if (store.mode === "normal") autocomplete.onKeyDown(e)
                 if (!autocomplete.visible) {
                   if (e.name === "up" || e.name === "down") {
                     const direction = e.name === "up" ? -1 : 1
                     const item = history.move(direction)
-                    setStore(item)
+                    setStore("prompt", item)
                     input.cursorPosition = item.input.length
                     return
                   }
@@ -160,7 +257,7 @@ export function Prompt(props: PromptProps) {
                 setTimeout(() => {
                   const position = input.cursorPosition
                   const direction = Math.sign(old - position)
-                  for (const part of store.parts) {
+                  for (const part of store.prompt.parts) {
                     const source = iife(() => {
                       if (part.type === "agent") return part.source
                       if (part.type === "file") return part.source?.text
@@ -179,75 +276,7 @@ export function Prompt(props: PromptProps) {
                   }
                 }, 0)
               }}
-              onSubmit={async () => {
-                if (props.disabled) return
-                if (autocomplete.visible) return
-                if (!store.input) return
-                const sessionID = props.sessionID
-                  ? props.sessionID
-                  : await (async () => {
-                      const sessionID = await sdk.session.create({}).then((x) => x.data!.id)
-                      route.navigate({
-                        type: "session",
-                        sessionID,
-                      })
-                      return sessionID
-                    })()
-                const messageID = Identifier.ascending("message")
-                const input = store.input
-                if (input.startsWith("/")) {
-                  const [command, ...args] = input.split(" ")
-                  sdk.session.command({
-                    path: {
-                      id: sessionID,
-                    },
-                    body: {
-                      command: command.slice(1),
-                      arguments: args.join(" "),
-                      agent: local.agent.current().name,
-                      model: `${local.model.current().providerID}/${local.model.current().modelID}`,
-                      messageID,
-                    },
-                  })
-                  setStore({
-                    input: "",
-                    parts: [],
-                  })
-                  props.onSubmit?.()
-                  return
-                }
-                const parts = store.parts
-                history.append(store)
-                setStore(
-                  produce((draft) => {
-                    draft.input = ""
-                    draft.parts = []
-                  }),
-                )
-                sdk.session.prompt({
-                  path: {
-                    id: sessionID,
-                  },
-                  body: {
-                    ...local.model.current(),
-                    messageID,
-                    agent: local.agent.current().name,
-                    model: local.model.current(),
-                    parts: [
-                      {
-                        id: Identifier.ascending("part"),
-                        type: "text",
-                        text: input,
-                      },
-                      ...parts.map((x) => ({
-                        id: Identifier.ascending("part"),
-                        ...x,
-                      })),
-                    ],
-                  },
-                })
-                props.onSubmit?.()
-              }}
+              onSubmit={submit}
               ref={(r) => (input = r)}
               onMouseDown={(r) => r.target?.focus()}
               focusedBackgroundColor={Theme.backgroundElement}

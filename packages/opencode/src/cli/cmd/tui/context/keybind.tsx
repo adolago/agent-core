@@ -35,6 +35,9 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
         timeout = setTimeout(() => {
           if (!store.leader) return
           leader(false)
+          if (focus) {
+            focus.focus()
+          }
         }, 2000)
         return
       }
