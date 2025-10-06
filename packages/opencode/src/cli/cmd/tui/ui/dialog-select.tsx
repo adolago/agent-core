@@ -190,6 +190,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                       backgroundColor={active() ? (option.bg ?? Theme.primary) : RGBA.fromInts(0, 0, 0, 0)}
                       paddingLeft={1}
                       paddingRight={1}
+                      gap={1}
                     >
                       <Option
                         title={option.title}
@@ -230,17 +231,20 @@ function Option(props: {
 }) {
   return (
     <>
-      <box flexGrow={1} flexShrink={0} flexDirection="row">
-        <text
-          fg={props.active ? Theme.background : props.current ? Theme.primary : Theme.text}
-          attributes={props.active ? TextAttributes.BOLD : undefined}
-        >
-          {props.title}
-        </text>
-        <text fg={props.active ? Theme.background : Theme.textMuted}> {props.description}</text>
-      </box>
+      <text
+        flexGrow={1}
+        fg={props.active ? Theme.background : props.current ? Theme.primary : Theme.text}
+        attributes={props.active ? TextAttributes.BOLD : undefined}
+        overflow="hidden"
+        wrap={false}
+      >
+        {props.title}
+        <span style={{ fg: props.active ? Theme.background : Theme.textMuted }}> {props.description}</span>
+      </text>
       <Show when={props.footer}>
-        <text fg={props.active ? Theme.background : Theme.textMuted}>{props.footer}</text>
+        <box flexShrink={0}>
+          <text fg={props.active ? Theme.background : Theme.textMuted}>{props.footer}</text>
+        </box>
       </Show>
     </>
   )
