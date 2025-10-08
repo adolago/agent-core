@@ -1,5 +1,5 @@
 import { InputRenderable, TextAttributes, BoxRenderable } from "@opentui/core"
-import { createEffect, createMemo, Match, Switch } from "solid-js"
+import { createEffect, createMemo, Match, Switch, type JSX } from "solid-js"
 import { useLocal } from "@tui/context/local"
 import { Theme } from "@tui/context/theme"
 import { SplitBorder } from "@tui/component/border"
@@ -18,6 +18,7 @@ export type PromptProps = {
   disabled?: boolean
   onSubmit?: () => void
   ref?: (ref: PromptRef) => void
+  hint?: JSX.Element
 }
 
 export type PromptRef = {
@@ -302,6 +303,7 @@ export function Prompt(props: PromptProps) {
                 </text>
               </box>
             </Match>
+            <Match when={props.hint}>{props.hint!}</Match>
             <Match when={true}>
               <text>
                 ctrl+p <span style={{ fg: Theme.textMuted }}>commands</span>

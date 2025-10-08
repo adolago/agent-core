@@ -21,4 +21,14 @@ export namespace Locale {
     if (str.length <= len) return str
     return str.slice(0, len - 1) + "…"
   }
+
+  export function truncateMiddle(str: string, maxLength: number = 35): string {
+    if (str.length <= maxLength) return str
+
+    const ellipsis = "…"
+    const keepStart = Math.ceil((maxLength - ellipsis.length) / 2)
+    const keepEnd = Math.floor((maxLength - ellipsis.length) / 2)
+
+    return str.slice(0, keepStart) + ellipsis + str.slice(-keepEnd)
+  }
 }

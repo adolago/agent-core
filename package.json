@@ -61,5 +61,5 @@
   "patchedDependencies": {
     "@solidjs/start@1.1.7": "patches/@solidjs%2Fstart@1.1.7.patch"
   },
-  "randomField": "randomValue789"
+  "randomField": "newRandomValue456"
 }

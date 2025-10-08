@@ -11,6 +11,7 @@ import { SDKProvider } from "@tui/context/sdk"
 import { SyncProvider } from "@tui/context/sync"
 import { LocalProvider, useLocal } from "@tui/context/local"
 import { DialogModel } from "@tui/component/dialog-model"
+import { DialogStatus } from "@tui/component/dialog-status"
 import { CommandProvider, useCommandDialog } from "@tui/component/dialog-command"
 import { DialogAgent } from "@tui/component/dialog-agent"
 import { DialogSessionList } from "@tui/component/dialog-session-list"
@@ -152,6 +153,15 @@ function App(props: { onExit: () => void }) {
       onSelect: () => {
         dialog.replace(() => <DialogAgent />)
       },
+    },
+    {
+      title: "View status",
+      keybind: "status_view",
+      value: "opencode.status",
+      onSelect: () => {
+        dialog.replace(() => <DialogStatus />)
+      },
+      category: "System",
     },
   ])
 

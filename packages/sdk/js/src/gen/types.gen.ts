@@ -47,6 +47,10 @@ export type KeybindsConfig = {
    */
   thinking_blocks?: string
   /**
+   * View status
+   */
+  status_view?: string
+  /**
    * Export session to editor
    */
   session_export?: string
