@@ -891,37 +891,6 @@ export type Command = {
   subtask?: boolean
 }
 
-export type Model = {
-  id: string
-  name: string
-  release_date: string
-  attachment: boolean
-  reasoning: boolean
-  temperature: boolean
-  tool_call: boolean
-  cost: {
-    input: number
-    output: number
-    cache_read?: number
-    cache_write?: number
-  }
-  limit: {
-    context: number
-    output: number
-  }
-  modalities?: {
-    input: Array<"text" | "audio" | "image" | "video" | "pdf">
-    output: Array<"text" | "audio" | "image" | "video" | "pdf">
-  }
-  experimental?: boolean
-  options: {
-    [key: string]: unknown
-  }
-  provider?: {
-    npm: string
-  }
-}
-
 export type Provider = {
   api?: string
   name: string
@@ -929,7 +898,37 @@ export type Provider = {
   id: string
   npm?: string
   models: {
-    [key: string]: Model
+    [key: string]: {
+      id: string
+      name: string
+      release_date: string
+      attachment: boolean
+      reasoning: boolean
+      temperature: boolean
+      tool_call: boolean
+      cost: {
+        input: number
+        output: number
+        cache_read?: number
+        cache_write?: number
+      }
+      limit: {
+        context: number
+        output: number
+      }
+      modalities?: {
+        input: Array<"text" | "audio" | "image" | "video" | "pdf">
+        output: Array<"text" | "audio" | "image" | "video" | "pdf">
+      }
+      experimental?: boolean
+      options: {
+        [key: string]: unknown
+      }
+      provider?: {
+        npm: string
+      }
+      providerModelId?: string
+    }
   }
 }
 
