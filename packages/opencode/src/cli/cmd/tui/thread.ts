@@ -2,8 +2,8 @@ import { cmd } from "@/cli/cmd/cmd"
 import { tui } from "./app"
 
 export const TuiThreadCommand = cmd({
-  command: "thread [project]",
-  describe: "start opencode tui threaded",
+  command: "$0 [project]",
+  describe: "start opencode tui",
   builder: (yargs) =>
     yargs
       .positional("project", {

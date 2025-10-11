@@ -3,9 +3,8 @@ import { Instance } from "@/project/instance"
 import path from "path"
 import { Server } from "@/server/server"
 
-export const TuiCommand = cmd({
-  command: "$0 [project]",
-  describe: "start opencode tui",
+export const TuiSpawnCommand = cmd({
+  command: "spawn [project]",
   builder: (yargs) =>
     yargs
       .positional("project", {
