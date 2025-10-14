@@ -20,7 +20,6 @@ const opencode = await createOpencode({
 console.log("✅ Opencode server ready")
 
 const sessions = new Map<string, { client: any; server: any; sessionId: string; channel: string; thread: string }>()
-const toolStatusMessages = new Map<string, string>() // Track tool status messages by session
 let globalEventStream: any = null
 
 async function initializeGlobalEventStream(client: any) {
@@ -55,29 +54,13 @@ async function handleToolUpdate(toolPart: any, channel: string, thread: string) 
   const icon = state === "completed" ? "✅" : state === "error" ? "❌" : state === "running" ? "🔄" : "⏳"
 
   const toolMessage = `${icon} *${toolName}*`
-  const sessionKey = `${channel}-${thread}`
 
-  // Get existing tools for this session
-  const existingMessage = toolStatusMessages.get(sessionKey) || ""
-  const tools = existingMessage ? existingMessage.split("\n").slice(1) : [] // Skip header
-
-  // Update or add the tool status
-  const toolIndex = tools.findIndex((t) => t.includes(toolName))
-  if (toolIndex >= 0) {
-    tools[toolIndex] = toolMessage
-  } else {
-    tools.push(toolMessage)
-  }
-
-  const updatedMessage = `🔧 Tools used:\n${tools.join("\n")}`
-  toolStatusMessages.set(sessionKey, updatedMessage)
-
-  // Update the tool status message
+  // Just send a single message for this tool event
   try {
     await app.client.chat.postMessage({
       channel,
       thread_ts: thread,
-      text: updatedMessage,
+      text: toolMessage,
     })
   } catch (error) {
     console.error("Failed to send tool update:", error)
