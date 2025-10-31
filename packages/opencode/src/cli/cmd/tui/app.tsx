@@ -260,6 +260,7 @@ function App() {
           renderer.writeOut(finalOsc52)
           await Clipboard.copy(text)
           renderer.clearSelection()
+          toast.show({ message: "Copied to clipboard", variant: "info" })
         }
       }}
     >

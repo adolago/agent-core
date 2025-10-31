@@ -40,7 +40,13 @@ import type { EditTool } from "@/tool/edit"
 import type { PatchTool } from "@/tool/patch"
 import type { WebFetchTool } from "@/tool/webfetch"
 import type { TaskTool } from "@/tool/task"
-import { useKeyboard, useTerminalDimensions, type BoxProps, type JSX } from "@opentui/solid"
+import {
+  useKeyboard,
+  useRenderer,
+  useTerminalDimensions,
+  type BoxProps,
+  type JSX,
+} from "@opentui/solid"
 import { useSDK } from "@tui/context/sdk"
 import { useCommandDialog } from "@tui/component/dialog-command"
 import { Shimmer } from "@tui/ui/shimmer"
@@ -398,6 +404,7 @@ export function Session() {
   })
 
   const dialog = useDialog()
+  const renderer = useRenderer()
 
   return (
     <context.Provider
@@ -510,11 +517,12 @@ export function Session() {
                     <Match when={message.role === "user"}>
                       <UserMessage
                         index={index()}
-                        onMouseUp={() =>
+                        onMouseUp={() => {
+                          if (renderer.getSelection()?.getSelectedText()) return
                           dialog.replace(() => (
                             <DialogMessage messageID={message.id} sessionID={route.sessionID} />
                           ))
-                        }
+                        }}
                         message={message as UserMessage}
                         parts={sync.data.part[message.id] ?? []}
                         pending={pending()}
