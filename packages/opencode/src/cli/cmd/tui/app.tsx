@@ -8,7 +8,6 @@ import {
   createEffect,
   untrack,
   ErrorBoundary,
-  createMemo,
   createSignal,
 } from "solid-js"
 import { Installation } from "@/installation"

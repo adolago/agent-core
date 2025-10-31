@@ -33,7 +33,7 @@ export function DialogAlert(props: DialogAlertProps) {
           paddingLeft={3}
           paddingRight={3}
           backgroundColor={theme.primary}
-          onMouseDown={() => {
+          onMouseUp={() => {
             props.onConfirm?.()
             dialog.clear()
           }}
