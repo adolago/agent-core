@@ -414,6 +414,7 @@ export namespace ACP {
     }
 
     async loadSession(params: LoadSessionRequest) {
+      const directory = params.cwd
       const model = await defaultModel(this.config)
       const sessionId = params.sessionId
 
@@ -433,7 +434,25 @@ export namespace ACP {
         }))
       })
 
-      const availableCommands = (await Command.list()).map((command) => ({
+      const agents = await this.config.sdk.app
+        .agents({
+          throwOnError: true,
+          query: {
+            directory,
+          },
+        })
+        .then((resp) => resp.data)
+
+      const commands = await this.config.sdk.command
+        .list({
+          throwOnError: true,
+          query: {
+            directory,
+          },
+        })
+        .then((resp) => resp.data)
+
+      const availableCommands = commands.map((command) => ({
         name: command.name,
         description: command.description ?? "",
       }))
@@ -444,7 +463,7 @@ export namespace ACP {
           description: "compact the session",
         })
 
-      const availableModes = (await Agents.list())
+      const availableModes = agents
         .filter((agent) => agent.mode !== "subagent")
         .map((agent) => ({
           id: agent.name,
