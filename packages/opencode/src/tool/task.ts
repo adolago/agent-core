@@ -6,7 +6,6 @@ import { Bus } from "../bus"
 import { MessageV2 } from "../session/message-v2"
 import { Identifier } from "../id/id"
 import { Agent } from "../agent/agent"
-import { SessionLock } from "../session/lock"
 import { SessionPrompt } from "../session/prompt"
 
 export const TaskTool = Tool.define("task", async () => {
@@ -63,7 +62,7 @@ export const TaskTool = Tool.define("task", async () => {
       }
 
       ctx.abort.addEventListener("abort", () => {
-        SessionLock.abort(session.id)
+        SessionPrompt.cancel(session.id)
       })
       const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
       const result = await SessionPrompt.prompt({

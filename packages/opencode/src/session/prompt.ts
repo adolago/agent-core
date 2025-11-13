@@ -49,14 +49,12 @@ import { $, fileURLToPath } from "bun"
 import { ConfigMarkdown } from "../config/markdown"
 import { SessionSummary } from "./summary"
 import { NamedError } from "@/util/error"
-import { SessionLock } from "./lock"
 import { fn } from "@/util/fn"
 import { SessionRetry } from "./retry"
 
 export namespace SessionPrompt {
   const log = Log.create({ service: "session.prompt" })
   export const OUTPUT_TOKEN_MAX = 32_000
-  const MAX_RETRIES = 10
   const DOOM_LOOP_THRESHOLD = 3
 
   export const Status = z
@@ -130,6 +128,19 @@ export namespace SessionPrompt {
 
   export function status() {
     return state().status
+  }
+
+  export function getStatus(sessionID: string) {
+    return (
+      state().status[sessionID] ?? {
+        type: "idle",
+      }
+    )
+  }
+
+  export function assertNotBusy(sessionID: string) {
+    const status = getStatus(sessionID)
+    if (status?.type !== "idle") throw new Session.BusyError(sessionID)
   }
 
   export const setStatus = fn(z.object({ sessionID: Identifier.schema("session"), status: Status }), (input) => {
@@ -1387,7 +1398,6 @@ export namespace SessionPrompt {
   })
   export type ShellInput = z.infer<typeof ShellInput>
   export async function shell(input: ShellInput) {
-    using abort = SessionLock.acquire({ sessionID: input.sessionID })
     const session = await Session.get(input.sessionID)
     if (session.revert) {
       SessionRevert.cleanup(session)
@@ -1502,18 +1512,12 @@ export namespace SessionPrompt {
 
     const proc = spawn(shell, args, {
       cwd: Instance.directory,
-      signal: abort.signal,
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
         TERM: "dumb",
       },
-    })
-
-    abort.signal.addEventListener("abort", () => {
-      if (!proc.pid) return
-      process.kill(-proc.pid)
     })
 
     let output = ""
@@ -1646,131 +1650,21 @@ export namespace SessionPrompt {
     })()
 
     const agent = await Agent.get(agentName)
-    let result: MessageV2.WithParts
 
     if ((agent.mode === "subagent" && command.subtask !== false) || command.subtask === true) {
-      using abort = SessionLock.acquire({ sessionID: input.sessionID })
-
-      const userMsg: MessageV2.User = {
-        id: Identifier.ascending("message"),
-        sessionID: input.sessionID,
-        time: {
-          created: Date.now(),
-        },
-        role: "user",
-        agent: agentName,
-        model: {
-          providerID: model.providerID,
-          modelID: model.modelID,
-        },
-      }
-      await Session.updateMessage(userMsg)
-      const userPart: MessageV2.Part = {
-        type: "text",
-        id: Identifier.ascending("part"),
-        messageID: userMsg.id,
-        sessionID: input.sessionID,
-        text: "The following tool was executed by the user",
-        synthetic: true,
-      }
-      await Session.updatePart(userPart)
-
-      const assistantMsg: MessageV2.Assistant = {
-        id: Identifier.ascending("message"),
-        sessionID: input.sessionID,
-        parentID: userMsg.id,
-        mode: agentName,
-        cost: 0,
-        path: {
-          cwd: Instance.directory,
-          root: Instance.worktree,
-        },
-        time: {
-          created: Date.now(),
-        },
-        role: "assistant",
-        tokens: {
-          input: 0,
-          output: 0,
-          reasoning: 0,
-          cache: { read: 0, write: 0 },
-        },
-        modelID: model.modelID,
-        providerID: model.providerID,
-      }
-      await Session.updateMessage(assistantMsg)
-
-      const args = {
-        description: "Consulting " + agent.name,
-        subagent_type: agent.name,
-        prompt: template,
-      }
-      const toolPart: MessageV2.ToolPart = {
-        type: "tool",
-        id: Identifier.ascending("part"),
-        messageID: assistantMsg.id,
-        sessionID: input.sessionID,
-        tool: "task",
-        callID: ulid(),
-        state: {
-          status: "running",
-          time: {
-            start: Date.now(),
-          },
-          input: {
-            description: args.description,
-            subagent_type: args.subagent_type,
-            // truncate prompt to preserve context
-            prompt: args.prompt.length > 100 ? args.prompt.substring(0, 97) + "..." : args.prompt,
-          },
-        },
-      }
-      await Session.updatePart(toolPart)
-
-      const taskResult = await TaskTool.init().then((t) =>
-        t.execute(args, {
-          sessionID: input.sessionID,
-          abort: abort.signal,
-          agent: agent.name,
-          messageID: assistantMsg.id,
-          extra: {},
-          metadata: async (metadata) => {
-            if (toolPart.state.status === "running") {
-              toolPart.state.metadata = metadata.metadata
-              toolPart.state.title = metadata.title
-              await Session.updatePart(toolPart)
-            }
-          },
-        }),
-      )
-
-      assistantMsg.time.completed = Date.now()
-      await Session.updateMessage(assistantMsg)
-      if (toolPart.state.status === "running") {
-        toolPart.state = {
-          status: "completed",
-          time: {
-            ...toolPart.state.time,
-            end: Date.now(),
-          },
-          input: toolPart.state.input,
-          title: "",
-          metadata: taskResult.metadata,
-          output: taskResult.output,
-        }
-        await Session.updatePart(toolPart)
-      }
-
-      result = { info: assistantMsg, parts: [toolPart] }
-    } else {
-      result = (await prompt({
-        sessionID: input.sessionID,
-        messageID: input.messageID,
-        model,
-        agent: agentName,
-        parts,
-      })) as MessageV2.WithParts
+      parts.push({
+        type: "agent",
+        name: agent.name,
+      })
     }
+
+    const result = (await prompt({
+      sessionID: input.sessionID,
+      messageID: input.messageID,
+      model,
+      agent: agentName,
+      parts,
+    })) as MessageV2.WithParts
 
     Bus.publish(Command.Event.Executed, {
       name: input.command,

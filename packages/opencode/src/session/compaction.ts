@@ -13,7 +13,6 @@ import { SessionPrompt } from "./prompt"
 import { Flag } from "../flag/flag"
 import { Token } from "../util/token"
 import { Log } from "../util/log"
-import { SessionLock } from "./lock"
 import { ProviderTransform } from "@/provider/transform"
 import { SessionRetry } from "./retry"
 import { Config } from "@/config/config"
@@ -88,7 +87,6 @@ export namespace SessionCompaction {
   }
 
   export async function run(input: { sessionID: string; providerID: string; modelID: string; signal?: AbortSignal }) {
-    if (!input.signal) SessionLock.assertUnlocked(input.sessionID)
     await using lock = input.signal === undefined ? SessionLock.acquire({ sessionID: input.sessionID }) : undefined
     const signal = input.signal ?? lock!.signal
 
