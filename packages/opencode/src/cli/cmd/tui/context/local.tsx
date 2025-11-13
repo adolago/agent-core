@@ -30,24 +30,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       }
     }
 
-    // Automatically update model when agent changes, but only if user hasn't selected a model
-    createEffect(() => {
-      const value = agent.current()
-      if (value.model && !modelStore.model[value.name]) {
-        if (isModelValid(value.model))
-          model.set({
-            providerID: value.model.providerID,
-            modelID: value.model.modelID,
-          })
-        else
-          toast.show({
-            variant: "warning",
-            message: `Agent ${value.name}'s configured model ${value.model.providerID}/${value.model.modelID} is not valid`,
-            duration: 3000,
-          })
-      }
-    })
-
     const agent = iife(() => {
       const agents = createMemo(() => sync.data.agent.filter((x) => x.mode !== "subagent"))
       const [agentStore, setAgentStore] = createStore<{
@@ -116,6 +98,24 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         ready: false,
         model: {},
         recent: [],
+      })
+
+      // Automatically update model when agent changes, but only if user hasn't selected a model
+      createEffect(() => {
+        const value = agent.current()
+        if (value.model && !modelStore.model[value.name]) {
+          if (isModelValid(value.model))
+            model.set({
+              providerID: value.model.providerID,
+              modelID: value.model.modelID,
+            })
+          else
+            toast.show({
+              variant: "warning",
+              message: `Agent ${value.name}'s configured model ${value.model.providerID}/${value.model.modelID} is not valid`,
+              duration: 3000,
+            })
+        }
       })
 
       const file = Bun.file(path.join(Global.Path.state, "model.json"))
