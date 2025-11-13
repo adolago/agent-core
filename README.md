@@ -1,4 +1,4 @@
-hello
+goodbye
 
 <p align="center">
   <a href="https://opencode.ai">
