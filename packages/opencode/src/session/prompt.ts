@@ -16,7 +16,6 @@ import {
   type Tool as AITool,
   tool,
   wrapLanguageModel,
-  type StreamTextResult,
   stepCountIs,
   jsonSchema,
 } from "ai"
@@ -39,8 +38,6 @@ import { LSP } from "../lsp"
 import { ReadTool } from "../tool/read"
 import { ListTool } from "../tool/ls"
 import { FileTime } from "../file/time"
-import { Permission } from "../permission"
-import { Snapshot } from "../snapshot"
 import { ulid } from "ulid"
 import { spawn } from "child_process"
 import { Command } from "../command"
@@ -383,7 +380,7 @@ export namespace SessionPrompt {
               : undefined,
             topP: agent.topP ?? ProviderTransform.topP(model.providerID, model.modelID),
             options: {
-              ...ProviderTransform.options(model.providerID, model.modelID, sessionID),
+              ...ProviderTransform.options(model.providerID, model.modelID, model.npm ?? "", sessionID),
               ...model.info.options,
               ...agent.options,
             },
@@ -1318,7 +1315,7 @@ export namespace SessionPrompt {
     const small =
       (await Provider.getSmallModel(input.providerID)) ?? (await Provider.getModel(input.providerID, input.modelID))
     const options = {
-      ...ProviderTransform.options(small.providerID, small.modelID, input.session.id),
+      ...ProviderTransform.options(small.providerID, small.modelID, small.npm ?? "", input.session.id),
       ...small.info.options,
     }
     if (small.providerID === "openai" || small.modelID.includes("gpt-5")) {
