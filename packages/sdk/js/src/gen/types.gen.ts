@@ -1183,7 +1183,7 @@ export type Config = {
 }
 
 export type BadRequestError = {
-  data: unknown | null
+  data: unknown
   errors: Array<{
     [key: string]: unknown
   }>
