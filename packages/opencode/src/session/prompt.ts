@@ -324,6 +324,7 @@ export namespace SessionPrompt {
       const task = tasks.pop()
 
       // pending subtask
+      // TODO: centralize "invoke tool" logic
       if (task?.type === "subtask") {
         const taskTool = await TaskTool.init()
         const assistantMessage = (await Session.updateMessage({
@@ -1384,8 +1385,6 @@ export namespace SessionPrompt {
     }
     template = template.trim()
 
-    const parts = await resolvePromptParts(template)
-
     const model = await (async () => {
       if (command.model) {
         return Provider.parseModel(command.model)
@@ -1401,17 +1400,20 @@ export namespace SessionPrompt {
       }
       return await Provider.defaultModel()
     })()
-
     const agent = await Agent.get(agentName)
 
-    if ((agent.mode === "subagent" && command.subtask !== false) || command.subtask === true) {
-      parts.push({
-        type: "subtask",
-        agent: agent.name,
-        description: command.description ?? "",
-        prompt: command.template,
-      })
-    }
+    const parts =
+      (agent.mode === "subagent" && command.subtask !== false) || command.subtask === true
+        ? [
+            {
+              type: "subtask" as const,
+              agent: agent.name,
+              description: command.description ?? "",
+              // TODO: how can we make task tool accept a more complex input?
+              prompt: await resolvePromptParts(template).then((x) => x.find((y) => y.type === "text")?.text ?? ""),
+            },
+          ]
+        : await resolvePromptParts(template)
 
     const result = (await prompt({
       sessionID: input.sessionID,
