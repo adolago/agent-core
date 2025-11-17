@@ -382,14 +382,14 @@ export namespace SessionPrompt {
               sessionID: sessionID,
               abort,
               async metadata(input) {
-                ;(await Session.updatePart({
+                await Session.updatePart({
                   ...part,
                   type: "tool",
                   state: {
                     ...part.state,
                     ...input,
                   },
-                })) as MessageV2.ToolPart
+                } satisfies MessageV2.ToolPart)
               },
             },
           )
