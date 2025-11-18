@@ -34,6 +34,7 @@
       "diff": "8.0.2",
       "ai": "5.0.97",
       "hono": "4.7.10",
+      "hono-openapi": "1.1.1",
       "fuzzysort": "3.1.0",
       "luxon": "3.6.1",
       "typescript": "5.8.2",
@@ -56,6 +57,7 @@
     "turbo": "2.5.6"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.933.0",
     "@opencode-ai/script": "workspace:*",
     "@opencode-ai/sdk": "workspace:*"
   },

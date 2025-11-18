@@ -1,7 +1,10 @@
 {
-  "name": "example-with-tailwindcss",
+  "name": "@opencode-ai/enterprise",
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
+    "typecheck": "tsgo --noEmit",
     "dev": "vinxi dev",
     "build": "vinxi build",
     "start": "vinxi start"
@@ -9,13 +12,18 @@
   "dependencies": {
     "@solidjs/router": "^0.15.0",
     "@solidjs/start": "^1.1.0",
+    "@opencode-ai/util": "workspace:*",
+    "hono": "catalog:",
+    "hono-openapi": "catalog:",
     "solid-js": "catalog:",
     "vinxi": "^0.5.7",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.7",
-    "tailwindcss": "^4.0.7"
+    "@tailwindcss/vite": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=22"
