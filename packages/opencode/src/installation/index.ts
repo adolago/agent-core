@@ -159,7 +159,12 @@ export namespace Installation {
   export async function latest() {
     const [major] = VERSION.split(".").map((x) => Number(x))
     const channel = CHANNEL === "latest" ? `latest-${major}` : CHANNEL
-    return fetch(`https://registry.npmjs.org/opencode-ai/${channel}`)
+
+    // Get npm registry and ensure it ends with slash
+    const registry = await Bun.$`npm config get registry`.text().then((t) => t.trim())
+    const registryUrl = registry.endsWith("/") ? registry : `${registry}/`
+
+    return fetch(`${registryUrl}opencode-ai/${channel}`)
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
         return res.json()
