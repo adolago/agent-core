@@ -2,16 +2,20 @@ import { Instance } from "@/project/instance"
 import { Plugin } from "../plugin"
 import { map, filter, pipe, fromEntries, mapValues } from "remeda"
 import z from "zod"
+import { fn } from "@/util/fn"
+import type { AuthOuathResult, Hooks } from "@opencode-ai/plugin"
+import { NamedError } from "@/util/error"
+import { Auth } from "@/auth"
 
 export namespace ProviderAuth {
   const state = Instance.state(async () => {
-    const result = pipe(
+    const methods = pipe(
       await Plugin.list(),
       filter((x) => x.auth?.provider !== undefined),
       map((x) => [x.auth!.provider, x.auth!] as const),
       fromEntries(),
     )
-    return result
+    return { methods, pending: {} as Record<string, AuthOuathResult> }
   })
 
   export const Method = z.object({
@@ -21,7 +25,7 @@ export namespace ProviderAuth {
   export type Method = z.infer<typeof Method>
 
   export async function methods() {
-    const s = await state()
+    const s = await state().then((x) => x.methods)
     return mapValues(s, (x) =>
       x.methods.map(
         (y): Method => ({
@@ -31,4 +35,96 @@ export namespace ProviderAuth {
       ),
     )
   }
+
+  export const AuthorizeResult = z.object({
+    url: z.string(),
+    method: z.union([z.literal("auto"), z.literal("code")]),
+    instructions: z.string(),
+  })
+  export type AuthorizeResult = z.infer<typeof AuthorizeResult>
+
+  export const authorize = fn(
+    z.object({
+      providerID: z.string(),
+      method: z.number(),
+    }),
+    async (input): Promise<AuthorizeResult | undefined> => {
+      const auth = await state().then((s) => s.methods[input.providerID])
+      const method = auth.methods[input.method]
+      if (method.type === "oauth") {
+        const result = await method.authorize()
+        await state().then((s) => (s.pending[input.providerID] = result))
+        return {
+          url: result.url,
+          method: result.method,
+          instructions: result.instructions,
+        }
+      }
+    },
+  )
+
+  export const callback = fn(
+    z.object({
+      providerID: z.string(),
+      method: z.number(),
+      code: z.string().optional(),
+    }),
+    async (input) => {
+      const match = await state().then((s) => s.pending[input.providerID])
+      if (!match) throw new OauthMissing({ providerID: input.providerID })
+      let result
+      if (match.method === "code") {
+        if (!input.code) throw new OauthCodeMissing({ providerID: input.providerID })
+        result = await match.callback(input.code)
+      }
+      if (match.method === "auto") {
+        result = await match.callback()
+      }
+      if (!result) return
+      if (result.type === "success") {
+        if ("key" in result) {
+          await Auth.set(input.providerID, {
+            type: "api",
+            key: result.key,
+          })
+          return
+        }
+        if ("refresh" in result) {
+          await Auth.set(input.providerID, {
+            type: "oauth",
+            access: result.access,
+            refresh: result.refresh,
+            expires: result.expires,
+          })
+          return
+        }
+      }
+    },
+  )
+
+  export const api = fn(
+    z.object({
+      providerID: z.string(),
+      key: z.string(),
+    }),
+    async (input) => {
+      await Auth.set(input.providerID, {
+        type: "api",
+        key: input.key,
+      })
+    },
+  )
+
+  export const OauthMissing = NamedError.create(
+    "ProviderAuthOauthMissing",
+    z.object({
+      providerID: z.string(),
+    }),
+  )
+  export const OauthCodeMissing = NamedError.create(
+    "ProviderAuthOauthCodeMissing",
+    z.object({
+      providerID: z.string(),
+    }),
+  )
 }

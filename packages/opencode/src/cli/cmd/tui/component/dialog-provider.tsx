@@ -4,6 +4,7 @@ import { map, pipe, sortBy } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { Dialog, useDialog } from "@tui/ui/dialog"
 import { useSDK } from "../context/sdk"
+import { DialogPrompt } from "../ui/dialog-prompt"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
   opencode: 0,
@@ -33,9 +34,9 @@ export function createDialogProviderOptions() {
             }[provider.id],
         async onSelect() {
           const methods = sync.data.provider_auth[provider.id]
-          let method = methods[0]?.type ?? "api"
+          let index: number | null = 0
           if (methods.length > 1) {
-            const index = await new Promise<number | null>((resolve) => {
+            index = await new Promise<number | null>((resolve) => {
               dialog.replace(
                 () => (
                   <DialogSelect
@@ -51,8 +52,22 @@ export function createDialogProviderOptions() {
                 () => resolve(null),
               )
             })
-            if (!index) return
-            method = methods[index].type
+          }
+          if (index == null) return
+          const method = methods[index]
+
+          if (method.type === "oauth") {
+            const result = await sdk.client.provider.oauth.authorize({
+              path: {
+                id: provider.id,
+              },
+              body: {
+                method: index,
+              },
+            })
+            if (result.data?.method === "code") {
+              await DialogPrompt.show(dialog, result.data.url + " " + result.data.instructions)
+            }
           }
         },
       })),

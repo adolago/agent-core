@@ -1237,6 +1237,45 @@ export namespace Server {
           return c.json(await ProviderAuth.methods())
         },
       )
+      .post(
+        "/provider/:id/oauth/authorize",
+        describeRoute({
+          description: "Authorize a provider using OAuth",
+          operationId: "provider.oauth.authorize",
+          responses: {
+            200: {
+              description: "Authorization URL and method",
+              content: {
+                "application/json": {
+                  schema: resolver(ProviderAuth.AuthorizeResult.optional()),
+                },
+              },
+            },
+            ...errors(400),
+          },
+        }),
+        validator(
+          "param",
+          z.object({
+            id: z.string().meta({ description: "Provider ID" }),
+          }),
+        ),
+        validator(
+          "json",
+          z.object({
+            method: z.number().meta({ description: "Auth method index" }),
+          }),
+        ),
+        async (c) => {
+          const id = c.req.valid("param").id
+          const { method } = c.req.valid("json")
+          const result = await ProviderAuth.authorize({
+            providerID: id,
+            method,
+          })
+          return c.json(result)
+        },
+      )
       .get(
         "/find",
         describeRoute({

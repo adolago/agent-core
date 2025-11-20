@@ -98,6 +98,9 @@ import type {
   ProviderListResponses,
   ProviderAuthData,
   ProviderAuthResponses,
+  ProviderOauthAuthorizeData,
+  ProviderOauthAuthorizeResponses,
+  ProviderOauthAuthorizeErrors,
   FindTextData,
   FindTextResponses,
   FindFilesData,
@@ -572,6 +575,26 @@ class Command extends _HeyApiClient {
   }
 }
 
+class Oauth extends _HeyApiClient {
+  /**
+   * Authorize a provider using OAuth
+   */
+  public authorize<ThrowOnError extends boolean = false>(options: Options<ProviderOauthAuthorizeData, ThrowOnError>) {
+    return (options.client ?? this._client).post<
+      ProviderOauthAuthorizeResponses,
+      ProviderOauthAuthorizeErrors,
+      ThrowOnError
+    >({
+      url: "/provider/{id}/oauth/authorize",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    })
+  }
+}
+
 class Provider extends _HeyApiClient {
   /**
    * List all providers
@@ -592,6 +615,7 @@ class Provider extends _HeyApiClient {
       ...options,
     })
   }
+  oauth = new Oauth({ client: this._client })
 }
 
 class Find extends _HeyApiClient {
