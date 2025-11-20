@@ -100,6 +100,24 @@ export function Session() {
   const messages = createMemo(() => sync.data.message[route.sessionID] ?? [])
   const permissions = createMemo(() => sync.data.permission[route.sessionID] ?? [])
 
+  // Collect permissions from current session AND all child sessions
+  const allPermissions = createMemo(() => {
+    const current = sync.data.permission[route.sessionID] ?? []
+    const children = sync.data.session.filter((x) => x.parentID === route.sessionID)
+    const childPermissions = children.flatMap((child) => {
+      const perms = sync.data.permission[child.id] ?? []
+      return perms.map((p) => ({
+        permission: p,
+        childSessionID: child.id,
+        childTitle: child.title,
+      }))
+    })
+    return [
+      ...current.map((p) => ({ permission: p, childSessionID: undefined, childTitle: undefined })),
+      ...childPermissions,
+    ]
+  })
+
   const pending = createMemo(() => {
     return messages().findLast((x) => x.role === "assistant" && !x.time.completed)?.id
   })
@@ -148,23 +166,23 @@ export function Session() {
   const keybind = useKeybind()
   const processedPermissions = new Set<string>()
 
-  // Handle permission requests with dialog
+  // Handle permission requests with dialog (including child sessions)
   createEffect(() => {
-    const first = permissions()[0]
+    const first = allPermissions()[0]
     if (!first) return
 
     // If we've already processed this permission, don't show dialog again
-    if (processedPermissions.has(first.id)) return
+    if (processedPermissions.has(first.permission.id)) return
 
     // Only show dialog if no other dialogs are open
     if (dialog.stack.length > 0) return
 
-    DialogPermission.show(dialog, first, (response: "once" | "always" | "reject") => {
-      processedPermissions.add(first.id)
+    DialogPermission.show(dialog, first.permission, (response: "once" | "always" | "reject") => {
+      processedPermissions.add(first.permission.id)
       sdk.client.postSessionIdPermissionsPermissionId({
         path: {
-          permissionID: first.id,
-          id: route.sessionID,
+          permissionID: first.permission.id,
+          id: first.childSessionID ?? route.sessionID,
         },
         body: {
           response: response,
@@ -831,7 +849,7 @@ export function Session() {
             <box flexShrink={0}>
               <Prompt
                 ref={(r) => (prompt = r)}
-                disabled={permissions().length > 0}
+                disabled={allPermissions().length > 0}
                 onSubmit={() => {
                   toBottom()
                 }}
