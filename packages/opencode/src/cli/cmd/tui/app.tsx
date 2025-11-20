@@ -6,6 +6,7 @@ import { Switch, Match, createEffect, untrack, ErrorBoundary, createSignal, onMo
 import { Installation } from "@/installation"
 import { Global } from "@/global"
 import { DialogProvider, useDialog } from "@tui/ui/dialog"
+import { DialogProvider as DialogProviderList } from "@tui/component/dialog-provider"
 import { SDKProvider, useSDK } from "@tui/context/sdk"
 import { SyncProvider, useSync } from "@tui/context/sync"
 import { LocalProvider, useLocal } from "@tui/context/local"
@@ -290,6 +291,14 @@ function App() {
       value: "theme.switch",
       onSelect: () => {
         dialog.replace(() => <DialogThemeList />)
+      },
+      category: "System",
+    },
+    {
+      title: "Connect provider",
+      value: "provider.connect",
+      onSelect: () => {
+        dialog.replace(() => <DialogProviderList />)
       },
       category: "System",
     },
