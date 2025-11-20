@@ -24,7 +24,7 @@ export function DialogPrompt(props: DialogPromptProps) {
   })
 
   onMount(() => {
-    dialog.setSize("large")
+    dialog.setSize("medium")
     setTimeout(() => {
       textarea.focus()
     }, 1)

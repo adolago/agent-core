@@ -12,6 +12,7 @@ import type {
   McpStatus,
   FormatterStatus,
   SessionStatus,
+  ProviderListResponse,
 } from "@opencode-ai/sdk"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useSDK } from "@tui/context/sdk"
@@ -28,6 +29,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       status: "loading" | "partial" | "complete"
       provider: Provider[]
       provider_default: Record<string, string>
+      provider_next: ProviderListResponse
       agent: Agent[]
       command: Command[]
       permission: {
@@ -56,6 +58,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       }
       formatter: FormatterStatus[]
     }>({
+      provider_next: {
+        all: [],
+        default: {},
+        connected: [],
+      },
       config: {},
       status: "loading",
       agent: [],
@@ -239,6 +246,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           batch(() => {
             setStore("provider", x.data!.providers)
             setStore("provider_default", x.data!.default)
+          })
+        }),
+        sdk.client.provider.list({ throwOnError: true }).then((x) => {
+          batch(() => {
+            setStore("provider_next", x.data!)
           })
         }),
         sdk.client.app.agents({ throwOnError: true }).then((x) => setStore("agent", x.data ?? [])),

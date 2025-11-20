@@ -2,13 +2,22 @@ import { createMemo, createSignal } from "solid-js"
 import { useLocal } from "@tui/context/local"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, flatMap, entries, filter, isDeepEqual, sortBy } from "remeda"
-import { DialogSelect, type DialogSelectRef } from "@tui/ui/dialog-select"
+import { DialogSelect, type DialogSelectOption, type DialogSelectRef } from "@tui/ui/dialog-select"
 import { useDialog } from "@tui/ui/dialog"
 import { useTheme } from "../context/theme"
 
 function Free() {
   const { theme } = useTheme()
   return <span style={{ fg: theme.secondary }}>Free</span>
+}
+const PROVIDER_PRIORITY: Record<string, number> = {
+  opencode: 0,
+  anthropic: 1,
+  "github-copilot": 2,
+  openai: 3,
+  google: 4,
+  openrouter: 5,
+  vercel: 6,
 }
 
 export function DialogModel() {
@@ -17,9 +26,15 @@ export function DialogModel() {
   const dialog = useDialog()
   const [ref, setRef] = createSignal<DialogSelectRef<unknown>>()
 
+  const connected = createMemo(() =>
+    sync.data.provider.some((x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0)),
+  )
+
+  const showRecent = createMemo(() => !ref()?.filter && local.model.recent().length > 0 && connected())
+
   const options = createMemo(() => {
     return [
-      ...(!ref()?.filter
+      ...(showRecent()
         ? local.model.recent().flatMap((item) => {
             const provider = sync.data.provider.find((x) => x.id === item.providerID)!
             if (!provider) return []
@@ -36,6 +51,16 @@ export function DialogModel() {
                 description: provider.name,
                 category: "Recent",
                 footer: model.cost?.input === 0 && provider.id === "opencode" ? <Free /> : undefined,
+                onSelect: () => {
+                  dialog.clear()
+                  local.model.set(
+                    {
+                      providerID: provider.id,
+                      modelID: model.id,
+                    },
+                    { recent: true },
+                  )
+                },
               },
             ]
           })
@@ -57,27 +82,37 @@ export function DialogModel() {
               },
               title: info.name ?? model,
               description: provider.name,
-              category: provider.name,
+              category: connected() ? provider.name : undefined,
               footer: info.cost?.input === 0 && provider.id === "opencode" ? <Free /> : undefined,
+              onSelect() {
+                dialog.clear()
+                local.model.set(
+                  {
+                    providerID: provider.id,
+                    modelID: model,
+                  },
+                  { recent: true },
+                )
+              },
             })),
-            filter((x) => Boolean(ref()?.filter) || !local.model.recent().find((y) => isDeepEqual(y, x.value))),
+            filter((x) => !showRecent() || !local.model.recent().find((y) => isDeepEqual(y, x.value))),
             sortBy((x) => x.title),
           ),
         ),
       ),
+      ...(!connected()
+        ? pipe(
+            sync.data.provider_next.all,
+            map((provider) => ({
+              title: provider.name,
+              category: "Connect a provider",
+              value: provider.id,
+            })),
+            sortBy((x) => PROVIDER_PRIORITY[x.value] ?? 99),
+          )
+        : []),
     ]
   })
 
-  return (
-    <DialogSelect
-      ref={setRef}
-      title="Select model"
-      current={local.model.current()}
-      options={options()}
-      onSelect={(option) => {
-        dialog.clear()
-        local.model.set(option.value, { recent: true })
-      }}
-    />
-  )
+  return <DialogSelect ref={setRef} title="Select model" current={local.model.current()} options={options()} />
 }
