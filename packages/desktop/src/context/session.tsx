@@ -60,7 +60,7 @@ export const { use: useSession, provider: SessionProvider } = createSimpleContex
     })
     const status = createMemo(
       () =>
-        sync.data.session_status[params.id] ?? {
+        sync.data.session_status[params.id ?? ""] ?? {
           type: "idle",
         },
     )

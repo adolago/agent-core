@@ -12,7 +12,7 @@ export default function Layout(props: ParentProps) {
   const params = useParams()
   const sync = useGlobalSync()
   const directory = createMemo(() => {
-    const decoded = base64Decode(params.dir)
+    const decoded = base64Decode(params.dir!)
     return sync.data.projects.find((x) => x.worktree === decoded)?.worktree ?? "/"
   })
   return (

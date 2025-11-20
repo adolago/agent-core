@@ -1,4 +1,3 @@
-import { createSeen } from "../hooks/create-seen"
 import { AssistantMessage } from "@opencode-ai/sdk"
 import { useData } from "../context"
 import { Binary } from "@opencode-ai/util/binary"

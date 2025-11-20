@@ -334,7 +334,7 @@ export default function Page() {
                 <Switch>
                   <Match when={session.id}>
                     <SessionTimeline
-                      sessionID={session.id}
+                      sessionID={session.id!}
                       expanded={layout.review.state() === "tab" || !session.diffs().length}
                     />
                   </Match>
