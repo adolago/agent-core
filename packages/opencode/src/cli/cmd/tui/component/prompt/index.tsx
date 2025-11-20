@@ -575,7 +575,14 @@ export function Prompt(props: PromptProps) {
             bottomLeft: "╹",
           }}
         >
-          <box paddingLeft={2} paddingRight={1} paddingTop={1} backgroundColor={theme.backgroundElement} flexGrow={1}>
+          <box
+            paddingLeft={2}
+            paddingRight={1}
+            paddingTop={1}
+            flexShrink={0}
+            backgroundColor={theme.backgroundElement}
+            flexGrow={1}
+          >
             <textarea
               placeholder={
                 props.showPlaceholder
