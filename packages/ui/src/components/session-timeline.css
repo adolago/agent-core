@@ -212,14 +212,6 @@
     width: 100%;
   }
 
-  [data-slot="session-timeline-sticky-header"] {
-    top: 40px; /* top-10 */
-
-    &::before {
-      top: -40px; /* -top-10 */
-    }
-  }
-
   [data-slot="session-timeline-accordion-trigger-content"] {
     display: flex;
     align-items: center;
@@ -284,7 +276,7 @@
     width: 100%;
   }
 
-  [data-slot="session-timeline-collapsible-trigger"] {
+  [data-slot="session-timeline-collapsible-trigger-content"] {
     color: var(--text-weak);
     cursor: pointer;
     background: none;
@@ -296,9 +288,6 @@
     &:hover {
       color: var(--text-strong);
     }
-  }
-
-  [data-slot="session-timeline-collapsible-trigger-content"] {
     display: flex;
     align-items: center;
     gap: 4px;

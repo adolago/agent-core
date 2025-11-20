@@ -48,9 +48,9 @@ export const SessionReview = (props: SessionReviewProps) => {
         [split.class ?? ""]: !!split.class,
       }}
     >
-      <div data-slot="header">
-        <div data-slot="title">Session changes</div>
-        <div data-slot="actions">
+      <div data-slot="session-review-header">
+        <div data-slot="session-review-title">Session changes</div>
+        <div data-slot="session-review-actions">
           <Button size="normal" icon="chevron-grabber-vertical" onClick={handleExpandOrCollapseAll}>
             <Switch>
               <Match when={store.open.length > 0}>Collapse all</Match>
@@ -66,17 +66,17 @@ export const SessionReview = (props: SessionReviewProps) => {
             <Accordion.Item value={diff.file}>
               <StickyAccordionHeader>
                 <Accordion.Trigger>
-                  <div data-slot="trigger-content">
-                    <div data-slot="file-info">
+                  <div data-slot="session-review-trigger-content">
+                    <div data-slot="session-review-file-info">
                       <FileIcon node={{ path: diff.file, type: "file" }} class="shrink-0 size-4" />
-                      <div data-slot="file-name-container">
+                      <div data-slot="session-review-file-name-container">
                         <Show when={diff.file.includes("/")}>
-                          <span data-slot="directory">{getDirectory(diff.file)}&lrm;</span>
+                          <span data-slot="session-review-directory">{getDirectory(diff.file)}&lrm;</span>
                         </Show>
-                        <span data-slot="filename">{getFilename(diff.file)}</span>
+                        <span data-slot="session-review-filename">{getFilename(diff.file)}</span>
                       </div>
                     </div>
-                    <div data-slot="trigger-actions">
+                    <div data-slot="session-review-trigger-actions">
                       <DiffChanges changes={diff} />
                       <Icon name="chevron-grabber-vertical" size="small" />
                     </div>

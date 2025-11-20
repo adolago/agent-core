@@ -40,7 +40,7 @@ export function Tooltip(props: TooltipProps) {
           <KobalteTooltip.Portal>
             <KobalteTooltip.Content data-component="tooltip" data-placement={props.placement}>
               {others.value}
-              {/* <KobalteTooltip.Arrow data-slot="arrow" /> */}
+              {/* <KobalteTooltip.Arrow data-slot="tooltip-arrow" /> */}
             </KobalteTooltip.Content>
           </KobalteTooltip.Portal>
         </KobalteTooltip>

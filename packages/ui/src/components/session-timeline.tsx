@@ -180,7 +180,7 @@ export function SessionTimeline(props: { sessionID: string; expanded?: boolean }
                         <For each={message.summary?.diffs ?? []}>
                           {(diff) => (
                             <Accordion.Item value={diff.file}>
-                              <StickyAccordionHeader data-slot="session-timeline-sticky-header">
+                              <StickyAccordionHeader>
                                 <Accordion.Trigger>
                                   <div data-slot="session-timeline-accordion-trigger-content">
                                     <div data-slot="session-timeline-file-info">
@@ -235,7 +235,7 @@ export function SessionTimeline(props: { sessionID: string; expanded?: boolean }
                       </Match>
                       <Match when={completed() && hasToolPart()}>
                         <Collapsible variant="ghost" open={detailsExpanded()} onOpenChange={setDetailsExpanded}>
-                          <Collapsible.Trigger data-slot="session-timeline-collapsible-trigger">
+                          <Collapsible.Trigger>
                             <div data-slot="session-timeline-collapsible-trigger-content">
                               <div data-slot="session-timeline-details-text">
                                 <Switch>

@@ -4,7 +4,7 @@
   gap: 12px;
 }
 
-[data-component="message-progress"] [data-slot="status"] {
+[data-component="message-progress"] [data-slot="message-progress-status"] {
   display: flex;
   align-items: center;
   column-gap: 20px;
@@ -13,13 +13,13 @@
   color: var(--text-base);
 }
 
-[data-component="message-progress"] [data-slot="status-text"] {
+[data-component="message-progress"] [data-slot="message-progress-status-text"] {
   font-size: 12px;
   font-weight: 500;
   line-height: 1.5;
 }
 
-[data-component="message-progress"] [data-slot="list-container"] {
+[data-component="message-progress"] [data-slot="message-progress-list-container"] {
   height: 120px;
   overflow: hidden;
   pointer-events: none;
@@ -29,7 +29,7 @@
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 33%, black 95%, transparent 100%);
 }
 
-[data-component="message-progress"] [data-slot="list"] {
+[data-component="message-progress"] [data-slot="message-progress-list"] {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -42,7 +42,7 @@
   transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-[data-component="message-progress"] [data-slot="item"] {
+[data-component="message-progress"] [data-slot="message-progress-item"] {
   height: 32px;
   display: flex;
   align-items: center;

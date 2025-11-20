@@ -37,11 +37,11 @@ export function MessageProgress(props: { assistantMessages: () => AssistantMessa
     return resolvedParts().filter((p) => p?.type === "tool" && p?.state.status === "completed") as ToolPart[]
   })
   const finishedItems = createMemo<(JSXElement | ToolPart)[]>(() => [
-    <div data-slot="item" />,
-    <div data-slot="item" />,
-    <div data-slot="item" />,
+    <div data-slot="message-progress-item" />,
+    <div data-slot="message-progress-item" />,
+    <div data-slot="message-progress-item" />,
     ...eligibleItems(),
-    ...(done() ? [<div data-slot="item" />, <div data-slot="item" />, <div data-slot="item" />] : []),
+    ...(done() ? [<div data-slot="message-progress-item" />, <div data-slot="message-progress-item" />, <div data-slot="message-progress-item" />] : []),
   ])
 
   const delay = createMemo(() => (done() ? 220 : 400))
@@ -130,12 +130,12 @@ export function MessageProgress(props: { assistantMessages: () => AssistantMessa
 
   return (
     <div data-component="message-progress">
-      <div data-slot="status">
-        <Spinner /> <span data-slot="status-text">{status() ?? "Considering next steps..."}</span>
+      <div data-slot="message-progress-status">
+        <Spinner /> <span data-slot="message-progress-status-text">{status() ?? "Considering next steps..."}</span>
       </div>
       <Show when={eligibleItems().length > 0}>
-        <div data-slot="list-container">
-          <div data-slot="list" style={{ transform: `translateY(${translateY()})` }}>
+        <div data-slot="message-progress-list-container">
+          <div data-slot="message-progress-list" style={{ transform: `translateY(${translateY()})` }}>
             <For each={finishedItems()}>
               {(part) => (
                 <Switch>
@@ -146,14 +146,14 @@ export function MessageProgress(props: { assistantMessages: () => AssistantMessa
                         data.message[part.sessionID].find((m) => m.id === part.messageID),
                       )
                       return (
-                        <div data-slot="item">
+                        <div data-slot="message-progress-item">
                           <Part message={message()!} part={part} />
                         </div>
                       )
                     }}
                   </Match>
                   <Match when={true}>
-                    <div data-slot="item">{part as JSXElement}</div>
+                    <div data-slot="message-progress-item">{part as JSXElement}</div>
                   </Match>
                 </Switch>
               )}

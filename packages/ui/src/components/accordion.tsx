@@ -27,7 +27,7 @@ function AccordionItem(props: AccordionItemProps) {
   return (
     <Kobalte.Item
       {...rest}
-      data-slot="accordion-item"
+      data-slot="accordion-accordion-item"
       classList={{
         ...(split.classList ?? {}),
         [split.class ?? ""]: !!split.class,
@@ -41,7 +41,7 @@ function AccordionHeader(props: ParentProps<AccordionHeaderProps>) {
   return (
     <Kobalte.Header
       {...rest}
-      data-slot="accordion-header"
+      data-slot="accordion-accordion-header"
       classList={{
         ...(split.classList ?? {}),
         [split.class ?? ""]: !!split.class,
@@ -57,7 +57,7 @@ function AccordionTrigger(props: ParentProps<AccordionTriggerProps>) {
   return (
     <Kobalte.Trigger
       {...rest}
-      data-slot="accordion-trigger"
+      data-slot="accordion-accordion-trigger"
       classList={{
         ...(split.classList ?? {}),
         [split.class ?? ""]: !!split.class,
@@ -73,7 +73,7 @@ function AccordionContent(props: ParentProps<AccordionContentProps>) {
   return (
     <Kobalte.Content
       {...rest}
-      data-slot="accordion-content"
+      data-slot="accordion-accordion-content"
       classList={{
         ...(split.classList ?? {}),
         [split.class ?? ""]: !!split.class,

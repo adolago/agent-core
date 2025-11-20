@@ -10,7 +10,7 @@
     display: none;
   }
 
-  [data-slot="header"] {
+  [data-slot="session-review-header"] {
     position: sticky;
     top: 0;
     z-index: 20;
@@ -23,7 +23,7 @@
     align-self: stretch;
   }
 
-  [data-slot="title"] {
+  [data-slot="session-review-title"] {
     font-family: var(--font-family-sans);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-medium);
@@ -31,7 +31,7 @@
     color: var(--text-strong);
   }
 
-  [data-slot="actions"] {
+  [data-slot="session-review-actions"] {
     display: flex;
     align-items: center;
     column-gap: 16px;
@@ -46,11 +46,11 @@
     }
   }
 
-  [data-slot="accordion-trigger"] {
+  [data-slot="session-review-accordion-trigger"] {
     background-color: var(--background-stronger);
   }
 
-  [data-slot="trigger-content"] {
+  [data-slot="session-review-trigger-content"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -58,7 +58,7 @@
     gap: 20px;
   }
 
-  [data-slot="file-info"] {
+  [data-slot="session-review-file-info"] {
     flex-grow: 1;
     display: flex;
     align-items: center;
@@ -66,19 +66,19 @@
     min-width: 0;
   }
 
-  [data-slot="file-icon"] {
+  [data-slot="session-review-file-icon"] {
     flex-shrink: 0;
     width: 16px;
     height: 16px;
   }
 
-  [data-slot="file-name-container"] {
+  [data-slot="session-review-file-name-container"] {
     display: flex;
     flex-grow: 1;
     min-width: 0;
   }
 
-  [data-slot="directory"] {
+  [data-slot="session-review-directory"] {
     color: var(--text-base);
     text-overflow: ellipsis;
     overflow: hidden;
@@ -87,12 +87,12 @@
     text-align: left;
   }
 
-  [data-slot="filename"] {
+  [data-slot="session-review-filename"] {
     color: var(--text-strong);
     flex-shrink: 0;
   }
 
-  [data-slot="trigger-actions"] {
+  [data-slot="session-review-trigger-actions"] {
     flex-shrink: 0;
     display: flex;
     gap: 16px;

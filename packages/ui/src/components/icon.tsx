@@ -179,7 +179,7 @@ export function Icon(props: IconProps) {
     return (
       <div data-component="icon" data-size={local.size || "normal"}>
         <svg
-          data-slot="svg"
+          data-slot="icon-svg"
           classList={{
             ...(local.classList || {}),
             [local.class ?? ""]: !!local.class,
@@ -197,7 +197,7 @@ export function Icon(props: IconProps) {
   return (
     <div data-component="icon" data-size={local.size || "normal"}>
       <svg
-        data-slot="svg"
+        data-slot="icon-svg"
         classList={{
           ...(local.classList || {}),
           [local.class ?? ""]: !!local.class,
