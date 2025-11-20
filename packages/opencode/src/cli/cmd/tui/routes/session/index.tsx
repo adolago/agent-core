@@ -164,21 +164,19 @@ export function Session() {
   let scroll: ScrollBoxRenderable
   let prompt: PromptRef
   const keybind = useKeybind()
-  const processedPermissions = new Set<string>()
+  let activePermissionDialog: string | null = null
 
-  // Handle permission requests with dialog (including child sessions)
   createEffect(() => {
     const first = allPermissions()[0]
-    if (!first) return
-
-    // If we've already processed this permission, don't show dialog again
-    if (processedPermissions.has(first.permission.id)) return
-
-    // Only show dialog if no other dialogs are open
+    if (!first) {
+      activePermissionDialog = null
+      return
+    }
+    if (activePermissionDialog === first.permission.id) return
     if (dialog.stack.length > 0) return
 
+    activePermissionDialog = first.permission.id
     DialogPermission.show(dialog, first.permission, (response: "once" | "always" | "reject") => {
-      processedPermissions.add(first.permission.id)
       sdk.client.postSessionIdPermissionsPermissionId({
         path: {
           permissionID: first.permission.id,
