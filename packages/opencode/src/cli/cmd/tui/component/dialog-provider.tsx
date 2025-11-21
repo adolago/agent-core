@@ -1,4 +1,4 @@
-import { createMemo, onMount } from "solid-js"
+import { createMemo, createSignal, onMount, Show } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, sortBy } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
@@ -7,7 +7,8 @@ import { useSDK } from "../context/sdk"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
-import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@opencode-ai/sdk"
+import type { ProviderAuthAuthorization } from "@opencode-ai/sdk"
+import { DialogModel } from "./dialog-model"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
   opencode: 0,
@@ -23,19 +24,16 @@ export function createDialogProviderOptions() {
   const sync = useSync()
   const dialog = useDialog()
   const sdk = useSDK()
-  const { theme } = useTheme()
   const options = createMemo(() => {
     return pipe(
       sync.data.provider_next.all,
       map((provider) => ({
         title: provider.name,
         value: provider.id,
-        footer: sync.data.provider_next.connected.includes(provider.id)
-          ? "Connected"
-          : {
-              opencode: "Recommended",
-              anthropic: "Claude Max or API key",
-            }[provider.id],
+        footer: {
+          opencode: "Recommended",
+          anthropic: "Claude Max or API key",
+        }[provider.id],
         async onSelect() {
           const methods = sync.data.provider_auth[provider.id] ?? [
             {
@@ -78,12 +76,14 @@ export function createDialogProviderOptions() {
                 <CodeMethod providerID={provider.id} title={method.label} index={index} authorization={result.data!} />
               ))
             }
-
             if (result.data?.method === "auto") {
               dialog.replace(() => (
                 <AutoMethod providerID={provider.id} title={method.label} index={index} authorization={result.data!} />
               ))
             }
+          }
+          if (method.type === "api") {
+            return dialog.replace(() => <ApiMethod providerID={provider.id} title={method.label} />)
           }
         },
       })),
@@ -125,7 +125,7 @@ function AutoMethod(props: AutoMethodProps) {
     }
     await sdk.client.instance.dispose()
     await sync.bootstrap()
-    dialog.clear()
+    dialog.replace(() => <DialogModel />)
   })
 
   return (
@@ -153,6 +153,8 @@ function CodeMethod(props: CodeMethodProps) {
   const { theme } = useTheme()
   const sdk = useSDK()
   const sync = useSync()
+  const dialog = useDialog()
+  const [error, setError] = createSignal(false)
 
   return (
     <DialogPrompt
@@ -171,15 +173,52 @@ function CodeMethod(props: CodeMethodProps) {
         if (!error) {
           await sdk.client.instance.dispose()
           await sync.bootstrap()
+          dialog.replace(() => <DialogModel />)
           return
         }
+        setError(true)
       }}
       description={() => (
         <box gap={1}>
           <text fg={theme.textMuted}>{props.authorization.instructions}</text>
           <text fg={theme.primary}>{props.authorization.url}</text>
+          <Show when={error()}>
+            <text fg={theme.error}>Invalid code</text>
+          </Show>
         </box>
       )}
+    />
+  )
+}
+
+interface ApiMethodProps {
+  providerID: string
+  title: string
+}
+function ApiMethod(props: ApiMethodProps) {
+  const dialog = useDialog()
+  const sdk = useSDK()
+  const sync = useSync()
+
+  return (
+    <DialogPrompt
+      title={props.title}
+      placeholder="API key"
+      onConfirm={async (value) => {
+        if (!value) return
+        sdk.client.auth.set({
+          path: {
+            id: props.providerID,
+          },
+          body: {
+            type: "api",
+            key: value,
+          },
+        })
+        await sdk.client.instance.dispose()
+        await sync.bootstrap()
+        dialog.replace(() => <DialogModel />)
+      }}
     />
   )
 }

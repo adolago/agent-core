@@ -21,7 +21,6 @@ export function DialogPrompt(props: DialogPromptProps) {
   useKeyboard((evt) => {
     if (evt.name === "return") {
       props.onConfirm?.(textarea.plainText)
-      dialog.clear()
     }
   })
 
@@ -44,7 +43,6 @@ export function DialogPrompt(props: DialogPromptProps) {
         <textarea
           onSubmit={() => {
             props.onConfirm?.(textarea.plainText)
-            dialog.clear()
           }}
           height={3}
           keyBindings={[{ name: "return", action: "submit" }]}

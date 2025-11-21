@@ -2,11 +2,9 @@ import { createMemo, createSignal } from "solid-js"
 import { useLocal } from "@tui/context/local"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, flatMap, entries, filter, isDeepEqual, sortBy } from "remeda"
-import { DialogSelect, type DialogSelectOption, type DialogSelectRef } from "@tui/ui/dialog-select"
+import { DialogSelect, type DialogSelectRef } from "@tui/ui/dialog-select"
 import { useDialog } from "@tui/ui/dialog"
 import { useTheme } from "../context/theme"
-import { DialogPrompt } from "../ui/dialog-prompt"
-import { useSDK } from "../context/sdk"
 import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
 
 function Free() {
@@ -27,7 +25,6 @@ export function DialogModel() {
   const local = useLocal()
   const sync = useSync()
   const dialog = useDialog()
-  const sdk = useSDK()
   const [ref, setRef] = createSignal<DialogSelectRef<unknown>>()
 
   const connected = createMemo(() =>
