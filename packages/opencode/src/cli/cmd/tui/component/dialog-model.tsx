@@ -9,7 +9,7 @@ import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
 
 function Free() {
   const { theme } = useTheme()
-  return <span style={{ fg: theme.secondary }}>Free</span>
+  return <span style={{ fg: theme.text }}>Free</span>
 }
 const PROVIDER_PRIORITY: Record<string, number> = {
   opencode: 0,
@@ -52,7 +52,7 @@ export function DialogModel() {
                 title: model.name ?? item.modelID,
                 description: provider.name,
                 category: "Recent",
-                footer: model.cost?.input === 0 && provider.id === "opencode" ? <Free /> : undefined,
+                footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
                 onSelect: () => {
                   dialog.clear()
                   local.model.set(
@@ -83,9 +83,9 @@ export function DialogModel() {
                 modelID: model,
               },
               title: info.name ?? model,
-              description: provider.name,
+              description: connected() ? provider.name : undefined,
               category: connected() ? provider.name : undefined,
-              footer: info.cost?.input === 0 && provider.id === "opencode" ? <Free /> : undefined,
+              footer: info.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
               onSelect() {
                 dialog.clear()
                 local.model.set(

@@ -51,7 +51,6 @@ export function createDialogProviderOptions() {
                     options={methods.map((x, index) => ({
                       title: x.label,
                       value: index,
-                      category: "Method",
                     }))}
                     onSelect={(option) => resolve(option.value)}
                   />
