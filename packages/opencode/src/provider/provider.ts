@@ -23,6 +23,7 @@ import { createVertexAnthropic } from "@ai-sdk/google-vertex/anthropic"
 import { createOpenAI } from "@ai-sdk/openai"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { createOpenRouter } from "@openrouter/ai-sdk-provider"
+import { createGitHubCopilotOpenAICompatible } from "./sdk/copilot/src"
 
 export namespace Provider {
   const log = Log.create({ service: "provider" })
@@ -37,6 +38,8 @@ export namespace Provider {
     "@ai-sdk/openai": createOpenAI,
     "@ai-sdk/openai-compatible": createOpenAICompatible,
     "@openrouter/ai-sdk-provider": createOpenRouter,
+    // @ts-ignore
+    "@ai-sdk/github-copilot": createGitHubCopilotOpenAICompatible,
   }
 
   type CustomLoader = (provider: ModelsDev.Provider) => Promise<{
@@ -83,6 +86,18 @@ export namespace Provider {
         autoload: false,
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
           return sdk.responses(modelID)
+        },
+        options: {},
+      }
+    },
+    "github-copilot": async () => {
+      return {
+        autoload: false,
+        async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
+          if (modelID.includes("gpt-5")) {
+            return sdk.responses(modelID)
+          }
+          return sdk.chat(modelID)
         },
         options: {},
       }
@@ -487,6 +502,10 @@ export namespace Provider {
       if (!isProviderAllowed(providerID)) {
         delete providers[providerID]
         continue
+      }
+
+      if (providerID === "github-copilot") {
+        provider.info.npm = "@ai-sdk/github-copilot"
       }
 
       const configProvider = config.provider?.[providerID]

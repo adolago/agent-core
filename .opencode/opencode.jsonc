@@ -17,9 +17,6 @@
       },
       "models": {
         "gpt-5.1-codex": {
-          "provider": {
-            "npm": "@ai-sdk/openai",
-          },
           "options": {
             "reasoning": {
               "effort": "medium",
@@ -29,9 +26,6 @@
           },
         },
         "gpt-5.1-codex-mini": {
-          "provider": {
-            "npm": "@ai-sdk/openai",
-          },
           "options": {
             // "reasoningEffort": "low",
             // "reasoningSummary": "auto",
@@ -39,9 +33,6 @@
           },
         },
         "gpt-5-codex": {
-          "provider": {
-            "npm": "@ai-sdk/openai",
-          },
           "options": {
             "reasoning": {
               "effort": "medium",
