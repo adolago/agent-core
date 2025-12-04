@@ -336,9 +336,10 @@ export namespace SessionProcessor {
                   continue
               }
             }
-          } catch (e) {
+          } catch (e: any) {
             log.error("process", {
               error: e,
+              stack: JSON.stringify(e.stack),
             })
             const error = MessageV2.fromError(e, { providerID: input.sessionID })
             const retry = SessionRetry.retryable(error)

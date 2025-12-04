@@ -590,8 +590,8 @@ export namespace SessionPrompt {
             {
               async transformParams(args) {
                 if (args.type === "stream") {
-                  // @ts-expect-error
-                  args.params.prompt = ProviderTransform.message(args.params.prompt, model.providerID, model.info)
+                  // @ts-expect-error - prompt types are compatible at runtime
+                  args.params.prompt = ProviderTransform.message(args.params.prompt, model)
                 }
                 // Transform tool schemas for provider compatibility
                 if (args.params.tools && Array.isArray(args.params.tools)) {
