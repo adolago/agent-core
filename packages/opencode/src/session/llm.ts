@@ -3,10 +3,11 @@ import { Log } from "@/util/log"
 import { streamText, wrapLanguageModel, type ModelMessage, type StreamTextResult, type Tool, type ToolSet } from "ai"
 import { mergeDeep, pipe } from "remeda"
 import { ProviderTransform } from "@/provider/transform"
-import { iife } from "@/util/iife"
 import { Config } from "@/config/config"
 import { Instance } from "@/project/instance"
 import type { Agent } from "@/agent/agent"
+import type { MessageV2 } from "./message-v2"
+import { Plugin } from "@/plugin"
 
 export namespace LLM {
   const log = Log.create({ service: "llm" })
@@ -14,7 +15,7 @@ export namespace LLM {
   export const OUTPUT_TOKEN_MAX = 32_000
 
   export type StreamInput = {
-    requestID: string
+    user: MessageV2.User
     sessionID: string
     model: Provider.Model
     agent: Agent.Info
@@ -32,21 +33,35 @@ export namespace LLM {
 
     const [first, ...rest] = input.system
     const system = [first, rest.join("\n")]
-    const options = pipe(
-      ProviderTransform.options(input.model, input.sessionID),
-      mergeDeep(input.model.options),
-      mergeDeep(input.agent.options),
+
+    const params = await Plugin.trigger(
+      "chat.params",
+      {
+        sessionID: input.sessionID,
+        agent: input.agent,
+        model: input.model,
+        provider: Provider.getProvider(input.model.providerID),
+        message: input.user,
+      },
+      {
+        temperature: input.model.capabilities.temperature
+          ? (input.agent.temperature ?? ProviderTransform.temperature(input.model))
+          : undefined,
+        topP: input.agent.topP ?? ProviderTransform.topP(input.model),
+        options: pipe(
+          ProviderTransform.options(input.model, input.sessionID),
+          mergeDeep(input.model.options),
+          mergeDeep(input.agent.options),
+        ),
+      },
     )
+
     const maxOutputTokens = ProviderTransform.maxOutputTokens(
       input.model.api.npm,
-      options,
+      params.options,
       input.model.limit.output,
       OUTPUT_TOKEN_MAX,
     )
-    const temperature = input.model.capabilities.temperature
-      ? (input.agent.temperature ?? ProviderTransform.temperature(input.model))
-      : undefined
-    const topP = input.agent.topP ?? ProviderTransform.topP(input.model)
 
     return streamText({
       onError(error) {
@@ -75,29 +90,9 @@ export namespace LLM {
           toolName: "invalid",
         }
       },
-      temperature,
-      topP,
-      providerOptions: {
-        [iife(() => {
-          switch (input.model.api.npm) {
-            case "@ai-sdk/openai":
-            case "@ai-sdk/azure":
-              return `openai`
-            case "@ai-sdk/amazon-bedrock":
-              return `bedrock`
-            case "@ai-sdk/anthropic":
-              return `anthropic`
-            case "@ai-sdk/google":
-              return `google`
-            case "@ai-sdk/gateway":
-              return `gateway`
-            case "@openrouter/ai-sdk-provider":
-              return `openrouter`
-            default:
-              return input.model.providerID
-          }
-        })]: options,
-      },
+      temperature: params.temperature,
+      topP: params.topP,
+      providerOptions: ProviderTransform.providerOptions(input.model, params.options, input.messages),
       activeTools: Object.keys(input.tools).filter((x) => x !== "invalid"),
       maxOutputTokens,
       abortSignal: input.abort,
@@ -106,7 +101,7 @@ export namespace LLM {
           ? {
               "x-opencode-project": Instance.project.id,
               "x-opencode-session": input.sessionID,
-              "x-opencode-request": input.requestID,
+              "x-opencode-request": input.user.id,
             }
           : undefined),
         ...input.model.headers,

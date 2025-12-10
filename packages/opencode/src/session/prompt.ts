@@ -9,15 +9,7 @@ import { SessionRevert } from "./revert"
 import { Session } from "."
 import { Agent } from "../agent/agent"
 import { Provider } from "../provider/provider"
-import {
-  generateText,
-  type ModelMessage,
-  type Tool as AITool,
-  tool,
-  wrapLanguageModel,
-  stepCountIs,
-  jsonSchema,
-} from "ai"
+import { generateText, type ModelMessage, type Tool as AITool, tool, jsonSchema } from "ai"
 import { SessionCompaction } from "./compaction"
 import { Instance } from "../project/instance"
 import { Bus } from "../bus"
@@ -484,29 +476,6 @@ export namespace SessionPrompt {
         tools: lastUser.tools,
         processor,
       })
-      const provider = await Provider.getProvider(model.providerID)
-      const params = await Plugin.trigger(
-        "chat.params",
-        {
-          sessionID: sessionID,
-          agent: lastUser.agent,
-          model: model,
-          provider,
-          message: lastUser,
-        },
-        {
-          temperature: model.capabilities.temperature
-            ? (agent.temperature ?? ProviderTransform.temperature(model))
-            : undefined,
-          topP: agent.topP ?? ProviderTransform.topP(model),
-          options: pipe(
-            {},
-            mergeDeep(ProviderTransform.options(model, sessionID, provider?.options)),
-            mergeDeep(model.options),
-            mergeDeep(agent.options),
-          ),
-        },
-      )
 
       if (step === 1) {
         SessionSummary.summarize({
@@ -516,31 +485,13 @@ export namespace SessionPrompt {
       }
 
       const result = await processor.process({
-        temperature: params.temperature,
-        topP: params.topP,
-        toolChoice: isLastStep ? "none" : undefined,
+        user: lastUser,
+        agent,
+        abort,
+        sessionID,
+        system,
         messages: [
-          ...system.map(
-            (x): ModelMessage => ({
-              role: "system",
-              content: x,
-            }),
-          ),
-          ...MessageV2.toModelMessage(
-            msgs.filter((m) => {
-              if (m.info.role !== "assistant" || m.info.error === undefined) {
-                return true
-              }
-              if (
-                MessageV2.AbortedError.isInstance(m.info.error) &&
-                m.parts.some((part) => part.type !== "step-start" && part.type !== "reasoning")
-              ) {
-                return true
-              }
-
-              return false
-            }),
-          ),
+          ...MessageV2.toModelMessage(msgs),
           ...(isLastStep
             ? [
                 {
@@ -550,37 +501,8 @@ export namespace SessionPrompt {
               ]
             : []),
         ],
-        tools: model.capabilities.toolcall === false ? undefined : tools,
-        model: wrapLanguageModel({
-          model: language,
-          middleware: [
-            {
-              async transformParams(args) {
-                if (args.type === "stream") {
-                  // @ts-expect-error - prompt types are compatible at runtime
-                  args.params.prompt = ProviderTransform.message(args.params.prompt, model)
-                }
-                // Transform tool schemas for provider compatibility
-                if (args.params.tools && Array.isArray(args.params.tools)) {
-                  args.params.tools = args.params.tools.map((tool: any) => {
-                    // Tools at middleware level have inputSchema, not parameters
-                    if (tool.inputSchema && typeof tool.inputSchema === "object") {
-                      // Transform the inputSchema for provider compatibility
-                      return {
-                        ...tool,
-                        inputSchema: ProviderTransform.schema(model, tool.inputSchema),
-                      }
-                    }
-                    // If no inputSchema, return tool unchanged
-                    return tool
-                  })
-                }
-                return args.params
-              },
-            },
-          ],
-        }),
-        experimental_telemetry: { isEnabled: cfg.experimental?.openTelemetry },
+        tools,
+        model,
       })
       if (result === "stop") break
       continue
@@ -1411,7 +1333,7 @@ export namespace SessionPrompt {
     await generateText({
       // use higher # for reasoning models since reasoning tokens eat up a lot of the budget
       maxOutputTokens: small.capabilities.reasoning ? 3000 : 20,
-      providerOptions: ProviderTransform.providerOptions(small.api.npm, small.providerID, options),
+      providerOptions: ProviderTransform.providerOptions(small, options, []),
       messages: [
         ...SystemPrompt.title(small.providerID).map(
           (x): ModelMessage => ({
@@ -1444,7 +1366,13 @@ export namespace SessionPrompt {
       ],
       headers: small.headers,
       model: language,
-      experimental_telemetry: { isEnabled: cfg.experimental?.openTelemetry },
+      experimental_telemetry: {
+        isEnabled: cfg.experimental?.openTelemetry,
+        metadata: {
+          userId: cfg.username ?? "unknown",
+          sessionId: input.session.id,
+        },
+      },
     })
       .then((result) => {
         if (result.text)
