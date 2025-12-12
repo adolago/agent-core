@@ -18,7 +18,6 @@ import { Shell } from "@/shell/shell"
 
 const MAX_OUTPUT_LENGTH = Flag.OPENCODE_EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH || 30_000
 const DEFAULT_TIMEOUT = Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
-const SIGKILL_TIMEOUT_MS = 200
 
 export const log = Log.create({ service: "bash-tool" })
 
@@ -236,51 +235,23 @@ export const BashTool = Tool.define("bash", async () => {
       let aborted = false
       let exited = false
 
-      const killTree = async () => {
-        const pid = proc.pid
-        if (!pid || exited) {
-          return
-        }
-
-        if (process.platform === "win32") {
-          await new Promise<void>((resolve) => {
-            const killer = spawn("taskkill", ["/pid", String(pid), "/f", "/t"], { stdio: "ignore" })
-            killer.once("exit", resolve)
-            killer.once("error", resolve)
-          })
-          return
-        }
-
-        try {
-          process.kill(-pid, "SIGTERM")
-          await Bun.sleep(SIGKILL_TIMEOUT_MS)
-          if (!exited) {
-            process.kill(-pid, "SIGKILL")
-          }
-        } catch (_e) {
-          proc.kill("SIGTERM")
-          await Bun.sleep(SIGKILL_TIMEOUT_MS)
-          if (!exited) {
-            proc.kill("SIGKILL")
-          }
-        }
-      }
+      const kill = () => Shell.killTree(proc, { exited: () => exited })
 
       if (ctx.abort.aborted) {
         aborted = true
-        await killTree()
+        await kill()
       }
 
       const abortHandler = () => {
         aborted = true
-        void killTree()
+        void kill()
       }
 
       ctx.abort.addEventListener("abort", abortHandler, { once: true })
 
       const timeoutTimer = setTimeout(() => {
         timedOut = true
-        void killTree()
+        void kill()
       }, timeout + 100)
 
       await new Promise<void>((resolve, reject) => {
