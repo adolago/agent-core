@@ -15,6 +15,8 @@ import { Instance } from "@/project/instance"
 import { Storage } from "@/storage/storage"
 import { Bus } from "@/bus"
 import { mergeDeep, pipe } from "remeda"
+import { LLM } from "./llm"
+import { Agent } from "@/agent/agent"
 
 export namespace SessionSummary {
   const log = Log.create({ service: "session.summary" })
@@ -89,16 +91,12 @@ export namespace SessionSummary {
 
     const textPart = msgWithParts.parts.find((p) => p.type === "text" && !p.synthetic) as MessageV2.TextPart
     if (textPart && !userMsg.summary?.title) {
-      const result = await generateText({
-        maxOutputTokens: small.capabilities.reasoning ? 1500 : 20,
-        providerOptions: ProviderTransform.providerOptions(small, options),
+      const stream = await LLM.stream({
+        agent: await Agent.get("summary"),
+        user: userMsg,
+        tools: {},
+        model: small,
         messages: [
-          ...SystemPrompt.title(small.providerID).map(
-            (x): ModelMessage => ({
-              role: "system",
-              content: x,
-            }),
-          ),
           {
             role: "user" as const,
             content: `
@@ -109,18 +107,15 @@ export namespace SessionSummary {
             `,
           },
         ],
-        headers: small.headers,
-        model: language,
-        experimental_telemetry: {
-          isEnabled: cfg.experimental?.openTelemetry,
-          metadata: {
-            userId: cfg.username ?? "unknown",
-            sessionId: assistantMsg.sessionID,
-          },
-        },
+        small: true,
+        abort: new AbortController().signal,
+        sessionID: userMsg.sessionID,
+        system: [],
+        retries: 3,
       })
-      log.info("title", { title: result.text })
-      userMsg.summary.title = result.text
+      const result = await stream.text
+      log.info("title", { title: result })
+      userMsg.summary.title = result
       await Session.updateMessage(userMsg)
     }
 
