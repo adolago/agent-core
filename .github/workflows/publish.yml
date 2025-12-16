@@ -166,7 +166,8 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           RUST_TARGET: ${{ matrix.settings.target }}
           GH_TOKEN: ${{ github.token }}
-          OPENCODE_RELEASE_TAG: ${{ needs.publish.outputs.tagName }}
+          OPENCODE_RELEASE_TAG: v1.0.163
+          # ${{ needs.publish.outputs.tagName }}
 
       # Fixes AppImage build issues, can be removed when https://github.com/tauri-apps/tauri/pull/12491 is released
       - name: Install tauri-cli from portable appimage branch
