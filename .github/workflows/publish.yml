@@ -210,6 +210,12 @@ jobs:
     # - publish-tauri
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: v1.0.163
+          # ${{ needs.publish.outputs.tagName }}
+
       - run: gh release edit v1.0.163 --draft=false
         # ${{ steps.publish.outputs.tagName }}
         env:
