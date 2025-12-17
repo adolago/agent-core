@@ -37,7 +37,6 @@ function getDownloadPlatform(os: OS): DownloadPlatform {
   }
 }
 
-
 function getDownloadHref(platform: DownloadPlatform) {
   return `/download/${platform}`
 }
