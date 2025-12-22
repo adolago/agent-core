@@ -136,7 +136,8 @@ export function Session() {
     if (sidebar() === "auto" && wide()) return true
     return false
   })
-  const contentWidth = createMemo(() => dimensions().width - (sidebarVisible() ? 42 : 0) - 4)
+  const sidebarOverlay = createMemo(() => sidebarVisible() && !wide())
+  const contentWidth = createMemo(() => dimensions().width - (sidebarVisible() && !sidebarOverlay() ? 42 : 0) - 4)
 
   const scrollAcceleration = createMemo(() => {
     const tui = sync.data.config.tui
@@ -883,7 +884,7 @@ export function Session() {
       <box flexDirection="row">
         <box flexGrow={1} paddingBottom={1} paddingTop={1} paddingLeft={2} paddingRight={2} gap={1}>
           <Show when={session()}>
-            <Show when={!sidebarVisible()}>
+            <Show when={!sidebarVisible() || sidebarOverlay()}>
               <Header />
             </Show>
             <scrollbox
@@ -1013,14 +1014,19 @@ export function Session() {
                 sessionID={route.sessionID}
               />
             </box>
-            <Show when={!sidebarVisible() && tall()}>
+            <Show when={(!sidebarVisible() || sidebarOverlay()) && tall()}>
               <Footer />
             </Show>
           </Show>
           <Toast />
         </box>
-        <Show when={sidebarVisible()}>
+        <Show when={sidebarVisible() && !sidebarOverlay()}>
           <Sidebar sessionID={route.sessionID} />
+        </Show>
+        <Show when={sidebarOverlay()}>
+          <box position="absolute" right={0} top={0} height={dimensions().height} zIndex={100}>
+            <Sidebar sessionID={route.sessionID} />
+          </box>
         </Show>
       </box>
     </context.Provider>
