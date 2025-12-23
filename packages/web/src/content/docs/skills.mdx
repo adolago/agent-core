@@ -4,67 +4,50 @@ description: "Define reusable behavior via SKILL.md definitions"
 ---
 
 Agent skills let OpenCode discover reusable instructions from your repo or home directory.
-When a conversation matches a skill, the agent is prompted to read its `SKILL.md`.
+The model can then call the built-in `skill` tool to load the full skill content into the conversation.
 
 ---
 
 ## Place files
 
-Create one folder per skill name and put a `SKILL.md` inside it.
-OpenCode searches these locations:
+A skill is a Markdown file named `SKILL.md` with YAML frontmatter.
+OpenCode scans for `skill/**/SKILL.md` inside your config directories.
 
-- Project config: `.opencode/skill/<name>/SKILL.md`
-- Global config: `~/.opencode/skill/<name>/SKILL.md`
-- Claude-compatible: `.claude/skills/<name>/SKILL.md`
+Common locations:
+
+- Project: `.opencode/skill/<name>/SKILL.md`
+- Global (recommended): `~/.config/opencode/skill/<name>/SKILL.md`
+- Global (legacy): `~/.opencode/skill/<name>/SKILL.md`
+
+Because discovery uses `skill/**/SKILL.md`, you can also organize skills into subfolders:
+
+- `.opencode/skill/release/git-release/SKILL.md`
+- `~/.config/opencode/skill/frontend/react/SKILL.md`
 
 ---
 
 ## Understand discovery
 
-For project-local paths, OpenCode walks up from your current working directory until it reaches the git worktree.
-It loads any matching `skill/*/SKILL.md` in `.opencode/` and any matching `.claude/skills/*/SKILL.md` along the way.
+OpenCode loads config directories in this order:
 
-Global definitions are also loaded from `~/.opencode/skill/*/SKILL.md`.
+- `~/.config/opencode`
+- Any `.opencode` directories between your current working directory and the git worktree
+- `~/.opencode`
+- `OPENCODE_CONFIG_DIR` (if set)
+
+For each directory, it discovers all matching `skill/**/SKILL.md` files.
+If multiple skill files share the same frontmatter `name`, the last one loaded wins.
 
 ---
 
 ## Write frontmatter
 
-Each `SKILL.md` must start with YAML frontmatter.
-Only these fields are recognized:
+At minimum, include:
 
-- `name` (required)
-- `description` (required)
-- `license` (optional)
-- `compatibility` (optional)
-- `metadata` (optional, string-to-string map)
+- `name` (required) — the skill identifier
+- `description` (required) — a short summary used for discovery
 
-Unknown frontmatter fields are ignored.
-
----
-
-## Validate names
-
-`name` must:
-
-- Be 1–64 characters
-- Be lowercase alphanumeric with single hyphen separators
-- Not start or end with `-`
-- Not contain consecutive `--`
-- Match the directory name that contains `SKILL.md`
-
-Equivalent regex:
-
-```text
-^[a-z0-9]+(-[a-z0-9]+)*$
-```
-
----
-
-## Follow length rules
-
-`description` must be 1-1024 characters.
-Keep it specific enough for the agent to choose correctly.
+Extra frontmatter fields are allowed, but currently ignored by OpenCode.
 
 ---
 
@@ -76,11 +59,6 @@ Create `.opencode/skill/git-release/SKILL.md` like this:
 ---
 name: git-release
 description: Create consistent releases and changelogs
-license: MIT
-compatibility: opencode
-metadata:
-  audience: maintainers
-  workflow: github
 ---
 
 ## What I do
@@ -97,17 +75,47 @@ Ask clarifying questions if the target versioning scheme is unclear.
 
 ---
 
+## Permissions
+
+Loading skills is controlled by `permission.skill`. For example, require approval before any skill is loaded:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "skill": "ask"
+  }
+}
+```
+
+You can also configure per-skill rules using wildcards:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "skill": {
+      "*": "deny",
+      "git-*": "allow"
+    }
+  }
+}
+```
+
+[Learn more about permissions](/docs/permissions).
+
+---
+
 ## Recognize prompt injection
 
 OpenCode adds an `<available_skills>` XML block to the system prompt.
-Each entry includes the skill name, description, and its discovered location.
+Each entry includes the skill name and description.
 
 ```xml
 <available_skills>
   <skill>
     <name>git-release</name>
     <description>Create consistent releases and changelogs</description>
-    <location>.opencode/skill/git-release/SKILL.md</location>
   </skill>
 </available_skills>
 ```
@@ -116,5 +124,8 @@ Each entry includes the skill name, description, and its discovered location.
 
 ## Troubleshoot loading
 
-If a skill does not show up, verify the folder name matches `name` exactly.
-Also check that `SKILL.md` is spelled in all caps and includes frontmatter.
+If a skill does not show up:
+
+- Check the file is named `SKILL.md` (all caps)
+- Confirm the YAML frontmatter includes `name` and `description`
+- Ensure the file lives under a `skill/` folder within a config directory (like `.opencode/` or `~/.config/opencode/`)
