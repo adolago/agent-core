@@ -12,11 +12,9 @@ import {
   onMount,
   onCleanup,
   batch,
-  Show,
   on,
 } from "solid-js"
 import { Installation } from "@/installation"
-import { Global } from "@/global"
 import { Flag } from "@/flag/flag"
 import { DialogProvider, useDialog } from "@tui/ui/dialog"
 import { DialogProvider as DialogProviderList } from "@tui/component/dialog-provider"
@@ -46,6 +44,7 @@ import { Provider } from "@/provider/provider"
 import { ArgsProvider, useArgs, type Args } from "./context/args"
 import open from "open"
 import { PromptRefProvider, usePromptRef } from "./context/prompt"
+import { iife } from "@/util/iife"
 
 async function getTerminalBackgroundColor(): Promise<"dark" | "light"> {
   // can't set raw mode if not a TTY
@@ -190,10 +189,6 @@ function App() {
 
   const [terminalTitleEnabled, setTerminalTitleEnabled] = createSignal(kv.get("terminal_title_enabled", true))
 
-  createEffect(() => {
-    console.log(JSON.stringify(route.data))
-  })
-
   // Update terminal window title based on current route and session
   // Braille spinner animation frames for when agent is running (space + single character for consistent width with "OC")
   const spinnerFrames = [" ⠋", " ⠙", " ⠹", " ⠸", " ⠼", " ⠴", " ⠦", " ⠧", " ⠇", " ⠏"]
@@ -232,47 +227,43 @@ function App() {
       const isBusy = status?.type === "busy"
       const permissions = sync.data.permission[sessionID] ?? []
       const hasPermissionRequest = permissions.length > 0
+      const hasTitle = session && !SessionApi.isDefaultTitle(session.title)
 
-      if (!session || SessionApi.isDefaultTitle(session.title)) {
-        if (spinnerInterval) {
-          clearInterval(spinnerInterval)
-          spinnerInterval = undefined
-          currentAnimationType = undefined
-        }
-        renderer.setTerminalTitle("OpenCode")
-        return
-      }
-
-      // Truncate title to 40 chars max
-      currentTitle = session.title.length > 40 ? session.title.slice(0, 37) + "..." : session.title
+      // Truncate title to 40 chars max, fallback to "OpenCode" if no title yet
+      currentTitle = iife(() => {
+        if (!hasTitle) return "OpenCode"
+        if (session.title.length > 40) return session.title.slice(0, 37) + "..."
+        return session.title
+      })
 
       // Determine which animation to show (permission takes priority)
       const targetAnimation = hasPermissionRequest ? "permission" : isBusy ? "spinner" : undefined
       const frames = hasPermissionRequest ? permissionFrames : spinnerFrames
 
-      if (targetAnimation) {
-        // Start or switch animation
-        if (!spinnerInterval || currentAnimationType !== targetAnimation) {
-          if (spinnerInterval) clearInterval(spinnerInterval)
-          spinnerIndex = 0
-          currentAnimationType = targetAnimation
-          renderer.setTerminalTitle(`${frames[spinnerIndex]} | ${currentTitle}`)
-          spinnerInterval = setInterval(
-            () => {
-              spinnerIndex = (spinnerIndex + 1) % frames.length
-              renderer.setTerminalTitle(`${frames[spinnerIndex]} | ${currentTitle}`)
-            },
-            hasPermissionRequest ? 400 : 80,
-          )
-        }
-      } else {
-        // Stop animation and show static "OC"
+      if (!targetAnimation) {
+        // Stop animation and show static title
         if (spinnerInterval) {
           clearInterval(spinnerInterval)
           spinnerInterval = undefined
           currentAnimationType = undefined
         }
-        renderer.setTerminalTitle(`OC | ${currentTitle}`)
+        renderer.setTerminalTitle(hasTitle ? `OC | ${currentTitle}` : "OpenCode")
+        return
+      }
+
+      // Start or switch animation
+      if (!spinnerInterval || currentAnimationType !== targetAnimation) {
+        if (spinnerInterval) clearInterval(spinnerInterval)
+        spinnerIndex = 0
+        currentAnimationType = targetAnimation
+        renderer.setTerminalTitle(`${frames[spinnerIndex]} | ${currentTitle}`)
+        spinnerInterval = setInterval(
+          () => {
+            spinnerIndex = (spinnerIndex + 1) % frames.length
+            renderer.setTerminalTitle(`${frames[spinnerIndex]} | ${currentTitle}`)
+          },
+          hasPermissionRequest ? 400 : 80,
+        )
       }
     }
   })
@@ -595,7 +586,7 @@ function App() {
   sdk.event.on(SessionApi.Event.Error.type, (evt) => {
     const error = evt.properties.error
     const message = (() => {
-      if (!error) return "An error occured"
+      if (!error) return "An error occurred"
 
       if (typeof error === "object") {
         const data = error.data
