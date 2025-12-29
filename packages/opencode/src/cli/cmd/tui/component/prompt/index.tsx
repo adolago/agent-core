@@ -589,10 +589,7 @@ export function Prompt(props: PromptProps) {
 
     // Capture mode before it gets reset
     const currentMode = store.mode
-    const thinking =
-      local.model.parsed().reasoning && local.effort.current() !== "default"
-        ? { effort: local.effort.current() }
-        : undefined
+    const thinking = showEffort() ? { effort: local.effort.current() } : undefined
 
     if (store.mode === "shell") {
       sdk.client.session.shell({
@@ -749,6 +746,21 @@ export function Prompt(props: PromptProps) {
     if (keybind.leader) return theme.border
     if (store.mode === "shell") return theme.primary
     return local.agent.color(local.agent.current().name)
+  })
+
+  const showEffort = createMemo(() => {
+    if (!local.model.parsed().reasoning) return false
+    if (local.effort.current() === "default") return false
+    const modelID = local.model.current()?.modelID?.toLowerCase() ?? ""
+    // until models.dev has better reasoning constructs, let's just blacklist models that cant have toggled reasoning
+    if (
+      modelID.includes("deepseek") ||
+      modelID.includes("minimax") ||
+      modelID.includes("glm") ||
+      modelID.includes("big-pickle")
+    )
+      return false
+    return true
   })
 
   const spinnerDef = createMemo(() => {
@@ -997,7 +1009,7 @@ export function Prompt(props: PromptProps) {
                     {local.model.parsed().model}
                   </text>
                   <text fg={theme.textMuted}>{local.model.parsed().provider}</text>
-                  <Show when={local.effort.current() !== "default" && local.model.parsed().reasoning}>
+                  <Show when={showEffort()}>
                     <text fg={theme.textMuted}>·</text>
                     <text>
                       <span style={{ fg: theme.warning, bold: true }}>{local.effort.current()}</span>
