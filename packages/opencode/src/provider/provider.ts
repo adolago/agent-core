@@ -697,7 +697,9 @@ export namespace Provider {
           headers: mergeDeep(existingModel?.headers ?? {}, model.headers ?? {}),
           family: model.family ?? existingModel?.family ?? "",
           release_date: model.release_date ?? existingModel?.release_date ?? "",
+          variants: {},
         }
+        parsedModel.variants = mapValues(ProviderTransform.variants(parsedModel), (v) => ({ disabled: false, ...v }))
         parsed.models[modelID] = parsedModel
       }
       database[providerID] = parsed
