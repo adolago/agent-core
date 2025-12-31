@@ -246,4 +246,8 @@ export namespace PermissionNext {
       )
     }
   }
+
+  export async function list() {
+    return state().then((x) => Object.values(x.pending).map((x) => x.info))
+  }
 }

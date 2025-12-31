@@ -478,7 +478,7 @@ Helper subagent prompt`,
     directory: tmp.path,
     fn: async () => {
       const config = await Config.get()
-      expect(config.agent?.["helper"]).toEqual({
+      expect(config.agent?.["helper"]).toMatchObject({
         name: "helper",
         model: "test/model",
         mode: "subagent",

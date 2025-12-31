@@ -3,7 +3,6 @@ import { Log } from "@/util/log"
 import { Identifier } from "@/id/id"
 import { Session } from "."
 import { Agent } from "@/agent/agent"
-import { Permission } from "@/permission"
 import { Snapshot } from "@/snapshot"
 import { SessionSummary } from "./summary"
 import { Bus } from "@/bus"
@@ -202,11 +201,6 @@ export namespace SessionProcessor {
                         status: "error",
                         input: value.input,
                         error: (value.error as any).toString(),
-                        metadata:
-                          value.error instanceof Permission.RejectedError ||
-                          value.error instanceof Permission.RejectedError
-                            ? value.error.metadata
-                            : undefined,
                         time: {
                           start: match.state.time.start,
                           end: Date.now(),
@@ -214,10 +208,7 @@ export namespace SessionProcessor {
                       },
                     })
 
-                    if (
-                      value.error instanceof Permission.RejectedError ||
-                      value.error instanceof PermissionNext.RejectedError
-                    ) {
+                    if (value.error instanceof PermissionNext.RejectedError) {
                       blocked = shouldBreak
                     }
                     delete toolcalls[value.toolCallId]

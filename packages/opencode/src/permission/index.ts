@@ -6,7 +6,6 @@ import { Identifier } from "../id/id"
 import { Plugin } from "../plugin"
 import { Instance } from "../project/instance"
 import { Wildcard } from "../util/wildcard"
-import { Config } from "@/config/config"
 
 export namespace Permission {
   const log = Log.create({ service: "permission" })
