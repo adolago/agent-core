@@ -1438,6 +1438,26 @@ export namespace SessionPrompt {
           ]
         : await resolvePromptParts(template)
 
+    const userMsg: MessageV2.User = {
+      id: Identifier.ascending("message"),
+      sessionID: input.sessionID,
+      role: "user",
+      time: {
+        created: Date.now(),
+      },
+      agent: agentName,
+      model,
+    }
+    await Session.updateMessage(userMsg)
+    await Session.updatePart({
+      id: Identifier.ascending("part"),
+      messageID: userMsg.id,
+      sessionID: input.sessionID,
+      type: "text",
+      text: `/${command.name} ${input.arguments}`,
+      ignored: true,
+    } satisfies MessageV2.TextPart)
+
     const result = (await prompt({
       sessionID: input.sessionID,
       messageID: input.messageID,
