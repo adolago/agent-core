@@ -451,8 +451,9 @@ export namespace Persona {
       name: persona.name,
       description: persona.description,
       mode: persona.mode,
-      hidden: persona.hidden,
-      default: persona.default,
+      native: false, // Personas are not native system agents
+      hidden: persona.hidden ?? false,
+      default: persona.default ?? false,
       color: persona.color,
       useCase: persona.useCase,
     };
@@ -473,9 +474,17 @@ export namespace Persona {
       result.maxSteps = persona.maxSteps;
     }
 
-    // Permissions
+    // Permissions - normalize to complete permission config
     if (persona.permission) {
-      result.permission = persona.permission;
+      result.permission = {
+        edit: persona.permission.edit ?? "ask",
+        bash: persona.permission.bash ?? "ask",
+        skill: persona.permission.skill ?? "allow",
+        mcp: persona.permission.mcp ?? "allow",
+        webfetch: persona.permission.webfetch ?? "allow",
+        external_directory: persona.permission.external_directory ?? "ask",
+        doom_loop: persona.permission.doom_loop ?? "ask",
+      };
     }
 
     // Tools

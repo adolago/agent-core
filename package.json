@@ -67,53 +67,62 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "ai": "^4.3.0",
-    "zod": "^3.24.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@qdrant/js-client-rest": "^1.12.0",
+    "ai": "^4.3.0",
+    "decimal.js": "^10.4.0",
     "eventsource-parser": "^3.0.0",
+    "fuzzysort": "^3.0.0",
+    "glob": "^13.0.0",
+    "jsonc-parser": "^3.3.1",
     "nanoid": "^5.0.0",
     "p-queue": "^8.0.1",
+    "picomatch": "^4.0.3",
     "remeda": "^2.0.0",
-    "fuzzysort": "^3.0.0",
-    "decimal.js": "^10.4.0"
+    "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "^1.2.0",
+    "@ai-sdk/google": "^1.2.0",
+    "@ai-sdk/openai": "^1.3.0",
+    "@openrouter/ai-sdk-provider": "^0.4.0",
     "@types/node": "^22.10.0",
-    "tsup": "^8.3.0",
-    "typescript": "^5.7.0",
-    "vitest": "^2.1.0",
     "eslint": "^9.17.0",
     "prettier": "^3.0.0",
-    "@ai-sdk/anthropic": "^1.2.0",
-    "@ai-sdk/openai": "^1.3.0",
-    "@ai-sdk/google": "^1.2.0",
-    "@openrouter/ai-sdk-provider": "^0.4.0"
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
   },
   "peerDependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
-    "@ai-sdk/openai": "^1.0.0",
-    "@ai-sdk/google": "^1.0.0"
+    "@ai-sdk/google": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0"
   },
   "peerDependenciesMeta": {
-    "@ai-sdk/anthropic": { "optional": true },
-    "@ai-sdk/openai": { "optional": true },
-    "@ai-sdk/google": { "optional": true }
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    }
   },
   "optionalDependencies": {
     "@ai-sdk/amazon-bedrock": "^1.0.0",
     "@ai-sdk/azure": "^1.0.0",
-    "@ai-sdk/google-vertex": "^1.0.0",
-    "@ai-sdk/xai": "^1.0.0",
-    "@ai-sdk/mistral": "^1.0.0",
-    "@ai-sdk/groq": "^1.0.0",
-    "@ai-sdk/deepinfra": "^1.0.0",
     "@ai-sdk/cerebras": "^1.0.0",
     "@ai-sdk/cohere": "^1.0.0",
+    "@ai-sdk/deepinfra": "^1.0.0",
     "@ai-sdk/gateway": "^1.0.0",
-    "@ai-sdk/togetherai": "^1.0.0",
-    "@ai-sdk/perplexity": "^1.0.0",
+    "@ai-sdk/google-vertex": "^1.0.0",
+    "@ai-sdk/groq": "^1.0.0",
+    "@ai-sdk/mistral": "^1.0.0",
     "@ai-sdk/openai-compatible": "^0.1.0",
+    "@ai-sdk/perplexity": "^1.0.0",
+    "@ai-sdk/togetherai": "^1.0.0",
+    "@ai-sdk/xai": "^1.0.0",
     "@openrouter/ai-sdk-provider": "^0.4.0"
   },
   "engines": {

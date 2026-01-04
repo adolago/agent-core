@@ -17,10 +17,10 @@ import * as os from 'os';
 import { parse as parseJsonc, type ParseError as JsoncParseError, printParseErrorCode } from 'jsonc-parser';
 
 import {
-  ConfigSchema,
   validateConfig,
   type Config,
   type ConfigValidationError,
+  type AgentConfig,
 } from './schema';
 import {
   DEFAULT_CONFIG,
@@ -32,7 +32,6 @@ import {
 } from './defaults';
 import {
   interpolate,
-  interpolateObject,
   maskSensitiveValues,
   type InterpolationContext,
 } from './interpolation';
@@ -84,7 +83,6 @@ export interface ConfigSources {
 // ============================================================================
 
 let cachedConfig: LoadedConfig | null = null;
-let configPromise: Promise<LoadedConfig> | null = null;
 
 // ============================================================================
 // Main API
@@ -204,7 +202,6 @@ export async function getLoadedConfig(options?: ConfigLoadOptions): Promise<Load
  */
 export async function reloadConfig(options?: ConfigLoadOptions): Promise<LoadedConfig> {
   cachedConfig = null;
-  configPromise = null;
   return loadConfig(options);
 }
 
@@ -213,7 +210,6 @@ export async function reloadConfig(options?: ConfigLoadOptions): Promise<LoadedC
  */
 export function clearConfigCache(): void {
   cachedConfig = null;
-  configPromise = null;
 }
 
 // ============================================================================
@@ -313,8 +309,8 @@ async function loadConfigFile(
  */
 async function loadAgentDirectory(
   dir: string
-): Promise<Record<string, Config['agent'][string]>> {
-  const agents: Record<string, Config['agent'][string]> = {};
+): Promise<Record<string, AgentConfig>> {
+  const agents: Record<string, AgentConfig> = {};
 
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -347,7 +343,7 @@ async function loadAgentDirectory(
 /**
  * Parse agent definition from markdown with YAML frontmatter
  */
-function parseAgentMarkdown(content: string): Config['agent'][string] | null {
+function parseAgentMarkdown(content: string): AgentConfig | null {
   // Check for YAML frontmatter
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 
@@ -361,7 +357,7 @@ function parseAgentMarkdown(content: string): Config['agent'][string] | null {
   const [, frontmatter, body] = frontmatterMatch;
 
   // Simple YAML parsing for common fields
-  const agent: Config['agent'][string] = {
+  const agent: AgentConfig = {
     prompt: body.trim(),
   };
 

@@ -188,7 +188,7 @@ export function interpolateEnv(
   text: string,
   env: Record<string, string | undefined> = process.env
 ): string {
-  return text.replace(ENV_PATTERN, (match, varName) => {
+  return text.replace(ENV_PATTERN, (_match, varName) => {
     return env[varName] ?? '';
   });
 }

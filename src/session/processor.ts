@@ -18,7 +18,6 @@
 
 import { EventEmitter } from 'events';
 import type {
-  Message,
   MessagePart,
   AssistantMessage,
   UserMessage,
@@ -26,7 +25,6 @@ import type {
   TextPart,
   ReasoningPart,
   StreamEvent,
-  TokenUsage,
 } from './types';
 import { SessionError } from './types';
 import { generateId, calculateUsage, type ModelCost } from './session';
@@ -499,7 +497,7 @@ export class MessageProcessor {
    * Finalize any incomplete parts (e.g., aborted tool calls).
    */
   private async finalizeIncompleteParts(callbacks: ProcessorCallbacks): Promise<void> {
-    for (const [callId, part] of this.toolCalls) {
+    for (const [_callId, part] of this.toolCalls) {
       if (part.state.status !== 'completed' && part.state.status !== 'error') {
         part.state = {
           status: 'error',

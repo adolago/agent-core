@@ -9,39 +9,13 @@
  */
 
 // Core agent types and utilities
-export {
-  Permission,
-  AgentMode,
-  UseCase,
-  ModelConfig,
-  PermissionConfig,
-  ToolConfig,
-  AgentInfo,
-  AgentConfig,
-  Agent,
-  parseModelString,
-} from "./agent";
+export * from "./agent.js";
 
 // Persona system
-export {
-  Soul,
-  Identity,
-  PersonaDefinition,
-  PersonaConfig,
-  IdentityContext,
-  Persona,
-} from "./persona";
+export * from "./persona.js";
 
 // Permission evaluation
-export {
-  PermissionContext,
-  PermissionResult,
-  PermissionResponse,
-  PendingPermission,
-  PermissionRejectedError,
-  PermissionEvaluator,
-  PermissionManager,
-} from "./permission";
+export * from "./permission.js";
 
 // Re-export built-in persona definitions
-export * as Personas from "./personas";
+export * as Personas from "./personas.js";

@@ -14,7 +14,6 @@ import type {
   McpLocalConfig,
   McpRemoteConfig,
   McpServerStatus,
-  McpOAuthConfig,
   ToolDefinition,
 } from './types';
 import { getToolRegistry, defineTool } from './registry';
@@ -328,7 +327,7 @@ export class McpServerManager extends EventEmitter<McpServerEvents> {
     return defineTool(toolId, 'mcp', {
       description: mcpTool.description ?? '',
       parameters: this.buildZodSchema(mcpTool.inputSchema),
-      execute: async (args, ctx) => {
+      execute: async (args, _ctx) => {
         const result = await client.callTool(mcpTool.name, args);
         return {
           title: mcpTool.name,
@@ -342,7 +341,7 @@ export class McpServerManager extends EventEmitter<McpServerEvents> {
   /**
    * Build Zod schema from JSON Schema
    */
-  private buildZodSchema(inputSchema: McpToolDefinition['inputSchema']): import('zod').ZodType {
+  private buildZodSchema(_inputSchema: McpToolDefinition['inputSchema']): import('zod').ZodType {
     // Dynamic import to avoid bundling issues
     const { z } = require('zod');
 
@@ -476,15 +475,15 @@ interface McpClientFactory {
  * This is a placeholder - actual implementation would use @modelcontextprotocol/sdk
  */
 class DefaultMcpClientFactory implements McpClientFactory {
-  async createLocalClient(serverId: string, config: McpLocalConfig): Promise<McpClient> {
+  async createLocalClient(_serverId: string, _config: McpLocalConfig): Promise<McpClient> {
     // In production, this would use StdioClientTransport from MCP SDK
     throw new Error('MCP SDK not available - implement with @modelcontextprotocol/sdk');
   }
 
   async createRemoteClient(
-    serverId: string,
-    config: McpRemoteConfig,
-    oauthManager: McpOAuthManager
+    _serverId: string,
+    _config: McpRemoteConfig,
+    _oauthManager: McpOAuthManager
   ): Promise<McpClient> {
     // In production, this would use StreamableHTTPClientTransport or SSEClientTransport
     throw new Error('MCP SDK not available - implement with @modelcontextprotocol/sdk');
@@ -565,7 +564,7 @@ export class McpOAuthManager {
   /**
    * Complete OAuth flow with authorization code
    */
-  async finishAuth(serverId: string, authorizationCode: string): Promise<void> {
+  async finishAuth(serverId: string, _authorizationCode: string): Promise<void> {
     const flow = this.pendingFlows.get(serverId);
     if (!flow) {
       throw new Error(`No pending OAuth flow for server ${serverId}`);

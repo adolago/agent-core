@@ -178,9 +178,7 @@ export const AgentInfo = z
     /** Additional options for extensibility */
     options: z.record(z.string(), z.any()).optional(),
   })
-  .meta({
-    ref: "AgentInfo",
-  });
+  .describe("AgentInfo");
 export type AgentInfo = z.infer<typeof AgentInfo>;
 
 /**
@@ -215,9 +213,7 @@ export const AgentConfig = z
       .optional(),
   })
   .catchall(z.any())
-  .meta({
-    ref: "AgentConfig",
-  });
+  .describe("AgentConfig");
 export type AgentConfig = z.infer<typeof AgentConfig>;
 
 /**
@@ -293,6 +289,8 @@ export namespace Agent {
         "which*": "allow",
         "*": "ask",
       },
+      skill: "allow",
+      mcp: "allow",
       webfetch: "allow",
       external_directory: "ask",
       doom_loop: "ask",
@@ -349,7 +347,9 @@ export namespace Agent {
       if (typeof base.tools === "object" && typeof override.tools === "object") {
         const baseTools = "overrides" in base.tools ? base.tools.overrides : base.tools;
         const overrideTools = "overrides" in override.tools ? override.tools.overrides : override.tools;
-        result.tools = { ...baseTools, ...overrideTools };
+        if (typeof baseTools === "object" && typeof overrideTools === "object" && baseTools && overrideTools) {
+          result.tools = { ...(baseTools as Record<string, unknown>), ...(overrideTools as Record<string, unknown>) };
+        }
       }
     }
 

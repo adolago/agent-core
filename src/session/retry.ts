@@ -294,7 +294,7 @@ export class DefaultRetryStrategy implements RetryStrategy {
   private extractHeaders(error?: Error): RetryHeaders | undefined {
     if (!error) return undefined;
 
-    const obj = error as Record<string, unknown>;
+    const obj = error as unknown as Record<string, unknown>;
     if (typeof obj.responseHeaders === 'object' && obj.responseHeaders !== null) {
       return obj.responseHeaders as RetryHeaders;
     }
@@ -323,7 +323,6 @@ export interface RetryOptions<T> {
  */
 export async function withRetry<T>(options: RetryOptions<T>): Promise<T> {
   const strategy = options.strategy ?? new DefaultRetryStrategy();
-  let lastError: unknown;
   let attempt = 0;
 
   while (true) {
@@ -333,7 +332,6 @@ export async function withRetry<T>(options: RetryOptions<T>): Promise<T> {
       options.signal?.throwIfAborted();
       return await options.operation();
     } catch (error) {
-      lastError = error;
 
       // Check if we should retry
       if (!strategy.shouldRetry(error)) {

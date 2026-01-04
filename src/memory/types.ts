@@ -5,8 +5,6 @@
  * supporting semantic search, pattern storage, and cross-session context
  */
 
-import type { z } from "zod";
-
 // =============================================================================
 // Memory Entry Types
 // =============================================================================

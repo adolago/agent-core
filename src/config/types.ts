@@ -11,7 +11,7 @@
 
 import type { AuthMethod, SubscriptionProvider } from "../provider/types";
 import type { AgentConfig, AgentPersona } from "../agent/types";
-import type { MCPConfig } from "../mcp/types";
+import type { McpServerConfig as MCPConfig } from "../mcp/types";
 import type { MemoryConfig } from "../memory/types";
 import type { SurfaceType } from "../surface/types";
 

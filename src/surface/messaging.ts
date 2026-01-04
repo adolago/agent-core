@@ -5,8 +5,6 @@
  * Handles non-streaming (message batching) and automatic permission resolution.
  */
 
-import { randomUUID } from 'node:crypto';
-
 import {
   BaseSurface,
   type Surface,
@@ -416,12 +414,12 @@ export class MessagingSurface extends BaseSurface implements Surface {
   // Tool Notifications
   // ---------------------------------------------------------------------------
 
-  async notifyToolStart(toolCall: ToolCall): Promise<void> {
+  async notifyToolStart(_toolCall: ToolCall): Promise<void> {
     // For messaging, we just maintain typing indicator
     // Tool details are not shown unless configured
   }
 
-  async notifyToolEnd(result: ToolResult): Promise<void> {
+  async notifyToolEnd(_result: ToolResult): Promise<void> {
     // Optionally include tool output in batched response
     // This is handled by the batcher when processing stream chunks
   }
@@ -476,7 +474,6 @@ export class MessagingSurface extends BaseSurface implements Surface {
  */
 export class WhatsAppHandler implements MessagingPlatformHandler {
   readonly platform = 'whatsapp' as const;
-  private messageHandler: ((msg: PlatformMessage) => void) | null = null;
 
   async connect(): Promise<void> {
     // TODO: Initialize Baileys connection
@@ -487,21 +484,21 @@ export class WhatsAppHandler implements MessagingPlatformHandler {
   }
 
   async sendMessage(
-    target: string,
-    text: string,
-    options?: { replyToId?: string; media?: SurfaceMedia[] }
+    _target: string,
+    _text: string,
+    _options?: { replyToId?: string; media?: SurfaceMedia[] }
   ): Promise<void> {
     // TODO: Send via Baileys
   }
 
-  async sendTyping(target: string): Promise<void> {
+  async sendTyping(_target: string): Promise<void> {
     // TODO: Send composing presence
   }
 
-  onMessage(handler: (message: PlatformMessage) => void): () => void {
-    this.messageHandler = handler;
+  onMessage(_handler: (message: PlatformMessage) => void): () => void {
+    // TODO: Store handler and call when messages arrive from Baileys
     return () => {
-      this.messageHandler = null;
+      // TODO: Unregister handler
     };
   }
 }
@@ -512,7 +509,6 @@ export class WhatsAppHandler implements MessagingPlatformHandler {
  */
 export class TelegramHandler implements MessagingPlatformHandler {
   readonly platform = 'telegram' as const;
-  private messageHandler: ((msg: PlatformMessage) => void) | null = null;
 
   async connect(): Promise<void> {
     // TODO: Initialize Telegraf bot
@@ -523,21 +519,21 @@ export class TelegramHandler implements MessagingPlatformHandler {
   }
 
   async sendMessage(
-    target: string,
-    text: string,
-    options?: { replyToId?: string; media?: SurfaceMedia[] }
+    _target: string,
+    _text: string,
+    _options?: { replyToId?: string; media?: SurfaceMedia[] }
   ): Promise<void> {
     // TODO: Send via Telegraf
   }
 
-  async sendTyping(target: string): Promise<void> {
+  async sendTyping(_target: string): Promise<void> {
     // TODO: Send chat action
   }
 
-  onMessage(handler: (message: PlatformMessage) => void): () => void {
-    this.messageHandler = handler;
+  onMessage(_handler: (message: PlatformMessage) => void): () => void {
+    // TODO: Store handler and call when messages arrive from Telegraf
     return () => {
-      this.messageHandler = null;
+      // TODO: Unregister handler
     };
   }
 }
@@ -548,7 +544,6 @@ export class TelegramHandler implements MessagingPlatformHandler {
  */
 export class DiscordHandler implements MessagingPlatformHandler {
   readonly platform = 'discord' as const;
-  private messageHandler: ((msg: PlatformMessage) => void) | null = null;
 
   async connect(): Promise<void> {
     // TODO: Initialize discord.js client
@@ -559,21 +554,21 @@ export class DiscordHandler implements MessagingPlatformHandler {
   }
 
   async sendMessage(
-    target: string,
-    text: string,
-    options?: { replyToId?: string; media?: SurfaceMedia[] }
+    _target: string,
+    _text: string,
+    _options?: { replyToId?: string; media?: SurfaceMedia[] }
   ): Promise<void> {
     // TODO: Send via discord.js
   }
 
-  async sendTyping(target: string): Promise<void> {
+  async sendTyping(_target: string): Promise<void> {
     // TODO: Send typing indicator
   }
 
-  onMessage(handler: (message: PlatformMessage) => void): () => void {
-    this.messageHandler = handler;
+  onMessage(_handler: (message: PlatformMessage) => void): () => void {
+    // TODO: Store handler and call when messages arrive from discord.js
     return () => {
-      this.messageHandler = null;
+      // TODO: Unregister handler
     };
   }
 }

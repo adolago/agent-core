@@ -314,9 +314,13 @@ export class ConfigBuilder {
   /**
    * Add a plugin
    */
-  plugin(plugin: string | { name: string; options?: Record<string, unknown> }): this {
+  plugin(plugin: string | { name: string; enabled?: boolean; options?: Record<string, unknown> }): this {
     this.config.plugin = this.config.plugin || [];
-    this.config.plugin.push(plugin);
+    // Normalize the plugin entry to ensure enabled has a default value
+    const entry = typeof plugin === 'string'
+      ? plugin
+      : { ...plugin, enabled: plugin.enabled ?? true };
+    this.config.plugin.push(entry as NonNullable<_Config['plugin']>[number]);
     return this;
   }
 

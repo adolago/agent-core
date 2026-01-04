@@ -121,9 +121,10 @@ export class GUISurface extends BaseSurface implements Surface {
           ? WebSocket
           : require('ws').WebSocket;
 
-        this.ws = new WebSocketImpl(url);
+        const ws = new WebSocketImpl(url);
+        this.ws = ws;
 
-        this.ws.onopen = async () => {
+        ws.onopen = async () => {
           this.reconnectAttempts = 0;
           try {
             await this.handshake();
@@ -134,15 +135,15 @@ export class GUISurface extends BaseSurface implements Surface {
           }
         };
 
-        this.ws.onmessage = (event) => {
-          this.handleMessage(event.data as string);
+        ws.onmessage = (event: { data: string }) => {
+          this.handleMessage(event.data);
         };
 
-        this.ws.onclose = (event) => {
+        ws.onclose = (event: { code: number; reason: string }) => {
           this.handleClose(event.code, event.reason);
         };
 
-        this.ws.onerror = (event) => {
+        ws.onerror = () => {
           const err = new Error('WebSocket error');
           this.emit({ type: 'error', error: err, recoverable: true });
           if (this.state === 'connecting') {

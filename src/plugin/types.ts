@@ -5,10 +5,69 @@
  */
 
 import type { AgentConfig } from "../agent/types";
-import type { Model, ProviderInfo } from "../provider/types";
-import type { ToolContext, ToolResult } from "../tool/types";
-import type { SessionInfo, MessageInfo, MessagePart } from "../session/types";
-import type { InboundMessage, OutboundMessage } from "../surface/types";
+import type { Model } from "../provider/types";
+
+/** Provider info for plugin hooks */
+export interface ProviderInfo {
+  id: string;
+  name: string;
+  models: string[];
+  defaultModel?: string;
+  authMethod?: string;
+}
+
+/** Tool context for plugin tools */
+export interface ToolContext {
+  sessionId: string;
+  messageId: string;
+  agent: string;
+  abort: AbortSignal;
+}
+
+/** Message part for events */
+export interface MessagePart {
+  id: string;
+  type: "text" | "tool_call" | "tool_result" | "image";
+  content: unknown;
+}
+
+/** Inbound message from surface */
+export interface InboundMessage {
+  id: string;
+  senderId: string;
+  body: string;
+  timestamp: number;
+}
+
+/** Outbound message to surface */
+export interface OutboundMessage {
+  id: string;
+  recipientId: string;
+  body: string;
+  replyTo?: string;
+}
+
+/** Session info for plugin hooks */
+export interface SessionInfo {
+  id: string;
+  time: { created: number; updated: number; archived?: number };
+  title: string;
+  projectId: string;
+  directory: string;
+  version: string;
+  summary?: { additions: number; deletions: number; files: number };
+  parentId?: string;
+  context?: Record<string, unknown>;
+}
+
+/** Message info for plugin hooks */
+export interface MessageInfo {
+  id: string;
+  sessionId: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: number;
+}
 
 /** Plugin lifecycle */
 export type PluginLifecycle = "loaded" | "enabled" | "disabled" | "error";
@@ -127,9 +186,6 @@ export interface PluginHooks {
 
   /** On error */
   "error"?: (error: Error, context: HookContext) => Promise<void>;
-
-  /** Custom hook */
-  [key: string]: HookHandler | undefined;
 }
 
 /** Hook context */

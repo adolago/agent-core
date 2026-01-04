@@ -17,42 +17,46 @@
  * @packageDocumentation
  */
 
+// Core modules - use subpath exports for detailed access
+// e.g., import { ... } from "@agent-core/core/provider"
+// e.g., import { ... } from "@agent-core/core/mcp"
+
 // Provider System - Multi-LLM support with subscription auth
-export * from "./provider/types.js";
+export * as Provider from "./provider/types.js";
 
 // Agent System - Configurable personas and permissions
-export * from "./agent/types.js";
+export * as Agent from "./agent/types.js";
 
 // Tool System - Built-in tools and MCP integration
-export * from "./tool/types.js";
+export * as Tool from "./tool/types.js";
 
 // MCP - Model Context Protocol servers
-export * from "./mcp/types.js";
+export * as Mcp from "./mcp/types.js";
 
 // Memory - Qdrant-backed semantic memory
-export * from "./memory/types.js";
+export * as Memory from "./memory/types.js";
 
 // Surface - Abstraction for CLI/GUI/Messaging UIs
-export * from "./surface/types.js";
+export * as Surface from "./surface/types.js";
 
 // Session - Conversation state management
-export * from "./session/types.js";
+export * as Session from "./session/types.js";
 
 // Plugin - Hook-based extensibility
-export * from "./plugin/types.js";
+export * as Plugin from "./plugin/types.js";
 
 // Configuration - Unified config system
-export * from "./config/types.js";
+export * as Config from "./config/types.js";
 
 // Transport - Communication abstractions
-export * from "./transport/types.js";
+export * as Transport from "./transport/types.js";
 
 // Utilities - Common helpers and types
-export * from "./util/types.js";
+export * as Util from "./util/types.js";
 
 // Re-export common utilities
 export { z } from "zod";
-export type { LanguageModelV2 } from "ai";
+export type { LanguageModelV1 } from "ai";
 
 /** agent-core version */
 export const VERSION = "0.1.0";

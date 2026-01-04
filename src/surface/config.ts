@@ -4,7 +4,7 @@
  * Configuration options for surface behavior, permissions, and adaptations.
  */
 
-import type { PermissionAction, PermissionType, SurfaceCapabilities } from './types.js';
+import type { PermissionAction, PermissionType } from './types.js';
 
 // =============================================================================
 // Permission Configuration
@@ -356,10 +356,10 @@ export function buildSurfaceConfig(
         ? { ...DEFAULT_MESSAGING_CONFIG, ...overrides.messaging.whatsapp }
         : undefined,
       telegram: overrides.messaging?.telegram
-        ? { ...DEFAULT_MESSAGING_CONFIG, platform: 'telegram', ...overrides.messaging.telegram }
+        ? { ...DEFAULT_MESSAGING_CONFIG, ...overrides.messaging.telegram, platform: 'telegram' as const }
         : undefined,
       discord: overrides.messaging?.discord
-        ? { ...DEFAULT_MESSAGING_CONFIG, platform: 'discord', ...overrides.messaging.discord }
+        ? { ...DEFAULT_MESSAGING_CONFIG, ...overrides.messaging.discord, platform: 'discord' as const }
         : undefined,
     },
     toolAvailability: overrides.toolAvailability ?? {},

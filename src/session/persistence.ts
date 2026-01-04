@@ -18,7 +18,6 @@ import type {
   Message,
   MessagePart,
   MessageWithParts,
-  SessionConfig,
 } from './types';
 
 // =============================================================================

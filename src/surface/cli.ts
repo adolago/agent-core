@@ -11,8 +11,6 @@ import { stdin, stdout } from 'node:process';
 import {
   BaseSurface,
   type Surface,
-  type SurfaceContext,
-  buildSurfaceContext,
 } from './surface.js';
 import {
   type CLISurfaceConfig,
@@ -65,7 +63,6 @@ export class CLISurface extends BaseSurface implements Surface {
 
   private config: CLISurfaceConfig;
   private readline: ReadlineInterface | null = null;
-  private currentPrompt: string = '';
   private spinnerInterval: NodeJS.Timeout | null = null;
   private spinnerFrames = ['|', '/', '-', '\\'];
   private spinnerIndex = 0;
@@ -359,7 +356,7 @@ export class CLISurface extends BaseSurface implements Surface {
   }
 
   private showToolEnd(
-    name: string,
+    _name: string,
     output?: unknown,
     error?: string
   ): void {
@@ -392,7 +389,6 @@ export class CLISurface extends BaseSurface implements Surface {
       ? this.format('> ', 'green')
       : '> ';
 
-    this.currentPrompt = prompt;
     this.write(prompt);
   }
 
