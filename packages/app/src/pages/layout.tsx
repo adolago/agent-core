@@ -31,6 +31,7 @@ import { getFilename } from "@opencode-ai/util/path"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Session } from "@opencode-ai/sdk/v2/client"
 import { usePlatform } from "@/context/platform"
+import { useSettings } from "@/context/settings"
 import { createStore, produce } from "solid-js/store"
 import {
   DragDropProvider,
@@ -47,6 +48,7 @@ import { useGlobalSDK } from "@/context/global-sdk"
 import { useNotification } from "@/context/notification"
 import { usePermission } from "@/context/permission"
 import { Binary } from "@opencode-ai/util/binary"
+import { playSound, soundSrc } from "@/utils/sound"
 
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme"
@@ -84,6 +86,7 @@ export default function Layout(props: ParentProps) {
   const globalSync = useGlobalSync()
   const layout = useLayout()
   const platform = usePlatform()
+  const settings = useSettings()
   const server = useServer()
   const notification = useNotification()
   const permission = usePermission()
@@ -187,7 +190,11 @@ export default function Layout(props: ParentProps) {
       if (now - lastAlerted < permissionAlertCooldownMs) return
       alertedAtBySession.set(sessionKey, now)
 
-      void platform.notify("Permission required", description, href)
+      playSound(soundSrc(settings.sounds.permissions()))
+
+      if (settings.notifications.permissions()) {
+        void platform.notify("Permission required", description, href)
+      }
 
       const currentDir = params.dir ? base64Decode(params.dir) : undefined
       const currentSession = params.id

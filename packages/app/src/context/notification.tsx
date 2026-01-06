@@ -4,12 +4,11 @@ import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useGlobalSDK } from "./global-sdk"
 import { useGlobalSync } from "./global-sync"
 import { usePlatform } from "@/context/platform"
+import { useSettings } from "@/context/settings"
 import { Binary } from "@opencode-ai/util/binary"
 import { base64Encode } from "@opencode-ai/util/encode"
 import { EventSessionError } from "@opencode-ai/sdk/v2"
-import { makeAudioPlayer } from "@solid-primitives/audio"
-import idleSound from "@opencode-ai/ui/audio/staplebops-01.aac"
-import errorSound from "@opencode-ai/ui/audio/nope-03.aac"
+import { playSound, soundSrc } from "@/utils/sound"
 import { persisted } from "@/utils/persist"
 
 type NotificationBase = {
@@ -34,19 +33,10 @@ export type Notification = TurnCompleteNotification | ErrorNotification
 export const { use: useNotification, provider: NotificationProvider } = createSimpleContext({
   name: "Notification",
   init: () => {
-    let idlePlayer: ReturnType<typeof makeAudioPlayer> | undefined
-    let errorPlayer: ReturnType<typeof makeAudioPlayer> | undefined
-
-    try {
-      idlePlayer = makeAudioPlayer(idleSound)
-      errorPlayer = makeAudioPlayer(errorSound)
-    } catch (err) {
-      console.log("Failed to load audio", err)
-    }
-
     const globalSDK = useGlobalSDK()
     const globalSync = useGlobalSync()
     const platform = usePlatform()
+    const settings = useSettings()
 
     const [store, setStore, _, ready] = persisted(
       "notification.v1",
@@ -70,16 +60,18 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
           const match = Binary.search(syncStore.session, sessionID, (s) => s.id)
           const session = match.found ? syncStore.session[match.index] : undefined
           if (session?.parentID) break
-          try {
-            idlePlayer?.play()
-          } catch {}
+          playSound(soundSrc(settings.sounds.agent()))
+
           setStore("list", store.list.length, {
             ...base,
             type: "turn-complete",
             session: sessionID,
           })
           const href = `/${base64Encode(directory)}/session/${sessionID}`
-          void platform.notify("Response ready", session?.title ?? sessionID, href)
+          if (settings.notifications.agent()) {
+            void platform.notify("Response ready", session?.title ?? sessionID, href)
+          }
+
           break
         }
         case "session.error": {
@@ -88,9 +80,8 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
           const match = sessionID ? Binary.search(syncStore.session, sessionID, (s) => s.id) : undefined
           const session = sessionID && match?.found ? syncStore.session[match.index] : undefined
           if (session?.parentID) break
-          try {
-            errorPlayer?.play()
-          } catch {}
+          playSound(soundSrc(settings.sounds.errors()))
+
           const error = "error" in event.properties ? event.properties.error : undefined
           setStore("list", store.list.length, {
             ...base,
@@ -100,7 +91,10 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
           })
           const description = session?.title ?? (typeof error === "string" ? error : "An error occurred")
           const href = sessionID ? `/${base64Encode(directory)}/session/${sessionID}` : `/${base64Encode(directory)}`
-          void platform.notify("Session error", description, href)
+          if (settings.notifications.errors()) {
+            void platform.notify("Session error", description, href)
+          }
+
           break
         }
       }
