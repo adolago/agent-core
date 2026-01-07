@@ -313,6 +313,9 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             const key = `${m.providerID}/${m.modelID}`
             return modelStore.variant[key]
           },
+          effective() {
+            return this.current() ?? agent.current().variant
+          },
           list() {
             const m = currentModel()
             if (!m) return []
@@ -332,11 +335,12 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             const variants = this.list()
             if (variants.length === 0) return
             const current = this.current()
-            if (!current) {
+            const effective = this.effective()
+            if (!effective) {
               this.set(variants[0])
               return
             }
-            const index = variants.indexOf(current)
+            const index = variants.indexOf(effective)
             if (index === -1 || index === variants.length - 1) {
               this.set(undefined)
               return

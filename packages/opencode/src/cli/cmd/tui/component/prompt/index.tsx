@@ -697,8 +697,8 @@ export function Prompt(props: PromptProps) {
   const showVariant = createMemo(() => {
     const variants = local.model.variant.list()
     if (variants.length === 0) return false
-    const current = local.model.variant.current()
-    return !!current
+    const effective = local.model.variant.effective()
+    return !!effective
   })
 
   const spinnerDef = createMemo(() => {
@@ -944,7 +944,7 @@ export function Prompt(props: PromptProps) {
                   <Show when={showVariant()}>
                     <text fg={theme.textMuted}>·</text>
                     <text>
-                      <span style={{ fg: theme.warning, bold: true }}>{local.model.variant.current()}</span>
+                      <span style={{ fg: theme.warning, bold: true }}>{local.model.variant.effective()}</span>
                     </text>
                   </Show>
                 </box>
