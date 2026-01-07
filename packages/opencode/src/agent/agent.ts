@@ -144,6 +144,7 @@ export namespace Agent {
         options: {},
         native: true,
         hidden: true,
+        temperature: 0.5,
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
