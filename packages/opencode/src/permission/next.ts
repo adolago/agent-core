@@ -2,6 +2,7 @@ import { Bus } from "@/bus"
 import { BusEvent } from "@/bus/bus-event"
 import { Config } from "@/config/config"
 import { Identifier } from "@/id/id"
+import { Plugin } from "@/plugin"
 import { Instance } from "@/project/instance"
 import { Storage } from "@/storage/storage"
 import { fn } from "@/util/fn"
@@ -127,11 +128,29 @@ export namespace PermissionNext {
           throw new DeniedError(ruleset.filter((r) => Wildcard.match(request.permission, r.permission)))
         if (rule.action === "ask") {
           const id = input.id ?? Identifier.ascending("permission")
-          return new Promise<void>((resolve, reject) => {
-            const info: Request = {
+          const info: Request = {
+            id,
+            ...request,
+          }
+          const hook = await Plugin.trigger(
+            "permission.ask",
+            {
               id,
-              ...request,
-            }
+              type: request.permission,
+              pattern: request.patterns,
+              sessionID: request.sessionID,
+              messageID: request.tool?.messageID ?? "",
+              callID: request.tool?.callID,
+              title: request.permission,
+              metadata: request.metadata,
+              time: { created: Date.now() },
+            },
+            { status: "ask" as "ask" | "deny" | "allow" },
+          ).catch(() => ({ status: "ask" as const }))
+          if (hook.status === "deny")
+            throw new DeniedError(ruleset.filter((r) => Wildcard.match(request.permission, r.permission)))
+          if (hook.status === "allow") continue
+          return new Promise<void>((resolve, reject) => {
             s.pending[id] = {
               info,
               resolve,
