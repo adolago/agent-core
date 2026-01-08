@@ -1,7 +1,7 @@
 /**
  * Council Module
  *
- * Multi-LLM/Agent deliberation system for Clawdis.
+ * Multi-LLM/Agent deliberation system for agent-core.
  * Re-exports from orchestration for convenience.
  */
 
