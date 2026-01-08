@@ -10,6 +10,16 @@
 
 import { z } from "zod";
 import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
+import {
+  getTodayEvents,
+  getWeekEvents,
+  getMonthEvents,
+  listEvents,
+  formatEventsForCanvas,
+  checkCredentialsExist,
+  type FormattedEvent,
+} from "./google/calendar.js";
+import { requestDaemon } from "../../daemon/ipc-client.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -255,64 +265,164 @@ The notification system will:
 // =============================================================================
 
 const CalendarParams = z.object({
-  action: z.enum(["list", "create", "update", "delete", "find_time"])
-    .describe("Calendar action"),
-  event: z.object({
-    title: z.string().optional(),
-    start: z.string().optional(),
-    end: z.string().optional(),
-    description: z.string().optional(),
-    attendees: z.array(z.string()).optional(),
-  }).optional().describe("Event details"),
+  action: z.enum(["list", "today", "week", "month", "show"])
+    .describe("Calendar action: list (date range), today, week, month, or show (display in canvas)"),
   dateRange: z.object({
     start: z.string(),
     end: z.string(),
-  }).optional().describe("Date range for queries"),
-  duration: z.number().optional()
-    .describe("Duration in minutes (for find_time)"),
+  }).optional().describe("Date range for 'list' action (ISO dates)"),
+  showInCanvas: z.boolean().default(true)
+    .describe("Display results in canvas sidecar"),
+  year: z.number().optional().describe("Year for 'month' action"),
+  month: z.number().min(0).max(11).optional().describe("Month (0-11) for 'month' action"),
 });
 
 export const calendarTool: ToolDefinition = {
   id: "zee:calendar",
   category: "domain",
   init: async () => ({
-    description: `Manage calendar events and find available time.
+    description: `View Google Calendar events and display them in canvas sidecar.
+
 Actions:
-- list: Show events in a date range
-- create: Create new event
-- update: Update existing event
-- delete: Remove event
-- find_time: Find available slots
+- today: Show today's events
+- week: Show this week's events
+- month: Show this month's events (or specify year/month)
+- list: Show events in a custom date range
+- show: Just display calendar canvas without fetching new events
 
 Examples:
-- List today's events: { action: "list", dateRange: { start: "2024-01-15", end: "2024-01-15" } }
-- Find 30min slot: { action: "find_time", duration: 30 }`,
+- Today's events: { action: "today" }
+- This week: { action: "week" }
+- January 2026: { action: "month", year: 2026, month: 0 }
+- Custom range: { action: "list", dateRange: { start: "2026-01-01", end: "2026-01-15" } }
+- Display only: { action: "show" }`,
     parameters: CalendarParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, event, dateRange, duration } = args;
+      const { action, dateRange, showInCanvas, year, month } = args;
 
       ctx.metadata({ title: `Calendar: ${action}` });
 
-      return {
-        title: `Calendar: ${action}`,
-        metadata: {
-          action,
-          hasEvent: !!event,
-          hasDateRange: !!dateRange,
-        },
-        output: `[Zee would ${action} calendar]
+      // Check credentials first
+      const hasCredentials = await checkCredentialsExist();
+      if (!hasCredentials) {
+        return {
+          title: `Calendar Error`,
+          metadata: { action },
+          output: `Google Calendar credentials not found.
 
-Action: ${action}
-${event ? `Event: ${JSON.stringify(event, null, 2)}` : ""}
-${dateRange ? `Date range: ${dateRange.start} to ${dateRange.end}` : ""}
-${duration ? `Duration: ${duration} minutes` : ""}
+Please set up OAuth credentials at:
+  ~/.zee/credentials/google/oauth-client.json
+  ~/.zee/credentials/google/tokens.json
 
-Calendar integration:
-- Google Calendar API
-- Apple Calendar
-- Outlook Calendar
-- CalDAV support`,
-      };
+You can create credentials at:
+  https://console.cloud.google.com/apis/credentials
+
+Required scopes:
+  - https://www.googleapis.com/auth/calendar
+  - https://www.googleapis.com/auth/calendar.events`,
+        };
+      }
+
+      try {
+        let events: FormattedEvent[] = [];
+        let periodLabel = "";
+
+        if (action === "show") {
+          // Just show the canvas with current date
+          periodLabel = "Calendar";
+        } else if (action === "today") {
+          const raw = await getTodayEvents();
+          events = formatEventsForCanvas(raw);
+          periodLabel = "Today";
+        } else if (action === "week") {
+          const raw = await getWeekEvents();
+          events = formatEventsForCanvas(raw);
+          periodLabel = "This Week";
+        } else if (action === "month") {
+          const raw = await getMonthEvents("primary", year, month);
+          events = formatEventsForCanvas(raw);
+          const targetDate = new Date(year ?? new Date().getFullYear(), month ?? new Date().getMonth(), 1);
+          periodLabel = targetDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        } else if (action === "list" && dateRange) {
+          const raw = await listEvents("primary", {
+            timeMin: new Date(dateRange.start).toISOString(),
+            timeMax: new Date(dateRange.end).toISOString(),
+          });
+          events = formatEventsForCanvas(raw);
+          periodLabel = `${dateRange.start} to ${dateRange.end}`;
+        }
+
+        // Format events for display
+        const eventsList = events.length > 0
+          ? events.map((e) => {
+              const time = e.isAllDay ? "All day" : `${e.startTime}${e.endTime ? ` - ${e.endTime}` : ""}`;
+              const loc = e.location ? ` @ ${e.location}` : "";
+              return `• ${e.date} ${time}: ${e.title}${loc}`;
+            }).join("\n")
+          : "No events found.";
+
+        // Show in canvas sidecar if requested
+        if (showInCanvas) {
+          try {
+            // Convert events to canvas calendar format
+            const canvasEvents = events.map((e) => ({
+              date: e.date,
+              title: e.title,
+            }));
+
+            const targetDate = action === "month" && year && month !== undefined
+              ? `${year}-${String(month + 1).padStart(2, "0")}-15`
+              : new Date().toISOString().split("T")[0];
+
+            await requestDaemon("canvas:spawn", {
+              kind: "calendar",
+              id: "zee-calendar",
+              config: {
+                title: `Calendar: ${periodLabel}`,
+                date: targetDate,
+                events: canvasEvents,
+              },
+            });
+          } catch (canvasError) {
+            // Canvas might not be available, continue without it
+          }
+        }
+
+        return {
+          title: `Calendar: ${periodLabel}`,
+          metadata: {
+            action,
+            eventCount: events.length,
+            period: periodLabel,
+          },
+          output: `${periodLabel} - ${events.length} event(s)
+
+${eventsList}${showInCanvas ? "\n\n📅 Calendar displayed in canvas sidecar." : ""}`,
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Check if it's an auth error
+        if (errorMessage.includes("401") || errorMessage.includes("invalid_grant")) {
+          return {
+            title: `Calendar Auth Error`,
+            metadata: { action },
+            output: `Google Calendar authentication failed.
+
+Your access token may have expired. Please re-authenticate:
+1. Delete ~/.zee/credentials/google/tokens.json
+2. Run the OAuth flow again to get new tokens
+
+Error: ${errorMessage}`,
+          };
+        }
+
+        return {
+          title: `Calendar Error`,
+          metadata: { action },
+          output: `Failed to fetch calendar: ${errorMessage}`,
+        };
+      }
     },
   }),
 };
