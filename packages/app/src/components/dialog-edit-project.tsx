@@ -3,11 +3,12 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Avatar } from "@opencode-ai/ui/avatar"
 import { createMemo, createSignal, For, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { type LocalProject, getAvatarColors } from "@/context/layout"
-import { Avatar } from "@opencode-ai/ui/avatar"
+import { ProjectIcon, isValidImageFile } from "@/components/project-icon"
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
 
@@ -33,9 +34,11 @@ export function DialogEditProject(props: { project: LocalProject }) {
   const [dragOver, setDragOver] = createSignal(false)
 
   function handleFileSelect(file: File) {
-    if (!file.type.startsWith("image/")) return
+    if (!isValidImageFile(file)) return
     const reader = new FileReader()
-    reader.onload = (e) => setStore("iconUrl", e.target?.result as string)
+    reader.onload = (e) => {
+      setStore("iconUrl", e.target?.result as string)
+    }
     reader.readAsDataURL(file)
   }
 
@@ -98,7 +101,7 @@ export function DialogEditProject(props: { project: LocalProject }) {
             <div class="flex gap-3 items-start">
               <div class="relative">
                 <div
-                  class="size-16 rounded-lg overflow-hidden border border-dashed transition-colors cursor-pointer"
+                  class="size-12 rounded-lg overflow-hidden border border-dashed transition-colors cursor-pointer"
                   classList={{
                     "border-text-interactive-base bg-surface-info-base/20": dragOver(),
                     "border-border-base hover:border-border-strong": !dragOver(),
@@ -108,20 +111,13 @@ export function DialogEditProject(props: { project: LocalProject }) {
                   onDragLeave={handleDragLeave}
                   onClick={() => document.getElementById("icon-upload")?.click()}
                 >
-                  <Show
-                    when={store.iconUrl}
-                    fallback={
-                      <div class="size-full flex items-center justify-center">
-                        <Avatar
-                          fallback={store.name || defaultName()}
-                          {...getAvatarColors(store.color)}
-                          class="size-full"
-                        />
-                      </div>
-                    }
-                  >
-                    <img src={store.iconUrl} alt="Project icon" class="size-full object-cover" />
-                  </Show>
+                  <ProjectIcon
+                    name={store.name || defaultName()}
+                    projectId={props.project.id}
+                    iconUrl={store.iconUrl}
+                    iconColor={store.color}
+                    class="size-full"
+                  />
                 </div>
                 <Show when={store.iconUrl}>
                   <button
