@@ -178,7 +178,7 @@ export const ZEE_PERSONA: AgentPersona = {
 
 export const ZEE_AGENT_CONFIG: AgentConfig = {
   name: "zee",
-  description: "Chief of Staff - Professional/Personal intersection. Powered by Clawdis.",
+  description: "Chief of Staff - Professional/Personal intersection. Powered by Zee gateway.",
   mode: "primary",
   native: true,
   default: true,

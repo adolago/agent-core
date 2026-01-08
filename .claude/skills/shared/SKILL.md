@@ -8,7 +8,7 @@ tags: [shared, telegram, contacts, calendar]
 
 # shared - Zee-Powered Tools
 
-Shared tools backed by the Zee runtime (clawdbot). Use these from any persona.
+Shared tools backed by the Zee messaging gateway. Use these from any persona.
 
 ## Telegram
 

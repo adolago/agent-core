@@ -1,7 +1,7 @@
 /**
  * Zee Domain Tools
  *
- * Personal assistant tools powered by Clawdis:
+ * Personal assistant tools powered by Zee gateway:
  * - Memory management and search
  * - Cross-platform messaging
  * - Notifications and reminders
@@ -159,7 +159,7 @@ export const messagingTool: ToolDefinition = {
   init: async () => ({
     description: `Send messages across different platforms.
 Supported channels:
-- WhatsApp (via Clawdis gateway)
+- WhatsApp (via Zee gateway)
 - Telegram
 - Discord
 - Email
