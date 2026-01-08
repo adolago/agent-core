@@ -1,28 +1,13 @@
 import { z } from "zod";
-import { join } from "node:path";
-import { homedir } from "node:os";
-import { existsSync } from "node:fs";
-import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
-
-function resolveCanvasCli(): { cliPath: string } {
-  const vendorCanvas = join(process.env.AGENT_CORE_REPOS || join(homedir(), "Repositories"), "agent-core", "vendor", "canvas");
-  const cliPath = join(vendorCanvas, "canvas", "src", "cli.ts");
-
-  if (!existsSync(cliPath)) {
-    return { cliPath: "npx tsx canvas/src/cli.ts" };
-  }
-
-  return { cliPath: `npx tsx ${cliPath}` };
-}
+import type { ToolDefinition, ToolExecutionResult } from "../../mcp/types";
+import { requestDaemon } from "../../daemon/ipc-client";
 
 const ShowCanvasParams = z.object({
-  kind: z.enum(["text", "calendar", "document", "flight"])
+  kind: z.enum(["text", "calendar", "document", "table"])
     .describe("Canvas kind/type"),
   id: z.string().describe("Unique canvas identifier"),
   scenario: z.enum(["display", "edit", "meeting-picker"]).optional()
     .describe("Display scenario (default: display)"),
-  socket: z.string().optional()
-    .describe("IPC socket path (auto-generated if not provided)"),
 });
 
 export const showCanvasTool: ToolDefinition = {
@@ -31,10 +16,10 @@ export const showCanvasTool: ToolDefinition = {
   init: async () => ({
     description: `Display a canvas in a WezTerm pane.
     Canvas types:
-    - text: Simple text display
-    - calendar: Calendar views
-    - document: Document rendering
-    - flight: Flight information
+    - text: Simple text display with title and content
+    - calendar: Monthly calendar view with events
+    - document: Markdown-like document rendering
+    - table: Tabular data display
 
     Scenarios:
     - display: Read-only (default)
@@ -45,48 +30,54 @@ export const showCanvasTool: ToolDefinition = {
     Existing canvas panes are reused to avoid clutter.
 
     Examples:
-    - Show text canvas: { kind: "text", id: "notes", scenario: "edit" }
-    - Show calendar: { kind: "calendar", id: "cal-1", scenario: "display" }`,
+    - Show text canvas: { kind: "text", id: "notes" }
+    - Show calendar: { kind: "calendar", id: "cal-1" }`,
     parameters: ShowCanvasParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { kind, id, scenario, socket } = args;
+      const { kind, id } = args;
 
       ctx.metadata({ title: `Showing ${kind} canvas` });
 
-      const { cliPath } = resolveCanvasCli();
-      const socketPath = socket || `/tmp/canvas-${id}.sock`;
+      try {
+        await requestDaemon("canvas:show", { id });
+        return {
+          title: `Canvas: ${kind}`,
+          metadata: { kind, id },
+          output: `Canvas "${id}" is now visible in the canvas pane.`,
+        };
+      } catch (error) {
+        // Canvas might not exist, try spawning it
+        try {
+          const result = await requestDaemon<{ paneId: string; id: string }>(
+            "canvas:spawn",
+            { kind, id, config: {} }
+          );
+          return {
+            title: `Canvas: ${kind}`,
+            metadata: { kind, id, paneId: result.paneId },
+            output: `Canvas "${id}" spawned in pane ${result.paneId}.`,
+          };
+        } catch (spawnError) {
+          return {
+            title: `Canvas Error`,
+            metadata: { kind, id },
+            output: `Failed to show canvas: ${spawnError instanceof Error ? spawnError.message : String(spawnError)}
 
-      const command = `${cliPath} show ${kind} --id ${id} --socket ${socketPath}${scenario ? ` --scenario ${scenario}` : ""}`;
-
-      return {
-        title: `Canvas: ${kind}`,
-        metadata: { kind, id, scenario, socket: socketPath },
-        output: `[Canvas spawns in WezTerm pane]
-
-Command: ${command}
-
-Canvas will:
-- Spawn in right pane (67% width)
-- Connect to IPC socket: ${socketPath}
-- Run scenario: ${scenario || "display"}
-- Reuse existing canvas pane if available
-
-The canvas will remain running until you close the pane or spawn a new canvas.`,
-      };
+Note: Canvas requires the agent-core daemon to be running.
+Start it with: bun run src/daemon/index.ts`,
+          };
+        }
+      }
     },
   }),
 };
 
 const SpawnCanvasParams = z.object({
-  kind: z.enum(["text", "calendar", "document", "flight"])
+  kind: z.enum(["text", "calendar", "document", "table"])
     .describe("Canvas kind/type"),
   id: z.string().describe("Unique canvas identifier"),
   config: z.string()
     .describe("JSON configuration for the canvas"),
-  scenario: z.enum(["display", "edit", "meeting-picker"]).optional()
-    .describe("Display scenario (default: display)"),
-  socket: z.string().optional()
-    .describe("IPC socket path (auto-generated if not provided)"),
 });
 
 export const spawnCanvasTool: ToolDefinition = {
@@ -96,31 +87,56 @@ export const spawnCanvasTool: ToolDefinition = {
     description: `Spawn a new canvas with initial configuration.
     Similar to show, but accepts a config JSON to initialize content.
 
+    Config options by kind:
+    - text: { title: string, content: string, width?: number }
+    - calendar: { date?: string (YYYY-MM-DD), events?: [{ date: string, title: string }] }
+    - document: { title: string, content: string (markdown), width?: number }
+    - table: { title: string, headers: string[], rows: string[][], columnWidths?: number[] }
+
     Examples:
-    - Spawn text with content: { kind: "text", id: "notes", config: '{"title": "Notes", "content": "..."}' }
-    - Spawn calendar with date: { kind: "calendar", id: "cal-1", config: '{"date": "2024-01-15"}' }`,
+    - Spawn text: { kind: "text", id: "notes", config: '{"title": "Notes", "content": "Hello!"}' }
+    - Spawn calendar: { kind: "calendar", id: "cal-1", config: '{"date": "2024-01-15"}' }
+    - Spawn table: { kind: "table", id: "data", config: '{"headers": ["Name", "Value"], "rows": [["A", "1"]]}' }`,
     parameters: SpawnCanvasParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { kind, id, config, scenario, socket } = args;
+      const { kind, id, config: configStr } = args;
 
       ctx.metadata({ title: `Spawning ${kind} canvas` });
 
-      const { cliPath } = resolveCanvasCli();
-      const socketPath = socket || `/tmp/canvas-${id}.sock`;
+      let config: Record<string, unknown>;
+      try {
+        config = JSON.parse(configStr);
+      } catch {
+        return {
+          title: `Canvas Error`,
+          metadata: { kind, id },
+          output: `Invalid JSON config: ${configStr}`,
+        };
+      }
 
-      const command = `${cliPath} spawn ${kind} ${id} --config '${config}' --socket ${socketPath}${scenario ? ` --scenario ${scenario}` : ""}`;
+      try {
+        const result = await requestDaemon<{ paneId: string; id: string; kind: string }>(
+          "canvas:spawn",
+          { kind, id, config }
+        );
+        return {
+          title: `Canvas: ${kind}`,
+          metadata: { kind, id, paneId: result.paneId },
+          output: `Canvas "${id}" (${kind}) spawned in pane ${result.paneId}.
 
-      return {
-        title: `Canvas: ${kind}`,
-        metadata: { kind, id, scenario, socket: socketPath },
-        output: `[Canvas spawns with config]
+Config applied:
+${JSON.stringify(config, null, 2)}`,
+        };
+      } catch (error) {
+        return {
+          title: `Canvas Error`,
+          metadata: { kind, id },
+          output: `Failed to spawn canvas: ${error instanceof Error ? error.message : String(error)}
 
-Command: ${command}
-
-Config: ${config}
-
-Canvas will initialize with the provided configuration and connect to IPC socket.`,
-      };
+Note: Canvas requires the agent-core daemon to be running.
+Start it with: bun run src/daemon/index.ts`,
+        };
+      }
     },
   }),
 };
@@ -135,30 +151,80 @@ export const updateCanvasTool: ToolDefinition = {
   category: "domain",
   init: async () => ({
     description: `Update an existing canvas's configuration.
-    Send new config to the canvas via IPC socket.
+    Send new config to the canvas to update its display.
 
     Examples:
     - Update text: { id: "notes", config: '{"content": "Updated notes"}' }
-    - Update calendar: { id: "cal-1", config: '{"date": "2024-01-20"}' }`,
+    - Update calendar date: { id: "cal-1", config: '{"date": "2024-01-20"}' }
+    - Add calendar event: { id: "cal-1", config: '{"events": [{"date": "2024-01-20", "title": "Meeting"}]}' }`,
     parameters: UpdateCanvasParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { id, config } = args;
+      const { id, config: configStr } = args;
 
       ctx.metadata({ title: `Updating canvas ${id}` });
 
-      const { cliPath } = resolveCanvasCli();
-      const socketPath = `/tmp/canvas-${id}.sock`;
-      const command = `${cliPath} update ${id} --config '${config}' --socket ${socketPath}`;
+      let config: Record<string, unknown>;
+      try {
+        config = JSON.parse(configStr);
+      } catch {
+        return {
+          title: `Canvas Error`,
+          metadata: { id },
+          output: `Invalid JSON config: ${configStr}`,
+        };
+      }
 
-      return {
-        title: `Update Canvas: ${id}`,
-        metadata: { id, socket: socketPath },
-        output: `[Canvas receives config update]
+      try {
+        await requestDaemon("canvas:update", { id, config });
+        return {
+          title: `Canvas Updated: ${id}`,
+          metadata: { id },
+          output: `Canvas "${id}" updated with new configuration.
 
-Command: ${command}
+New config:
+${JSON.stringify(config, null, 2)}`,
+        };
+      } catch (error) {
+        return {
+          title: `Canvas Error`,
+          metadata: { id },
+          output: `Failed to update canvas: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
+    },
+  }),
+};
 
-The canvas at ${socketPath} will receive the new configuration and update its display.`,
-      };
+const CloseCanvasParams = z.object({
+  id: z.string().describe("Canvas identifier to close"),
+});
+
+export const closeCanvasTool: ToolDefinition = {
+  id: "shared:canvas-close",
+  category: "domain",
+  init: async () => ({
+    description: `Close a canvas and optionally its pane.
+    Use this to clean up canvases that are no longer needed.`,
+    parameters: CloseCanvasParams,
+    execute: async (args, ctx): Promise<ToolExecutionResult> => {
+      const { id } = args;
+
+      ctx.metadata({ title: `Closing canvas ${id}` });
+
+      try {
+        await requestDaemon("canvas:close", { id });
+        return {
+          title: `Canvas Closed: ${id}`,
+          metadata: { id },
+          output: `Canvas "${id}" has been closed.`,
+        };
+      } catch (error) {
+        return {
+          title: `Canvas Error`,
+          metadata: { id },
+          output: `Failed to close canvas: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
     },
   }),
 };
@@ -182,19 +248,73 @@ export const selectionCanvasTool: ToolDefinition = {
 
       ctx.metadata({ title: `Getting selection from ${id}` });
 
-      const { cliPath } = resolveCanvasCli();
-      const socketPath = `/tmp/canvas-${id}.sock`;
-      const command = `${cliPath} selection ${id} --socket ${socketPath}`;
+      try {
+        const result = await requestDaemon<{ selection: string | null }>(
+          "canvas:selection",
+          { id }
+        );
+        return {
+          title: `Canvas Selection: ${id}`,
+          metadata: { id, selection: result.selection },
+          output: result.selection
+            ? `User selection: ${result.selection}`
+            : `No selection made in canvas "${id}".`,
+        };
+      } catch (error) {
+        return {
+          title: `Canvas Error`,
+          metadata: { id },
+          output: `Failed to get selection: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
+    },
+  }),
+};
 
-      return {
-        title: `Canvas Selection: ${id}`,
-        metadata: { id, socket: socketPath },
-        output: `[Retrieving user selection from canvas]
+const ListCanvasParams = z.object({});
 
-Command: ${command}
+export const listCanvasTool: ToolDefinition = {
+  id: "shared:canvas-list",
+  category: "domain",
+  init: async () => ({
+    description: `List all active canvases.
+    Shows what canvases are currently open and their configuration.`,
+    parameters: ListCanvasParams,
+    execute: async (_args, ctx): Promise<ToolExecutionResult> => {
+      ctx.metadata({ title: `Listing canvases` });
 
-The canvas will return the user's selection (e.g., selected meeting time, chosen option) via IPC.`,
-      };
+      try {
+        const canvases = await requestDaemon<Array<{
+          id: string;
+          kind: string;
+          paneId: string;
+          createdAt: number;
+        }>>("canvas:list", {});
+
+        if (canvases.length === 0) {
+          return {
+            title: `Active Canvases`,
+            metadata: { count: 0 },
+            output: `No active canvases.`,
+          };
+        }
+
+        const list = canvases
+          .map((c) => `- ${c.id} (${c.kind}) in pane ${c.paneId}`)
+          .join("\n");
+
+        return {
+          title: `Active Canvases`,
+          metadata: { count: canvases.length },
+          output: `${canvases.length} active canvas(es):\n${list}`,
+        };
+      } catch (error) {
+        return {
+          title: `Canvas Error`,
+          metadata: {},
+          output: `Failed to list canvases: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
     },
   }),
 };
@@ -203,5 +323,7 @@ export const CANVAS_TOOLS = [
   showCanvasTool,
   spawnCanvasTool,
   updateCanvasTool,
+  closeCanvasTool,
   selectionCanvasTool,
+  listCanvasTool,
 ];

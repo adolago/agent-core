@@ -6,10 +6,7 @@
  */
 
 export * from "./types.js";
-
-// Re-export vendor canvas functionality when available
-// The actual implementation lives in vendor/canvas and is
-// run via `bun run vendor/canvas/canvas/src/cli.ts`
+export * from "./manager.js";
 
 /**
  * Detect available terminal multiplexer

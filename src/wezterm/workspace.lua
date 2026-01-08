@@ -151,6 +151,37 @@ function M.setup_keybindings(config_builder)
     }),
   })
 
+  -- LEADER + c -> Canvas actions menu
+  table.insert(config_builder.keys, {
+    key = "c",
+    mods = "LEADER",
+    action = act.InputSelector({
+      title = "Canvas Actions",
+      choices = {
+        { label = "Show Calendar", id = "calendar" },
+        { label = "Show Notes", id = "text" },
+        { label = "Show Document", id = "document" },
+        { label = "Show Table", id = "table" },
+        { label = "List Canvases", id = "list" },
+        { label = "Close All Canvases", id = "close_all" },
+      },
+      action = wezterm.action_callback(function(_window, pane, id, _label)
+        if id == "list" then
+          pane:send_text("echo '{\"id\":\"1\",\"method\":\"canvas:list\",\"params\":{}}' | nc -U ~/.zee/agent-core/daemon.sock\n")
+        elseif id == "close_all" then
+          pane:send_text("# Closing all canvases via daemon IPC\n")
+        elseif id then
+          -- Spawn canvas of selected type
+          local cmd = string.format(
+            "echo '{\"id\":\"1\",\"method\":\"canvas:spawn\",\"params\":{\"kind\":\"%s\",\"id\":\"%s-1\"}}' | nc -U ~/.zee/agent-core/daemon.sock\n",
+            id, id
+          )
+          pane:send_text(cmd)
+        end
+      end),
+    }),
+  })
+
   return config_builder
 end
 
