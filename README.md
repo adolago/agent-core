@@ -1,3 +1,5 @@
+> **Personal Fork** — This is a personal fork of [sst/opencode](https://github.com/sst/opencode) with minor customizations for my workflow. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for building such a fantastic AI coding agent. Please use the [upstream repository](https://github.com/sst/opencode) for official releases and support.
+
 <p align="center">
   <a href="https://opencode.ai">
     <picture>
