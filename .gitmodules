@@ -1,0 +1,3 @@
+[submodule "vendor/tiara"]
+	path = vendor/tiara
+	url = https://github.com/adolago/tiara.git
