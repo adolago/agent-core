@@ -14,6 +14,7 @@ import { getOrchestrator } from "../personas";
 import { AgentLSPServer } from "../lsp";
 import { DaemonIpcServer } from "./ipc-server";
 import { resolveIpcSocketPath } from "./ipc";
+import { CanvasManager, type CanvasKind } from "../canvas/manager.js";
 
 interface DaemonConfig {
   lspPort: number;
@@ -54,6 +55,7 @@ export class AgentCoreDaemon {
   private tcpServer?: Server;
   private lspServer?: AgentLSPServer;
   private ipcServer?: DaemonIpcServer;
+  private canvasManager?: CanvasManager;
   private isRunning = false;
 
   constructor(config?: Partial<DaemonConfig>) {
@@ -106,7 +108,15 @@ export class AgentCoreDaemon {
       enableHover: true,
     });
 
-    // 3. Start IPC server for local skill/runtime commands
+    // 3. Initialize canvas manager
+    log("info", "Initializing canvas manager...");
+    this.canvasManager = new CanvasManager({
+      defaultWidth: 0.67,
+      reusePane: true,
+      splitDirection: "right",
+    });
+
+    // 4. Start IPC server for local skill/runtime commands
     this.ipcServer = new DaemonIpcServer({
       socketPath: this.config.ipcSocket,
       handleRequest: async (request) => {
@@ -216,6 +226,67 @@ export class AgentCoreDaemon {
           case "shutdown":
             void this.stop();
             return { ok: true };
+
+          // Canvas IPC methods
+          case "canvas:spawn": {
+            const params = request.params ?? {};
+            const kind = params.kind ? String(params.kind) as CanvasKind : "text";
+            const id = params.id ? String(params.id) : `canvas-${Date.now()}`;
+            const config = (params.config as Record<string, unknown>) ?? {};
+            if (!this.canvasManager) {
+              throw new Error("Canvas manager not initialized");
+            }
+            const canvas = await this.canvasManager.spawn(kind, id, config);
+            return { paneId: canvas.paneId, id: canvas.id, kind: canvas.kind };
+          }
+          case "canvas:show": {
+            const params = request.params ?? {};
+            const id = params.id ? String(params.id) : "";
+            if (!id) throw new Error("canvas:show requires id");
+            if (!this.canvasManager) {
+              throw new Error("Canvas manager not initialized");
+            }
+            await this.canvasManager.show(id);
+            return { ok: true };
+          }
+          case "canvas:update": {
+            const params = request.params ?? {};
+            const id = params.id ? String(params.id) : "";
+            const config = (params.config as Record<string, unknown>) ?? {};
+            if (!id) throw new Error("canvas:update requires id");
+            if (!this.canvasManager) {
+              throw new Error("Canvas manager not initialized");
+            }
+            await this.canvasManager.update(id, config);
+            return { ok: true };
+          }
+          case "canvas:close": {
+            const params = request.params ?? {};
+            const id = params.id ? String(params.id) : "";
+            if (!id) throw new Error("canvas:close requires id");
+            if (!this.canvasManager) {
+              throw new Error("Canvas manager not initialized");
+            }
+            await this.canvasManager.close(id);
+            return { ok: true };
+          }
+          case "canvas:selection": {
+            const params = request.params ?? {};
+            const id = params.id ? String(params.id) : "";
+            if (!id) throw new Error("canvas:selection requires id");
+            if (!this.canvasManager) {
+              throw new Error("Canvas manager not initialized");
+            }
+            const selection = await this.canvasManager.getSelection(id);
+            return { selection };
+          }
+          case "canvas:list": {
+            if (!this.canvasManager) {
+              throw new Error("Canvas manager not initialized");
+            }
+            return this.canvasManager.listActive();
+          }
+
           default:
             throw new Error(`Unknown IPC method: ${request.method}`);
         }
@@ -224,11 +295,11 @@ export class AgentCoreDaemon {
     });
     await this.ipcServer.start();
 
-    // 4. Start TCP server for LSP connections
+    // 5. Start TCP server for LSP connections
     log("info", `Starting TCP server on ${this.config.lspHost}:${this.config.lspPort}...`);
     await this.startTcpServer();
 
-    // 5. Wire tiara state to LSP
+    // 6. Wire tiara state to LSP
     this.wireOrchestratorToLsp(tiara);
 
     this.isRunning = true;
@@ -342,6 +413,12 @@ export class AgentCoreDaemon {
     if (this.ipcServer) {
       await this.ipcServer.stop();
       this.ipcServer = undefined;
+    }
+
+    // Close all canvases
+    if (this.canvasManager) {
+      await this.canvasManager.closeAll();
+      this.canvasManager = undefined;
     }
 
     // Shutdown tiara
