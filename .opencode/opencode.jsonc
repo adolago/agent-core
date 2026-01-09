@@ -13,4 +13,14 @@
     "github-triage": false,
     "github-pr-search": false,
   },
+  "agent": {
+    "title": {
+      "model": "cerebras/gpt-oss-120b",
+      "temperature": 0.5
+    },
+    "compaction": {
+      "model": "antigravity/gemini-3-flash",
+      "temperature": 0.3
+    }
+  },
 }

@@ -34,7 +34,11 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     }
 
     const agent = iife(() => {
-      const agents = createMemo(() => sync.data.agent.filter((x) => x.mode !== "subagent" && !x.hidden))
+      const agents = createMemo(() =>
+        sync.data.agent
+          .filter((x) => x.mode !== "subagent" && !x.hidden)
+          .sort((a, b) => b.name.localeCompare(a.name)), // Reverse alpha: Zee, Stanley, Johny
+      )
       const [agentStore, setAgentStore] = createStore<{
         current: string
       }>({
