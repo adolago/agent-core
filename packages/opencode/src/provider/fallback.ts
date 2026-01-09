@@ -8,6 +8,7 @@ import { CircuitBreaker } from "./circuit-breaker"
 import { FallbackChain } from "./fallback-chain"
 import { ModelEquivalence } from "./equivalence"
 import z from "zod"
+import type { StreamTextResult, ToolSet } from "ai"
 
 /**
  * Fallback Orchestrator - Main entry point for LLM streaming with automatic fallback.
@@ -139,9 +140,9 @@ export namespace Fallback {
           model: currentModel,
         })
 
-        // Success - record it and emit event if fallback was used
-        CircuitBreaker.recordSuccess(currentModel.providerID)
-
+        // Don't record success immediately - the stream might still error during iteration
+        // The circuit breaker will learn from failures; success is the default state
+        // We only emit fallback notification here since we got a stream back
         if (attempt > 0 && fallbackConfig.notifyOnFallback) {
           Bus.publish(Event.FallbackUsed, {
             sessionID: input.sessionID,
