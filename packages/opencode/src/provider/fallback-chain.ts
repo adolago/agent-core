@@ -126,6 +126,9 @@ export namespace FallbackChain {
         if (errorMessage.includes("rate") && errorMessage.includes("limit")) {
           return "rate_limit"
         }
+        if (errorMessage.includes("insufficient_quota") || errorMessage.includes("quota")) {
+          return "rate_limit"
+        }
         if (errorMessage.includes("overloaded") || errorMessage.includes("capacity")) {
           return "rate_limit"
         }
@@ -140,6 +143,10 @@ export namespace FallbackChain {
       const json = JSON.parse(message)
       if (json.type === "error") {
         if (json.error?.type === "too_many_requests" || json.error?.code?.includes("rate_limit")) {
+          return "rate_limit"
+        }
+        // OpenAI insufficient_quota errors should trigger fallback
+        if (json.error?.type === "insufficient_quota" || json.error?.code === "insufficient_quota") {
           return "rate_limit"
         }
         if (json.error?.type === "server_error" || json.error?.type === "overloaded_error") {
@@ -158,6 +165,9 @@ export namespace FallbackChain {
       return "rate_limit"
     }
     if (lowerMessage.includes("too many requests") || lowerMessage.includes("429")) {
+      return "rate_limit"
+    }
+    if (lowerMessage.includes("insufficient_quota") || lowerMessage.includes("exceeded") && lowerMessage.includes("quota")) {
       return "rate_limit"
     }
     if (lowerMessage.includes("overloaded") || lowerMessage.includes("capacity")) {
