@@ -185,12 +185,16 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
       const currentModel = createMemo(() => {
         const a = agent.current()
-        // Agent's configured model takes priority over cached selection
+        // Agent's configured model takes priority - trust it without validation
+        // Custom models (like cerebras/zai-glm-4.7) may not be in the provider list
+        if (a?.model) {
+          return a.model
+        }
+        // For non-configured agents, use cached selection or fallback (with validation)
         return (
           getFirstValidModel(
-            () => a.model, // Agent's configured model first
-            () => modelStore.model[a.name], // Then cached selection
-            fallbackModel, // Then global fallback
+            () => modelStore.model[a?.name ?? ""], // Cached selection
+            fallbackModel, // Global fallback
           ) ?? undefined
         )
       })
