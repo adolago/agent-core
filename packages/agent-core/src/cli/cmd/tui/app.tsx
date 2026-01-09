@@ -10,7 +10,7 @@ import { DialogProvider as DialogProviderList } from "@tui/component/dialog-prov
 import { SDKProvider, useSDK } from "@tui/context/sdk"
 import { SyncProvider, useSync } from "@tui/context/sync"
 import { LocalProvider, useLocal } from "@tui/context/local"
-import { DialogModel, useConnected } from "@tui/component/dialog-model"
+import { DialogModel } from "@tui/component/dialog-model"
 import { DialogMcp } from "@tui/component/dialog-mcp"
 import { DialogStatus } from "@tui/component/dialog-status"
 import { DialogThemeList } from "@tui/component/dialog-theme-list"
@@ -284,25 +284,18 @@ function App() {
     ),
   )
 
-  const connected = useConnected()
   command.register(() => [
     {
       title: "Switch session",
       value: "session.list",
       keybind: "session_list",
       category: "Session",
-      suggested: sync.data.session.length > 0,
-      slash: {
-        name: "sessions",
-        aliases: ["resume", "continue"],
-      },
       onSelect: () => {
         dialog.replace(() => <DialogSessionList />)
       },
     },
     {
       title: "New session",
-      suggested: route.data.type === "session",
       value: "session.new",
       keybind: "session_new",
       category: "Session",
@@ -325,7 +318,6 @@ function App() {
       title: "Switch model",
       value: "model.list",
       keybind: "model_list",
-      suggested: true,
       category: "Agent",
       slash: {
         name: "models",
@@ -352,26 +344,6 @@ function App() {
       hidden: true,
       onSelect: () => {
         local.model.cycle(-1)
-      },
-    },
-    {
-      title: "Favorite cycle",
-      value: "model.cycle_favorite",
-      keybind: "model_cycle_favorite",
-      category: "Agent",
-      hidden: true,
-      onSelect: () => {
-        local.model.cycleFavorite(1)
-      },
-    },
-    {
-      title: "Favorite cycle reverse",
-      value: "model.cycle_favorite_reverse",
-      keybind: "model_cycle_favorite_reverse",
-      category: "Agent",
-      hidden: true,
-      onSelect: () => {
-        local.model.cycleFavorite(-1)
       },
     },
     {
@@ -428,12 +400,18 @@ function App() {
       },
     },
     {
+      title: local.mode.isHold() ? "Switch to Release mode" : "Switch to Hold mode",
+      value: "mode.toggle",
+      keybind: "mode_toggle",
+      category: "Mode",
+      disabled: true,
+      onSelect: () => {
+        local.mode.toggle()
+      },
+    },
+    {
       title: "Connect provider",
       value: "provider.connect",
-      suggested: !connected(),
-      slash: {
-        name: "connect",
-      },
       onSelect: () => {
         dialog.replace(() => <DialogProviderList />)
       },

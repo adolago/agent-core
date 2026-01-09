@@ -1,5 +1,5 @@
 import { useDialog } from "@tui/ui/dialog"
-import { DialogSelect, type DialogSelectOption, type DialogSelectRef } from "@tui/ui/dialog-select"
+import { DialogSelect, type DialogSelectOption } from "@tui/ui/dialog-select"
 import {
   createContext,
   createMemo,
@@ -23,7 +23,6 @@ export type Slash = {
 
 export type CommandOption = DialogSelectOption<string> & {
   keybind?: keyof KeybindsConfig
-  suggested?: boolean
   slash?: Slash
   hidden?: boolean
   enabled?: boolean
@@ -47,15 +46,6 @@ function init() {
   const isVisible = (option: CommandOption) => isEnabled(option) && !option.hidden
 
   const visibleOptions = createMemo(() => entries().filter((option) => isVisible(option)))
-  const suggestedOptions = createMemo(() =>
-    visibleOptions()
-      .filter((option) => option.suggested)
-      .map((option) => ({
-        ...option,
-        value: `suggested:${option.value}`,
-        category: "Suggested",
-      })),
-  )
   const suspended = () => suspendCount() > 0
 
   useKeyboard((evt) => {
@@ -98,7 +88,7 @@ function init() {
     },
     suspended,
     show() {
-      dialog.replace(() => <DialogCommand options={visibleOptions()} suggestedOptions={suggestedOptions()} />)
+      dialog.replace(() => <DialogCommand options={visibleOptions()} />)
     },
     register(cb: () => CommandOption[]) {
       const results = createMemo(cb)
@@ -138,11 +128,6 @@ export function CommandProvider(props: ParentProps) {
   return <ctx.Provider value={value}>{props.children}</ctx.Provider>
 }
 
-function DialogCommand(props: { options: CommandOption[]; suggestedOptions: CommandOption[] }) {
-  let ref: DialogSelectRef<string>
-  const list = () => {
-    if (ref?.filter) return props.options
-    return [...props.suggestedOptions, ...props.options]
-  }
-  return <DialogSelect ref={(r) => (ref = r)} title="Commands" options={list()} />
+function DialogCommand(props: { options: CommandOption[] }) {
+  return <DialogSelect title="Commands" options={props.options} />
 }

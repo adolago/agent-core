@@ -397,31 +397,31 @@ export function Session() {
 
   const command = useCommandDialog()
   command.register(() => [
-    {
-      title: "Share session",
-      value: "session.share",
-      suggested: route.type === "session",
-      keybind: "session_share",
-      category: "Session",
-      enabled: sync.data.config.share !== "disabled" && !session()?.share?.url,
-      slash: {
-        name: "share",
-      },
-      onSelect: async (dialog) => {
-        await sdk.client.session
-          .share({
-            sessionID: route.sessionID,
-          })
-          .then((res) =>
-            Clipboard.copy(res.data!.share!.url).catch(() =>
-              toast.show({ message: "Failed to copy URL to clipboard", variant: "error" }),
-            ),
-          )
-          .then(() => toast.show({ message: "Share URL copied to clipboard!", variant: "success" }))
-          .catch(() => toast.show({ message: "Failed to share session", variant: "error" }))
-        dialog.clear()
-      },
-    },
+    ...(sync.data.config.share !== "disabled"
+      ? [
+          {
+            title: "Share session",
+            value: "session.share",
+            keybind: "session_share",
+            category: "Session",
+            enabled: !session()?.share?.url,
+            onSelect: async (dialog) => {
+              await sdk.client.session
+                .share({
+                  sessionID: route.sessionID,
+                })
+                .then((res) =>
+                  Clipboard.copy(res.data!.share!.url).catch(() =>
+                    toast.show({ message: "Failed to copy URL to clipboard", variant: "error" }),
+                  ),
+                )
+                .then(() => toast.show({ message: "Share URL copied to clipboard!", variant: "success" }))
+                .catch(() => toast.show({ message: "Failed to share session", variant: "error" }))
+              dialog.clear()
+            },
+          },
+        ]
+      : []),
     {
       title: "Rename session",
       value: "session.rename",
