@@ -87,6 +87,27 @@ export function Prompt(props: PromptProps) {
 
   const textareaKeybindings = useTextareaKeybindings()
 
+  // Track incomplete todos for hint display
+  const incompleteTodos = createMemo(() => {
+    if (!props.sessionID) return []
+    const todos = sync.data.todo[props.sessionID] ?? []
+    return todos.filter((t) => t.status !== "completed")
+  })
+
+  const todoHint = createMemo(() => {
+    const incomplete = incompleteTodos()
+    if (incomplete.length === 0) return null
+    const todos = sync.data.todo[props.sessionID ?? ""] ?? []
+    const completed = todos.filter((t) => t.status === "completed").length
+    const inProgress = incomplete.find((t) => t.status === "in_progress")
+    return {
+      count: incomplete.length,
+      completed,
+      total: todos.length,
+      current: inProgress?.content?.slice(0, 30) ?? incomplete[0]?.content?.slice(0, 30),
+    }
+  })
+
   const fileStyleId = syntax().getStyleId("extmark.file")!
   const agentStyleId = syntax().getStyleId("extmark.agent")!
   const pasteStyleId = syntax().getStyleId("extmark.paste")!
@@ -985,7 +1006,18 @@ export function Prompt(props: PromptProps) {
           />
         </box>
         <box flexDirection="row" justifyContent="space-between">
-          <Show when={status().type !== "idle"} fallback={<text />}>
+          <Show
+            when={status().type !== "idle"}
+            fallback={
+              <Show when={todoHint()}>
+                {(hint) => (
+                  <text fg={theme.warning}>
+                    [{hint().completed}/{hint().total}] {hint().current}...
+                  </text>
+                )}
+              </Show>
+            }
+          >
             <box
               flexDirection="row"
               gap={1}

@@ -232,6 +232,23 @@ export function Session() {
       .sync(route.sessionID)
       .then(() => {
         if (scroll) scroll.scrollBy(100_000)
+
+        // Check for incomplete todos and show continuation reminder
+        const todos = sync.data.todo[route.sessionID] ?? []
+        const incompleteTodos = todos.filter((t) => t.status !== "completed")
+        const completedCount = todos.length - incompleteTodos.length
+
+        if (incompleteTodos.length > 0 && todos.length > 0) {
+          const inProgress = todos.filter((t) => t.status === "in_progress")
+          const pending = todos.filter((t) => t.status === "pending")
+
+          toast.show({
+            variant: "info",
+            title: "Todo Continuation",
+            message: `${completedCount}/${todos.length} completed. ${inProgress.length > 0 ? `Working on: ${inProgress[0].content.slice(0, 40)}...` : `${pending.length} pending tasks.`}`,
+            duration: 5000,
+          })
+        }
       })
       .catch((e) => {
         console.error(e)

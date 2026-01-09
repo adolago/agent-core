@@ -34,6 +34,7 @@ import { Command } from "../command"
 import { $, fileURLToPath } from "bun"
 import { ConfigMarkdown } from "../config/markdown"
 import { SessionSummary } from "./summary"
+import { Todo } from "./todo"
 import { NamedError } from "@opencode-ai/util/error"
 import { fn } from "@/util/fn"
 import { SessionProcessor } from "./processor"
@@ -1335,6 +1336,49 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       userMessage.parts.push(part)
       return input.messages
     }
+
+    // Todo continuation reminder
+    const todos = await Todo.get(input.session.id)
+    if (todos.length > 0) {
+      const incompleteTodos = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+      const inProgress = todos.filter((t) => t.status === "in_progress")
+      const pending = todos.filter((t) => t.status === "pending")
+      const completedCount = todos.filter((t) => t.status === "completed").length
+
+      if (incompleteTodos.length > 0) {
+        const todoList = incompleteTodos
+          .slice(0, 5)
+          .map((t) => `- [${t.status === "in_progress" ? "IN PROGRESS" : "PENDING"}] ${t.content}`)
+          .join("\n")
+
+        const reminderText = [
+          "<system-reminder>",
+          "[TODO CONTINUATION]",
+          "",
+          `You have ${incompleteTodos.length} incomplete tasks (${completedCount}/${todos.length} completed):`,
+          todoList,
+          incompleteTodos.length > 5 ? `... and ${incompleteTodos.length - 5} more` : "",
+          "",
+          "Continue working on these tasks:",
+          "- Proceed without asking for permission",
+          "- Mark each task complete when finished",
+          "- Do not stop until all tasks are done",
+          "</system-reminder>",
+        ]
+          .filter(Boolean)
+          .join("\n")
+
+        userMessage.parts.push({
+          id: Identifier.ascending("part"),
+          messageID: userMessage.info.id,
+          sessionID: userMessage.info.sessionID,
+          type: "text",
+          text: reminderText,
+          synthetic: true,
+        })
+      }
+    }
+
     return input.messages
   }
 
