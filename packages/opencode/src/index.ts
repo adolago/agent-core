@@ -26,6 +26,7 @@ import { EOL } from "os"
 import { WebCommand } from "./cli/cmd/web"
 import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
+import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand } from "./cli/cmd/daemon"
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -97,6 +98,9 @@ const cli = yargs(hideBin(process.argv))
   .command(GithubCommand)
   .command(PrCommand)
   .command(SessionCommand)
+  .command(DaemonCommand)
+  .command(DaemonStatusCommand)
+  .command(DaemonStopCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||

@@ -810,6 +810,63 @@ export namespace Config {
       ref: "ServerConfig",
     })
 
+  export const Daemon = z
+    .object({
+      enabled: z.boolean().optional().default(false).describe("Enable daemon mode"),
+      session: z
+        .object({
+          persistence: z.boolean().optional().default(true).describe("Enable session persistence"),
+          checkpoint_interval: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .default(300)
+            .describe("Checkpoint interval in seconds"),
+          recovery: z.boolean().optional().default(true).describe("Enable crash recovery"),
+        })
+        .optional()
+        .describe("Session management configuration"),
+      todo: z
+        .object({
+          auto_continue: z
+            .boolean()
+            .optional()
+            .default(true)
+            .describe("Automatically continue incomplete todos on session restore"),
+          notify_on_incomplete: z
+            .boolean()
+            .optional()
+            .default(true)
+            .describe("Send notifications for incomplete todos"),
+        })
+        .optional()
+        .describe("Todo continuation configuration"),
+      gateway: z
+        .object({
+          telegram: z
+            .object({
+              enabled: z.boolean().optional().default(false).describe("Enable Telegram bot gateway"),
+              bot_token: z.string().optional().describe("Telegram bot token"),
+            })
+            .optional()
+            .describe("Telegram gateway configuration"),
+          discord: z
+            .object({
+              enabled: z.boolean().optional().default(false).describe("Enable Discord bot gateway"),
+              bot_token: z.string().optional().describe("Discord bot token"),
+            })
+            .optional()
+            .describe("Discord gateway configuration"),
+        })
+        .optional()
+        .describe("Remote communication gateway configuration"),
+    })
+    .strict()
+    .meta({
+      ref: "DaemonConfig",
+    })
+
   export const Layout = z.enum(["auto", "stretch"]).meta({
     ref: "LayoutConfig",
   })
@@ -876,6 +933,7 @@ export namespace Config {
       logLevel: Log.Level.optional().describe("Log level"),
       tui: TUI.optional().describe("TUI specific settings"),
       server: Server.optional().describe("Server configuration for opencode serve and web commands"),
+      daemon: Daemon.optional().describe("Daemon mode configuration for headless operation"),
       command: z
         .record(z.string(), Command)
         .optional()

@@ -74,176 +74,275 @@ Immediate integration of todo-continuation into existing systems.
 ---
 
 ### Phase 1: Headless Daemon Mode
+**Status: Complete**
 **Prerequisites: Phase 0 complete**
 
 agent-core runs as a system service, starting before user login.
 
-#### 1.1 Systemd Service
+#### 1.1 Systemd Service (DONE)
+Service file at `scripts/systemd/agent-core.service` with install script.
+
 ```bash
-# /etc/systemd/system/agent-core.service
-[Unit]
-Description=Agent Core - Always-On Personas
-After=network.target
+# Install the service
+sudo ./scripts/systemd/install.sh
 
-[Service]
-Type=simple
-User=artur
-Environment=HOME=/home/artur
-Environment=AGENT_CORE_HEADLESS=1
-WorkingDirectory=/home/artur/Repositories/agent-core
-ExecStart=/home/artur/.bun/bin/bun run packages/opencode/src/cli/index.ts daemon
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
+# Or manually copy
+sudo cp scripts/systemd/agent-core.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable agent-core
+sudo systemctl start agent-core
 ```
 
-#### 1.2 Daemon Mode Implementation
-- [ ] Create `daemon` command in CLI
-- [ ] Headless session management (no TUI)
-- [ ] API server for remote communication
-- [ ] Credential management without user session
-- [ ] Logging to file/journald
+#### 1.2 Daemon Mode Implementation (DONE)
+- [x] Create `daemon` command in CLI
+- [x] Headless session management (no TUI)
+- [x] API server for remote communication (reuses existing Server)
+- [x] Logging to file/journald
+- [x] PID file management for service control
+- [x] Signal handlers for graceful shutdown
+- [x] Session restoration with todo-continuation on startup
 
-#### 1.3 Credential Access
-- [ ] Keyring access from service context
-- [ ] Environment-based fallback for API keys
-- [ ] Secure credential storage at `~/.zee/credentials/`
+CLI Commands:
+- `opencode daemon` - Start the daemon
+- `opencode daemon-status` - Check if running
+- `opencode daemon-stop` - Stop the daemon
+
+#### 1.3 Credential Access (PARTIAL)
+- [x] Environment-based fallback for API keys (via daemon.env file)
+- [ ] Keyring access from service context (future)
+- [ ] Secure credential storage at `~/.zee/credentials/` (future)
+
+#### 1.4 Configuration Schema (DONE)
+Added `daemon` section to config schema:
+```json
+{
+  "daemon": {
+    "enabled": true,
+    "session": {
+      "persistence": true,
+      "checkpoint_interval": 300,
+      "recovery": true
+    },
+    "todo": {
+      "auto_continue": true,
+      "notify_on_incomplete": true
+    },
+    "gateway": {
+      "telegram": { "enabled": false },
+      "discord": { "enabled": false }
+    }
+  }
+}
+```
 
 ---
 
 ### Phase 2: Remote Communication Gateway
+**Status: Telegram Complete**
 **Prerequisites: Phase 1 complete**
 
 Zee becomes the universal gateway for all communication.
 
-#### 2.1 Messaging Platform Integration
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    ZEE GATEWAY                               │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Telegram ──┐                                                │
-│             │    ┌──────────────────────────────────────┐   │
-│  WhatsApp ──┼───►│  Message Router                      │   │
-│             │    │                                      │   │
-│  Discord ───┘    │  • Parse intent                      │   │
-│                  │  • Route to persona (Zee/Stanley/    │   │
-│                  │    Johny)                            │   │
-│                  │  • Queue if busy                     │   │
-│                  │  • Return results                    │   │
-│                  └──────────────────────────────────────┘   │
-│                                                              │
-│  Outbound:                                                   │
-│  • Task completion notifications                             │
-│  • Todo status updates                                       │
-│  • Error alerts                                              │
-│  • Daily summaries                                           │
-└──────────────────────────────────────────────────────────────┘
+#### 2.1 Telegram Gateway (DONE)
+
+Implementation at `packages/opencode/src/gateway/telegram.ts`:
+
+- [x] Long polling for incoming messages (no webhook required)
+- [x] Intent-based persona routing (finance → Stanley, learning → Johny, else → Zee)
+- [x] User/chat authorization via allowlist
+- [x] Bot commands (/start, /status, /new, /zee, /stanley, /johny)
+- [x] Automatic message chunking for Telegram's 4096 char limit
+- [x] Integration with daemon startup
+- [x] Outbound notification support
+
+**Usage:**
+```bash
+# Set up your bot token (get from @BotFather)
+export TELEGRAM_BOT_TOKEN=your-token-here
+
+# Optionally restrict to specific users (get ID from @userinfobot)
+export TELEGRAM_ALLOWED_USERS=123456789,987654321
+
+# Start daemon with Telegram gateway
+opencode daemon --port 4567
 ```
 
-#### 2.2 Implementation Tasks
-- [ ] Telegram bot running in daemon mode
-- [ ] WhatsApp integration (if available)
+**Bot Commands:**
+- `/start` - Welcome message and help
+- `/status` - Check system status
+- `/new` - Start new conversation
+- `/zee` - Switch to Zee persona
+- `/stanley` - Switch to Stanley persona
+- `/johny` - Switch to Johny persona
+
+**Intent Routing Patterns:**
+- Stanley: portfolio, stock, market, invest, trading, finance, ticker, NVDA/AAPL/TSLA
+- Johny: study, learn, quiz, teach, explain, knowledge, practice, math/calculus
+- Zee: Everything else (default)
+
+#### 2.2 Future Platforms
+- [ ] WhatsApp integration (requires Business API)
 - [ ] Discord bot as alternative
-- [ ] Message queue for handling during offline
-- [ ] Intent parsing to route to correct persona:
-  - "Check my portfolio" → Stanley
-  - "What's on my calendar" → Zee
-  - "Quiz me on calculus" → Johny
 
-#### 2.3 Security Considerations
-- [ ] Device authentication
-- [ ] Rate limiting
-- [ ] Audit logging
-- [ ] Session tokens for multi-device
+#### 2.3 Security (PARTIAL)
+- [x] User ID allowlist
+- [x] Chat ID allowlist
+- [ ] Rate limiting (future)
+- [ ] Audit logging (future)
 
 ---
 
 ### Phase 3: Session Persistence & Recovery
-**Prerequisites: Phase 1, 2 in progress**
+**Status: Complete**
+**Prerequisites: Phase 1, 2 complete**
 
-Robust session management that survives anything.
+Robust session management that survives crashes and restarts.
 
-#### 3.1 Persistent Session Store
+#### 3.1 Persistence Module (DONE)
+
+Implementation at `packages/opencode/src/session/persistence.ts`:
+
 ```
-~/.zee/
-├── sessions/
-│   ├── active/           # Currently active sessions
-│   │   ├── {session-id}.json
-│   │   └── {session-id}.todos.json
-│   └── archive/          # Completed sessions
-├── state/
-│   ├── daemon.pid        # Daemon process ID
-│   ├── daemon.lock       # Lock file
-│   └── last-active.json  # Last active session per persona
-└── recovery/
-    ├── checkpoint/       # Periodic state snapshots
-    └── journal/          # Write-ahead log for crash recovery
+~/.local/state/agent-core/persistence/
+├── checkpoints/
+│   └── checkpoint-{timestamp}/
+│       ├── sessions.json      # All sessions with todos
+│       ├── last-active.json   # Last active per persona
+│       └── metadata.json      # Checkpoint metadata
+├── wal.jsonl                  # Write-ahead log
+├── last-active.json           # Current last active state
+└── recovery-needed            # Marker (removed on clean shutdown)
 ```
 
-#### 3.2 Recovery Mechanisms
-- [ ] Checkpoint every N minutes
-- [ ] Write-ahead logging for in-progress operations
-- [ ] Graceful shutdown with state save
-- [ ] Crash recovery on restart:
-  1. Load last checkpoint
-  2. Replay journal entries
-  3. Trigger todo-continuation hooks
-  4. Resume interrupted work
+#### 3.2 Features Implemented
 
-#### 3.3 Cross-Device Session Continuity
-- [ ] Phone starts a conversation
-- [ ] Continue on desktop
-- [ ] Session context follows the user
+**Checkpoints:**
+- [x] Periodic checkpoints (default: every 5 minutes)
+- [x] Configurable checkpoint interval
+- [x] Automatic cleanup of old checkpoints (keeps last 3)
+- [x] Full session state with todos
+
+**Write-Ahead Logging:**
+- [x] Logs session creates/updates
+- [x] Logs message creates
+- [x] Logs todo updates
+- [x] Logs last active session changes
+- [x] Automatic WAL replay on crash recovery
+
+**Recovery:**
+- [x] Recovery marker detects unclean shutdown
+- [x] Automatic recovery on daemon startup
+- [x] Checkpoint restoration
+- [x] WAL replay after checkpoint
+
+**Last Active Tracking:**
+- [x] Tracks last active session per persona (zee/stanley/johny)
+- [x] Stores associated Telegram chat ID
+- [x] Enables session continuity across restarts
+- [x] Integrated with Telegram gateway
+
+#### 3.3 Cross-Device Session Continuity (DONE)
+- [x] Session restored when same chat ID reconnects
+- [x] Per-persona session tracking
+- [x] Works across daemon restarts
 
 ---
 
 ### Phase 4: Tiara Hook Integration
-**Prerequisites: Phase 0.1 complete, Phase 1-3 in progress**
+**Status: Complete**
+**Prerequisites: Phase 0.1 complete, Phase 1-3 complete**
 
 Full hook lifecycle for session management.
 
-#### 4.1 Hook Events
+#### 4.1 Lifecycle Hooks Module (DONE)
+
+Implementation at `packages/opencode/src/hooks/lifecycle.ts`:
+
 ```typescript
+// Daemon lifecycle
+LifecycleHooks.Daemon.Start      // Daemon starting up
+LifecycleHooks.Daemon.Ready      // Daemon ready to accept work
+LifecycleHooks.Daemon.Shutdown   // Graceful shutdown initiated
+
 // Session lifecycle
-'session-start'      // New session created
-'session-restore'    // Existing session loaded (triggers todo-continuation)
-'session-end'        // Session completed or suspended
-'session-transfer'   // Session moving to different device/context
+LifecycleHooks.SessionLifecycle.Start     // New session created
+LifecycleHooks.SessionLifecycle.Restore   // Existing session restored (triggers todo-continuation)
+LifecycleHooks.SessionLifecycle.End       // Session completed or suspended
+LifecycleHooks.SessionLifecycle.Transfer  // Session moving to different device/context
 
 // Todo lifecycle
-'todo-continuation'  // Incomplete tasks detected
-'todo-completed'     // All tasks done
-'todo-blocked'       // Task cannot proceed, needs input
-
-// Daemon lifecycle
-'daemon-start'       // Daemon starting up
-'daemon-ready'       // Daemon ready to accept work
-'daemon-shutdown'    // Graceful shutdown initiated
+LifecycleHooks.TodoLifecycle.Continuation // Incomplete tasks detected
+LifecycleHooks.TodoLifecycle.Completed    // All tasks done
+LifecycleHooks.TodoLifecycle.Blocked      // Task cannot proceed, needs input
 ```
 
-#### 4.2 Integration Points
-- [ ] Daemon startup triggers `session-restore` for all active sessions
-- [ ] Message gateway triggers `session-start` or `session-restore`
-- [ ] TUI session switch triggers `session-restore`
-- [ ] All paths check for todo-continuation
+#### 4.2 Hook Integration Points (DONE)
+- [x] Daemon startup emits `daemon.start` and `daemon.ready`
+- [x] Daemon shutdown emits `daemon.shutdown`
+- [x] Telegram gateway emits `session.lifecycle.start` for new sessions
+- [x] Telegram gateway emits `session.lifecycle.restore` when restoring sessions
+- [x] Session restore triggers `todo.lifecycle.continuation` when incomplete todos exist
+
+#### 4.3 Hook Registration
+Hooks use the standard Bus event system for pub/sub:
+```typescript
+// Subscribe to daemon ready
+Bus.subscribe(LifecycleHooks.Daemon.Ready, (event) => {
+  console.log(`Daemon ready on port ${event.properties.port}`)
+})
+
+// Custom handler registration
+LifecycleHooks.on(LifecycleHooks.TodoLifecycle.Continuation, async (payload) => {
+  // Handle todo continuation
+})
+```
 
 ---
 
 ### Phase 5: Visual Orchestration (Optional Enhancement)
+**Status: WezTerm Complete**
 **Prerequisites: All previous phases**
 
 When you're at your desk, see what the personas are doing.
 
-#### 5.1 WezTerm Integration
-- [ ] Daemon spawns WezTerm panes when X session available
-- [ ] One pane per active drone/task
-- [ ] Status pane showing overall system state
-- [ ] Graceful degradation when no display
+#### 5.1 WezTerm Integration (DONE)
 
-#### 5.2 Web Dashboard (Alternative)
+Implementation at `packages/opencode/src/orchestration/wezterm.ts`:
+
+- [x] Daemon spawns WezTerm status pane when X/Wayland session available
+- [x] Display detection (X11 via DISPLAY, Wayland via WAYLAND_DISPLAY)
+- [x] Status pane showing daemon health, services, sessions
+- [x] Graceful degradation when no display (falls back silently)
+- [x] Session pane management API (create/close/focus)
+- [x] Integration with lifecycle hooks (auto-updates on events)
+
+**CLI Options:**
+```bash
+opencode daemon --wezterm          # Enable (default: true)
+opencode daemon --no-wezterm       # Disable
+opencode daemon --wezterm-layout horizontal  # Layout: horizontal|vertical|grid
+```
+
+**Status Pane Features:**
+- PID, port, uptime display
+- Service status (Persistence, Telegram, Discord, WezTerm)
+- Session count and incomplete todos
+- Auto-refresh every 5 seconds
+
+**Session Pane API:**
+```typescript
+// Create a pane for a session
+const paneId = await WeztermOrchestration.createSessionPane(sessionId, "My Session", "zee")
+
+// Send command to pane
+await WeztermOrchestration.sendToSessionPane(sessionId, "echo hello")
+
+// Focus/close pane
+await WeztermOrchestration.focusSessionPane(sessionId)
+await WeztermOrchestration.closeSessionPane(sessionId)
+```
+
+#### 5.2 Web Dashboard (Future)
 - [ ] Local web server in daemon
 - [ ] Real-time status via WebSocket
 - [ ] Access from any device on local network
@@ -254,18 +353,42 @@ When you're at your desk, see what the personas are doing.
 ## Current Status
 
 ### Completed
-- Todo continuation hook infrastructure in tiara
-- CLI integration for session-restore with todo-continuation
-- Session storage in opencode sync context
+- Phase 0: Todo continuation hook infrastructure in tiara
+- Phase 0: CLI integration for session-restore with todo-continuation
+- Phase 0: Session storage in opencode sync context
+- Phase 0: TUI integration (toast, backend reminder, prompt hint)
+- Phase 1: Headless daemon mode with systemd service
+- Phase 1: Daemon CLI commands (daemon, daemon-status, daemon-stop)
+- Phase 1: Configuration schema for daemon settings
+- Phase 1: Session restoration with todo-continuation on daemon startup
+- Phase 2: Telegram gateway with persona routing
+- Phase 2: Intent-based persona detection (Stanley/Johny/Zee)
+- Phase 2: User authorization allowlists
+- Phase 3: Session persistence with checkpoints and WAL
+- Phase 3: Crash recovery with automatic checkpoint restoration
+- Phase 3: Last active session tracking per persona
+- Phase 3: Cross-device session continuity
+- Phase 4: Lifecycle hooks module (`packages/opencode/src/hooks/lifecycle.ts`)
+- Phase 4: Daemon lifecycle hooks (start, ready, shutdown)
+- Phase 4: Session lifecycle hooks (start, restore, end, transfer)
+- Phase 4: Todo lifecycle hooks (continuation, completed, blocked)
+- Phase 4: Daemon integration with lifecycle hooks
+- Phase 4: Telegram gateway integration with session hooks
+- Phase 5: WezTerm orchestration module (`packages/opencode/src/orchestration/wezterm.ts`)
+- Phase 5: Display detection (X11/Wayland)
+- Phase 5: Status pane with daemon health visualization
+- Phase 5: Session pane management API
+- Phase 5: Graceful degradation when no display
+- Phase 5: Integration with lifecycle hooks for auto-updates
 
 ### In Progress
-- TUI integration (toast, backend reminder, prompt hint)
+- None (Phases 0-5 complete)
 
 ### Next Steps
-1. Implement TUI todo-continuation integrations
-2. Create daemon mode skeleton
-3. Design message gateway architecture
-4. Implement persistent session store
+1. Add Discord gateway (if needed)
+2. Add web dashboard (Phase 5.2)
+3. Rate limiting and audit logging for gateways
+4. TUI integration with session lifecycle hooks
 
 ---
 
