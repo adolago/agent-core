@@ -3,12 +3,14 @@ import { EOL } from "os"
 import { NamedError } from "@opencode-ai/util/error"
 
 export namespace UI {
-  // agent-core logo (AGENT left dimmed, CORE right bold)
+  // Default persona logo (Zee - the default gateway)
   const LOGO = [
-    [`                         `, `             ▄     `],
-    [`█▀▀█ █▀▀▀ █▀▀▀ █▀▀▄ ▀▀█▀▀`, `█▀▀▀ █▀▀█ █▀▀█ █▀▀▀`],
-    [`█▀▀█ █░░█ █▀▀▀ █░░█   █  `, `█░░░ █░░█ █▀▀▀ █▀▀▀`],
-    [`▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀   ▀  `, `▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀`],
+    "███████╗███████╗███████╗",
+    "╚══███╔╝██╔════╝██╔════╝",
+    "  ███╔╝ █████╗  █████╗  ",
+    " ███╔╝  ██╔══╝  ██╔══╝  ",
+    "███████╗███████╗███████╗",
+    "╚══════╝╚══════╝╚══════╝",
   ]
 
   export const CancelledError = NamedError.create("UICancelledError", z.void())
@@ -49,12 +51,13 @@ export namespace UI {
 
   export function logo(pad?: string) {
     const result = []
+    // Zee blue color: #2563EB
+    const color = "\x1b[38;2;37;99;235m"
     for (const row of LOGO) {
       if (pad) result.push(pad)
-      result.push(Bun.color("gray", "ansi"))
-      result.push(row[0])
+      result.push(color)
+      result.push(row)
       result.push("\x1b[0m")
-      result.push(row[1])
       result.push(EOL)
     }
     return result.join("").trimEnd()

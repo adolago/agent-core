@@ -1,87 +1,49 @@
-import { TextAttributes, RGBA } from "@opentui/core"
-import { For, type JSX } from "solid-js"
-import { useTheme, tint } from "@tui/context/theme"
+import { TextAttributes } from "@opentui/core"
+import { For, createMemo } from "solid-js"
+import { useLocal } from "@tui/context/local"
 
-// Shadow markers (rendered chars in parens):
-// _ = full shadow cell (space with bg=shadow)
-// ^ = letter top, shadow bottom (▀ with fg=letter, bg=shadow)
-// ~ = shadow top only (▀ with fg=shadow)
-const SHADOW_MARKER = /[_^~]/
-
-// agent-core logo (AGENT left dimmed, CORE right bold)
-const LOGO_LEFT = [`                         `, `█▀▀█ █▀▀▀ █▀▀▀ █▀▀▄ ▀▀█▀▀`, `█▀▀█ █░░█ █▀▀▀ █░░█   █  `, `▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀   ▀  `]
-
-const LOGO_RIGHT = [`             ▄     `, `█▀▀▀ █▀▀█ █▀▀█ █▀▀▀`, `█░░░ █░░█ █▀▀▀ █▀▀▀`, `▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀`]
+// Persona ASCII art banners
+const PERSONA_ART: Record<string, string[]> = {
+  zee: [
+    "███████╗███████╗███████╗",
+    "╚══███╔╝██╔════╝██╔════╝",
+    "  ███╔╝ █████╗  █████╗  ",
+    " ███╔╝  ██╔══╝  ██╔══╝  ",
+    "███████╗███████╗███████╗",
+    "╚══════╝╚══════╝╚══════╝",
+  ],
+  stanley: [
+    "███████╗████████╗ █████╗ ███╗   ██╗██╗     ███████╗██╗   ██╗",
+    "██╔════╝╚══██╔══╝██╔══██╗████╗  ██║██║     ██╔════╝╚██╗ ██╔╝",
+    "███████╗   ██║   ███████║██╔██╗ ██║██║     █████╗   ╚████╔╝ ",
+    "╚════██║   ██║   ██╔══██║██║╚██╗██║██║     ██╔══╝    ╚██╔╝  ",
+    "███████║   ██║   ██║  ██║██║ ╚████║███████╗███████╗   ██║   ",
+    "╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝   ╚═╝   ",
+  ],
+  johny: [
+    "     ██╗ ██████╗ ██╗  ██╗███╗   ██╗██╗   ██╗",
+    "     ██║██╔═══██╗██║  ██║████╗  ██║╚██╗ ██╔╝",
+    "     ██║██║   ██║███████║██╔██╗ ██║ ╚████╔╝ ",
+    "██   ██║██║   ██║██╔══██║██║╚██╗██║  ╚██╔╝  ",
+    "╚█████╔╝╚██████╔╝██║  ██║██║ ╚████║   ██║   ",
+    " ╚════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ",
+  ],
+}
 
 export function Logo() {
-  const { theme } = useTheme()
+  const local = useLocal()
 
-  const renderLine = (line: string, fg: RGBA, bold: boolean): JSX.Element[] => {
-    const shadow = tint(theme.background, fg, 0.25)
-    const attrs = bold ? TextAttributes.BOLD : undefined
-    const elements: JSX.Element[] = []
-    let i = 0
-
-    while (i < line.length) {
-      const rest = line.slice(i)
-      const markerIndex = rest.search(SHADOW_MARKER)
-
-      if (markerIndex === -1) {
-        elements.push(
-          <text fg={fg} attributes={attrs} selectable={false}>
-            {rest}
-          </text>,
-        )
-        break
-      }
-
-      if (markerIndex > 0) {
-        elements.push(
-          <text fg={fg} attributes={attrs} selectable={false}>
-            {rest.slice(0, markerIndex)}
-          </text>,
-        )
-      }
-
-      const marker = rest[markerIndex]
-      switch (marker) {
-        case "_":
-          elements.push(
-            <text fg={fg} bg={shadow} attributes={attrs} selectable={false}>
-              {" "}
-            </text>,
-          )
-          break
-        case "^":
-          elements.push(
-            <text fg={fg} bg={shadow} attributes={attrs} selectable={false}>
-              ▀
-            </text>,
-          )
-          break
-        case "~":
-          elements.push(
-            <text fg={shadow} attributes={attrs} selectable={false}>
-              ▀
-            </text>,
-          )
-          break
-      }
-
-      i += markerIndex + 1
-    }
-
-    return elements
-  }
+  const agent = createMemo(() => local.agent.current())
+  const color = createMemo(() => local.agent.color(agent().name))
+  const art = createMemo(() => PERSONA_ART[agent().name.toLowerCase()] || PERSONA_ART.zee)
 
   return (
-    <box>
-      <For each={LOGO_LEFT}>
-        {(line, index) => (
-          <box flexDirection="row" gap={1}>
-            <box flexDirection="row">{renderLine(line, theme.textMuted, false)}</box>
-            <box flexDirection="row">{renderLine(LOGO_RIGHT[index()], theme.text, true)}</box>
-          </box>
+    <box flexDirection="column" alignItems="center">
+      <For each={art()}>
+        {(line) => (
+          <text fg={color()} attributes={TextAttributes.BOLD} selectable={false}>
+            {line}
+          </text>
         )}
       </For>
     </box>
