@@ -43,7 +43,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     cp -r ${finalAttrs.node_modules}/packages .
 
     (
-      cd packages/opencode
+      cd packages/agent-core
 
       chmod -R u+w ./node_modules
       mkdir -p ./node_modules/@opencode-ai
@@ -63,7 +63,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    cd packages/opencode
+    cd packages/agent-core
     if [ ! -d dist ]; then
       echo "ERROR: dist directory missing after bundle step"
       exit 1

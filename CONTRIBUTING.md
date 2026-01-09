@@ -36,7 +36,7 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 
 ### Running against a different directory
 
-By default, `bun dev` runs OpenCode in the `packages/opencode` directory. To run it against a different directory or repository:
+By default, `bun dev` runs OpenCode in the `packages/agent-core` directory. To run it against a different directory or repository:
 
 ```bash
 bun dev <directory>
@@ -53,20 +53,20 @@ bun dev .
 To compile a standalone executable:
 
 ```bash
-./packages/opencode/script/build.ts --single
+./packages/agent-core/script/build.ts --single
 ```
 
 Then run it with:
 
 ```bash
-./packages/opencode/dist/opencode-<platform>/bin/opencode
+./packages/agent-core/dist/opencode-<platform>/bin/opencode
 ```
 
 Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 
 - Core pieces:
-  - `packages/opencode`: OpenCode core business logic & server.
-  - `packages/opencode/src/cli/cmd/tui/`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
+  - `packages/agent-core`: OpenCode core business logic & server.
+  - `packages/agent-core/src/cli/cmd/tui/`: The TUI code, written in SolidJS with [opentui](https://github.com/sst/opentui)
   - `packages/app`: The shared web UI components, written in SolidJS
   - `packages/desktop`: The native desktop app, built with Tauri (wraps `packages/app`)
   - `packages/plugin`: Source for `@opencode-ai/plugin`
@@ -111,7 +111,7 @@ This runs `bun run --cwd packages/desktop build` automatically via Tauri’s `be
 > Running the desktop app requires additional Tauri dependencies (Rust toolchain, platform-specific libraries). See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for setup instructions.
 
 > [!NOTE]
-> If you make changes to the API or SDK (e.g. `packages/opencode/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
+> If you make changes to the API or SDK (e.g. `packages/agent-core/src/server/server.ts`), run `./script/generate.ts` to regenerate the SDK and related files.
 
 Please try to follow the [style guide](./STYLE_GUIDE.md)
 

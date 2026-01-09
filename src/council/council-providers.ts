@@ -12,8 +12,8 @@ import type {
 } from "./council-types.js";
 
 // Import OpenCode's Provider
-// Relative path from src/council/ to packages/opencode/src/provider/
-import { Provider } from "../../packages/opencode/src/provider/provider.js";
+// Relative path from src/council/ to packages/agent-core/src/provider/
+import { Provider } from "../../packages/agent-core/src/provider/provider.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider Interface (maintained for compatibility)
