@@ -118,7 +118,7 @@ function AgentBanner() {
       <box flexDirection="column" alignItems="center">
         <For each={art()}>
           {(line) => (
-            <text fg={color()} bold={true}>
+            <text style={{ fg: color() }}>
               {line}
             </text>
           )}
@@ -126,7 +126,7 @@ function AgentBanner() {
       </box>
 
       {/* Hint */}
-      <text fg={theme.textMuted} dimColor={true}>
+      <text style={{ fg: theme.textMuted }}>
         Tab to switch · Enter to start
       </text>
     </box>
