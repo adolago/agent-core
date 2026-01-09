@@ -48,7 +48,7 @@ function extractLineRange(input: string) {
 export type AutocompleteRef = {
   onInput: (value: string) => void
   onKeyDown: (e: KeyEvent) => void
-  visible: false | "@" | "/"
+  visible: false | "@" | ":"
 }
 
 export type AutocompleteOption = {
@@ -180,7 +180,7 @@ export function Autocomplete(props: {
   const [files] = createResource(
     () => filter(),
     async (query) => {
-      if (!store.visible || store.visible === "/") return []
+      if (!store.visible || store.visible === ":") return []
 
       const { lineRange, baseQuery } = extractLineRange(query ?? "")
 
@@ -253,7 +253,7 @@ export function Autocomplete(props: {
   )
 
   const mcpResources = createMemo(() => {
-    if (!store.visible || store.visible === "/") return []
+    if (!store.visible || store.visible === ":") return []
 
     const options: AutocompleteOption[] = []
     const width = props.anchor().width - 4
@@ -314,10 +314,10 @@ export function Autocomplete(props: {
     const s = session()
     for (const command of sync.data.command) {
       results.push({
-        display: "/" + command.name + (command.mcp ? " (MCP)" : ""),
+        display: ":" + command.name + (command.mcp ? " (MCP)" : ""),
         description: command.description,
         onSelect: () => {
-          const newText = "/" + command.name + " "
+          const newText = ":" + command.name + " "
           const cursor = props.input().logicalCursor
           props.input().deleteRange(0, 0, cursor.row, cursor.col)
           props.input().insertText(newText)
@@ -555,7 +555,7 @@ export function Autocomplete(props: {
     setStore("selected", 0)
   }
 
-  function show(mode: "@" | "/") {
+  function show(mode: "@" | ":") {
     command.keybinds(false)
     setStore({
       visible: mode,
@@ -565,7 +565,7 @@ export function Autocomplete(props: {
 
   function hide() {
     const text = props.input().plainText
-    if (store.visible === "/" && !text.endsWith(" ") && text.startsWith("/")) {
+    if (store.visible === ":" && !text.endsWith(" ") && text.startsWith(":")) {
       const cursor = props.input().logicalCursor
       props.input().deleteRange(0, 0, cursor.row, cursor.col)
       // Sync the prompt store immediately since onContentChange is async
@@ -590,7 +590,7 @@ export function Autocomplete(props: {
             // There is a space between the trigger and the cursor
             props.input().getTextRange(store.index, props.input().cursorOffset).match(/\s/) ||
             // "/<command>" is not the sole content
-            (store.visible === "/" && value.match(/^\S+\s+\S+\s*$/))
+            (store.visible === ":" && value.match(/^\S+\s+\S+\s*$/))
           ) {
             hide()
             return
@@ -644,8 +644,8 @@ export function Autocomplete(props: {
             if (canTrigger) show("@")
           }
 
-          if (e.name === "/") {
-            if (props.input().cursorOffset === 0) show("/")
+          if (e.name === ":") {
+            if (props.input().cursorOffset === 0) show(":")
           }
         }
       },

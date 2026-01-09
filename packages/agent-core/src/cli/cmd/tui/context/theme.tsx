@@ -396,7 +396,7 @@ async function getCustomThemes() {
     Global.Path.config,
     ...(await Array.fromAsync(
       Filesystem.up({
-        targets: [".opencode"],
+        targets: [".agent-core"],
         start: process.cwd(),
       }),
     )),
