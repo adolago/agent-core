@@ -565,7 +565,7 @@ export function Prompt(props: PromptProps) {
       })
       setStore("mode", "normal")
     } else if (
-      inputText.startsWith("/") &&
+      inputText.startsWith(":") &&
       iife(() => {
         const command = inputText.split(" ")[0].slice(1)
         console.log(command)

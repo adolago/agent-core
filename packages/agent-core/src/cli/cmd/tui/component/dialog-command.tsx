@@ -76,9 +76,9 @@ function init() {
         const slash = option.slash
         if (!slash) return []
         return {
-          display: "/" + slash.name,
+          display: ":" + slash.name,
           description: option.description ?? option.title,
-          aliases: slash.aliases?.map((alias) => "/" + alias),
+          aliases: slash.aliases?.map((alias) => ":" + alias),
           onSelect: () => result.trigger(option.value),
         }
       })

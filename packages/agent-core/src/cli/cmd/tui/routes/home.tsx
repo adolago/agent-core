@@ -127,7 +127,7 @@ export function Home() {
               </Switch>
               {connectedMcpCount()} MCP
             </text>
-            <text fg={theme.textMuted}>/status</text>
+            <text fg={theme.textMuted}>:status</text>
           </Show>
         </box>
         <box flexGrow={1} />
