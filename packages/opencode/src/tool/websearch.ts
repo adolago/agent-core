@@ -1,6 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import DESCRIPTION from "./websearch.txt"
+import { Env } from "../env"
 
 const API_CONFIG = {
   BASE_URL: "https://mcp.exa.ai",
@@ -98,6 +99,12 @@ export const WebSearchTool = Tool.define("websearch", async () => {
         const headers: Record<string, string> = {
           accept: "application/json, text/event-stream",
           "content-type": "application/json",
+        }
+
+        // Add Exa API key if available (for higher rate limits)
+        const exaApiKey = Env.get("EXA_API_KEY")
+        if (exaApiKey) {
+          headers["x-api-key"] = exaApiKey
         }
 
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SEARCH}`, {
