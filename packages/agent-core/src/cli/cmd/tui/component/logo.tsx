@@ -1,26 +1,51 @@
 import { TextAttributes } from "@opentui/core"
-import { For } from "solid-js"
+import { For, createMemo } from "solid-js"
 import { useTheme } from "@tui/context/theme"
+import { useLocal } from "@tui/context/local"
 
-// agent-core logo (AGENT left dimmed, CORE right bold)
-const LOGO_LEFT = [`                         `, `█▀▀█ █▀▀▀ █▀▀▀ █▀▀▄ ▀▀█▀▀`, `█▀▀█ █░░█ █▀▀▀ █░░█   █  `, `▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀   ▀  `]
-
-const LOGO_RIGHT = [`             ▄     `, `█▀▀▀ █▀▀█ █▀▀█ █▀▀▀`, `█░░░ █░░█ █▀▀▀ █▀▀▀`, `▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀`]
+// Persona ASCII art banners
+const PERSONA_ART: Record<string, string[]> = {
+  zee: [
+    "███████╗███████╗███████╗",
+    "╚══███╔╝██╔════╝██╔════╝",
+    "  ███╔╝ █████╗  █████╗  ",
+    " ███╔╝  ██╔══╝  ██╔══╝  ",
+    "███████╗███████╗███████╗",
+    "╚══════╝╚══════╝╚══════╝",
+  ],
+  stanley: [
+    "███████╗████████╗ █████╗ ███╗   ██╗██╗     ███████╗██╗   ██╗",
+    "██╔════╝╚══██╔══╝██╔══██╗████╗  ██║██║     ██╔════╝╚██╗ ██╔╝",
+    "███████╗   ██║   ███████║██╔██╗ ██║██║     █████╗   ╚████╔╝ ",
+    "╚════██║   ██║   ██╔══██║██║╚██╗██║██║     ██╔══╝    ╚██╔╝  ",
+    "███████║   ██║   ██║  ██║██║ ╚████║███████╗███████╗   ██║   ",
+    "╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝   ╚═╝   ",
+  ],
+  johny: [
+    "     ██╗ ██████╗ ██╗  ██╗███╗   ██╗██╗   ██╗",
+    "     ██║██╔═══██╗██║  ██║████╗  ██║╚██╗ ██╔╝",
+    "     ██║██║   ██║███████║██╔██╗ ██║ ╚████╔╝ ",
+    "██   ██║██║   ██║██╔══██║██║╚██╗██║  ╚██╔╝  ",
+    "╚█████╔╝╚██████╔╝██║  ██║██║ ╚████║   ██║   ",
+    " ╚════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ",
+  ],
+}
 
 export function Logo() {
   const { theme } = useTheme()
+  const local = useLocal()
+
+  const agent = createMemo(() => local.agent.current())
+  const color = createMemo(() => local.agent.color(agent().name))
+  const art = createMemo(() => PERSONA_ART[agent().name.toLowerCase()] || PERSONA_ART.zee)
+
   return (
-    <box>
-      <For each={LOGO_LEFT}>
-        {(line, index) => (
-          <box flexDirection="row" gap={1}>
-            <text fg={theme.textMuted} selectable={false}>
-              {line}
-            </text>
-            <text fg={theme.text} attributes={TextAttributes.BOLD} selectable={false}>
-              {LOGO_RIGHT[index()]}
-            </text>
-          </box>
+    <box flexDirection="column" alignItems="center">
+      <For each={art()}>
+        {(line) => (
+          <text fg={color()} attributes={TextAttributes.BOLD} selectable={false}>
+            {line}
+          </text>
         )}
       </For>
     </box>
