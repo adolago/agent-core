@@ -1074,6 +1074,62 @@ export namespace Config {
             .describe("Timeout in milliseconds for model context protocol (MCP) requests"),
         })
         .optional(),
+      fallback: z
+        .object({
+          enabled: z
+            .boolean()
+            .default(true)
+            .describe("Enable automatic fallback to alternative providers/models on failure"),
+          maxAttempts: z
+            .number()
+            .int()
+            .positive()
+            .default(3)
+            .describe("Maximum total attempts including the original request"),
+          circuitBreaker: z
+            .object({
+              failureThreshold: z
+                .number()
+                .int()
+                .positive()
+                .default(3)
+                .describe("Number of consecutive failures before opening the circuit"),
+              successThreshold: z
+                .number()
+                .int()
+                .positive()
+                .default(2)
+                .describe("Number of consecutive successes in half_open to close the circuit"),
+              timeout: z
+                .number()
+                .int()
+                .positive()
+                .default(60000)
+                .describe("Time in ms before transitioning from open to half_open"),
+            })
+            .optional()
+            .describe("Circuit breaker configuration for provider health management"),
+          rules: z
+            .array(
+              z.object({
+                condition: z
+                  .enum(["rate_limit", "unavailable", "timeout", "error", "circuit_open", "any"])
+                  .describe("Error condition that triggers this rule"),
+                fallbacks: z
+                  .array(z.string())
+                  .describe("Fallback options - 'providerID/modelID' or just 'providerID' for equivalent tier"),
+              }),
+            )
+            .optional()
+            .describe("Fallback rules in priority order"),
+          costAware: z
+            .boolean()
+            .default(false)
+            .describe("Skip fallbacks that cost more than the original model"),
+          notifyOnFallback: z.boolean().default(true).describe("Emit event/notification when fallback is used"),
+        })
+        .optional()
+        .describe("Provider/model fallback configuration for automatic failover"),
     })
     .strict()
     .meta({

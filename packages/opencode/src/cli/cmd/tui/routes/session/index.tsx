@@ -7,6 +7,7 @@ import {
   For,
   Match,
   on,
+  onCleanup,
   Show,
   Switch,
   useContext,
@@ -76,6 +77,62 @@ import { DialogExportOptions } from "../../ui/dialog-export-options"
 import { formatTranscript } from "../../util/transcript"
 
 addDefaultParsers(parsers.parsers)
+
+// ASCII art for Personas (Figlet-style)
+const ASCII_ART: Record<string, string[]> = {
+  zee: [
+    "███████╗███████╗███████╗",
+    "╚══███╔╝██╔════╝██╔════╝",
+    "  ███╔╝ █████╗  █████╗  ",
+    " ███╔╝  ██╔══╝  ██╔══╝  ",
+    "███████╗███████╗███████╗",
+    "╚══════╝╚══════╝╚══════╝",
+  ],
+  stanley: [
+    "███████╗████████╗ █████╗ ███╗   ██╗██╗     ███████╗██╗   ██╗",
+    "██╔════╝╚══██╔══╝██╔══██╗████╗  ██║██║     ██╔════╝╚██╗ ██╔╝",
+    "███████╗   ██║   ███████║██╔██╗ ██║██║     █████╗   ╚████╔╝ ",
+    "╚════██║   ██║   ██╔══██║██║╚██╗██║██║     ██╔══╝    ╚██╔╝  ",
+    "███████║   ██║   ██║  ██║██║ ╚████║███████╗███████╗   ██║   ",
+    "╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝   ╚═╝   ",
+  ],
+  johny: [
+    "     ██╗ ██████╗ ██╗  ██╗███╗   ██╗██╗   ██╗",
+    "     ██║██╔═══██╗██║  ██║████╗  ██║╚██╗ ██╔╝",
+    "     ██║██║   ██║███████║██╔██╗ ██║ ╚████╔╝ ",
+    "██   ██║██║   ██║██╔══██║██║╚██╗██║  ╚██╔╝  ",
+    "╚█████╔╝╚██████╔╝██║  ██║██║ ╚████║   ██║   ",
+    " ╚════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ",
+  ],
+}
+
+function AgentBanner() {
+  const local = useLocal()
+  const { theme } = useTheme()
+  const agent = createMemo(() => local.agent.current())
+  const color = createMemo(() => local.agent.color(agent().name))
+  const art = createMemo(() => ASCII_ART[agent().name.toLowerCase()] || [])
+
+  return (
+    <box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1} gap={1}>
+      {/* ASCII Art Name */}
+      <box flexDirection="column" alignItems="center">
+        <For each={art()}>
+          {(line) => (
+            <text fg={color()} bold={true}>
+              {line}
+            </text>
+          )}
+        </For>
+      </box>
+
+      {/* Hint */}
+      <text fg={theme.textMuted} dimColor={true}>
+        Tab to switch · Enter to start
+      </text>
+    </box>
+  )
+}
 
 class CustomSpeedScroll implements ScrollAcceleration {
   constructor(private speed: number) {}
@@ -188,6 +245,34 @@ export function Session() {
 
   const toast = useToast()
   const sdk = useSDK()
+
+  // Handle fallback notifications
+  // Note: fallback.used is a new event type not yet in SDK types
+  createEffect(() => {
+    const unsub = sdk.event.listen((e) => {
+      const event = e.details as { type: string; properties: Record<string, unknown> }
+      if (event.type === "fallback.used") {
+        const props = event.properties as {
+          sessionID: string
+          originalProvider: string
+          originalModel: string
+          fallbackProvider: string
+          fallbackModel: string
+          reason: string
+        }
+        // Only show toast for current session
+        if (props.sessionID === route.sessionID) {
+          toast.show({
+            variant: "warning",
+            title: "Model Fallback",
+            message: `Switched from ${props.originalProvider}/${props.originalModel} to ${props.fallbackProvider}/${props.fallbackModel}`,
+            duration: 5000,
+          })
+        }
+      }
+    })
+    onCleanup(unsub)
+  })
 
   // Handle initial prompt from fork
   createEffect(() => {
@@ -963,25 +1048,29 @@ export function Session() {
             <Show when={!sidebarVisible() || !wide()}>
               <Header />
             </Show>
-            <scrollbox
-              ref={(r) => (scroll = r)}
-              viewportOptions={{
-                paddingRight: showScrollbar() ? 1 : 0,
-              }}
-              verticalScrollbarOptions={{
-                paddingLeft: 1,
-                visible: showScrollbar(),
-                trackOptions: {
-                  backgroundColor: theme.backgroundElement,
-                  foregroundColor: theme.border,
-                },
-              }}
-              stickyScroll={true}
-              stickyStart="bottom"
-              flexGrow={1}
-              scrollAcceleration={scrollAcceleration()}
+            <Show
+              when={messages().length > 0}
+              fallback={<AgentBanner />}
             >
-              <For each={messages()}>
+              <scrollbox
+                ref={(r) => (scroll = r)}
+                viewportOptions={{
+                  paddingRight: showScrollbar() ? 1 : 0,
+                }}
+                verticalScrollbarOptions={{
+                  paddingLeft: 1,
+                  visible: showScrollbar(),
+                  trackOptions: {
+                    backgroundColor: theme.backgroundElement,
+                    foregroundColor: theme.border,
+                  },
+                }}
+                stickyScroll={true}
+                stickyStart="bottom"
+                flexGrow={1}
+                scrollAcceleration={scrollAcceleration()}
+              >
+                <For each={messages()}>
                 {(message, index) => (
                   <Switch>
                     <Match when={message.id === revert()?.messageID}>
@@ -1075,8 +1164,9 @@ export function Session() {
                     </Match>
                   </Switch>
                 )}
-              </For>
-            </scrollbox>
+                </For>
+              </scrollbox>
+            </Show>
             <box flexShrink={0}>
               <Show when={permissions().length > 0}>
                 <PermissionPrompt request={permissions()[0]} />
