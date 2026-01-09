@@ -87,7 +87,10 @@ export namespace LLM {
     const base = input.small
       ? ProviderTransform.smallOptions(input.model)
       : ProviderTransform.options(input.model, input.sessionID, provider.options)
-    const options = pipe(base, mergeDeep(input.model.options), mergeDeep(input.agent.options), mergeDeep(variant))
+    // Filter out non-provider options (like 'includes' which is for skill loading)
+    const agentProviderOptions = { ...input.agent.options }
+    delete agentProviderOptions.includes
+    const options = pipe(base, mergeDeep(input.model.options), mergeDeep(agentProviderOptions), mergeDeep(variant))
 
     const params = await Plugin.trigger(
       "chat.params",
