@@ -185,11 +185,12 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
       const currentModel = createMemo(() => {
         const a = agent.current()
+        // Agent's configured model takes priority over cached selection
         return (
           getFirstValidModel(
-            () => modelStore.model[a.name],
-            () => a.model,
-            fallbackModel,
+            () => a.model, // Agent's configured model first
+            () => modelStore.model[a.name], // Then cached selection
+            fallbackModel, // Then global fallback
           ) ?? undefined
         )
       })
@@ -352,21 +353,15 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       }
     })
 
-    // Automatically update model when agent changes
+    // Warn if agent's configured model is invalid (but don't override selection)
     createEffect(() => {
       const value = agent.current()
-      if (value.model) {
-        if (isModelValid(value.model))
-          model.set({
-            providerID: value.model.providerID,
-            modelID: value.model.modelID,
-          })
-        else
-          toast.show({
-            variant: "warning",
-            message: `Agent ${value.name}'s configured model ${value.model.providerID}/${value.model.modelID} is not valid`,
-            duration: 3000,
-          })
+      if (value.model && !isModelValid(value.model)) {
+        toast.show({
+          variant: "warning",
+          message: `Agent ${value.name}'s configured model ${value.model.providerID}/${value.model.modelID} is not available`,
+          duration: 3000,
+        })
       }
     })
 
