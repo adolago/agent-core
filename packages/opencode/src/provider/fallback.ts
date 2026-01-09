@@ -8,7 +8,7 @@ import { CircuitBreaker } from "./circuit-breaker"
 import { FallbackChain } from "./fallback-chain"
 import { ModelEquivalence } from "./equivalence"
 import z from "zod"
-import type { StreamTextResult, ToolSet } from "ai"
+import type { StreamTextResult, ToolSet, TextStreamPart } from "ai"
 
 /**
  * Fallback Orchestrator - Main entry point for LLM streaming with automatic fallback.
@@ -56,6 +56,152 @@ export namespace Fallback {
     fallbackConfig?: Partial<FallbackChain.Config>
     /** Skip fallback for this request */
     skipFallback?: boolean
+  }
+
+  /**
+   * Context passed through stream wrapper for mid-stream fallback retry.
+   */
+  type StreamContext = {
+    input: StreamInput
+    config: FallbackChain.Config
+    attempted: string[]
+    currentModel: Provider.Model
+    originalModel: Provider.Model
+    sessionID: string
+  }
+
+  /**
+   * Wrap fullStream to catch mid-stream errors and trigger fallback.
+   * This handles cases where the provider returns a stream successfully
+   * but errors during iteration (e.g., insufficient_quota mid-stream).
+   *
+   * Returns the original stream's fullStream but with error handling wrapped
+   * around the async iteration. We preserve the original type by creating
+   * a proxy that intercepts Symbol.asyncIterator.
+   */
+  function wrapFullStream<T extends ToolSet>(
+    stream: StreamTextResult<T, unknown>,
+    context: StreamContext,
+  ): typeof stream.fullStream {
+    const originalFullStream = stream.fullStream
+
+    // Create an async generator that wraps the original with error handling
+    async function* wrappedIterator(): AsyncGenerator<TextStreamPart<T>> {
+      try {
+        for await (const value of originalFullStream) {
+          yield value
+        }
+      } catch (error) {
+        log.warn("mid-stream error detected", {
+          provider: context.currentModel.providerID,
+          model: context.currentModel.id,
+          error: (error as Error).message,
+        })
+
+        // Try to recover with fallback
+        const fallbackStream = await tryMidStreamFallback(error as Error, context)
+        if (!fallbackStream) {
+          throw error // No fallback available, re-throw
+        }
+
+        // Continue yielding from fallback stream
+        for await (const value of fallbackStream.fullStream) {
+          yield value as TextStreamPart<T>
+        }
+      }
+    }
+
+    // Return a proxy that intercepts async iteration but preserves ReadableStream methods
+    return new Proxy(originalFullStream, {
+      get(target, prop) {
+        if (prop === Symbol.asyncIterator) {
+          return () => wrappedIterator()
+        }
+        // Forward all other properties/methods to the original stream
+        const value = Reflect.get(target, prop)
+        if (typeof value === "function") {
+          return value.bind(target)
+        }
+        return value
+      },
+    })
+  }
+
+  /**
+   * Attempt to recover from a mid-stream error by switching to a fallback provider.
+   */
+  async function tryMidStreamFallback(
+    error: Error,
+    context: StreamContext,
+  ): Promise<LLM.StreamOutput | undefined> {
+    // Record failure for circuit breaker
+    CircuitBreaker.recordFailure(context.currentModel.providerID, error)
+
+    const modelKey = `${context.currentModel.providerID}/${context.currentModel.id}`
+
+    // Find fallback model
+    const fallbackModel = await FallbackChain.resolve(modelKey, error, context.attempted, context.config)
+
+    if (!fallbackModel) {
+      log.error("no fallback available for mid-stream error", {
+        originalModel: `${context.originalModel.providerID}/${context.originalModel.id}`,
+        attempted: context.attempted,
+        error: error.message,
+      })
+      return undefined
+    }
+
+    // Switch to fallback model
+    const { providerID, modelID } = ModelEquivalence.parseModel(fallbackModel)
+    let newModel: Provider.Model
+    try {
+      newModel = await Provider.getModel(providerID, modelID)
+    } catch (e) {
+      log.error("failed to get fallback model for mid-stream recovery", { fallbackModel, error: e })
+      return undefined
+    }
+
+    log.info("mid-stream fallback activated", {
+      from: modelKey,
+      to: fallbackModel,
+      reason: error.message,
+    })
+
+    // Update context for potential nested fallbacks
+    context.attempted.push(fallbackModel)
+    context.currentModel = newModel
+
+    // Emit fallback event
+    if (context.config.notifyOnFallback) {
+      Bus.publish(Event.FallbackUsed, {
+        sessionID: context.sessionID,
+        originalProvider: context.originalModel.providerID,
+        originalModel: context.originalModel.id,
+        fallbackProvider: newModel.providerID,
+        fallbackModel: newModel.id,
+        reason: `mid-stream: ${error.message}`,
+        attempt: context.attempted.length,
+      })
+    }
+
+    // Get new stream from fallback provider
+    try {
+      const newStream = await LLM.stream({
+        ...context.input,
+        model: newModel,
+      })
+
+      // Recursively wrap the new stream for nested fallbacks
+      // We spread first then override fullStream to get proper typing
+      const wrappedStream = Object.assign({}, newStream, {
+        fullStream: wrapFullStream(newStream, context),
+      })
+      return wrappedStream
+    } catch (e) {
+      log.error("fallback stream creation failed", { fallbackModel, error: e })
+      // Try another fallback recursively
+      return tryMidStreamFallback(e as Error, context)
+    }
   }
 
   /**
@@ -155,7 +301,21 @@ export namespace Fallback {
           })
         }
 
-        return result
+        // Wrap the stream to catch mid-stream errors and trigger fallback
+        const streamContext: StreamContext = {
+          input,
+          config: fallbackConfig,
+          attempted: [...attempted], // Copy to avoid mutation issues
+          currentModel,
+          originalModel: input.model,
+          sessionID: input.sessionID,
+        }
+
+        // Use Object.assign to maintain proper typing
+        const wrappedStream = Object.assign({}, result, {
+          fullStream: wrapFullStream(result, streamContext),
+        })
+        return wrappedStream
       } catch (error) {
         lastError = error as Error
         CircuitBreaker.recordFailure(currentModel.providerID, lastError)
