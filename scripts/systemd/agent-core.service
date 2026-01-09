@@ -1,0 +1,40 @@
+[Unit]
+Description=Agent Core - Always-On Personas Daemon
+Documentation=https://github.com/your-org/agent-core
+After=network.target
+
+[Service]
+Type=simple
+User=artur
+Group=artur
+
+# Environment setup
+Environment=HOME=/home/artur
+Environment=AGENT_CORE_HEADLESS=1
+Environment=NODE_ENV=production
+
+# API keys can be loaded from environment file (create ~/.config/agent-core/daemon.env)
+EnvironmentFile=-/home/artur/.config/agent-core/daemon.env
+
+# Working directory and command
+WorkingDirectory=/home/artur/Repositories/agent-core
+ExecStart=/home/artur/.bun/bin/bun run packages/opencode/src/cli/index.ts daemon --hostname 127.0.0.1 --port 3456
+
+# Restart policy
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+
+# Security hardening (optional, comment out if issues)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/artur/.config/agent-core /home/artur/.local/share/agent-core /home/artur/.zee
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agent-core
+
+[Install]
+WantedBy=multi-user.target
