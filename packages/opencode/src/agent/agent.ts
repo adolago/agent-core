@@ -10,9 +10,9 @@ import { ProviderTransform } from "../provider/transform"
 
 import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
-import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
+// NOTE: PROMPT_EXPLORE removed - explore agent replaced by Personas system
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
@@ -69,85 +69,11 @@ export namespace Agent {
     })
     const user = PermissionNext.fromConfig(cfg.permission ?? {})
 
+    // NOTE: Built-in agents (build, plan, general, explore) removed.
+    // agent-core uses the Personas system (Zee, Stanley, Johny) defined in .claude/skills/
+    // Custom agents are loaded from config and skill files.
     const result: Record<string, Info> = {
-      build: {
-        name: "build",
-        options: {},
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            plan_enter: "allow",
-          }),
-          user,
-        ),
-        mode: "primary",
-        native: true,
-      },
-      plan: {
-        name: "plan",
-        options: {},
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            plan_exit: "allow",
-            external_directory: {
-              [path.join(Global.Path.data, "plans", "*")]: "allow",
-            },
-            edit: {
-              "*": "deny",
-              [path.join(".opencode", "plans", "*.md")]: "allow",
-              [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
-            },
-          }),
-          user,
-        ),
-        mode: "primary",
-        native: true,
-      },
-      general: {
-        name: "general",
-        description: `General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.`,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            todoread: "deny",
-            todowrite: "deny",
-          }),
-          user,
-        ),
-        options: {},
-        mode: "subagent",
-        native: true,
-      },
-      explore: {
-        name: "explore",
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-            grep: "allow",
-            glob: "allow",
-            list: "allow",
-            bash: "allow",
-            webfetch: "allow",
-            websearch: "allow",
-            codesearch: "allow",
-            read: "allow",
-            external_directory: {
-              [Truncate.DIR]: "allow",
-              [Truncate.GLOB]: "allow",
-            },
-          }),
-          user,
-        ),
-        description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`,
-        prompt: PROMPT_EXPLORE,
-        options: {},
-        mode: "subagent",
-        native: true,
-      },
+      // Internal system agents - required for core functionality
       compaction: {
         name: "compaction",
         mode: "primary",
@@ -252,7 +178,8 @@ export namespace Agent {
     return pipe(
       await state(),
       values(),
-      sortBy([(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"]),
+      // Sort by default_agent config, no hardcoded fallback
+      sortBy([(x) => (cfg.default_agent ? x.name === cfg.default_agent : false), "desc"]),
     )
   }
 

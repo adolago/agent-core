@@ -1,6 +1,24 @@
 # Agent-Core - The Engine
 
-This is the **engine** that powers Artur's Agent System. OpenCode is the **surface** (car), agent-core is the **engine + custom parts**.
+This is the **engine** that powers Artur's Agent System. agent-core is a fork of OpenCode with custom personas.
+
+## IMPORTANT: First Steps When Working on This Repo
+
+**ALWAYS read these before making changes:**
+
+1. **Tiara** (`vendor/tiara/`) - The orchestration submodule with claude-flow
+   - `vendor/tiara/CLAUDE.md` - SPARC methodology, concurrent execution rules
+   - `vendor/tiara/docs/` - Architecture, integrations, roadmaps
+
+2. **The Triad** (`.claude/skills/`) - The three personas:
+   - `.claude/skills/zee/SKILL.md` - Personal assistant (memory, messaging, calendar)
+   - `.claude/skills/stanley/SKILL.md` - Investing system (markets, portfolio, NautilusTrader)
+   - `.claude/skills/johny/SKILL.md` - Learning system (knowledge graph, spaced repetition)
+
+3. **Shared capabilities** (`.claude/skills/shared/`, `.claude/skills/personas/`)
+   - Orchestration, WezTerm integration, drone spawning
+
+**Do NOT skip this step** - the personas have specific capabilities and delegation rules.
 
 ## The Personas System
 
@@ -82,28 +100,67 @@ You can always check:
 - Memory search results
 ```
 
-## Architecture
+## Architecture: agent-core → tiara → personas
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     OPENCODE (Surface)                       │
-│         ~/.config/opencode/ - TUI, auth, plugins            │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              │ symlinks to
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    AGENT-CORE (Engine)                       │
-│           ~/Repositories/agent-core/                        │
-│                                                             │
-│  .claude/skills/     ← Personas (Johny, Stanley, Zee)       │
-│  src/domain/         ← Domain tools                         │
-│  src/personas/       ← Knowledge graph, trading logic       │
-│  src/council/        ← LLM Council multi-model deliberation │
-│  src/memory/         ← Qdrant vector storage                │
-│  src/personas/          ← Personas orchestration system           │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        AGENT-CORE (Engine)                          │
+│                ~/Repositories/agent-core/                           │
+│                                                                     │
+│  packages/opencode/     ← Fork of OpenCode TUI (built-in agents    │
+│                           removed, only triad remains)              │
+│  ~/.config/agent-core/  ← Config, auth, plugins                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                              │                                      │
+│                              ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    TIARA (Orchestration)                       │  │
+│  │                    vendor/tiara/                               │  │
+│  │                                                               │  │
+│  │  • SPARC methodology (Specification→Pseudocode→Architecture   │  │
+│  │    →Refinement→Completion)                                    │  │
+│  │  • Claude-Flow swarm coordination                             │  │
+│  │  • Concurrent execution patterns                              │  │
+│  │  • Agent spawning via Task tool                               │  │
+│  │  • Memory coordination                                        │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              │                                      │
+│                              ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    PERSONAS (The Triad)                        │  │
+│  │                    .claude/skills/                             │  │
+│  │                                                               │  │
+│  │  ┌─────────┐     ┌─────────┐     ┌─────────┐                  │  │
+│  │  │   ZEE   │     │ STANLEY │     │  JOHNY  │                  │  │
+│  │  │ Personal│     │Investing│     │Learning │                  │  │
+│  │  └────┬────┘     └────┬────┘     └────┬────┘                  │  │
+│  │       └───────────────┼───────────────┘                       │  │
+│  │                       ▼                                        │  │
+│  │              ┌─────────────────┐                               │  │
+│  │              │  SHARED LAYER   │                               │  │
+│  │              │  • personas/    │  Orchestration, drones        │  │
+│  │              │  • shared/      │  Qdrant, WezTerm, canvas      │  │
+│  │              │  • agents-menu/ │  Delegation routing           │  │
+│  │              └─────────────────┘                               │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  src/                                                               │
+│  ├── domain/          ← Domain tools (stanley/, zee/)              │
+│  ├── personas/        ← Persona logic (knowledge-graph, etc.)      │
+│  ├── council/         ← LLM Council multi-model deliberation       │
+│  └── memory/          ← Qdrant vector storage types                │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Flow Summary
+
+1. **agent-core** = Fork of OpenCode with built-in agents (build/plan/general/explore) **removed**
+2. **tiara** = Orchestration layer providing SPARC methodology and swarm coordination
+3. **personas** = The Triad (Zee/Stanley/Johny) + shared capabilities
+
+### Key Principle
+
+No generic "build" or "plan" agents. Every interaction goes through a persona with domain expertise. The personas share orchestration (tiara) and memory (Qdrant) but have distinct purposes.
 
 ## Personas
 
@@ -134,13 +191,15 @@ agent-core/
     └── SKILLS.md            # Skills documentation
 ```
 
-## Integration with OpenCode
+## Integration
 
-Skills are symlinked globally:
+Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
 ```
-~/.config/opencode/skills/johny   → agent-core/.claude/skills/johny
-~/.config/opencode/skills/stanley → agent-core/.claude/skills/stanley
-~/.config/opencode/skills/zee     → agent-core/.claude/skills/zee
+.claude/skills/johny/     → Johny persona
+.claude/skills/stanley/   → Stanley persona
+.claude/skills/zee/       → Zee persona
+.claude/skills/personas/  → Shared orchestration
+.claude/skills/shared/    → Shared tools (Qdrant, WezTerm, canvas)
 ```
 
 ## Development Guidelines
