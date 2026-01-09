@@ -382,7 +382,6 @@ export function Session() {
           {
             title: "Share session",
             value: "session.share",
-            suggested: route.type === "session",
             keybind: "session_share" as const,
             disabled: !!session()?.share?.url,
             category: "Session",
