@@ -374,7 +374,6 @@ function App() {
       value: "agent.cycle",
       keybind: "agent_cycle",
       category: "Agent",
-      hidden: true,
       onSelect: () => {
         local.agent.move(1)
       },
@@ -384,7 +383,6 @@ function App() {
       value: "agent.cycle.reverse",
       keybind: "agent_cycle_reverse",
       category: "Agent",
-      hidden: true,
       onSelect: () => {
         local.agent.move(-1)
       },
@@ -394,7 +392,6 @@ function App() {
       value: "mode.toggle",
       keybind: "mode_toggle",
       category: "Mode",
-      disabled: true,
       onSelect: () => {
         local.mode.toggle()
       },
