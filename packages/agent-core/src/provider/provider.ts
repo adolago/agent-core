@@ -936,19 +936,75 @@ export namespace Provider {
         }
       }
 
-      // For Z.AI and Anthropic providers, hide older versioned models when latest exists
-      // Pattern: model-name-YYYYMMDD should be hidden if model-name or model-name-latest exists
-      if (providerID === "anthropic" || providerID === "zai-coding-plan" || providerID.startsWith("z-ai")) {
+      // For Anthropic provider, hide older model versions and dated snapshots
+      // Priority: 1) -latest suffix, 2) highest non-dated version, 3) most recent dated version
+      if (providerID === "anthropic") {
         const modelIDs = Object.keys(provider.models)
-        const datePattern = /-\d{8}$/
+        const datePattern = /-(\d{8})$/
+
+        // Parse Claude model names into family and version
+        // Formats: claude-{type}-{major}-{minor}, claude-{major}-{minor}-{type}, claude-{major}-{type}
+        function parseClaudeModel(id: string): { family: string; version: number; dated: string | null; isLatest: boolean } | null {
+          const isLatest = id.endsWith("-latest")
+          const dateMatch = id.match(datePattern)
+          const dated = dateMatch ? dateMatch[1] : null
+          let cleanID = id.replace(datePattern, "").replace(/-latest$/, "")
+
+          // New format: claude-{type}-{major}-{minor} (e.g., claude-opus-4-5)
+          const newFormat = cleanID.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)$/)
+          if (newFormat) {
+            const [, type, major, minor] = newFormat
+            return { family: `claude-${type}`, version: parseFloat(`${major}.${minor}`), dated, isLatest }
+          }
+
+          // Old format: claude-{major}-{minor}-{type} (e.g., claude-3-5-sonnet)
+          const oldFormat = cleanID.match(/^claude-(\d+)-(\d+)-(opus|sonnet|haiku)$/)
+          if (oldFormat) {
+            const [, major, minor, type] = oldFormat
+            return { family: `claude-${type}`, version: parseFloat(`${major}.${minor}`), dated, isLatest }
+          }
+
+          // Oldest format: claude-{major}-{type} (e.g., claude-3-opus)
+          const oldestFormat = cleanID.match(/^claude-(\d+)-(opus|sonnet|haiku)$/)
+          if (oldestFormat) {
+            const [, major, type] = oldestFormat
+            return { family: `claude-${type}`, version: parseFloat(major), dated, isLatest }
+          }
+
+          // New format without minor: claude-{type}-{major} (e.g., claude-opus-4)
+          const newFormatNoMinor = cleanID.match(/^claude-(opus|sonnet|haiku)-(\d+)$/)
+          if (newFormatNoMinor) {
+            const [, type, major] = newFormatNoMinor
+            return { family: `claude-${type}`, version: parseFloat(major), dated, isLatest }
+          }
+
+          return null
+        }
+
+        // Group models by family
+        const families: Record<string, { id: string; version: number; dated: string | null; isLatest: boolean }[]> = {}
         for (const modelID of modelIDs) {
-          if (datePattern.test(modelID)) {
-            const baseName = modelID.replace(datePattern, "")
-            const latestName = `${baseName}-latest`
-            // Hide dated version if base name or latest version exists
-            if (modelIDs.includes(baseName) || modelIDs.includes(latestName)) {
-              delete provider.models[modelID]
-            }
+          const parsed = parseClaudeModel(modelID)
+          if (parsed) {
+            if (!families[parsed.family]) families[parsed.family] = []
+            families[parsed.family].push({ id: modelID, version: parsed.version, dated: parsed.dated, isLatest: parsed.isLatest })
+          }
+        }
+
+        // For each family, keep only the best version
+        for (const [, versions] of Object.entries(families)) {
+          // Sort by: 1) highest version, 2) isLatest (for same version), 3) non-dated over dated, 4) most recent date
+          const sorted = [...versions].sort((a, b) => {
+            if (a.version !== b.version) return b.version - a.version
+            if (a.isLatest !== b.isLatest) return a.isLatest ? -1 : 1
+            if ((a.dated === null) !== (b.dated === null)) return a.dated === null ? -1 : 1
+            if (a.dated && b.dated) return b.dated.localeCompare(a.dated) // Most recent date first
+            return 0
+          })
+
+          // Keep only the first (best) one
+          for (let i = 1; i < sorted.length; i++) {
+            delete provider.models[sorted[i].id]
           }
         }
       }
