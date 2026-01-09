@@ -107,7 +107,7 @@ You can always check:
 │                        AGENT-CORE (Engine)                          │
 │                ~/Repositories/agent-core/                           │
 │                                                                     │
-│  packages/opencode/     ← Fork of OpenCode TUI (built-in agents    │
+│  packages/agent-core/     ← Fork of OpenCode TUI (built-in agents    │
 │                           removed, only triad remains)              │
 │  ~/.config/agent-core/  ← Config, auth, plugins                     │
 ├─────────────────────────────────────────────────────────────────────┤

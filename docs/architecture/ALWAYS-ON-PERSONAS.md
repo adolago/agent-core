@@ -145,7 +145,7 @@ Zee becomes the universal gateway for all communication.
 
 #### 2.1 Telegram Gateway (DONE)
 
-Implementation at `packages/opencode/src/gateway/telegram.ts`:
+Implementation at `packages/agent-core/src/gateway/telegram.ts`:
 
 - [x] Long polling for incoming messages (no webhook required)
 - [x] Intent-based persona routing (finance → Stanley, learning → Johny, else → Zee)
@@ -200,7 +200,7 @@ Robust session management that survives crashes and restarts.
 
 #### 3.1 Persistence Module (DONE)
 
-Implementation at `packages/opencode/src/session/persistence.ts`:
+Implementation at `packages/agent-core/src/session/persistence.ts`:
 
 ```
 ~/.local/state/agent-core/persistence/
@@ -256,7 +256,7 @@ Full hook lifecycle for session management.
 
 #### 4.1 Lifecycle Hooks Module (DONE)
 
-Implementation at `packages/opencode/src/hooks/lifecycle.ts`:
+Implementation at `packages/agent-core/src/hooks/lifecycle.ts`:
 
 ```typescript
 // Daemon lifecycle
@@ -307,7 +307,7 @@ When you're at your desk, see what the personas are doing.
 
 #### 5.1 WezTerm Integration (DONE)
 
-Implementation at `packages/opencode/src/orchestration/wezterm.ts`:
+Implementation at `packages/agent-core/src/orchestration/wezterm.ts`:
 
 - [x] Daemon spawns WezTerm status pane when X/Wayland session available
 - [x] Display detection (X11 via DISPLAY, Wayland via WAYLAND_DISPLAY)
@@ -368,13 +368,13 @@ await WeztermOrchestration.closeSessionPane(sessionId)
 - Phase 3: Crash recovery with automatic checkpoint restoration
 - Phase 3: Last active session tracking per persona
 - Phase 3: Cross-device session continuity
-- Phase 4: Lifecycle hooks module (`packages/opencode/src/hooks/lifecycle.ts`)
+- Phase 4: Lifecycle hooks module (`packages/agent-core/src/hooks/lifecycle.ts`)
 - Phase 4: Daemon lifecycle hooks (start, ready, shutdown)
 - Phase 4: Session lifecycle hooks (start, restore, end, transfer)
 - Phase 4: Todo lifecycle hooks (continuation, completed, blocked)
 - Phase 4: Daemon integration with lifecycle hooks
 - Phase 4: Telegram gateway integration with session hooks
-- Phase 5: WezTerm orchestration module (`packages/opencode/src/orchestration/wezterm.ts`)
+- Phase 5: WezTerm orchestration module (`packages/agent-core/src/orchestration/wezterm.ts`)
 - Phase 5: Display detection (X11/Wayland)
 - Phase 5: Status pane with daemon health visualization
 - Phase 5: Session pane management API

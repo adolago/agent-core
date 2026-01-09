@@ -18,6 +18,25 @@
       forEachSystem = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
       pkgsFor = system: nixpkgs.legacyPackages.${system};
       rev = self.shortRev or self.dirtyShortRev or "dirty";
+      packageJson = builtins.fromJSON (builtins.readFile ./packages/agent-core/package.json);
+      bunTarget = {
+        "aarch64-linux" = "bun-linux-arm64";
+        "x86_64-linux" = "bun-linux-x64";
+        "aarch64-darwin" = "bun-darwin-arm64";
+        "x86_64-darwin" = "bun-darwin-x64";
+      };
+      defaultNodeModules = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      hashesFile = "${./nix}/hashes.json";
+      hashesData =
+        if builtins.pathExists hashesFile then builtins.fromJSON (builtins.readFile hashesFile) else { };
+      nodeModulesHash = hashesData.nodeModules or defaultNodeModules;
+      modelsDev = forEachSystem (
+        system:
+        let
+          pkgs = pkgsFor system;
+        in
+        pkgs."models-dev"
+      );
 
       # ==========================================================================
       # Stock Dependencies for Personas System

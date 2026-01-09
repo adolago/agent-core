@@ -11,4 +11,4 @@ await $`bun install`
 
 await $`gh release download --pattern "opencode-linux-*64.tar.gz" --pattern "opencode-darwin-*64.zip" -D dist`
 
-await import(`../packages/opencode/script/publish-registries.ts`)
+await import(`../packages/agent-core/script/publish-registries.ts`)

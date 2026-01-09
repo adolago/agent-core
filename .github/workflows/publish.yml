@@ -83,7 +83,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: opencode-cli
-          path: packages/opencode/dist
+          path: packages/agent-core/dist
 
     outputs:
       release: ${{ steps.publish.outputs.release }}

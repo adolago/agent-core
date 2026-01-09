@@ -17,7 +17,8 @@ function run(target) {
   process.exit(code)
 }
 
-const envPath = process.env.OPENCODE_BIN_PATH
+// Support both AGENT_CORE_BIN_PATH and OPENCODE_BIN_PATH for backwards compatibility
+const envPath = process.env.AGENT_CORE_BIN_PATH || process.env.OPENCODE_BIN_PATH
 if (envPath) {
   run(envPath)
 }
@@ -74,7 +75,7 @@ function findBinary(startDir) {
 const resolved = findBinary(scriptDir)
 if (!resolved) {
   console.error(
-    'It seems that your package manager failed to install the right version of the opencode CLI for your platform. You can try manually installing the "' +
+    'It seems that your package manager failed to install the right version of the agent-core CLI for your platform. You can try manually installing the "' +
       base +
       '" package',
   )

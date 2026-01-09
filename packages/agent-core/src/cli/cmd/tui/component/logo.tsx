@@ -8,9 +8,10 @@ import { useTheme, tint } from "@tui/context/theme"
 // ~ = shadow top only (▀ with fg=shadow)
 const SHADOW_MARKER = /[_^~]/
 
-const LOGO_LEFT = [`                   `, `█▀▀█ █▀▀█ █▀▀█ █▀▀▄`, `█__█ █__█ █^^^ █__█`, `▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀~~▀`]
+// agent-core logo (AGENT left dimmed, CORE right bold)
+const LOGO_LEFT = [`                         `, `█▀▀█ █▀▀▀ █▀▀▀ █▀▀▄ ▀▀█▀▀`, `█▀▀█ █░░█ █▀▀▀ █░░█   █  `, `▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀   ▀  `]
 
-const LOGO_RIGHT = [`             ▄     `, `█▀▀▀ █▀▀█ █▀▀█ █▀▀█`, `█___ █__█ █__█ █^^^`, `▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀`]
+const LOGO_RIGHT = [`             ▄     `, `█▀▀▀ █▀▀█ █▀▀█ █▀▀▀`, `█░░░ █░░█ █▀▀▀ █▀▀▀`, `▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀`]
 
 export function Logo() {
   const { theme } = useTheme()

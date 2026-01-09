@@ -211,25 +211,29 @@ function App() {
     console.log(JSON.stringify(route.data))
   })
 
-  // Update terminal window title based on current route and session
+  // Update terminal window title based on current route, session, and active persona
   createEffect(() => {
     if (!terminalTitleEnabled() || Flag.OPENCODE_DISABLE_TERMINAL_TITLE) return
 
+    // Get the current persona name (titlecased)
+    const persona = local.agent.current().name
+    const personaTitle = persona.charAt(0).toUpperCase() + persona.slice(1).toLowerCase()
+
     if (route.data.type === "home") {
-      renderer.setTerminalTitle("OpenCode")
+      renderer.setTerminalTitle(personaTitle)
       return
     }
 
     if (route.data.type === "session") {
       const session = sync.session.get(route.data.sessionID)
       if (!session || SessionApi.isDefaultTitle(session.title)) {
-        renderer.setTerminalTitle("OpenCode")
+        renderer.setTerminalTitle(personaTitle)
         return
       }
 
       // Truncate title to 40 chars max
       const title = session.title.length > 40 ? session.title.slice(0, 37) + "..." : session.title
-      renderer.setTerminalTitle(`OC | ${title}`)
+      renderer.setTerminalTitle(`${personaTitle} | ${title}`)
     }
   })
 
@@ -638,11 +642,19 @@ function App() {
     })
   })
 
+  sdk.event.on(Installation.Event.Updated.type, (evt) => {
+    toast.show({
+      variant: "success",
+      title: "Update Complete",
+      message: `agent-core updated to v${evt.properties.version}`,
+      duration: 5000,
+    })
+  })
   sdk.event.on(Installation.Event.UpdateAvailable.type, (evt) => {
     toast.show({
       variant: "info",
       title: "Update Available",
-      message: `OpenCode v${evt.properties.version} is available. Run 'opencode upgrade' to update manually.`,
+      message: `agent-core v${evt.properties.version} is available. Run 'agent-core upgrade' to update manually.`,
       duration: 10000,
     })
   })

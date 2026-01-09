@@ -18,7 +18,7 @@ EnvironmentFile=-/home/artur/.config/agent-core/daemon.env
 
 # Working directory and command
 WorkingDirectory=/home/artur/Repositories/agent-core
-ExecStart=/home/artur/.bun/bin/bun run packages/opencode/src/cli/index.ts daemon --hostname 127.0.0.1 --port 3456
+ExecStart=/home/artur/.bun/bin/bun run packages/agent-core/src/cli/index.ts daemon --hostname 127.0.0.1 --port 3456
 
 # Restart policy
 Restart=always
