@@ -936,6 +936,23 @@ export namespace Provider {
         }
       }
 
+      // For Z.AI and Anthropic providers, hide older versioned models when latest exists
+      // Pattern: model-name-YYYYMMDD should be hidden if model-name or model-name-latest exists
+      if (providerID === "anthropic" || providerID === "zai-coding-plan" || providerID.startsWith("z-ai")) {
+        const modelIDs = Object.keys(provider.models)
+        const datePattern = /-\d{8}$/
+        for (const modelID of modelIDs) {
+          if (datePattern.test(modelID)) {
+            const baseName = modelID.replace(datePattern, "")
+            const latestName = `${baseName}-latest`
+            // Hide dated version if base name or latest version exists
+            if (modelIDs.includes(baseName) || modelIDs.includes(latestName)) {
+              delete provider.models[modelID]
+            }
+          }
+        }
+      }
+
       if (Object.keys(provider.models).length === 0) {
         delete providers[providerID]
         continue
