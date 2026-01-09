@@ -102,10 +102,13 @@ export namespace LLM {
           sessionID: input.sessionID,
           providerOptions: provider.options,
         })
+    // Filter out non-provider options (like 'includes' which is for skill loading)
+    const agentProviderOptions = { ...input.agent.options }
+    delete agentProviderOptions.includes
     const options: Record<string, any> = pipe(
       base,
       mergeDeep(input.model.options),
-      mergeDeep(input.agent.options),
+      mergeDeep(agentProviderOptions),
       mergeDeep(variant),
     )
     if (isCodex) {
