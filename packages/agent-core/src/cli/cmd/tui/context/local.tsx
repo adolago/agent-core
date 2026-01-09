@@ -53,6 +53,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         theme.primary,
         theme.error,
       ])
+      // Placeholder agent for when no agents are loaded yet
+      const placeholderAgent = {
+        name: "",
+        mode: "all" as const,
+        permission: [],
+        options: {},
+      }
+
       return {
         list() {
           return agents()
@@ -63,10 +71,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           if (found) return found
           // Update store to first agent if we had a stale value
           const first = agents()[0]
-          if (first && agentStore.current !== first.name) {
-            setAgentStore("current", first.name)
+          if (first) {
+            if (agentStore.current !== first.name) {
+              setAgentStore("current", first.name)
+            }
+            return first
           }
-          return first!
+          // Return placeholder if no agents loaded yet
+          return placeholderAgent
         },
         set(name: string) {
           if (!agents().some((x) => x.name === name))
