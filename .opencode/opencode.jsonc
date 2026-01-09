@@ -15,6 +15,34 @@
     "github-pr-search": false
   },
   "provider": {
+    "cerebras": {
+      "name": "Cerebras",
+      "api": "https://api.cerebras.ai/v1",
+      "npm": "@ai-sdk/cerebras",
+      "env": ["CEREBRAS_API_KEY"],
+      "models": {
+        "zai-glm-4.7": {
+          "name": "GLM-4.7 (Z.AI on Cerebras)",
+          "release_date": "2025-01-01",
+          "temperature": true,
+          "reasoning": true,
+          "tool_call": true,
+          "attachment": false,
+          "limit": {
+            "context": 131000,
+            "output": 40000
+          },
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          },
+          "cost": {
+            "input": 0,
+            "output": 0
+          }
+        }
+      }
+    },
     "antigravity": {
       "name": "Google Antigravity",
       "api": "https://antigravity.opencode.ai/v1",
