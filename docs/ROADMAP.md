@@ -120,24 +120,50 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 
 ## Phase 3: Shared Infrastructure
 
-### 3.1 Memory System
-- [ ] Qdrant vector storage setup
-- [ ] Conversation continuity across compactions
-- [ ] Cross-persona memory sharing
-- [ ] Memory search MCP tool
+### 3.1 Memory System - COMPLETE
+- [x] Qdrant vector storage setup (`src/memory/qdrant.ts`, `store.ts`)
+  - [x] QdrantVectorStorage with full CRUD operations
+  - [x] MemoryStore high-level API for save/search/list
+  - [x] Collection management with auto-creation
+- [x] Embedding generation (`src/memory/embedding.ts`)
+  - [x] Local BGE-M3 via vLLM (1024d)
+  - [x] OpenAI fallback
+- [x] Conversation continuity across compactions (`src/personas/continuity.ts`)
+  - [x] ContinuityManager with session lifecycle
+  - [x] Key fact extraction (heuristic + LLM ready)
+  - [x] Summary generation
+  - [x] Context restoration from previous sessions
+- [x] Cross-persona memory sharing
+  - [x] Namespace-based isolation
+  - [x] Shared Qdrant collections
+  - [x] Memory bridge for persona state (`src/personas/memory-bridge.ts`)
+- [ ] Memory search MCP tool (not yet exposed via MCP)
 
-### 3.2 Orchestration (Tiara)
-- [ ] Drone spawning via Task tool
-- [ ] WezTerm pane management
-- [ ] SPARC methodology integration
-- [ ] Background task status tracking
+### 3.2 Orchestration (Tiara) - COMPLETE
+- [x] Drone spawning via Task tool (`src/personas/tiara.ts`)
+  - [x] Orchestrator class with full worker lifecycle
+  - [x] Task submission and assignment
+  - [x] Worker status tracking (spawning, working, idle, terminated)
+- [x] WezTerm pane management (`src/personas/wezterm.ts`)
+  - [x] WeztermPaneBridge for pane creation/management
+  - [x] Layout setup (horizontal/vertical/grid)
+  - [x] Status pane updates
+- [x] SPARC methodology integration (`vendor/tiara/`)
+  - [x] Tiara submodule with claude-flow
+- [x] Background task status tracking
+  - [x] DroneWaiter for async completion notifications
+  - [x] Event subscription system
+  - [x] State persistence to Qdrant
+- [x] Fact extraction hooks (`src/personas/hooks/`)
+  - [x] Session lifecycle hook for auto-extraction
+  - [x] Heuristic and LLM-based extraction
 
 ### 3.3 MCP Servers
-- [ ] Context7 integration (done)
-- [ ] Custom MCP for personas
-  - [ ] Memory MCP
-  - [ ] Calendar MCP
-  - [ ] Portfolio MCP
+- [x] Context7 integration
+- [ ] Custom MCP for personas (not yet implemented)
+  - [ ] Memory MCP (expose memory search to external tools)
+  - [ ] Calendar MCP (expose calendar to external tools)
+  - [ ] Portfolio MCP (expose portfolio to external tools)
 
 ---
 
