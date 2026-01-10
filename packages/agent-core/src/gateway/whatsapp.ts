@@ -38,33 +38,8 @@ export namespace WhatsAppGateway {
     pendingResponse: boolean
   }
 
-  // Intent patterns for persona routing (same as Telegram)
-  const STANLEY_PATTERNS = [
-    /portfolio/i,
-    /stock/i,
-    /market/i,
-    /invest/i,
-    /trading/i,
-    /finance/i,
-    /ticker/i,
-    /nvda|aapl|tsla|msft|goog/i,
-    /buy|sell|hold/i,
-    /earnings/i,
-    /dividend/i,
-  ]
-
-  const JOHNY_PATTERNS = [
-    /study/i,
-    /learn/i,
-    /quiz/i,
-    /teach/i,
-    /explain/i,
-    /knowledge/i,
-    /practice/i,
-    /spaced repetition/i,
-    /flashcard/i,
-    /math|calculus|algebra|physics|chemistry/i,
-  ]
+  // WhatsApp is exclusively Zee's channel using GLM 4.7 via Z.ai (cerebras)
+  // Stanley and Johny use Telegram bots instead
 
   export class Gateway {
     private config: GatewayConfig
@@ -344,47 +319,9 @@ Commands:
       return false
     }
 
-    private detectPersona(text: string): "zee" | "stanley" | "johny" {
-      const lowerText = text.toLowerCase()
-
-      // Check for explicit persona mentions
-      if (
-        lowerText.includes("@stanley") ||
-        lowerText.startsWith("stanley,") ||
-        lowerText.startsWith("stanley:")
-      ) {
-        return "stanley"
-      }
-      if (
-        lowerText.includes("@johny") ||
-        lowerText.startsWith("johny,") ||
-        lowerText.startsWith("johny:")
-      ) {
-        return "johny"
-      }
-      if (
-        lowerText.includes("@zee") ||
-        lowerText.startsWith("zee,") ||
-        lowerText.startsWith("zee:")
-      ) {
-        return "zee"
-      }
-
-      // Check intent patterns for Stanley
-      for (const pattern of STANLEY_PATTERNS) {
-        if (pattern.test(text)) {
-          return "stanley"
-        }
-      }
-
-      // Check intent patterns for Johny
-      for (const pattern of JOHNY_PATTERNS) {
-        if (pattern.test(text)) {
-          return "johny"
-        }
-      }
-
-      // Default to Zee for general requests
+    private detectPersona(_text: string): "zee" {
+      // WhatsApp is exclusively Zee's channel
+      // Stanley and Johny are accessible via Telegram bots
       return "zee"
     }
 
@@ -486,8 +423,8 @@ Commands:
           log.debug("Could not save last active session", { error: String(e) })
         }
 
-        // Send message and get response
-        const response = await this.sendMessageToSession(context.sessionId, fullMessage)
+        // Send message and get response (use persona as agent name)
+        const response = await this.sendMessageToSession(context.sessionId, fullMessage, persona)
         return response
       } catch (error) {
         log.error("Agent API error", {
@@ -501,7 +438,10 @@ Commands:
       try {
         const response = await fetch(`${this.apiBaseUrl}/session`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-opencode-directory": this.config.directory,
+          },
           body: JSON.stringify({
             title: `WhatsApp (${persona})`,
           }),
@@ -521,13 +461,17 @@ Commands:
       }
     }
 
-    private async sendMessageToSession(sessionId: string, message: string): Promise<string | null> {
+    private async sendMessageToSession(sessionId: string, message: string, agent: string = "zee"): Promise<string | null> {
       try {
         const response = await fetch(`${this.apiBaseUrl}/session/${sessionId}/message`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-opencode-directory": this.config.directory,
+          },
           body: JSON.stringify({
-            content: message,
+            parts: [{ type: "text", text: message }],
+            agent, // Use the persona as the agent
           }),
         })
 
