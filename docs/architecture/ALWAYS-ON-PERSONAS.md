@@ -64,7 +64,7 @@ Immediate integration of todo-continuation into existing systems.
 #### 0.2 TUI Integration (PARTIAL)
 - [x] **Toast notification** - When switching to session with incomplete todos
 - [x] **Session list indicator** - Shows ◐{count} for sessions with incomplete todos
-- [ ] **Backend system reminder** - Inject reminder into conversation context
+- [x] **Backend system reminder** - Inject reminder into conversation context (prompt.ts:1180-1219)
 - [ ] **Prompt hint** - Visual indicator in prompt area about pending tasks
 
 #### 0.3 Session Persistence Hardening
@@ -470,7 +470,7 @@ daemon:
 ### Phase 0 Complete When:
 - [x] Switching sessions in TUI shows toast for incomplete todos
 - [x] Session list shows indicator for sessions with incomplete todos
-- [ ] LLM receives system reminder about pending tasks
+- [x] LLM receives system reminder about pending tasks (prompt.ts insertReminders)
 - [ ] Prompt area shows hint about incomplete work
 
 ### Phase 1 Complete When:
