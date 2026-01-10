@@ -14,6 +14,7 @@ import type { AgentConfig, AgentPersona } from "../agent/types";
 import type { McpServerConfig as MCPConfig } from "../mcp/types";
 import type { MemoryConfig } from "../memory/types";
 import type { SurfaceType } from "../surface/types";
+import type { LogLevel, DmPolicy, GroupPolicy, RetryConfig } from "./shared";
 
 // =============================================================================
 // Main Configuration
@@ -150,7 +151,6 @@ export interface SurfaceConfigs {
   api?: APIConfig;
   whatsapp?: WhatsAppConfig;
   telegram?: TelegramConfig;
-  discord?: DiscordConfig;
 }
 
 /** CLI/TUI configuration */
@@ -213,6 +213,18 @@ export interface WhatsAppConfig {
   /** Session data path */
   sessionPath?: string;
 
+  /** Direct message access policy (shared with zee) */
+  dmPolicy?: DmPolicy;
+
+  /** Group message access policy (shared with zee) */
+  groupPolicy?: GroupPolicy;
+
+  /** Allowlist for direct chats (E.164 format) */
+  allowFrom?: string[];
+
+  /** Retry configuration for outbound messages */
+  retry?: RetryConfig;
+
   /** Auto-reply settings */
   autoReply?: {
     /** Enable auto-reply */
@@ -241,26 +253,23 @@ export interface TelegramConfig {
   /** Bot token */
   botToken?: string;
 
-  /** Allowed user IDs (empty = all) */
+  /** Direct message access policy (shared with zee) */
+  dmPolicy?: DmPolicy;
+
+  /** Group message access policy (shared with zee) */
+  groupPolicy?: GroupPolicy;
+
+  /** Allowlist for direct chats (user IDs or usernames) */
+  allowFrom?: Array<string | number>;
+
+  /** Retry configuration for outbound messages */
+  retry?: RetryConfig;
+
+  /** Allowed user IDs (empty = all) - legacy, prefer allowFrom */
   allowedUsers?: string[];
 
   /** Webhook URL (if using webhooks) */
   webhookUrl?: string;
-}
-
-/** Discord configuration */
-export interface DiscordConfig {
-  /** Bot token */
-  botToken?: string;
-
-  /** Application ID */
-  applicationId?: string;
-
-  /** Allowed server IDs */
-  allowedServers?: string[];
-
-  /** Allowed channel IDs */
-  allowedChannels?: string[];
 }
 
 // =============================================================================
@@ -269,8 +278,8 @@ export interface DiscordConfig {
 
 /** General application settings */
 export interface GeneralSettings {
-  /** Log level */
-  logLevel?: "debug" | "info" | "warn" | "error";
+  /** Log level (uses shared LogLevel type) */
+  logLevel?: LogLevel;
 
   /** Data directory for storage */
   dataDir?: string;
