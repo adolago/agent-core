@@ -50,8 +50,8 @@ Turn on your PC in the morning, leave without logging in, and communicate with t
 
 ## Implementation Phases
 
-### Phase 0: Todo Continuation Integration (Current)
-**Status: In Progress**
+### Phase 0: Todo Continuation Integration
+**Status: Complete**
 
 Immediate integration of todo-continuation into existing systems.
 
@@ -67,10 +67,10 @@ Immediate integration of todo-continuation into existing systems.
 - [x] **Backend system reminder** - Inject reminder into conversation context (prompt.ts:1180-1219)
 - [x] **Prompt hint** - Visual indicator in prompt area: "◐ N pending · task..."
 
-#### 0.3 Session Persistence Hardening
-- [ ] Ensure todos survive TUI restart
-- [ ] Validate session state on load
-- [ ] Add session recovery on crash
+#### 0.3 Session Persistence Hardening (DONE)
+- [x] Ensure todos survive TUI restart (Storage module persists to `~/.local/share/agent-core/storage`)
+- [x] Validate session state on load (startup toast shows pending todos count across sessions)
+- [x] Add session recovery on crash (Storage + sync context auto-restore; daemon has WAL)
 
 ---
 
@@ -357,7 +357,8 @@ await WeztermOrchestration.closeSessionPane(sessionId)
 - Phase 0: Todo continuation hook infrastructure in tiara
 - Phase 0: CLI integration for session-restore with todo-continuation
 - Phase 0: Session storage in opencode sync context
-- Phase 0: TUI integration (toast, backend reminder, prompt hint)
+- Phase 0: TUI integration (toast, backend reminder, prompt hint, session indicators)
+- Phase 0: Session persistence hardening (startup validation, recovery)
 - Phase 1: Headless daemon mode with systemd service
 - Phase 1: Daemon CLI commands (daemon, daemon-status, daemon-stop)
 - Phase 1: Configuration schema for daemon settings
@@ -383,7 +384,7 @@ await WeztermOrchestration.closeSessionPane(sessionId)
 - Phase 5: Integration with lifecycle hooks for auto-updates
 
 ### In Progress
-- None (Phases 0-5 complete)
+- None (All core phases complete: 0-5)
 
 ### Next Steps
 1. Add Discord gateway (if needed)
@@ -472,6 +473,7 @@ daemon:
 - [x] Session list shows indicator for sessions with incomplete todos
 - [x] LLM receives system reminder about pending tasks (prompt.ts insertReminders)
 - [x] Prompt area shows hint about incomplete work ("◐ N pending · task...")
+- [x] TUI startup shows toast if any sessions have pending todos
 
 ### Phase 1 Complete When:
 - [ ] `systemctl start agent-core` works

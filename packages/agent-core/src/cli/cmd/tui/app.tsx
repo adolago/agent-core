@@ -284,6 +284,34 @@ function App() {
     ),
   )
 
+  // Check for sessions with incomplete todos on startup (Phase 0.3 recovery)
+  let checkedIncompleteTodos = false
+  createEffect(() => {
+    if (checkedIncompleteTodos || sync.status !== "complete") return
+    checkedIncompleteTodos = true
+
+    // Count sessions with incomplete todos
+    let sessionsWithTodos = 0
+    let totalIncompleteTodos = 0
+
+    for (const session of sync.data.session) {
+      const todos = sync.data.todo[session.id] ?? []
+      const incomplete = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+      if (incomplete.length > 0) {
+        sessionsWithTodos++
+        totalIncompleteTodos += incomplete.length
+      }
+    }
+
+    if (sessionsWithTodos > 0) {
+      toast.show({
+        variant: "info",
+        message: `◐ ${totalIncompleteTodos} pending todo${totalIncompleteTodos > 1 ? "s" : ""} in ${sessionsWithTodos} session${sessionsWithTodos > 1 ? "s" : ""}`,
+        duration: 5000,
+      })
+    }
+  })
+
   command.register(() => [
     {
       title: "Switch session",
