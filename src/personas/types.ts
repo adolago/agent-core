@@ -57,7 +57,7 @@ export const PERSONAS_CONFIGS: Record<PersonaId, PersonaConfig> = {
       "You maintain context across conversations.",
     ],
     color: "#6366f1", // Indigo
-    icon: "🤖",
+    icon: "★",
   },
   stanley: {
     id: "stanley",
@@ -76,7 +76,7 @@ export const PERSONAS_CONFIGS: Record<PersonaId, PersonaConfig> = {
       "You think in terms of risk/reward and macro trends.",
     ],
     color: "#22c55e", // Green
-    icon: "📈",
+    icon: "♦",
   },
   johny: {
     id: "johny",
@@ -95,7 +95,7 @@ export const PERSONAS_CONFIGS: Record<PersonaId, PersonaConfig> = {
       "You think systematically and build knowledge graphs.",
     ],
     color: "#f59e0b", // Amber
-    icon: "🎓",
+    icon: "◎",
   },
 };
 

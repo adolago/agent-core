@@ -107,6 +107,16 @@ export namespace Config {
       )),
     ]
 
+    // Support running from any directory via launcher script that sets AGENT_CORE_ROOT
+    const agentCoreRoot = process.env.AGENT_CORE_ROOT
+    if (agentCoreRoot) {
+      const rootConfigDir = path.join(agentCoreRoot, ".agent-core")
+      if (existsSync(rootConfigDir)) {
+        directories.push(rootConfigDir)
+        log.debug("loading config from AGENT_CORE_ROOT", { path: rootConfigDir })
+      }
+    }
+
     if (Flag.OPENCODE_CONFIG_DIR) {
       directories.push(Flag.OPENCODE_CONFIG_DIR)
       log.debug("loading config from OPENCODE_CONFIG_DIR", { path: Flag.OPENCODE_CONFIG_DIR })
@@ -676,7 +686,7 @@ export namespace Config {
       messages_toggle_conceal: z
         .string()
         .optional()
-        .default("<leader>h")
+        .default("<leader>/")
         .describe("Toggle code block concealment in messages"),
       tool_details: z.string().optional().default("none").describe("Toggle tool details visibility"),
       model_list: z.string().optional().default("<leader>m").describe("List available models"),
@@ -688,7 +698,7 @@ export namespace Config {
       agent_list: z.string().optional().default("<leader>a").describe("List agents"),
       agent_cycle: z.string().optional().default("tab").describe("Next agent"),
       agent_cycle_reverse: z.string().optional().default("shift+tab").describe("Previous agent"),
-      mode_toggle: z.string().optional().default("ctrl+h").describe("Toggle hold/release mode"),
+      mode_toggle: z.string().optional().default("<leader>h").describe("Toggle hold/release mode"),
       variant_cycle: z.string().optional().default("ctrl+t").describe("Cycle model variants"),
       input_clear: z.string().optional().default("ctrl+c").describe("Clear input field"),
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
@@ -778,7 +788,7 @@ export namespace Config {
       session_parent: z.string().optional().default("<leader>up").describe("Go to parent session"),
       terminal_suspend: z.string().optional().default("ctrl+z").describe("Suspend terminal"),
       terminal_title_toggle: z.string().optional().default("none").describe("Toggle terminal title"),
-      tips_toggle: z.string().optional().default("<leader>h").describe("Toggle tips on home screen"),
+      tips_toggle: z.string().optional().default("<leader>?").describe("Toggle tips on home screen"),
     })
     .strict()
     .meta({

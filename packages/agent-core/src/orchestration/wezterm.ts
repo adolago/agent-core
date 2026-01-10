@@ -184,7 +184,7 @@ export namespace WeztermOrchestration {
       statusPaneId = stdout.trim()
 
       // Set pane title
-      await setPaneTitle(statusPaneId, "🔺 Agent-Core Daemon Status")
+      await setPaneTitle(statusPaneId, "◈ Agent-Core Daemon Status")
 
       // Initial status render
       await updateStatusPane()
@@ -311,7 +311,7 @@ export namespace WeztermOrchestration {
 
       // Header
       lines.push("╔════════════════════════════════════════════════════════╗")
-      lines.push("║            🔺 AGENT-CORE DAEMON STATUS 🔺               ║")
+      lines.push("║            ◆ AGENT-CORE DAEMON STATUS ◆               ║")
       lines.push("╠════════════════════════════════════════════════════════╣")
 
       // Daemon info
@@ -320,10 +320,10 @@ export namespace WeztermOrchestration {
       lines.push("╠════════════════════════════════════════════════════════╣")
 
       // Services
-      const persistence = cachedStatus.services?.persistence ? "✅" : "❌"
-      const telegram = cachedStatus.services?.telegram ? "✅" : "❌"
-      const discord = cachedStatus.services?.discord ? "✅" : "⚪"
-      const wezterm = isInitialized ? "✅" : "❌"
+      const persistence = cachedStatus.services?.persistence ? "●" : "○"
+      const telegram = cachedStatus.services?.telegram ? "●" : "○"
+      const discord = cachedStatus.services?.discord ? "●" : "◌"
+      const wezterm = isInitialized ? "●" : "○"
 
       lines.push(`║ Services: Persistence ${persistence}  Telegram ${telegram}  Discord ${discord}  WezTerm ${wezterm} ║`)
 
@@ -363,7 +363,7 @@ export namespace WeztermOrchestration {
   export async function createSessionPane(
     sessionId: string,
     title: string,
-    persona?: "zee" | "stanley" | "johny"
+    persona: "zee" | "stanley" | "johny"
   ): Promise<string | null> {
     if (!isInitialized) return null
 
@@ -456,16 +456,14 @@ export namespace WeztermOrchestration {
     return `${hours}h ${mins}m`
   }
 
-  function getPersonaIcon(persona?: "zee" | "stanley" | "johny"): string {
+  function getPersonaIcon(persona: "zee" | "stanley" | "johny"): string {
     switch (persona) {
       case "zee":
-        return "💜"
+        return "★"
       case "stanley":
-        return "📈"
+        return "♦"
       case "johny":
-        return "🧠"
-      default:
-        return "🔹"
+        return "◎"
     }
   }
 

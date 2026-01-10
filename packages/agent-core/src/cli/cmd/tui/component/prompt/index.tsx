@@ -963,6 +963,11 @@ export function Prompt(props: PromptProps) {
                 {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}{" "}
               </text>
               <Show when={store.mode === "normal"}>
+                <text fg={local.mode.isHold() ? theme.warning : theme.success}>
+                  {local.mode.isHold() ? "▣" : "▢"}
+                </text>
+              </Show>
+              <Show when={store.mode === "normal"}>
                 <box flexDirection="row" gap={1}>
                   <text flexShrink={0} fg={keybind.leader ? theme.textMuted : theme.text}>
                     {local.model.parsed().model}

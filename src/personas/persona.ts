@@ -240,7 +240,7 @@ export function getPersonaConfig(id: PersonaId): PersonaConfig {
         "You maintain context across conversations.",
       ],
       color: "#6366f1",
-      icon: "🤖",
+      icon: "★",
     },
     stanley: {
       id: "stanley",
@@ -259,7 +259,7 @@ export function getPersonaConfig(id: PersonaId): PersonaConfig {
         "You think in terms of risk/reward and macro trends.",
       ],
       color: "#22c55e",
-      icon: "📈",
+      icon: "♦",
     },
     johny: {
       id: "johny",
@@ -278,7 +278,7 @@ export function getPersonaConfig(id: PersonaId): PersonaConfig {
         "You think systematically and build knowledge graphs.",
       ],
       color: "#f59e0b",
-      icon: "🎓",
+      icon: "◎",
     },
   };
 

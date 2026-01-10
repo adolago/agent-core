@@ -59,6 +59,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         mode: "all" as const,
         permission: [],
         options: {},
+        model: undefined as { providerID: string; modelID: string } | undefined,
       }
 
       return {
@@ -361,7 +362,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             saveMode()
             toast.show({
               variant: modeStore.hold ? "info" : "success",
-              message: modeStore.hold ? "🔒 HOLD mode - Research only" : "🔓 RELEASE mode - Can edit files",
+              message: modeStore.hold ? "▣ HOLD mode - Research only" : "▢ RELEASE mode - Can edit files",
               duration: 2000,
             })
           })

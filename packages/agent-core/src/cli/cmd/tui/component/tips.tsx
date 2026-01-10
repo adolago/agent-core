@@ -51,7 +51,7 @@ export function Tips() {
 export const TIPS = [
   "Type {highlight}@{/highlight} followed by a filename to fuzzy search and attach files to your prompt.",
   "Start a message with {highlight}!{/highlight} to run shell commands directly (e.g., {highlight}!ls -la{/highlight}).",
-  "Press {highlight}Ctrl+H{/highlight} to toggle between HOLD (research) and RELEASE (edit) modes.",
+  "Press {highlight}Ctrl+X H{/highlight} to toggle between HOLD (research) and RELEASE (edit) modes.",
   "Use {highlight}:undo{/highlight} to revert the last message and any file changes made by agent-core.",
   "Use {highlight}:redo{/highlight} to restore previously undone messages and file changes.",
   "Use {highlight}:share{/highlight} to create a public link to your conversation.",
