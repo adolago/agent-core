@@ -502,8 +502,8 @@ Commands:
           log.debug("Could not save last active session", { error: String(e) })
         }
 
-        // Send message and get response
-        const response = await this.sendMessageToSession(context.sessionId, fullMessage)
+        // Send message and get response (use persona as agent name)
+        const response = await this.sendMessageToSession(context.sessionId, fullMessage, persona)
         return response
       } catch (error) {
         log.error("Agent API error", {
@@ -517,7 +517,10 @@ Commands:
       try {
         const response = await fetch(`${this.apiBaseUrl}/session`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-opencode-directory": this.config.directory,
+          },
           body: JSON.stringify({
             title: `Telegram (${persona})`,
           }),
@@ -537,14 +540,18 @@ Commands:
       }
     }
 
-    private async sendMessageToSession(sessionId: string, message: string): Promise<string | null> {
+    private async sendMessageToSession(sessionId: string, message: string, agent: string = "zee"): Promise<string | null> {
       try {
-        // Use the message endpoint
+        // Use the message endpoint with correct parts format
         const response = await fetch(`${this.apiBaseUrl}/session/${sessionId}/message`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-opencode-directory": this.config.directory,
+          },
           body: JSON.stringify({
-            content: message,
+            parts: [{ type: "text", text: message }],
+            agent, // Use the persona as the agent
           }),
         })
 
