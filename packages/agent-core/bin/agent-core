@@ -45,8 +45,11 @@ let arch = archMap[os.arch()]
 if (!arch) {
   arch = os.arch()
 }
-const base = "opencode-" + platform + "-" + arch
-const binary = platform === "windows" ? "opencode.exe" : "opencode"
+// Support both agent-core and opencode package names (for upstream compatibility)
+const agentCoreBase = "agent-core-" + platform + "-" + arch
+const opencodeBase = "opencode-" + platform + "-" + arch
+const agentCoreBinary = platform === "windows" ? "agent-core.exe" : "agent-core"
+const opencodeBinary = platform === "windows" ? "opencode.exe" : "opencode"
 
 function findBinary(startDir) {
   let current = startDir
@@ -55,12 +58,18 @@ function findBinary(startDir) {
     if (fs.existsSync(modules)) {
       const entries = fs.readdirSync(modules)
       for (const entry of entries) {
-        if (!entry.startsWith(base)) {
-          continue
+        // Check agent-core packages first, then opencode for upstream compatibility
+        if (entry.startsWith(agentCoreBase)) {
+          const candidate = path.join(modules, entry, "bin", agentCoreBinary)
+          if (fs.existsSync(candidate)) {
+            return candidate
+          }
         }
-        const candidate = path.join(modules, entry, "bin", binary)
-        if (fs.existsSync(candidate)) {
-          return candidate
+        if (entry.startsWith(opencodeBase)) {
+          const candidate = path.join(modules, entry, "bin", opencodeBinary)
+          if (fs.existsSync(candidate)) {
+            return candidate
+          }
         }
       }
     }
