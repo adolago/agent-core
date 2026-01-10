@@ -3,6 +3,7 @@
   "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
   "small_model": "cerebras/gpt-oss-120b",
   "default_agent": "zee",
+  "disabled_providers": ["google-vertex", "google-vertex-anthropic"],
   "instructions": ["STYLE_GUIDE.md"],
   "mcp": {
     "context7": {
@@ -42,64 +43,33 @@
           }
         }
       }
-    },
-    "antigravity": {
-      "name": "Google Antigravity",
-      "api": "https://antigravity.opencode.ai/v1",
-      "npm": "@ai-sdk/openai-compatible",
-      "env": ["GOOGLE_OAUTH_TOKEN"],
-      "models": {
-        "claude-opus-4-5": {
-          "name": "Claude Opus 4.5 (via Antigravity)",
-          "release_date": "2025-01-01",
-          "temperature": true,
-          "reasoning": false,
-          "tool_call": true,
-          "attachment": true,
-          "limit": {
-            "context": 200000,
-            "output": 8192
-          },
-          "modalities": {
-            "input": ["text", "image"],
-            "output": ["text"]
-          },
-          "cost": {
-            "input": 15,
-            "output": 75
-          }
-        },
-        "gemini-3-flash": {
-          "name": "Gemini 3 Flash (via Antigravity)",
-          "release_date": "2025-01-01",
-          "temperature": true,
-          "reasoning": false,
-          "tool_call": true,
-          "attachment": true,
-          "limit": {
-            "context": 1000000,
-            "output": 8192
-          },
-          "modalities": {
-            "input": ["text", "image", "video", "audio", "pdf"],
-            "output": ["text"]
-          },
-          "cost": {
-            "input": 0.1,
-            "output": 0.4
-          }
-        }
-      }
     }
   },
   "agent": {
+    "zee": {
+      "description": "Personal assistant for life admin, memory, messaging, and calendar",
+      "mode": "primary",
+      "color": "#5c9cf5"
+    },
+    "stanley": {
+      "description": "Investing and financial research assistant",
+      "mode": "primary",
+      "color": "#f5a742"
+    },
+    "johny": {
+      "description": "Study assistant for learning and knowledge graphs",
+      "mode": "primary",
+      "color": "#7fd88c"
+    },
     "title": {
       "model": "cerebras/gpt-oss-120b",
-      "temperature": 0.5
+      "temperature": 0.5,
+      "hidden": true
     },
     "compaction": {
-      "model": "antigravity/gemini-3-flash",
-      "temperature": 0.3
+      "model": "google/antigravity-gemini-3-flash",
+      "temperature": 0.3,
+      "hidden": true
     }
   }
 }

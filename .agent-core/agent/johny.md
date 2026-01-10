@@ -1,9 +1,8 @@
 ---
 description: Learning system - study, knowledge graph, spaced repetition
 color: "#DC2626"
-model: antigravity/claude-opus-4-5
+model: google/antigravity-claude-opus-4-5-thinking
 temperature: 0.8
-top_p: 0.9
 ---
 
 # Johny - Learning System
