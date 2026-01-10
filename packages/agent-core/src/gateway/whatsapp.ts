@@ -117,11 +117,35 @@ export namespace WhatsAppGateway {
         })
 
         // QR Code event - user needs to scan
-        this.client.on("qr", (qr: string) => {
+        this.client.on("qr", async (qr: string) => {
           log.info("WhatsApp QR code received - scan with phone")
-          console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===\n")
-          qrcode.default.generate(qr, { small: true })
-          console.log("\n========================================\n")
+
+          // Save QR code as PNG file for proper scanning
+          const qrImagePath = path.join(sessionDir, "whatsapp-qr.png")
+          try {
+            // @ts-ignore - qrcode is an optional dependency
+            const QRCodeModule = await import("qrcode")
+            // Handle both ESM default export and CommonJS
+            const QRCode = QRCodeModule.default || QRCodeModule
+            await QRCode.toFile(qrImagePath, qr, {
+              type: "png",
+              width: 400,
+              margin: 2,
+              color: { dark: "#000000", light: "#ffffff" },
+            })
+            console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===")
+            console.log(`\nQR Code saved to: ${qrImagePath}`)
+            console.log("\nOpen this file with an image viewer and scan it with WhatsApp.")
+            console.log("Or run: xdg-open " + qrImagePath)
+            console.log("\n========================================\n")
+          } catch (e) {
+            // Fallback to terminal output
+            console.error("PNG QR generation failed:", e)
+            console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===\n")
+            console.log("(Terminal QR may be distorted - try zooming out or use a smaller font)\n")
+            qrcode.default.generate(qr, { small: true })
+            console.log("\n========================================\n")
+          }
         })
 
         // Ready event
