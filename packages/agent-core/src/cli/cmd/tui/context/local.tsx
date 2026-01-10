@@ -124,11 +124,16 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           providerID: string
           modelID: string
         }[]
+        favorite: {
+          providerID: string
+          modelID: string
+        }[]
         variant: Record<string, string | undefined>
       }>({
         ready: false,
         model: {},
         recent: [],
+        favorite: [],
         variant: {},
       })
 
@@ -140,6 +145,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           JSON.stringify({
             model: modelStore.model,
             recent: modelStore.recent,
+            favorite: modelStore.favorite,
             variant: modelStore.variant,
           }),
         )
@@ -150,6 +156,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         .then((x) => {
           if (typeof x.model === "object" && x.model !== null) setModelStore("model", x.model)
           if (Array.isArray(x.recent)) setModelStore("recent", x.recent)
+          if (Array.isArray(x.favorite)) setModelStore("favorite", x.favorite)
           if (typeof x.variant === "object" && x.variant !== null) setModelStore("variant", x.variant)
         })
         .catch(() => {})
@@ -224,6 +231,9 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         },
         recent() {
           return modelStore.recent
+        },
+        favorite() {
+          return modelStore.favorite
         },
         parsed: createMemo(() => {
           const value = currentModel()
