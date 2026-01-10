@@ -1070,6 +1070,10 @@ export type KeybindsConfig = {
    */
   agent_cycle_reverse?: string
   /**
+   * Toggle hold/release mode
+   */
+  mode_toggle?: string
+  /**
    * Cycle model variants
    */
   variant_cycle?: string
