@@ -104,9 +104,9 @@ sudo systemctl start agent-core
 - [x] Session restoration with todo-continuation on startup
 
 CLI Commands:
-- `opencode daemon` - Start the daemon
-- `opencode daemon-status` - Check if running
-- `opencode daemon-stop` - Stop the daemon
+- `agent-core daemon` - Start the daemon
+- `agent-core daemon-status` - Check if running
+- `agent-core daemon-stop` - Stop the daemon
 
 #### 1.3 Credential Access (PARTIAL)
 - [x] Environment-based fallback for API keys (via daemon.env file)
@@ -165,7 +165,7 @@ export TELEGRAM_BOT_TOKEN=your-token-here
 export TELEGRAM_ALLOWED_USERS=123456789,987654321
 
 # Start daemon with Telegram gateway
-opencode daemon --port 4567
+agent-core daemon --port 4567
 ```
 
 **Bot Commands:**
@@ -195,10 +195,10 @@ Implementation at `packages/agent-core/src/gateway/whatsapp.ts`:
 **Usage:**
 ```bash
 # Start daemon with WhatsApp gateway
-opencode daemon --whatsapp --port 4567
+agent-core daemon --whatsapp --port 4567
 
 # Optionally restrict to specific phone numbers (with country code, no +)
-WHATSAPP_ALLOWED_NUMBERS=1234567890,0987654321 opencode daemon --whatsapp
+WHATSAPP_ALLOWED_NUMBERS=1234567890,0987654321 agent-core daemon --whatsapp
 ```
 
 #### 2.3 Future Platforms
@@ -338,9 +338,9 @@ Implementation at `packages/agent-core/src/orchestration/wezterm.ts`:
 
 **CLI Options:**
 ```bash
-opencode daemon --wezterm          # Enable (default: true)
-opencode daemon --no-wezterm       # Disable
-opencode daemon --wezterm-layout horizontal  # Layout: horizontal|vertical|grid
+agent-core daemon --wezterm          # Enable (default: true)
+agent-core daemon --no-wezterm       # Disable
+agent-core daemon --wezterm-layout horizontal  # Layout: horizontal|vertical|grid
 ```
 
 **Status Pane Features:**
@@ -375,7 +375,7 @@ await WeztermOrchestration.closeSessionPane(sessionId)
 ### Completed
 - Phase 0: Todo continuation hook infrastructure in tiara
 - Phase 0: CLI integration for session-restore with todo-continuation
-- Phase 0: Session storage in opencode sync context
+- Phase 0: Session storage in agent-core sync context
 - Phase 0: TUI integration (toast, backend reminder, prompt hint, session indicators)
 - Phase 0: Session persistence hardening (startup validation, recovery)
 - Phase 1: Headless daemon mode with systemd service

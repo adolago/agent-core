@@ -2,6 +2,20 @@
 
 This is the **engine** that powers Artur's Agent System. agent-core is a fork of OpenCode with custom personas.
 
+## CRITICAL: Naming Convention
+
+**NEVER use "opencode" in new code, documentation, or user-facing text.**
+
+This project is `agent-core`, not OpenCode. While we're grateful to the original OpenCode maintainers, users must be able to run both projects without confusion:
+
+- CLI command: `agent-core` (not `opencode`)
+- Config directory: `~/.config/agent-core/`
+- State directory: `~/.local/state/agent-core/`
+- Documentation references: "agent-core daemon", not "opencode daemon"
+- Variable names, function names: avoid `opencode` prefix
+
+Existing upstream code may still contain "opencode" references - that's fine. But all NEW code and documentation should use "agent-core" naming.
+
 ## IMPORTANT: First Steps When Working on This Repo
 
 **ALWAYS read these before making changes:**
