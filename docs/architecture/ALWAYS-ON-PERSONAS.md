@@ -61,8 +61,9 @@ Immediate integration of todo-continuation into existing systems.
 - [x] `session-end` saves todos to memory
 - [x] CLI command: `claude hook todo-continuation`
 
-#### 0.2 TUI Integration (TODO)
-- [ ] **Toast notification** - When switching to session with incomplete todos
+#### 0.2 TUI Integration (PARTIAL)
+- [x] **Toast notification** - When switching to session with incomplete todos
+- [x] **Session list indicator** - Shows ◐{count} for sessions with incomplete todos
 - [ ] **Backend system reminder** - Inject reminder into conversation context
 - [ ] **Prompt hint** - Visual indicator in prompt area about pending tasks
 
@@ -467,7 +468,8 @@ daemon:
 ## Success Criteria
 
 ### Phase 0 Complete When:
-- [ ] Switching sessions in TUI shows toast for incomplete todos
+- [x] Switching sessions in TUI shows toast for incomplete todos
+- [x] Session list shows indicator for sessions with incomplete todos
 - [ ] LLM receives system reminder about pending tasks
 - [ ] Prompt area shows hint about incomplete work
 
