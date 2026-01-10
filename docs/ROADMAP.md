@@ -169,19 +169,19 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 
 ## Phase 4: TUI Improvements
 
-### 4.1 Model Selection
-- [ ] Favorites system
-- [ ] Recently used models
+### 4.1 Model Selection - MOSTLY COMPLETE
+- [x] Favorites system (`dialog-model.tsx` favorites support)
+- [x] Recently used models (`local.model.recent()`)
 - [ ] Provider status indicators (auth valid/expired)
-- [ ] Cost display for non-free models
+- [x] Cost display for non-free models (shows "Free" badge)
 
 ### 4.2 Agent Experience
 - [ ] Agent-specific themes/colors
-- [ ] Persistent agent state across sessions
+- [x] Persistent agent state across sessions (via ContinuityManager)
 - [ ] Agent handoff (delegate to another persona)
 
 ### 4.3 Conversation
-- [ ] Better compaction summaries
+- [x] Better compaction summaries (via continuity.ts generateSummary)
 - [ ] Conversation branching
 - [ ] Export conversations
 
