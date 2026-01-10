@@ -858,6 +858,212 @@ export namespace Provider {
           source: "custom",
           options: options,
         })
+
+        // If this is google plugin (antigravity), set up the provider properly
+        // The plugin's fetch interceptor handles Claude/Gemini models via Google Cloud Code API
+        // The plugin returns apiKey: "" because it uses OAuth via custom fetch
+        if (providerID === "google") {
+          // Force-create google provider if it doesn't exist (no env/api key configured)
+          if (!providers["google"] && database["google"]) {
+            providers["google"] = {
+              ...database["google"],
+              source: "custom",
+              options: {},
+            }
+            log.info("created google provider for antigravity plugin")
+          }
+
+          if (providers["google"]) {
+            // Wrap the plugin's custom fetch to remove x-goog-api-key header
+            // The plugin uses OAuth Bearer token but @ai-sdk/google adds x-goog-api-key
+            const pluginFetch = options?.fetch
+            const wrappedFetch = pluginFetch
+              ? async (input: RequestInfo | URL, init?: RequestInit) => {
+                  if (init?.headers) {
+                    const headers = new Headers(init.headers)
+                    headers.delete("x-goog-api-key")
+                    return pluginFetch(input, { ...init, headers })
+                  }
+                  return pluginFetch(input, init)
+                }
+              : undefined
+
+            // Set placeholder API key (required by @ai-sdk/google) and preserve custom fetch
+            providers["google"].options = {
+              ...providers["google"].options,
+              apiKey: "antigravity-oauth-placeholder",
+              fetch: wrappedFetch,
+            }
+            log.info("configured google provider with antigravity auth", {
+              hasApiKey: !!providers["google"].options.apiKey,
+              hasFetch: typeof providers["google"].options.fetch === "function",
+            })
+
+            // Add Antigravity models - Claude and Gemini via Google Cloud Code API
+            const antigravityModels: Record<string, Model> = {
+              "antigravity-claude-opus-4-5-thinking": {
+                id: "antigravity-claude-opus-4-5-thinking",
+                providerID: "google",
+                name: "Claude Opus 4.5 Thinking",
+                family: "claude",
+                api: {
+                  id: "antigravity-claude-opus-4-5-thinking",
+                  url: "https://generativelanguage.googleapis.com/v1beta",
+                  npm: "@ai-sdk/google",
+                },
+                status: "active",
+                headers: {},
+                options: { topP: 0.95 }, // Claude thinking requires topP >= 0.95
+                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                limit: { context: 200000, output: 64000 },
+                capabilities: {
+                  temperature: true,
+                  reasoning: true,
+                  attachment: true,
+                  toolcall: true,
+                  input: { text: true, audio: false, image: true, video: false, pdf: true },
+                  output: { text: true, audio: false, image: false, video: false, pdf: false },
+                  interleaved: false,
+                },
+                release_date: "2025-02-24",
+                variants: {
+                  low: { name: "Low Thinking", options: { thinkingBudget: 8192 } },
+                  max: { name: "Max Thinking", options: { thinkingBudget: 32768 } },
+                },
+              },
+              "antigravity-claude-sonnet-4-5": {
+                id: "antigravity-claude-sonnet-4-5",
+                providerID: "google",
+                name: "Claude Sonnet 4.5",
+                family: "claude",
+                api: {
+                  id: "antigravity-claude-sonnet-4-5",
+                  url: "https://generativelanguage.googleapis.com/v1beta",
+                  npm: "@ai-sdk/google",
+                },
+                status: "active",
+                headers: {},
+                options: {},
+                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                limit: { context: 200000, output: 64000 },
+                capabilities: {
+                  temperature: true,
+                  reasoning: false,
+                  attachment: true,
+                  toolcall: true,
+                  input: { text: true, audio: false, image: true, video: false, pdf: true },
+                  output: { text: true, audio: false, image: false, video: false, pdf: false },
+                  interleaved: false,
+                },
+                release_date: "2025-02-24",
+              },
+              "antigravity-claude-sonnet-4-5-thinking": {
+                id: "antigravity-claude-sonnet-4-5-thinking",
+                providerID: "google",
+                name: "Claude Sonnet 4.5 Thinking",
+                family: "claude",
+                api: {
+                  id: "antigravity-claude-sonnet-4-5-thinking",
+                  url: "https://generativelanguage.googleapis.com/v1beta",
+                  npm: "@ai-sdk/google",
+                },
+                status: "active",
+                headers: {},
+                options: { topP: 0.95 }, // Claude thinking requires topP >= 0.95
+                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                limit: { context: 200000, output: 64000 },
+                capabilities: {
+                  temperature: true,
+                  reasoning: true,
+                  attachment: true,
+                  toolcall: true,
+                  input: { text: true, audio: false, image: true, video: false, pdf: true },
+                  output: { text: true, audio: false, image: false, video: false, pdf: false },
+                  interleaved: false,
+                },
+                release_date: "2025-02-24",
+                variants: {
+                  low: { name: "Low Thinking", options: { thinkingBudget: 8192 } },
+                  max: { name: "Max Thinking", options: { thinkingBudget: 32768 } },
+                },
+              },
+              "antigravity-gemini-3-pro": {
+                id: "antigravity-gemini-3-pro",
+                providerID: "google",
+                name: "Gemini 3 Pro",
+                family: "gemini",
+                api: {
+                  id: "antigravity-gemini-3-pro",
+                  url: "https://generativelanguage.googleapis.com/v1beta",
+                  npm: "@ai-sdk/google",
+                },
+                status: "active",
+                headers: {},
+                options: {},
+                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                limit: { context: 1048576, output: 65535 },
+                capabilities: {
+                  temperature: true,
+                  reasoning: true,
+                  attachment: true,
+                  toolcall: true,
+                  input: { text: true, audio: false, image: true, video: false, pdf: true },
+                  output: { text: true, audio: false, image: false, video: false, pdf: false },
+                  interleaved: false,
+                },
+                release_date: "2025-06-01",
+                variants: {
+                  low: { name: "Low Thinking", options: { thinkingLevel: "low" } },
+                  high: { name: "High Thinking", options: { thinkingLevel: "high" } },
+                },
+              },
+              "antigravity-gemini-3-flash": {
+                id: "antigravity-gemini-3-flash",
+                providerID: "google",
+                name: "Gemini 3 Flash",
+                family: "gemini",
+                api: {
+                  id: "antigravity-gemini-3-flash",
+                  url: "https://generativelanguage.googleapis.com/v1beta",
+                  npm: "@ai-sdk/google",
+                },
+                status: "active",
+                headers: {},
+                options: {},
+                cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                limit: { context: 1048576, output: 65536 },
+                capabilities: {
+                  temperature: true,
+                  reasoning: true,
+                  attachment: true,
+                  toolcall: true,
+                  input: { text: true, audio: false, image: true, video: false, pdf: true },
+                  output: { text: true, audio: false, image: false, video: false, pdf: false },
+                  interleaved: false,
+                },
+                release_date: "2025-06-01",
+                variants: {
+                  minimal: { name: "Minimal Thinking", options: { thinkingLevel: "minimal" } },
+                  low: { name: "Low Thinking", options: { thinkingLevel: "low" } },
+                  medium: { name: "Medium Thinking", options: { thinkingLevel: "medium" } },
+                  high: { name: "High Thinking", options: { thinkingLevel: "high" } },
+                },
+              },
+            }
+
+            // Add models to google provider
+            for (const [modelID, model] of Object.entries(antigravityModels)) {
+              if (!providers["google"].models[modelID]) {
+                providers["google"].models[modelID] = model
+              }
+            }
+
+            log.info("added antigravity models to google provider", {
+              count: Object.keys(antigravityModels).length,
+              models: Object.keys(antigravityModels).join(", "),
+            })
+          }
+        }
       }
 
       // If this is github-copilot plugin, also register for github-copilot-enterprise if auth exists
@@ -1043,7 +1249,10 @@ export namespace Provider {
       }
 
       if (!options["baseURL"]) options["baseURL"] = model.api.url
-      if (options["apiKey"] === undefined && provider.key) options["apiKey"] = provider.key
+      // Check for both undefined AND empty string - some plugins return apiKey: ""
+      if ((options["apiKey"] === undefined || options["apiKey"] === "") && provider.key) {
+        options["apiKey"] = provider.key
+      }
       if (model.headers)
         options["headers"] = {
           ...options["headers"],

@@ -44,6 +44,16 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       }>({
         current: agents()[0]?.name ?? "",
       })
+
+      // Effect to initialize agent selection when agents load
+      // This ensures reactivity works correctly when sync.data.agent populates
+      createEffect(() => {
+        const list = agents()
+        if (list.length > 0 && !agentStore.current) {
+          setAgentStore("current", list[0].name)
+        }
+      })
+
       const { theme } = useTheme()
       const colors = createMemo(() => [
         theme.secondary,
@@ -113,13 +123,9 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const model = iife(() => {
       const [modelStore, setModelStore] = createStore<{
         ready: boolean
-        model: Record<
-          string,
-          {
-            providerID: string
-            modelID: string
-          }
-        >
+        // Session-scoped model selection (keyed by agentName, clears on session change)
+        sessionModel: Record<string, { providerID: string; modelID: string }>
+        sessionID: string | null
         recent: {
           providerID: string
           modelID: string
@@ -131,7 +137,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         variant: Record<string, string | undefined>
       }>({
         ready: false,
-        model: {},
+        sessionModel: {},
+        sessionID: null,
         recent: [],
         favorite: [],
         variant: {},
@@ -148,10 +155,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           return
         }
         state.pending = false
+        // Only persist recent, favorite, variant - NOT session model
         Bun.write(
           file,
           JSON.stringify({
-            model: modelStore.model,
             recent: modelStore.recent,
             favorite: modelStore.favorite,
             variant: modelStore.variant,
@@ -162,7 +169,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       file
         .json()
         .then((x) => {
-          if (typeof x.model === "object" && x.model !== null) setModelStore("model", x.model)
           if (Array.isArray(x.recent)) setModelStore("recent", x.recent)
           if (Array.isArray(x.favorite)) setModelStore("favorite", x.favorite)
           if (typeof x.variant === "object" && x.variant !== null) setModelStore("variant", x.variant)
@@ -175,6 +181,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
       const args = useArgs()
       const fallbackModel = createMemo(() => {
+        // Explicitly track provider array to ensure reactivity when providers load
+        const providers = sync.data.provider
+        const providerCount = providers.length
+
         if (args.model) {
           const { providerID, modelID } = Provider.parseModel(args.model)
           if (isModelValid({ providerID, modelID })) {
@@ -201,7 +211,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           }
         }
 
-        const provider = sync.data.provider[0]
+        if (providerCount === 0) return undefined
+        const provider = providers[0]
         if (!provider) return undefined
         const defaultModel = sync.data.provider_default[provider.id]
         const firstModel = Object.values(provider.models)[0]
@@ -219,18 +230,17 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         if (!a?.name) {
           return undefined
         }
-        // Agent's configured model takes priority - trust it without validation
-        // Custom models (like cerebras/zai-glm-4.7) may not be in the provider list
+        // Session-scoped user selection takes priority (allows overriding agent defaults within session)
+        const sessionSelection = modelStore.sessionModel[a.name]
+        if (sessionSelection && isModelValid(sessionSelection)) {
+          return sessionSelection
+        }
+        // Fall back to agent's configured model (trust without validation for custom models)
         if (a.model) {
           return a.model
         }
-        // For non-configured agents, use cached selection or fallback (with validation)
-        return (
-          getFirstValidModel(
-            () => modelStore.model[a.name], // Cached selection
-            fallbackModel, // Global fallback
-          ) ?? undefined
-        )
+        // Finally, try global fallback
+        return fallbackModel() ?? undefined
       })
 
       return {
@@ -243,6 +253,13 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         },
         favorite() {
           return modelStore.favorite
+        },
+        // Called when session changes - clears session-scoped model selection
+        setSession(sessionID: string | null) {
+          if (modelStore.sessionID !== sessionID) {
+            setModelStore("sessionID", sessionID)
+            setModelStore("sessionModel", {}) // Clear session model on session change
+          }
         },
         parsed: createMemo(() => {
           const value = currentModel()
@@ -272,8 +289,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           if (next >= recent.length) next = 0
           const val = recent[next]
           if (!val) return
-          setModelStore("model", agent.current().name, { ...val })
-          save()
+          setModelStore("sessionModel", agent.current().name, { ...val })
         },
         set(model: { providerID: string; modelID: string }, options?: { recent?: boolean }) {
           batch(() => {
@@ -285,7 +301,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
               })
               return
             }
-            setModelStore("model", agent.current().name, model)
+            // Store in session-scoped model (not persisted)
+            setModelStore("sessionModel", agent.current().name, model)
             if (options?.recent) {
               const uniq = uniqueBy([model, ...modelStore.recent], (x) => `${x.providerID}/${x.modelID}`)
               if (uniq.length > 10) uniq.pop()
@@ -293,8 +310,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
                 "recent",
                 uniq.map((x) => ({ providerID: x.providerID, modelID: x.modelID })),
               )
+              save() // Only save recent list, not the session model
             }
-            save()
           })
         },
         variant: {

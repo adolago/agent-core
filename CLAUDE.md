@@ -239,3 +239,45 @@ This system has experimental features enabled:
 | Stanley portfolio | `~/.zee/stanley/portfolio.json` |
 | Zee memories | `~/.zee/zee/memories.json` |
 | Credentials | `~/.zee/credentials/` |
+
+## Running Processes & Binary Updates
+
+### Binary Location
+The installed binary is at `~/bin/agent-core`, referenced by `$AGENT_CORE_BIN`.
+
+When rebuilding:
+
+```bash
+# Build
+cd packages/agent-core && bun run build
+
+# Copy to $AGENT_CORE_BIN (MUST close running TUI first)
+cp packages/agent-core/dist/agent-core-linux-x64/bin/agent-core $AGENT_CORE_BIN
+```
+
+### Common Processes
+When updating the binary, you may encounter "Text file busy". Check for:
+
+```bash
+pgrep -af agent-core
+```
+
+**Typical processes:**
+| Process | Description | Safe to kill? |
+|---------|-------------|---------------|
+| `/home/artur/bin/agent-core --print-logs` | TUI instance | Yes (close TUI first) |
+| `bun run ... src/index.ts` | Dev server | Yes |
+
+**Related but separate (don't kill):**
+| Process | Location | Description |
+|---------|----------|-------------|
+| Zee Gateway | `~/Repositories/personas/zee/` | Node.js Telegram/messaging gateway |
+
+The Zee Gateway runs from a separate repo (`personas/zee`) and does NOT use the agent-core binary.
+
+### Gateways
+Zee has a gateway for messaging platforms (Telegram, etc.):
+- **Location**: `~/Repositories/personas/zee/`
+- **Start**: `pnpm zee gateway`
+- **Processes**: Multiple Node.js workers (tsx)
+- **Independent**: Does not depend on agent-core binary

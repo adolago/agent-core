@@ -300,6 +300,9 @@ export namespace ProviderTransform {
       return 0.95
     }
     if (id.includes("gemini")) return 0.95
+    // Claude thinking models (extended thinking) require topP >= 0.95
+    // This applies to any provider serving Claude thinking models (Antigravity, Vertex, etc.)
+    if (id.includes("claude") && id.includes("thinking")) return 0.95
     return undefined
   }
 
