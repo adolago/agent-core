@@ -141,10 +141,15 @@ export const DaemonCommand = cmd({
         type: "boolean",
         default: true,
       })
-      .option("telegram-token", {
-        describe: "Telegram bot token for remote access gateway",
+      .option("telegram-stanley-token", {
+        describe: "Telegram bot token for Stanley (investing)",
         type: "string",
-        default: process.env.TELEGRAM_BOT_TOKEN,
+        default: process.env.TELEGRAM_STANLEY_TOKEN,
+      })
+      .option("telegram-johny-token", {
+        describe: "Telegram bot token for Johny (learning)",
+        type: "string",
+        default: process.env.TELEGRAM_JOHNY_TOKEN,
       })
       .option("telegram-users", {
         describe: "Comma-separated list of allowed Telegram user IDs",
@@ -236,29 +241,51 @@ export const DaemonCommand = cmd({
       console.error(`Warning: Persistence initialization failed: ${error instanceof Error ? error.message : error}`)
     }
 
-    // Start Telegram gateway if configured
-    const telegramToken = args["telegram-token"] as string | undefined
-    let telegramGateway: TelegramGateway.Gateway | null = null
+    // Start Telegram gateways (multi-bot: Stanley and Johny)
+    const stanleyToken = args["telegram-stanley-token"] as string | undefined
+    const johnyToken = args["telegram-johny-token"] as string | undefined
+    const telegramBots: Array<{ persona: "stanley" | "johny"; gateway: TelegramGateway.Gateway }> = []
 
-    if (telegramToken) {
-      const allowedUsers = (args["telegram-users"] as string | undefined)
-        ?.split(",")
-        .map((id) => parseInt(id.trim(), 10))
-        .filter((id) => !isNaN(id))
+    const allowedUsers = (args["telegram-users"] as string | undefined)
+      ?.split(",")
+      .map((id) => parseInt(id.trim(), 10))
+      .filter((id) => !isNaN(id))
 
+    if (stanleyToken) {
       try {
-        telegramGateway = await TelegramGateway.start({
-          botToken: telegramToken,
+        const gateway = await TelegramGateway.start({
+          botToken: stanleyToken,
+          persona: "stanley",
           allowedUsers,
           directory,
           apiPort: state.port,
         })
-        console.log(`Telegram:  Gateway started (${allowedUsers?.length || "all"} users allowed)`)
+        telegramBots.push({ persona: "stanley", gateway })
+        console.log(`Telegram:  Stanley bot started (@triad_stanley_bot)`)
       } catch (error) {
-        log.error("Failed to start Telegram gateway", {
+        log.error("Failed to start Stanley Telegram bot", {
           error: error instanceof Error ? error.message : String(error),
         })
-        console.error(`Warning: Telegram gateway failed to start: ${error instanceof Error ? error.message : error}`)
+        console.error(`Warning: Stanley Telegram bot failed to start: ${error instanceof Error ? error.message : error}`)
+      }
+    }
+
+    if (johnyToken) {
+      try {
+        const gateway = await TelegramGateway.start({
+          botToken: johnyToken,
+          persona: "johny",
+          allowedUsers,
+          directory,
+          apiPort: state.port,
+        })
+        telegramBots.push({ persona: "johny", gateway })
+        console.log(`Telegram:  Johny bot started (@triad_johny_bot)`)
+      } catch (error) {
+        log.error("Failed to start Johny Telegram bot", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        console.error(`Warning: Johny Telegram bot failed to start: ${error instanceof Error ? error.message : error}`)
       }
     }
 
@@ -323,9 +350,9 @@ export const DaemonCommand = cmd({
         error: error?.message,
       })
 
-      // Stop Telegram gateway
-      if (telegramGateway) {
-        await TelegramGateway.stop()
+      // Stop Telegram gateways
+      if (telegramBots.length > 0) {
+        await TelegramGateway.stopAll()
       }
 
       // Stop WhatsApp gateway
@@ -365,7 +392,9 @@ export const DaemonCommand = cmd({
       log.error("unhandled rejection", { reason: String(reason) })
     })
 
-    const telegramStatus = telegramGateway ? "Active" : telegramToken ? "Failed" : "Not configured"
+    const telegramBotsStatus = telegramBots.length > 0
+      ? telegramBots.map(b => `${b.persona}`).join(", ")
+      : (stanleyToken || johnyToken) ? "Failed" : "Not configured"
     const whatsappStatus = whatsappGateway ? "Active" : args.whatsapp ? "Failed" : "Not configured"
     const persistenceStatus = persistenceEnabled ? "Active (checkpoints + WAL)" : "Disabled"
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
@@ -379,10 +408,12 @@ Hostname:  ${server.hostname}
 Directory: ${directory}
 URL:       http://${server.hostname}:${server.port}
 
+Gateways:
+  WhatsApp:  ${whatsappStatus} (Zee)
+  Telegram:  ${telegramBotsStatus === "Not configured" ? telegramBotsStatus : `Active (${telegramBotsStatus})`}
+
 Services:
   Persistence: ${persistenceStatus}
-  Telegram:    ${telegramStatus}
-  WhatsApp:    ${whatsappStatus}
   WezTerm:     ${weztermStatus}
 
 API Endpoints:
@@ -415,7 +446,7 @@ Press Ctrl+C to stop the daemon.
       port: state.port,
       services: {
         persistence: persistenceEnabled,
-        telegram: !!telegramGateway,
+        telegram: telegramBots.length > 0,
         whatsapp: !!whatsappGateway,
         discord: false, // Not implemented yet
       },

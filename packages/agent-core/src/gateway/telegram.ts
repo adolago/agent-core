@@ -53,6 +53,7 @@ export namespace TelegramGateway {
 
   export interface GatewayConfig {
     botToken: string
+    persona: "stanley" | "johny" // Each bot is tied to a specific persona
     allowedUsers?: number[] // Telegram user IDs allowed to interact
     allowedChats?: number[] // Chat IDs (groups) allowed
     pollingInterval?: number // ms between poll requests
@@ -65,37 +66,12 @@ export namespace TelegramGateway {
     sessionId: string | null
     chatId: number
     lastActivity: number
-    persona: "zee" | "stanley" | "johny"
     pendingResponse: boolean
   }
 
-  // Intent patterns for persona routing
-  const STANLEY_PATTERNS = [
-    /portfolio/i,
-    /stock/i,
-    /market/i,
-    /invest/i,
-    /trading/i,
-    /finance/i,
-    /ticker/i,
-    /nvda|aapl|tsla|msft|goog/i,
-    /buy|sell|hold/i,
-    /earnings/i,
-    /dividend/i,
-  ]
-
-  const JOHNY_PATTERNS = [
-    /study/i,
-    /learn/i,
-    /quiz/i,
-    /teach/i,
-    /explain/i,
-    /knowledge/i,
-    /practice/i,
-    /spaced repetition/i,
-    /flashcard/i,
-    /math|calculus|algebra|physics|chemistry/i,
-  ]
+  // Multi-bot support: each bot instance is tied to a specific persona
+  // Stanley bot: @triad_stanley_bot - investing/trading
+  // Johny bot: @triad_johny_bot - learning/study
 
   export class Gateway {
     private config: GatewayConfig
@@ -273,11 +249,11 @@ export namespace TelegramGateway {
       // Send typing indicator
       await this.sendTyping(chatId)
 
-      // Determine which persona should handle this
-      const persona = this.detectPersona(text)
+      // Use the bot's configured persona (no detection needed)
+      const persona = this.config.persona
 
       // Get or create context for this chat
-      const context = await this.getOrCreateContext(chatId, persona)
+      const context = await this.getOrCreateContext(chatId)
 
       try {
         // Send message via internal API
@@ -304,19 +280,14 @@ export namespace TelegramGateway {
         case "/start":
           await this.sendMessage(
             chatId,
-            `Welcome to Agent-Core!
+            `Welcome! I'm ${this.getPersonaName()}, your ${this.getPersonaDescription()}.
 
-I'm your gateway to the Personas:
-• *Zee* - Personal assistant (default)
-• *Stanley* - Finance & investing
-• *Johny* - Learning & study
-
-Just send me a message and I'll route it to the right persona.
+${this.getPersonaWelcome()}
 
 Commands:
 /status - Check system status
 /new - Start a new conversation
-/help - Show this help`,
+/help - Show available commands`,
             messageId
           )
           break
@@ -328,32 +299,48 @@ Commands:
 
         case "/new":
           this.chatContexts.delete(chatId)
-          await this.sendMessage(chatId, "Started a new conversation. How can I help?", messageId)
-          break
-
-        case "/zee":
-        case "/stanley":
-        case "/johny":
-          const persona = cmd.substring(1) as "zee" | "stanley" | "johny"
-          const context = await this.getOrCreateContext(chatId, persona)
-          context.persona = persona
-          context.sessionId = null // Force new session
-          await this.sendMessage(chatId, `Switched to ${persona.charAt(0).toUpperCase() + persona.slice(1)}. How can I help?`, messageId)
+          await this.sendMessage(chatId, `Started a new conversation with ${this.getPersonaName()}. How can I help?`, messageId)
           break
 
         case "/help":
         default:
           await this.sendMessage(
             chatId,
-            `Available commands:
+            `${this.getPersonaName()} - ${this.getPersonaDescription()}
+
+Available commands:
 /start - Welcome message
 /status - Check system status
 /new - Start new conversation
-/zee - Switch to Zee
-/stanley - Switch to Stanley
-/johny - Switch to Johny`,
+/help - Show this help`,
             messageId
           )
+      }
+    }
+
+    private getPersonaName(): string {
+      return this.config.persona.charAt(0).toUpperCase() + this.config.persona.slice(1)
+    }
+
+    private getPersonaDescription(): string {
+      switch (this.config.persona) {
+        case "stanley":
+          return "Investing & Trading Assistant"
+        case "johny":
+          return "Learning & Study Assistant"
+        default:
+          return "AI Assistant"
+      }
+    }
+
+    private getPersonaWelcome(): string {
+      switch (this.config.persona) {
+        case "stanley":
+          return "I can help with market analysis, portfolio management, stock research, and trading strategies. Ask me about stocks, crypto, earnings, SEC filings, or backtesting strategies."
+        case "johny":
+          return "I can help you learn efficiently with spaced repetition, knowledge graphs, and deliberate practice. Ask me about any topic you want to master."
+        default:
+          return "How can I help you today?"
       }
     }
 
@@ -376,43 +363,11 @@ Commands:
       return false
     }
 
-    private detectPersona(text: string): "zee" | "stanley" | "johny" {
-      // Check for explicit persona mentions
-      const lowerText = text.toLowerCase()
-
-      if (lowerText.includes("@stanley") || lowerText.startsWith("stanley,") || lowerText.startsWith("stanley:")) {
-        return "stanley"
-      }
-      if (lowerText.includes("@johny") || lowerText.startsWith("johny,") || lowerText.startsWith("johny:")) {
-        return "johny"
-      }
-      if (lowerText.includes("@zee") || lowerText.startsWith("zee,") || lowerText.startsWith("zee:")) {
-        return "zee"
-      }
-
-      // Check intent patterns for Stanley
-      for (const pattern of STANLEY_PATTERNS) {
-        if (pattern.test(text)) {
-          return "stanley"
-        }
-      }
-
-      // Check intent patterns for Johny
-      for (const pattern of JOHNY_PATTERNS) {
-        if (pattern.test(text)) {
-          return "johny"
-        }
-      }
-
-      // Default to Zee for general requests
-      return "zee"
-    }
-
-    private async getOrCreateContext(chatId: number, persona: "zee" | "stanley" | "johny"): Promise<ChatContext> {
+    private async getOrCreateContext(chatId: number): Promise<ChatContext> {
       let context = this.chatContexts.get(chatId)
+      const persona = this.config.persona
 
-      // If persona changed, create new context
-      if (!context || context.persona !== persona) {
+      if (!context) {
         // Try to restore last active session for this persona
         let restoredSessionId: string | null = null
         let hasTodos = false
@@ -455,7 +410,6 @@ Commands:
           sessionId: restoredSessionId,
           chatId,
           lastActivity: Date.now(),
-          persona,
           pendingResponse: false,
         }
         this.chatContexts.set(chatId, context)
@@ -655,26 +609,46 @@ Commands:
     }
   }
 
-  // Singleton instance management
-  let instance: Gateway | null = null
+  // Multi-instance management - one gateway per persona
+  const instances = new Map<string, Gateway>()
 
-  export function getInstance(): Gateway | null {
-    return instance
+  export function getInstance(persona: "stanley" | "johny"): Gateway | null {
+    return instances.get(persona) || null
+  }
+
+  export function getAllInstances(): Map<string, Gateway> {
+    return instances
   }
 
   export async function start(config: GatewayConfig): Promise<Gateway> {
-    if (instance) {
-      await instance.stop()
+    const existing = instances.get(config.persona)
+    if (existing) {
+      await existing.stop()
     }
-    instance = new Gateway(config)
-    await instance.start()
-    return instance
+    const gateway = new Gateway(config)
+    await gateway.start()
+    instances.set(config.persona, gateway)
+    log.info("Started Telegram bot", { persona: config.persona })
+    return gateway
   }
 
-  export async function stop(): Promise<void> {
-    if (instance) {
-      await instance.stop()
-      instance = null
+  export async function stop(persona?: "stanley" | "johny"): Promise<void> {
+    if (persona) {
+      const instance = instances.get(persona)
+      if (instance) {
+        await instance.stop()
+        instances.delete(persona)
+      }
+    } else {
+      // Stop all instances
+      for (const [p, instance] of instances) {
+        await instance.stop()
+        instances.delete(p)
+      }
     }
+  }
+
+  export async function stopAll(): Promise<void> {
+    return stop()
   }
 }
