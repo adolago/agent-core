@@ -29,6 +29,7 @@ import { DialogAlert } from "./ui/dialog-alert"
 import { ToastProvider, useToast } from "./ui/toast"
 import { ExitProvider, useExit } from "./context/exit"
 import { Session as SessionApi } from "@/session"
+import { Todo } from "@/session/todo"
 import { TuiEvent } from "./event"
 import { KVProvider, useKV } from "./context/kv"
 import { Provider } from "@/provider/provider"
@@ -290,26 +291,28 @@ function App() {
     if (checkedIncompleteTodos || sync.status !== "complete") return
     checkedIncompleteTodos = true
 
-    // Count sessions with incomplete todos
-    let sessionsWithTodos = 0
-    let totalIncompleteTodos = 0
+    // Load todos directly from storage for all sessions
+    ;(async () => {
+      let sessionsWithTodos = 0
+      let totalIncompleteTodos = 0
 
-    for (const session of sync.data.session) {
-      const todos = sync.data.todo[session.id] ?? []
-      const incomplete = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
-      if (incomplete.length > 0) {
-        sessionsWithTodos++
-        totalIncompleteTodos += incomplete.length
+      for (const session of sync.data.session) {
+        const todos = await Todo.get(session.id)
+        const incomplete = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+        if (incomplete.length > 0) {
+          sessionsWithTodos++
+          totalIncompleteTodos += incomplete.length
+        }
       }
-    }
 
-    if (sessionsWithTodos > 0) {
-      toast.show({
-        variant: "info",
-        message: `◐ ${totalIncompleteTodos} pending todo${totalIncompleteTodos > 1 ? "s" : ""} in ${sessionsWithTodos} session${sessionsWithTodos > 1 ? "s" : ""}`,
-        duration: 5000,
-      })
-    }
+      if (sessionsWithTodos > 0) {
+        toast.show({
+          variant: "info",
+          message: `◐ ${totalIncompleteTodos} pending todo${totalIncompleteTodos > 1 ? "s" : ""} in ${sessionsWithTodos} session${sessionsWithTodos > 1 ? "s" : ""}`,
+          duration: 5000,
+        })
+      }
+    })()
   })
 
   command.register(() => [
