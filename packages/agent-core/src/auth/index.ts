@@ -12,6 +12,7 @@ export namespace Auth {
       expires: z.number(),
       enterpriseUrl: z.string().optional(),
     })
+    .passthrough() // Allow extra fields like email, projectId for antigravity
     .meta({ ref: "OAuth" })
 
   export const Api = z
