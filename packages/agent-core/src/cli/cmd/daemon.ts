@@ -9,6 +9,7 @@ import { Persistence } from "../../session/persistence"
 import { Bus } from "../../bus"
 import { Instance } from "../../project/instance"
 import { TelegramGateway } from "../../gateway/telegram"
+import { WhatsAppGateway } from "../../gateway/whatsapp"
 import { LifecycleHooks } from "../../hooks/lifecycle"
 import { WeztermOrchestration } from "../../orchestration/wezterm"
 import fs from "fs/promises"
@@ -150,6 +151,16 @@ export const DaemonCommand = cmd({
         type: "string",
         default: process.env.TELEGRAM_ALLOWED_USERS,
       })
+      .option("whatsapp", {
+        describe: "Enable WhatsApp gateway (requires scanning QR code on first run)",
+        type: "boolean",
+        default: false,
+      })
+      .option("whatsapp-numbers", {
+        describe: "Comma-separated list of allowed phone numbers (with country code, no +)",
+        type: "string",
+        default: process.env.WHATSAPP_ALLOWED_NUMBERS,
+      })
       .option("wezterm", {
         describe: "Enable WezTerm visual orchestration when display available",
         type: "boolean",
@@ -251,6 +262,30 @@ export const DaemonCommand = cmd({
       }
     }
 
+    // Start WhatsApp gateway if enabled
+    let whatsappGateway: WhatsAppGateway.Gateway | null = null
+
+    if (args.whatsapp) {
+      const allowedNumbers = (args["whatsapp-numbers"] as string | undefined)
+        ?.split(",")
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0)
+
+      try {
+        whatsappGateway = await WhatsAppGateway.start({
+          allowedNumbers,
+          directory,
+          apiPort: state.port,
+        })
+        console.log(`WhatsApp:  Gateway started (${allowedNumbers?.length || "all"} numbers allowed)`)
+      } catch (error) {
+        log.error("Failed to start WhatsApp gateway", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        console.error(`Warning: WhatsApp gateway failed to start: ${error instanceof Error ? error.message : error}`)
+      }
+    }
+
     // Initialize WezTerm orchestration if enabled
     let weztermEnabled = false
     if (args.wezterm) {
@@ -293,6 +328,11 @@ export const DaemonCommand = cmd({
         await TelegramGateway.stop()
       }
 
+      // Stop WhatsApp gateway
+      if (whatsappGateway) {
+        await WhatsAppGateway.stop()
+      }
+
       // Shutdown WezTerm orchestration
       if (weztermEnabled) {
         await WeztermOrchestration.shutdown()
@@ -326,6 +366,7 @@ export const DaemonCommand = cmd({
     })
 
     const telegramStatus = telegramGateway ? "Active" : telegramToken ? "Failed" : "Not configured"
+    const whatsappStatus = whatsappGateway ? "Active" : args.whatsapp ? "Failed" : "Not configured"
     const persistenceStatus = persistenceEnabled ? "Active (checkpoints + WAL)" : "Disabled"
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
 
@@ -341,6 +382,7 @@ URL:       http://${server.hostname}:${server.port}
 Services:
   Persistence: ${persistenceStatus}
   Telegram:    ${telegramStatus}
+  WhatsApp:    ${whatsappStatus}
   WezTerm:     ${weztermStatus}
 
 API Endpoints:
@@ -374,6 +416,7 @@ Press Ctrl+C to stop the daemon.
       services: {
         persistence: persistenceEnabled,
         telegram: !!telegramGateway,
+        whatsapp: !!whatsappGateway,
         discord: false, // Not implemented yet
       },
       sessionsWithIncompleteTodos,

@@ -39,6 +39,7 @@ export namespace LifecycleHooks {
         services: z.object({
           persistence: z.boolean(),
           telegram: z.boolean(),
+          whatsapp: z.boolean(),
           discord: z.boolean(),
         }),
         sessionsWithIncompleteTodos: z.number(),
@@ -67,7 +68,7 @@ export namespace LifecycleHooks {
       z.object({
         sessionId: z.string(),
         persona: z.enum(["zee", "stanley", "johny"]),
-        source: z.enum(["daemon", "telegram", "tui", "cli"]),
+        source: z.enum(["daemon", "telegram", "whatsapp", "tui", "cli"]),
         chatId: z.number().optional(),
         directory: z.string(),
       })
@@ -78,7 +79,7 @@ export namespace LifecycleHooks {
       z.object({
         sessionId: z.string(),
         persona: z.enum(["zee", "stanley", "johny"]),
-        source: z.enum(["daemon", "telegram", "tui", "cli"]),
+        source: z.enum(["daemon", "telegram", "whatsapp", "tui", "cli"]),
         chatId: z.number().optional(),
         hasTodos: z.boolean(),
         incompleteTodos: z.number(),
