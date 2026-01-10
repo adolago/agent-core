@@ -242,17 +242,25 @@ This system has experimental features enabled:
 
 ## Running Processes & Binary Updates
 
-### Binary Location
-The installed binary is at `~/bin/agent-core`, referenced by `$AGENT_CORE_BIN`.
+### Repository Location
+**Source code:** `~/.local/src/agent-core`
 
-When rebuilding:
+This hidden location prevents accidentally running from the repo directory (which can cause config confusion).
+
+### Binary Location
+**Installed binary:** `~/bin/agent-core` (also `$AGENT_CORE_BIN`)
+
+**Run from anywhere:** The binary can be launched from any directory. Just `cd` to your project folder and run `agent-core`.
+
+### Rebuilding
 
 ```bash
-# Build
-cd packages/agent-core && bun run build
+# Build from repo
+cd ~/.local/src/agent-core/packages/agent-core && bun run build
 
-# Copy to $AGENT_CORE_BIN (MUST close running TUI first)
-cp packages/agent-core/dist/agent-core-linux-x64/bin/agent-core $AGENT_CORE_BIN
+# Kill running instances and install (MUST close TUI first)
+pkill -f agent-core; sleep 1
+cp ~/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
 ```
 
 ### Common Processes
