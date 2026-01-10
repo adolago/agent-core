@@ -191,7 +191,7 @@ export class WeztermPaneBridge implements WeztermBridge {
     this.statusPaneId = stdout.trim();
 
     // Set title
-    await this.setPaneTitle(this.statusPaneId, "📊 Personas Status");
+    await this.setPaneTitle(this.statusPaneId, "◈ Personas Status");
 
     // Initialize status display
     await this.sendCommand(this.statusPaneId, "clear");
@@ -207,7 +207,7 @@ export class WeztermPaneBridge implements WeztermBridge {
     const lines: string[] = [];
     lines.push("\\033[2J\\033[H"); // Clear screen
     lines.push("╔══════════════════════════════════════════╗");
-    lines.push("║           🔺 PERSONAS STATUS 🔺            ║");
+    lines.push("║           ◆ PERSONAS STATUS ◆            ║");
     lines.push("╠══════════════════════════════════════════╣");
 
     // Workers by persona
@@ -236,7 +236,7 @@ export class WeztermPaneBridge implements WeztermBridge {
     const runningTasks = state.tasks.filter((t) => t.status === "running").length;
     const completedTasks = state.stats.totalTasksCompleted;
 
-    lines.push(`║ Tasks: ⏳${pendingTasks} 🔄${runningTasks} ✅${completedTasks}`.padEnd(43) + "║");
+    lines.push(`║ Tasks: ◐${pendingTasks} ⟳${runningTasks} ✔${completedTasks}`.padEnd(43) + "║");
 
     // Conversation
     if (state.conversation) {
@@ -266,10 +266,10 @@ export class WeztermPaneBridge implements WeztermBridge {
     const hasError = workers.some((w) => w.status === "error");
     const hasIdle = workers.some((w) => w.status === "idle");
 
-    if (hasError) return "🔴";
-    if (hasWorking) return "🟢";
-    if (hasIdle) return "🟡";
-    return "⚪";
+    if (hasError) return "●"; // red context
+    if (hasWorking) return "●"; // green context
+    if (hasIdle) return "●"; // yellow context
+    return "○";
   }
 
   private colorize(text: string, hex: string): string {

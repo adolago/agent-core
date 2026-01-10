@@ -397,7 +397,7 @@ Required scopes:
           },
           output: `${periodLabel} - ${events.length} event(s)
 
-${eventsList}${showInCanvas ? "\n\n📅 Calendar displayed in canvas sidecar." : ""}`,
+${eventsList}${showInCanvas ? "\n\n▦ Calendar displayed in canvas sidecar." : ""}`,
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

@@ -83,8 +83,8 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
         const keybind = keybinds()[key]
         if (!keybind) return false
         const parsed: Keybind.Info = result.parse(evt)
-        for (const key of keybind) {
-          if (Keybind.match(key, parsed)) {
+        for (const kb of keybind) {
+          if (Keybind.match(kb, parsed)) {
             return true
           }
         }

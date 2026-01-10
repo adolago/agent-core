@@ -414,7 +414,7 @@ export class AgentLSPServer {
       if (this.workers.length > 0) {
         parts.push("### Active Workers");
         for (const w of this.workers) {
-          const icon = w.status === "working" ? "🔄" : w.status === "error" ? "❌" : w.status === "idle" ? "💤" : "⏳";
+          const icon = w.status === "working" ? "⟳" : w.status === "error" ? "✗" : w.status === "idle" ? "○" : "◐";
           parts.push(`- ${icon} **${w.persona}** (${w.role}): ${w.status}${w.currentTask ? ` - ${w.currentTask}` : ""}`);
         }
         parts.push("");
@@ -424,7 +424,7 @@ export class AgentLSPServer {
       if (activeTasks.length > 0) {
         parts.push("### Active Tasks");
         for (const t of activeTasks.slice(0, 5)) {
-          const icon = t.status === "running" ? "▶️" : t.status === "pending" ? "⏸️" : "❓";
+          const icon = t.status === "running" ? "⟳" : t.status === "pending" ? "◐" : "◇";
           parts.push(`- ${icon} [${t.persona}] ${t.description.slice(0, 40)}`);
         }
         parts.push("");
@@ -467,7 +467,7 @@ export class AgentLSPServer {
     // @ mentions for personas
     if (prefix.endsWith("@") || /@\w*$/.test(prefix)) {
       for (const persona of ["zee", "stanley", "johny"] as const) {
-        const icons: Record<string, string> = { zee: "🧠", stanley: "📈", johny: "📚" };
+        const icons: Record<string, string> = { zee: "★", stanley: "♦", johny: "◎" };
         const descriptions: Record<string, string> = {
           zee: "Personal assistant - memory, messaging, calendar",
           stanley: "Investing assistant - market analysis, portfolio",
