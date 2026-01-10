@@ -139,7 +139,7 @@ Added `daemon` section to config schema:
 ---
 
 ### Phase 2: Remote Communication Gateway
-**Status: Telegram Complete**
+**Status: Telegram + WhatsApp Complete**
 **Prerequisites: Phase 1 complete**
 
 Zee becomes the universal gateway for all communication.
@@ -181,11 +181,30 @@ opencode daemon --port 4567
 - Johny: study, learn, quiz, teach, explain, knowledge, practice, math/calculus
 - Zee: Everything else (default)
 
-#### 2.2 Future Platforms
-- [ ] WhatsApp integration (requires Business API)
+#### 2.2 WhatsApp Gateway (DONE)
+
+Implementation at `packages/agent-core/src/gateway/whatsapp.ts`:
+
+- [x] WhatsApp Web connection via whatsapp-web.js
+- [x] QR code authentication (scan on first run)
+- [x] Session persistence (survives restarts)
+- [x] Intent-based persona routing (same patterns as Telegram)
+- [x] Phone number allowlist
+- [x] Bot commands (/start, /status, /new, /zee, /stanley, /johny)
+
+**Usage:**
+```bash
+# Start daemon with WhatsApp gateway
+opencode daemon --whatsapp --port 4567
+
+# Optionally restrict to specific phone numbers (with country code, no +)
+WHATSAPP_ALLOWED_NUMBERS=1234567890,0987654321 opencode daemon --whatsapp
+```
+
+#### 2.3 Future Platforms
 - [ ] Discord bot as alternative
 
-#### 2.3 Security (PARTIAL)
+#### 2.4 Security (PARTIAL)
 - [x] User ID allowlist
 - [x] Chat ID allowlist
 - [ ] Rate limiting (future)
@@ -363,7 +382,7 @@ await WeztermOrchestration.closeSessionPane(sessionId)
 - Phase 1: Daemon CLI commands (daemon, daemon-status, daemon-stop)
 - Phase 1: Configuration schema for daemon settings
 - Phase 1: Session restoration with todo-continuation on daemon startup
-- Phase 2: Telegram gateway with persona routing
+- Phase 2: Telegram + WhatsApp gateways with persona routing
 - Phase 2: Intent-based persona detection (Stanley/Johny/Zee)
 - Phase 2: User authorization allowlists
 - Phase 3: Session persistence with checkpoints and WAL
