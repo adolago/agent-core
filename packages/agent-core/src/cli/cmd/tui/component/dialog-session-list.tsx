@@ -2,7 +2,7 @@ import { useDialog } from "@tui/ui/dialog"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
-import { createMemo, createSignal, createResource, onMount, Show } from "solid-js"
+import { createMemo, createSignal, createResource, onMount, Show, type JSX } from "solid-js"
 import { Locale } from "@/util/locale"
 import { Keybind } from "@/util/keybind"
 import { useTheme } from "../context/theme"
@@ -10,6 +10,7 @@ import { useSDK } from "../context/sdk"
 import { DialogSessionRename } from "./dialog-session-rename"
 import { useKV } from "../context/kv"
 import { createDebouncedSignal } from "../util/signal"
+import { useToast } from "../ui/toast"
 import "opentui-spinner/solid"
 
 export function DialogSessionList() {
@@ -19,6 +20,7 @@ export function DialogSessionList() {
   const route = useRoute()
   const sdk = useSDK()
   const kv = useKV()
+  const toast = useToast()
 
   const [toDelete, setToDelete] = createSignal<string>()
   const [search, setSearch] = createDebouncedSignal("", 150)
@@ -51,17 +53,27 @@ export function DialogSessionList() {
         const isDeleting = toDelete() === x.id
         const status = sync.data.session_status?.[x.id]
         const isWorking = status?.type === "busy"
+        // Check for incomplete todos
+        const todos = sync.data.todo[x.id] ?? []
+        const incompleteTodoCount = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled").length
+        // Build gutter indicator
+        let gutter: JSX.Element | undefined
+        if (isWorking) {
+          gutter = (
+            <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
+              <spinner frames={spinnerFrames} interval={80} color={theme.primary} />
+            </Show>
+          )
+        } else if (incompleteTodoCount > 0) {
+          gutter = <text fg={theme.warning}>◐{incompleteTodoCount}</text>
+        }
         return {
           title: isDeleting ? `Press ${deleteKeybind} again to confirm` : x.title,
           bg: isDeleting ? theme.error : undefined,
           value: x.id,
           category,
           footer: Locale.time(x.time.updated),
-          gutter: isWorking ? (
-            <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-              <spinner frames={spinnerFrames} interval={80} color={theme.primary} />
-            </Show>
-          ) : undefined,
+          gutter,
         }
       })
   })
@@ -81,6 +93,16 @@ export function DialogSessionList() {
         setToDelete(undefined)
       }}
       onSelect={(option) => {
+        // Check for incomplete todos in the target session
+        const todos = sync.data.todo[option.value] ?? []
+        const incompleteTodos = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+        if (incompleteTodos.length > 0) {
+          toast.show({
+            variant: "warning",
+            message: `◐ ${incompleteTodos.length} incomplete todo${incompleteTodos.length > 1 ? "s" : ""} in this session`,
+            duration: 4000,
+          })
+        }
         route.navigate({
           type: "session",
           sessionID: option.value,
