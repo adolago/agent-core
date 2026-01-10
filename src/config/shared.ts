@@ -158,6 +158,29 @@ export type QueueDropPolicy = "oldest" | "newest" | "none";
 export type BindMode = "auto" | "lan" | "tailnet" | "loopback";
 
 // =============================================================================
+// Session Entry Primitives (shared between agent-core and zee)
+// =============================================================================
+
+/** Chat type for sessions */
+export type SessionChatType = "direct" | "group" | "room";
+
+/** Provider identifiers for messaging platforms */
+export type MessagingProvider =
+  | "whatsapp"
+  | "telegram"
+  | "discord"
+  | "slack"
+  | "signal"
+  | "imessage"
+  | "webchat";
+
+/** Group activation mode */
+export type GroupActivation = "mention" | "always";
+
+/** Send policy for sessions */
+export type SendPolicy = "allow" | "deny";
+
+// =============================================================================
 // Re-exports for convenience
 // =============================================================================
 
@@ -167,4 +190,6 @@ export type {
   GroupPolicy as GroupPolicyType,
   LogLevel as LogLevelType,
   ThinkingLevel as ThinkingLevelType,
+  SessionChatType as SessionChatTypeType,
+  MessagingProvider as MessagingProviderType,
 };
