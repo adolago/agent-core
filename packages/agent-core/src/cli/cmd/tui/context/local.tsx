@@ -146,6 +146,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         Bun.write(
           file,
           JSON.stringify({
+            model: modelStore.model,
             recent: modelStore.recent,
             variant: modelStore.variant,
           }),
@@ -155,6 +156,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       file
         .json()
         .then((x) => {
+          if (typeof x.model === "object" && x.model !== null) setModelStore("model", x.model)
           if (Array.isArray(x.recent)) setModelStore("recent", x.recent)
           if (typeof x.variant === "object" && x.variant !== null) setModelStore("variant", x.variant)
         })
@@ -261,6 +263,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           const val = recent[next]
           if (!val) return
           setModelStore("model", agent.current().name, { ...val })
+          save()
         },
         set(model: { providerID: string; modelID: string }, options?: { recent?: boolean }) {
           batch(() => {
@@ -280,8 +283,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
                 "recent",
                 uniq.map((x) => ({ providerID: x.providerID, modelID: x.modelID })),
               )
-              save()
             }
+            save()
           })
         },
         variant: {

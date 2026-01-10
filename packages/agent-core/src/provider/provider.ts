@@ -504,6 +504,42 @@ export namespace Provider {
         },
       }
     },
+    "google-antigravity": async () => {
+      // Check for auth in standard location (stored by antigravity plugin under "google")
+      const auth = await Auth.get("google")
+      if (!auth || auth.type !== "oauth") return { autoload: false }
+
+      // Check if this is antigravity auth (has projectId field)
+      const projectId = (auth as any).projectId
+      if (!projectId) return { autoload: false }
+
+      let accessToken = auth.access
+
+      // Check if token needs refresh (5 min buffer)
+      if (auth.expires < Date.now() + 300000) {
+        const { refreshAntigravityToken } = await import("./antigravity")
+        const refreshed = await refreshAntigravityToken(auth.refresh, projectId)
+        if (refreshed) {
+          await Auth.set("google", {
+            ...auth,
+            access: refreshed.access,
+            expires: refreshed.expires,
+          })
+          accessToken = refreshed.access
+        }
+      }
+
+      return {
+        autoload: true,
+        options: {
+          baseURL: "https://antigravity.opencode.ai/v1",
+          apiKey: accessToken,
+        },
+        async getModel(sdk: any, modelID: string) {
+          return sdk.languageModel(modelID)
+        },
+      }
+    },
   }
 
   export const Model = z
@@ -709,6 +745,22 @@ export namespace Provider {
         models: mapValues(githubCopilot.models, (model) => ({
           ...model,
           providerID: "github-copilot-enterprise",
+        })),
+      }
+    }
+
+    // Add Google Antigravity provider that inherits from Google (free Gemini via OAuth)
+    if (database["google"]) {
+      const google = database["google"]
+      database["google-antigravity"] = {
+        ...google,
+        id: "google-antigravity",
+        name: "Google Antigravity (Free)",
+        env: [], // No env vars - uses OAuth
+        models: mapValues(google.models, (model) => ({
+          ...model,
+          providerID: "google-antigravity",
+          cost: { input: 0, output: 0, cache: { read: 0, write: 0 } }, // Free!
         })),
       }
     }
