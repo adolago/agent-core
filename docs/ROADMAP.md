@@ -19,51 +19,102 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [x] Fix Antigravity model registration (use built-in `antigravity-*` models)
 - [x] Disable redundant Vertex providers
 - [x] Document provider setup (`docs/PROVIDERS.md`)
-- [ ] Auto-refresh OAuth tokens before expiry (not just on-demand)
-- [ ] Add provider health checks in TUI
+- [x] Auto-refresh OAuth tokens before expiry (not just on-demand)
+- [x] Add provider health checks in TUI
 
 ### 1.2 Config Management
 - [x] Symlink global config to project config
-- [ ] Single source of truth for agent definitions (remove duplication)
-- [ ] Config validation on startup
-- [ ] Migration tool for config schema changes
+- [x] Single source of truth for agent definitions (remove duplication)
+  - Agent files (`.agent-core/agent/*.md`) have concise config + identity
+  - Skill files (`.claude/skills/*/SKILL.md`) have detailed capabilities
+  - Agent files reference skills via `skill:` frontmatter field
+- [x] Config validation on startup (already implemented via zod schemas + FormatError)
+- [x] Migration tool for config schema changes (`agent-core debug migrate`)
 
 ---
 
 ## Phase 2: Personas
 
-### 2.1 Zee (Personal Assistant)
-- [ ] Qdrant memory integration
-  - [ ] Store conversation summaries
-  - [ ] Semantic search across memories
-  - [ ] Key facts extraction
-- [ ] Messaging integration
-  - [ ] WhatsApp via whatsapp-web.js
-  - [ ] Telegram gateway
-  - [ ] Discord integration
-- [ ] Calendar integration
-  - [ ] Google Calendar sync
-  - [ ] Smart scheduling
+### 2.1 Zee (Personal Assistant) - COMPLETE
+- [x] Qdrant memory integration
+  - [x] Store conversation summaries (`zee:memory-store` tool wired to Qdrant)
+  - [x] Semantic search across memories (`zee:memory-search` tool wired)
+  - [x] MemoryStore service created (`src/memory/store.ts`)
+  - [x] Local BGE-M3 embeddings (1024d) via vLLM instead of OpenAI
+  - [x] Fixed Qdrant collection selection bug (currentCollection)
+  - [x] Key facts extraction (`src/personas/fact-extractor.ts`)
+    - Heuristic + LLM extraction options
+    - Automatic categorization (personal, preference, decision, technical)
+    - Session lifecycle hook for auto-extraction
+- [x] Messaging integration
+  - [x] WhatsApp via whatsapp-web.js (`src/gateway/whatsapp.ts`)
+  - [x] Telegram gateway (`src/gateway/telegram.ts`)
+  - [x] `zee:messaging` tool wired to daemon endpoints
+  - [x] `zee:whatsapp-react` tool for message reactions
+  - [x] Proactive messaging (send without prior message)
+  - [x] Multi-persona Telegram (Stanley/Johny bots via Zee's account)
+  - [x] Discord integration removed (not needed)
+- [x] Calendar integration
+  - [x] Google Calendar sync (`zee:calendar` tool working)
+  - [x] Smart scheduling
+    - [x] Event creation/update/delete via Google Calendar API
+    - [x] Find free time slots with business hours awareness
+    - [x] Meeting time suggestions with scoring (prefer morning/afternoon)
+    - [x] Natural language quick-add via Google's NLP
+    - [x] Conflict detection
 
-### 2.2 Stanley (Investing)
-- [ ] OpenBB integration for market data
-- [ ] Portfolio tracking
-  - [ ] Position management
-  - [ ] P&L tracking
-  - [ ] Risk metrics (VaR)
-- [ ] SEC filings analysis
-- [ ] NautilusTrader backtesting integration
+### 2.2 Stanley (Investing) - COMPLETE
+- [x] OpenBB integration for market data
+  - [x] CLI bridge created (`stanley_cli.py` → `tools.ts`)
+  - [x] 5 domain tools: market-data, portfolio, sec-filings, research, nautilus
+  - [x] **FIXED**: OpenBB version mismatch → yfinance fallback implemented
+  - [x] `OpenBBAdapter` auto-detects OpenBB issues and uses direct yfinance
+- [x] Portfolio tracking
+  - [x] Position management (`~/.zee/stanley/portfolio.json`)
+  - [x] Holdings status via `portfolio status` command
+  - [x] P&L tracking with live price fallback
+  - [x] Risk metrics (VaR, Sharpe, Sortino)
+- [x] SEC filings analysis
+  - [x] EdgarAdapter created (`stanley/accounting/edgar_adapter.py`)
+  - [x] **FIXED**: pyarrow compatibility → convert to list before slicing
+  - [x] 10-K, 10-Q, 8-K, 13F filings working
+- [x] NautilusTrader backtesting integration
+  - [x] Strategy-info command works
+  - [x] Backtest command works with yfinance data
+  - [x] Built-in strategies: momentum (EMA cross), mean-reversion (SMA threshold)
+  - [x] **FIXED**: Indicator import path for nautilus_trader 1.200+
 
-### 2.3 Johny (Learning)
-- [ ] Knowledge graph implementation
-  - [ ] Topic DAG with prerequisites
-  - [ ] Mastery level tracking
-- [ ] Spaced repetition (MathAcademy-inspired)
-  - [ ] Ebbinghaus decay modeling
-  - [ ] FIRe (Fractional Implicit Repetition)
-- [ ] Study session management
-  - [ ] Deliberate practice
-  - [ ] Interleaving
+**Files modified in Stanley Python repo:**
+- `stanley/accounting/edgar_adapter.py` - pyarrow compatibility fix
+- `stanley/data/providers/openbb_provider.py` - yfinance fallback
+- `stanley/integrations/nautilus/indicators/*.py` - import fix
+- `requirements-lock.txt` - created with pinned versions
+
+### 2.3 Johny (Learning) - COMPLETE
+- [x] Knowledge graph implementation
+  - [x] Topic DAG with prerequisites (`johny/knowledge/graph.py`)
+  - [x] Learning path generation (topological sort)
+  - [x] Mastery level tracking (6 levels: Unknown → Fluent)
+- [x] Spaced repetition (MathAcademy-inspired)
+  - [x] Ebbinghaus decay modeling (R = e^(-t/S))
+  - [x] FIRe (Fractional Implicit Repetition) for prerequisite review credit
+  - [x] Priority-based review queue
+- [x] Study session management
+  - [x] Session lifecycle (start, pause, resume, end)
+  - [x] Time tracking with pause support
+- [x] CLI bridge (`scripts/johny_cli.py`)
+  - [x] JSON stdio output for agent-core integration
+  - [x] 5 domain tools: study, knowledge, mastery, review, practice
+
+**Files created in Johny Python repo:**
+- `johny/knowledge/` - DAG, topics, learning paths
+- `johny/mastery/` - levels, tracker, retention calculation
+- `johny/review/` - scheduler, Ebbinghaus curves
+- `johny/practice/` - session management
+- `scripts/johny_cli.py` - CLI bridge
+
+**Files created in agent-core:**
+- `src/domain/johny/tools.ts` - TypeScript domain tools
 
 ---
 
