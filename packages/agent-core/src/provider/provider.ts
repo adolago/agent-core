@@ -697,6 +697,9 @@ export namespace Provider {
 
     log.info("init")
 
+    // Proactively refresh OAuth tokens that are expiring soon
+    await Auth.refreshAllExpiring()
+
     const configProviders = Object.entries(config.provider ?? {})
 
     // Add GitHub Copilot Enterprise provider that inherits from GitHub Copilot

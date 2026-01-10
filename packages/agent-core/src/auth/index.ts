@@ -2,8 +2,25 @@ import path from "path"
 import { Global } from "../global"
 import fs from "fs/promises"
 import z from "zod"
+import { Log } from "../util/log"
 
 export const OAUTH_DUMMY_KEY = "opencode-oauth-dummy-key"
+
+// Buffer time before expiry to trigger refresh (10 minutes)
+const REFRESH_BUFFER_MS = 10 * 60 * 1000
+
+// OAuth refresh configurations for known providers
+// Note: google/antigravity uses a custom flow handled by the plugin, not standard OAuth
+const OAUTH_REFRESH_CONFIG: Record<string, { url: string; clientId: string }> = {
+  anthropic: {
+    url: "https://console.anthropic.com/v1/oauth/token",
+    clientId: "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+  },
+  openai: {
+    url: "https://auth.openai.com/oauth/token",
+    clientId: "pdlLIX2Y72MgDktxw22rHpPdJKmlMVBi", // ChatGPT client ID
+  },
+}
 
 export namespace Auth {
   export const Oauth = z
@@ -70,5 +87,133 @@ export namespace Auth {
     delete data[key]
     await Bun.write(file, JSON.stringify(data, null, 2))
     await fs.chmod(file.name!, 0o600)
+  }
+
+  const log = Log.create({ service: "auth" })
+
+  /**
+   * Check if an OAuth token is expiring soon (within buffer)
+   */
+  export function isExpiringSoon(auth: Info): boolean {
+    if (auth.type !== "oauth") return false
+    return auth.expires < Date.now() + REFRESH_BUFFER_MS
+  }
+
+  /**
+   * Check if an OAuth token is expired
+   */
+  export function isExpired(auth: Info): boolean {
+    if (auth.type !== "oauth") return false
+    return auth.expires < Date.now()
+  }
+
+  /**
+   * Refresh an OAuth token for a known provider
+   */
+  export async function refreshToken(providerID: string): Promise<boolean> {
+    const auth = await get(providerID)
+    if (!auth || auth.type !== "oauth") return false
+
+    const config = OAUTH_REFRESH_CONFIG[providerID]
+    if (!config) {
+      log.warn("no refresh config for provider", { providerID })
+      return false
+    }
+
+    try {
+      log.info("refreshing token", { providerID, expiresIn: Math.round((auth.expires - Date.now()) / 1000) })
+
+      const response = await fetch(config.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grant_type: "refresh_token",
+          refresh_token: auth.refresh,
+          client_id: config.clientId,
+        }),
+      })
+
+      if (!response.ok) {
+        log.error("token refresh failed", { providerID, status: response.status })
+        return false
+      }
+
+      const json = (await response.json()) as {
+        access_token: string
+        refresh_token?: string
+        expires_in: number
+      }
+
+      await set(providerID, {
+        ...auth,
+        type: "oauth",
+        access: json.access_token,
+        refresh: json.refresh_token ?? auth.refresh,
+        expires: Date.now() + json.expires_in * 1000,
+      })
+
+      log.info("token refreshed", { providerID, expiresIn: json.expires_in })
+      return true
+    } catch (error) {
+      log.error("token refresh error", { providerID, error: String(error) })
+      return false
+    }
+  }
+
+  /**
+   * Proactively refresh all OAuth tokens that are expiring soon
+   */
+  export async function refreshAllExpiring(): Promise<{ refreshed: string[]; failed: string[] }> {
+    const allAuth = await all()
+    const refreshed: string[] = []
+    const failed: string[] = []
+
+    for (const [providerID, auth] of Object.entries(allAuth)) {
+      if (auth.type !== "oauth") continue
+      if (!isExpiringSoon(auth)) continue
+      if (!OAUTH_REFRESH_CONFIG[providerID]) continue
+
+      const success = await refreshToken(providerID)
+      if (success) {
+        refreshed.push(providerID)
+      } else {
+        failed.push(providerID)
+      }
+    }
+
+    if (refreshed.length > 0 || failed.length > 0) {
+      log.info("proactive token refresh complete", { refreshed, failed })
+    }
+
+    return { refreshed, failed }
+  }
+
+  /**
+   * Get status of all OAuth tokens
+   */
+  export async function status(): Promise<
+    Record<string, { valid: boolean; expiringSoon: boolean; expiresIn: number | null }>
+  > {
+    const allAuth = await all()
+    const result: Record<string, { valid: boolean; expiringSoon: boolean; expiresIn: number | null }> = {}
+
+    for (const [providerID, auth] of Object.entries(allAuth)) {
+      if (auth.type === "oauth") {
+        const expiresIn = Math.round((auth.expires - Date.now()) / 1000)
+        result[providerID] = {
+          valid: !isExpired(auth),
+          expiringSoon: isExpiringSoon(auth),
+          expiresIn,
+        }
+      } else {
+        result[providerID] = {
+          valid: true,
+          expiringSoon: false,
+          expiresIn: null,
+        }
+      }
+    }
+
+    return result
   }
 }
