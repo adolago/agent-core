@@ -12,18 +12,18 @@
     },
     "personas-memory": {
       "type": "local",
-      "command": ["npx", "tsx", "src/mcp/servers/memory.ts"],
-      "enabled": false
+      "command": ["bun", "run", "src/mcp/servers/memory.ts"],
+      "enabled": true
     },
     "personas-calendar": {
       "type": "local",
-      "command": ["npx", "tsx", "src/mcp/servers/calendar.ts"],
-      "enabled": false
+      "command": ["bun", "run", "src/mcp/servers/calendar.ts"],
+      "enabled": true
     },
     "personas-portfolio": {
       "type": "local",
-      "command": ["npx", "tsx", "src/mcp/servers/portfolio.ts"],
-      "enabled": false
+      "command": ["bun", "run", "src/mcp/servers/portfolio.ts"],
+      "enabled": true
     }
   },
   "tools": {

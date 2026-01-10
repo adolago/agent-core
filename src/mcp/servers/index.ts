@@ -41,17 +41,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const PERSONA_MCP_SERVERS = {
   "personas-memory": {
     type: "local" as const,
-    command: ["npx", "tsx", join(__dirname, "memory.ts")],
+    command: ["bun", "run", join(__dirname, "memory.ts")],
     description: "Semantic memory storage and search via Qdrant",
   },
   "personas-calendar": {
     type: "local" as const,
-    command: ["npx", "tsx", join(__dirname, "calendar.ts")],
+    command: ["bun", "run", join(__dirname, "calendar.ts")],
     description: "Google Calendar integration for scheduling",
   },
   "personas-portfolio": {
     type: "local" as const,
-    command: ["npx", "tsx", join(__dirname, "portfolio.ts")],
+    command: ["bun", "run", join(__dirname, "portfolio.ts")],
     description: "Financial tools: portfolio, market data, SEC filings",
   },
 } as const;
