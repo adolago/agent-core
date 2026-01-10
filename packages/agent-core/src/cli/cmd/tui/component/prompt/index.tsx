@@ -91,7 +91,7 @@ export function Prompt(props: PromptProps) {
   const incompleteTodos = createMemo(() => {
     if (!props.sessionID) return []
     const todos = sync.data.todo[props.sessionID] ?? []
-    return todos.filter((t) => t.status !== "completed")
+    return todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
   })
 
   const todoHint = createMemo(() => {
@@ -1017,7 +1017,7 @@ export function Prompt(props: PromptProps) {
               <Show when={todoHint()}>
                 {(hint) => (
                   <text fg={theme.warning}>
-                    [{hint().completed}/{hint().total}] {hint().current}...
+                    ◐ {hint().count} pending · {hint().current}...
                   </text>
                 )}
               </Show>
