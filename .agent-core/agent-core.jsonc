@@ -9,6 +9,21 @@
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp"
+    },
+    "personas-memory": {
+      "type": "local",
+      "command": ["npx", "tsx", "src/mcp/servers/memory.ts"],
+      "enabled": false
+    },
+    "personas-calendar": {
+      "type": "local",
+      "command": ["npx", "tsx", "src/mcp/servers/calendar.ts"],
+      "enabled": false
+    },
+    "personas-portfolio": {
+      "type": "local",
+      "command": ["npx", "tsx", "src/mcp/servers/portfolio.ts"],
+      "enabled": false
     }
   },
   "tools": {
