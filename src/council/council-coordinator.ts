@@ -13,8 +13,8 @@
  */
 
 import type { AgentOrchestrator } from "../tiara.js";
-import type { ModelCatalogEntry } from "../../model-catalog.js";
-import { loadModelCatalog } from "../../model-catalog.js";
+import type { ModelCatalogEntry } from "../model-catalog.js";
+import { loadModelCatalog } from "../model-catalog.js";
 import type { SpecializedAgentType } from "../agent-types.js";
 import type {
   CouncilConfig,

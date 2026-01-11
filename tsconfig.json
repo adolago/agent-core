@@ -1,5 +1,33 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@tsconfig/bun/tsconfig.json",
-  "compilerOptions": {}
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@agent-core/*": ["./packages/agent-core/src/*"],
+      "@log": ["./packages/agent-core/src/util/log"],
+      "@session/*": ["./packages/agent-core/src/session/*"],
+      "@hooks/*": ["./packages/agent-core/src/hooks/*"],
+      "@provider/*": ["./packages/agent-core/src/provider/*"],
+      "@bus/*": ["./packages/agent-core/src/bus/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "vendor/tiara/dist",
+    "vendor/tiara/dist-cjs",
+    "vendor/tiara/examples",
+    "vendor/tiara/tests",
+    "vendor/tiara/bin",
+    "vendor/tiara/**/*.test.ts",
+    "vendor/tiara/**/*.spec.ts",
+    "**/*.d.ts"
+  ]
 }
