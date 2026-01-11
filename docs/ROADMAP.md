@@ -188,7 +188,7 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 
 ---
 
-## Phase 5: Upstream Sync
+## Phase 5: Upstream Sync - COMPLETE
 
 ### 5.1 Merge Strategy
 - [x] Track upstream OpenCode releases
@@ -199,9 +199,9 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - [x] Document divergence categories (`patches/agent-core/README.md`)
   - [x] Store patches structure in `patches/agent-core/`
   - [x] Create sync script (`scripts/sync-upstream.sh`)
-- [ ] Automated conflict detection
+- [x] Automated conflict detection
   - [x] Pre-merge conflict check in sync script
-  - [ ] CI workflow for upstream sync PRs
+  - [x] CI workflow for upstream sync PRs (`.github/workflows/upstream-sync.yml`)
   - [x] Conflict resolution documentation (`docs/UPSTREAM-SYNC.md`)
 
 ### 5.2 Divergence Points (Document & Track)
@@ -222,7 +222,7 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - [x] Generate diff report
   - [x] Preview/merge modes
 - [x] Document manual intervention points (`docs/UPSTREAM-SYNC.md`)
-- [ ] Test suite for post-merge validation
+- [x] Post-merge validation script (`scripts/validate-sync.sh`)
 
 ---
 
@@ -270,11 +270,10 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [ ] Plugin marketplace for personas
 - [ ] Canvas/whiteboard for visual reasoning
 
-### Platform Sync (Deferred)
-- [x] Mobile companion app → Zee mobile app exists
-- [x] Web interface → OpenCode web exists
-- [ ] Unified desktop app (Electron wrapper)
-- [ ] Browser extension for quick capture
+### Platform Status
+- [x] Desktop → TUI (this repo)
+- [x] Mobile → Zee mobile app
+- [x] Web → OpenCode web
 
 ### Technical Debt
 - [ ] Remove "opencode" references in new code
