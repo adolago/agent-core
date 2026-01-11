@@ -13,7 +13,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import type {
   PersonasOrchestrator,
-  PersonasState,
+  PersonasState as TypesPersonasState,
   PersonasConfig,
   PersonasTask,
   PersonasEvent,
@@ -29,11 +29,10 @@ import type {
   TaskStatus,
   ConversationState,
 } from "./types";
-import { QdrantMemoryBridge, createMemoryBridge } from "./memory-bridge";
+import { Memory, getMemory, type PersonasState } from "../memory/unified";
 import { WeztermPaneBridge, createWeztermBridge } from "./wezterm";
 import { generateDronePrompt } from "./persona";
 import { formatAnnouncement, getDroneWaiter, shouldAnnounce, shutdownDroneWaiter } from "./drone-wait";
-import { createConversationState } from "./continuity";
 import { Log } from "../../packages/agent-core/src/util/log";
 import {
   QDRANT_URL,
@@ -92,7 +91,7 @@ function generateTaskId(): string {
  */
 export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
   private config: PersonasConfig;
-  private memoryBridge: QdrantMemoryBridge;
+  private memory: Memory;
   private weztermBridge: WeztermPaneBridge;
   private currentState: PersonasState;
   private processes = new Map<WorkerId, ChildProcess>();
@@ -105,7 +104,15 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
   constructor(config?: Partial<PersonasConfig>) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.memoryBridge = createMemoryBridge(this.config.qdrant);
+    // Use unified Memory class instead of separate memory bridge
+    this.memory = getMemory({
+      qdrant: {
+        url: this.config.qdrant.url,
+        apiKey: this.config.qdrant.apiKey,
+        collection: this.config.qdrant.stateCollection,
+      },
+      maxKeyFacts: this.config.continuity.maxKeyFacts,
+    });
     this.weztermBridge = createWeztermBridge(this.config.wezterm);
     this.currentState = this.createInitialState();
   }
@@ -136,10 +143,10 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
     const leadPersona = this.resolveLeadPersona();
 
     // Initialize memory bridge
-    await this.memoryBridge.init();
+    await this.memory.init();
 
     // Try to load existing state
-    const existingState = await this.memoryBridge.loadState();
+    const existingState = await this.memory.loadState();
     if (existingState) {
       this.currentState = existingState;
       // Clean up any stale workers
@@ -150,10 +157,16 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
 
     // Ensure a lead persona is always present
     if (!this.currentState.conversation) {
-      this.currentState.conversation = createConversationState(
-        `session-${Date.now()}`,
-        leadPersona
-      );
+      this.currentState.conversation = {
+        sessionId: `session-${Date.now()}`,
+        leadPersona,
+        summary: "",
+        plan: "",
+        objectives: [],
+        keyFacts: [],
+        sessionChain: [],
+        updatedAt: Date.now(),
+      };
     }
     this.ensureQueenPresence(leadPersona);
 
@@ -650,7 +663,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
    * Restore context from a previous session
    */
   async restoreContext(sessionId: string): Promise<ConversationState | null> {
-    const state = await this.memoryBridge.loadConversationState(sessionId);
+    const state = await this.memory.loadConversation(sessionId);
     if (state) {
       this.currentState.conversation = state;
       this.emitEvent("continuity:restored", { sessionId });
@@ -663,7 +676,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
    */
   async saveState(): Promise<void> {
     this.currentState.lastSyncAt = Date.now();
-    await this.memoryBridge.saveState(this.currentState);
+    await this.memory.saveState(this.currentState);
     this.emitEvent("state:synced", {});
   }
 

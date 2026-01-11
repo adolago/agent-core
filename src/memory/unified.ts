@@ -1,0 +1,928 @@
+/**
+ * Unified Memory System
+ *
+ * Single class that handles all memory operations:
+ * - Semantic memory storage and search
+ * - Persona state persistence
+ * - Conversation continuity (fact extraction, session chaining)
+ * - Cross-session context injection
+ *
+ * Uses a single Qdrant collection with `type` field for discrimination.
+ */
+
+import { randomUUID } from "node:crypto";
+import { QdrantVectorStorage } from "./qdrant";
+import { createEmbeddingProvider, type EmbeddingConfig } from "./embedding";
+import type {
+  MemoryEntry,
+  MemoryInput,
+  MemorySearchParams,
+  MemorySearchResult,
+  MemoryCategory,
+  EmbeddingProvider,
+} from "./types";
+import {
+  QDRANT_URL,
+  QDRANT_COLLECTION_MEMORY,
+  CONTINUITY_MAX_KEY_FACTS,
+} from "../config/constants";
+import { Log } from "../../packages/agent-core/src/util/log";
+
+const log = Log.create({ service: "memory" });
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/** Entry types stored in unified collection */
+export type EntryType =
+  | "memory"           // Regular memories (facts, preferences, etc.)
+  | "state"            // Personas orchestration state
+  | "conversation"     // Conversation continuity state
+  | "session_chain";   // Session chain index
+
+/** Persona identifiers */
+export type PersonaId = "zee" | "stanley" | "johny";
+
+/** Conversation state for continuity */
+export interface ConversationState {
+  sessionId: string;
+  leadPersona: PersonaId;
+  summary: string;
+  plan: string;
+  objectives: string[];
+  keyFacts: string[];
+  sessionChain: string[];
+  updatedAt: number;
+}
+
+/** Personas orchestration state */
+export interface PersonasState {
+  version: string;
+  tiaraSwarmId?: string;
+  workers: Array<{
+    id: string;
+    persona: PersonaId;
+    role: "queen" | "drone";
+    status: string;
+    paneId?: string;
+    pid?: number;
+    currentTask?: string;
+    createdAt: number;
+    lastActivityAt: number;
+  }>;
+  tasks: Array<{
+    id: string;
+    persona: PersonaId;
+    description: string;
+    prompt: string;
+    status: "pending" | "assigned" | "running" | "completed" | "failed";
+    priority?: "low" | "normal" | "high" | "critical";
+    workerId?: string;
+    createdAt: number;
+    completedAt?: number;
+    result?: string;
+    error?: string;
+  }>;
+  conversation?: ConversationState;
+  lastSyncAt: number;
+  stats: {
+    totalTasksCompleted: number;
+    totalDronesSpawned: number;
+    totalTokensUsed: number;
+  };
+}
+
+/** Memory configuration */
+export interface MemoryConfig {
+  qdrant: {
+    url?: string;
+    apiKey?: string;
+    collection?: string;
+  };
+  embedding: EmbeddingConfig;
+  namespace?: string;
+  maxKeyFacts?: number;
+}
+
+// =============================================================================
+// Mock Embedding Provider
+// =============================================================================
+
+/**
+ * Mock embedding provider for testing when no API key is available.
+ */
+class MockEmbeddingProvider implements EmbeddingProvider {
+  readonly id = "mock";
+  readonly model = "mock-embedding";
+  readonly dimension = 384;
+
+  async embed(text: string): Promise<number[]> {
+    const vector: number[] = new Array(this.dimension).fill(0);
+    for (let i = 0; i < text.length && i < this.dimension; i++) {
+      vector[i] = (text.charCodeAt(i) % 100) / 100;
+    }
+    const mag = Math.sqrt(vector.reduce((s, v) => s + v * v, 0));
+    return vector.map((v) => v / (mag || 1));
+  }
+
+  async embedBatch(texts: string[]): Promise<number[][]> {
+    return Promise.all(texts.map((t) => this.embed(t)));
+  }
+}
+
+// =============================================================================
+// Utilities
+// =============================================================================
+
+/** Generate deterministic UUID from string */
+function stringToUUID(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  const hex = Math.abs(hash).toString(16).padStart(8, "0");
+  return `${hex.slice(0, 8)}-${hex.slice(0, 4)}-4${hex.slice(1, 4)}-8${hex.slice(0, 3)}-${hex.padEnd(12, "0").slice(0, 12)}`;
+}
+
+/** Generate stable instance ID */
+function generateInstanceId(): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const os = require("os");
+  const hostname = os.hostname() || "unknown";
+  const username = os.userInfo().username || "user";
+  return stringToUUID(`memory-${hostname}-${username}`);
+}
+
+/** Extract key facts from text (simple heuristics, use LLM in production) */
+export function extractKeyFacts(message: string): string[] {
+  const facts: string[] = [];
+  const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 20);
+
+  for (const sentence of sentences) {
+    const s = sentence.trim().toLowerCase();
+
+    // Fact-like patterns
+    if (
+      s.includes("is ") || s.includes("are ") || s.includes("was ") ||
+      s.includes("were ") || s.includes("has ") || s.includes("have ") ||
+      s.includes("prefers ") || s.includes("wants ") || s.includes("needs ") ||
+      s.includes("decided ") || s.includes("agreed ")
+    ) {
+      facts.push(sentence.trim());
+    }
+
+    // Preferences
+    if (
+      s.includes("i like ") || s.includes("i prefer ") ||
+      s.includes("i want ") || s.includes("i need ")
+    ) {
+      facts.push(sentence.trim());
+    }
+
+    // Decisions
+    if (
+      s.includes("we should ") || s.includes("we will ") ||
+      s.includes("let's ") || s.includes("the plan is ")
+    ) {
+      facts.push(sentence.trim());
+    }
+  }
+
+  return Array.from(new Set(facts)).slice(0, 20);
+}
+
+/** Generate summary from messages */
+function generateSummary(messages: string[]): string {
+  if (messages.length === 0) return "";
+
+  const recentMessages = messages.slice(-10);
+  const parts = [
+    "## Conversation Summary",
+    "",
+    `**Messages:** ${messages.length} total`,
+    "",
+    "### Recent Exchange:",
+    "",
+  ];
+
+  for (const msg of recentMessages) {
+    const truncated = msg.length > 200 ? msg.slice(0, 200) + "..." : msg;
+    parts.push(`- ${truncated}`);
+  }
+
+  return parts.join("\n");
+}
+
+/** Merge facts with deduplication */
+function mergeFacts(existing: string[], newFacts: string[], max: number): string[] {
+  const allFacts = [...existing, ...newFacts];
+  const seen: Record<string, boolean> = {};
+  const unique: string[] = [];
+
+  for (const fact of allFacts) {
+    const normalized = fact.toLowerCase().trim();
+    if (!seen[normalized]) {
+      seen[normalized] = true;
+      unique.push(fact);
+    }
+  }
+
+  return unique.slice(-max);
+}
+
+// =============================================================================
+// Unified Memory Class
+// =============================================================================
+
+/**
+ * Unified Memory - single class for all memory operations.
+ *
+ * Replaces:
+ * - MemoryStore (store.ts)
+ * - QdrantMemoryStore (qdrant.ts)
+ * - QdrantMemoryBridge (memory-bridge.ts)
+ * - ContinuityManager (continuity.ts)
+ */
+export class Memory {
+  private readonly storage: QdrantVectorStorage;
+  private readonly embedding: EmbeddingProvider;
+  private readonly namespace: string;
+  private readonly collection: string;
+  private readonly instanceId: string;
+  private readonly maxKeyFacts: number;
+  private initialized = false;
+
+  // Current conversation state (for continuity)
+  private currentConversation?: ConversationState;
+
+  constructor(config: Partial<MemoryConfig> = {}) {
+    const qdrantConfig = {
+      url: config.qdrant?.url ?? process.env.QDRANT_URL ?? QDRANT_URL,
+      apiKey: config.qdrant?.apiKey,
+      collection: config.qdrant?.collection ?? QDRANT_COLLECTION_MEMORY,
+    };
+
+    this.collection = qdrantConfig.collection;
+    this.storage = new QdrantVectorStorage(qdrantConfig);
+    this.namespace = config.namespace ?? "default";
+    this.instanceId = generateInstanceId();
+    this.maxKeyFacts = config.maxKeyFacts ?? CONTINUITY_MAX_KEY_FACTS;
+
+    // Use mock embeddings if no API key available
+    const usesMock = !process.env.OPENAI_API_KEY && !config.embedding?.apiKey;
+    if (usesMock) {
+      this.embedding = new MockEmbeddingProvider();
+      log.debug("Using mock embeddings (no API key)");
+    } else {
+      this.embedding = createEmbeddingProvider({
+        provider: config.embedding?.provider ?? "openai",
+        model: config.embedding?.model,
+        dimensions: config.embedding?.dimensions,
+        apiKey: config.embedding?.apiKey,
+        baseUrl: config.embedding?.baseUrl,
+      });
+    }
+  }
+
+  // ===========================================================================
+  // Initialization
+  // ===========================================================================
+
+  /** Initialize the memory store */
+  async init(): Promise<void> {
+    if (this.initialized) return;
+
+    await this.storage.createCollection(this.collection, this.embedding.dimension);
+    this.storage.setCollection(this.collection);
+    this.initialized = true;
+
+    log.info("Memory initialized", {
+      collection: this.collection,
+      namespace: this.namespace,
+      dimension: this.embedding.dimension,
+    });
+  }
+
+  // ===========================================================================
+  // Memory Operations (facts, preferences, etc.)
+  // ===========================================================================
+
+  /** Save a memory entry */
+  async save(input: MemoryInput): Promise<MemoryEntry> {
+    await this.init();
+
+    const id = randomUUID();
+    const now = Date.now();
+    const vector = await this.embedding.embed(input.content);
+
+    const entry: MemoryEntry = {
+      id,
+      category: input.category,
+      content: input.content,
+      summary: input.summary,
+      embedding: vector,
+      metadata: input.metadata ?? {},
+      createdAt: now,
+      accessedAt: now,
+      ttl: input.ttl,
+      namespace: input.namespace ?? this.namespace,
+    };
+
+    await this.storage.insert([{
+      id,
+      vector,
+      payload: {
+        type: "memory" as EntryType,
+        category: entry.category,
+        content: entry.content,
+        summary: entry.summary,
+        metadata: entry.metadata,
+        createdAt: entry.createdAt,
+        accessedAt: entry.accessedAt,
+        ttl: entry.ttl,
+        namespace: entry.namespace,
+      },
+    }]);
+
+    return entry;
+  }
+
+  /** Search memories semantically */
+  async search(params: MemorySearchParams): Promise<MemorySearchResult[]> {
+    await this.init();
+
+    const queryVector = await this.embedding.embed(params.query);
+
+    // Build filter
+    const filter: Record<string, unknown> = {
+      type: "memory",
+      namespace: params.namespace ?? this.namespace,
+    };
+
+    if (params.category) {
+      if (Array.isArray(params.category)) {
+        filter.category = { $in: params.category };
+      } else {
+        filter.category = params.category;
+      }
+    }
+
+    if (params.tags?.length) {
+      filter["metadata.tags"] = { $in: params.tags };
+    }
+
+    const results = await this.storage.search(queryVector, {
+      limit: params.limit ?? 10,
+      threshold: params.threshold ?? 0.5,
+      filter,
+    });
+
+    return results.map((r) => ({
+      entry: {
+        id: r.id,
+        category: r.payload.category as MemoryCategory,
+        content: r.payload.content as string,
+        summary: r.payload.summary as string | undefined,
+        metadata: r.payload.metadata as MemoryEntry["metadata"],
+        createdAt: r.payload.createdAt as number,
+        accessedAt: r.payload.accessedAt as number,
+        ttl: r.payload.ttl as number | undefined,
+        namespace: r.payload.namespace as string | undefined,
+      },
+      score: r.score,
+    }));
+  }
+
+  /** Get a memory by ID */
+  async get(id: string): Promise<MemoryEntry | null> {
+    await this.init();
+
+    const results = await this.storage.get([id]);
+    const point = results[0];
+    if (!point || point.payload.type !== "memory") return null;
+
+    return {
+      id: point.id,
+      category: point.payload.category as MemoryCategory,
+      content: point.payload.content as string,
+      summary: point.payload.summary as string | undefined,
+      embedding: point.vector,
+      metadata: point.payload.metadata as MemoryEntry["metadata"],
+      createdAt: point.payload.createdAt as number,
+      accessedAt: point.payload.accessedAt as number,
+      ttl: point.payload.ttl as number | undefined,
+      namespace: point.payload.namespace as string | undefined,
+    };
+  }
+
+  /** Delete a memory by ID */
+  async delete(id: string): Promise<void> {
+    await this.init();
+    await this.storage.delete([id]);
+  }
+
+  /** Delete memories matching filter */
+  async deleteWhere(filter: {
+    category?: MemoryCategory;
+    namespace?: string;
+    olderThan?: number;
+  }): Promise<number> {
+    await this.init();
+
+    const qdrantFilter: Record<string, unknown> = { type: "memory" };
+    if (filter.category) qdrantFilter.category = filter.category;
+    if (filter.namespace) qdrantFilter.namespace = filter.namespace;
+    if (filter.olderThan) qdrantFilter.createdAt = { $lt: filter.olderThan };
+
+    return this.storage.deleteWhere(qdrantFilter);
+  }
+
+  /** Delete expired memories */
+  async deleteExpired(): Promise<number> {
+    await this.init();
+    const now = Date.now();
+    return this.storage.deleteWhere({
+      type: "memory",
+      expiresAt: { lt: now, gt: 0 },
+    });
+  }
+
+  // ===========================================================================
+  // State Persistence (Personas orchestration state)
+  // ===========================================================================
+
+  private getStateId(): string {
+    return stringToUUID(`state-${this.instanceId}`);
+  }
+
+  /** Save personas state */
+  async saveState(state: PersonasState): Promise<void> {
+    await this.init();
+
+    const stateJson = JSON.stringify(state);
+    const stateId = this.getStateId();
+
+    // Generate summary for embedding
+    const summary = this.generateStateSummary(state);
+    const embedding = await this.embedding.embed(summary);
+
+    await this.storage.insert([{
+      id: stateId,
+      vector: embedding,
+      payload: {
+        type: "state" as EntryType,
+        state: stateJson,
+        summary,
+        version: state.version,
+        updatedAt: Date.now(),
+      },
+    }]);
+
+    // Also save conversation state if present
+    if (state.conversation) {
+      await this.saveConversation(state.conversation);
+    }
+  }
+
+  /** Load personas state */
+  async loadState(): Promise<PersonasState | null> {
+    await this.init();
+
+    const stateId = this.getStateId();
+    const results = await this.storage.get([stateId]);
+    const result = results[0];
+
+    if (!result?.payload?.state) return null;
+
+    try {
+      return JSON.parse(result.payload.state as string) as PersonasState;
+    } catch {
+      return null;
+    }
+  }
+
+  private generateStateSummary(state: PersonasState): string {
+    const parts: string[] = [`Personas state v${state.version}`];
+
+    if (state.workers.length > 0) {
+      const workersByPersona = state.workers.reduce(
+        (acc, w) => {
+          acc[w.persona] = (acc[w.persona] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+      parts.push(`Workers: ${JSON.stringify(workersByPersona)}`);
+    }
+
+    if (state.tasks.length > 0) {
+      const pending = state.tasks.filter((t) => t.status === "pending").length;
+      const running = state.tasks.filter((t) => t.status === "running").length;
+      parts.push(`Tasks: ${pending} pending, ${running} running`);
+    }
+
+    if (state.conversation) {
+      parts.push(`Lead: ${state.conversation.leadPersona}`);
+      parts.push(`Summary: ${state.conversation.summary.slice(0, 200)}`);
+    }
+
+    parts.push(`Stats: ${state.stats.totalTasksCompleted} tasks completed`);
+
+    return parts.join("\n");
+  }
+
+  // ===========================================================================
+  // Conversation Continuity
+  // ===========================================================================
+
+  /** Save conversation state */
+  async saveConversation(state: ConversationState): Promise<void> {
+    await this.init();
+
+    const conversationId = stringToUUID(`conversation-${state.sessionId}`);
+
+    // Create rich summary for embedding
+    const summaryParts = [
+      state.summary,
+      `Plan: ${state.plan}`,
+      `Objectives: ${state.objectives.join(", ")}`,
+      `Key facts: ${state.keyFacts.join("; ")}`,
+    ];
+    const fullSummary = summaryParts.filter(Boolean).join("\n");
+    const embedding = await this.embedding.embed(fullSummary);
+
+    await this.storage.insert([{
+      id: conversationId,
+      vector: embedding,
+      payload: {
+        type: "conversation" as EntryType,
+        sessionId: state.sessionId,
+        leadPersona: state.leadPersona,
+        summary: state.summary,
+        plan: state.plan,
+        objectives: state.objectives,
+        keyFacts: state.keyFacts,
+        sessionChain: state.sessionChain,
+        updatedAt: state.updatedAt,
+      },
+    }]);
+
+    // Also store session chain index
+    const chainId = stringToUUID(`session-chain-${state.sessionId}`);
+    await this.storage.insert([{
+      id: chainId,
+      vector: embedding,
+      payload: {
+        type: "session_chain" as EntryType,
+        sessionId: state.sessionId,
+        previousSessions: state.sessionChain,
+        updatedAt: state.updatedAt,
+      },
+    }]);
+  }
+
+  /** Load conversation state by session ID */
+  async loadConversation(sessionId: string): Promise<ConversationState | null> {
+    await this.init();
+
+    const conversationId = stringToUUID(`conversation-${sessionId}`);
+    const results = await this.storage.get([conversationId]);
+    const result = results[0];
+
+    if (!result?.payload || result.payload.type !== "conversation") return null;
+
+    const p = result.payload as Record<string, unknown>;
+    return {
+      sessionId: p.sessionId as string,
+      leadPersona: p.leadPersona as PersonaId,
+      summary: p.summary as string,
+      plan: (p.plan as string) ?? "",
+      objectives: (p.objectives as string[]) ?? [],
+      keyFacts: (p.keyFacts as string[]) ?? [],
+      sessionChain: (p.sessionChain as string[]) ?? [],
+      updatedAt: p.updatedAt as number,
+    };
+  }
+
+  /** Find most recent conversation (optionally for specific persona) */
+  async findRecentConversation(persona?: PersonaId): Promise<ConversationState | null> {
+    await this.init();
+
+    const query = persona
+      ? `Recent conversation with ${persona}`
+      : "Recent conversation state";
+
+    const embedding = await this.embedding.embed(query);
+    const filter: Record<string, unknown> = { type: "conversation" };
+    if (persona) filter.leadPersona = persona;
+
+    const results = await this.storage.search(embedding, {
+      limit: 1,
+      filter,
+    });
+
+    if (results.length === 0) return null;
+
+    const p = results[0].payload as Record<string, unknown>;
+    return {
+      sessionId: p.sessionId as string,
+      leadPersona: p.leadPersona as PersonaId,
+      summary: p.summary as string,
+      plan: (p.plan as string) ?? "",
+      objectives: (p.objectives as string[]) ?? [],
+      keyFacts: (p.keyFacts as string[]) ?? [],
+      sessionChain: (p.sessionChain as string[]) ?? [],
+      updatedAt: p.updatedAt as number,
+    };
+  }
+
+  /** Start a new conversation session (with continuity from previous) */
+  async startSession(
+    sessionId: string,
+    leadPersona: PersonaId,
+    previousSessionId?: string
+  ): Promise<ConversationState> {
+    // Try to load previous session
+    let previousState: ConversationState | null = null;
+    if (previousSessionId) {
+      previousState = await this.loadConversation(previousSessionId);
+    } else {
+      previousState = await this.findRecentConversation(leadPersona);
+    }
+
+    // Create new state
+    this.currentConversation = {
+      sessionId,
+      leadPersona,
+      summary: "",
+      plan: previousState?.plan ?? "",
+      objectives: previousState?.objectives ?? [],
+      keyFacts: previousState?.keyFacts.slice(-this.maxKeyFacts) ?? [],
+      sessionChain: previousState
+        ? [...previousState.sessionChain, previousState.sessionId]
+        : [],
+      updatedAt: Date.now(),
+    };
+
+    await this.saveConversation(this.currentConversation);
+    return this.currentConversation;
+  }
+
+  /** Get current conversation state */
+  getCurrentConversation(): ConversationState | undefined {
+    return this.currentConversation;
+  }
+
+  /** Process messages and extract facts */
+  async processMessages(messages: string[]): Promise<ConversationState> {
+    if (!this.currentConversation) {
+      throw new Error("No active session. Call startSession first.");
+    }
+
+    // Extract facts from new messages
+    const newFacts: string[] = [];
+    for (const msg of messages) {
+      newFacts.push(...extractKeyFacts(msg));
+    }
+
+    // Update state
+    this.currentConversation = {
+      ...this.currentConversation,
+      summary: generateSummary(messages),
+      keyFacts: mergeFacts(
+        this.currentConversation.keyFacts,
+        newFacts,
+        this.maxKeyFacts
+      ),
+      updatedAt: Date.now(),
+    };
+
+    // Save to Qdrant
+    await this.saveConversation(this.currentConversation);
+
+    // Store individual facts as memories (persona-isolated)
+    if (newFacts.length > 0) {
+      await this.storeKeyFacts(
+        newFacts,
+        this.currentConversation.sessionId,
+        this.currentConversation.leadPersona
+      );
+    }
+
+    return this.currentConversation;
+  }
+
+  /** Store key facts as searchable memories */
+  async storeKeyFacts(facts: string[], sessionId: string, persona: PersonaId): Promise<void> {
+    await this.init();
+
+    for (const fact of facts) {
+      await this.save({
+        category: "fact",
+        content: fact,
+        metadata: {
+          sessionId,
+          agent: persona,
+          extra: { extractedAt: Date.now() },
+        },
+        namespace: `personas:${persona}`,
+      });
+    }
+  }
+
+  /** Update plan */
+  async updatePlan(plan: string): Promise<void> {
+    if (!this.currentConversation) {
+      throw new Error("No active session");
+    }
+
+    this.currentConversation.plan = plan;
+    this.currentConversation.updatedAt = Date.now();
+    await this.saveConversation(this.currentConversation);
+  }
+
+  /** Add objective */
+  async addObjective(objective: string): Promise<void> {
+    if (!this.currentConversation) {
+      throw new Error("No active session");
+    }
+
+    this.currentConversation.objectives.push(objective);
+    this.currentConversation.updatedAt = Date.now();
+    await this.saveConversation(this.currentConversation);
+  }
+
+  /** End session */
+  async endSession(): Promise<void> {
+    if (!this.currentConversation) return;
+
+    await this.saveConversation(this.currentConversation);
+    this.currentConversation = undefined;
+  }
+
+  /** Format conversation state for prompt injection */
+  formatContextForPrompt(): string {
+    if (!this.currentConversation) return "";
+
+    const state = this.currentConversation;
+    const parts: string[] = ["# Conversation Context (Restored)", ""];
+
+    if (state.summary) {
+      parts.push("## Previous Conversation Summary");
+      parts.push(state.summary);
+      parts.push("");
+    }
+
+    if (state.plan) {
+      parts.push("## Current Plan");
+      parts.push(state.plan);
+      parts.push("");
+    }
+
+    if (state.objectives.length > 0) {
+      parts.push("## Active Objectives");
+      state.objectives.forEach((obj, i) => {
+        parts.push(`${i + 1}. ${obj}`);
+      });
+      parts.push("");
+    }
+
+    if (state.keyFacts.length > 0) {
+      parts.push("## Key Facts");
+      state.keyFacts.forEach((fact) => {
+        parts.push(`- ${fact}`);
+      });
+      parts.push("");
+    }
+
+    if (state.sessionChain.length > 0) {
+      parts.push(`_This is session ${state.sessionChain.length + 1} in a continuing conversation._`);
+    }
+
+    return parts.join("\n");
+  }
+
+  // ===========================================================================
+  // Cross-Session Memory Injection (for bootstrap/personas.ts)
+  // ===========================================================================
+
+  /** Search memories for a specific persona */
+  async searchPersonaMemories(
+    query: string,
+    persona: PersonaId,
+    options?: { limit?: number; categories?: MemoryCategory[] }
+  ): Promise<MemorySearchResult[]> {
+    return this.search({
+      query,
+      namespace: `personas:${persona}`,
+      category: options?.categories,
+      limit: options?.limit ?? 5,
+      threshold: 0.6,
+    });
+  }
+
+  /** Get relevant context for a task */
+  async getTaskContext(
+    taskDescription: string,
+    options?: {
+      limit?: number;
+      sessionId?: string;
+      persona?: PersonaId;
+    }
+  ): Promise<{
+    relevantMemories: Array<{ content: string; score: number }>;
+    conversationState?: ConversationState;
+  }> {
+    await this.init();
+
+    const limit = options?.limit ?? 5;
+
+    // Search for relevant memories
+    const results = await this.searchPersonaMemories(
+      taskDescription,
+      options?.persona ?? "zee",
+      { limit }
+    );
+
+    // Load conversation state
+    let conversationState: ConversationState | undefined;
+    if (options?.sessionId) {
+      const state = await this.loadConversation(options.sessionId);
+      if (state) conversationState = state;
+    } else {
+      const recent = await this.findRecentConversation(options?.persona);
+      if (recent) conversationState = recent;
+    }
+
+    return {
+      relevantMemories: results.map((r) => ({
+        content: r.entry.content,
+        score: r.score,
+      })),
+      conversationState,
+    };
+  }
+
+  // ===========================================================================
+  // Statistics
+  // ===========================================================================
+
+  /** Get memory statistics */
+  async stats(): Promise<{
+    total: number;
+    byType: Record<EntryType, number>;
+    byCategory: Record<string, number>;
+  }> {
+    await this.init();
+
+    const total = await this.storage.count();
+
+    const types: EntryType[] = ["memory", "state", "conversation", "session_chain"];
+    const byType: Record<string, number> = {};
+    for (const type of types) {
+      byType[type] = await this.storage.count({ type });
+    }
+
+    const categories: MemoryCategory[] = [
+      "conversation", "fact", "preference", "task",
+      "decision", "relationship", "note", "pattern",
+    ];
+    const byCategory: Record<string, number> = {};
+    for (const cat of categories) {
+      byCategory[cat] = await this.storage.count({ type: "memory", category: cat });
+    }
+
+    return {
+      total,
+      byType: byType as Record<EntryType, number>,
+      byCategory,
+    };
+  }
+
+  /** Cleanup old entries */
+  async cleanup(): Promise<number> {
+    return this.deleteExpired();
+  }
+}
+
+// =============================================================================
+// Singleton
+// =============================================================================
+
+let _instance: Memory | null = null;
+
+/** Get the shared Memory instance */
+export function getMemory(config?: Partial<MemoryConfig>): Memory {
+  if (!_instance) {
+    _instance = new Memory(config);
+  }
+  return _instance;
+}
+
+/** Reset the shared instance (for testing) */
+export function resetMemory(): void {
+  _instance = null;
+}
