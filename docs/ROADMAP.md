@@ -288,7 +288,11 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - WhatsApp gateway: sendVoice method with MessageMedia
   - Graceful fallback to text if TTS fails or not configured
 - [ ] Multi-user support (shared Qdrant namespaces)
-- [ ] Plugin marketplace for personas
+- [x] Plugin marketplace for personas
+  - Registry index (plugins/index.json) with curated plugins
+  - Registry client with caching and stale fallback
+  - CLI commands: plugin search, list, install, remove, info
+  - Leverages existing npm/Bun infrastructure
 - [x] Canvas/whiteboard for visual reasoning
   - 7 canvas kinds: text, calendar, document, table, diagram, graph, mindmap
   - WezTerm pane management with 67% width ratio
