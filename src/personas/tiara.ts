@@ -68,9 +68,651 @@ const DEFAULT_CONFIG: PersonasConfig = {
   },
   tiara: {
     enabled: true,
-    topology: "star",
+    topology: "auto", // Dynamic topology selection based on task type
+    sparcEnabled: false, // SPARC methodology for complex planning
+    neuralTrainingEnabled: false, // Neural pattern training for optimization
   },
 };
+
+/**
+ * Topology types and their use cases:
+ * - star: Simple tasks, single coordinator (default for unknown tasks)
+ * - mesh: Parallel research tasks, multiple independent workers
+ * - hierarchical: Multi-step planning with dependencies
+ * - adaptive: Self-optimizing topology that adjusts during execution
+ */
+type TopologyType = "star" | "mesh" | "hierarchical" | "adaptive";
+
+// =============================================================================
+// SPARC Methodology Types
+// =============================================================================
+
+/**
+ * SPARC phases for structured task execution:
+ * - specification: Clarify requirements, define scope and success criteria
+ * - pseudocode: High-level algorithm design, break down into steps
+ * - architecture: System design decisions, component structure
+ * - refinement: Optimize, review, iterate on implementation
+ * - completion: Final implementation and verification
+ */
+type SPARCPhase = "specification" | "pseudocode" | "architecture" | "refinement" | "completion";
+
+interface SPARCPhaseResult {
+  phase: SPARCPhase;
+  output: string;
+  durationMs: number;
+  workerId?: WorkerId;
+}
+
+interface SPARCWorkflowResult {
+  success: boolean;
+  phases: SPARCPhaseResult[];
+  finalResult?: string;
+  error?: string;
+  totalDurationMs: number;
+}
+
+interface SPARCWorkflowOptions {
+  persona: PersonaId;
+  task: string;
+  prompt: string;
+  /** Skip phases for simpler tasks */
+  skipPhases?: SPARCPhase[];
+  /** Timeout per phase in ms */
+  phaseTimeoutMs?: number;
+}
+
+/**
+ * SPARC phase prompts - augment the base prompt with phase-specific instructions
+ */
+const SPARC_PHASE_PROMPTS: Record<SPARCPhase, (task: string, context?: string) => string> = {
+  specification: (task, context) => `
+## SPARC Phase: Specification
+
+Your task is to clarify requirements and define scope for: "${task}"
+
+${context ? `Previous context:\n${context}\n\n` : ""}
+Please provide:
+1. Clear problem statement
+2. Success criteria (what does "done" look like?)
+3. Constraints and assumptions
+4. Key questions to resolve
+5. Scope boundaries (what's in/out)
+
+Output your specification as structured markdown.
+`,
+
+  pseudocode: (task, context) => `
+## SPARC Phase: Pseudocode
+
+Based on the specification, design a high-level algorithm for: "${task}"
+
+${context ? `Specification:\n${context}\n\n` : ""}
+Please provide:
+1. Step-by-step algorithm in pseudocode
+2. Key data structures needed
+3. Main functions/operations
+4. Edge cases to handle
+5. Complexity analysis (if relevant)
+
+Output clear pseudocode with explanations.
+`,
+
+  architecture: (task, context) => `
+## SPARC Phase: Architecture
+
+Design the system architecture for: "${task}"
+
+${context ? `Pseudocode design:\n${context}\n\n` : ""}
+Please provide:
+1. Component diagram (text-based)
+2. Data flow between components
+3. External dependencies
+4. Integration points
+5. Scalability considerations
+
+Output structured architecture documentation.
+`,
+
+  refinement: (task, context) => `
+## SPARC Phase: Refinement
+
+Review and optimize the design for: "${task}"
+
+${context ? `Architecture:\n${context}\n\n` : ""}
+Please:
+1. Identify potential improvements
+2. Review for edge cases
+3. Optimize for performance
+4. Check for security concerns
+5. Simplify where possible
+
+Output refined recommendations.
+`,
+
+  completion: (task, context) => `
+## SPARC Phase: Completion
+
+Implement the final solution for: "${task}"
+
+${context ? `Refined design:\n${context}\n\n` : ""}
+Provide the complete implementation:
+1. All necessary code/configuration
+2. Tests if applicable
+3. Documentation
+4. Deployment notes if relevant
+
+Output the complete, working solution.
+`,
+};
+
+/**
+ * Check if a task should use SPARC methodology
+ */
+function shouldUseSPARC(task: string, config: PersonasConfig): boolean {
+  if (!config.tiara.sparcEnabled) return false;
+
+  const desc = task.toLowerCase();
+
+  // Complex tasks benefit from SPARC
+  if (
+    desc.includes("implement") ||
+    desc.includes("design") ||
+    desc.includes("architect") ||
+    desc.includes("build") ||
+    desc.includes("create system") ||
+    desc.includes("refactor")
+  ) {
+    return true;
+  }
+
+  // Multi-step tasks benefit from SPARC
+  if (
+    desc.includes("step by step") ||
+    desc.includes("phases") ||
+    desc.includes("comprehensive")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+// =============================================================================
+// Neural Pattern Training
+// =============================================================================
+
+/**
+ * Tracks patterns of successful task executions for optimization.
+ * Learns: topology choice, timing, task keywords → success correlation
+ */
+interface TaskPattern {
+  /** Task keyword fingerprint */
+  keywords: string[];
+  /** Persona that executed */
+  persona: PersonaId;
+  /** Topology used */
+  topology: TopologyType;
+  /** Average duration for this pattern */
+  avgDurationMs: number;
+  /** Success rate (0-1) */
+  successRate: number;
+  /** Number of samples */
+  sampleCount: number;
+  /** Last updated */
+  updatedAt: number;
+}
+
+interface NeuralPatternStore {
+  patterns: TaskPattern[];
+  version: string;
+}
+
+/**
+ * Extract keywords from a task description for pattern matching
+ */
+function extractTaskKeywords(task: string): string[] {
+  const stopWords = new Set([
+    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+    "of", "with", "by", "from", "as", "is", "was", "are", "were", "been",
+    "be", "have", "has", "had", "do", "does", "did", "will", "would", "could",
+    "should", "may", "might", "must", "shall", "can", "need", "this", "that",
+    "these", "those", "i", "you", "he", "she", "it", "we", "they", "me", "him",
+    "her", "us", "them", "my", "your", "his", "its", "our", "their",
+  ]);
+
+  return task
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.has(word))
+    .slice(0, 10); // Limit to top 10 keywords
+}
+
+/**
+ * Calculate similarity between two keyword sets (Jaccard index)
+ */
+function keywordSimilarity(a: string[], b: string[]): number {
+  const setA = new Set(a);
+  const setB = new Set(b);
+  const intersection = new Set([...setA].filter(x => setB.has(x)));
+  const union = new Set([...setA, ...setB]);
+  return union.size === 0 ? 0 : intersection.size / union.size;
+}
+
+/**
+ * Neural pattern trainer - learns from successful task executions
+ */
+class NeuralPatternTrainer {
+  private patterns: TaskPattern[] = [];
+  private readonly similarityThreshold = 0.5;
+  private readonly maxPatterns = 1000;
+
+  /**
+   * Load patterns from storage
+   */
+  async loadPatterns(memory: Memory): Promise<void> {
+    try {
+      const stored = await memory.search({
+        query: "neural_patterns tiara",
+        limit: 1,
+        tags: ["neural_patterns"],
+      });
+      if (stored.length > 0 && stored[0].entry.content) {
+        const data = JSON.parse(stored[0].entry.content) as NeuralPatternStore;
+        this.patterns = data.patterns || [];
+        log.debug("Loaded neural patterns", { count: this.patterns.length });
+      }
+    } catch (error) {
+      log.warn("Failed to load neural patterns", { error: String(error) });
+    }
+  }
+
+  /**
+   * Save patterns to storage
+   */
+  async savePatterns(memory: Memory): Promise<void> {
+    try {
+      const store: NeuralPatternStore = {
+        patterns: this.patterns,
+        version: "1.0.0",
+      };
+      await memory.save({
+        category: "note",
+        content: JSON.stringify(store),
+        summary: "Neural patterns for Tiara orchestration",
+        metadata: {
+          tags: ["neural_patterns"],
+          importance: 0.9,
+        },
+      });
+      log.debug("Saved neural patterns", { count: this.patterns.length });
+    } catch (error) {
+      log.warn("Failed to save neural patterns", { error: String(error) });
+    }
+  }
+
+  /**
+   * Record a task execution result for learning
+   */
+  recordExecution(
+    task: string,
+    persona: PersonaId,
+    topology: TopologyType,
+    durationMs: number,
+    success: boolean
+  ): void {
+    const keywords = extractTaskKeywords(task);
+    if (keywords.length === 0) return;
+
+    // Find similar pattern
+    const existingPattern = this.patterns.find(
+      p => p.persona === persona &&
+           p.topology === topology &&
+           keywordSimilarity(p.keywords, keywords) > this.similarityThreshold
+    );
+
+    if (existingPattern) {
+      // Update existing pattern with running average
+      const n = existingPattern.sampleCount;
+      existingPattern.avgDurationMs = (existingPattern.avgDurationMs * n + durationMs) / (n + 1);
+      existingPattern.successRate = (existingPattern.successRate * n + (success ? 1 : 0)) / (n + 1);
+      existingPattern.sampleCount++;
+      existingPattern.updatedAt = Date.now();
+
+      // Merge keywords (keep most common)
+      const mergedKeywords = [...new Set([...existingPattern.keywords, ...keywords])].slice(0, 10);
+      existingPattern.keywords = mergedKeywords;
+    } else {
+      // Create new pattern
+      const newPattern: TaskPattern = {
+        keywords,
+        persona,
+        topology,
+        avgDurationMs: durationMs,
+        successRate: success ? 1 : 0,
+        sampleCount: 1,
+        updatedAt: Date.now(),
+      };
+      this.patterns.push(newPattern);
+
+      // Prune old patterns if over limit
+      if (this.patterns.length > this.maxPatterns) {
+        // Remove oldest with lowest sample counts
+        this.patterns.sort((a, b) => b.sampleCount - a.sampleCount || b.updatedAt - a.updatedAt);
+        this.patterns = this.patterns.slice(0, this.maxPatterns);
+      }
+    }
+  }
+
+  /**
+   * Suggest optimal topology based on learned patterns
+   */
+  suggestTopology(task: string, persona: PersonaId): TopologyType | null {
+    const keywords = extractTaskKeywords(task);
+    if (keywords.length === 0) return null;
+
+    // Find best matching pattern
+    let bestMatch: TaskPattern | null = null;
+    let bestSimilarity = 0;
+
+    for (const pattern of this.patterns) {
+      if (pattern.persona !== persona) continue;
+      if (pattern.sampleCount < 3) continue; // Need at least 3 samples
+      if (pattern.successRate < 0.7) continue; // Only suggest successful patterns
+
+      const similarity = keywordSimilarity(pattern.keywords, keywords);
+      if (similarity > bestSimilarity && similarity > this.similarityThreshold) {
+        bestSimilarity = similarity;
+        bestMatch = pattern;
+      }
+    }
+
+    if (bestMatch) {
+      log.debug("Neural pattern match found", {
+        topology: bestMatch.topology,
+        similarity: bestSimilarity.toFixed(2),
+        successRate: bestMatch.successRate.toFixed(2),
+        samples: bestMatch.sampleCount,
+      });
+      return bestMatch.topology;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get stats for debugging
+   */
+  getStats(): { totalPatterns: number; avgSamples: number; avgSuccessRate: number } {
+    if (this.patterns.length === 0) {
+      return { totalPatterns: 0, avgSamples: 0, avgSuccessRate: 0 };
+    }
+
+    const totalSamples = this.patterns.reduce((sum, p) => sum + p.sampleCount, 0);
+    const totalSuccessRate = this.patterns.reduce((sum, p) => sum + p.successRate, 0);
+
+    return {
+      totalPatterns: this.patterns.length,
+      avgSamples: totalSamples / this.patterns.length,
+      avgSuccessRate: totalSuccessRate / this.patterns.length,
+    };
+  }
+}
+
+// Global neural pattern trainer instance
+let globalNeuralTrainer: NeuralPatternTrainer | null = null;
+
+function getNeuralTrainer(): NeuralPatternTrainer {
+  if (!globalNeuralTrainer) {
+    globalNeuralTrainer = new NeuralPatternTrainer();
+  }
+  return globalNeuralTrainer;
+}
+
+// =============================================================================
+// Tiara Hooks System
+// =============================================================================
+
+/**
+ * Hook types for Tiara orchestrator lifecycle
+ */
+export type TiaraHookType =
+  | "beforeSpawn"
+  | "afterSpawn"
+  | "beforeTask"
+  | "afterTask"
+  | "beforeSPARC"
+  | "afterSPARC"
+  | "onError"
+  | "onTopologySelected"
+  | "onWorkerComplete"
+  | "onPatternLearned";
+
+/**
+ * Hook context with event-specific data
+ */
+export interface TiaraHookContext {
+  /** Hook type */
+  type: TiaraHookType;
+  /** Timestamp */
+  timestamp: number;
+  /** Persona involved */
+  persona?: PersonaId;
+  /** Worker ID if applicable */
+  workerId?: WorkerId;
+  /** Task description */
+  task?: string;
+  /** Topology selected */
+  topology?: TopologyType;
+  /** SPARC phase if in SPARC workflow */
+  sparcPhase?: SPARCPhase;
+  /** Success/failure status */
+  success?: boolean;
+  /** Error message if failed */
+  error?: string;
+  /** Duration in ms */
+  durationMs?: number;
+  /** Additional metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Hook handler function type
+ * Can be async, return false to cancel (for "before" hooks)
+ */
+export type TiaraHookHandler = (context: TiaraHookContext) => void | boolean | Promise<void | boolean>;
+
+/**
+ * Registered hook with priority
+ */
+interface RegisteredHook {
+  id: string;
+  type: TiaraHookType;
+  handler: TiaraHookHandler;
+  priority: number;
+}
+
+/**
+ * Tiara Hooks Manager
+ * Allows external code to hook into orchestrator lifecycle events
+ */
+class TiaraHooksManager {
+  private hooks: RegisteredHook[] = [];
+  private nextId = 1;
+
+  /**
+   * Register a hook
+   * @returns Unsubscribe function
+   */
+  register(type: TiaraHookType, handler: TiaraHookHandler, priority = 0): () => void {
+    const id = `hook-${this.nextId++}`;
+    const hook: RegisteredHook = { id, type, handler, priority };
+    this.hooks.push(hook);
+
+    // Sort by priority (higher priority runs first)
+    this.hooks.sort((a, b) => b.priority - a.priority);
+
+    return () => {
+      this.hooks = this.hooks.filter(h => h.id !== id);
+    };
+  }
+
+  /**
+   * Execute hooks of a given type
+   * For "before" hooks, returns false if any hook cancels
+   */
+  async execute(context: TiaraHookContext): Promise<boolean> {
+    const relevantHooks = this.hooks.filter(h => h.type === context.type);
+
+    for (const hook of relevantHooks) {
+      try {
+        const result = await hook.handler(context);
+        // If a "before" hook returns false, cancel the operation
+        if (result === false && context.type.startsWith("before")) {
+          log.debug("Hook cancelled operation", { hookId: hook.id, type: context.type });
+          return false;
+        }
+      } catch (error) {
+        log.warn("Hook threw error", {
+          hookId: hook.id,
+          type: context.type,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get registered hooks count by type
+   */
+  getHookCounts(): Record<TiaraHookType, number> {
+    const counts: Partial<Record<TiaraHookType, number>> = {};
+    for (const hook of this.hooks) {
+      counts[hook.type] = (counts[hook.type] || 0) + 1;
+    }
+    return counts as Record<TiaraHookType, number>;
+  }
+
+  /**
+   * Clear all hooks
+   */
+  clear(): void {
+    this.hooks = [];
+  }
+}
+
+// Global hooks manager instance
+let globalHooksManager: TiaraHooksManager | null = null;
+
+/**
+ * Get the global hooks manager
+ */
+export function getTiaraHooks(): TiaraHooksManager {
+  if (!globalHooksManager) {
+    globalHooksManager = new TiaraHooksManager();
+  }
+  return globalHooksManager;
+}
+
+/**
+ * Register a Tiara hook (convenience function)
+ */
+export function registerTiaraHook(
+  type: TiaraHookType,
+  handler: TiaraHookHandler,
+  priority = 0
+): () => void {
+  return getTiaraHooks().register(type, handler, priority);
+}
+
+/**
+ * Select the optimal topology based on task characteristics
+ * Priority: explicit config > neural suggestion > rule-based heuristics
+ */
+function selectTopology(
+  persona: PersonaId,
+  taskDescription: string,
+  configuredTopology: string,
+  useNeuralSuggestion = true
+): TopologyType {
+  // If explicit topology is configured (not "auto"), use it
+  if (configuredTopology !== "auto") {
+    return configuredTopology as TopologyType;
+  }
+
+  // Try neural pattern suggestion first (if enabled)
+  if (useNeuralSuggestion) {
+    const trainer = getNeuralTrainer();
+    const suggestion = trainer.suggestTopology(taskDescription, persona);
+    if (suggestion) {
+      log.debug("Using neural topology suggestion", { topology: suggestion, persona });
+      return suggestion;
+    }
+  }
+
+  const desc = taskDescription.toLowerCase();
+
+  // Johny (learning/research) benefits from mesh topology for parallel exploration
+  if (persona === "johny") {
+    if (desc.includes("research") || desc.includes("learn") || desc.includes("explore")) {
+      return "mesh";
+    }
+    if (desc.includes("curriculum") || desc.includes("study plan")) {
+      return "hierarchical";
+    }
+  }
+
+  // Stanley (investing) uses hierarchical for multi-step analysis
+  if (persona === "stanley") {
+    if (desc.includes("portfolio") || desc.includes("strategy") || desc.includes("analysis")) {
+      return "hierarchical";
+    }
+    if (desc.includes("backtest") || desc.includes("screen")) {
+      return "mesh"; // Parallel processing for backtests
+    }
+  }
+
+  // Zee (personal assistant) typically uses star for simple tasks
+  if (persona === "zee") {
+    if (desc.includes("coordinate") || desc.includes("delegate")) {
+      return "hierarchical";
+    }
+    if (desc.includes("search") || desc.includes("find")) {
+      return "mesh";
+    }
+  }
+
+  // Complex multi-step tasks use hierarchical
+  if (
+    desc.includes("plan") ||
+    desc.includes("implement") ||
+    desc.includes("step by step") ||
+    desc.includes("phases")
+  ) {
+    return "hierarchical";
+  }
+
+  // Parallel/concurrent tasks use mesh
+  if (
+    desc.includes("parallel") ||
+    desc.includes("concurrent") ||
+    desc.includes("multiple") ||
+    desc.includes("batch")
+  ) {
+    return "mesh";
+  }
+
+  // Uncertain tasks that may need adjustment use adaptive
+  if (desc.includes("complex") || desc.includes("unknown") || desc.includes("investigate")) {
+    return "adaptive";
+  }
+
+  // Default to star for simple, straightforward tasks
+  return "star";
+}
 
 /**
  * Generate a unique worker ID
@@ -100,6 +742,8 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
   private initialized = false;
   private syncInterval?: ReturnType<typeof setInterval>;
   private droneWaiter = getDroneWaiter();
+  private neuralTrainer = getNeuralTrainer();
+  private hooksManager = getTiaraHooks();
 
   constructor(config?: Partial<PersonasConfig>) {
     super();
@@ -144,6 +788,11 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
 
     // Initialize memory bridge
     await this.memory.init();
+
+    // Load neural patterns if training is enabled
+    if (this.config.tiara.neuralTrainingEnabled) {
+      await this.neuralTrainer.loadPatterns(this.memory);
+    }
 
     // Try to load existing state
     const existingState = await this.memory.loadState();
@@ -292,9 +941,9 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
   }): Promise<Worker> {
     // Check limits - only count active drones
     const personaDrones = this.currentState.workers.filter(
-      (w) => w.persona === options.persona && 
-             w.role === "drone" && 
-             w.status !== "terminated" && 
+      (w) => w.persona === options.persona &&
+             w.role === "drone" &&
+             w.status !== "terminated" &&
              w.status !== "error"
     );
     if (personaDrones.length >= this.config.maxDronesPerPersona) {
@@ -306,6 +955,42 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
     const workerId = generateWorkerId();
     const now = Date.now();
 
+    // Select optimal topology based on task and persona
+    const topology = selectTopology(
+      options.persona,
+      options.task,
+      this.config.tiara.topology
+    );
+
+    // Execute onTopologySelected hook
+    await this.hooksManager.execute({
+      type: "onTopologySelected",
+      timestamp: now,
+      persona: options.persona,
+      task: options.task,
+      topology,
+    });
+
+    log.info("Selected topology for task", {
+      persona: options.persona,
+      task: options.task.slice(0, 50),
+      topology,
+      configuredTopology: this.config.tiara.topology,
+    });
+
+    // Execute beforeSpawn hook (can cancel)
+    const shouldSpawn = await this.hooksManager.execute({
+      type: "beforeSpawn",
+      timestamp: now,
+      persona: options.persona,
+      task: options.task,
+      topology,
+    });
+
+    if (!shouldSpawn) {
+      throw new Error("Spawn cancelled by beforeSpawn hook");
+    }
+
     // Create worker record
     const worker: Worker = {
       id: workerId,
@@ -315,6 +1000,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
       currentTask: options.task,
       createdAt: now,
       lastActivityAt: now,
+      metadata: { topology }, // Store selected topology for future reference
     };
 
     this.currentState.workers.push(worker);
@@ -342,9 +1028,31 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
       await this.spawnDroneProcess(worker, dronePrompt);
       worker.status = "working";
       this.emitEvent("worker:spawned", { workerId, persona: options.persona });
+
+      // Execute afterSpawn hook
+      await this.hooksManager.execute({
+        type: "afterSpawn",
+        timestamp: Date.now(),
+        persona: options.persona,
+        workerId,
+        task: options.task,
+        topology,
+        success: true,
+      });
     } catch (e) {
       worker.status = "error";
       this.emitEvent("worker:error", { workerId, error: String(e) });
+
+      // Execute onError hook
+      await this.hooksManager.execute({
+        type: "onError",
+        timestamp: Date.now(),
+        persona: options.persona,
+        workerId,
+        task: options.task,
+        error: String(e),
+      });
+
       throw e;
     }
 
@@ -467,6 +1175,45 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
       }
     }
 
+    // Record neural pattern for training
+    const topology = (worker.metadata?.topology as TopologyType) || "star";
+    const durationMs = Date.now() - worker.createdAt;
+
+    if (this.config.tiara.neuralTrainingEnabled && worker.currentTask) {
+      this.neuralTrainer.recordExecution(
+        worker.currentTask,
+        worker.persona,
+        topology,
+        durationMs,
+        success
+      );
+
+      // Execute onPatternLearned hook
+      await this.hooksManager.execute({
+        type: "onPatternLearned",
+        timestamp: Date.now(),
+        persona: worker.persona,
+        workerId,
+        task: worker.currentTask,
+        topology,
+        success,
+        durationMs,
+      });
+    }
+
+    // Execute onWorkerComplete hook
+    await this.hooksManager.execute({
+      type: "onWorkerComplete",
+      timestamp: Date.now(),
+      persona: worker.persona,
+      workerId,
+      task: worker.currentTask,
+      topology,
+      success,
+      durationMs,
+      error: errorText,
+    });
+
     // Notify drone waiter
     if (success) {
       this.droneWaiter.notifyComplete(workerId, resultText);
@@ -495,6 +1242,16 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
       task.error = error;
       task.completedAt = Date.now();
     }
+
+    // Execute onError hook
+    await this.hooksManager.execute({
+      type: "onError",
+      timestamp: Date.now(),
+      persona: worker.persona,
+      workerId,
+      task: worker.currentTask,
+      error,
+    });
 
     this.emitEvent("worker:error", { workerId, error });
     await this.saveState();
@@ -565,6 +1322,166 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
     }
 
     return result;
+  }
+
+  /**
+   * Execute a task using SPARC methodology
+   * SPARC: Specification → Pseudocode → Architecture → Refinement → Completion
+   */
+  async executeWithSPARC(options: SPARCWorkflowOptions): Promise<SPARCWorkflowResult> {
+    const startTime = Date.now();
+    const phases: SPARCPhaseResult[] = [];
+    const allPhases: SPARCPhase[] = ["specification", "pseudocode", "architecture", "refinement", "completion"];
+    const skipPhases = options.skipPhases || [];
+    const phaseTimeoutMs = options.phaseTimeoutMs || 120000; // 2 min default per phase
+
+    let previousOutput = options.prompt;
+
+    // Execute beforeSPARC hook (can cancel)
+    const shouldProceed = await this.hooksManager.execute({
+      type: "beforeSPARC",
+      timestamp: startTime,
+      persona: options.persona,
+      task: options.task,
+      metadata: { skipPhases, phaseTimeoutMs },
+    });
+
+    if (!shouldProceed) {
+      return {
+        success: false,
+        phases: [],
+        error: "SPARC workflow cancelled by beforeSPARC hook",
+        totalDurationMs: Date.now() - startTime,
+      };
+    }
+
+    log.info("Starting SPARC workflow", {
+      persona: options.persona,
+      task: options.task.slice(0, 100),
+      skipPhases,
+    });
+
+    for (const phase of allPhases) {
+      if (skipPhases.includes(phase)) {
+        log.debug("Skipping SPARC phase", { phase });
+        continue;
+      }
+
+      const phaseStart = Date.now();
+
+      try {
+        // Build phase-specific prompt
+        const phasePrompt = SPARC_PHASE_PROMPTS[phase](options.task, previousOutput);
+
+        // Spawn drone for this phase
+        const result = await this.spawnDroneWithWait({
+          persona: options.persona,
+          task: `[SPARC:${phase.toUpperCase()}] ${options.task}`,
+          prompt: phasePrompt,
+          timeoutMs: phaseTimeoutMs,
+          cleanup: true,
+        });
+
+        const phaseResult: SPARCPhaseResult = {
+          phase,
+          output: result.result || "",
+          durationMs: result.durationMs,
+          workerId: undefined, // Worker is cleaned up
+        };
+
+        phases.push(phaseResult);
+
+        if (result.status === "error" || result.status === "timeout") {
+          log.warn("SPARC phase failed", { phase, error: result.error });
+          return {
+            success: false,
+            phases,
+            error: `Phase ${phase} failed: ${result.error}`,
+            totalDurationMs: Date.now() - startTime,
+          };
+        }
+
+        // Use this phase's output as context for next phase
+        previousOutput = result.result || previousOutput;
+
+        log.info("SPARC phase completed", {
+          phase,
+          durationMs: result.durationMs,
+          outputLength: (result.result || "").length,
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        phases.push({
+          phase,
+          output: "",
+          durationMs: Date.now() - phaseStart,
+        });
+
+        return {
+          success: false,
+          phases,
+          error: `Phase ${phase} threw error: ${errorMsg}`,
+          totalDurationMs: Date.now() - startTime,
+        };
+      }
+    }
+
+    // Success - return the final completion phase output
+    const completionPhase = phases.find(p => p.phase === "completion");
+    const finalResult = completionPhase?.output || previousOutput;
+    const totalDurationMs = Date.now() - startTime;
+
+    log.info("SPARC workflow completed", {
+      totalPhases: phases.length,
+      totalDurationMs,
+    });
+
+    // Execute afterSPARC hook
+    await this.hooksManager.execute({
+      type: "afterSPARC",
+      timestamp: Date.now(),
+      persona: options.persona,
+      task: options.task,
+      success: true,
+      durationMs: totalDurationMs,
+      metadata: {
+        phases: phases.map(p => ({ phase: p.phase, durationMs: p.durationMs })),
+      },
+    });
+
+    return {
+      success: true,
+      phases,
+      finalResult,
+      totalDurationMs,
+    };
+  }
+
+  /**
+   * Smart task execution - uses SPARC for complex tasks, direct spawn for simple ones
+   */
+  async executeTask(options: {
+    persona: PersonaId;
+    task: string;
+    prompt: string;
+    forceSPARC?: boolean;
+  }): Promise<DroneResult | SPARCWorkflowResult> {
+    const useSPARC = options.forceSPARC || shouldUseSPARC(options.task, this.config);
+
+    if (useSPARC) {
+      return this.executeWithSPARC({
+        persona: options.persona,
+        task: options.task,
+        prompt: options.prompt,
+      });
+    }
+
+    // Direct execution for simple tasks
+    return this.spawnDroneWithWait({
+      persona: options.persona,
+      task: options.task,
+      prompt: options.prompt,
+    });
   }
 
   /**
@@ -737,11 +1654,24 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
       }
     }
 
+    // Save neural patterns before shutdown
+    if (this.config.tiara.neuralTrainingEnabled) {
+      await this.neuralTrainer.savePatterns(this.memory);
+      log.info("Neural patterns saved", this.neuralTrainer.getStats());
+    }
+
     // Final state save
     await this.saveState();
 
     // Close WezTerm panes
     await this.weztermBridge.closeAllPanes();
+  }
+
+  /**
+   * Get neural training stats
+   */
+  getNeuralStats(): { totalPatterns: number; avgSamples: number; avgSuccessRate: number } {
+    return this.neuralTrainer.getStats();
   }
 }
 
