@@ -240,10 +240,10 @@ export namespace Server {
           async (c) => {
             const gateway = WhatsAppGateway.getInstance()
             if (!gateway) {
-              return c.json({ success: false, error: "WhatsApp gateway not running" }, 400)
+              return c.json({ data: null, errors: [{ message: "WhatsApp gateway not running" }], success: false }, 400)
             }
             if (!gateway.isReady()) {
-              return c.json({ success: false, error: "WhatsApp not connected" }, 400)
+              return c.json({ data: null, errors: [{ message: "WhatsApp not connected" }], success: false }, 400)
             }
             const { phone, message } = c.req.valid("json")
             const chatId = `${phone}@c.us`
@@ -272,10 +272,10 @@ export namespace Server {
           async (c) => {
             const gateway = WhatsAppGateway.getInstance()
             if (!gateway) {
-              return c.json({ success: false, error: "WhatsApp gateway not running" }, 400)
+              return c.json({ data: null, errors: [{ message: "WhatsApp gateway not running" }], success: false }, 400)
             }
             if (!gateway.isReady()) {
-              return c.json({ success: false, error: "WhatsApp not connected" }, 400)
+              return c.json({ data: null, errors: [{ message: "WhatsApp not connected" }], success: false }, 400)
             }
             const { chatJid, messageId, emoji } = c.req.valid("json")
             const success = await gateway.sendReaction(chatJid, messageId, emoji)
@@ -3197,7 +3197,7 @@ export namespace Server {
             const name = c.req.param("name")
             const supportsOAuth = await MCP.supportsOAuth(name)
             if (!supportsOAuth) {
-              return c.json({ error: `MCP server ${name} does not support OAuth` }, 400)
+              return c.json({ data: null, errors: [{ message: `MCP server ${name} does not support OAuth` }], success: false }, 400)
             }
             const result = await MCP.startAuth(name)
             return c.json(result)
@@ -3257,7 +3257,7 @@ export namespace Server {
             const name = c.req.param("name")
             const supportsOAuth = await MCP.supportsOAuth(name)
             if (!supportsOAuth) {
-              return c.json({ error: `MCP server ${name} does not support OAuth` }, 400)
+              return c.json({ data: null, errors: [{ message: `MCP server ${name} does not support OAuth` }], success: false }, 400)
             }
             const status = await MCP.authenticate(name)
             return c.json(status)

@@ -318,9 +318,9 @@ export class ContinuityManager {
     // Save to memory
     await this.memoryBridge.saveConversationState(this.currentState);
 
-    // Store individual facts as memories for semantic search
+    // Store individual facts as memories for semantic search (persona-isolated)
     if (newFacts.length > 0) {
-      await this.memoryBridge.storeKeyFacts(newFacts, this.currentState.sessionId);
+      await this.memoryBridge.storeKeyFacts(newFacts, this.currentState.sessionId, this.currentState.leadPersona);
     }
 
     return this.currentState;

@@ -68,9 +68,13 @@ export class QdrantMemoryBridge implements MemoryBridge {
   private embedder: EmbeddingProvider;
   private config: PersonasConfig["qdrant"];
   private initialized = false;
+  private instanceId: string;
 
-  constructor(config: PersonasConfig["qdrant"], options?: { useMockEmbeddings?: boolean }) {
+  constructor(config: PersonasConfig["qdrant"], options?: { useMockEmbeddings?: boolean; instanceId?: string }) {
     this.config = config;
+    // Generate a stable instance ID based on machine identity or use provided one
+    // This prevents state collision when multiple orchestrators run
+    this.instanceId = options?.instanceId ?? this.generateInstanceId();
 
     // Initialize embedding provider
     // Use mock if no API key or explicitly requested
@@ -117,14 +121,32 @@ export class QdrantMemoryBridge implements MemoryBridge {
   }
 
   /**
+   * Generate a stable instance ID for this machine/user
+   */
+  private generateInstanceId(): string {
+    // Use hostname + username for a stable per-machine ID
+    const os = require("os");
+    const hostname = os.hostname() || "unknown";
+    const username = os.userInfo().username || "user";
+    return stringToUUID(`personas-${hostname}-${username}`);
+  }
+
+  /**
+   * Get the state ID for this instance
+   */
+  private getStateId(): string {
+    return stringToUUID(`state-${this.instanceId}`);
+  }
+
+  /**
    * Save Personas state to Qdrant
    */
   async saveState(state: PersonasState): Promise<void> {
     await this.init();
 
     const stateJson = JSON.stringify(state);
-    // Use a fixed UUID for the current state (deterministic)
-    const stateId = "00000000-0000-0000-0000-000000000001";
+    // Use instance-specific UUID for state (prevents multi-instance collision)
+    const stateId = this.getStateId();
 
     // Generate embedding for the state summary
     const stateSummary = this.generateStateSummary(state);
@@ -157,7 +179,7 @@ export class QdrantMemoryBridge implements MemoryBridge {
   async loadState(): Promise<PersonasState | null> {
     await this.init();
 
-    const stateId = "00000000-0000-0000-0000-000000000001";
+    const stateId = this.getStateId();
     const results = await this.storage.get([stateId]);
     const result = results[0];
 
@@ -295,6 +317,7 @@ export class QdrantMemoryBridge implements MemoryBridge {
 
   /**
    * Store a memory entry for semantic retrieval
+   * Memories are isolated by persona namespace for privacy
    */
   async storeMemory(
     content: string,
@@ -302,12 +325,21 @@ export class QdrantMemoryBridge implements MemoryBridge {
   ): Promise<string> {
     await this.init();
 
+    // Require persona for proper isolation
+    const persona = metadata.persona as string;
+    if (!persona) {
+      throw new Error("Memory storage requires persona in metadata for isolation");
+    }
+
+    // Use persona-specific namespace for isolation
+    const namespace = `personas:${persona}`;
+
     const memory = await this.memoryStore.save({
       content,
       category: "context",
       source: "agent",
-      senderId: (metadata.persona as string) ?? "personas",
-      namespace: "personas",
+      senderId: persona,
+      namespace,
       metadata,
     });
 
@@ -316,22 +348,52 @@ export class QdrantMemoryBridge implements MemoryBridge {
 
   /**
    * Search memories by semantic similarity
+   * Can search within a specific persona's namespace or across all personas
    */
   async searchMemories(
     query: string,
-    limit = 10
+    limit = 10,
+    options?: { persona?: string; includeShared?: boolean }
   ): Promise<Array<{ id: string; content: string; score: number }>> {
     await this.init();
 
+    // If persona specified, search only that persona's namespace
+    // Otherwise search the shared namespace
+    const namespace = options?.persona
+      ? `personas:${options.persona}`
+      : "personas:shared";
+
     const results = await this.memoryStore.search(query, {
       limit,
-      namespace: "personas",
+      namespace,
     });
 
     return results.map((r) => ({
       id: r.id,
       content: r.content,
       score: r.score,
+    }));
+  }
+
+  /**
+   * Search memories across all personas (for cross-persona context)
+   */
+  async searchAllPersonaMemories(
+    query: string,
+    limit = 10
+  ): Promise<Array<{ id: string; content: string; score: number; persona?: string }>> {
+    await this.init();
+
+    // Search without namespace filter to get all memories
+    const results = await this.memoryStore.search(query, {
+      limit,
+    });
+
+    return results.map((r) => ({
+      id: r.id,
+      content: r.content,
+      score: r.score,
+      persona: r.senderId,
     }));
   }
 
@@ -355,13 +417,14 @@ export class QdrantMemoryBridge implements MemoryBridge {
   /**
    * Store key facts extracted from conversation
    */
-  async storeKeyFacts(facts: string[], sessionId: string): Promise<void> {
+  async storeKeyFacts(facts: string[], sessionId: string, persona: string): Promise<void> {
     await this.init();
 
     for (const fact of facts) {
       await this.storeMemory(fact, {
         type: "key_fact",
         sessionId,
+        persona,
         extractedAt: Date.now(),
       });
     }
@@ -376,6 +439,7 @@ export class QdrantMemoryBridge implements MemoryBridge {
       limit?: number;
       includeKeyFacts?: boolean;
       sessionId?: string;
+      persona?: string;
     }
   ): Promise<{
     relevantMemories: Array<{ content: string; score: number }>;
@@ -385,8 +449,10 @@ export class QdrantMemoryBridge implements MemoryBridge {
 
     const limit = options?.limit ?? 5;
 
-    // Search for relevant memories
-    const memories = await this.searchMemories(taskDescription, limit);
+    // Search for relevant memories (persona-specific if provided)
+    const memories = await this.searchMemories(taskDescription, limit, {
+      persona: options?.persona,
+    });
 
     // Load conversation state if session ID provided
     let conversationState: ConversationState | undefined;
