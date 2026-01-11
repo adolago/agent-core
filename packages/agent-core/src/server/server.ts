@@ -1355,7 +1355,7 @@ export namespace Server {
                 capabilities: ["memory", "messaging", "calendar", "contacts", "notifications"],
                 gateway: {
                   telegram: false, // Zee uses WhatsApp
-                  whatsapp: WhatsAppGateway.isConnected(),
+                  whatsapp: WhatsAppGateway.getInstance() !== null,
                 },
               },
               {

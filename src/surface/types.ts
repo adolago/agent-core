@@ -254,6 +254,8 @@ export type SurfaceCapabilities = {
   maxMessageLength: number;
   /** Supported media types */
   supportedMediaTypes: string[];
+  /** Whether thinking/reasoning output can be shown (false = always hidden, true = user toggleable) */
+  showThinking?: boolean;
 };
 
 /**
@@ -270,13 +272,14 @@ export const DEFAULT_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: false,
   maxMessageLength: 0,
   supportedMediaTypes: [],
+  showThinking: false,
 };
 
 // =============================================================================
 // Surface Type
 // =============================================================================
 
-export type SurfaceType = "cli" | "web" | "api" | "whatsapp" | "telegram" | "discord";
+export type SurfaceType = "cli" | "web" | "api" | "whatsapp" | "telegram";
 
 // =============================================================================
 // Surface Adapter Interface
@@ -324,6 +327,7 @@ export const CLI_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: false,
   maxMessageLength: 0,
   supportedMediaTypes: [],
+  showThinking: true,
 };
 
 export const WEB_CAPABILITIES: SurfaceCapabilities = {
@@ -337,6 +341,7 @@ export const WEB_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: true,
   maxMessageLength: 0,
   supportedMediaTypes: ["image/*", "application/pdf", "text/*"],
+  showThinking: true,
 };
 
 export const WHATSAPP_CAPABILITIES: SurfaceCapabilities = {
@@ -350,6 +355,7 @@ export const WHATSAPP_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: false,
   maxMessageLength: 65536,
   supportedMediaTypes: ["image/*", "audio/*", "video/*", "application/pdf"],
+  showThinking: false,
 };
 
 export const TELEGRAM_CAPABILITIES: SurfaceCapabilities = {
@@ -363,19 +369,7 @@ export const TELEGRAM_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: true,
   maxMessageLength: 4096,
   supportedMediaTypes: ["image/*", "audio/*", "video/*", "application/*"],
-};
-
-export const DISCORD_CAPABILITIES: SurfaceCapabilities = {
-  streaming: false,
-  interactivePrompts: true,
-  richText: true,
-  media: true,
-  threading: true,
-  typingIndicators: true,
-  reactions: true,
-  messageEditing: true,
-  maxMessageLength: 2000,
-  supportedMediaTypes: ["image/*", "audio/*", "video/*"],
+  showThinking: false,
 };
 
 export const API_CAPABILITIES: SurfaceCapabilities = {
@@ -389,4 +383,5 @@ export const API_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: false,
   maxMessageLength: 0,
   supportedMediaTypes: ["*/*"],
+  showThinking: true,
 };
