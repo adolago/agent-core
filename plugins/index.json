@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "name": "opencode-copilot-auth",
+      "displayName": "GitHub Copilot Auth",
+      "description": "Authenticate with GitHub Copilot for free model access",
+      "npm": "opencode-copilot-auth",
+      "version": "0.0.11",
+      "category": "auth",
+      "tags": ["auth", "github", "copilot", "free"],
+      "capabilities": ["auth"],
+      "author": "opencode-ai",
+      "homepage": "https://github.com/opencode-ai/opencode"
+    },
+    {
+      "name": "opencode-anthropic-auth",
+      "displayName": "Anthropic OAuth",
+      "description": "OAuth authentication for Anthropic Claude models",
+      "npm": "opencode-anthropic-auth",
+      "version": "0.0.8",
+      "category": "auth",
+      "tags": ["auth", "anthropic", "oauth", "claude"],
+      "capabilities": ["auth"],
+      "author": "opencode-ai",
+      "homepage": "https://github.com/opencode-ai/opencode"
+    },
+    {
+      "name": "opencode-google-auth",
+      "displayName": "Google Antigravity",
+      "description": "OAuth authentication for Google Gemini models via Antigravity proxy",
+      "npm": "opencode-google-auth",
+      "version": "0.0.5",
+      "category": "auth",
+      "tags": ["auth", "google", "gemini", "antigravity", "free"],
+      "capabilities": ["auth"],
+      "author": "opencode-ai",
+      "homepage": "https://github.com/opencode-ai/opencode"
+    }
+  ],
+  "categories": ["auth", "tools", "personas", "integrations"]
+}
