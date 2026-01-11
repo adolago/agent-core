@@ -18,8 +18,11 @@ import { z } from "zod";
 export const PersonaId = z.enum(["zee", "stanley", "johny"]);
 export type PersonaId = z.infer<typeof PersonaId>;
 
-/** Persona configuration */
-export interface PersonaConfig {
+/**
+ * Orchestration persona info for the Personas layer
+ * (distinct from agent/persona.ts:PersonaConfig which handles file loading)
+ */
+export interface OrchestrationPersona {
   /** Persona identifier */
   id: PersonaId;
   /** Display name */
@@ -38,8 +41,8 @@ export interface PersonaConfig {
   icon: string;
 }
 
-/** Built-in persona configurations */
-export const PERSONAS_CONFIGS: Record<PersonaId, PersonaConfig> = {
+/** Built-in persona configurations for orchestration */
+export const ORCHESTRATION_PERSONAS: Record<PersonaId, OrchestrationPersona> = {
   zee: {
     id: "zee",
     displayName: "Zee",

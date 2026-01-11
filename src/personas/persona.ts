@@ -5,7 +5,8 @@
  * Each persona can spawn drones that inherit their identity and capabilities.
  */
 
-import type { PersonaId, PersonaConfig } from "./types";
+import type { PersonaId, OrchestrationPersona } from "./types";
+import { ORCHESTRATION_PERSONAS } from "./types";
 
 // Import tiara types
 // Note: These are from the vendor submodule
@@ -220,69 +221,8 @@ export function generateDronePrompt(
 /**
  * Get persona config by ID
  */
-export function getPersonaConfig(id: PersonaId): PersonaConfig {
-  // Import here to avoid circular dependency
-  const configs: Record<PersonaId, PersonaConfig> = {
-    zee: {
-      id: "zee",
-      displayName: "Zee",
-      description: "Personal assistant with memory and messaging",
-      domain: "personal",
-      defaultCapabilities: [
-        "task_management",
-        "information_gathering",
-        "knowledge_synthesis",
-        "documentation_generation",
-      ],
-      systemPromptAdditions: [
-        "You are Zee, a personal assistant.",
-        "You help with daily tasks, research, and communication.",
-        "You maintain context across conversations.",
-      ],
-      color: "#6366f1",
-      icon: "★",
-    },
-    stanley: {
-      id: "stanley",
-      displayName: "Stanley",
-      description: "Investment platform inspired by Druckenmiller",
-      domain: "finance",
-      defaultCapabilities: [
-        "data_analysis",
-        "performance_metrics",
-        "pattern_recognition",
-        "bottleneck_detection",
-      ],
-      systemPromptAdditions: [
-        "You are Stanley, an investment analysis assistant.",
-        "You help with market analysis, portfolio management, and trading decisions.",
-        "You think in terms of risk/reward and macro trends.",
-      ],
-      color: "#22c55e",
-      icon: "♦",
-    },
-    johny: {
-      id: "johny",
-      displayName: "Johny",
-      description: "Learning system inspired by von Neumann",
-      domain: "learning",
-      defaultCapabilities: [
-        "knowledge_synthesis",
-        "pattern_recognition",
-        "technical_writing",
-        "problem_solving",
-      ],
-      systemPromptAdditions: [
-        "You are Johny, a learning and study assistant.",
-        "You help with understanding complex topics, spaced repetition, and knowledge retention.",
-        "You think systematically and build knowledge graphs.",
-      ],
-      color: "#f59e0b",
-      icon: "◎",
-    },
-  };
-
-  return configs[id];
+export function getPersonaConfig(id: PersonaId): OrchestrationPersona {
+  return ORCHESTRATION_PERSONAS[id];
 }
 
 /**
