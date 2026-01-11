@@ -181,10 +181,10 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [x] Persistent agent state across sessions (via ContinuityManager)
 - [x] Agent handoff (delegate to another persona via `<leader>d` or command palette)
 
-### 4.3 Conversation
+### 4.3 Conversation - COMPLETE
 - [x] Better compaction summaries (via continuity.ts generateSummary)
 - [x] Conversation branching (fork API + visual branch tree in sidebar + breadcrumb navigation)
-- [ ] Export conversations
+- [x] Export conversations (`<leader>x` to export, copy transcript command)
 
 ---
 
