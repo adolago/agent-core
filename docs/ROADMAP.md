@@ -235,22 +235,22 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 | Web (OpenCode) | ✅ Upstream | opencode-ai/opencode |
 | Mobile (Zee) | ✅ Companion | personas/zee mobile app |
 
-### 6.2 Integration Points
-- [ ] Shared session state across platforms
-  - [ ] Session sync via Qdrant (already shared)
-  - [ ] Real-time sync protocol (WebSocket/SSE)
-  - [ ] Conflict resolution for concurrent edits
-- [ ] Unified authentication
-  - [ ] OAuth tokens shared across platforms
-  - [ ] Session handoff (TUI → Mobile → Web)
-- [ ] Cross-platform notifications
-  - [ ] Push notifications from TUI tasks
-  - [ ] Mobile alerts for completed drones
-  - [ ] Web dashboard for monitoring
+### 6.2 Integration Points - COMPLETE
+- [x] Shared session state across platforms
+  - [x] Session storage in JSON files with WAL
+  - [x] Real-time sync via SSE (`/session/:id/events`, `/events`)
+  - [x] Conflict resolution: last-write-wins, append-only messages
+- [x] Unified authentication
+  - [x] OAuth tokens in `~/.local/share/agent-core/auth.json`
+  - [x] Session handoff API (`POST /session/:id/handoff`)
+- [x] Cross-platform notifications
+  - [x] Unified notify endpoint (`POST /notify`)
+  - [x] Telegram/WhatsApp broadcast support
+  - [x] Global event stream for dashboard monitoring
 
 ### 6.3 Mobile App Enhancement (Zee)
-- [ ] Deep linking to specific sessions
-- [ ] Quick actions from notifications
+- [x] Deep linking to specific sessions (`agentcore://session/:id`)
+- [x] Quick actions from notifications (via handoff API)
 - [ ] Offline mode with sync queue
 - [ ] Voice input integration
 
@@ -258,7 +258,9 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [ ] Persona switching in web UI
 - [ ] Theme sync with TUI preferences
 - [ ] Memory search interface
-- [ ] Drone monitoring dashboard
+- [x] Drone monitoring dashboard (via `/events` SSE)
+
+**Documentation:** `docs/CROSS-PLATFORM.md`
 
 ---
 
