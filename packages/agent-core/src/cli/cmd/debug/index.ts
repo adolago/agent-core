@@ -70,20 +70,57 @@ const FlagsCommand = cmd({
   async handler(args) {
     const { Flag } = await import("../../../flag/flag")
 
-    const flags = Flag.ALL_FLAGS.map((flag) => {
-      const agentCoreKey = `AGENT_CORE_${flag.name}`
-      const opencodeKey = `OPENCODE_${flag.name}`
+    // List known flag names (extracted from Flag namespace)
+    const flagNames = [
+      "AUTO_SHARE",
+      "GIT_BASH_PATH",
+      "CONFIG",
+      "CONFIG_DIR",
+      "CONFIG_CONTENT",
+      "DISABLE_AUTOUPDATE",
+      "DISABLE_PRUNE",
+      "DISABLE_TERMINAL_TITLE",
+      "PERMISSION",
+      "DISABLE_DEFAULT_PLUGINS",
+      "DISABLE_LSP_DOWNLOAD",
+      "ENABLE_EXPERIMENTAL_MODELS",
+      "DISABLE_AUTOCOMPACT",
+      "DISABLE_MODELS_FETCH",
+      "DISABLE_CLAUDE_CODE",
+      "DISABLE_CLAUDE_CODE_PROMPT",
+      "DISABLE_CLAUDE_CODE_SKILLS",
+      "FAKE_VCS",
+      "CLIENT",
+      "EXPERIMENTAL",
+      "EXPERIMENTAL_FILEWATCHER",
+      "EXPERIMENTAL_DISABLE_FILEWATCHER",
+      "EXPERIMENTAL_ICON_DISCOVERY",
+      "EXPERIMENTAL_DISABLE_COPY_ON_SELECT",
+      "ENABLE_EXA",
+      "EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH",
+      "EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS",
+      "EXPERIMENTAL_OUTPUT_TOKEN_MAX",
+      "EXPERIMENTAL_OXFMT",
+      "EXPERIMENTAL_LSP_TY",
+      "EXPERIMENTAL_LSP_TOOL",
+    ]
+
+    const flags = flagNames.map((name) => {
+      const agentCoreKey = `AGENT_CORE_${name}`
+      const opencodeKey = `OPENCODE_${name}`
       const agentCoreValue = process.env[agentCoreKey]
       const opencodeValue = process.env[opencodeKey]
+      // Get value from Flag namespace if available
+      const flagKey = `OPENCODE_${name}` as keyof typeof Flag
+      const computedValue = Flag[flagKey]
 
       return {
-        name: flag.name,
-        type: flag.type,
-        description: flag.description,
+        name,
         agentCoreEnv: agentCoreKey,
         legacyEnv: opencodeKey,
-        value: agentCoreValue ?? opencodeValue ?? null,
-        source: agentCoreValue ? "AGENT_CORE" : opencodeValue ? "OPENCODE (legacy)" : null,
+        envValue: agentCoreValue ?? opencodeValue ?? null,
+        computedValue: computedValue !== undefined ? String(computedValue) : null,
+        source: agentCoreValue ? "AGENT_CORE" : opencodeValue ? "OPENCODE" : null,
       }
     })
 
@@ -98,22 +135,22 @@ const FlagsCommand = cmd({
     console.log("Use either AGENT_CORE_* or OPENCODE_* prefix (AGENT_CORE_* takes precedence)")
     console.log("")
 
-    const setFlags = flags.filter((f) => f.value !== null)
-    const unsetFlags = flags.filter((f) => f.value === null)
+    const setFlags = flags.filter((f) => f.envValue !== null || f.computedValue === "true")
+    const unsetFlags = flags.filter((f) => f.envValue === null && f.computedValue !== "true")
 
     if (setFlags.length > 0) {
       console.log("Currently Set:")
       for (const flag of setFlags) {
-        console.log(`  ${flag.name.padEnd(40)} = ${flag.value} (${flag.source})`)
-        console.log(`    ${flag.description}`)
+        const value = flag.envValue ?? flag.computedValue
+        const source = flag.source ?? "default"
+        console.log(`  ${flag.name.padEnd(45)} = ${value} (${source})`)
       }
       console.log("")
     }
 
     console.log("Available Flags:")
     for (const flag of unsetFlags) {
-      const prefix = flag.type === "boolean" ? "[bool]  " : flag.type === "number" ? "[num]   " : "[string]"
-      console.log(`  ${prefix} ${flag.name.padEnd(40)} ${flag.description}`)
+      console.log(`  ${flag.name}`)
     }
   },
 })

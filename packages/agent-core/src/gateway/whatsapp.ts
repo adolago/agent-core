@@ -52,12 +52,18 @@ const MESSAGE_TYPES = {
   STICKER: "sticker",
 } as const
 
+// Type for WhatsApp chat from whatsapp-web.js
+interface WhatsAppChat {
+  isGroup: boolean
+  sendStateTyping(): Promise<void>
+}
+
 // Type for WhatsApp message from whatsapp-web.js
 interface WhatsAppMessage {
   type: string
   body: string
   from: string
-  getChat(): Promise<{ isGroup: boolean }>
+  getChat(): Promise<WhatsAppChat>
   getContact(): Promise<{ number: string; name?: string; pushname?: string }>
   reply(text: string): Promise<void>
 }

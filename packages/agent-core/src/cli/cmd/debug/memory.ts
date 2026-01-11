@@ -40,8 +40,8 @@ const StatsMemoryCommand = cmd({
             const info = await client.getCollection(collection.name)
             collectionStats.push({
               name: collection.name,
-              vectors: info.vectors_count,
-              points: info.points_count,
+              vectors: info.indexed_vectors_count ?? 0,
+              points: info.points_count ?? 0,
               status: info.status,
             })
           } catch {
@@ -157,8 +157,8 @@ const SearchMemoryCommand = cmd({
   async handler(args) {
     await bootstrap(process.cwd(), async () => {
       try {
-        // Try to get the memory store from src/memory
-        const { getMemoryStore } = await import("../../../../src/memory/store")
+        // Try to get the memory store from src/memory (root of monorepo)
+        const { getMemoryStore } = await import("../../../../../../src/memory/store")
         const store = getMemoryStore()
 
         // Search using the memory store
@@ -183,10 +183,11 @@ const SearchMemoryCommand = cmd({
 
         for (let i = 0; i < results.length; i++) {
           const result = results[i]
-          console.log(`${i + 1}. [${result.category || "unknown"}] (score: ${result.score?.toFixed(3) || "N/A"})`)
-          console.log(`   ${result.content}`)
-          if (result.metadata) {
-            const meta = result.metadata
+          const entry = result.entry
+          console.log(`${i + 1}. [${entry.category || "unknown"}] (score: ${result.score?.toFixed(3) || "N/A"})`)
+          console.log(`   ${entry.content}`)
+          if (entry.metadata) {
+            const meta = entry.metadata as Record<string, unknown>
             if (meta.source) console.log(`   Source: ${meta.source}`)
             if (meta.extractedAt) console.log(`   Extracted: ${new Date(meta.extractedAt as number).toLocaleString()}`)
           }
@@ -203,8 +204,8 @@ const SearchMemoryCommand = cmd({
 
           const info = await client.getCollection(args.collection)
           console.log(`Collection: ${args.collection}`)
-          console.log(`  Points: ${info.points_count}`)
-          console.log(`  Vectors: ${info.vectors_count}`)
+          console.log(`  Points: ${info.points_count ?? 0}`)
+          console.log(`  Vectors: ${info.indexed_vectors_count ?? 0}`)
           console.log("")
           console.log("To enable semantic search, ensure the embedding model is configured.")
         } catch (qdrantError) {

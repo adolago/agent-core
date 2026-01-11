@@ -66,7 +66,14 @@ export class MemoryStore {
       embedding: { ...DEFAULT_CONFIG.embedding, ...config.embedding },
     };
 
-    this.storage = new QdrantVectorStorage(merged.qdrant);
+    // Ensure required fields have default values
+    const qdrantConfig = {
+      url: merged.qdrant.url ?? "http://localhost:6333",
+      apiKey: merged.qdrant.apiKey,
+      collection: merged.qdrant.collection ?? "zee_memories",
+    };
+
+    this.storage = new QdrantVectorStorage(qdrantConfig);
     this.embedding = createEmbeddingProvider(merged.embedding);
     this.namespace = merged.namespace ?? "zee";
     this.dimension = merged.embedding.dimensions ?? 1536;
