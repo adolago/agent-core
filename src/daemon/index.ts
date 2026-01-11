@@ -46,6 +46,69 @@ function parseBoolEnv(value: string | undefined, fallback: boolean): boolean {
 }
 
 /**
+ * IPC parameter validation utilities
+ */
+const VALID_PERSONAS = ["zee", "stanley", "johny"] as const;
+const VALID_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
+const MAX_STRING_LENGTH = 100000;
+const MAX_ARRAY_LENGTH = 1000;
+
+type ValidPersona = typeof VALID_PERSONAS[number];
+type ValidPriority = typeof VALID_PRIORITIES[number];
+
+function validateString(value: unknown, name: string, maxLength = MAX_STRING_LENGTH): string {
+  if (typeof value !== "string") {
+    throw new Error(`${name} must be a string`);
+  }
+  if (value.length > maxLength) {
+    throw new Error(`${name} exceeds maximum length of ${maxLength}`);
+  }
+  return value;
+}
+
+function validatePersona(value: unknown): ValidPersona {
+  const str = validateString(value, "persona", 50);
+  if (!VALID_PERSONAS.includes(str as ValidPersona)) {
+    throw new Error(`Invalid persona: ${str}. Must be one of: ${VALID_PERSONAS.join(", ")}`);
+  }
+  return str as ValidPersona;
+}
+
+function validatePriority(value: unknown): ValidPriority | undefined {
+  if (value === undefined || value === null) return undefined;
+  const str = validateString(value, "priority", 20);
+  if (!VALID_PRIORITIES.includes(str as ValidPriority)) {
+    throw new Error(`Invalid priority: ${str}. Must be one of: ${VALID_PRIORITIES.join(", ")}`);
+  }
+  return str as ValidPriority;
+}
+
+function validateNumber(value: unknown, name: string, min?: number, max?: number): number {
+  const num = Number(value);
+  if (isNaN(num)) {
+    throw new Error(`${name} must be a valid number`);
+  }
+  if (min !== undefined && num < min) {
+    throw new Error(`${name} must be at least ${min}`);
+  }
+  if (max !== undefined && num > max) {
+    throw new Error(`${name} must be at most ${max}`);
+  }
+  return num;
+}
+
+function validateStringArray(value: unknown, name: string, maxLength = MAX_ARRAY_LENGTH): string[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error(`${name} must be an array`);
+  }
+  if (value.length > maxLength) {
+    throw new Error(`${name} exceeds maximum length of ${maxLength}`);
+  }
+  return value.map((item, idx) => validateString(item, `${name}[${idx}]`));
+}
+
+/**
  * Agent-Core Daemon
  *
  * Manages lifecycle of:
@@ -150,37 +213,40 @@ export class AgentCoreDaemon {
             return tiara.listTasks();
           case "spawn_drone": {
             const params = request.params ?? {};
-            const persona = params.persona ? String(params.persona) : "";
-            const task = params.task ? String(params.task) : "";
-            const prompt = params.prompt ? String(params.prompt) : "";
-            const priority = params.priority as typeof params.priority;
-            const contextMemoryIds = Array.isArray(params.contextMemoryIds)
-              ? params.contextMemoryIds.map((id) => String(id))
-              : undefined;
-            if (!persona || !task || !prompt) {
+            // Validate all parameters
+            const persona = validatePersona(params.persona);
+            const task = validateString(params.task, "task", 1000);
+            const prompt = validateString(params.prompt, "prompt");
+            const priority = validatePriority(params.priority);
+            const contextMemoryIds = validateStringArray(params.contextMemoryIds, "contextMemoryIds", 100);
+
+            if (!task || !prompt) {
               throw new Error("spawn_drone requires persona, task, and prompt");
             }
             return await tiara.spawnDrone({
-              persona: persona as Parameters<typeof tiara.spawnDrone>[0]["persona"],
+              persona,
               task,
               prompt,
-              priority: priority as Parameters<typeof tiara.spawnDrone>[0]["priority"],
+              priority,
               contextMemoryIds,
             });
           }
           case "spawn_drone_with_wait": {
             const params = request.params ?? {};
-            const persona = params.persona ? String(params.persona) : "";
-            const task = params.task ? String(params.task) : "";
-            const prompt = params.prompt ? String(params.prompt) : "";
-            const timeoutMs = params.timeoutMs ? Number(params.timeoutMs) : undefined;
-            
-            if (!persona || !task || !prompt) {
+            // Validate all parameters
+            const persona = validatePersona(params.persona);
+            const task = validateString(params.task, "task", 1000);
+            const prompt = validateString(params.prompt, "prompt");
+            const timeoutMs = params.timeoutMs !== undefined
+              ? validateNumber(params.timeoutMs, "timeoutMs", 1000, 3600000)
+              : undefined;
+
+            if (!task || !prompt) {
               throw new Error("spawn_drone_with_wait requires persona, task, and prompt");
             }
-            
+
             return await tiara.spawnDroneWithWait({
-              persona: persona as Parameters<typeof tiara.spawnDroneWithWait>[0]["persona"],
+              persona,
               task,
               prompt,
               timeoutMs,
@@ -193,23 +259,25 @@ export class AgentCoreDaemon {
           }
           case "submit_task": {
             const params = request.params ?? {};
-            const persona = params.persona ? String(params.persona) : "";
-            const description = params.description ? String(params.description) : "";
-            const prompt = params.prompt ? String(params.prompt) : "";
-            const priority = params.priority as typeof params.priority;
-            if (!persona || !description || !prompt) {
+            // Validate all parameters
+            const persona = validatePersona(params.persona);
+            const description = validateString(params.description, "description", 500);
+            const prompt = validateString(params.prompt, "prompt");
+            const priority = validatePriority(params.priority);
+
+            if (!description || !prompt) {
               throw new Error("submit_task requires persona, description, and prompt");
             }
             return await tiara.submitTask({
-              persona: persona as Parameters<typeof tiara.submitTask>[0]["persona"],
+              persona,
               description,
               prompt,
-              priority: priority as Parameters<typeof tiara.submitTask>[0]["priority"],
+              priority,
             });
           }
           case "kill_worker": {
             const params = request.params ?? {};
-            const workerId = params.workerId ? String(params.workerId) : "";
+            const workerId = validateString(params.workerId, "workerId", 100);
             if (!workerId) {
               throw new Error("kill_worker requires workerId");
             }
@@ -218,7 +286,7 @@ export class AgentCoreDaemon {
           }
           case "set_plan": {
             const params = request.params ?? {};
-            const plan = params.plan ? String(params.plan) : "";
+            const plan = validateString(params.plan, "plan", 10000);
             if (!plan) {
               throw new Error("set_plan requires plan");
             }
@@ -227,7 +295,7 @@ export class AgentCoreDaemon {
           }
           case "add_objective": {
             const params = request.params ?? {};
-            const objective = params.objective ? String(params.objective) : "";
+            const objective = validateString(params.objective, "objective", 1000);
             if (!objective) {
               throw new Error("add_objective requires objective");
             }
