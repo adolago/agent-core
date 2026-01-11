@@ -75,6 +75,7 @@ import { PermissionPrompt } from "./permission"
 import { QuestionPrompt } from "./question"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
 import { formatTranscript } from "../../util/transcript"
+import { DialogDelegation } from "./dialog-delegation"
 
 addDefaultParsers(parsers.parsers)
 
@@ -382,6 +383,14 @@ export function Session() {
 
   const local = useLocal()
 
+  // Track session changes to reset model selection (session-scoped)
+  createEffect(
+    on(
+      () => route.sessionID,
+      (sessionID) => local.model.setSession(sessionID),
+    ),
+  )
+
   function moveChild(direction: number) {
     if (children().length === 1) return
     let next = children().findIndex((x) => x.id === session()?.id) + direction
@@ -523,6 +532,20 @@ export function Session() {
           .then(() => toast.show({ message: "Session unshared successfully", variant: "success" }))
           .catch(() => toast.show({ message: "Failed to unshare session", variant: "error" }))
         dialog.clear()
+      },
+    },
+    {
+      title: "Delegate to persona",
+      value: "session.delegate",
+      keybind: "session_delegate",
+      category: "Session",
+      onSelect: (dialog) => {
+        dialog.replace(() => (
+          <DialogDelegation
+            prompt={prompt.current}
+            setPrompt={(p) => prompt.set(p)}
+          />
+        ))
       },
     },
     {

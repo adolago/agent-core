@@ -2169,6 +2169,7 @@ export type Agent = {
     topP?: number;
     temperature?: number;
     color?: string;
+    theme?: string;
     permission: PermissionRuleset;
     model?: {
         modelID: string;

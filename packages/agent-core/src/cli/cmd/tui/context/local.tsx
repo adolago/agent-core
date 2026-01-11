@@ -54,7 +54,16 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         }
       })
 
-      const { theme } = useTheme()
+      const themeCtx = useTheme()
+      const { theme } = themeCtx
+
+      // Effect to switch theme when agent changes (if agent has a theme defined)
+      createEffect(() => {
+        const currentAgent = agents().find((x) => x.name === agentStore.current)
+        if (currentAgent?.theme && themeCtx.all()[currentAgent.theme]) {
+          themeCtx.set(currentAgent.theme)
+        }
+      })
       const colors = createMemo(() => [
         theme.secondary,
         theme.accent,

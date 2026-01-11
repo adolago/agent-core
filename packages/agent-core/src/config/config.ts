@@ -659,6 +659,7 @@ export namespace Config {
       model_favorite_toggle: z.string().optional().default("ctrl+f").describe("Toggle model favorite status"),
       session_share: z.string().optional().default("none").describe("Share current session"),
       session_unshare: z.string().optional().default("none").describe("Unshare current session"),
+      session_delegate: z.string().optional().default("<leader>d").describe("Delegate to another persona"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
       session_compact: z.string().optional().default("<leader>c").describe("Compact the session"),
       messages_page_up: z.string().optional().default("pageup,ctrl+alt+b").describe("Scroll messages up by one page"),
@@ -862,13 +863,6 @@ export namespace Config {
             })
             .optional()
             .describe("Telegram gateway configuration"),
-          discord: z
-            .object({
-              enabled: z.boolean().optional().default(false).describe("Enable Discord bot gateway"),
-              bot_token: z.string().optional().describe("Discord bot token"),
-            })
-            .optional()
-            .describe("Discord gateway configuration"),
         })
         .optional()
         .describe("Remote communication gateway configuration"),

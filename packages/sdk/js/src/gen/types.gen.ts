@@ -1590,6 +1590,7 @@ export type Agent = {
   topP?: number
   temperature?: number
   color?: string
+  theme?: string
   permission: {
     edit: "ask" | "allow" | "deny"
     bash: {
