@@ -6,7 +6,7 @@
  */
 
 import { generateText } from "ai";
-import { extractKeyFacts as heuristicExtract } from "./continuity";
+import { extractKeyFacts as heuristicExtract } from "../memory/unified";
 import { Log } from "../../packages/agent-core/src/util/log";
 import { TIMEOUT_FACT_EXTRACTION_MS } from "../config/constants";
 
@@ -58,6 +58,35 @@ export interface ExtractedFact {
 }
 
 /**
+ * Sanitize conversation input to prevent prompt injection
+ * Removes or escapes potentially malicious patterns
+ */
+function sanitizeConversation(text: string): string {
+  // Limit maximum length to prevent context overflow
+  const maxLength = 50000;
+  let sanitized = text.length > maxLength ? text.slice(0, maxLength) : text;
+
+  // Remove obvious prompt injection attempts
+  const injectionPatterns = [
+    /ignore\s+(all\s+)?(previous|above|prior)\s+instructions?/gi,
+    /disregard\s+(all\s+)?(previous|above|prior)\s+instructions?/gi,
+    /forget\s+(all\s+)?(previous|above|prior)\s+instructions?/gi,
+    /new\s+instructions?:/gi,
+    /system\s*:\s*you\s+are/gi,
+    /\[SYSTEM\]/gi,
+    /\[INST\]/gi,
+    /<<SYS>>/gi,
+    /<\|im_start\|>/gi,
+  ];
+
+  for (const pattern of injectionPatterns) {
+    sanitized = sanitized.replace(pattern, "[FILTERED]");
+  }
+
+  return sanitized;
+}
+
+/**
  * Extract key facts from conversation text using LLM
  */
 export async function extractFactsWithLLM(
@@ -69,7 +98,9 @@ export async function extractFactsWithLLM(
   const timeout = config?.timeout ?? TIMEOUT_FACT_EXTRACTION_MS;
 
   try {
-    const prompt = EXTRACTION_PROMPT.replace("{CONVERSATION}", conversation);
+    // Sanitize input to prevent prompt injection
+    const sanitizedConversation = sanitizeConversation(conversation);
+    const prompt = EXTRACTION_PROMPT.replace("{CONVERSATION}", sanitizedConversation);
 
     const result = await generateText({
       model,
