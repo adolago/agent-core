@@ -126,8 +126,9 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - [x] MemoryStore high-level API for save/search/list
   - [x] Collection management with auto-creation
 - [x] Embedding generation (`src/memory/embedding.ts`)
-  - [x] Local BGE-M3 via vLLM (1024d)
-  - [x] OpenAI fallback
+  - [x] **Qwen3-Embedding-8B via Nebius API** (4096d, #1 on MTEB)
+  - [x] Voyage AI provider support
+  - [x] OpenAI/local fallback options
 - [x] Conversation continuity across compactions (`src/personas/continuity.ts`)
   - [x] ContinuityManager with session lifecycle
   - [x] Key fact extraction (heuristic + LLM ready)
@@ -137,7 +138,7 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - [x] Namespace-based isolation
   - [x] Shared Qdrant collections
   - [x] Memory bridge for persona state (`src/personas/memory-bridge.ts`)
-- [ ] Memory search MCP tool (not yet exposed via MCP)
+- [x] Memory search MCP tool (`personas-memory` server)
 
 ### 3.2 Orchestration (Tiara) - COMPLETE
 - [x] Drone spawning via Task tool (`src/personas/tiara.ts`)
@@ -158,21 +159,21 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - [x] Session lifecycle hook for auto-extraction
   - [x] Heuristic and LLM-based extraction
 
-### 3.3 MCP Servers
+### 3.3 MCP Servers - COMPLETE
 - [x] Context7 integration
-- [ ] Custom MCP for personas (not yet implemented)
-  - [ ] Memory MCP (expose memory search to external tools)
-  - [ ] Calendar MCP (expose calendar to external tools)
-  - [ ] Portfolio MCP (expose portfolio to external tools)
+- [x] Custom MCP for personas (`src/mcp/servers/`)
+  - [x] Memory MCP (`personas-memory`) - store, search, list, delete, stats
+  - [x] Calendar MCP (`personas-calendar`) - events, create, update, delete, free-time
+  - [x] Portfolio MCP (`personas-portfolio`) - status, positions, market-data, SEC, backtest
 
 ---
 
 ## Phase 4: TUI Improvements
 
-### 4.1 Model Selection - MOSTLY COMPLETE
+### 4.1 Model Selection - COMPLETE
 - [x] Favorites system (`dialog-model.tsx` favorites support)
 - [x] Recently used models (`local.model.recent()`)
-- [ ] Provider status indicators (auth valid/expired)
+- [x] Provider status indicators (auth valid/expired) - shows ✗/△ in model dialog
 - [x] Cost display for non-free models (shows "Free" badge)
 
 ### 4.2 Agent Experience
