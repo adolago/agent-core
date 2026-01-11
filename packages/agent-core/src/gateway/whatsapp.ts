@@ -18,16 +18,27 @@ import { Todo } from "../session/todo"
 import { Global } from "../global"
 import path from "path"
 import fs from "fs/promises"
+import * as os from "node:os"
+import * as crypto from "node:crypto"
+import { spawn } from "node:child_process"
 
 const log = Log.create({ service: "whatsapp-gateway" })
 
 export namespace WhatsAppGateway {
+  export interface TTSConfig {
+    command: string[] // CLI command with {{Text}} and {{OutputPath}} templates
+    timeoutSeconds?: number // Default: 30
+    maxTextLength?: number // Max chars to synthesize (default: 4000)
+    voice?: string // Voice ID for services that support it
+  }
+
   export interface GatewayConfig {
     allowedNumbers?: string[] // Phone numbers allowed to interact (with country code, no +)
     directory: string // Working directory for sessions
     apiBaseUrl?: string // Internal API URL
     apiPort?: number
     sessionDir?: string // Directory to store WhatsApp session
+    tts?: TTSConfig // Text-to-speech for voice responses
   }
 
   interface ChatContext {
@@ -555,6 +566,129 @@ Commands:
         })
         return false
       }
+    }
+
+    /**
+     * Send a voice message using TTS
+     */
+    async sendVoice(chatId: string, text: string): Promise<boolean> {
+      const ttsConfig = this.config.tts
+      if (!ttsConfig?.command?.length) {
+        log.debug("No TTS command configured, falling back to text")
+        return this.sendMessage(chatId, text)
+      }
+
+      if (!this.ready || !this.client) {
+        log.warn("WhatsApp client not ready for voice")
+        return false
+      }
+
+      // Truncate text if too long
+      const maxLen = ttsConfig.maxTextLength ?? 4000
+      const textToSpeak = text.length > maxLen ? text.slice(0, maxLen) + "..." : text
+
+      try {
+        const audioBuffer = await this.synthesizeText(textToSpeak)
+        if (!audioBuffer) {
+          log.warn("TTS synthesis failed, falling back to text")
+          return this.sendMessage(chatId, text)
+        }
+
+        // Dynamic import MessageMedia
+        // @ts-ignore
+        const { MessageMedia } = await import("whatsapp-web.js")
+
+        // Create voice message from buffer
+        const base64Audio = audioBuffer.toString("base64")
+        const media = new MessageMedia("audio/ogg; codecs=opus", base64Audio, "voice.ogg")
+
+        // Send as PTT (push-to-talk/voice note)
+        await this.client.sendMessage(chatId, media, { sendAudioAsVoice: true })
+
+        log.info("Voice message sent", { chatId, textLength: textToSpeak.length })
+        return true
+      } catch (error) {
+        log.error("Voice send error", { error: error instanceof Error ? error.message : String(error) })
+        return this.sendMessage(chatId, text)
+      }
+    }
+
+    /**
+     * Synthesize text to speech using configured TTS command
+     */
+    private async synthesizeText(text: string): Promise<Buffer | null> {
+      const ttsConfig = this.config.tts
+      if (!ttsConfig?.command?.length) {
+        log.debug("No TTS command configured")
+        return null
+      }
+
+      const timeoutMs = Math.max((ttsConfig.timeoutSeconds ?? 30) * 1000, 1000)
+      const tmpPath = path.join(os.tmpdir(), `whatsapp-tts-${crypto.randomUUID()}.ogg`)
+
+      try {
+        // Apply templates to command
+        const escapedText = text.replace(/'/g, "'\\''")
+        const argv = ttsConfig.command.map((part) =>
+          part
+            .replace(/\{\{Text\}\}/g, escapedText)
+            .replace(/\{\{OutputPath\}\}/g, tmpPath)
+            .replace(/\{\{Voice\}\}/g, ttsConfig.voice ?? "")
+        )
+
+        log.debug("Running TTS command", { textLength: text.length, outputPath: tmpPath })
+
+        // Run TTS command
+        const result = await this.runCommand(argv, timeoutMs)
+        if (result.exitCode !== 0) {
+          log.error("TTS command failed", { exitCode: result.exitCode, stderr: result.stderr })
+          return null
+        }
+
+        // Read generated audio file
+        const audioBuffer = await fs.readFile(tmpPath)
+        if (audioBuffer.length === 0) {
+          log.warn("TTS produced empty audio file")
+          return null
+        }
+
+        log.info("Text synthesized to audio", { audioSize: audioBuffer.length })
+        return audioBuffer
+      } catch (error) {
+        log.error("TTS error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return null
+      } finally {
+        await fs.unlink(tmpPath).catch(() => {})
+      }
+    }
+
+    private runCommand(argv: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+      return new Promise((resolve) => {
+        const [cmd, ...args] = argv
+        const proc = spawn(cmd, args, { timeout: timeoutMs })
+
+        let stdout = ""
+        let stderr = ""
+
+        proc.stdout?.on("data", (data) => {
+          stdout += data.toString()
+        })
+
+        proc.stderr?.on("data", (data) => {
+          stderr += data.toString()
+        })
+
+        proc.on("close", (code) => {
+          resolve({ stdout, stderr, exitCode: code ?? 1 })
+        })
+
+        proc.on("error", (error) => {
+          stderr += error.message
+          resolve({ stdout, stderr, exitCode: 1 })
+        })
+      })
     }
 
     async notify(chatId: string, message: string): Promise<boolean> {
