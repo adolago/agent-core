@@ -1,7 +1,7 @@
 /**
  * Messaging Surface Adapter
  *
- * Unified adapter for messaging platforms (WhatsApp, Telegram, Discord).
+ * Unified adapter for messaging platforms (WhatsApp, Telegram).
  * Handles non-streaming (message batching) and automatic permission resolution.
  */
 
@@ -37,7 +37,7 @@ import {
  */
 export interface MessagingPlatformHandler {
   /** Platform identifier */
-  readonly platform: 'whatsapp' | 'telegram' | 'discord';
+  readonly platform: 'whatsapp' | 'telegram';
 
   /** Connect to the platform */
   connect(): Promise<void>;
@@ -77,7 +77,7 @@ export type PlatformMessage = {
   groupName?: string;
   replyToId?: string;
   wasMentioned?: boolean;
-  platform: 'whatsapp' | 'telegram' | 'discord';
+  platform: 'whatsapp' | 'telegram';
 };
 
 // =============================================================================
@@ -96,6 +96,7 @@ const MESSAGING_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: false, // Limited editing support
   maxMessageLength: 4096, // Default, varies by platform
   supportedMediaTypes: ['image/*', 'video/*', 'audio/*', 'application/pdf'],
+  showThinking: false, // Thinking output is never shown on messaging platforms
 };
 
 // Platform-specific capability overrides
@@ -104,16 +105,13 @@ const PLATFORM_CAPABILITIES: Record<string, Partial<SurfaceCapabilities>> = {
     maxMessageLength: 65536,
     reactions: true,
     messageEditing: false,
+    showThinking: false, // Locked: never show thinking on WhatsApp
   },
   telegram: {
     maxMessageLength: 4096,
     reactions: true,
     messageEditing: true,
-  },
-  discord: {
-    maxMessageLength: 2000,
-    reactions: true,
-    messageEditing: true,
+    showThinking: false, // Locked: never show thinking on Telegram
   },
 };
 
@@ -185,7 +183,7 @@ class MessageBatcher {
 /**
  * Unified messaging surface adapter.
  *
- * Handles WhatsApp, Telegram, and Discord with a common interface.
+ * Handles WhatsApp and Telegram with a common interface.
  */
 export class MessagingSurface extends BaseSurface implements Surface {
   readonly id: string;
@@ -221,7 +219,6 @@ export class MessagingSurface extends BaseSurface implements Surface {
     const names: Record<string, string> = {
       whatsapp: 'WhatsApp',
       telegram: 'Telegram',
-      discord: 'Discord',
     };
     return names[platform] || platform;
   }
@@ -472,9 +469,8 @@ export class MessagingSurface extends BaseSurface implements Surface {
  * Create a messaging surface with a platform handler.
  *
  * Platform handlers must be provided by the application:
- * - WhatsApp: Use @whiskeysockets/baileys
+ * - WhatsApp: Use whatsapp-web.js (or @whiskeysockets/baileys)
  * - Telegram: Use telegraf
- * - Discord: Use discord.js
  *
  * @example
  * ```typescript
