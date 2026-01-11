@@ -8,7 +8,7 @@ export const AttachCommand = cmd({
     yargs
       .positional("url", {
         type: "string",
-        describe: "http://localhost:4096",
+        describe: "server URL (e.g., http://localhost:3456)",
         demandOption: true,
       })
       .option("dir", {

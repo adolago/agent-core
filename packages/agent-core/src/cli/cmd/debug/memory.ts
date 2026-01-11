@@ -1,11 +1,19 @@
 import { cmd } from "../cmd"
 import { bootstrap } from "../../bootstrap"
 
+/** Default Qdrant URL, configurable via environment */
+const DEFAULT_QDRANT_URL = process.env.QDRANT_URL ?? "http://localhost:6333"
+
 export const MemoryCommand = cmd({
   command: "memory",
   describe: "show memory and vector database stats",
   builder: (yargs) =>
     yargs
+      .option("qdrant-url", {
+        type: "string",
+        default: DEFAULT_QDRANT_URL,
+        describe: "Qdrant server URL",
+      })
       .command(StatsMemoryCommand)
       .command(SearchMemoryCommand)
       .demandCommand(),
@@ -29,7 +37,7 @@ const StatsMemoryCommand = cmd({
       try {
         // Dynamic import to avoid hard dependency
         const { QdrantClient } = await import("@qdrant/js-client-rest")
-        const client = new QdrantClient({ url: "http://localhost:6333" })
+        const client = new QdrantClient({ url: DEFAULT_QDRANT_URL })
 
         // Get collections
         const collections = await client.getCollections()
@@ -200,7 +208,7 @@ const SearchMemoryCommand = cmd({
 
         try {
           const { QdrantClient } = await import("@qdrant/js-client-rest")
-          const client = new QdrantClient({ url: "http://localhost:6333" })
+          const client = new QdrantClient({ url: DEFAULT_QDRANT_URL })
 
           const info = await client.getCollection(args.collection)
           console.log(`Collection: ${args.collection}`)
