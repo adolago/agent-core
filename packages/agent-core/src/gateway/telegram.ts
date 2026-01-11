@@ -88,6 +88,13 @@ export namespace TelegramGateway {
     timeoutSeconds?: number // Default: 45
   }
 
+  export interface TTSConfig {
+    command: string[] // CLI command with {{Text}} and {{OutputPath}} templates
+    timeoutSeconds?: number // Default: 30
+    maxTextLength?: number // Max chars to synthesize (default: 4000)
+    voice?: string // Voice ID for services that support it
+  }
+
   export interface GatewayConfig {
     botToken: string
     persona: "zee" | "stanley" | "johny" // Each bot is tied to a specific persona
@@ -98,6 +105,7 @@ export namespace TelegramGateway {
     apiBaseUrl?: string // Internal API URL (default: http://127.0.0.1:PORT)
     apiPort?: number
     transcribeAudio?: TranscriptionConfig // Voice note transcription
+    tts?: TTSConfig // Text-to-speech for voice responses
   }
 
   interface ChatContext {
@@ -316,6 +324,118 @@ export namespace TelegramGateway {
       await this.telegramApi("sendChatAction", {
         chat_id: chatId,
         action: "typing",
+      })
+    }
+
+    /**
+     * Send a voice message using TTS
+     */
+    async sendVoice(chatId: number, text: string, replyToMessageId?: number): Promise<boolean> {
+      const ttsConfig = this.config.tts
+      if (!ttsConfig?.command?.length) {
+        log.debug("No TTS command configured, falling back to text")
+        return this.sendMessage(chatId, text, replyToMessageId)
+      }
+
+      // Truncate text if too long
+      const maxLen = ttsConfig.maxTextLength ?? 4000
+      const textToSpeak = text.length > maxLen ? text.slice(0, maxLen) + "..." : text
+
+      try {
+        const audioBuffer = await this.synthesizeText(textToSpeak)
+        if (!audioBuffer) {
+          log.warn("TTS synthesis failed, falling back to text")
+          return this.sendMessage(chatId, text, replyToMessageId)
+        }
+
+        // Send voice message via Telegram API
+        const formData = new FormData()
+        formData.append("chat_id", chatId.toString())
+        formData.append("voice", new Blob([new Uint8Array(audioBuffer)], { type: "audio/ogg" }), "voice.ogg")
+        if (replyToMessageId) {
+          formData.append("reply_to_message_id", replyToMessageId.toString())
+        }
+
+        const response = await fetch(
+          `https://api.telegram.org/bot${this.config.botToken}/sendVoice`,
+          { method: "POST", body: formData }
+        )
+
+        if (!response.ok) {
+          log.error("Failed to send voice message", { status: response.status })
+          return this.sendMessage(chatId, text, replyToMessageId)
+        }
+
+        log.info("Voice message sent", { chatId, textLength: textToSpeak.length })
+        return true
+      } catch (error) {
+        log.error("Voice send error", { error: error instanceof Error ? error.message : String(error) })
+        return this.sendMessage(chatId, text, replyToMessageId)
+      }
+    }
+
+    /**
+     * Synthesize text to speech using configured TTS command
+     */
+    private async synthesizeText(text: string): Promise<Buffer | null> {
+      const ttsConfig = this.config.tts
+      if (!ttsConfig?.command?.length) {
+        log.debug("No TTS command configured")
+        return null
+      }
+
+      const timeoutMs = Math.max((ttsConfig.timeoutSeconds ?? 30) * 1000, 1000)
+      const tmpPath = path.join(os.tmpdir(), `telegram-tts-${crypto.randomUUID()}.ogg`)
+
+      try {
+        // Apply templates to command
+        // {{Text}} - the text to synthesize (as shell-escaped string)
+        // {{OutputPath}} - where to write the audio file
+        // {{Voice}} - optional voice ID
+        const escapedText = text.replace(/'/g, "'\\''") // Shell escape single quotes
+        const argv = ttsConfig.command.map((part) =>
+          part
+            .replace(/\{\{Text\}\}/g, escapedText)
+            .replace(/\{\{OutputPath\}\}/g, tmpPath)
+            .replace(/\{\{Voice\}\}/g, ttsConfig.voice ?? "")
+        )
+
+        log.debug("Running TTS command", { textLength: text.length, outputPath: tmpPath })
+
+        // Run TTS command
+        const result = await this.runCommand(argv, timeoutMs)
+        if (result.exitCode !== 0) {
+          log.error("TTS command failed", { exitCode: result.exitCode, stderr: result.stderr })
+          return null
+        }
+
+        // Read generated audio file
+        const audioBuffer = await fs.readFile(tmpPath)
+        if (audioBuffer.length === 0) {
+          log.warn("TTS produced empty audio file")
+          return null
+        }
+
+        log.info("Text synthesized to audio", { audioSize: audioBuffer.length })
+        return audioBuffer
+      } catch (error) {
+        log.error("TTS error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return null
+      } finally {
+        // Clean up temp file
+        await fs.unlink(tmpPath).catch(() => {})
+      }
+    }
+
+    /**
+     * Send recording action to show voice message is being prepared
+     */
+    async sendRecordingVoice(chatId: number): Promise<void> {
+      await this.telegramApi("sendChatAction", {
+        chat_id: chatId,
+        action: "record_voice",
       })
     }
 
