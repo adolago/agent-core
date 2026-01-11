@@ -10,6 +10,11 @@
  * - Uses the daemon's HTTP API for session management
  */
 
+import * as fs from "node:fs/promises"
+import * as os from "node:os"
+import * as path from "node:path"
+import * as crypto from "node:crypto"
+import { spawn } from "node:child_process"
 import { Log } from "../util/log"
 import { Persistence } from "../session/persistence"
 import { LifecycleHooks } from "../hooks/lifecycle"
@@ -37,12 +42,39 @@ export namespace TelegramGateway {
     last_name?: string
   }
 
+  export interface TelegramVoice {
+    file_id: string
+    file_unique_id: string
+    duration: number
+    mime_type?: string
+    file_size?: number
+  }
+
+  export interface TelegramAudio {
+    file_id: string
+    file_unique_id: string
+    duration: number
+    performer?: string
+    title?: string
+    mime_type?: string
+    file_size?: number
+  }
+
+  export interface TelegramFile {
+    file_id: string
+    file_unique_id: string
+    file_size?: number
+    file_path?: string
+  }
+
   export interface TelegramMessage {
     message_id: number
     from?: TelegramUser
     chat: TelegramChat
     date: number
     text?: string
+    voice?: TelegramVoice
+    audio?: TelegramAudio
     reply_to_message?: TelegramMessage
   }
 
@@ -51,51 +83,33 @@ export namespace TelegramGateway {
     message?: TelegramMessage
   }
 
+  export interface TranscriptionConfig {
+    command: string[] // CLI command with {{MediaPath}} template
+    timeoutSeconds?: number // Default: 45
+  }
+
   export interface GatewayConfig {
     botToken: string
+    persona: "zee" | "stanley" | "johny" // Each bot is tied to a specific persona
     allowedUsers?: number[] // Telegram user IDs allowed to interact
     allowedChats?: number[] // Chat IDs (groups) allowed
     pollingInterval?: number // ms between poll requests
     directory: string // Working directory for sessions
     apiBaseUrl?: string // Internal API URL (default: http://127.0.0.1:PORT)
     apiPort?: number
+    transcribeAudio?: TranscriptionConfig // Voice note transcription
   }
 
   interface ChatContext {
     sessionId: string | null
     chatId: number
     lastActivity: number
-    persona: "zee" | "stanley" | "johny"
     pendingResponse: boolean
   }
 
-  // Intent patterns for persona routing
-  const STANLEY_PATTERNS = [
-    /portfolio/i,
-    /stock/i,
-    /market/i,
-    /invest/i,
-    /trading/i,
-    /finance/i,
-    /ticker/i,
-    /nvda|aapl|tsla|msft|goog/i,
-    /buy|sell|hold/i,
-    /earnings/i,
-    /dividend/i,
-  ]
-
-  const JOHNY_PATTERNS = [
-    /study/i,
-    /learn/i,
-    /quiz/i,
-    /teach/i,
-    /explain/i,
-    /knowledge/i,
-    /practice/i,
-    /spaced repetition/i,
-    /flashcard/i,
-    /math|calculus|algebra|physics|chemistry/i,
-  ]
+  // Multi-bot support: each bot instance is tied to a specific persona
+  // Stanley bot: @triad_stanley_bot - investing/trading
+  // Johny bot: @triad_johny_bot - learning/study
 
   export class Gateway {
     private config: GatewayConfig
@@ -188,6 +202,100 @@ export namespace TelegramGateway {
       return result ?? []
     }
 
+    private async getFile(fileId: string): Promise<TelegramFile | null> {
+      return this.telegramApi<TelegramFile>("getFile", { file_id: fileId })
+    }
+
+    private async downloadFile(filePath: string): Promise<Buffer | null> {
+      const url = `https://api.telegram.org/file/bot${this.config.botToken}/${filePath}`
+      try {
+        const response = await fetch(url)
+        if (!response.ok) {
+          log.error("Failed to download file", { status: response.status })
+          return null
+        }
+        return Buffer.from(await response.arrayBuffer())
+      } catch (error) {
+        log.error("File download error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return null
+      }
+    }
+
+    private async transcribeAudio(audioBuffer: Buffer): Promise<string | null> {
+      const transcriber = this.config.transcribeAudio
+      if (!transcriber?.command?.length) {
+        log.debug("No transcription command configured")
+        return null
+      }
+
+      const timeoutMs = Math.max((transcriber.timeoutSeconds ?? 45) * 1000, 1000)
+      const tmpPath = path.join(os.tmpdir(), `telegram-voice-${crypto.randomUUID()}.ogg`)
+
+      try {
+        // Write audio to temp file
+        await fs.writeFile(tmpPath, audioBuffer)
+        log.debug("Saved voice note to temp file", { path: tmpPath, size: audioBuffer.length })
+
+        // Apply {{MediaPath}} template to command
+        const argv = transcriber.command.map((part) =>
+          part.replace(/\{\{MediaPath\}\}/g, tmpPath)
+        )
+
+        // Run transcription command
+        const result = await this.runCommand(argv, timeoutMs)
+        if (result.exitCode !== 0) {
+          log.error("Transcription command failed", { exitCode: result.exitCode, stderr: result.stderr })
+          return null
+        }
+
+        const transcript = result.stdout.trim()
+        if (!transcript) {
+          log.warn("Transcription returned empty result")
+          return null
+        }
+
+        log.info("Voice note transcribed", { length: transcript.length })
+        return transcript
+      } catch (error) {
+        log.error("Transcription error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return null
+      } finally {
+        // Clean up temp file
+        await fs.unlink(tmpPath).catch(() => {})
+      }
+    }
+
+    private runCommand(argv: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+      return new Promise((resolve) => {
+        const [cmd, ...args] = argv
+        const proc = spawn(cmd, args, { timeout: timeoutMs })
+
+        let stdout = ""
+        let stderr = ""
+
+        proc.stdout?.on("data", (data) => {
+          stdout += data.toString()
+        })
+
+        proc.stderr?.on("data", (data) => {
+          stderr += data.toString()
+        })
+
+        proc.on("close", (code) => {
+          resolve({ stdout, stderr, exitCode: code ?? 1 })
+        })
+
+        proc.on("error", (error) => {
+          stderr += error.message
+          resolve({ stdout, stderr, exitCode: 1 })
+        })
+      })
+    }
+
     async sendMessage(chatId: number, text: string, replyToMessageId?: number): Promise<boolean> {
       // Split long messages for Telegram's 4096 char limit
       const chunks = this.chunkMessage(text, 4000)
@@ -235,10 +343,96 @@ export namespace TelegramGateway {
       for (const update of updates) {
         this.lastUpdateId = update.update_id
 
-        if (update.message?.text) {
-          await this.handleIncomingMessage(update.message)
+        if (update.message) {
+          const message = update.message
+
+          // Handle text messages
+          if (message.text) {
+            await this.handleIncomingMessage(message)
+          }
+          // Handle voice notes and audio files
+          else if (message.voice || message.audio) {
+            await this.handleVoiceMessage(message)
+          }
         }
       }
+    }
+
+    private async handleVoiceMessage(message: TelegramMessage): Promise<void> {
+      const chatId = message.chat.id
+      const userId = message.from?.id
+
+      // Authorization check
+      if (!this.isAuthorized(chatId, userId)) {
+        log.warn("Unauthorized voice message", { chatId, userId, username: message.from?.username })
+        await this.sendMessage(chatId, "Sorry, you're not authorized to use this bot.")
+        return
+      }
+
+      // Get file info
+      const fileId = message.voice?.file_id || message.audio?.file_id
+      if (!fileId) {
+        log.error("Voice message without file_id")
+        return
+      }
+
+      log.info("Received voice message", {
+        chatId,
+        userId,
+        username: message.from?.username,
+        duration: message.voice?.duration || message.audio?.duration,
+        fileSize: message.voice?.file_size || message.audio?.file_size,
+      })
+
+      // Check if transcription is configured
+      if (!this.config.transcribeAudio?.command?.length) {
+        await this.sendMessage(
+          chatId,
+          "Voice messages are not supported. Please send a text message instead.",
+          message.message_id
+        )
+        return
+      }
+
+      // Send typing indicator
+      await this.sendTyping(chatId)
+
+      // Download the voice file
+      const file = await this.getFile(fileId)
+      if (!file?.file_path) {
+        log.error("Failed to get file path", { fileId })
+        await this.sendMessage(chatId, "Sorry, I couldn't process your voice message.", message.message_id)
+        return
+      }
+
+      const audioBuffer = await this.downloadFile(file.file_path)
+      if (!audioBuffer) {
+        await this.sendMessage(chatId, "Sorry, I couldn't download your voice message.", message.message_id)
+        return
+      }
+
+      // Transcribe the audio
+      const transcript = await this.transcribeAudio(audioBuffer)
+      if (!transcript) {
+        await this.sendMessage(
+          chatId,
+          "Sorry, I couldn't transcribe your voice message. Please try again or send a text message.",
+          message.message_id
+        )
+        return
+      }
+
+      log.info("Voice message transcribed", {
+        chatId,
+        transcript: transcript.substring(0, 50),
+      })
+
+      // Process as a text message with the transcript
+      const textMessage: TelegramMessage = {
+        ...message,
+        text: transcript,
+      }
+      await this.handleIncomingMessage(textMessage)
     }
 
     // -------------------------------------------------------------------------
@@ -273,11 +467,11 @@ export namespace TelegramGateway {
       // Send typing indicator
       await this.sendTyping(chatId)
 
-      // Determine which persona should handle this
-      const persona = this.detectPersona(text)
+      // Use the bot's configured persona (no detection needed)
+      const persona = this.config.persona
 
       // Get or create context for this chat
-      const context = await this.getOrCreateContext(chatId, persona)
+      const context = await this.getOrCreateContext(chatId)
 
       try {
         // Send message via internal API
@@ -304,19 +498,14 @@ export namespace TelegramGateway {
         case "/start":
           await this.sendMessage(
             chatId,
-            `Welcome to Agent-Core!
+            `Welcome! I'm ${this.getPersonaName()}, your ${this.getPersonaDescription()}.
 
-I'm your gateway to the Personas:
-• *Zee* - Personal assistant (default)
-• *Stanley* - Finance & investing
-• *Johny* - Learning & study
-
-Just send me a message and I'll route it to the right persona.
+${this.getPersonaWelcome()}
 
 Commands:
 /status - Check system status
 /new - Start a new conversation
-/help - Show this help`,
+/help - Show available commands`,
             messageId
           )
           break
@@ -328,32 +517,48 @@ Commands:
 
         case "/new":
           this.chatContexts.delete(chatId)
-          await this.sendMessage(chatId, "Started a new conversation. How can I help?", messageId)
-          break
-
-        case "/zee":
-        case "/stanley":
-        case "/johny":
-          const persona = cmd.substring(1) as "zee" | "stanley" | "johny"
-          const context = await this.getOrCreateContext(chatId, persona)
-          context.persona = persona
-          context.sessionId = null // Force new session
-          await this.sendMessage(chatId, `Switched to ${persona.charAt(0).toUpperCase() + persona.slice(1)}. How can I help?`, messageId)
+          await this.sendMessage(chatId, `Started a new conversation with ${this.getPersonaName()}. How can I help?`, messageId)
           break
 
         case "/help":
         default:
           await this.sendMessage(
             chatId,
-            `Available commands:
+            `${this.getPersonaName()} - ${this.getPersonaDescription()}
+
+Available commands:
 /start - Welcome message
 /status - Check system status
 /new - Start new conversation
-/zee - Switch to Zee
-/stanley - Switch to Stanley
-/johny - Switch to Johny`,
+/help - Show this help`,
             messageId
           )
+      }
+    }
+
+    private getPersonaName(): string {
+      return this.config.persona.charAt(0).toUpperCase() + this.config.persona.slice(1)
+    }
+
+    private getPersonaDescription(): string {
+      switch (this.config.persona) {
+        case "stanley":
+          return "Investing & Trading Assistant"
+        case "johny":
+          return "Learning & Study Assistant"
+        default:
+          return "AI Assistant"
+      }
+    }
+
+    private getPersonaWelcome(): string {
+      switch (this.config.persona) {
+        case "stanley":
+          return "I can help with market analysis, portfolio management, stock research, and trading strategies. Ask me about stocks, crypto, earnings, SEC filings, or backtesting strategies."
+        case "johny":
+          return "I can help you learn efficiently with spaced repetition, knowledge graphs, and deliberate practice. Ask me about any topic you want to master."
+        default:
+          return "How can I help you today?"
       }
     }
 
@@ -376,43 +581,11 @@ Commands:
       return false
     }
 
-    private detectPersona(text: string): "zee" | "stanley" | "johny" {
-      // Check for explicit persona mentions
-      const lowerText = text.toLowerCase()
-
-      if (lowerText.includes("@stanley") || lowerText.startsWith("stanley,") || lowerText.startsWith("stanley:")) {
-        return "stanley"
-      }
-      if (lowerText.includes("@johny") || lowerText.startsWith("johny,") || lowerText.startsWith("johny:")) {
-        return "johny"
-      }
-      if (lowerText.includes("@zee") || lowerText.startsWith("zee,") || lowerText.startsWith("zee:")) {
-        return "zee"
-      }
-
-      // Check intent patterns for Stanley
-      for (const pattern of STANLEY_PATTERNS) {
-        if (pattern.test(text)) {
-          return "stanley"
-        }
-      }
-
-      // Check intent patterns for Johny
-      for (const pattern of JOHNY_PATTERNS) {
-        if (pattern.test(text)) {
-          return "johny"
-        }
-      }
-
-      // Default to Zee for general requests
-      return "zee"
-    }
-
-    private async getOrCreateContext(chatId: number, persona: "zee" | "stanley" | "johny"): Promise<ChatContext> {
+    private async getOrCreateContext(chatId: number): Promise<ChatContext> {
       let context = this.chatContexts.get(chatId)
+      const persona = this.config.persona
 
-      // If persona changed, create new context
-      if (!context || context.persona !== persona) {
+      if (!context) {
         // Try to restore last active session for this persona
         let restoredSessionId: string | null = null
         let hasTodos = false
@@ -455,7 +628,6 @@ Commands:
           sessionId: restoredSessionId,
           chatId,
           lastActivity: Date.now(),
-          persona,
           pendingResponse: false,
         }
         this.chatContexts.set(chatId, context)
@@ -648,33 +820,99 @@ Commands:
     /**
      * Broadcast a notification to all active chats
      */
-    async broadcast(message: string): Promise<void> {
+    async broadcast(message: string): Promise<{ sent: number; failed: number }> {
+      let sent = 0
+      let failed = 0
       for (const [chatId] of this.chatContexts) {
-        await this.sendMessage(chatId, message)
+        const success = await this.sendMessage(chatId, message)
+        if (success) sent++
+        else failed++
+      }
+      return { sent, failed }
+    }
+
+    /**
+     * Get all known chat IDs (users who have messaged this bot)
+     */
+    getKnownChatIds(): number[] {
+      return Array.from(this.chatContexts.keys())
+    }
+  }
+
+  // Multi-instance management - one gateway per persona
+  const instances = new Map<string, Gateway>()
+
+  export function getInstance(persona: "stanley" | "johny"): Gateway | null {
+    return instances.get(persona) || null
+  }
+
+  export function getAllInstances(): Map<string, Gateway> {
+    return instances
+  }
+
+  export async function start(config: GatewayConfig): Promise<Gateway> {
+    const existing = instances.get(config.persona)
+    if (existing) {
+      await existing.stop()
+    }
+    const gateway = new Gateway(config)
+    await gateway.start()
+    instances.set(config.persona, gateway)
+    log.info("Started Telegram bot", { persona: config.persona })
+    return gateway
+  }
+
+  export async function stop(persona?: "stanley" | "johny"): Promise<void> {
+    if (persona) {
+      const instance = instances.get(persona)
+      if (instance) {
+        await instance.stop()
+        instances.delete(persona)
+      }
+    } else {
+      // Stop all instances
+      for (const [p, instance] of instances) {
+        await instance.stop()
+        instances.delete(p)
       }
     }
   }
 
-  // Singleton instance management
-  let instance: Gateway | null = null
-
-  export function getInstance(): Gateway | null {
-    return instance
+  export async function stopAll(): Promise<void> {
+    return stop()
   }
 
-  export async function start(config: GatewayConfig): Promise<Gateway> {
-    if (instance) {
-      await instance.stop()
+  // Send a message via a specific persona's bot
+  export async function sendMessage(
+    persona: "stanley" | "johny",
+    chatId: number,
+    text: string
+  ): Promise<boolean> {
+    const instance = instances.get(persona)
+    if (!instance) {
+      log.error("Cannot send message - bot not running", { persona })
+      return false
     }
-    instance = new Gateway(config)
-    await instance.start()
-    return instance
+    return instance.sendMessage(chatId, text)
   }
 
-  export async function stop(): Promise<void> {
-    if (instance) {
-      await instance.stop()
-      instance = null
+  // Broadcast a message to all known chats for a persona
+  export async function broadcast(
+    persona: "stanley" | "johny",
+    text: string
+  ): Promise<{ sent: number; failed: number }> {
+    const instance = instances.get(persona)
+    if (!instance) {
+      log.error("Cannot broadcast - bot not running", { persona })
+      return { sent: 0, failed: 0 }
     }
+    return instance.broadcast(text)
+  }
+
+  // Get known chat IDs for a persona (users who have messaged this bot)
+  export function getKnownChats(persona: "stanley" | "johny"): number[] {
+    const instance = instances.get(persona)
+    if (!instance) return []
+    return instance.getKnownChatIds()
   }
 }

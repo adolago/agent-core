@@ -218,19 +218,132 @@ For mobile clients that may go offline:
    - Store last known session state locally
    - Queue messages when offline
 
-2. **Sync on Reconnect**
-   ```typescript
-   // Check for updates since last sync
-   const sessions = await fetch(`/session?start=${lastSyncTime}`)
+2. **Delta Sync Endpoint**
 
-   // Subscribe to events for real-time updates
-   const events = new EventSource('/events')
+   Use the dedicated sync endpoint for efficient delta updates:
+
+   ```bash
+   # Get all changes since last sync
+   curl "http://localhost:4096/sync?since=1705000000000"
    ```
 
-3. **Conflict Resolution**
+   **Response:**
+   ```json
+   {
+     "timestamp": 1705001234567,
+     "sessions": [
+       { "id": "session_abc", "title": "Debug session", "time": { "updated": 1705001000000 } }
+     ],
+     "todos": [
+       { "sessionID": "session_abc", "todos": [{ "content": "Fix bug", "status": "pending" }] }
+     ]
+   }
+   ```
+
+   Store `timestamp` for the next sync request.
+
+3. **Full Sync Flow**
+   ```typescript
+   // Initial sync (no timestamp)
+   const initial = await fetch('/sync')
+   let lastSync = initial.timestamp
+
+   // Delta sync on reconnect
+   const delta = await fetch(`/sync?since=${lastSync}`)
+   mergeChanges(delta.sessions, delta.todos)
+   lastSync = delta.timestamp
+
+   // Subscribe to real-time updates
+   const events = new EventSource('/events')
+   events.onmessage = (e) => handleRealtimeUpdate(e.data)
+   ```
+
+4. **Conflict Resolution**
    - Server timestamps are authoritative
    - Last-write-wins for session metadata
    - Messages are append-only (no conflicts)
+
+## Personas API
+
+Get information about available personas:
+
+```bash
+curl http://localhost:4096/personas
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "zee",
+    "name": "Zee",
+    "description": "Personal assistant for life admin",
+    "domain": "personal",
+    "capabilities": ["memory", "messaging", "calendar", "contacts", "notifications"],
+    "gateway": { "telegram": false, "whatsapp": true }
+  },
+  {
+    "id": "stanley",
+    "name": "Stanley",
+    "description": "Investing and financial research assistant",
+    "domain": "finance",
+    "capabilities": ["market-data", "portfolio", "sec-filings", "research", "backtesting"],
+    "gateway": { "telegram": true, "whatsapp": false }
+  },
+  {
+    "id": "johny",
+    "name": "Johny",
+    "description": "Study assistant for learning and knowledge management",
+    "domain": "learning",
+    "capabilities": ["study", "knowledge-graph", "spaced-repetition", "mastery-tracking"],
+    "gateway": { "telegram": true, "whatsapp": false }
+  }
+]
+```
+
+## Theme Preferences API
+
+### List Available Themes
+
+```bash
+curl http://localhost:4096/themes
+```
+
+**Response:**
+```json
+[
+  { "id": "opencode", "name": "Opencode", "builtin": true },
+  { "id": "dracula", "name": "Dracula", "builtin": true },
+  { "id": "nord", "name": "Nord", "builtin": true },
+  { "id": "zee", "name": "Zee", "builtin": true, "persona": "zee" },
+  { "id": "stanley", "name": "Stanley", "builtin": true, "persona": "stanley" },
+  { "id": "johny", "name": "Johny", "builtin": true, "persona": "johny" }
+]
+```
+
+### Get Current Theme
+
+```bash
+curl http://localhost:4096/preferences/theme
+```
+
+**Response:**
+```json
+{ "theme": "opencode" }
+```
+
+### Set Theme
+
+```bash
+curl -X PATCH http://localhost:4096/preferences/theme \
+  -H "Content-Type: application/json" \
+  -d '{"theme": "dracula"}'
+```
+
+**Response:**
+```json
+{ "theme": "dracula" }
+```
 
 ## Security Considerations
 
@@ -258,7 +371,11 @@ Add to `~/.config/agent-core/config.json`:
   "gateway": {
     "telegram": {
       "enabled": true,
-      "allowedUsers": [123456789]
+      "allowedUsers": [123456789],
+      "transcribeAudio": {
+        "command": ["openai", "api", "audio.transcriptions.create", "-m", "whisper-1", "-f", "{{MediaPath}}", "--response-format", "text"],
+        "timeoutSeconds": 45
+      }
     },
     "whatsapp": {
       "enabled": true,
@@ -267,6 +384,20 @@ Add to `~/.config/agent-core/config.json`:
   }
 }
 ```
+
+### Voice Transcription
+
+Both Telegram and WhatsApp gateways support voice note transcription via a configurable CLI command.
+
+**Configuration:**
+- `transcribeAudio.command`: Array of command parts with `{{MediaPath}}` template for the audio file
+- `transcribeAudio.timeoutSeconds`: Maximum time to wait for transcription (default: 45)
+
+**Supported transcription CLIs:**
+- OpenAI Whisper API: `["openai", "api", "audio.transcriptions.create", "-m", "whisper-1", "-f", "{{MediaPath}}", "--response-format", "text"]`
+- whisper.cpp: `["whisper-cpp", "-m", "ggml-base.bin", "-f", "{{MediaPath}}"]`
+- Deepgram: Custom script that calls Deepgram API
+- Any CLI that outputs transcript text to stdout
 
 ## Troubleshooting
 

@@ -226,7 +226,7 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 
 ---
 
-## Phase 6: Cross-Platform Integration
+## Phase 6: Cross-Platform Integration - COMPLETE
 
 ### 6.1 Existing Platforms
 | Platform | Status | Location |
@@ -248,16 +248,30 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
   - [x] Telegram/WhatsApp broadcast support
   - [x] Global event stream for dashboard monitoring
 
-### 6.3 Mobile App Enhancement (Zee)
+### 6.3 Mobile App Enhancement (Zee) - COMPLETE
 - [x] Deep linking to specific sessions (`agentcore://session/:id`)
 - [x] Quick actions from notifications (via handoff API)
-- [ ] Offline mode with sync queue
-- [ ] Voice input integration
+- [x] Offline mode with sync queue
+  - [x] `GET /sync?since=<timestamp>` endpoint for delta sync
+  - [x] Returns sessions + todos updated since timestamp
+  - [x] Client-side queue documented in `docs/CROSS-PLATFORM.md`
+- [x] Voice input integration
+  - [x] Mobile: Native STT via SpeechRecognizer (iOS/Android) + ElevenLabs TTS
+  - [x] Mobile: Talk Mode with continuous conversation
+  - [x] WhatsApp: Voice note transcription via CLI (`routing.transcribeAudio.command`)
+  - [x] Telegram: Voice note transcription via CLI (`transcribeAudio.command`)
 
-### 6.4 Web Interface (OpenCode)
-- [ ] Persona switching in web UI
-- [ ] Theme sync with TUI preferences
-- [ ] Memory search interface
+### 6.4 Web Interface (OpenCode) - COMPLETE
+- [x] Persona switching in web UI
+  - [x] `GET /personas` endpoint listing Zee/Stanley/Johny with capabilities
+  - [x] Gateway status (Telegram/WhatsApp connection state)
+- [x] Theme sync with TUI preferences
+  - [x] `GET /themes` - List all available themes (built-in + persona-specific)
+  - [x] `GET /preferences/theme` - Get current theme
+  - [x] `PATCH /preferences/theme` - Set theme
+- [x] Memory search interface
+  - [x] Available via MCP tools (`memory/search`, `memory/store`, `memory/list`)
+  - Note: REST wrapper requires tiara memory service integration (future work)
 - [x] Drone monitoring dashboard (via `/events` SSE)
 
 **Documentation:** `docs/CROSS-PLATFORM.md`
@@ -267,7 +281,8 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 ## Backlog
 
 ### Nice to Have
-- [ ] Voice input/output (Whisper/TTS integration)
+- [x] Voice input (Whisper transcription) - implemented for mobile, WhatsApp, Telegram
+- [ ] Voice output (TTS responses via gateways) - mobile has TTS, gateways text-only
 - [ ] Multi-user support (shared Qdrant namespaces)
 - [ ] Plugin marketplace for personas
 - [ ] Canvas/whiteboard for visual reasoning
