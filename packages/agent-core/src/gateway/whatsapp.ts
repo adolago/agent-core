@@ -48,6 +48,7 @@ export namespace WhatsAppGateway {
     private chatContexts = new Map<string, ChatContext>()
     private apiBaseUrl: string
     private ready = false
+    private currentQR: string | null = null // Store current QR for browser display
 
     constructor(config: GatewayConfig) {
       this.config = {
@@ -94,9 +95,11 @@ export namespace WhatsAppGateway {
         // QR Code event - user needs to scan
         this.client.on("qr", async (qr: string) => {
           log.info("WhatsApp QR code received - scan with phone")
+          this.currentQR = qr // Store for browser access
 
           // Save QR code as PNG file for proper scanning
           const qrImagePath = path.join(sessionDir, "whatsapp-qr.png")
+          const daemonPort = this.config.apiPort || 3456
           try {
             // @ts-ignore - qrcode is an optional dependency
             const QRCodeModule = await import("qrcode")
@@ -109,14 +112,14 @@ export namespace WhatsAppGateway {
               color: { dark: "#000000", light: "#ffffff" },
             })
             console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===")
-            console.log(`\nQR Code saved to: ${qrImagePath}`)
-            console.log("\nOpen this file with an image viewer and scan it with WhatsApp.")
-            console.log("Or run: xdg-open " + qrImagePath)
+            console.log(`\nOpen in browser: http://localhost:${daemonPort}/gateway/whatsapp/qr`)
+            console.log(`\nOr open file: ${qrImagePath}`)
             console.log("\n========================================\n")
           } catch (e) {
             // Fallback to terminal output
             console.error("PNG QR generation failed:", e)
             console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===\n")
+            console.log(`Open in browser: http://localhost:${daemonPort}/gateway/whatsapp/qr`)
             console.log("(Terminal QR may be distorted - try zooming out or use a smaller font)\n")
             qrcode.default.generate(qr, { small: true })
             console.log("\n========================================\n")
@@ -126,12 +129,14 @@ export namespace WhatsAppGateway {
         // Ready event
         this.client.on("ready", () => {
           this.ready = true
+          this.currentQR = null // Clear QR once connected
           log.info("WhatsApp client is ready")
           console.log("WhatsApp: Connected and ready")
         })
 
         // Authentication event
         this.client.on("authenticated", () => {
+          this.currentQR = null // Clear QR once authenticated
           log.info("WhatsApp authenticated successfully")
         })
 
@@ -178,6 +183,14 @@ export namespace WhatsAppGateway {
 
     isReady(): boolean {
       return this.ready
+    }
+
+    /**
+     * Get the current QR code string for browser display
+     * Returns null if already authenticated or no QR available
+     */
+    getCurrentQR(): string | null {
+      return this.currentQR
     }
 
     // -------------------------------------------------------------------------
@@ -553,6 +566,50 @@ Commands:
         await this.sendMessage(chatId, message)
       }
     }
+
+    /**
+     * Send a reaction to a message
+     * @param chatId - Chat JID (e.g., "1234567890@c.us")
+     * @param messageId - Message stanza ID to react to
+     * @param emoji - Emoji character (empty string to remove reaction)
+     */
+    async sendReaction(chatId: string, messageId: string, emoji: string): Promise<boolean> {
+      if (!this.ready || !this.client) {
+        log.warn("WhatsApp client not ready for reaction")
+        return false
+      }
+
+      try {
+        // Get the message to react to
+        const chat = await this.client.getChatById(chatId)
+        if (!chat) {
+          log.error("Chat not found for reaction", { chatId })
+          return false
+        }
+
+        // Find the message by ID
+        const messages = await chat.fetchMessages({ limit: 50 })
+        const targetMessage = messages.find((m: any) => m.id._serialized === messageId || m.id.id === messageId)
+
+        if (!targetMessage) {
+          log.error("Message not found for reaction", { chatId, messageId })
+          return false
+        }
+
+        // Send the reaction (empty emoji removes reaction)
+        await targetMessage.react(emoji)
+        log.info("Reaction sent", { chatId, messageId, emoji: emoji || "(removed)" })
+        return true
+      } catch (error) {
+        log.error("Failed to send WhatsApp reaction", {
+          chatId,
+          messageId,
+          emoji,
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return false
+      }
+    }
   }
 
   // Singleton instance management
@@ -576,5 +633,9 @@ Commands:
       await instance.stop()
       instance = null
     }
+  }
+
+  export function isConnected(): boolean {
+    return instance?.isReady() ?? false
   }
 }
