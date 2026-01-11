@@ -5,7 +5,46 @@
  * real API credentials or network access.
  */
 
-import type { LanguageModelV2, LanguageModelV2StreamPart } from "ai"
+// Define types inline as the AI SDK doesn't export these anymore
+interface LanguageModelV2StreamPart {
+  type: "text-delta" | "tool-call" | "finish" | "error"
+  textDelta?: string
+  toolCallId?: string
+  toolName?: string
+  args?: string
+  finishReason?: "stop" | "tool-calls" | "length" | "content-filter" | "error"
+  usage?: { promptTokens: number; completionTokens: number }
+  error?: Error
+}
+
+interface LanguageModelV2Prompt {
+  role: "user" | "assistant" | "system" | "tool"
+  content: Array<{ type: string; text?: string }>
+}
+
+interface LanguageModelV2Options {
+  prompt: LanguageModelV2Prompt[]
+}
+
+interface LanguageModelV2 {
+  specificationVersion: string
+  provider: string
+  modelId: string
+  defaultObjectGenerationMode: string
+  doGenerate(options: LanguageModelV2Options): Promise<{
+    text?: string
+    toolCalls?: Array<{ toolCallId: string; toolName: string; args: Record<string, unknown> }>
+    finishReason: string
+    usage: { promptTokens: number; completionTokens: number }
+    rawCall: { rawPrompt: unknown; rawSettings: Record<string, unknown> }
+    warnings: unknown[]
+  }>
+  doStream(options: LanguageModelV2Options): Promise<{
+    stream: ReadableStream<LanguageModelV2StreamPart>
+    rawCall: { rawPrompt: unknown; rawSettings: Record<string, unknown> }
+    warnings: unknown[]
+  }>
+}
 
 export interface MockResponse {
   text?: string

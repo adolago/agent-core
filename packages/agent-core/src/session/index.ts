@@ -342,7 +342,7 @@ export namespace Session {
         info: session,
       })
     } catch (e) {
-      log.error(e)
+      log.error(e instanceof Error ? e.message : String(e), { error: e })
     }
   })
 

@@ -20,11 +20,13 @@ export namespace Log {
     return levelPriority[input] >= levelPriority[level]
   }
 
-  /** Allowed log metadata value types */
-  export type LogMetaValue = string | number | boolean | null | undefined | LogMetaValue[] | { [key: string]: LogMetaValue }
-
-  /** Structured log metadata - use this instead of Record<string, any> */
-  export type LogMeta = Record<string, LogMetaValue>
+  /**
+   * Structured log metadata.
+   * Uses unknown to allow Error objects and complex types.
+   * The logger implementation handles serialization.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  export type LogMeta = Record<string, any>
 
   export type Logger = {
     debug(message?: string, extra?: LogMeta): void

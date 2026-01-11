@@ -22,16 +22,6 @@ export function Footer() {
   const directory = useDirectory()
   const connected = useConnected()
 
-  // Auth status indicators
-  const authStatus = createMemo(() => {
-    const status = sync.data.provider_auth_status
-    const entries = Object.entries(status)
-    const expired = entries.filter(([, s]) => !s.valid).map(([id]) => id)
-    const expiring = entries.filter(([, s]) => s.valid && s.expiringSoon).map(([id]) => id)
-    const valid = entries.filter(([, s]) => s.valid && !s.expiringSoon).length
-    return { expired, expiring, valid, total: entries.length }
-  })
-
   const [store, setStore] = createStore({
     welcome: false,
   })
@@ -98,24 +88,6 @@ export function Footer() {
                   </Match>
                 </Switch>
                 {mcp()} MCP
-              </text>
-            </Show>
-            <Show when={authStatus().total > 0}>
-              <text fg={theme.text}>
-                <Switch>
-                  <Match when={authStatus().expired.length > 0}>
-                    <span style={{ fg: theme.error }}>✗ </span>
-                    {authStatus().expired.length} Auth
-                  </Match>
-                  <Match when={authStatus().expiring.length > 0}>
-                    <span style={{ fg: theme.warning }}>△ </span>
-                    {authStatus().expiring.length} Auth
-                  </Match>
-                  <Match when={true}>
-                    <span style={{ fg: theme.success }}>✓ </span>
-                    {authStatus().valid} Auth
-                  </Match>
-                </Switch>
               </text>
             </Show>
             <text fg={theme.textMuted}>:status</text>

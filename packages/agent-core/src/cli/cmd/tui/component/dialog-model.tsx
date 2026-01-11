@@ -8,15 +8,9 @@ import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
 import { useKeybind } from "../context/keybind"
 import * as fuzzysort from "fuzzysort"
 
-/** Get auth status indicator for a provider */
-function getAuthIndicator(
-  providerID: string,
-  authStatus: Record<string, { valid: boolean; expiringSoon: boolean; expiresIn: number | null }>,
-): string {
-  const status = authStatus[providerID]
-  if (!status) return ""
-  if (!status.valid) return "✗ "
-  if (status.expiringSoon) return "△ "
+/** Get auth status indicator for a provider (placeholder for future implementation) */
+function getAuthIndicator(_providerID: string): string {
+  // TODO: Implement provider_auth_status tracking in sync store
   return ""
 }
 
@@ -48,7 +42,6 @@ export function DialogModel(props: { providerID?: string }) {
     const q = query()
     const showSections = showExtra()
     const recents = local.model.recent()
-    const authStatus = sync.data.provider_auth_status
     const recentList = showSections ? recents : []
 
     const recentOptions = recentList.flatMap((item: { providerID: string; modelID: string }) => {
@@ -56,7 +49,7 @@ export function DialogModel(props: { providerID?: string }) {
       if (!provider) return []
       const model = provider.models[item.modelID]
       if (!model) return []
-      const authIndicator = getAuthIndicator(provider.id, authStatus)
+      const authIndicator = getAuthIndicator(provider.id)
       return [
         {
           key: item,
@@ -90,7 +83,7 @@ export function DialogModel(props: { providerID?: string }) {
         (provider) => provider.name,
       ),
       flatMap((provider) => {
-        const authIndicator = getAuthIndicator(provider.id, authStatus)
+        const authIndicator = getAuthIndicator(provider.id)
         return pipe(
           provider.models,
           entries(),

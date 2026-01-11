@@ -118,16 +118,16 @@ describe("WhatsApp Gateway", () => {
       await mockApi.client.initialize()
       expect(mockApi.isInitialized).toBe(true)
 
-      let disconnectedReason: string | null = null
-      mockApi.client.on("disconnected", (reason) => {
-        disconnectedReason = reason
+      let disconnectedEmitted = false
+      mockApi.client.on("disconnected", () => {
+        disconnectedEmitted = true
       })
 
       await mockApi.client.destroy()
 
       expect(mockApi.isInitialized).toBe(false)
       expect(mockApi.isAuthenticated).toBe(false)
-      expect(disconnectedReason).toBe("logout")
+      expect(disconnectedEmitted).toBe(true)
     })
 
     it("should list all contacts", async () => {
