@@ -183,7 +183,7 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 
 ### 4.3 Conversation
 - [x] Better compaction summaries (via continuity.ts generateSummary)
-- [ ] Conversation branching
+- [x] Conversation branching (fork API + visual branch tree in sidebar + breadcrumb navigation)
 - [ ] Export conversations
 
 ---

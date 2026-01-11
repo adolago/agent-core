@@ -4,13 +4,14 @@ import { createStore } from "solid-js/store"
 import { useTheme } from "../../context/theme"
 import { Locale } from "@/util/locale"
 import path from "path"
-import type { AssistantMessage } from "@opencode-ai/sdk/v2"
+import type { AssistantMessage, Session } from "@opencode-ai/sdk/v2"
 import { Global } from "@/global"
 import { Installation } from "@/installation"
 import { useKeybind } from "../../context/keybind"
 import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
+import { useRoute } from "../../context/route"
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const sync = useSync()
@@ -67,6 +68,33 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     sync.data.provider.some((x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0)),
   )
   const gettingStartedDismissed = createMemo(() => kv.get("dismissed_getting_started", false))
+
+  const { navigate } = useRoute()
+
+  // Branch tree data
+  const parentSession = createMemo(() => {
+    const parent = session()?.parentID
+    if (!parent) return null
+    return sync.data.session.find((s) => s.id === parent) ?? null
+  })
+
+  const childSessions = createMemo(() =>
+    sync.data.session
+      .filter((s) => s.parentID === props.sessionID)
+      .sort((a, b) => b.time.created - a.time.created),
+  )
+
+  const siblingsSessions = createMemo(() => {
+    const parent = session()?.parentID
+    if (!parent) return []
+    return sync.data.session
+      .filter((s) => s.parentID === parent && s.id !== props.sessionID)
+      .sort((a, b) => b.time.created - a.time.created)
+  })
+
+  const hasBranches = createMemo(
+    () => parentSession() !== null || childSessions().length > 0 || siblingsSessions().length > 0,
+  )
 
   return (
     <Show when={session()}>
@@ -255,6 +283,59 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     }}
                   </For>
                 </Show>
+              </box>
+            </Show>
+            <Show when={hasBranches()}>
+              <box>
+                <text fg={theme.text}>
+                  <b>Branches</b>
+                </text>
+                <Show when={parentSession()}>
+                  <box
+                    flexDirection="row"
+                    gap={1}
+                    onMouseDown={() => navigate({ type: "session", sessionID: parentSession()!.id })}
+                  >
+                    <text fg={theme.textMuted}>↑</text>
+                    <text fg={theme.accent}>
+                      {Locale.truncateMiddle(parentSession()!.title ?? "Parent", 30)}
+                    </text>
+                  </box>
+                </Show>
+                <For each={siblingsSessions()}>
+                  {(sibling) => (
+                    <box
+                      flexDirection="row"
+                      gap={1}
+                      onMouseDown={() => navigate({ type: "session", sessionID: sibling.id })}
+                    >
+                      <text fg={theme.textMuted}>├</text>
+                      <text fg={theme.textMuted}>
+                        {Locale.truncateMiddle(sibling.title ?? "Branch", 30)}
+                      </text>
+                    </box>
+                  )}
+                </For>
+                <box flexDirection="row" gap={1}>
+                  <text fg={theme.primary}>●</text>
+                  <text fg={theme.text}>
+                    <b>{Locale.truncateMiddle(session()?.title ?? "Current", 30)}</b>
+                  </text>
+                </box>
+                <For each={childSessions()}>
+                  {(child) => (
+                    <box
+                      flexDirection="row"
+                      gap={1}
+                      onMouseDown={() => navigate({ type: "session", sessionID: child.id })}
+                    >
+                      <text fg={theme.textMuted}>↓</text>
+                      <text fg={theme.accent}>
+                        {Locale.truncateMiddle(child.title ?? "Child", 30)}
+                      </text>
+                    </box>
+                  )}
+                </For>
               </box>
             </Show>
           </box>
