@@ -17,6 +17,14 @@ import {
   createEmbeddingProvider,
   type EmbeddingProvider,
 } from "../memory";
+import {
+  QDRANT_URL,
+  QDRANT_COLLECTION_PERSONAS_STATE,
+  QDRANT_COLLECTION_PERSONAS_MEMORY,
+  EMBEDDING_MODEL,
+  EMBEDDING_DIMENSIONS,
+  MOCK_EMBEDDING_DIMENSIONS,
+} from "../config/constants";
 
 /**
  * Mock embedding provider for testing when no API key is available.
@@ -25,7 +33,7 @@ import {
 class MockEmbeddingProvider implements EmbeddingProvider {
   readonly id = "mock";
   readonly model = "mock-embedding";
-  readonly dimension = 384;
+  readonly dimension = MOCK_EMBEDDING_DIMENSIONS;
 
   async embed(text: string): Promise<number[]> {
     // Generate a deterministic embedding based on text
@@ -84,8 +92,8 @@ export class QdrantMemoryBridge implements MemoryBridge {
     } else {
       this.embedder = createEmbeddingProvider({
         provider: "openai",
-        model: "text-embedding-3-small",
-        dimensions: 1536,
+        model: EMBEDDING_MODEL,
+        dimensions: EMBEDDING_DIMENSIONS,
       });
     }
 
@@ -531,9 +539,9 @@ export function createMemoryBridge(
   options?: { useMockEmbeddings?: boolean }
 ): QdrantMemoryBridge {
   const fullConfig: PersonasConfig["qdrant"] = {
-    url: config?.url ?? "http://localhost:6333",
-    stateCollection: config?.stateCollection ?? "personas_state",
-    memoryCollection: config?.memoryCollection ?? "personas_memory",
+    url: config?.url ?? QDRANT_URL,
+    stateCollection: config?.stateCollection ?? QDRANT_COLLECTION_PERSONAS_STATE,
+    memoryCollection: config?.memoryCollection ?? QDRANT_COLLECTION_PERSONAS_MEMORY,
     apiKey: config?.apiKey,
   };
 

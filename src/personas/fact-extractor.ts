@@ -8,6 +8,7 @@
 import { generateText } from "ai";
 import { extractKeyFacts as heuristicExtract } from "./continuity";
 import { Log } from "../../packages/agent-core/src/util/log";
+import { TIMEOUT_FACT_EXTRACTION_MS } from "../config/constants";
 
 const log = Log.create({ service: "fact-extractor" });
 
@@ -65,7 +66,7 @@ export async function extractFactsWithLLM(
   config?: { maxFacts?: number; timeout?: number }
 ): Promise<string[]> {
   const maxFacts = config?.maxFacts ?? 10;
-  const timeout = config?.timeout ?? 30000;
+  const timeout = config?.timeout ?? TIMEOUT_FACT_EXTRACTION_MS;
 
   try {
     const prompt = EXTRACTION_PROMPT.replace("{CONVERSATION}", conversation);

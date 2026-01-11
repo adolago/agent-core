@@ -16,6 +16,7 @@ import type {
   MemoryCategory,
   EmbeddingProvider,
 } from "./types";
+import { QDRANT_URL, QDRANT_COLLECTION_MEMORY } from "../config/constants";
 
 // =============================================================================
 // Configuration
@@ -33,7 +34,7 @@ export interface MemoryStoreConfig {
 
 const DEFAULT_CONFIG: MemoryStoreConfig = {
   qdrant: {
-    url: process.env.QDRANT_URL ?? "http://localhost:6333",
+    url: process.env.QDRANT_URL ?? QDRANT_URL,
     collection: process.env.QDRANT_COLLECTION ?? "zee_memories",
   },
   embedding: {
@@ -68,7 +69,7 @@ export class MemoryStore {
 
     // Ensure required fields have default values
     const qdrantConfig = {
-      url: merged.qdrant.url ?? "http://localhost:6333",
+      url: merged.qdrant.url ?? QDRANT_URL,
       apiKey: merged.qdrant.apiKey,
       collection: merged.qdrant.collection ?? "zee_memories",
     };

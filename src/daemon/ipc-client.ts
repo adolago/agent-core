@@ -1,6 +1,7 @@
 import { connect } from "node:net";
 import { randomUUID } from "node:crypto";
 import { resolveIpcSocketPath, type DaemonResponse } from "./ipc";
+import { TIMEOUT_IPC_MS } from "../config/constants";
 
 interface RequestOptions {
   socketPath?: string;
@@ -13,7 +14,7 @@ export async function requestDaemon<T = unknown>(
   options: RequestOptions = {}
 ): Promise<T> {
   const socketPath = options.socketPath ?? resolveIpcSocketPath();
-  const timeoutMs = options.timeoutMs ?? 3000;
+  const timeoutMs = options.timeoutMs ?? TIMEOUT_IPC_MS;
   const requestId = randomUUID();
 
   return await new Promise<T>((resolve, reject) => {
