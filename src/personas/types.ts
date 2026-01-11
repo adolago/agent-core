@@ -476,12 +476,25 @@ export interface MemoryBridge {
   /** Load state from Qdrant */
   loadState(): Promise<PersonasState | null>;
 
-  /** Store a memory for continuity */
+  /** Store a memory for continuity (requires persona in metadata for isolation) */
   storeMemory(content: string, metadata: Record<string, unknown>): Promise<string>;
 
-  /** Search memories by query */
-  searchMemories(query: string, limit?: number): Promise<Array<{ id: string; content: string; score: number }>>;
+  /** Search memories by query (persona-isolated unless searching shared namespace) */
+  searchMemories(
+    query: string,
+    limit?: number,
+    options?: { persona?: string; includeShared?: boolean }
+  ): Promise<Array<{ id: string; content: string; score: number }>>;
+
+  /** Search memories across all personas (for cross-persona context) */
+  searchAllPersonaMemories?(
+    query: string,
+    limit?: number
+  ): Promise<Array<{ id: string; content: string; score: number; persona?: string }>>;
 
   /** Get memories by IDs */
   getMemories(ids: string[]): Promise<Array<{ id: string; content: string }>>;
+
+  /** Store key facts (requires persona for isolation) */
+  storeKeyFacts?(facts: string[], sessionId: string, persona: string): Promise<void>;
 }

@@ -4,7 +4,7 @@
  * Exports all built-in plugins for easy registration.
  */
 
-export { ClaudeFlowPlugin } from './tiara';
+export { ClaudeFlowPlugin } from './claude-flow';
 export { AnthropicAuthPlugin } from './anthropic-auth';
 export { CopilotAuthPlugin } from './copilot-auth';
 export { MemoryPersistencePlugin } from './memory-persistence';
@@ -13,7 +13,7 @@ export { MemoryPersistencePlugin } from './memory-persistence';
 export { StanleyFinancePlugin } from './domains/stanley-finance';
 export { ZeeMessagingPlugin } from './domains/zee-messaging';
 
-import { ClaudeFlowPlugin } from './tiara';
+import { ClaudeFlowPlugin } from './claude-flow';
 import { AnthropicAuthPlugin } from './anthropic-auth';
 import { CopilotAuthPlugin } from './copilot-auth';
 import { MemoryPersistencePlugin } from './memory-persistence';
