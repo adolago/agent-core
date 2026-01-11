@@ -13,6 +13,7 @@ import { Env } from "../env"
 import { Instance } from "../project/instance"
 import { Flag } from "../flag/flag"
 import { iife } from "@/util/iife"
+import { THINKING_BUDGETS } from "./constants"
 
 // Direct imports for bundled providers
 import { createAmazonBedrock, type AmazonBedrockProviderSettings } from "@ai-sdk/amazon-bedrock"
@@ -74,7 +75,8 @@ export namespace Provider {
     "@ai-sdk/perplexity": createPerplexity,
     "@ai-sdk/vercel": createVercel,
     "@gitlab/gitlab-ai-provider": createGitLab,
-    // @ts-ignore (TODO: kill this code so we dont have to maintain it)
+    // GitHub Copilot uses a custom OpenAI-compatible wrapper (see sdk/openai-compatible/)
+    // @ts-ignore - types from custom wrapper don't match SDK factory signature
     "@ai-sdk/github-copilot": createGitHubCopilotOpenAICompatible,
   }
 
@@ -719,14 +721,14 @@ export namespace Provider {
     function mergeProvider(providerID: string, provider: Partial<Info>) {
       const existing = providers[providerID]
       if (existing) {
-        // @ts-expect-error
-        providers[providerID] = mergeDeep(existing, provider)
+        // mergeDeep returns a complex intersection type that doesn't match Info exactly,
+        // but the result is structurally compatible with Info
+        providers[providerID] = mergeDeep(existing, provider) as Info
         return
       }
       const match = database[providerID]
       if (!match) return
-      // @ts-expect-error
-      providers[providerID] = mergeDeep(match, provider)
+      providers[providerID] = mergeDeep(match, provider) as Info
     }
 
     // extend database from config
@@ -930,8 +932,8 @@ export namespace Provider {
                 },
                 release_date: "2025-02-24",
                 variants: {
-                  low: { name: "Low Thinking", options: { thinkingBudget: 8192 } },
-                  max: { name: "Max Thinking", options: { thinkingBudget: 32768 } },
+                  low: { name: "Low Thinking", options: { thinkingBudget: THINKING_BUDGETS.low } },
+                  max: { name: "Max Thinking", options: { thinkingBudget: THINKING_BUDGETS.high } },
                 },
               },
               "antigravity-claude-sonnet-4-5": {
@@ -986,8 +988,8 @@ export namespace Provider {
                 },
                 release_date: "2025-02-24",
                 variants: {
-                  low: { name: "Low Thinking", options: { thinkingBudget: 8192 } },
-                  max: { name: "Max Thinking", options: { thinkingBudget: 32768 } },
+                  low: { name: "Low Thinking", options: { thinkingBudget: THINKING_BUDGETS.low } },
+                  max: { name: "Max Thinking", options: { thinkingBudget: THINKING_BUDGETS.high } },
                 },
               },
               "antigravity-gemini-3-pro": {

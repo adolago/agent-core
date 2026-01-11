@@ -4,6 +4,10 @@ import type { JSONSchema } from "zod/v4/core"
 import type { Provider } from "./provider"
 import type { ModelsDev } from "./models"
 import { iife } from "@/util/iife"
+import { Log } from "@/util/log"
+import { THINKING_BUDGETS } from "./constants"
+
+const log = Log.create({ service: "transform" })
 
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
 
@@ -426,13 +430,13 @@ export namespace ProviderTransform {
           high: {
             thinking: {
               type: "enabled",
-              budgetTokens: 16000,
+              budgetTokens: THINKING_BUDGETS.medium,
             },
           },
           max: {
             thinking: {
               type: "enabled",
-              budgetTokens: 31999,
+              budgetTokens: THINKING_BUDGETS.high,
             },
           },
         }
@@ -479,13 +483,13 @@ export namespace ProviderTransform {
             high: {
               thinkingConfig: {
                 includeThoughts: true,
-                thinkingBudget: 16000,
+                thinkingBudget: THINKING_BUDGETS.medium,
               },
             },
             max: {
               thinkingConfig: {
                 includeThoughts: true,
-                thinkingBudget: 24576,
+                thinkingBudget: THINKING_BUDGETS.high,
               },
             },
           }
@@ -635,9 +639,25 @@ export namespace ProviderTransform {
     options: Record<string, any>,
     modelLimit: number,
     globalLimit: number,
-  ): number {
+  ): number | undefined {
     const modelCap = modelLimit || globalLimit
     const standardLimit = Math.min(modelCap, globalLimit)
+
+    // Validate thinking budget + max_tokens exclusivity
+    // Some providers/models cannot have both set simultaneously
+    const hasReasoningEffort = options?.["reasoningEffort"] || options?.["reasoning"]?.["effort"]
+    const hasThinkingBudget = options?.["thinking"]?.["budgetTokens"] || options?.["thinkingBudget"]
+
+    // OpenAI o-series, Gateway, xAI: reasoningEffort is mutually exclusive with max_tokens
+    if (npm === "@ai-sdk/gateway" || npm === "@ai-sdk/openai" || npm === "@ai-sdk/xai") {
+      if (hasReasoningEffort) {
+        log.debug("max_tokens disabled due to reasoningEffort", {
+          npm,
+          reasoningEffort: options?.["reasoningEffort"] ?? options?.["reasoning"]?.["effort"],
+        })
+        return undefined // Cannot set max_tokens when reasoning_effort is set
+      }
+    }
 
     if (npm === "@ai-sdk/anthropic") {
       const thinking = options?.["thinking"]
@@ -648,6 +668,11 @@ export namespace ProviderTransform {
         if (budgetTokens + standardLimit <= modelCap) {
           return standardLimit
         }
+        log.debug("adjusting max_tokens for thinking budget", {
+          budgetTokens,
+          modelCap,
+          adjustedMax: modelCap - budgetTokens,
+        })
         return modelCap - budgetTokens
       }
     }

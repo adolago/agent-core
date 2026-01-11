@@ -50,7 +50,7 @@ export namespace Config {
         if (!response.ok) {
           throw new Error(`failed to fetch remote config from ${key}: ${response.status}`)
         }
-        const wellknown = (await response.json()) as any
+        const wellknown = (await response.json()) as { config?: Record<string, unknown> }
         const remoteConfig = wellknown.config ?? {}
         // Add $schema to prevent load() from trying to write back to a non-existent file
         if (!remoteConfig.$schema) remoteConfig.$schema = "https://opencode.ai/config.json"
@@ -81,8 +81,17 @@ export namespace Config {
 
     // Inline config content has highest precedence
     if (Flag.OPENCODE_CONFIG_CONTENT) {
-      result = mergeConfigConcatArrays(result, JSON.parse(Flag.OPENCODE_CONFIG_CONTENT))
-      log.debug("loaded custom config from OPENCODE_CONFIG_CONTENT")
+      try {
+        const parsed = JSON.parse(Flag.OPENCODE_CONFIG_CONTENT)
+        // Use partial schema since inline config may override only some fields
+        const validated = Info.partial().parse(parsed)
+        result = mergeConfigConcatArrays(result, validated as Info)
+        log.debug("loaded custom config from OPENCODE_CONFIG_CONTENT")
+      } catch (error) {
+        log.error("failed to parse OPENCODE_CONFIG_CONTENT", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
     }
 
     result.agent = result.agent || {}
@@ -155,7 +164,15 @@ export namespace Config {
     }
 
     if (Flag.OPENCODE_PERMISSION) {
-      result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.OPENCODE_PERMISSION))
+      try {
+        const parsed = JSON.parse(Flag.OPENCODE_PERMISSION)
+        const validated = Permission.parse(parsed)
+        result.permission = mergeDeep(result.permission ?? {}, validated)
+      } catch (error) {
+        log.error("failed to parse OPENCODE_PERMISSION", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
     }
 
     // Backwards compatibility: legacy top-level `tools` config
@@ -560,6 +577,7 @@ export namespace Config {
       model: z.string().optional(),
       temperature: z.number().optional(),
       top_p: z.number().optional(),
+      top_k: z.number().optional(),
       prompt: z.string().optional(),
       tools: z.record(z.string(), z.boolean()).optional().describe("@deprecated Use 'permission' field instead"),
       disable: z.boolean().optional(),
@@ -583,6 +601,34 @@ export namespace Config {
         .describe("Maximum number of agentic iterations before forcing text-only response"),
       maxSteps: z.number().int().positive().optional().describe("@deprecated Use 'steps' field instead."),
       permission: Permission.optional(),
+      // Additional sampling parameters
+      frequency_penalty: z
+        .number()
+        .min(-2)
+        .max(2)
+        .optional()
+        .describe("Frequency penalty for repetition control (-2 to 2)"),
+      presence_penalty: z
+        .number()
+        .min(-2)
+        .max(2)
+        .optional()
+        .describe("Presence penalty for diversity control (-2 to 2)"),
+      seed: z.number().int().optional().describe("Seed for reproducible outputs"),
+      min_p: z.number().min(0).max(1).optional().describe("Min-p sampling threshold (0 to 1)"),
+      // Persona-specific fields (from AgentPersonaConfig)
+      systemPromptAdditions: z
+        .string()
+        .optional()
+        .describe("Additional system prompt content to inject for this agent/persona"),
+      knowledge: z
+        .array(z.string())
+        .optional()
+        .describe("File paths to knowledge files to include in context"),
+      mcpServers: z
+        .array(z.string())
+        .optional()
+        .describe("MCP server names to auto-start for this agent"),
     })
     .catchall(z.any())
     .transform((agent, ctx) => {
@@ -593,6 +639,7 @@ export namespace Config {
         "description",
         "temperature",
         "top_p",
+        "top_k",
         "mode",
         "hidden",
         "color",
@@ -602,6 +649,15 @@ export namespace Config {
         "permission",
         "disable",
         "tools",
+        // Additional sampling parameters
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "min_p",
+        // Persona-specific fields
+        "systemPromptAdditions",
+        "knowledge",
+        "mcpServers",
       ])
 
       // Extract unknown properties into options
@@ -1320,7 +1376,9 @@ export namespace Config {
           const plugin = data.plugin[i]
           try {
             data.plugin[i] = import.meta.resolve!(plugin, configFilepath)
-          } catch (err) {}
+          } catch (err) {
+            log.warn("failed to resolve plugin path", { plugin, error: err })
+          }
         }
       }
       return data
@@ -1364,7 +1422,15 @@ export namespace Config {
   export async function update(config: Info) {
     const filepath = path.join(Instance.directory, "config.json")
     const existing = await loadFile(filepath)
-    await Bun.write(filepath, JSON.stringify(mergeDeep(existing, config), null, 2))
+    const merged = mergeDeep(existing, config)
+
+    // Validate merged config before writing to prevent invalid state
+    const validated = Info.safeParse(merged)
+    if (!validated.success) {
+      throw new Error(`Invalid configuration: ${validated.error.message}`)
+    }
+
+    await Bun.write(filepath, JSON.stringify(merged, null, 2))
     await Instance.dispose()
   }
 

@@ -21,8 +21,60 @@ import fs from "fs/promises"
 import * as os from "node:os"
 import * as crypto from "node:crypto"
 import { spawn } from "node:child_process"
+import {
+  DEFAULT_API_PORT,
+  MESSAGE_CHUNK_SIZE,
+  TTS_TIMEOUT_SECONDS,
+  HEADER_DIRECTORY,
+} from "./constants"
 
 const log = Log.create({ service: "whatsapp-gateway" })
+
+// Default fetch timeout for API calls (10 seconds)
+const DEFAULT_FETCH_TIMEOUT_MS = 10000
+
+// Valid persona identifiers
+const VALID_PERSONAS = ["zee", "stanley", "johny"] as const
+type PersonaId = (typeof VALID_PERSONAS)[number]
+
+// Type guard for persona validation
+function isValidPersona(value: string): value is PersonaId {
+  return VALID_PERSONAS.includes(value as PersonaId)
+}
+
+// WhatsApp message type constants
+const MESSAGE_TYPES = {
+  CHAT: "chat",
+  IMAGE: "image",
+  VIDEO: "video",
+  AUDIO: "audio",
+  DOCUMENT: "document",
+  STICKER: "sticker",
+} as const
+
+// Type for WhatsApp message from whatsapp-web.js
+interface WhatsAppMessage {
+  type: string
+  body: string
+  from: string
+  getChat(): Promise<{ isGroup: boolean }>
+  getContact(): Promise<{ number: string; name?: string; pushname?: string }>
+  reply(text: string): Promise<void>
+}
+
+// Type guard for chat messages
+function isChatMessage(message: unknown): message is WhatsAppMessage {
+  return (
+    typeof message === "object" &&
+    message !== null &&
+    "type" in message &&
+    "body" in message &&
+    "from" in message &&
+    typeof (message as WhatsAppMessage).getChat === "function" &&
+    typeof (message as WhatsAppMessage).getContact === "function" &&
+    typeof (message as WhatsAppMessage).reply === "function"
+  )
+}
 
 export namespace WhatsAppGateway {
   export interface TTSConfig {
@@ -60,10 +112,11 @@ export namespace WhatsAppGateway {
     private apiBaseUrl: string
     private ready = false
     private currentQR: string | null = null // Store current QR for browser display
+    private eventListenerCleanup: Array<() => void> = [] // Track event listeners for cleanup
 
     constructor(config: GatewayConfig) {
       this.config = {
-        apiPort: 3456,
+        apiPort: DEFAULT_API_PORT,
         ...config,
       }
       this.apiBaseUrl = config.apiBaseUrl || `http://127.0.0.1:${this.config.apiPort}`
@@ -103,75 +156,110 @@ export namespace WhatsAppGateway {
           },
         })
 
-        // QR Code event - user needs to scan
-        this.client.on("qr", async (qr: string) => {
-          log.info("WhatsApp QR code received - scan with phone")
-          this.currentQR = qr // Store for browser access
+        // Helper to register event handlers with cleanup tracking
+        const registerListener = (event: string, handler: (...args: any[]) => void) => {
+          this.client.on(event, handler)
+          this.eventListenerCleanup.push(() => {
+            try {
+              this.client?.removeListener(event, handler)
+            } catch {
+              // Client may be destroyed
+            }
+          })
+        }
 
-          // Save QR code as PNG file for proper scanning
-          const qrImagePath = path.join(sessionDir, "whatsapp-qr.png")
-          const daemonPort = this.config.apiPort || 3456
+        // QR Code event - user needs to scan (with error handling)
+        const qrHandler = async (qr: string) => {
           try {
-            // @ts-ignore - qrcode is an optional dependency
-            const QRCodeModule = await import("qrcode")
-            // Handle both ESM default export and CommonJS
-            const QRCode = QRCodeModule.default || QRCodeModule
-            await QRCode.toFile(qrImagePath, qr, {
-              type: "png",
-              width: 400,
-              margin: 2,
-              color: { dark: "#000000", light: "#ffffff" },
-            })
-            console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===")
-            console.log(`\nOpen in browser: http://localhost:${daemonPort}/gateway/whatsapp/qr`)
-            console.log(`\nOr open file: ${qrImagePath}`)
-            console.log("\n========================================\n")
-          } catch (e) {
-            // Fallback to terminal output
-            console.error("PNG QR generation failed:", e)
-            console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===\n")
-            console.log(`Open in browser: http://localhost:${daemonPort}/gateway/whatsapp/qr`)
-            console.log("(Terminal QR may be distorted - try zooming out or use a smaller font)\n")
-            qrcode.default.generate(qr, { small: true })
-            console.log("\n========================================\n")
+            log.info("WhatsApp QR code received - scan with phone")
+            this.currentQR = qr // Store for browser access
+
+            // Save QR code as PNG file for proper scanning
+            const qrImagePath = path.join(sessionDir, "whatsapp-qr.png")
+            const daemonPort = this.config.apiPort || DEFAULT_API_PORT
+            try {
+              // @ts-ignore - qrcode is an optional dependency
+              const QRCodeModule = await import("qrcode")
+              // Handle both ESM default export and CommonJS
+              const QRCode = QRCodeModule.default || QRCodeModule
+              await QRCode.toFile(qrImagePath, qr, {
+                type: "png",
+                width: 400,
+                margin: 2,
+                color: { dark: "#000000", light: "#ffffff" },
+              })
+              // User-facing messages for QR code
+              console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===")
+              console.log(`\nOpen in browser: http://localhost:${daemonPort}/gateway/whatsapp/qr`)
+              console.log(`\nOr open file: ${qrImagePath}`)
+              console.log("\n========================================\n")
+            } catch (e) {
+              // Fallback to terminal output
+              log.debug("PNG QR generation failed, using terminal", { error: String(e) })
+              console.log("\n=== SCAN THIS QR CODE WITH WHATSAPP ===\n")
+              console.log(`Open in browser: http://localhost:${daemonPort}/gateway/whatsapp/qr`)
+              console.log("(Terminal QR may be distorted - try zooming out or use a smaller font)\n")
+              qrcode.default.generate(qr, { small: true })
+              console.log("\n========================================\n")
+            }
+          } catch (error) {
+            log.error("Error in QR handler", { error: error instanceof Error ? error.message : String(error) })
           }
-        })
+        }
+        registerListener("qr", qrHandler)
 
         // Ready event
-        this.client.on("ready", () => {
+        const readyHandler = () => {
           this.ready = true
           this.currentQR = null // Clear QR once connected
           log.info("WhatsApp client is ready")
-          console.log("WhatsApp: Connected and ready")
-        })
+          // User-facing message to confirm connection in terminal
+          console.log("\n✓ WhatsApp: Connected and ready\n")
+        }
+        registerListener("ready", readyHandler)
 
         // Authentication event
-        this.client.on("authenticated", () => {
+        const authHandler = () => {
           this.currentQR = null // Clear QR once authenticated
           log.info("WhatsApp authenticated successfully")
-        })
+        }
+        registerListener("authenticated", authHandler)
 
         // Authentication failure
-        this.client.on("auth_failure", (msg: string) => {
+        const authFailHandler = (msg: string) => {
           log.error("WhatsApp authentication failed", { message: msg })
-        })
+        }
+        registerListener("auth_failure", authFailHandler)
 
         // Disconnected
-        this.client.on("disconnected", (reason: string) => {
+        const disconnectHandler = (reason: string) => {
           log.warn("WhatsApp disconnected", { reason })
           this.ready = false
-        })
+        }
+        registerListener("disconnected", disconnectHandler)
 
-        // Message handler
-        this.client.on("message", async (message: any) => {
-          await this.handleIncomingMessage(message)
-        })
+        // Message handler (with error handling)
+        const messageHandler = async (message: any) => {
+          try {
+            await this.handleIncomingMessage(message)
+          } catch (error) {
+            log.error("Error handling WhatsApp message", {
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+            })
+          }
+        }
+        registerListener("message", messageHandler)
 
-        this.running = true
+        // Initialize client - only set running=true AFTER successful init
         await this.client.initialize()
+        this.running = true
 
         log.info("WhatsApp gateway started")
       } catch (error) {
+        // Clean up if init fails
+        this.running = false
+        this.ready = false
         log.error("Failed to start WhatsApp gateway", {
           error: error instanceof Error ? error.message : String(error),
         })
@@ -182,12 +270,20 @@ export namespace WhatsAppGateway {
     async stop(): Promise<void> {
       this.running = false
       this.ready = false
+
+      // Clean up event listeners
+      for (const cleanup of this.eventListenerCleanup) {
+        cleanup()
+      }
+      this.eventListenerCleanup = []
+
       if (this.client) {
         try {
           await this.client.destroy()
         } catch (e) {
           log.debug("Error destroying WhatsApp client", { error: String(e) })
         }
+        this.client = null
       }
       log.info("WhatsApp gateway stopped")
     }
@@ -208,12 +304,30 @@ export namespace WhatsAppGateway {
     // Message Handling
     // -------------------------------------------------------------------------
 
-    private async handleIncomingMessage(message: any): Promise<void> {
+    private async handleIncomingMessage(rawMessage: unknown): Promise<void> {
+      // Validate message structure
+      if (!isChatMessage(rawMessage)) {
+        log.debug("Received non-standard message, skipping", {
+          hasType: typeof rawMessage === "object" && rawMessage !== null && "type" in rawMessage,
+        })
+        return
+      }
+
+      const message = rawMessage
+
       // Skip non-text messages
-      if (message.type !== "chat") return
+      if (message.type !== MESSAGE_TYPES.CHAT) return
 
       // Skip group messages for now (can be enabled later)
-      const chat = await message.getChat()
+      let chat
+      try {
+        chat = await message.getChat()
+      } catch (error) {
+        log.error("Failed to get chat for message", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return
+      }
       if (chat.isGroup) return
 
       const chatId = message.from
@@ -306,15 +420,21 @@ Commands:
 
         case "/zee":
         case "/stanley":
-        case "/johny":
-          const persona = cmd.substring(1) as "zee" | "stanley" | "johny"
-          const context = await this.getOrCreateContext(message.from, persona)
-          context.persona = persona
+        case "/johny": {
+          const extractedPersona = cmd.substring(1)
+          if (!isValidPersona(extractedPersona)) {
+            // Should never happen given switch cases, but TypeScript doesn't narrow here
+            log.error("Invalid persona extracted from command", { cmd, extractedPersona })
+            break
+          }
+          const context = await this.getOrCreateContext(message.from, extractedPersona)
+          context.persona = extractedPersona
           context.sessionId = null // Force new session
           await message.reply(
-            `Switched to ${persona.charAt(0).toUpperCase() + persona.slice(1)}. How can I help?`
+            `Switched to ${extractedPersona.charAt(0).toUpperCase() + extractedPersona.slice(1)}. How can I help?`
           )
           break
+        }
 
         default:
           await message.reply(
@@ -459,16 +579,20 @@ Commands:
     }
 
     private async createSession(persona: string): Promise<{ id: string } | null> {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
+
       try {
         const response = await fetch(`${this.apiBaseUrl}/session`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-opencode-directory": this.config.directory,
+            [HEADER_DIRECTORY]: this.config.directory,
           },
           body: JSON.stringify({
             title: `WhatsApp (${persona})`,
           }),
+          signal: controller.signal,
         })
 
         if (!response.ok) {
@@ -476,27 +600,45 @@ Commands:
           return null
         }
 
-        return (await response.json()) as { id: string }
+        const data = await response.json()
+        // Validate response has required field
+        if (!data || typeof data.id !== "string") {
+          log.error("Invalid session response - missing id field")
+          return null
+        }
+
+        return data as { id: string }
       } catch (error) {
-        log.error("Create session error", {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error("Create session timed out")
+        } else {
+          log.error("Create session error", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         return null
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
     private async sendMessageToSession(sessionId: string, message: string, agent: string = "zee"): Promise<string | null> {
+      const controller = new AbortController()
+      // Use longer timeout for message processing (60 seconds - LLM responses can take time)
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
+
       try {
         const response = await fetch(`${this.apiBaseUrl}/session/${sessionId}/message`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-opencode-directory": this.config.directory,
+            [HEADER_DIRECTORY]: this.config.directory,
           },
           body: JSON.stringify({
             parts: [{ type: "text", text: message }],
             agent, // Use the persona as the agent
           }),
+          signal: controller.signal,
         })
 
         if (!response.ok) {
@@ -513,24 +655,40 @@ Commands:
 
         return textParts.join("\n") || null
       } catch (error) {
-        log.error("Send message error", {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error("Send message timed out", { sessionId })
+        } else {
+          log.error("Send message error", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         return null
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
     private async getAgentStatus(): Promise<string> {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
+
       try {
-        const response = await fetch(`${this.apiBaseUrl}/global/health`)
+        const response = await fetch(`${this.apiBaseUrl}/global/health`, {
+          signal: controller.signal,
+        })
         if (!response.ok) {
           return "Status: Offline"
         }
 
         const health = (await response.json()) as { status: string }
         return `Status: ${health.status}\nActive chats: ${this.chatContexts.size}`
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return "Status: Connection timed out"
+        }
         return "Status: Unable to connect to agent"
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
@@ -584,7 +742,7 @@ Commands:
       }
 
       // Truncate text if too long
-      const maxLen = ttsConfig.maxTextLength ?? 4000
+      const maxLen = ttsConfig.maxTextLength ?? MESSAGE_CHUNK_SIZE
       const textToSpeak = text.length > maxLen ? text.slice(0, maxLen) + "..." : text
 
       try {
@@ -623,7 +781,7 @@ Commands:
         return null
       }
 
-      const timeoutMs = Math.max((ttsConfig.timeoutSeconds ?? 30) * 1000, 1000)
+      const timeoutMs = Math.max((ttsConfig.timeoutSeconds ?? TTS_TIMEOUT_SECONDS) * 1000, 1000)
       const tmpPath = path.join(os.tmpdir(), `whatsapp-tts-${crypto.randomUUID()}.ogg`)
 
       try {
@@ -664,13 +822,24 @@ Commands:
       }
     }
 
-    private runCommand(argv: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    private runCommand(argv: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number; timedOut: boolean }> {
       return new Promise((resolve) => {
         const [cmd, ...args] = argv
-        const proc = spawn(cmd, args, { timeout: timeoutMs })
+        const proc = spawn(cmd, args)
+        let resolved = false
+        let timedOut = false
 
         let stdout = ""
         let stderr = ""
+
+        // Implement actual timeout with SIGKILL
+        const timeoutHandle = setTimeout(() => {
+          if (!resolved) {
+            timedOut = true
+            log.warn("Command timed out, sending SIGKILL", { cmd, timeoutMs })
+            proc.kill("SIGKILL")
+          }
+        }, timeoutMs)
 
         proc.stdout?.on("data", (data) => {
           stdout += data.toString()
@@ -681,12 +850,20 @@ Commands:
         })
 
         proc.on("close", (code) => {
-          resolve({ stdout, stderr, exitCode: code ?? 1 })
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeoutHandle)
+            resolve({ stdout, stderr, exitCode: code ?? 1, timedOut })
+          }
         })
 
         proc.on("error", (error) => {
-          stderr += error.message
-          resolve({ stdout, stderr, exitCode: 1 })
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeoutHandle)
+            stderr += error.message
+            resolve({ stdout, stderr, exitCode: 1, timedOut })
+          }
         })
       })
     }
@@ -695,10 +872,15 @@ Commands:
       return this.sendMessage(chatId, message)
     }
 
-    async broadcast(message: string): Promise<void> {
+    async broadcast(message: string): Promise<{ sent: number; failed: number }> {
+      let sent = 0
+      let failed = 0
       for (const [chatId] of this.chatContexts) {
-        await this.sendMessage(chatId, message)
+        const success = await this.sendMessage(chatId, message)
+        if (success) sent++
+        else failed++
       }
+      return { sent, failed }
     }
 
     /**

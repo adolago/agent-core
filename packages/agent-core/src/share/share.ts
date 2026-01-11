@@ -9,6 +9,7 @@ export namespace Share {
 
   let queue: Promise<void> = Promise.resolve()
   const pending = new Map<string, any>()
+  const eventUnsubscribers: Array<() => void> = []
 
   export async function sync(key: string, content: any) {
     if (disabled) return
@@ -16,7 +17,10 @@ export namespace Share {
     if (root !== "session") return
     const [sub, sessionID] = splits
     if (sub === "share") return
-    const share = await Session.getShare(sessionID).catch(() => {})
+    const share = await Session.getShare(sessionID).catch((error) => {
+      log.debug("Could not get share info", { sessionID, error: String(error) })
+      return undefined
+    })
     if (!share) return
     const { secret } = share
     pending.set(key, content)
@@ -24,6 +28,7 @@ export namespace Share {
       .then(async () => {
         const content = pending.get(key)
         if (content === undefined) return
+
         pending.delete(key)
 
         return fetch(`${URL}/share_sync`, {
@@ -44,26 +49,43 @@ export namespace Share {
           })
         }
       })
+      .catch((error) => {
+        log.error("Share sync failed", { key, error: error instanceof Error ? error.message : String(error) })
+      })
   }
 
   export function init() {
-    Bus.subscribe(Session.Event.Updated, async (evt) => {
-      await sync("session/info/" + evt.properties.info.id, evt.properties.info)
-    })
-    Bus.subscribe(MessageV2.Event.Updated, async (evt) => {
-      await sync("session/message/" + evt.properties.info.sessionID + "/" + evt.properties.info.id, evt.properties.info)
-    })
-    Bus.subscribe(MessageV2.Event.PartUpdated, async (evt) => {
-      await sync(
-        "session/part/" +
-          evt.properties.part.sessionID +
-          "/" +
-          evt.properties.part.messageID +
-          "/" +
-          evt.properties.part.id,
-        evt.properties.part,
-      )
-    })
+    eventUnsubscribers.push(
+      Bus.subscribe(Session.Event.Updated, async (evt) => {
+        await sync("session/info/" + evt.properties.info.id, evt.properties.info)
+      })
+    )
+    eventUnsubscribers.push(
+      Bus.subscribe(MessageV2.Event.Updated, async (evt) => {
+        await sync("session/message/" + evt.properties.info.sessionID + "/" + evt.properties.info.id, evt.properties.info)
+      })
+    )
+    eventUnsubscribers.push(
+      Bus.subscribe(MessageV2.Event.PartUpdated, async (evt) => {
+        await sync(
+          "session/part/" +
+            evt.properties.part.sessionID +
+            "/" +
+            evt.properties.part.messageID +
+            "/" +
+            evt.properties.part.id,
+          evt.properties.part,
+        )
+      })
+    )
+  }
+
+  export function shutdown() {
+    for (const unsub of eventUnsubscribers) {
+      unsub()
+    }
+    eventUnsubscribers.length = 0
+    log.debug("Share module shutdown complete")
   }
 
   export const URL =

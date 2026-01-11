@@ -27,6 +27,9 @@ import {
   type ToolResult,
   type ThreadContext,
 } from './types.js';
+import { Log } from '../../packages/agent-core/src/util/log';
+
+const log = Log.create({ service: 'messaging-surface' });
 
 // =============================================================================
 // Messaging Platform Handlers
@@ -315,7 +318,7 @@ export class MessagingSurface extends BaseSurface implements Surface {
 
   async sendResponse(response: SurfaceResponse, threadId?: string): Promise<void> {
     if (!threadId) {
-      console.warn('MessagingSurface: No threadId provided, cannot send response');
+      log.warn('No threadId provided, cannot send response');
       return;
     }
 

@@ -10,6 +10,15 @@
 
 import { z } from "zod";
 import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
+import { Log } from "../../../packages/agent-core/src/util/log";
+
+const log = Log.create({ service: "zee-tools" });
+
+// Schema for gateway API responses
+const GatewayResponseSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional(),
+});
 import {
   getTodayEvents,
   getWeekEvents,
@@ -17,9 +26,17 @@ import {
   listEvents,
   formatEventsForCanvas,
   checkCredentialsExist,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  findFreeSlots,
+  suggestMeetingTimes,
+  quickAddEvent,
   type FormattedEvent,
+  type TimeSlot,
 } from "./google/calendar.js";
 import { requestDaemon } from "../../daemon/ipc-client.js";
+import { getMemoryStore } from "../../memory/store.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -57,25 +74,62 @@ Examples:
 
       ctx.metadata({ title: `Storing memory: ${category}` });
 
-      // In production, this calls the Qdrant-backed memory service
-      return {
-        title: `Memory Stored`,
-        metadata: {
+      try {
+        const store = getMemoryStore();
+        const entry = await store.save({
           category,
-          importance,
-          tags,
-          surface: ctx.extra?.surface,
-        },
-        output: `Remembered: "${content.substring(0, 100)}${content.length > 100 ? "..." : ""}"
+          content,
+          metadata: {
+            importance,
+            tags,
+            surface: ctx.extra?.surface as string | undefined,
+            sessionId: ctx.extra?.sessionId as string | undefined,
+            agent: "zee",
+            extra: relatedTo ? { relatedTo } : undefined,
+          },
+        });
 
-Memory will be:
-- Vectorized for semantic search
-- Categorized as: ${category}
-- Importance: ${(importance * 100).toFixed(0)}%
-${tags?.length ? `- Tagged: ${tags.join(", ")}` : ""}
+        return {
+          title: `Memory Stored`,
+          metadata: {
+            id: entry.id,
+            category,
+            importance,
+            tags,
+          },
+          output: `Remembered: "${content.substring(0, 100)}${content.length > 100 ? "..." : ""}"
+
+Memory saved with ID: ${entry.id}
+- Category: ${category}
+- Importance: ${((importance ?? 0.5) * 100).toFixed(0)}%
+${tags?.length ? `- Tags: ${tags.join(", ")}` : ""}
 
 This memory can be recalled later using zee:memory-search.`,
-      };
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        // Check if it's a connection error (Qdrant not running)
+        if (errorMsg.includes("ECONNREFUSED") || errorMsg.includes("fetch failed")) {
+          return {
+            title: `Memory Store Unavailable`,
+            metadata: { error: "connection_failed" },
+            output: `Could not connect to memory storage (Qdrant).
+
+The memory was NOT saved. To enable memory:
+1. Start Qdrant: docker run -p 6333:6333 qdrant/qdrant
+2. Or configure a different backend in agent-core config
+
+Error: ${errorMsg}`,
+          };
+        }
+
+        return {
+          title: `Memory Store Error`,
+          metadata: { error: errorMsg },
+          output: `Failed to store memory: ${errorMsg}`,
+        };
+      }
     },
   }),
 };
@@ -114,28 +168,76 @@ Examples:
 
       ctx.metadata({ title: `Searching: ${query}` });
 
-      return {
-        title: `Memory Search Results`,
-        metadata: {
+      try {
+        const store = getMemoryStore();
+        const results = await store.search({
           query,
-          category,
-          limit,
-          threshold,
-        },
-        output: `[Zee would search memories for: "${query}"]
+          limit: limit ?? 5,
+          threshold: threshold ?? 0.5,
+          category: category && category !== "all" ? category as any : undefined,
+          timeRange: timeRange ? {
+            start: timeRange.start ? new Date(timeRange.start).getTime() : undefined,
+            end: timeRange.end ? new Date(timeRange.end).getTime() : undefined,
+          } : undefined,
+        });
 
-Search parameters:
-- Semantic similarity threshold: ${(threshold * 100).toFixed(0)}%
-- Max results: ${limit}
-${category && category !== "all" ? `- Category filter: ${category}` : ""}
-${timeRange ? `- Time range: ${JSON.stringify(timeRange)}` : ""}
+        if (results.length === 0) {
+          return {
+            title: `No Memories Found`,
+            metadata: { query, resultCount: 0 },
+            output: `No memories found matching: "${query}"
 
-The Qdrant-backed memory system will:
-1. Convert query to embedding vector
-2. Find semantically similar memories
-3. Filter by category and time
-4. Return ranked results with scores`,
-      };
+Try:
+- Using different keywords
+- Removing category filters
+- Expanding the time range`,
+          };
+        }
+
+        const formattedResults = results.map((r, i) => {
+          const preview = r.entry.content.substring(0, 150);
+          const ellipsis = r.entry.content.length > 150 ? "..." : "";
+          const date = new Date(r.entry.createdAt).toLocaleDateString();
+          const score = (r.score * 100).toFixed(0);
+          return `${i + 1}. [${r.entry.category}] (${score}% match, ${date})
+   "${preview}${ellipsis}"
+   ID: ${r.entry.id}`;
+        }).join("\n\n");
+
+        return {
+          title: `Found ${results.length} Memories`,
+          metadata: {
+            query,
+            resultCount: results.length,
+            topScore: results[0]?.score,
+          },
+          output: `Found ${results.length} memories matching: "${query}"
+
+${formattedResults}`,
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        if (errorMsg.includes("ECONNREFUSED") || errorMsg.includes("fetch failed")) {
+          return {
+            title: `Memory Search Unavailable`,
+            metadata: { error: "connection_failed" },
+            output: `Could not connect to memory storage (Qdrant).
+
+To enable memory search:
+1. Start Qdrant: docker run -p 6333:6333 qdrant/qdrant
+2. Or configure a different backend in agent-core config
+
+Error: ${errorMsg}`,
+          };
+        }
+
+        return {
+          title: `Memory Search Error`,
+          metadata: { error: errorMsg },
+          output: `Failed to search memories: ${errorMsg}`,
+        };
+      }
     },
   }),
 };
@@ -145,54 +247,170 @@ The Qdrant-backed memory system will:
 // =============================================================================
 
 const MessagingParams = z.object({
-  channel: z.enum(["whatsapp", "telegram", "discord", "email"])
-    .describe("Messaging channel"),
-  to: z.string().describe("Recipient identifier (phone, username, or email)"),
+  channel: z.enum(["whatsapp", "telegram"])
+    .describe("Messaging channel: whatsapp (Zee) or telegram (Stanley/Johny bots)"),
+  to: z.string().describe("Recipient: WhatsApp chatId or Telegram chatId (numeric)"),
   message: z.string().describe("Message content"),
-  replyTo: z.string().optional().describe("Message ID to reply to"),
-  schedule: z.string().optional().describe("ISO date to schedule sending"),
+  persona: z.enum(["zee", "stanley", "johny"]).optional()
+    .describe("For Telegram: which persona's bot to use (default: stanley)"),
 });
 
 export const messagingTool: ToolDefinition = {
   id: "zee:messaging",
   category: "domain",
   init: async () => ({
-    description: `Send messages across different platforms.
-Supported channels:
-- WhatsApp (via Zee gateway)
-- Telegram
-- Discord
-- Email
+    description: `Send messages via WhatsApp or Telegram gateways.
+
+Channels:
+- **whatsapp**: Zee's WhatsApp gateway (requires active daemon with --whatsapp)
+- **telegram**: Stanley/Johny Telegram bots (requires active daemon with --telegram-*)
+
+WhatsApp:
+- \`to\`: Chat ID (from incoming message context, e.g., "1234567890@c.us")
+- Only Zee can send via WhatsApp
+
+Telegram:
+- \`to\`: Numeric chat ID (from incoming message context)
+- \`persona\`: Which bot to use - "stanley" (default) or "johny"
 
 Examples:
-- Send WhatsApp: { channel: "whatsapp", to: "+1234567890", message: "Hello!" }
-- Schedule email: { channel: "email", to: "user@example.com", message: "...", schedule: "2024-01-15T09:00:00Z" }`,
+- WhatsApp: { channel: "whatsapp", to: "1234567890@c.us", message: "Hello!" }
+- Telegram via Stanley: { channel: "telegram", to: "123456789", message: "Market update!", persona: "stanley" }`,
     parameters: MessagingParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { channel, to, message, replyTo, schedule } = args;
+      const { channel, to, message, persona } = args;
 
       ctx.metadata({ title: `Sending via ${channel}` });
 
-      return {
-        title: `Message: ${channel}`,
-        metadata: {
-          channel,
-          to,
-          scheduled: !!schedule,
-          hasReply: !!replyTo,
-        },
-        output: `[Zee would send message via ${channel}]
+      // Get daemon port from environment or default
+      const daemonPort = process.env.AGENT_CORE_DAEMON_PORT || "3456";
+      const baseUrl = `http://127.0.0.1:${daemonPort}`;
 
-Channel: ${channel}
-To: ${to}
-${replyTo ? `Reply to: ${replyTo}` : ""}
-${schedule ? `Scheduled: ${schedule}` : "Sending immediately"}
+      try {
+        if (channel === "whatsapp") {
+          // Send via WhatsApp gateway (Zee only)
+          const response = await fetch(`${baseUrl}/gateway/whatsapp/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chatId: to, message }),
+          });
 
-Message preview:
-"${message.substring(0, 200)}${message.length > 200 ? "..." : ""}"
+          const rawResult = await response.json();
+          const parseResult = GatewayResponseSchema.safeParse(rawResult);
 
-Note: Actual sending requires channel authentication and user consent.`,
-      };
+          if (!parseResult.success) {
+            log.error("WhatsApp gateway response validation failed", {
+              errors: parseResult.error.flatten().fieldErrors,
+            });
+            return {
+              title: `WhatsApp Send Failed`,
+              metadata: { channel, to, error: "Invalid response from gateway" },
+              output: `Failed to send WhatsApp message: Invalid response from gateway`,
+            };
+          }
+
+          const result = parseResult.data;
+
+          if (!result.success) {
+            return {
+              title: `WhatsApp Send Failed`,
+              metadata: { channel, to, error: result.error },
+              output: `Failed to send WhatsApp message: ${result.error || "Unknown error"}
+
+Troubleshooting:
+- Ensure daemon is running with --whatsapp flag
+- Check WhatsApp connection status
+- Verify chatId format (e.g., "1234567890@c.us")`,
+            };
+          }
+
+          return {
+            title: `WhatsApp Message Sent`,
+            metadata: { channel, to, success: true },
+            output: `Message sent via WhatsApp to ${to}
+
+Preview: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
+          };
+
+        } else if (channel === "telegram") {
+          // Send via Telegram gateway (Stanley/Johny bots)
+          const selectedPersona = persona || "stanley";
+          const chatId = parseInt(to, 10);
+
+          if (isNaN(chatId)) {
+            return {
+              title: `Invalid Telegram Chat ID`,
+              metadata: { channel, to, error: "invalid_chat_id" },
+              output: `Invalid Telegram chat ID: "${to}"
+
+Chat ID must be a numeric value (e.g., 123456789).`,
+            };
+          }
+
+          const response = await fetch(`${baseUrl}/gateway/telegram/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ persona: selectedPersona, chatId, message }),
+          });
+
+          const rawResult = await response.json();
+          const parseResult = GatewayResponseSchema.safeParse(rawResult);
+
+          if (!parseResult.success) {
+            log.error("Telegram gateway response validation failed", {
+              errors: parseResult.error.flatten().fieldErrors,
+            });
+            return {
+              title: `Telegram Send Failed`,
+              metadata: { channel, to, persona: selectedPersona, error: "Invalid response from gateway" },
+              output: `Failed to send Telegram message via ${selectedPersona}: Invalid response from gateway`,
+            };
+          }
+
+          const result = parseResult.data;
+
+          if (!result.success) {
+            return {
+              title: `Telegram Send Failed`,
+              metadata: { channel, to, persona: selectedPersona, error: result.error },
+              output: `Failed to send Telegram message via ${selectedPersona}: ${result.error || "Unknown error"}
+
+Troubleshooting:
+- Ensure daemon is running with --telegram-${selectedPersona}-token flag
+- Check bot connection status
+- Verify chatId is numeric`,
+            };
+          }
+
+          return {
+            title: `Telegram Message Sent`,
+            metadata: { channel, to, persona: selectedPersona, success: true },
+            output: `Message sent via Telegram (${selectedPersona} bot) to chat ${to}
+
+Preview: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
+          };
+        }
+
+        return {
+          title: `Unsupported Channel`,
+          metadata: { channel, error: "unsupported" },
+          output: `Channel "${channel}" is not supported. Use "whatsapp" or "telegram".`,
+        };
+
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        return {
+          title: `Messaging Error`,
+          metadata: { channel, to, error: errorMsg },
+          output: `Failed to send message: ${errorMsg}
+
+Troubleshooting:
+- Ensure agent-core daemon is running
+- Check gateway status with /status command
+- Verify network connectivity`,
+        };
+      }
     },
   }),
 };
@@ -265,40 +483,62 @@ The notification system will:
 // =============================================================================
 
 const CalendarParams = z.object({
-  action: z.enum(["list", "today", "week", "month", "show"])
-    .describe("Calendar action: list (date range), today, week, month, or show (display in canvas)"),
+  action: z.enum(["list", "today", "week", "month", "show", "create", "update", "delete", "suggest", "find-free", "quick-add"])
+    .describe("Calendar action"),
   dateRange: z.object({
     start: z.string(),
     end: z.string(),
-  }).optional().describe("Date range for 'list' action (ISO dates)"),
+  }).optional().describe("Date range for 'list' or 'find-free' action (ISO dates)"),
   showInCanvas: z.boolean().default(true)
     .describe("Display results in canvas sidecar"),
   year: z.number().optional().describe("Year for 'month' action"),
   month: z.number().min(0).max(11).optional().describe("Month (0-11) for 'month' action"),
+  // Event creation/update parameters
+  event: z.object({
+    summary: z.string().describe("Event title"),
+    description: z.string().optional(),
+    location: z.string().optional(),
+    start: z.string().describe("Start time (ISO datetime or YYYY-MM-DD for all-day)"),
+    end: z.string().describe("End time (ISO datetime or YYYY-MM-DD for all-day)"),
+    attendees: z.array(z.string()).optional().describe("Attendee email addresses"),
+  }).optional().describe("Event details for create/update"),
+  eventId: z.string().optional().describe("Event ID for update/delete"),
+  // Smart scheduling parameters
+  durationMinutes: z.number().optional().describe("Meeting duration for 'suggest' action"),
+  withinDays: z.number().optional().describe("Search window in days (default: 7)"),
+  preferMorning: z.boolean().optional().describe("Prefer morning slots"),
+  preferAfternoon: z.boolean().optional().describe("Prefer afternoon slots"),
+  quickAddText: z.string().optional().describe("Natural language event for 'quick-add'"),
 });
 
 export const calendarTool: ToolDefinition = {
   id: "zee:calendar",
   category: "domain",
   init: async () => ({
-    description: `View Google Calendar events and display them in canvas sidecar.
+    description: `Google Calendar with smart scheduling.
 
-Actions:
-- today: Show today's events
-- week: Show this week's events
-- month: Show this month's events (or specify year/month)
-- list: Show events in a custom date range
-- show: Just display calendar canvas without fetching new events
+**View Events:**
+- today/week/month/list: View events
+- show: Display calendar canvas
+
+**Manage Events:**
+- create: Create event with { event: { summary, start, end, location?, attendees? } }
+- update: Update event with { eventId, event: {...} }
+- delete: Delete event with { eventId }
+- quick-add: Natural language event creation { quickAddText: "Lunch with John tomorrow at noon" }
+
+**Smart Scheduling:**
+- suggest: Get optimal meeting time suggestions { durationMinutes, withinDays?, preferMorning?, preferAfternoon? }
+- find-free: Find available time slots { dateRange: {start, end}, durationMinutes }
 
 Examples:
-- Today's events: { action: "today" }
-- This week: { action: "week" }
-- January 2026: { action: "month", year: 2026, month: 0 }
-- Custom range: { action: "list", dateRange: { start: "2026-01-01", end: "2026-01-15" } }
-- Display only: { action: "show" }`,
+- { action: "today" }
+- { action: "create", event: { summary: "Team Meeting", start: "2026-01-15T10:00:00", end: "2026-01-15T11:00:00" } }
+- { action: "suggest", durationMinutes: 30, preferMorning: true }
+- { action: "quick-add", quickAddText: "Coffee with Sarah tomorrow 3pm" }`,
     parameters: CalendarParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, dateRange, showInCanvas, year, month } = args;
+      const { action, dateRange, showInCanvas, year, month, event, eventId, durationMinutes, withinDays, preferMorning, preferAfternoon, quickAddText } = args;
 
       ctx.metadata({ title: `Calendar: ${action}` });
 
@@ -324,11 +564,146 @@ Required scopes:
       }
 
       try {
+        // Handle event management actions
+        if (action === "create" && event) {
+          const isAllDay = !event.start.includes("T");
+          const created = await createEvent("primary", {
+            summary: event.summary,
+            description: event.description,
+            location: event.location,
+            start: isAllDay ? { date: event.start } : { dateTime: event.start },
+            end: isAllDay ? { date: event.end } : { dateTime: event.end },
+            attendees: event.attendees?.map(email => ({ email })),
+          });
+          return {
+            title: `Event Created`,
+            metadata: { action, eventId: created.id },
+            output: `Created event: ${created.summary}
+ID: ${created.id}
+When: ${created.start.dateTime || created.start.date}
+${created.location ? `Where: ${created.location}` : ""}
+${created.htmlLink ? `Link: ${created.htmlLink}` : ""}`,
+          };
+        }
+
+        if (action === "update" && eventId && event) {
+          const isAllDay = event.start && !event.start.includes("T");
+          const updated = await updateEvent("primary", eventId, {
+            summary: event.summary,
+            description: event.description,
+            location: event.location,
+            ...(event.start && { start: isAllDay ? { date: event.start } : { dateTime: event.start } }),
+            ...(event.end && { end: isAllDay ? { date: event.end } : { dateTime: event.end } }),
+            ...(event.attendees && { attendees: event.attendees.map(email => ({ email })) }),
+          });
+          return {
+            title: `Event Updated`,
+            metadata: { action, eventId },
+            output: `Updated event: ${updated.summary}
+When: ${updated.start.dateTime || updated.start.date}`,
+          };
+        }
+
+        if (action === "delete" && eventId) {
+          await deleteEvent("primary", eventId);
+          return {
+            title: `Event Deleted`,
+            metadata: { action, eventId },
+            output: `Deleted event: ${eventId}`,
+          };
+        }
+
+        if (action === "quick-add" && quickAddText) {
+          const created = await quickAddEvent("primary", quickAddText);
+          return {
+            title: `Event Created (Quick Add)`,
+            metadata: { action, eventId: created.id },
+            output: `Created: ${created.summary}
+When: ${created.start.dateTime || created.start.date}
+ID: ${created.id}`,
+          };
+        }
+
+        // Handle smart scheduling actions
+        if (action === "suggest") {
+          const duration = durationMinutes || 30;
+          const suggestions = await suggestMeetingTimes("primary", {
+            durationMinutes: duration,
+            withinDays: withinDays || 7,
+            preferMorning,
+            preferAfternoon,
+          });
+
+          if (suggestions.length === 0) {
+            return {
+              title: `No Available Slots`,
+              metadata: { action, durationMinutes: duration },
+              output: `No ${duration}-minute slots available in the next ${withinDays || 7} days.`,
+            };
+          }
+
+          const suggestionsList = suggestions.map((s, i) => {
+            const startStr = s.start.toLocaleString("en-US", {
+              weekday: "short", month: "short", day: "numeric",
+              hour: "numeric", minute: "2-digit",
+            });
+            const endStr = s.end.toLocaleTimeString("en-US", {
+              hour: "numeric", minute: "2-digit",
+            });
+            return `${i + 1}. ${startStr} - ${endStr} (${s.reason}, score: ${s.score})`;
+          }).join("\n");
+
+          return {
+            title: `Meeting Suggestions`,
+            metadata: { action, count: suggestions.length, durationMinutes: duration },
+            output: `Best times for a ${duration}-minute meeting:
+
+${suggestionsList}
+
+To schedule, use: { action: "create", event: { summary: "...", start: "<ISO>", end: "<ISO>" } }`,
+          };
+        }
+
+        if (action === "find-free" && dateRange && durationMinutes) {
+          const slots = await findFreeSlots("primary", {
+            startDate: new Date(dateRange.start),
+            endDate: new Date(dateRange.end),
+            minDurationMinutes: durationMinutes,
+          });
+
+          if (slots.length === 0) {
+            return {
+              title: `No Free Slots`,
+              metadata: { action, durationMinutes },
+              output: `No ${durationMinutes}-minute free slots between ${dateRange.start} and ${dateRange.end}.`,
+            };
+          }
+
+          const slotsList = slots.slice(0, 10).map((s) => {
+            const startStr = s.start.toLocaleString("en-US", {
+              weekday: "short", month: "short", day: "numeric",
+              hour: "numeric", minute: "2-digit",
+            });
+            const endStr = s.end.toLocaleTimeString("en-US", {
+              hour: "numeric", minute: "2-digit",
+            });
+            return `• ${startStr} - ${endStr} (${s.durationMinutes} min available)`;
+          }).join("\n");
+
+          return {
+            title: `Free Time Slots`,
+            metadata: { action, count: slots.length, durationMinutes },
+            output: `Found ${slots.length} free slot(s) of ${durationMinutes}+ minutes:
+
+${slotsList}${slots.length > 10 ? `\n... and ${slots.length - 10} more` : ""}`,
+          };
+        }
+
+        // Handle view actions (original functionality)
         let events: FormattedEvent[] = [];
         let periodLabel = "";
 
         if (action === "show") {
-          // Just show the canvas with current date
           periodLabel = "Calendar";
         } else if (action === "today") {
           const raw = await getTodayEvents();
@@ -362,9 +737,8 @@ Required scopes:
           : "No events found.";
 
         // Show in canvas sidecar if requested
-        if (showInCanvas) {
+        if (showInCanvas && events.length > 0) {
           try {
-            // Convert events to canvas calendar format
             const canvasEvents = events.map((e) => ({
               date: e.date,
               title: e.title,
@@ -383,18 +757,14 @@ Required scopes:
                 events: canvasEvents,
               },
             });
-          } catch (canvasError) {
-            // Canvas might not be available, continue without it
+          } catch {
+            // Canvas might not be available
           }
         }
 
         return {
           title: `Calendar: ${periodLabel}`,
-          metadata: {
-            action,
-            eventCount: events.length,
-            period: periodLabel,
-          },
+          metadata: { action, eventCount: events.length, period: periodLabel },
           output: `${periodLabel} - ${events.length} event(s)
 
 ${eventsList}${showInCanvas ? "\n\n▦ Calendar displayed in canvas sidecar." : ""}`,
@@ -402,25 +772,18 @@ ${eventsList}${showInCanvas ? "\n\n▦ Calendar displayed in canvas sidecar." : 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
 
-        // Check if it's an auth error
         if (errorMessage.includes("401") || errorMessage.includes("invalid_grant")) {
           return {
             title: `Calendar Auth Error`,
             metadata: { action },
-            output: `Google Calendar authentication failed.
-
-Your access token may have expired. Please re-authenticate:
-1. Delete ~/.zee/credentials/google/tokens.json
-2. Run the OAuth flow again to get new tokens
-
-Error: ${errorMessage}`,
+            output: `Google Calendar authentication failed. Re-authenticate at ~/.zee/credentials/google/`,
           };
         }
 
         return {
           title: `Calendar Error`,
           metadata: { action },
-          output: `Failed to fetch calendar: ${errorMessage}`,
+          output: `Calendar operation failed: ${errorMessage}`,
         };
       }
     },
@@ -491,6 +854,133 @@ Contacts are synced across:
   }),
 };
 
+// =============================================================================
+// WhatsApp Reaction Tool
+// =============================================================================
+
+const WhatsAppReactionParams = z.object({
+  action: z.enum(["react"]).describe("Action to perform"),
+  chatJid: z.string().describe("WhatsApp chat JID (e.g., '1234567890@c.us' for DM, 'groupId@g.us' for groups)"),
+  messageId: z.string().describe("Message stanza ID to react to"),
+  emoji: z.string().describe("Emoji character (e.g., '👍', '❤️', '😂'). Empty string to remove reaction."),
+  remove: z.boolean().optional().describe("Set true to explicitly remove the reaction"),
+});
+
+export const whatsappReactionTool: ToolDefinition = {
+  id: "zee:whatsapp-react",
+  category: "domain",
+  init: async () => ({
+    description: `Add or remove emoji reactions to WhatsApp messages.
+
+Use this to react to messages the user mentions or sends screenshots of.
+
+Parameters:
+- **chatJid**: The WhatsApp chat ID. Format depends on chat type:
+  - DMs: "1234567890@c.us" (phone number + @c.us)
+  - Groups: "123456789012345678@g.us" (group ID + @g.us)
+- **messageId**: The message stanza ID to react to
+- **emoji**: Unicode emoji character. Use empty string "" to remove.
+
+Examples:
+- Add thumbs up: { action: "react", chatJid: "1234567890@c.us", messageId: "ABC123", emoji: "👍" }
+- Remove reaction: { action: "react", chatJid: "1234567890@c.us", messageId: "ABC123", emoji: "", remove: true }`,
+    parameters: WhatsAppReactionParams,
+    execute: async (args, ctx): Promise<ToolExecutionResult> => {
+      const { action, chatJid, messageId, emoji, remove } = args;
+
+      ctx.metadata({ title: `WhatsApp: ${remove ? "Remove" : "Add"} reaction` });
+
+      // Get daemon port from environment or default
+      const daemonPort = process.env.AGENT_CORE_DAEMON_PORT || "3456";
+      const baseUrl = `http://127.0.0.1:${daemonPort}`;
+
+      try {
+        // Note: This endpoint needs to be added to the server
+        // For now, we'll use the existing sendMessage with a reaction-specific format
+        // until a dedicated endpoint is added
+        const response = await fetch(`${baseUrl}/gateway/whatsapp/react`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chatJid, messageId, emoji: remove ? "" : emoji }),
+        });
+
+        if (!response.ok) {
+          // Fallback: endpoint not implemented yet
+          return {
+            title: `WhatsApp Reaction (Not Implemented)`,
+            metadata: { action, chatJid, messageId, emoji, remove },
+            output: `WhatsApp reaction endpoint not yet available.
+
+The reaction would be:
+- Chat: ${chatJid}
+- Message: ${messageId}
+- Emoji: ${remove ? "(remove)" : emoji}
+
+To enable reactions, add the /gateway/whatsapp/react endpoint to the daemon.`,
+          };
+        }
+
+        const rawResult = await response.json();
+        const parseResult = GatewayResponseSchema.safeParse(rawResult);
+
+        if (!parseResult.success) {
+          log.error("WhatsApp reaction response validation failed", {
+            errors: parseResult.error.flatten().fieldErrors,
+          });
+          return {
+            title: `WhatsApp Reaction Failed`,
+            metadata: { action, chatJid, messageId, emoji, error: "Invalid response from gateway" },
+            output: `Failed to ${remove ? "remove" : "add"} reaction: Invalid response from gateway`,
+          };
+        }
+
+        const result = parseResult.data;
+
+        if (!result.success) {
+          return {
+            title: `WhatsApp Reaction Failed`,
+            metadata: { action, chatJid, messageId, emoji, error: result.error },
+            output: `Failed to ${remove ? "remove" : "add"} reaction: ${result.error || "Unknown error"}`,
+          };
+        }
+
+        return {
+          title: `WhatsApp Reaction ${remove ? "Removed" : "Added"}`,
+          metadata: { action, chatJid, messageId, emoji, success: true },
+          output: remove
+            ? `Removed reaction from message ${messageId.substring(0, 8)}...`
+            : `Added ${emoji} reaction to message ${messageId.substring(0, 8)}...`,
+        };
+
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        // Connection error likely means endpoint not implemented
+        if (errorMsg.includes("ECONNREFUSED") || errorMsg.includes("fetch failed")) {
+          return {
+            title: `WhatsApp Reaction (Daemon Unavailable)`,
+            metadata: { action, chatJid, messageId, emoji, error: errorMsg },
+            output: `Could not connect to daemon to send reaction.
+
+Ensure agent-core daemon is running with --whatsapp flag.
+
+The reaction would be:
+- Chat: ${chatJid}
+- Message: ${messageId}
+- Emoji: ${remove ? "(remove)" : emoji}`,
+          };
+        }
+
+        return {
+          title: `WhatsApp Reaction Error`,
+          metadata: { action, chatJid, messageId, emoji, error: errorMsg },
+          output: `Error sending reaction: ${errorMsg}`,
+        };
+      }
+    },
+  }),
+};
+
 import { createZeeBrowserTool } from "./browser-tool";
 import { createZeeCodexBarTool } from "./codexbar-tool";
 
@@ -505,6 +995,7 @@ export const ZEE_TOOLS = [
   notificationTool,
   calendarTool,
   contactsTool,
+  whatsappReactionTool,
 ];
 
 // Dynamically created tools

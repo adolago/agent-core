@@ -16,6 +16,9 @@ import type {
   ToolCategory,
   SurfaceType,
 } from './types';
+import { Log } from '../../packages/agent-core/src/util/log';
+
+const log = Log.create({ service: 'mcp-permission' });
 
 // ============================================================================
 // Permission Check Context
@@ -317,7 +320,9 @@ export class PermissionChecker {
   async askPermission(request: PermissionRequest): Promise<boolean> {
     if (!this.askHandler) {
       // No handler configured, deny by default
-      console.warn('No permission ask handler configured, denying by default');
+      log.warn('No permission ask handler configured, denying by default', {
+        toolId: request.toolId,
+      });
       return false;
     }
 

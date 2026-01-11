@@ -18,6 +18,9 @@ import type {
   SurfaceType,
 } from './types';
 import { PermissionChecker } from './permission';
+import { Log } from '../../packages/agent-core/src/util/log';
+
+const log = Log.create({ service: 'mcp-registry' });
 
 // ============================================================================
 // Surface Tool Restrictions
@@ -226,7 +229,10 @@ export class ToolRegistry extends EventEmitter<ToolRegistryEvents> {
         const runtime = await entry.tool.init(ctx);
         result.set(toolId, runtime);
       } catch (error) {
-        console.error(`Failed to initialize tool ${toolId}:`, error);
+        log.error('Failed to initialize tool', {
+          toolId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 

@@ -433,11 +433,72 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       }
     })
 
+    // Session parameter overrides (temperature, topP, thinking effort, max tokens)
+    const parameters = iife(() => {
+      interface SessionParams {
+        temperature?: number
+        topP?: number
+        topK?: number
+        thinkingEffort?: "low" | "medium" | "high" | "max"
+        maxOutputTokens?: number
+      }
+
+      const [paramStore, setParamStore] = createStore<{
+        sessionParams: Record<string, SessionParams>
+      }>({
+        sessionParams: {},
+      })
+
+      const paramsFile = Bun.file(path.join(Global.Path.state, "params.json"))
+
+      function saveParams() {
+        Bun.write(paramsFile, JSON.stringify(paramStore.sessionParams))
+      }
+
+      // Load persisted params
+      paramsFile
+        .json()
+        .then((x) => {
+          if (typeof x === "object" && x !== null) {
+            setParamStore("sessionParams", x as Record<string, SessionParams>)
+          }
+        })
+        .catch(() => {})
+
+      return {
+        get(sessionID: string | undefined): SessionParams {
+          if (!sessionID) return {}
+          return paramStore.sessionParams[sessionID] ?? {}
+        },
+        set(sessionID: string | undefined, params: Partial<SessionParams>) {
+          if (!sessionID) return
+          batch(() => {
+            setParamStore("sessionParams", sessionID, (prev) => ({ ...prev, ...params }))
+            saveParams()
+          })
+        },
+        reset(sessionID: string | undefined) {
+          if (!sessionID) return
+          batch(() => {
+            setParamStore("sessionParams", sessionID, {})
+            saveParams()
+          })
+        },
+        hasOverrides(sessionID: string | undefined): boolean {
+          if (!sessionID) return false
+          const params = paramStore.sessionParams[sessionID]
+          if (!params) return false
+          return Object.values(params).some((v) => v !== undefined)
+        },
+      }
+    })
+
     const result = {
       model,
       agent,
       mcp,
       mode,
+      parameters,
     }
     return result
   },

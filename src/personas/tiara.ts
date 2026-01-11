@@ -34,6 +34,9 @@ import { WeztermPaneBridge, createWeztermBridge } from "./wezterm";
 import { generateDronePrompt } from "./persona";
 import { formatAnnouncement, getDroneWaiter, shouldAnnounce, shutdownDroneWaiter } from "./drone-wait";
 import { createConversationState } from "./continuity";
+import { Log } from "../../packages/agent-core/src/util/log";
+
+const log = Log.create({ service: "personas-tiara" });
 
 /**
  * Default personas layer configuration
@@ -156,7 +159,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
 
     // Start periodic state sync
     this.syncInterval = setInterval(() => {
-      this.saveState().catch(console.error);
+      this.saveState().catch((e) => log.error("Failed to save state", { error: String(e) }));
     }, 30000); // Sync every 30 seconds
 
     this.initialized = true;
@@ -302,7 +305,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
         const paneId = await this.weztermBridge.createWorkerPane(worker);
         worker.paneId = paneId;
       } catch (e) {
-        console.warn("Failed to create WezTerm pane:", e);
+        log.warn("Failed to create WezTerm pane", { error: String(e), workerId: worker.id });
       }
     }
 
@@ -532,7 +535,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
     // Announce if requested
     if (announce && shouldAnnounce(result, announce)) {
       const announcement = formatAnnouncement(result, announce);
-      console.log(`[ANNOUNCE] ${announcement}`);
+      log.info("Drone announcement", { announcement, workerId: worker.id, status: result.status });
     }
 
     // Cleanup if requested or fire-and-forget mode
@@ -574,7 +577,11 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
         this.emitEvent("task:assigned", { taskId: task.id, workerId: worker.id });
       } catch (e) {
         // Task stays pending if spawn fails
-        console.warn("Auto-spawn failed:", e);
+        log.warn("Auto-spawn failed, task remains pending", {
+          taskId: task.id,
+          persona: task.persona,
+          error: String(e),
+        });
       }
     }
 

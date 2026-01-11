@@ -76,6 +76,7 @@ export const STANLEY_AGENT_CONFIG: AgentConfig = {
   native: true,
   default: false,
   temperature: 0.3,
+  topP: 0.9, // More focused sampling for analytical work
   color: "#1a365d",
   permission: {
     edit: "allow",
@@ -183,6 +184,7 @@ export const ZEE_AGENT_CONFIG: AgentConfig = {
   native: true,
   default: true,
   temperature: 0.7,
+  topP: 0.95, // Balanced sampling for conversational flexibility
   color: "#6b46c1",
   permission: {
     edit: "allow",
@@ -222,7 +224,7 @@ export const ZEE_AGENT_CONFIG: AgentConfig = {
 export const ZEE_PERSONA_CONFIG: AgentPersonaConfig = {
   ...ZEE_PERSONA,
   defaultAgent: "zee",
-  surfaces: ["cli", "web", "api", "whatsapp", "telegram", "discord"],
+  surfaces: ["cli", "web", "api", "whatsapp", "telegram"],
   systemPromptAdditions: `
 You are Zee, a helpful personal assistant.
 
@@ -284,6 +286,7 @@ export const JOHNY_AGENT_CONFIG: AgentConfig = {
   native: true,
   default: false,
   temperature: 0.5,
+  topP: 0.92, // Balanced sampling for teaching variety
   color: "#DC2626",
   permission: {
     edit: "allow",

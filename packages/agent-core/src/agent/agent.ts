@@ -15,8 +15,9 @@ import PROMPT_TITLE from "./prompt/title.txt"
 // NOTE: PROMPT_EXPLORE removed - explore agent replaced by Personas system
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
-import { Global } from "@/global"
-import path from "path"
+// Import persona definitions for bootstrapping
+// Note: This crosses the package boundary from packages/agent-core to root src/
+import { PERSONAS, AGENT_CONFIGS } from "../../../../src/agent/personas"
 
 export namespace Agent {
   export const Info = z
@@ -27,7 +28,13 @@ export namespace Agent {
       native: z.boolean().optional(),
       hidden: z.boolean().optional(),
       topP: z.number().optional(),
+      topK: z.number().optional(),
       temperature: z.number().optional(),
+      // Additional sampling parameters
+      frequencyPenalty: z.number().min(-2).max(2).optional(),
+      presencePenalty: z.number().min(-2).max(2).optional(),
+      seed: z.number().int().optional(),
+      minP: z.number().min(0).max(1).optional(),
       color: z.string().optional(),
       theme: z.string().optional(),
       permission: PermissionNext.Ruleset,
@@ -40,6 +47,10 @@ export namespace Agent {
       prompt: z.string().optional(),
       options: z.record(z.string(), z.any()),
       steps: z.number().int().positive().optional(),
+      // Persona-specific fields (from AgentPersonaConfig)
+      systemPromptAdditions: z.string().optional(),
+      knowledge: z.array(z.string()).optional(),
+      mcpServers: z.array(z.string()).optional(),
     })
     .meta({
       ref: "Agent",
@@ -123,6 +134,30 @@ export namespace Agent {
       },
     }
 
+    // Bootstrap personas from src/agent/personas.ts
+    // This provides the base layer with systemPromptAdditions, knowledge, mcpServers
+    // Config file settings will be merged on top
+    for (const [personaId, personaConfig] of Object.entries(PERSONAS)) {
+      const agentConfig = AGENT_CONFIGS[personaId as keyof typeof AGENT_CONFIGS]
+      if (!agentConfig) continue
+
+      result[personaId] = {
+        name: personaId,
+        description: agentConfig.description,
+        mode: (agentConfig.mode ?? "primary") as "primary" | "subagent" | "all",
+        native: agentConfig.native ?? false,
+        hidden: false,
+        temperature: agentConfig.temperature,
+        color: agentConfig.color,
+        permission: PermissionNext.merge(defaults, user),
+        options: agentConfig.options ?? {},
+        // Persona-specific fields
+        systemPromptAdditions: personaConfig.systemPromptAdditions,
+        knowledge: personaConfig.knowledge,
+        mcpServers: personaConfig.mcpServers,
+      }
+    }
+
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {
       if (value.disable) {
         delete result[key]
@@ -142,6 +177,7 @@ export namespace Agent {
       item.description = value.description ?? item.description
       item.temperature = value.temperature ?? item.temperature
       item.topP = value.top_p ?? item.topP
+      item.topK = value.top_k ?? item.topK
       item.mode = value.mode ?? item.mode
       item.color = value.color ?? item.color
       item.hidden = value.hidden ?? item.hidden
@@ -149,6 +185,15 @@ export namespace Agent {
       item.steps = value.steps ?? item.steps
       item.options = mergeDeep(item.options, value.options ?? {})
       item.permission = PermissionNext.merge(item.permission, PermissionNext.fromConfig(value.permission ?? {}))
+      // Additional sampling parameters
+      item.frequencyPenalty = value.frequency_penalty ?? item.frequencyPenalty
+      item.presencePenalty = value.presence_penalty ?? item.presencePenalty
+      item.seed = value.seed ?? item.seed
+      item.minP = value.min_p ?? item.minP
+      // Persona-specific fields - config can override persona defaults
+      item.systemPromptAdditions = value.systemPromptAdditions ?? item.systemPromptAdditions
+      item.knowledge = value.knowledge ?? item.knowledge
+      item.mcpServers = value.mcpServers ?? item.mcpServers
     }
 
     // Ensure Truncate.DIR is allowed unless explicitly configured
