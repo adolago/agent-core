@@ -3,7 +3,7 @@ import type { ToolDefinition, ToolExecutionResult } from "../../mcp/types";
 import { requestDaemon } from "../../daemon/ipc-client";
 
 const ShowCanvasParams = z.object({
-  kind: z.enum(["text", "calendar", "document", "table"])
+  kind: z.enum(["text", "calendar", "document", "table", "diagram", "graph", "mindmap"])
     .describe("Canvas kind/type"),
   id: z.string().describe("Unique canvas identifier"),
   scenario: z.enum(["display", "edit", "meeting-picker"]).optional()
@@ -20,6 +20,9 @@ export const showCanvasTool: ToolDefinition = {
     - calendar: Monthly calendar view with events
     - document: Markdown-like document rendering
     - table: Tabular data display
+    - diagram: Flowchart/architecture diagrams (visual reasoning)
+    - graph: Nodes and edges visualization (knowledge graphs)
+    - mindmap: Hierarchical tree view (thinking/planning)
 
     Scenarios:
     - display: Read-only (default)
@@ -28,10 +31,12 @@ export const showCanvasTool: ToolDefinition = {
 
     Canvas automatically spawns in a 67% width pane (Claude:Canvas = 1:2 ratio).
     Existing canvas panes are reused to avoid clutter.
+    Works alongside nvim/LSP in WezTerm.
 
     Examples:
     - Show text canvas: { kind: "text", id: "notes" }
-    - Show calendar: { kind: "calendar", id: "cal-1" }`,
+    - Show calendar: { kind: "calendar", id: "cal-1" }
+    - Show diagram: { kind: "diagram", id: "flow-1" }`,
     parameters: ShowCanvasParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
       const { kind, id } = args;
@@ -73,7 +78,7 @@ Start it with: bun run src/daemon/index.ts`,
 };
 
 const SpawnCanvasParams = z.object({
-  kind: z.enum(["text", "calendar", "document", "table"])
+  kind: z.enum(["text", "calendar", "document", "table", "diagram", "graph", "mindmap"])
     .describe("Canvas kind/type"),
   id: z.string().describe("Unique canvas identifier"),
   config: z.string()
@@ -92,11 +97,14 @@ export const spawnCanvasTool: ToolDefinition = {
     - calendar: { date?: string (YYYY-MM-DD), events?: [{ date: string, title: string }] }
     - document: { title: string, content: string (markdown), width?: number }
     - table: { title: string, headers: string[], rows: string[][], columnWidths?: number[] }
+    - diagram: { title: string, nodes: [{id, label, type?: "box"|"diamond"|"oval"}], edges: [{from, to, label?}], direction?: "TB"|"LR" }
+    - graph: { title: string, nodes: [{id, label, color?}], edges: [{from, to, label?, weight?}] }
+    - mindmap: { title: string, children: [{label, children?: [...]}] }
 
     Examples:
     - Spawn text: { kind: "text", id: "notes", config: '{"title": "Notes", "content": "Hello!"}' }
-    - Spawn calendar: { kind: "calendar", id: "cal-1", config: '{"date": "2024-01-15"}' }
-    - Spawn table: { kind: "table", id: "data", config: '{"headers": ["Name", "Value"], "rows": [["A", "1"]]}' }`,
+    - Spawn diagram: { kind: "diagram", id: "flow", config: '{"title": "Auth Flow", "nodes": [{"id": "start", "label": "Login"}, {"id": "check", "label": "Valid?", "type": "diamond"}], "edges": [{"from": "start", "to": "check"}]}' }
+    - Spawn mindmap: { kind: "mindmap", id: "plan", config: '{"title": "Project Plan", "children": [{"label": "Phase 1", "children": [{"label": "Task A"}]}]}' }`,
     parameters: SpawnCanvasParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
       const { kind, id, config: configStr } = args;

@@ -11,7 +11,7 @@ import type { CanvasConfig, CanvasMessage } from "./types.js";
 
 const execAsync = promisify(exec);
 
-export type CanvasKind = "text" | "calendar" | "document" | "table";
+export type CanvasKind = "text" | "calendar" | "document" | "table" | "diagram" | "graph" | "mindmap";
 
 export interface CanvasInstance {
   id: string;
@@ -359,6 +359,12 @@ export class CanvasManager {
         return this.renderDocument(config);
       case "table":
         return this.renderTable(config);
+      case "diagram":
+        return this.renderDiagram(config);
+      case "graph":
+        return this.renderGraph(config);
+      case "mindmap":
+        return this.renderMindmap(config);
       default:
         return this.renderText({ content: `Unknown canvas kind: ${kind}` });
     }
@@ -612,6 +618,247 @@ export class CanvasManager {
         columnWidths.map((w) => BOX.HORIZONTAL.repeat(w)).join(BOX.T_UP) +
         BOX.BOTTOM_RIGHT
     );
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Render diagram canvas (flowchart/architecture style)
+   *
+   * Config:
+   * - title: string
+   * - nodes: Array<{ id: string, label: string, type?: "box"|"diamond"|"oval" }>
+   * - edges: Array<{ from: string, to: string, label?: string }>
+   * - direction?: "TB" | "LR" (top-to-bottom or left-to-right)
+   */
+  private renderDiagram(config: Record<string, unknown>): string {
+    const title = (config.title as string) ?? "Diagram";
+    const nodes = (config.nodes as Array<{ id: string; label: string; type?: string }>) ?? [];
+    const edges = (config.edges as Array<{ from: string; to: string; label?: string }>) ?? [];
+    const direction = (config.direction as string) ?? "TB";
+
+    const lines: string[] = [];
+    lines.push(ANSI.CLEAR + ANSI.HIDE_CURSOR);
+
+    // Title
+    lines.push(ANSI.BOLD + ANSI.FG_CYAN + title + ANSI.RESET);
+    lines.push(ANSI.DIM + "─".repeat(title.length + 4) + ANSI.RESET);
+    lines.push("");
+
+    // Build node map for edge rendering
+    const nodeMap = new Map(nodes.map((n, i) => [n.id, { ...n, index: i }]));
+
+    // Render nodes
+    const nodeWidth = 20;
+    const isHorizontal = direction === "LR";
+
+    if (isHorizontal) {
+      // Horizontal layout
+      let row1 = "";
+      let row2 = "";
+      let row3 = "";
+
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const label = node.label.slice(0, nodeWidth - 4).padStart(Math.floor((nodeWidth - 4 + node.label.length) / 2)).padEnd(nodeWidth - 4);
+
+        if (node.type === "diamond") {
+          row1 += "    " + " ".repeat(Math.floor((nodeWidth - 6) / 2)) + "/" + "\\".padEnd(Math.ceil((nodeWidth - 6) / 2)) + "    ";
+          row2 += "   <" + label + ">   ";
+          row3 += "    " + " ".repeat(Math.floor((nodeWidth - 6) / 2)) + "\\" + "/".padEnd(Math.ceil((nodeWidth - 6) / 2)) + "    ";
+        } else if (node.type === "oval") {
+          row1 += "  (" + "─".repeat(nodeWidth - 4) + ")  ";
+          row2 += "  │" + label + "│  ";
+          row3 += "  (" + "─".repeat(nodeWidth - 4) + ")  ";
+        } else {
+          // Default: box
+          row1 += "┌" + "─".repeat(nodeWidth - 2) + "┐";
+          row2 += "│" + ANSI.BOLD + label + ANSI.RESET + "│";
+          row3 += "└" + "─".repeat(nodeWidth - 2) + "┘";
+        }
+
+        // Add arrow between nodes
+        if (i < nodes.length - 1) {
+          const edge = edges.find(e => e.from === node.id && e.to === nodes[i + 1]?.id);
+          if (edge) {
+            row1 += "     ";
+            row2 += " ──▶ ";
+            row3 += edge.label ? ` ${edge.label.slice(0, 3)} ` : "     ";
+          } else {
+            row1 += "     ";
+            row2 += "     ";
+            row3 += "     ";
+          }
+        }
+      }
+
+      lines.push(row1);
+      lines.push(row2);
+      lines.push(row3);
+    } else {
+      // Vertical layout (TB)
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const label = node.label.slice(0, nodeWidth - 4);
+        const padLeft = Math.floor((nodeWidth - 4 - label.length) / 2);
+        const padRight = nodeWidth - 4 - label.length - padLeft;
+
+        if (node.type === "diamond") {
+          const mid = Math.floor(nodeWidth / 2);
+          lines.push(" ".repeat(mid - 1) + "/" + "\\");
+          lines.push("<" + " ".repeat(padLeft) + ANSI.BOLD + label + ANSI.RESET + " ".repeat(padRight) + ">");
+          lines.push(" ".repeat(mid - 1) + "\\" + "/");
+        } else if (node.type === "oval") {
+          lines.push("(" + "─".repeat(nodeWidth - 2) + ")");
+          lines.push("│" + " ".repeat(padLeft) + ANSI.BOLD + label + ANSI.RESET + " ".repeat(padRight) + "│");
+          lines.push("(" + "─".repeat(nodeWidth - 2) + ")");
+        } else {
+          // Default: box
+          lines.push("┌" + "─".repeat(nodeWidth - 2) + "┐");
+          lines.push("│" + " ".repeat(padLeft) + ANSI.BOLD + label + ANSI.RESET + " ".repeat(padRight) + "│");
+          lines.push("└" + "─".repeat(nodeWidth - 2) + "┘");
+        }
+
+        // Add arrow to next node
+        if (i < nodes.length - 1) {
+          const edge = edges.find(e => e.from === node.id && e.to === nodes[i + 1]?.id);
+          const mid = Math.floor(nodeWidth / 2);
+          lines.push(" ".repeat(mid) + "│");
+          if (edge?.label) {
+            lines.push(" ".repeat(mid) + "│ " + ANSI.DIM + edge.label + ANSI.RESET);
+          }
+          lines.push(" ".repeat(mid) + "▼");
+        }
+      }
+    }
+
+    // Legend for node types
+    lines.push("");
+    lines.push(ANSI.DIM + "Legend: ┌─┐ process  <> decision  () terminal" + ANSI.RESET);
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Render graph canvas (nodes and edges)
+   *
+   * Config:
+   * - title: string
+   * - nodes: Array<{ id: string, label: string, color?: string }>
+   * - edges: Array<{ from: string, to: string, label?: string, weight?: number }>
+   */
+  private renderGraph(config: Record<string, unknown>): string {
+    const title = (config.title as string) ?? "Graph";
+    const nodes = (config.nodes as Array<{ id: string; label: string; color?: string }>) ?? [];
+    const edges = (config.edges as Array<{ from: string; to: string; label?: string; weight?: number }>) ?? [];
+
+    const lines: string[] = [];
+    lines.push(ANSI.CLEAR + ANSI.HIDE_CURSOR);
+
+    // Title
+    lines.push(ANSI.BOLD + ANSI.FG_MAGENTA + "◉ " + title + ANSI.RESET);
+    lines.push("");
+
+    // Build adjacency representation
+    const adjacency = new Map<string, Array<{ to: string; label?: string; weight?: number }>>();
+    for (const edge of edges) {
+      if (!adjacency.has(edge.from)) {
+        adjacency.set(edge.from, []);
+      }
+      adjacency.get(edge.from)!.push({ to: edge.to, label: edge.label, weight: edge.weight });
+    }
+
+    // Render nodes with their connections
+    const nodeColors: Record<string, string> = {
+      red: ANSI.FG_RED,
+      green: ANSI.FG_GREEN,
+      blue: ANSI.FG_BLUE,
+      yellow: ANSI.FG_YELLOW,
+      cyan: ANSI.FG_CYAN,
+      magenta: ANSI.FG_MAGENTA,
+    };
+
+    for (const node of nodes) {
+      const color = node.color ? (nodeColors[node.color] ?? ANSI.FG_WHITE) : ANSI.FG_CYAN;
+
+      // Node representation
+      lines.push(color + "◉" + ANSI.RESET + " " + ANSI.BOLD + node.label + ANSI.RESET + ANSI.DIM + ` (${node.id})` + ANSI.RESET);
+
+      // Outgoing edges
+      const outEdges = adjacency.get(node.id) ?? [];
+      for (let i = 0; i < outEdges.length; i++) {
+        const edge = outEdges[i];
+        const isLast = i === outEdges.length - 1;
+        const prefix = isLast ? "  └─▶ " : "  ├─▶ ";
+        const targetNode = nodes.find(n => n.id === edge.to);
+        const targetLabel = targetNode?.label ?? edge.to;
+        const edgeInfo = edge.label
+          ? ` ${ANSI.DIM}[${edge.label}${edge.weight ? ` w:${edge.weight}` : ""}]${ANSI.RESET}`
+          : edge.weight
+            ? ` ${ANSI.DIM}[w:${edge.weight}]${ANSI.RESET}`
+            : "";
+        lines.push(prefix + targetLabel + edgeInfo);
+      }
+
+      if (outEdges.length === 0) {
+        lines.push("  " + ANSI.DIM + "(no outgoing edges)" + ANSI.RESET);
+      }
+      lines.push("");
+    }
+
+    // Stats
+    lines.push(ANSI.DIM + "─".repeat(40) + ANSI.RESET);
+    lines.push(ANSI.DIM + `Nodes: ${nodes.length}  Edges: ${edges.length}` + ANSI.RESET);
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Render mindmap canvas (hierarchical tree)
+   *
+   * Config:
+   * - title: string (root node)
+   * - children: Array<MindmapNode> where MindmapNode = { label: string, children?: MindmapNode[] }
+   */
+  private renderMindmap(config: Record<string, unknown>): string {
+    const title = (config.title as string) ?? "Mindmap";
+    const children = (config.children as Array<MindmapNode>) ?? [];
+
+    interface MindmapNode {
+      label: string;
+      children?: MindmapNode[];
+    }
+
+    const lines: string[] = [];
+    lines.push(ANSI.CLEAR + ANSI.HIDE_CURSOR);
+
+    // Render tree recursively
+    const renderNode = (node: MindmapNode, prefix: string, isLast: boolean, isRoot: boolean): void => {
+      if (isRoot) {
+        lines.push(ANSI.BOLD + ANSI.FG_YELLOW + "◆ " + node.label + ANSI.RESET);
+      } else {
+        const connector = isLast ? "└── " : "├── ";
+        lines.push(prefix + connector + node.label);
+      }
+
+      const childPrefix = isRoot ? "" : prefix + (isLast ? "    " : "│   ");
+      const nodeChildren = node.children ?? [];
+      for (let i = 0; i < nodeChildren.length; i++) {
+        renderNode(nodeChildren[i], childPrefix, i === nodeChildren.length - 1, false);
+      }
+    };
+
+    // Root node
+    renderNode({ label: title, children }, "", true, true);
+
+    // Count total nodes
+    const countNodes = (nodes: MindmapNode[]): number => {
+      return nodes.reduce((sum, n) => sum + 1 + countNodes(n.children ?? []), 0);
+    };
+    const totalNodes = 1 + countNodes(children);
+
+    lines.push("");
+    lines.push(ANSI.DIM + `Total nodes: ${totalNodes}` + ANSI.RESET);
 
     return lines.join("\n");
   }
