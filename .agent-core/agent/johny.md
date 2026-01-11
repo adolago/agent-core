@@ -4,6 +4,7 @@ color: "#DC2626"
 theme: johny
 model: google/antigravity-claude-opus-4-5-thinking
 temperature: 0.8
+top_p: 0.92
 skill: johny
 ---
 

@@ -7,6 +7,7 @@
 
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { Log } from "../../packages/agent-core/src/util/log";
 import type {
   Worker,
   PersonasState,
@@ -17,6 +18,7 @@ import type {
 import { getPersonaConfig } from "./persona";
 
 const execAsync = promisify(exec);
+const log = Log.create({ service: "personas-wezterm" });
 
 /**
  * WezTerm CLI-based pane management
@@ -180,7 +182,7 @@ export class WeztermPaneBridge implements WeztermBridge {
 
     const available = await this.isAvailable();
     if (!available) {
-      console.warn("WezTerm CLI not available, skipping layout setup");
+      log.warn("WezTerm CLI not available, skipping layout setup");
       return;
     }
 

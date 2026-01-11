@@ -18,6 +18,9 @@ import type {
 } from './types';
 import { getToolRegistry, defineTool } from './registry';
 import { McpOAuthManager } from './oauth';
+import { Log } from '../../packages/agent-core/src/util/log';
+
+const log = Log.create({ service: 'mcp-server' });
 
 // ============================================================================
 // MCP Server Events
@@ -195,7 +198,10 @@ export class McpServerManager extends EventEmitter<McpServerEvents> {
     try {
       await connection.client.close();
     } catch (error) {
-      console.error(`Failed to close MCP client for ${serverId}:`, error);
+      log.error('Failed to close MCP client', {
+        serverId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Unregister tools
@@ -296,7 +302,10 @@ export class McpServerManager extends EventEmitter<McpServerEvents> {
         registry.register(tool, { source: 'mcp', serverId, enabled: true });
       }
     } catch (error) {
-      console.error(`Failed to discover tools from ${serverId}:`, error);
+      log.error('Failed to discover tools from server', {
+        serverId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -309,7 +318,10 @@ export class McpServerManager extends EventEmitter<McpServerEvents> {
       await this.discoverTools(serverId);
       this.emit('tools:changed', { serverId });
     } catch (error) {
-      console.error(`Failed to refresh tools for ${serverId}:`, error);
+      log.error('Failed to refresh tools', {
+        serverId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

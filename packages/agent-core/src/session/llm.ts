@@ -62,6 +62,8 @@ export namespace LLM {
       [
         // use agent prompt otherwise provider prompt
         ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model)),
+        // persona-specific system prompt additions (from AgentPersonaConfig)
+        ...(input.agent.systemPromptAdditions ? [input.agent.systemPromptAdditions] : []),
         // any custom prompt passed into this call
         ...input.system,
         // any custom prompt from last user message
@@ -121,10 +123,30 @@ export namespace LLM {
           ? (input.agent.temperature ?? ProviderTransform.temperature(input.model))
           : undefined,
         topP: input.agent.topP ?? ProviderTransform.topP(input.model),
-        topK: ProviderTransform.topK(input.model),
+        topK: input.agent.topK ?? ProviderTransform.topK(input.model),
+        // Additional sampling parameters from agent config
+        frequencyPenalty: input.agent.frequencyPenalty,
+        presencePenalty: input.agent.presencePenalty,
+        seed: input.agent.seed,
         options,
       },
     )
+
+    // Enhanced parameter logging for debugging
+    l.info("stream params", {
+      temperature: params.temperature,
+      temperatureSource: input.agent.temperature !== undefined ? "agent" : "model",
+      topP: params.topP,
+      topPSource: input.agent.topP !== undefined ? "agent" : "model",
+      topK: params.topK,
+      frequencyPenalty: params.frequencyPenalty,
+      presencePenalty: params.presencePenalty,
+      seed: params.seed,
+      variant: input.user.variant ?? "default",
+      thinkingBudget: params.options?.thinkingBudget ?? params.options?.thinking?.budget,
+      reasoningEffort: params.options?.reasoningEffort ?? params.options?.reasoning_effort,
+    })
+    l.debug("stream options", { options: params.options })
 
     const maxOutputTokens = isCodex
       ? undefined
@@ -167,6 +189,9 @@ export namespace LLM {
       temperature: params.temperature,
       topP: params.topP,
       topK: params.topK,
+      frequencyPenalty: params.frequencyPenalty,
+      presencePenalty: params.presencePenalty,
+      seed: params.seed,
       providerOptions: ProviderTransform.providerOptions(input.model, params.options),
       activeTools: Object.keys(tools).filter((x) => x !== "invalid"),
       tools,
@@ -190,7 +215,7 @@ export namespace LLM {
           : undefined),
         ...input.model.headers,
       },
-      maxRetries: input.retries ?? 0,
+      maxRetries: input.retries ?? 3, // Default to 3 retries for transient failures (timeouts, 503, 429)
       messages: [
         ...(isCodex
           ? [

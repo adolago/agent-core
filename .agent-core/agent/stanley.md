@@ -4,6 +4,7 @@ color: "#059669"
 theme: stanley
 model: openrouter/x-ai/grok-4.1-fast
 temperature: 0.7
+top_p: 0.9
 skill: stanley
 ---
 

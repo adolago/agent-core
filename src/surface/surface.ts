@@ -17,6 +17,9 @@ import type {
   ToolCall,
   ToolResult,
 } from './types.js';
+import { Log } from '../../packages/agent-core/src/util/log';
+
+const log = Log.create({ service: 'surface' });
 
 // =============================================================================
 // Core Surface Interface
@@ -283,7 +286,10 @@ export abstract class BaseSurface implements Surface {
       try {
         handler(event);
       } catch (err) {
-        console.error(`Surface event handler error: ${err}`);
+        log.error('Surface event handler error', {
+          eventType: event.type,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }

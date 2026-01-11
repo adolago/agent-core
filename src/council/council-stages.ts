@@ -23,6 +23,9 @@ import {
   type CouncilProvider,
   createProviderForMember,
 } from "./council-providers.js";
+import { Log } from "../../packages/agent-core/src/util/log";
+
+const log = Log.create({ service: "council-stages" });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stage 1: Parallel Independent Responses
@@ -296,10 +299,11 @@ export async function executeStage2PeerReview(params: {
         }
       } catch (error) {
         // Skip failed reviews, they don't contribute to aggregates
-        console.warn(
-          `Review failed: ${reviewer.id} -> ${response.memberId}:`,
-          error,
-        );
+        log.warn("Peer review failed", {
+          reviewerId: reviewer.id,
+          responseMemberId: response.memberId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }

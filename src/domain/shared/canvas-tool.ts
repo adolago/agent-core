@@ -1,6 +1,9 @@
 import { z } from "zod";
 import type { ToolDefinition, ToolExecutionResult } from "../../mcp/types";
 import { requestDaemon } from "../../daemon/ipc-client";
+import { Log } from "../../../packages/agent-core/src/util/log"
+
+const log = Log.create({ service: "canvas-tool" });
 
 const ShowCanvasParams = z.object({
   kind: z.enum(["text", "calendar", "document", "table", "diagram", "graph", "mindmap"])
@@ -50,8 +53,13 @@ export const showCanvasTool: ToolDefinition = {
           metadata: { kind, id },
           output: `Canvas "${id}" is now visible in the canvas pane.`,
         };
-      } catch (error) {
-        // Canvas might not exist, try spawning it
+      } catch (showError) {
+        // Canvas might not exist, try spawning it - log original error for debugging
+        log.debug("canvas:show failed, attempting spawn", {
+          id,
+          kind,
+          showError: showError instanceof Error ? showError.message : String(showError),
+        });
         try {
           const result = await requestDaemon<{ paneId: string; id: string }>(
             "canvas:spawn",
@@ -63,6 +71,13 @@ export const showCanvasTool: ToolDefinition = {
             output: `Canvas "${id}" spawned in pane ${result.paneId}.`,
           };
         } catch (spawnError) {
+          // Log both errors for debugging
+          log.error("canvas:spawn also failed", {
+            id,
+            kind,
+            showError: showError instanceof Error ? showError.message : String(showError),
+            spawnError: spawnError instanceof Error ? spawnError.message : String(spawnError),
+          });
           return {
             title: `Canvas Error`,
             metadata: { kind, id },

@@ -20,16 +20,22 @@ export namespace Log {
     return levelPriority[input] >= levelPriority[level]
   }
 
+  /** Allowed log metadata value types */
+  export type LogMetaValue = string | number | boolean | null | undefined | LogMetaValue[] | { [key: string]: LogMetaValue }
+
+  /** Structured log metadata - use this instead of Record<string, any> */
+  export type LogMeta = Record<string, LogMetaValue>
+
   export type Logger = {
-    debug(message?: any, extra?: Record<string, any>): void
-    info(message?: any, extra?: Record<string, any>): void
-    error(message?: any, extra?: Record<string, any>): void
-    warn(message?: any, extra?: Record<string, any>): void
+    debug(message?: string, extra?: LogMeta): void
+    info(message?: string, extra?: LogMeta): void
+    error(message?: string, extra?: LogMeta): void
+    warn(message?: string, extra?: LogMeta): void
     tag(key: string, value: string): Logger
     clone(): Logger
     time(
       message: string,
-      extra?: Record<string, any>,
+      extra?: LogMeta,
     ): {
       stop(): void
       [Symbol.dispose](): void

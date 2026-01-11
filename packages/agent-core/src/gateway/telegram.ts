@@ -15,12 +15,29 @@ import * as os from "node:os"
 import * as path from "node:path"
 import * as crypto from "node:crypto"
 import { spawn } from "node:child_process"
+import { z } from "zod"
 import { Log } from "../util/log"
 import { Persistence } from "../session/persistence"
 import { LifecycleHooks } from "../hooks/lifecycle"
 import { Todo } from "../session/todo"
+import {
+  DEFAULT_API_PORT,
+  MESSAGE_CHUNK_SIZE,
+  TTS_TIMEOUT_SECONDS,
+  TRANSCRIPTION_TIMEOUT_SECONDS,
+  TELEGRAM_POLLING_INTERVAL_MS,
+  HEADER_DIRECTORY,
+} from "./constants"
 
 const log = Log.create({ service: "telegram-gateway" })
+
+// Telegram API response schema for validation
+const TelegramApiResponseSchema = z.object({
+  ok: z.boolean(),
+  result: z.unknown().optional(),
+  description: z.string().optional(),
+  error_code: z.number().optional(),
+})
 
 export namespace TelegramGateway {
   // Telegram API types
@@ -119,6 +136,11 @@ export namespace TelegramGateway {
   // Stanley bot: @triad_stanley_bot - investing/trading
   // Johny bot: @triad_johny_bot - learning/study
 
+  // Default fetch timeout for API calls (10 seconds)
+  const DEFAULT_FETCH_TIMEOUT_MS = 10000
+  // Maximum backoff time for poll errors (60 seconds)
+  const MAX_POLL_BACKOFF_MS = 60000
+
   export class Gateway {
     private config: GatewayConfig
     private running = false
@@ -126,11 +148,13 @@ export namespace TelegramGateway {
     private chatContexts = new Map<number, ChatContext>()
     private pollTimeout: NodeJS.Timeout | null = null
     private apiBaseUrl: string
+    private pollBackoffMs = TELEGRAM_POLLING_INTERVAL_MS
+    private consecutivePollErrors = 0
 
     constructor(config: GatewayConfig) {
       this.config = {
-        pollingInterval: 1000,
-        apiPort: 3456,
+        pollingInterval: TELEGRAM_POLLING_INTERVAL_MS,
+        apiPort: DEFAULT_API_PORT,
         ...config,
       }
       this.apiBaseUrl = config.apiBaseUrl || `http://127.0.0.1:${this.config.apiPort}`
@@ -170,30 +194,57 @@ export namespace TelegramGateway {
     // Telegram API Methods
     // -------------------------------------------------------------------------
 
-    private async telegramApi<T>(method: string, params?: Record<string, unknown>): Promise<T | null> {
+    private async telegramApi<T>(method: string, params?: Record<string, unknown>, timeoutMs?: number): Promise<T | null> {
       const url = `https://api.telegram.org/bot${this.config.botToken}/${method}`
+      // Use longer timeout for long-polling getUpdates, default for others
+      const timeout = timeoutMs ?? (method === "getUpdates" ? 35000 : DEFAULT_FETCH_TIMEOUT_MS)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
 
       try {
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: params ? JSON.stringify(params) : undefined,
+          signal: controller.signal,
         })
 
-        const data = (await response.json()) as { ok: boolean; result?: T; description?: string }
+        const rawData = await response.json()
+        const parseResult = TelegramApiResponseSchema.safeParse(rawData)
 
-        if (!data.ok) {
-          log.error("Telegram API error", { method, error: data.description })
+        if (!parseResult.success) {
+          log.error("Telegram API response validation failed", {
+            method,
+            errors: parseResult.error.flatten().fieldErrors,
+          })
           return null
         }
 
-        return data.result ?? null
+        const data = parseResult.data
+
+        if (!data.ok) {
+          // Check for rate limit (429)
+          if (data.error_code === 429) {
+            log.warn("Telegram API rate limited", { method, description: data.description })
+          } else {
+            log.error("Telegram API error", { method, error: data.description, errorCode: data.error_code })
+          }
+          return null
+        }
+
+        return (data.result as T) ?? null
       } catch (error) {
-        log.error("Telegram API request failed", {
-          method,
-          error: error instanceof Error ? error.message : String(error),
-        })
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error("Telegram API request timed out", { method, timeoutMs: timeout })
+        } else {
+          log.error("Telegram API request failed", {
+            method,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         return null
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
@@ -216,18 +267,28 @@ export namespace TelegramGateway {
 
     private async downloadFile(filePath: string): Promise<Buffer | null> {
       const url = `https://api.telegram.org/file/bot${this.config.botToken}/${filePath}`
+      const controller = new AbortController()
+      // Allow 30 seconds for file downloads (files can be large)
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+
       try {
-        const response = await fetch(url)
+        const response = await fetch(url, { signal: controller.signal })
         if (!response.ok) {
-          log.error("Failed to download file", { status: response.status })
+          log.error("Failed to download file", { status: response.status, statusText: response.statusText })
           return null
         }
         return Buffer.from(await response.arrayBuffer())
       } catch (error) {
-        log.error("File download error", {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error("File download timed out", { filePath })
+        } else {
+          log.error("File download error", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         return null
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
@@ -238,7 +299,7 @@ export namespace TelegramGateway {
         return null
       }
 
-      const timeoutMs = Math.max((transcriber.timeoutSeconds ?? 45) * 1000, 1000)
+      const timeoutMs = Math.max((transcriber.timeoutSeconds ?? TRANSCRIPTION_TIMEOUT_SECONDS) * 1000, 1000)
       const tmpPath = path.join(os.tmpdir(), `telegram-voice-${crypto.randomUUID()}.ogg`)
 
       try {
@@ -277,13 +338,24 @@ export namespace TelegramGateway {
       }
     }
 
-    private runCommand(argv: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    private runCommand(argv: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number; timedOut: boolean }> {
       return new Promise((resolve) => {
         const [cmd, ...args] = argv
-        const proc = spawn(cmd, args, { timeout: timeoutMs })
+        const proc = spawn(cmd, args)
+        let resolved = false
+        let timedOut = false
 
         let stdout = ""
         let stderr = ""
+
+        // Implement actual timeout with SIGKILL
+        const timeoutHandle = setTimeout(() => {
+          if (!resolved) {
+            timedOut = true
+            log.warn("Command timed out, sending SIGKILL", { cmd, timeoutMs })
+            proc.kill("SIGKILL")
+          }
+        }, timeoutMs)
 
         proc.stdout?.on("data", (data) => {
           stdout += data.toString()
@@ -294,19 +366,27 @@ export namespace TelegramGateway {
         })
 
         proc.on("close", (code) => {
-          resolve({ stdout, stderr, exitCode: code ?? 1 })
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeoutHandle)
+            resolve({ stdout, stderr, exitCode: code ?? 1, timedOut })
+          }
         })
 
         proc.on("error", (error) => {
-          stderr += error.message
-          resolve({ stdout, stderr, exitCode: 1 })
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeoutHandle)
+            stderr += error.message
+            resolve({ stdout, stderr, exitCode: 1, timedOut })
+          }
         })
       })
     }
 
     async sendMessage(chatId: number, text: string, replyToMessageId?: number): Promise<boolean> {
       // Split long messages for Telegram's 4096 char limit
-      const chunks = this.chunkMessage(text, 4000)
+      const chunks = this.chunkMessage(text, MESSAGE_CHUNK_SIZE)
 
       for (let i = 0; i < chunks.length; i++) {
         const result = await this.telegramApi<TelegramMessage>("sendMessage", {
@@ -338,7 +418,7 @@ export namespace TelegramGateway {
       }
 
       // Truncate text if too long
-      const maxLen = ttsConfig.maxTextLength ?? 4000
+      const maxLen = ttsConfig.maxTextLength ?? MESSAGE_CHUNK_SIZE
       const textToSpeak = text.length > maxLen ? text.slice(0, maxLen) + "..." : text
 
       try {
@@ -384,7 +464,7 @@ export namespace TelegramGateway {
         return null
       }
 
-      const timeoutMs = Math.max((ttsConfig.timeoutSeconds ?? 30) * 1000, 1000)
+      const timeoutMs = Math.max((ttsConfig.timeoutSeconds ?? TTS_TIMEOUT_SECONDS) * 1000, 1000)
       const tmpPath = path.join(os.tmpdir(), `telegram-tts-${crypto.randomUUID()}.ogg`)
 
       try {
@@ -447,12 +527,27 @@ export namespace TelegramGateway {
       if (!this.running) return
 
       this.poll()
+        .then(() => {
+          // Success - reset backoff
+          this.pollBackoffMs = this.config.pollingInterval ?? TELEGRAM_POLLING_INTERVAL_MS
+          this.consecutivePollErrors = 0
+        })
         .catch((error) => {
-          log.error("Poll error", { error: error instanceof Error ? error.message : String(error) })
+          this.consecutivePollErrors++
+          // Exponential backoff: double the wait time on each consecutive error
+          this.pollBackoffMs = Math.min(
+            this.pollBackoffMs * 2,
+            MAX_POLL_BACKOFF_MS
+          )
+          log.error("Poll error", {
+            error: error instanceof Error ? error.message : String(error),
+            consecutiveErrors: this.consecutivePollErrors,
+            nextRetryMs: this.pollBackoffMs,
+          })
         })
         .finally(() => {
           if (this.running) {
-            this.pollTimeout = setTimeout(() => this.pollLoop(), this.config.pollingInterval)
+            this.pollTimeout = setTimeout(() => this.pollLoop(), this.pollBackoffMs)
           }
         })
     }
@@ -806,16 +901,20 @@ Available commands:
     }
 
     private async createSession(persona: string): Promise<{ id: string } | null> {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
+
       try {
         const response = await fetch(`${this.apiBaseUrl}/session`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-opencode-directory": this.config.directory,
+            [HEADER_DIRECTORY]: this.config.directory,
           },
           body: JSON.stringify({
             title: `Telegram (${persona})`,
           }),
+          signal: controller.signal,
         })
 
         if (!response.ok) {
@@ -823,28 +922,46 @@ Available commands:
           return null
         }
 
-        return (await response.json()) as { id: string }
+        const data = await response.json()
+        // Validate response has required field
+        if (!data || typeof data.id !== "string") {
+          log.error("Invalid session response - missing id field")
+          return null
+        }
+
+        return data as { id: string }
       } catch (error) {
-        log.error("Create session error", {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error("Create session timed out")
+        } else {
+          log.error("Create session error", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         return null
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
     private async sendMessageToSession(sessionId: string, message: string, agent: string = "zee"): Promise<string | null> {
+      const controller = new AbortController()
+      // Use longer timeout for message processing (60 seconds - LLM responses can take time)
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
+
       try {
         // Use the message endpoint with correct parts format
         const response = await fetch(`${this.apiBaseUrl}/session/${sessionId}/message`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-opencode-directory": this.config.directory,
+            [HEADER_DIRECTORY]: this.config.directory,
           },
           body: JSON.stringify({
             parts: [{ type: "text", text: message }],
             agent, // Use the persona as the agent
           }),
+          signal: controller.signal,
         })
 
         if (!response.ok) {
@@ -862,24 +979,40 @@ Available commands:
 
         return textParts.join("\n") || null
       } catch (error) {
-        log.error("Send message error", {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error("Send message timed out", { sessionId })
+        } else {
+          log.error("Send message error", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         return null
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
     private async getAgentStatus(): Promise<string> {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
+
       try {
-        const response = await fetch(`${this.apiBaseUrl}/global/health`)
+        const response = await fetch(`${this.apiBaseUrl}/global/health`, {
+          signal: controller.signal,
+        })
         if (!response.ok) {
           return "Status: Offline"
         }
 
         const health = (await response.json()) as { status: string }
         return `Status: ${health.status}\nActive chats: ${this.chatContexts.size}`
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return "Status: Connection timed out"
+        }
         return "Status: Unable to connect to agent"
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 

@@ -28,6 +28,9 @@ import {
   type ToolCall,
   type ToolResult,
 } from './types.js';
+import { Log } from '../../packages/agent-core/src/util/log';
+
+const log = Log.create({ service: 'gui-surface' });
 
 // =============================================================================
 // GUI Surface Capabilities
@@ -209,7 +212,9 @@ export class GUISurface extends BaseSurface implements Surface {
         this.handleEvent(frame);
       }
     } catch (err) {
-      console.error('Failed to parse WebSocket message:', err);
+      log.error('Failed to parse WebSocket message', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

@@ -11,6 +11,9 @@ import type {
   MemoryCategory as TypesMemoryCategory,
   VectorStorage,
 } from "./types";
+import { Log } from "../../packages/agent-core/src/util/log";
+
+const log = Log.create({ service: "qdrant" });
 
 // =============================================================================
 // Qdrant Types
@@ -106,7 +109,12 @@ export class QdrantVectorStorage implements VectorStorage {
     try {
       await this.request("GET", `/collections/${name}`);
       return true;
-    } catch {
+    } catch (error) {
+      // Expected for non-existent collections - log at debug level for tracing
+      log.debug("Collection check returned false", {
+        collection: name,
+        reason: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -152,8 +160,13 @@ export class QdrantVectorStorage implements VectorStorage {
           field_name: field,
           field_schema: schema,
         });
-      } catch {
-        // Index might already exist - ignore
+      } catch (error) {
+        // Index might already exist - expected, log at debug
+        log.debug("Index creation skipped (likely exists)", {
+          collection: name,
+          field,
+          reason: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -163,8 +176,12 @@ export class QdrantVectorStorage implements VectorStorage {
   async deleteCollection(name: string): Promise<void> {
     try {
       await this.request("DELETE", `/collections/${name}`);
-    } catch {
-      // Collection might not exist - ignore
+    } catch (error) {
+      // Collection might not exist - log at debug for tracing
+      log.debug("Collection deletion skipped", {
+        collection: name,
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -265,7 +282,13 @@ export class QdrantVectorStorage implements VectorStorage {
           payload: point.payload,
         };
       });
-    } catch {
+    } catch (error) {
+      // Log fetch failure for debugging - return nulls as fallback
+      log.warn("Failed to fetch points by IDs", {
+        collection: this.currentCollection,
+        idCount: ids.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return ids.map(() => null);
     }
   }
@@ -571,7 +594,11 @@ export class QdrantMemoryStore implements QdrantMemoryStoreInterface {
     try {
       await this.storage.delete([id]);
       return true;
-    } catch {
+    } catch (error) {
+      log.warn("Failed to delete memory", {
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }

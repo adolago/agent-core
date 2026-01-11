@@ -20,6 +20,9 @@ import type {
   BrowserEvent,
   BrowserEventHandler,
 } from "./types.js";
+import { Log } from "../../packages/agent-core/src/util/log";
+
+const log = Log.create({ service: "agent-browser" });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Default Configuration
@@ -609,7 +612,9 @@ export class AgentBrowser {
 
       await this.stagehand.init({ page });
     } catch (err) {
-      console.warn("Failed to initialize Stagehand:", err);
+      log.warn("Failed to initialize Stagehand", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       this.stagehand = null;
     }
   }
