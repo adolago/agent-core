@@ -285,7 +285,11 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [ ] Voice output (TTS responses via gateways) - mobile has TTS, gateways text-only
 - [ ] Multi-user support (shared Qdrant namespaces)
 - [ ] Plugin marketplace for personas
-- [ ] Canvas/whiteboard for visual reasoning
+- [x] Canvas/whiteboard for visual reasoning
+  - 7 canvas kinds: text, calendar, document, table, diagram, graph, mindmap
+  - WezTerm pane management with 67% width ratio
+  - Works alongside nvim/LSP
+  - Tools: canvas-show, canvas-spawn, canvas-update, canvas-close, canvas-list
 
 ### Platform Status
 - [x] Desktop → TUI (this repo)
