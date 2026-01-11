@@ -1,6 +1,6 @@
 # Agent-Core
 
-> **Built on [OpenCode](https://github.com/sst/opencode)** — All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for creating an exceptional open-source AI coding agent. This fork extends OpenCode with a specialized personas system, semantic memory, and multi-surface orchestration.
+> **Fork of [sst/opencode](https://github.com/sst/opencode)** — Built on OpenCode. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for creating an exceptional open-source AI coding agent. This fork extends OpenCode with a specialized personas system, semantic memory, and multi-surface orchestration. Please use the upstream repository for official releases and support; use this fork at your own risk.
 
 ## The Personas System
 
@@ -130,7 +130,6 @@ For more info on how to configure OpenCode [**head over to our docs**](https://o
 ### Contributing
 
 If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
-
 ### Building on OpenCode
 
 If you are working on a project that's related to OpenCode and is using "opencode" as a part of its name; for example, "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
