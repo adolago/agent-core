@@ -270,7 +270,7 @@ async function getShellConfigFile(): Promise<string | null> {
     const content = await Bun.file(file)
       .text()
       .catch(() => "")
-    if (content.includes("# opencode") || content.includes(".agent-core/bin")) {
+    if (content.includes("# opencode") || content.includes("# agent-core") || content.includes(".agent-core/bin")) {
       return file
     }
   }
@@ -288,7 +288,7 @@ async function cleanShellConfig(file: string) {
   for (const line of lines) {
     const trimmed = line.trim()
 
-    if (trimmed === "# opencode") {
+    if (trimmed === "# opencode" || trimmed === "# agent-core") {
       skip = true
       continue
     }
