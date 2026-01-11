@@ -2,7 +2,7 @@
  * CLI/TUI Surface Adapter
  *
  * Terminal-based interaction with streaming text output and interactive permission prompts.
- * Designed for OpenCode and similar terminal-based agent interfaces.
+ * Designed for agent-core and similar terminal-based agent interfaces.
  */
 
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';

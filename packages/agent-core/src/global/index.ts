@@ -12,9 +12,9 @@ const state = path.join(xdgState!, app)
 
 export namespace Global {
   export const Path = {
-    // Allow override via OPENCODE_TEST_HOME for test isolation
+    // Allow override for test isolation (AGENT_CORE_TEST_HOME preferred, OPENCODE_TEST_HOME for compat)
     get home() {
-      return process.env.OPENCODE_TEST_HOME || os.homedir()
+      return process.env.AGENT_CORE_TEST_HOME || process.env.OPENCODE_TEST_HOME || os.homedir()
     },
     data,
     bin: path.join(data, "bin"),
