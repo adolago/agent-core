@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "1.1.11",
+  "version": "1.1.13",
   "name": "agent-core",
   "type": "module",
   "license": "MIT",
@@ -106,6 +106,7 @@
     "open": "10.1.2",
     "opentui-spinner": "0.0.6",
     "partial-json": "0.1.7",
+    "qrcode-terminal": "^0.12.0",
     "remeda": "catalog:",
     "solid-js": "catalog:",
     "strip-ansi": "7.1.2",
@@ -114,11 +115,10 @@
     "ulid": "catalog:",
     "vscode-jsonrpc": "8.2.1",
     "web-tree-sitter": "0.25.10",
+    "whatsapp-web.js": "^1.34.4",
     "xdg-basedir": "5.1.0",
     "yargs": "18.0.0",
     "zod": "catalog:",
-    "zod-to-json-schema": "3.24.5",
-    "whatsapp-web.js": "^1.34.4",
-    "qrcode-terminal": "^0.12.0"
+    "zod-to-json-schema": "3.24.5"
   }
 }
