@@ -45,8 +45,8 @@ export * as Session from "./session/types.js";
 // Plugin - Hook-based extensibility
 export * as Plugin from "./plugin/types.js";
 
-// Configuration - Unified config system
-export * as Config from "./config/types.js";
+// Configuration - Constants and types
+export * as Config from "./config/index.js";
 
 // Transport - Communication abstractions
 export * as Transport from "./transport/types.js";
