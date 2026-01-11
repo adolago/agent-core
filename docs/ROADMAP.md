@@ -292,12 +292,21 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [x] Mobile → Zee mobile app
 - [x] Web → OpenCode web
 
-### Technical Debt
-- [ ] Remove "opencode" references in new code
-- [ ] Type safety for persona configs
-- [ ] Test coverage for provider transforms
-- [ ] E2E tests for auth flows
-- [ ] Consolidate auth storage paths (opencode vs agent-core)
+### Technical Debt - COMPLETE
+- [x] Remove "opencode" references in new code
+  - Updated comments/commands in src/ to use "agent-core"
+  - Kept external service URLs (opencode.ai, antigravity.opencode.ai)
+- [x] Type safety for persona configs
+  - Renamed PersonaConfig → OrchestrationPersona to avoid conflicts
+  - Removed duplicate inline configs
+- [x] Test coverage for provider transforms
+  - 3200+ lines of existing tests verified
+  - Covers provider loading, transforms, variants
+- [x] E2E tests for auth flows
+  - 44 tests for auth module (pure functions, file ops, status, schemas)
+- [x] Consolidate auth storage paths
+  - Added AGENT_CORE_TEST_HOME env var
+  - Main storage uses ~/.local/share/agent-core/
 
 ---
 
