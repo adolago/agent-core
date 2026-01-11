@@ -191,31 +191,97 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 ## Phase 5: Upstream Sync
 
 ### 5.1 Merge Strategy
-- [ ] Track upstream OpenCode releases
-- [ ] Maintain patch set for agent-core customizations
+- [x] Track upstream OpenCode releases
+  - [x] Set up upstream remote: `git remote add upstream https://github.com/sst/opencode`
+  - [x] Create release tracking script (`scripts/check-upstream.sh`)
+  - [x] Document version mapping (`docs/UPSTREAM-SYNC.md`)
+- [x] Maintain patch set for agent-core customizations
+  - [x] Document divergence categories (`patches/agent-core/README.md`)
+  - [x] Store patches structure in `patches/agent-core/`
+  - [x] Create sync script (`scripts/sync-upstream.sh`)
 - [ ] Automated conflict detection
+  - [x] Pre-merge conflict check in sync script
+  - [ ] CI workflow for upstream sync PRs
+  - [x] Conflict resolution documentation (`docs/UPSTREAM-SYNC.md`)
 
-### 5.2 Divergence Points
-- Built-in agents removed (only personas)
-- Config paths changed to agent-core
-- Custom provider transforms
-- Persona-specific skills
+### 5.2 Divergence Points (Document & Track)
+| Divergence | Files Affected | Complexity |
+|------------|----------------|------------|
+| Built-in agents removed | `src/agent/`, config | Low |
+| Config paths (agent-core) | Global paths, CLI | Medium |
+| Custom provider transforms | `src/provider/` | High |
+| Persona skills | `.claude/skills/` | Low (additive) |
+| Custom themes (zee/stanley/johny) | `context/theme/` | Low |
+| Memory/Qdrant integration | `src/memory/` | Medium |
+| Tiara orchestration | `vendor/tiara/` | Low (submodule) |
+
+### 5.3 Sync Workflow
+- [x] Create `scripts/sync-upstream.sh` automation
+  - [x] Fetch upstream tags
+  - [x] Compare against current base
+  - [x] Generate diff report
+  - [x] Preview/merge modes
+- [x] Document manual intervention points (`docs/UPSTREAM-SYNC.md`)
+- [ ] Test suite for post-merge validation
+
+---
+
+## Phase 6: Cross-Platform Integration
+
+### 6.1 Existing Platforms
+| Platform | Status | Location |
+|----------|--------|----------|
+| TUI (agent-core) | ✅ Primary | This repo |
+| Web (OpenCode) | ✅ Upstream | opencode-ai/opencode |
+| Mobile (Zee) | ✅ Companion | personas/zee mobile app |
+
+### 6.2 Integration Points
+- [ ] Shared session state across platforms
+  - [ ] Session sync via Qdrant (already shared)
+  - [ ] Real-time sync protocol (WebSocket/SSE)
+  - [ ] Conflict resolution for concurrent edits
+- [ ] Unified authentication
+  - [ ] OAuth tokens shared across platforms
+  - [ ] Session handoff (TUI → Mobile → Web)
+- [ ] Cross-platform notifications
+  - [ ] Push notifications from TUI tasks
+  - [ ] Mobile alerts for completed drones
+  - [ ] Web dashboard for monitoring
+
+### 6.3 Mobile App Enhancement (Zee)
+- [ ] Deep linking to specific sessions
+- [ ] Quick actions from notifications
+- [ ] Offline mode with sync queue
+- [ ] Voice input integration
+
+### 6.4 Web Interface (OpenCode)
+- [ ] Persona switching in web UI
+- [ ] Theme sync with TUI preferences
+- [ ] Memory search interface
+- [ ] Drone monitoring dashboard
 
 ---
 
 ## Backlog
 
 ### Nice to Have
-- [ ] Voice input/output
-- [ ] Mobile companion app
-- [ ] Multi-user support
+- [ ] Voice input/output (Whisper/TTS integration)
+- [ ] Multi-user support (shared Qdrant namespaces)
 - [ ] Plugin marketplace for personas
+- [ ] Canvas/whiteboard for visual reasoning
+
+### Platform Sync (Deferred)
+- [x] Mobile companion app → Zee mobile app exists
+- [x] Web interface → OpenCode web exists
+- [ ] Unified desktop app (Electron wrapper)
+- [ ] Browser extension for quick capture
 
 ### Technical Debt
 - [ ] Remove "opencode" references in new code
 - [ ] Type safety for persona configs
 - [ ] Test coverage for provider transforms
 - [ ] E2E tests for auth flows
+- [ ] Consolidate auth storage paths (opencode vs agent-core)
 
 ---
 
