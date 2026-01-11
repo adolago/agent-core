@@ -1,4 +1,39 @@
-> **Personal Fork** — This is a personal fork of [sst/opencode](https://github.com/sst/opencode) with minor customizations for my workflow. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for building such a fantastic AI coding agent. Please use the [upstream repository](https://github.com/sst/opencode) for official releases and support.
+# Agent-Core
+
+> **Built on [OpenCode](https://github.com/sst/opencode)** — All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for creating an exceptional open-source AI coding agent. This fork extends OpenCode with a specialized personas system, semantic memory, and multi-surface orchestration.
+
+## The Personas System
+
+Agent-Core powers three specialized AI personas that share memory and orchestration:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        PERSONAS                              │
+├─────────────────────────────────────────────────────────────┤
+│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐       │
+│   │   STANLEY   │   │     ZEE     │   │    JOHNY    │       │
+│   │  Investing  │   │  Personal   │   │  Learning   │       │
+│   │  Platform   │   │  Assistant  │   │   System    │       │
+│   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘       │
+│          └─────────────────┼─────────────────┘              │
+│                            │                                │
+│              ┌─────────────▼─────────────┐                  │
+│              │      SHARED LAYER         │                  │
+│              │ • Qdrant Vector Memory    │                  │
+│              │ • Tiara Orchestration     │                  │
+│              │ • Multi-surface (CLI/API) │                  │
+│              │ • LLM Council             │                  │
+│              └───────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| Persona | Domain | Inspiration |
+|---------|--------|-------------|
+| **Stanley** | Investment research, SEC filings, portfolio analytics | Druckenmiller |
+| **Zee** | Personal assistant, messaging, calendar, memory | Personal |
+| **Johny** | Study coaching, spaced repetition, knowledge graphs | von Neumann |
+
+---
 
 <p align="center">
   <a href="https://opencode.ai">
@@ -9,7 +44,7 @@
     </picture>
   </a>
 </p>
-<p align="center">The open source AI coding agent.</p>
+<p align="center">The open source AI coding agent. Extended with personas.</p>
 <p align="center">
   <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
