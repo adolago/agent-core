@@ -8,6 +8,18 @@ import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
 import { useKeybind } from "../context/keybind"
 import * as fuzzysort from "fuzzysort"
 
+/** Get auth status indicator for a provider */
+function getAuthIndicator(
+  providerID: string,
+  authStatus: Record<string, { valid: boolean; expiringSoon: boolean; expiresIn: number | null }>,
+): string {
+  const status = authStatus[providerID]
+  if (!status) return ""
+  if (!status.valid) return "✗ "
+  if (status.expiringSoon) return "△ "
+  return ""
+}
+
 export function useConnected() {
   const sync = useSync()
   return createMemo(() =>
@@ -36,6 +48,7 @@ export function DialogModel(props: { providerID?: string }) {
     const q = query()
     const showSections = showExtra()
     const recents = local.model.recent()
+    const authStatus = sync.data.provider_auth_status
     const recentList = showSections ? recents : []
 
     const recentOptions = recentList.flatMap((item: { providerID: string; modelID: string }) => {
@@ -43,6 +56,7 @@ export function DialogModel(props: { providerID?: string }) {
       if (!provider) return []
       const model = provider.models[item.modelID]
       if (!model) return []
+      const authIndicator = getAuthIndicator(provider.id, authStatus)
       return [
         {
           key: item,
@@ -51,7 +65,7 @@ export function DialogModel(props: { providerID?: string }) {
             modelID: model.id,
           },
           title: model.name ?? item.modelID,
-          description: provider.name,
+          description: authIndicator + provider.name,
           category: "Recent",
           disabled: provider.id === "opencode" && model.id.includes("-nano"),
           footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
@@ -75,8 +89,9 @@ export function DialogModel(props: { providerID?: string }) {
         (provider) => provider.id !== "opencode",
         (provider) => provider.name,
       ),
-      flatMap((provider) =>
-        pipe(
+      flatMap((provider) => {
+        const authIndicator = getAuthIndicator(provider.id, authStatus)
+        return pipe(
           provider.models,
           entries(),
           filter(([_, info]) => info.status !== "deprecated"),
@@ -89,7 +104,7 @@ export function DialogModel(props: { providerID?: string }) {
             return {
               value,
               title: info.name ?? model,
-              category: connected() ? provider.name : undefined,
+              category: connected() ? authIndicator + provider.name : undefined,
               disabled: provider.id === "opencode" && model.includes("-nano"),
               footer: info.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
               onSelect() {
@@ -118,8 +133,8 @@ export function DialogModel(props: { providerID?: string }) {
             (x) => x.footer !== "Free",
             (x) => x.title,
           ),
-        ),
-      ),
+        )
+      }),
     )
 
     const popularProviders = !connected()
