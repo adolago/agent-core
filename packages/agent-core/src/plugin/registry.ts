@@ -47,7 +47,14 @@ async function readCacheFile(): Promise<CachedRegistry | null> {
   try {
     const cachePath = await getCachePath()
     const content = await fs.readFile(cachePath, "utf-8")
-    return JSON.parse(content)
+    const parsed = JSON.parse(content)
+    // Validate cached data has expected structure
+    if (!parsed.data || typeof parsed.timestamp !== "number") {
+      return null
+    }
+    // Validate the registry data itself
+    RegistrySchema.parse(parsed.data)
+    return parsed as CachedRegistry
   } catch {
     return null
   }
