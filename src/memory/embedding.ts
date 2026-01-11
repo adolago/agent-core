@@ -286,7 +286,12 @@ class LocalEmbeddingProvider implements EmbeddingProvider {
   async embedBatch(texts: string[]): Promise<number[][]> {
     if (texts.length === 0) return [];
 
-    const response = await fetch(`${this.baseUrl}/embeddings`, {
+    // Support both /v1/embeddings (OpenAI-compatible) and /embeddings (TEI)
+    const endpoint = this.baseUrl.includes("/v1")
+      ? `${this.baseUrl}/embeddings`
+      : `${this.baseUrl}/v1/embeddings`;
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -302,6 +307,67 @@ class LocalEmbeddingProvider implements EmbeddingProvider {
       const errorText = await response.text();
       throw new Error(
         `Local embedding failed (${response.status}): ${errorText}`
+      );
+    }
+
+    const data = (await response.json()) as {
+      data: Array<{ embedding: number[]; index: number }>;
+    };
+
+    const sorted = data.data.sort((a, b) => a.index - b.index);
+    return sorted.map((item) => item.embedding);
+  }
+}
+
+/**
+ * Voyage AI embedding client
+ * #1 on MTEB, 200M free tokens, supports query/document input types
+ */
+class VoyageEmbeddingProvider implements EmbeddingProvider {
+  readonly id = "voyage";
+  readonly model: string;
+  readonly dimension: number;
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+
+  constructor(config: EmbeddingConfig) {
+    this.apiKey = config.apiKey ?? process.env.VOYAGE_API_KEY ?? "";
+    this.model = config.model ?? "voyage-3-large";
+    this.dimension = config.dimensions ?? 1024;
+    this.baseUrl = config.baseUrl ?? "https://api.voyageai.com/v1";
+
+    if (!this.apiKey) {
+      throw new Error(
+        "Voyage API key required: set embedding.apiKey or VOYAGE_API_KEY env"
+      );
+    }
+  }
+
+  async embed(text: string): Promise<number[]> {
+    const result = await this.embedBatch([text]);
+    return result[0] ?? [];
+  }
+
+  async embedBatch(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+
+    const response = await fetch(`${this.baseUrl}/embeddings`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        input: texts,
+        output_dimension: this.dimension,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Voyage embedding failed (${response.status}): ${errorText}`
       );
     }
 
@@ -404,6 +470,9 @@ export function createEmbeddingProvider(
     case "openai":
       provider = new OpenAIEmbeddingProvider(config);
       break;
+    case "voyage":
+      provider = new VoyageEmbeddingProvider(config);
+      break;
     case "vllm":
       provider = new VLLMEmbeddingProvider(config);
       break;
@@ -431,6 +500,7 @@ export function createEmbeddingProvider(
 export {
   EmbeddingCache,
   OpenAIEmbeddingProvider,
+  VoyageEmbeddingProvider,
   VLLMEmbeddingProvider,
   OllamaEmbeddingProvider,
   LocalEmbeddingProvider,

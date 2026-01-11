@@ -117,7 +117,11 @@ export class QdrantVectorStorage implements VectorStorage {
 
   async createCollection(name: string, dimension: number): Promise<void> {
     const exists = await this.collectionExists(name);
-    if (exists) return;
+    if (exists) {
+      // Still set currentCollection even if collection already exists
+      this.currentCollection = name;
+      return;
+    }
 
     await this.request("PUT", `/collections/${name}`, {
       vectors: {
