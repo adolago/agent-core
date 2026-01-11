@@ -176,10 +176,10 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 - [x] Provider status indicators (auth valid/expired) - shows ✗/△ in model dialog
 - [x] Cost display for non-free models (shows "Free" badge)
 
-### 4.2 Agent Experience
-- [ ] Agent-specific themes/colors
+### 4.2 Agent Experience - COMPLETE
+- [x] Agent-specific themes/colors (agent YAML `theme` field, auto-switch on agent change)
 - [x] Persistent agent state across sessions (via ContinuityManager)
-- [ ] Agent handoff (delegate to another persona)
+- [x] Agent handoff (delegate to another persona via `<leader>d` or command palette)
 
 ### 4.3 Conversation
 - [x] Better compaction summaries (via continuity.ts generateSummary)
