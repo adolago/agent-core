@@ -52,9 +52,9 @@ import { QuestionRoute } from "./question"
 import { Installation } from "@/installation"
 import { MDNS } from "./mdns"
 import { Worktree } from "../worktree"
-import { WhatsAppGateway } from "../gateway/whatsapp"
-import { TelegramGateway } from "../gateway/telegram"
-import { DEFAULT_API_PORT } from "../gateway/constants"
+
+// Default API port for the daemon
+const DEFAULT_API_PORT = 3210
 
 // @ts-ignore This global is needed to prevent ai-sdk from logging warnings to stdout https://github.com/vercel/ai/blob/2dc67e0ef538307f21368db32d5a12345d98831b/packages/ai/src/logger/log-warnings.ts#L85
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -156,334 +156,9 @@ export namespace Server {
             return c.json({ healthy: true, version: Installation.VERSION })
           },
         )
-        // Gateway send endpoints for proactive messaging
-        .post(
-          "/gateway/telegram/send",
-          describeRoute({
-            summary: "Send Telegram message",
-            description: "Send a message via a Telegram bot",
-            operationId: "gateway.telegram.send",
-            responses: {
-              200: { description: "Message sent" },
-            },
-          }),
-          validator(
-            "json",
-            z.object({
-              persona: z.enum(["stanley", "johny"]).meta({ description: "Which bot to send from" }),
-              chatId: z.number().meta({ description: "Telegram chat ID" }),
-              message: z.string().meta({ description: "Message to send" }),
-            }),
-          ),
-          async (c) => {
-            const { persona, chatId, message } = c.req.valid("json")
-            const success = await TelegramGateway.sendMessage(persona, chatId, message)
-            return c.json({ success })
-          },
-        )
-        .post(
-          "/gateway/telegram/broadcast",
-          describeRoute({
-            summary: "Broadcast Telegram message",
-            description: "Send a message to all known chats for a bot",
-            operationId: "gateway.telegram.broadcast",
-            responses: {
-              200: { description: "Broadcast sent" },
-            },
-          }),
-          validator(
-            "json",
-            z.object({
-              persona: z.enum(["stanley", "johny"]).meta({ description: "Which bot to broadcast from" }),
-              message: z.string().meta({ description: "Message to broadcast" }),
-            }),
-          ),
-          async (c) => {
-            const { persona, message } = c.req.valid("json")
-            const result = await TelegramGateway.broadcast(persona, message)
-            return c.json(result)
-          },
-        )
-        .get(
-          "/gateway/telegram/chats",
-          describeRoute({
-            summary: "Get known Telegram chats",
-            description: "Get list of chat IDs for users who have messaged each bot",
-            operationId: "gateway.telegram.chats",
-            responses: {
-              200: { description: "List of known chats" },
-            },
-          }),
-          async (c) => {
-            return c.json({
-              stanley: TelegramGateway.getKnownChats("stanley"),
-              johny: TelegramGateway.getKnownChats("johny"),
-            })
-          },
-        )
-        .post(
-          "/gateway/whatsapp/send",
-          describeRoute({
-            summary: "Send WhatsApp message",
-            description: "Send a message via WhatsApp gateway (Zee)",
-            operationId: "gateway.whatsapp.send",
-            responses: {
-              200: { description: "Message sent" },
-            },
-          }),
-          validator(
-            "json",
-            z.object({
-              phone: z.string().meta({ description: "Phone number (with country code, no +)" }),
-              message: z.string().meta({ description: "Message to send" }),
-            }),
-          ),
-          async (c) => {
-            const gateway = WhatsAppGateway.getInstance()
-            if (!gateway) {
-              return c.json({ data: null, errors: [{ message: "WhatsApp gateway not running" }], success: false }, 400)
-            }
-            if (!gateway.isReady()) {
-              return c.json({ data: null, errors: [{ message: "WhatsApp not connected" }], success: false }, 400)
-            }
-            const { phone, message } = c.req.valid("json")
-            const chatId = `${phone}@c.us`
-            const success = await gateway.sendMessage(chatId, message)
-            return c.json({ success })
-          },
-        )
-        .post(
-          "/gateway/whatsapp/react",
-          describeRoute({
-            summary: "Send WhatsApp reaction",
-            description: "Send an emoji reaction to a WhatsApp message (Zee)",
-            operationId: "gateway.whatsapp.react",
-            responses: {
-              200: { description: "Reaction sent" },
-            },
-          }),
-          validator(
-            "json",
-            z.object({
-              chatJid: z.string().meta({ description: "Chat JID (e.g., '1234567890@c.us')" }),
-              messageId: z.string().meta({ description: "Message stanza ID" }),
-              emoji: z.string().meta({ description: "Emoji character (empty to remove)" }),
-            }),
-          ),
-          async (c) => {
-            const gateway = WhatsAppGateway.getInstance()
-            if (!gateway) {
-              return c.json({ data: null, errors: [{ message: "WhatsApp gateway not running" }], success: false }, 400)
-            }
-            if (!gateway.isReady()) {
-              return c.json({ data: null, errors: [{ message: "WhatsApp not connected" }], success: false }, 400)
-            }
-            const { chatJid, messageId, emoji } = c.req.valid("json")
-            const success = await gateway.sendReaction(chatJid, messageId, emoji)
-            return c.json({ success })
-          },
-        )
-        .get(
-          "/gateway/whatsapp/qr",
-          describeRoute({
-            summary: "WhatsApp QR code page",
-            description: "Browser-viewable page with WhatsApp QR code for scanning",
-            operationId: "gateway.whatsapp.qr",
-            responses: {
-              200: { description: "HTML page with QR code" },
-            },
-          }),
-          async (c) => {
-            const gateway = WhatsAppGateway.getInstance()
-            if (!gateway) {
-              return c.html(`<!DOCTYPE html>
-<html><head><title>WhatsApp QR</title><meta charset="utf-8">
-<style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#eee}
-.container{text-align:center;padding:2rem}</style></head>
-<body><div class="container"><h1>WhatsApp Gateway</h1><p>Gateway not running. Start the daemon with WhatsApp enabled.</p></div></body></html>`)
-            }
-
-            if (gateway.isReady()) {
-              return c.html(`<!DOCTYPE html>
-<html><head><title>WhatsApp QR</title><meta charset="utf-8">
-<style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#eee}
-.container{text-align:center;padding:2rem}.success{color:#4ade80}</style></head>
-<body><div class="container"><h1 class="success">WhatsApp Connected</h1><p>Already authenticated. No QR code needed.</p></div></body></html>`)
-            }
-
-            const qr = gateway.getCurrentQR()
-            if (!qr) {
-              return c.html(`<!DOCTYPE html>
-<html><head><title>WhatsApp QR</title><meta charset="utf-8">
-<meta http-equiv="refresh" content="3">
-<style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#eee}
-.container{text-align:center;padding:2rem}.loading{animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}</style></head>
-<body><div class="container"><h1>WhatsApp QR</h1><p class="loading">Waiting for QR code... (page auto-refreshes)</p></div></body></html>`)
-            }
-
-            // Generate QR code as data URL using the qrcode library
-            try {
-              // @ts-ignore - qrcode is an optional dependency
-              const QRCodeModule = await import("qrcode")
-              const QRCode = QRCodeModule.default || QRCodeModule
-              const dataUrl = await QRCode.toDataURL(qr, {
-                width: 400,
-                margin: 2,
-                color: { dark: "#000000", light: "#ffffff" },
-              })
-
-              return c.html(`<!DOCTYPE html>
-<html><head><title>WhatsApp QR</title><meta charset="utf-8">
-<meta http-equiv="refresh" content="30">
-<style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#eee}
-.container{text-align:center;padding:2rem}img{border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3)}</style></head>
-<body><div class="container"><h1>Scan with WhatsApp</h1>
-<img src="${dataUrl}" alt="WhatsApp QR Code">
-<p style="margin-top:1rem;opacity:0.7">Open WhatsApp > Linked Devices > Link a Device</p>
-<p style="font-size:0.8rem;opacity:0.5">Page auto-refreshes every 30s</p></div></body></html>`)
-            } catch (e) {
-              return c.html(`<!DOCTYPE html>
-<html><head><title>WhatsApp QR</title><meta charset="utf-8">
-<style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#eee}
-.container{text-align:center;padding:2rem}.error{color:#f87171}</style></head>
-<body><div class="container"><h1>WhatsApp QR</h1><p class="error">Failed to generate QR code image.</p>
-<p>Check terminal for QR code or use: xdg-open ~/.local/state/agent-core/whatsapp-session/whatsapp-qr.png</p></div></body></html>`)
-            }
-          },
-        )
-        .get(
-          "/gateway/whatsapp/status",
-          describeRoute({
-            summary: "WhatsApp gateway status",
-            description: "Get WhatsApp gateway connection status",
-            operationId: "gateway.whatsapp.status",
-            responses: {
-              200: { description: "Gateway status" },
-            },
-          }),
-          async (c) => {
-            const gateway = WhatsAppGateway.getInstance()
-            if (!gateway) {
-              return c.json({ running: false, ready: false, hasQR: false })
-            }
-            return c.json({
-              running: true,
-              ready: gateway.isReady(),
-              hasQR: gateway.getCurrentQR() !== null,
-            })
-          },
-        )
-        .post(
-          "/notify",
-          describeRoute({
-            summary: "Send cross-platform notification",
-            tags: ["Notification"],
-            description:
-              "Send a notification across multiple platforms (Telegram, WhatsApp). Used for alerting users about completed tasks, session updates, etc.",
-            operationId: "notify.send",
-            responses: {
-              200: {
-                description: "Notification results",
-                content: {
-                  "application/json": {
-                    schema: resolver(
-                      z.object({
-                        success: z.boolean(),
-                        results: z.array(
-                          z.object({
-                            platform: z.string(),
-                            success: z.boolean(),
-                            error: z.string().optional(),
-                          }),
-                        ),
-                      }),
-                    ),
-                  },
-                },
-              },
-            },
-          }),
-          validator(
-            "json",
-            z.object({
-              message: z.string().meta({ description: "Notification message" }),
-              title: z.string().optional().meta({ description: "Optional notification title" }),
-              sessionID: z.string().optional().meta({ description: "Related session ID for deep linking" }),
-              platforms: z
-                .array(z.enum(["telegram", "whatsapp"]))
-                .optional()
-                .meta({ description: "Target platforms (defaults to all available)" }),
-              persona: z
-                .enum(["zee", "stanley", "johny"])
-                .optional()
-                .meta({ description: "Which persona to send from (default: zee)" }),
-            }),
-          ),
-          async (c) => {
-            const { message, title, sessionID, platforms, persona = "zee" } = c.req.valid("json")
-            const results: { platform: string; success: boolean; error?: string }[] = []
-
-            const fullMessage = title ? `**${title}**\n\n${message}` : message
-            const messageWithLink = sessionID ? `${fullMessage}\n\n[Open session](agentcore://session/${sessionID})` : fullMessage
-
-            const targetPlatforms = platforms ?? ["telegram", "whatsapp"]
-
-            // Send to Telegram
-            if (targetPlatforms.includes("telegram")) {
-              try {
-                const telegramPersona = persona === "zee" ? "stanley" : persona // Zee uses Stanley's bot for now
-                const telegramResult = await TelegramGateway.broadcast(
-                  telegramPersona as "stanley" | "johny",
-                  messageWithLink,
-                )
-                results.push({
-                  platform: "telegram",
-                  success: telegramResult.sent > 0,
-                  error: telegramResult.sent === 0 ? "No chats to send to" : undefined,
-                })
-              } catch (e) {
-                results.push({
-                  platform: "telegram",
-                  success: false,
-                  error: e instanceof Error ? e.message : "Unknown error",
-                })
-              }
-            }
-
-            // Send to WhatsApp
-            if (targetPlatforms.includes("whatsapp")) {
-              const whatsapp = WhatsAppGateway.getInstance()
-              if (whatsapp?.isReady()) {
-                try {
-                  // WhatsApp broadcast would need contact list - for now just mark as available
-                  results.push({
-                    platform: "whatsapp",
-                    success: false,
-                    error: "WhatsApp broadcast not yet implemented (needs contact list)",
-                  })
-                } catch (e) {
-                  results.push({
-                    platform: "whatsapp",
-                    success: false,
-                    error: e instanceof Error ? e.message : "Unknown error",
-                  })
-                }
-              } else {
-                results.push({
-                  platform: "whatsapp",
-                  success: false,
-                  error: "WhatsApp gateway not connected",
-                })
-              }
-            }
-
-            return c.json({
-              success: results.some((r) => r.success),
-              results,
-            })
-          },
-        )
+        // Note: Messaging gateways have been removed from agent-core.
+        // Use the external zee gateway for WhatsApp/Telegram/Signal.
+        // See: ~/Repositories/personas/zee/
         .get(
           "/global/event",
           describeRoute({
@@ -1332,12 +1007,6 @@ export namespace Server {
                           description: z.string(),
                           domain: z.string(),
                           capabilities: z.array(z.string()),
-                          gateway: z
-                            .object({
-                              telegram: z.boolean(),
-                              whatsapp: z.boolean(),
-                            })
-                            .optional(),
                         }),
                       ),
                     ),
@@ -1347,6 +1016,7 @@ export namespace Server {
             },
           }),
           async (c) => {
+            // Note: Messaging is handled by external zee gateway
             const personas = [
               {
                 id: "zee",
@@ -1354,10 +1024,6 @@ export namespace Server {
                 description: "Personal assistant for life admin",
                 domain: "personal",
                 capabilities: ["memory", "messaging", "calendar", "contacts", "notifications"],
-                gateway: {
-                  telegram: false, // Zee uses WhatsApp
-                  whatsapp: WhatsAppGateway.getInstance() !== null,
-                },
               },
               {
                 id: "stanley",
@@ -1365,10 +1031,6 @@ export namespace Server {
                 description: "Investing and financial research assistant",
                 domain: "finance",
                 capabilities: ["market-data", "portfolio", "sec-filings", "research", "backtesting"],
-                gateway: {
-                  telegram: TelegramGateway.getInstance("stanley") !== null,
-                  whatsapp: false,
-                },
               },
               {
                 id: "johny",
@@ -1376,10 +1038,6 @@ export namespace Server {
                 description: "Study assistant for learning and knowledge management",
                 domain: "learning",
                 capabilities: ["study", "knowledge-graph", "spaced-repetition", "mastery-tracking"],
-                gateway: {
-                  telegram: TelegramGateway.getInstance("johny") !== null,
-                  whatsapp: false,
-                },
               },
             ]
             return c.json(personas)

@@ -73,6 +73,11 @@ EOF
     chmod 600 "$ENV_FILE"
 fi
 
+# Create state directories
+echo "Creating state directories..."
+mkdir -p /home/artur/.local/state/agent-core
+chown -R artur:artur /home/artur/.local/state/agent-core
+
 # Reload systemd
 echo "Reloading systemd..."
 systemctl daemon-reload
@@ -80,14 +85,21 @@ systemctl daemon-reload
 echo ""
 echo "Installation complete!"
 echo ""
+echo "The daemon starts both:"
+echo "  - agent-core (AI agent engine)"
+echo "  - zee gateway (WhatsApp/Telegram/Signal messaging)"
+echo ""
 echo "Next steps:"
 echo "  1. Edit your API keys in: $ENV_FILE"
-echo "  2. Enable the service:    sudo systemctl enable agent-core"
-echo "  3. Start the service:     sudo systemctl start agent-core"
-echo "  4. Check status:          sudo systemctl status agent-core"
-echo "  5. View logs:             journalctl -u agent-core -f"
+echo "  2. Install agent-core binary: ~/bin/agent-core"
+echo "  3. Ensure zee gateway is set up: ~/Repositories/personas/zee"
+echo "  4. Enable the service:    sudo systemctl enable agent-core"
+echo "  5. Start the service:     sudo systemctl start agent-core"
+echo "  6. Check status:          sudo systemctl status agent-core"
+echo "  7. View logs:             journalctl -u agent-core -f"
 echo ""
 echo "Or use the CLI commands:"
-echo "  agent-core daemon         # Start in foreground"
+echo "  agent-core daemon         # Start in foreground (with gateway)"
+echo "  agent-core daemon --no-gateway  # Start without gateway"
 echo "  agent-core daemon-status  # Check if running"
 echo "  agent-core daemon-stop    # Stop the daemon"

@@ -8,10 +8,10 @@ import { Todo } from "../../session/todo"
 import { Persistence } from "../../session/persistence"
 import { Bus } from "../../bus"
 import { Instance } from "../../project/instance"
-import { TelegramGateway } from "../../gateway/telegram"
-import { WhatsAppGateway } from "../../gateway/whatsapp"
 import { LifecycleHooks } from "../../hooks/lifecycle"
 import { WeztermOrchestration } from "../../orchestration/wezterm"
+import { initPersonas } from "../../bootstrap/personas"
+import { spawn, type ChildProcess } from "child_process"
 import fs from "fs/promises"
 import path from "path"
 import os from "os"
@@ -122,6 +122,181 @@ export namespace Daemon {
   }
 }
 
+/**
+ * Gateway supervisor - manages zee gateway as a child process with auto-restart
+ */
+export namespace GatewaySupervisor {
+  const ZEE_GATEWAY_DIR = path.join(os.homedir(), "Repositories/personas/zee")
+  const RESTART_DELAY_MS = 2000
+  const MAX_RESTART_ATTEMPTS = 5
+  const RESTART_WINDOW_MS = 60_000 // Reset restart counter after 1 minute of stability
+
+  let gatewayProcess: ChildProcess | null = null
+  let restartAttempts = 0
+  let lastRestartTime = 0
+  let isShuttingDown = false
+  let gatewayEnabled = false
+
+  export interface GatewayState {
+    running: boolean
+    pid?: number
+    restarts: number
+    lastRestartAt?: number
+    error?: string
+  }
+
+  export function getState(): GatewayState {
+    return {
+      running: gatewayProcess !== null && !gatewayProcess.killed,
+      pid: gatewayProcess?.pid,
+      restarts: restartAttempts,
+      lastRestartAt: lastRestartTime || undefined,
+    }
+  }
+
+  export async function start(): Promise<boolean> {
+    if (isShuttingDown) return false
+    if (gatewayProcess) return true
+
+    // Check if zee gateway directory exists
+    try {
+      await fs.access(ZEE_GATEWAY_DIR)
+    } catch {
+      log.warn("zee gateway directory not found", { dir: ZEE_GATEWAY_DIR })
+      return false
+    }
+
+    // Check if package.json exists
+    try {
+      await fs.access(path.join(ZEE_GATEWAY_DIR, "package.json"))
+    } catch {
+      log.warn("zee gateway package.json not found", { dir: ZEE_GATEWAY_DIR })
+      return false
+    }
+
+    log.info("starting zee gateway", { dir: ZEE_GATEWAY_DIR })
+
+    try {
+      // Use pnpm to start the gateway
+      gatewayProcess = spawn("pnpm", ["zee", "gateway"], {
+        cwd: ZEE_GATEWAY_DIR,
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: false,
+        env: {
+          ...process.env,
+          // Ensure gateway connects back to this daemon
+          AGENT_CORE_URL: `http://127.0.0.1:${process.env.PORT || 3210}`,
+        },
+      })
+
+      gatewayEnabled = true
+      lastRestartTime = Date.now()
+
+      gatewayProcess.stdout?.on("data", (data: Buffer) => {
+        const lines = data.toString().trim().split("\n")
+        for (const line of lines) {
+          if (line.trim()) {
+            log.info("[zee-gateway]", { message: line })
+          }
+        }
+      })
+
+      gatewayProcess.stderr?.on("data", (data: Buffer) => {
+        const lines = data.toString().trim().split("\n")
+        for (const line of lines) {
+          if (line.trim()) {
+            log.warn("[zee-gateway]", { message: line })
+          }
+        }
+      })
+
+      gatewayProcess.on("exit", (code, signal) => {
+        const pid = gatewayProcess?.pid
+        gatewayProcess = null
+
+        if (isShuttingDown) {
+          log.info("zee gateway stopped during shutdown", { pid, code, signal })
+          return
+        }
+
+        log.warn("zee gateway exited", { pid, code, signal })
+
+        // Reset restart counter if running stably for RESTART_WINDOW_MS
+        const now = Date.now()
+        if (now - lastRestartTime > RESTART_WINDOW_MS) {
+          restartAttempts = 0
+        }
+
+        // Auto-restart if under limit
+        if (restartAttempts < MAX_RESTART_ATTEMPTS) {
+          restartAttempts++
+          log.info("scheduling zee gateway restart", {
+            attempt: restartAttempts,
+            maxAttempts: MAX_RESTART_ATTEMPTS,
+            delayMs: RESTART_DELAY_MS,
+          })
+          setTimeout(() => {
+            if (!isShuttingDown) {
+              start().catch((err) => {
+                log.error("failed to restart zee gateway", { error: String(err) })
+              })
+            }
+          }, RESTART_DELAY_MS)
+        } else {
+          log.error("zee gateway restart limit reached", {
+            attempts: restartAttempts,
+            maxAttempts: MAX_RESTART_ATTEMPTS,
+          })
+        }
+      })
+
+      gatewayProcess.on("error", (err) => {
+        log.error("zee gateway process error", { error: err.message })
+      })
+
+      log.info("zee gateway started", { pid: gatewayProcess.pid })
+      return true
+    } catch (error) {
+      log.error("failed to start zee gateway", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return false
+    }
+  }
+
+  export async function stop(): Promise<void> {
+    isShuttingDown = true
+    gatewayEnabled = false
+
+    if (!gatewayProcess) return
+
+    const pid = gatewayProcess.pid
+    log.info("stopping zee gateway", { pid })
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        if (gatewayProcess && !gatewayProcess.killed) {
+          log.warn("zee gateway did not stop gracefully, sending SIGKILL", { pid })
+          gatewayProcess.kill("SIGKILL")
+        }
+        resolve()
+      }, 5000)
+
+      gatewayProcess!.once("exit", () => {
+        clearTimeout(timeout)
+        log.info("zee gateway stopped", { pid })
+        resolve()
+      })
+
+      gatewayProcess!.kill("SIGTERM")
+    })
+  }
+
+  export function isEnabled(): boolean {
+    return gatewayEnabled
+  }
+}
+
 export const DaemonCommand = cmd({
   command: "daemon",
   builder: (yargs) =>
@@ -141,26 +316,6 @@ export const DaemonCommand = cmd({
         type: "boolean",
         default: true,
       })
-      .option("telegram-token", {
-        describe: "Telegram bot token for remote access gateway",
-        type: "string",
-        default: process.env.TELEGRAM_BOT_TOKEN,
-      })
-      .option("telegram-users", {
-        describe: "Comma-separated list of allowed Telegram user IDs",
-        type: "string",
-        default: process.env.TELEGRAM_ALLOWED_USERS,
-      })
-      .option("whatsapp", {
-        describe: "Enable WhatsApp gateway (requires scanning QR code on first run)",
-        type: "boolean",
-        default: false,
-      })
-      .option("whatsapp-numbers", {
-        describe: "Comma-separated list of allowed phone numbers (with country code, no +)",
-        type: "string",
-        default: process.env.WHATSAPP_ALLOWED_NUMBERS,
-      })
       .option("wezterm", {
         describe: "Enable WezTerm visual orchestration when display available",
         type: "boolean",
@@ -171,6 +326,11 @@ export const DaemonCommand = cmd({
         type: "string",
         choices: ["horizontal", "vertical", "grid"],
         default: "horizontal",
+      })
+      .option("gateway", {
+        describe: "Start zee messaging gateway (WhatsApp/Telegram/Signal)",
+        type: "boolean",
+        default: true,
       }),
   describe: "Start agent-core as a headless daemon for remote access",
   handler: async (args) => {
@@ -178,7 +338,7 @@ export const DaemonCommand = cmd({
     if (await Daemon.isRunning()) {
       const state = await Daemon.readPidFile()
       console.error(`Daemon already running (PID: ${state?.pid}, Port: ${state?.port})`)
-      console.error(`Use 'opencode daemon stop' to stop it first`)
+      console.error(`Use 'agent-core daemon-stop' to stop it first`)
       process.exit(1)
     }
 
@@ -236,54 +396,14 @@ export const DaemonCommand = cmd({
       console.error(`Warning: Persistence initialization failed: ${error instanceof Error ? error.message : error}`)
     }
 
-    // Start Telegram gateway if configured
-    const telegramToken = args["telegram-token"] as string | undefined
-    let telegramGateway: TelegramGateway.Gateway | null = null
-
-    if (telegramToken) {
-      const allowedUsers = (args["telegram-users"] as string | undefined)
-        ?.split(",")
-        .map((id) => parseInt(id.trim(), 10))
-        .filter((id) => !isNaN(id))
-
-      try {
-        telegramGateway = await TelegramGateway.start({
-          botToken: telegramToken,
-          allowedUsers,
-          directory,
-          apiPort: state.port,
-        })
-        console.log(`Telegram:  Gateway started (${allowedUsers?.length || "all"} users allowed)`)
-      } catch (error) {
-        log.error("Failed to start Telegram gateway", {
-          error: error instanceof Error ? error.message : String(error),
-        })
-        console.error(`Warning: Telegram gateway failed to start: ${error instanceof Error ? error.message : error}`)
-      }
-    }
-
-    // Start WhatsApp gateway if enabled
-    let whatsappGateway: WhatsAppGateway.Gateway | null = null
-
-    if (args.whatsapp) {
-      const allowedNumbers = (args["whatsapp-numbers"] as string | undefined)
-        ?.split(",")
-        .map((n) => n.trim())
-        .filter((n) => n.length > 0)
-
-      try {
-        whatsappGateway = await WhatsAppGateway.start({
-          allowedNumbers,
-          directory,
-          apiPort: state.port,
-        })
-        console.log(`WhatsApp:  Gateway started (${allowedNumbers?.length || "all"} numbers allowed)`)
-      } catch (error) {
-        log.error("Failed to start WhatsApp gateway", {
-          error: error instanceof Error ? error.message : String(error),
-        })
-        console.error(`Warning: WhatsApp gateway failed to start: ${error instanceof Error ? error.message : error}`)
-      }
+    // Initialize persona hooks (cross-session memory, fact extraction)
+    try {
+      await initPersonas()
+      console.log("Personas:   Hooks initialized")
+    } catch (error) {
+      log.debug("Personas initialization skipped", {
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
 
     // Initialize WezTerm orchestration if enabled
@@ -309,6 +429,17 @@ export const DaemonCommand = cmd({
       }
     }
 
+    // Start zee gateway if enabled
+    let gatewayStarted = false
+    if (args.gateway) {
+      gatewayStarted = await GatewaySupervisor.start()
+      if (gatewayStarted) {
+        console.log("Gateway:    Messaging gateway started (WhatsApp/Telegram/Signal)")
+      } else {
+        console.log("Gateway:    Not available (zee gateway not found)")
+      }
+    }
+
     // Setup cleanup handlers
     const cleanup = async (signal?: NodeJS.Signals, error?: Error) => {
       log.info("daemon shutting down")
@@ -323,19 +454,14 @@ export const DaemonCommand = cmd({
         error: error?.message,
       })
 
-      // Stop Telegram gateway
-      if (telegramGateway) {
-        await TelegramGateway.stop()
-      }
-
-      // Stop WhatsApp gateway
-      if (whatsappGateway) {
-        await WhatsAppGateway.stop()
-      }
-
       // Shutdown WezTerm orchestration
       if (weztermEnabled) {
         await WeztermOrchestration.shutdown()
+      }
+
+      // Shutdown zee gateway
+      if (GatewaySupervisor.isEnabled()) {
+        await GatewaySupervisor.stop()
       }
 
       // Shutdown persistence (creates final checkpoint, removes recovery marker)
@@ -365,10 +491,13 @@ export const DaemonCommand = cmd({
       log.error("unhandled rejection", { reason: String(reason) })
     })
 
-    const telegramStatus = telegramGateway ? "Active" : telegramToken ? "Failed" : "Not configured"
-    const whatsappStatus = whatsappGateway ? "Active" : args.whatsapp ? "Failed" : "Not configured"
     const persistenceStatus = persistenceEnabled ? "Active (checkpoints + WAL)" : "Disabled"
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
+    const gatewayStatus = gatewayStarted
+      ? `Active (PID: ${GatewaySupervisor.getState().pid})`
+      : args.gateway
+        ? "Not available (zee not found)"
+        : "Disabled"
 
     console.log(`
 Agent-Core Daemon Started
@@ -381,9 +510,8 @@ URL:       http://${server.hostname}:${server.port}
 
 Services:
   Persistence: ${persistenceStatus}
-  Telegram:    ${telegramStatus}
-  WhatsApp:    ${whatsappStatus}
   WezTerm:     ${weztermStatus}
+  Gateway:     ${gatewayStatus}
 
 API Endpoints:
   Health:   GET  /global/health
@@ -410,14 +538,15 @@ Press Ctrl+C to stop the daemon.
     }
 
     // Emit daemon.ready hook - daemon is fully initialized
+    // Note: telegram/whatsapp/discord are false because messaging is handled by external zee gateway
     await LifecycleHooks.emitDaemonReady({
       pid: process.pid,
       port: state.port,
       services: {
         persistence: persistenceEnabled,
-        telegram: !!telegramGateway,
-        whatsapp: !!whatsappGateway,
-        discord: false, // Not implemented yet
+        telegram: false,
+        whatsapp: false,
+        discord: false,
       },
       sessionsWithIncompleteTodos,
     })
