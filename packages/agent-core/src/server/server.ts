@@ -818,6 +818,152 @@ export namespace Server {
           },
         )
         .get(
+          "/themes",
+          describeRoute({
+            summary: "List available themes",
+            tags: ["Config"],
+            description: "Get a list of all available themes for the interface.",
+            operationId: "themes.list",
+            responses: {
+              200: {
+                description: "List of themes",
+                content: {
+                  "application/json": {
+                    schema: resolver(
+                      z.array(
+                        z.object({
+                          id: z.string(),
+                          name: z.string(),
+                          builtin: z.boolean(),
+                          persona: z.string().optional(),
+                        }),
+                      ),
+                    ),
+                  },
+                },
+              },
+            },
+          }),
+          async (c) => {
+            // Built-in themes from theme.tsx
+            const builtinThemes = [
+              "aura",
+              "ayu",
+              "catppuccin",
+              "catppuccin-frappe",
+              "catppuccin-macchiato",
+              "cobalt2",
+              "cursor",
+              "dracula",
+              "everforest",
+              "flexoki",
+              "github",
+              "gruvbox",
+              "kanagawa",
+              "material",
+              "matrix",
+              "mercury",
+              "monokai",
+              "nightowl",
+              "nord",
+              "one-dark",
+              "opencode",
+              "orng",
+              "lucent-orng",
+              "osaka-jade",
+              "palenight",
+              "rosepine",
+              "solarized",
+              "synthwave84",
+              "tokyonight",
+              "vercel",
+              "vesper",
+              "zenburn",
+            ]
+
+            // Persona-specific themes
+            const personaThemes = [
+              { id: "zee", name: "Zee", builtin: true, persona: "zee" },
+              { id: "stanley", name: "Stanley", builtin: true, persona: "stanley" },
+              { id: "johny", name: "Johny", builtin: true, persona: "johny" },
+            ]
+
+            const themes = [
+              ...builtinThemes.map((id) => ({
+                id,
+                name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, " "),
+                builtin: true,
+              })),
+              ...personaThemes,
+            ]
+
+            return c.json(themes)
+          },
+        )
+        .get(
+          "/preferences/theme",
+          describeRoute({
+            summary: "Get current theme",
+            tags: ["Config"],
+            description: "Get the current theme setting.",
+            operationId: "preferences.theme.get",
+            responses: {
+              200: {
+                description: "Current theme",
+                content: {
+                  "application/json": {
+                    schema: resolver(
+                      z.object({
+                        theme: z.string(),
+                      }),
+                    ),
+                  },
+                },
+              },
+            },
+          }),
+          async (c) => {
+            const config = await Config.get()
+            return c.json({ theme: config.theme ?? "opencode" })
+          },
+        )
+        .patch(
+          "/preferences/theme",
+          describeRoute({
+            summary: "Set theme",
+            tags: ["Config"],
+            description: "Update the current theme setting.",
+            operationId: "preferences.theme.set",
+            responses: {
+              200: {
+                description: "Theme updated",
+                content: {
+                  "application/json": {
+                    schema: resolver(
+                      z.object({
+                        theme: z.string(),
+                      }),
+                    ),
+                  },
+                },
+              },
+              ...errors(400),
+            },
+          }),
+          validator(
+            "json",
+            z.object({
+              theme: z.string().min(1).describe("Theme ID to set"),
+            }),
+          ),
+          async (c) => {
+            const { theme } = c.req.valid("json")
+            const config = await Config.get()
+            await Config.update({ ...config, theme })
+            return c.json({ theme })
+          },
+        )
+        .get(
           "/experimental/tool/ids",
           describeRoute({
             summary: "List tool IDs",
@@ -1087,6 +1233,155 @@ export namespace Server {
           async (c) => {
             const result = SessionStatus.list()
             return c.json(result)
+          },
+        )
+        .get(
+          "/sync",
+          describeRoute({
+            summary: "Sync state for offline clients",
+            tags: ["Sync"],
+            description:
+              "Get all sessions, messages, and todos updated since a given timestamp. Used for offline-first clients to sync delta changes.",
+            operationId: "sync.delta",
+            responses: {
+              200: {
+                description: "Sync data with server timestamp",
+                content: {
+                  "application/json": {
+                    schema: resolver(
+                      z.object({
+                        timestamp: z.number().describe("Server timestamp for next sync"),
+                        sessions: Session.Info.array().describe("Sessions updated since 'since' param"),
+                        todos: z
+                          .array(
+                            z.object({
+                              sessionID: z.string(),
+                              todos: Todo.Info.array(),
+                            }),
+                          )
+                          .describe("Todos for updated sessions"),
+                      }),
+                    ),
+                  },
+                },
+              },
+            },
+          }),
+          validator(
+            "query",
+            z.object({
+              since: z.coerce
+                .number()
+                .optional()
+                .meta({ description: "Timestamp (ms since epoch) to get changes since. Omit for full sync." }),
+              limit: z.coerce.number().optional().default(100).meta({ description: "Maximum sessions to return" }),
+            }),
+          ),
+          async (c) => {
+            const query = c.req.valid("query")
+            const since = query.since ?? 0
+            const serverTimestamp = Date.now()
+
+            // Get sessions updated since timestamp
+            const sessions: Session.Info[] = []
+            for await (const session of Session.list()) {
+              if (session.time.updated >= since) {
+                sessions.push(session)
+                if (sessions.length >= (query.limit ?? 100)) break
+              }
+            }
+
+            // Get todos for updated sessions
+            const todosPerSession: Array<{ sessionID: string; todos: Todo.Info[] }> = []
+            for (const session of sessions) {
+              try {
+                const todos = await Todo.get(session.id)
+                if (todos.length > 0) {
+                  todosPerSession.push({ sessionID: session.id, todos })
+                }
+              } catch {
+                // Session may not have todos
+              }
+            }
+
+            return c.json({
+              timestamp: serverTimestamp,
+              sessions,
+              todos: todosPerSession,
+            })
+          },
+        )
+        .get(
+          "/personas",
+          describeRoute({
+            summary: "List available personas",
+            tags: ["Personas"],
+            description: "Get list of available personas (Zee, Stanley, Johny) with their status and capabilities.",
+            operationId: "personas.list",
+            responses: {
+              200: {
+                description: "List of personas",
+                content: {
+                  "application/json": {
+                    schema: resolver(
+                      z.array(
+                        z.object({
+                          id: z.string(),
+                          name: z.string(),
+                          description: z.string(),
+                          domain: z.string(),
+                          capabilities: z.array(z.string()),
+                          gateway: z
+                            .object({
+                              telegram: z.boolean(),
+                              whatsapp: z.boolean(),
+                            })
+                            .optional(),
+                        }),
+                      ),
+                    ),
+                  },
+                },
+              },
+            },
+          }),
+          async (c) => {
+            const personas = [
+              {
+                id: "zee",
+                name: "Zee",
+                description: "Personal assistant for life admin",
+                domain: "personal",
+                capabilities: ["memory", "messaging", "calendar", "contacts", "notifications"],
+                gateway: {
+                  telegram: false, // Zee uses WhatsApp
+                  whatsapp: WhatsAppGateway.isConnected(),
+                },
+              },
+              {
+                id: "stanley",
+                name: "Stanley",
+                description: "Investing and financial research assistant",
+                domain: "finance",
+                capabilities: ["market-data", "portfolio", "sec-filings", "research", "backtesting"],
+                gateway: {
+                  telegram: TelegramGateway.getInstance("stanley") !== null,
+                  whatsapp: false,
+                },
+              },
+              {
+                id: "johny",
+                name: "Johny",
+                description: "Study assistant for learning and knowledge management",
+                domain: "learning",
+                capabilities: ["study", "knowledge-graph", "spaced-repetition", "mastery-tracking"],
+                gateway: {
+                  telegram: TelegramGateway.getInstance("johny") !== null,
+                  whatsapp: false,
+                },
+              },
+            ]
+            return c.json(personas)
           },
         )
         .get(
