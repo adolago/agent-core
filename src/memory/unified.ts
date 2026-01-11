@@ -195,7 +195,7 @@ export function extractKeyFacts(message: string): string[] {
 }
 
 /** Generate summary from messages */
-function generateSummary(messages: string[]): string {
+export function generateSummary(messages: string[]): string {
   if (messages.length === 0) return "";
 
   const recentMessages = messages.slice(-10);
@@ -217,7 +217,7 @@ function generateSummary(messages: string[]): string {
 }
 
 /** Merge facts with deduplication */
-function mergeFacts(existing: string[], newFacts: string[], max: number): string[] {
+export function mergeFacts(existing: string[], newFacts: string[], max: number): string[] {
   const allFacts = [...existing, ...newFacts];
   const seen: Record<string, boolean> = {};
   const unique: string[] = [];
@@ -231,6 +231,92 @@ function mergeFacts(existing: string[], newFacts: string[], max: number): string
   }
 
   return unique.slice(-max);
+}
+
+/** Create a new conversation state */
+export function createConversationState(
+  sessionId: string,
+  leadPersona: PersonaId,
+  previousSessionId?: string
+): ConversationState {
+  return {
+    sessionId,
+    leadPersona,
+    summary: "",
+    plan: "",
+    objectives: [],
+    keyFacts: [],
+    sessionChain: previousSessionId ? [previousSessionId] : [],
+    updatedAt: Date.now(),
+  };
+}
+
+/** Update conversation state with new information */
+export function updateConversationState(
+  state: ConversationState,
+  updates: {
+    messages?: string[];
+    newFacts?: string[];
+    plan?: string;
+    objectives?: string[];
+  },
+  config: { maxKeyFacts: number }
+): ConversationState {
+  const newState = { ...state };
+
+  if (updates.messages) {
+    newState.summary = generateSummary(updates.messages);
+  }
+
+  if (updates.newFacts) {
+    newState.keyFacts = mergeFacts(state.keyFacts, updates.newFacts, config.maxKeyFacts);
+  }
+
+  if (updates.plan !== undefined) {
+    newState.plan = updates.plan;
+  }
+
+  if (updates.objectives !== undefined) {
+    newState.objectives = updates.objectives;
+  }
+
+  newState.updatedAt = Date.now();
+  return newState;
+}
+
+/** Format conversation state for prompt injection */
+export function formatContextForPrompt(state: ConversationState): string {
+  const parts: string[] = ["# Conversation Context (Restored)", ""];
+
+  if (state.summary) {
+    parts.push("## Previous Conversation Summary");
+    parts.push(state.summary);
+    parts.push("");
+  }
+
+  if (state.plan) {
+    parts.push("## Current Plan");
+    parts.push(state.plan);
+    parts.push("");
+  }
+
+  if (state.objectives.length > 0) {
+    parts.push("## Active Objectives");
+    state.objectives.forEach((obj, i) => parts.push(`${i + 1}. ${obj}`));
+    parts.push("");
+  }
+
+  if (state.keyFacts.length > 0) {
+    parts.push("## Key Facts");
+    state.keyFacts.forEach((fact) => parts.push(`- ${fact}`));
+    parts.push("");
+  }
+
+  if (state.sessionChain.length > 0) {
+    parts.push(`_This is session ${state.sessionChain.length + 1} in a continuing conversation._`);
+  }
+
+  return parts.join("\n");
 }
 
 // =============================================================================
@@ -343,6 +429,8 @@ export class Memory {
         createdAt: entry.createdAt,
         accessedAt: entry.accessedAt,
         ttl: entry.ttl,
+        // Store absolute expiration time for efficient filtering
+        expiresAt: entry.ttl ? entry.createdAt + entry.ttl : 0,
         namespace: entry.namespace,
       },
     }]);
@@ -359,8 +447,14 @@ export class Memory {
     // Build filter
     const filter: Record<string, unknown> = {
       type: "memory",
-      namespace: params.namespace ?? this.namespace,
     };
+
+    // Namespace filtering: pass namespace: null to search all namespaces
+    if (params.namespace === null) {
+      // Explicitly null = search all namespaces (no filter)
+    } else {
+      filter.namespace = params.namespace ?? this.namespace;
+    }
 
     if (params.category) {
       if (Array.isArray(params.category)) {
@@ -418,6 +512,45 @@ export class Memory {
     };
   }
 
+  /** List memories with optional filters */
+  async list(options: {
+    category?: MemoryCategory;
+    namespace?: string;
+    limit?: number;
+  } = {}): Promise<MemoryEntry[]> {
+    await this.init();
+
+    const filter: Record<string, unknown> = {
+      type: "memory",
+      namespace: options.namespace ?? this.namespace,
+    };
+    if (options.category) {
+      filter.category = options.category;
+    }
+
+    const count = await this.storage.count(filter);
+    if (count === 0) return [];
+
+    // Use dummy vector to list all matching entries
+    const dummyVector = new Array(this.embedding.dimension).fill(0);
+    const results = await this.storage.search(dummyVector, {
+      limit: options.limit ?? 100,
+      filter,
+    });
+
+    return results.map((r) => ({
+      id: r.id,
+      category: r.payload.category as MemoryCategory,
+      content: r.payload.content as string,
+      summary: r.payload.summary as string | undefined,
+      metadata: r.payload.metadata as MemoryEntry["metadata"],
+      createdAt: r.payload.createdAt as number,
+      accessedAt: r.payload.accessedAt as number,
+      ttl: r.payload.ttl as number | undefined,
+      namespace: r.payload.namespace as string | undefined,
+    }));
+  }
+
   /** Delete a memory by ID */
   async delete(id: string): Promise<void> {
     await this.init();
@@ -446,7 +579,7 @@ export class Memory {
     const now = Date.now();
     return this.storage.deleteWhere({
       type: "memory",
-      expiresAt: { lt: now, gt: 0 },
+      expiresAt: { $lt: now, $gt: 0 },
     });
   }
 
@@ -755,6 +888,19 @@ export class Memory {
     await this.saveConversation(this.currentConversation);
   }
 
+  /** Remove objective by index */
+  async removeObjective(index: number): Promise<void> {
+    if (!this.currentConversation) {
+      throw new Error("No active session");
+    }
+
+    if (index >= 0 && index < this.currentConversation.objectives.length) {
+      this.currentConversation.objectives.splice(index, 1);
+      this.currentConversation.updatedAt = Date.now();
+      await this.saveConversation(this.currentConversation);
+    }
+  }
+
   /** End session */
   async endSession(): Promise<void> {
     if (!this.currentConversation) return;
@@ -822,6 +968,42 @@ export class Memory {
       limit: options?.limit ?? 5,
       threshold: 0.6,
     });
+  }
+
+  /** Search memories across all personas */
+  async searchAllPersonaMemories(
+    query: string,
+    limit = 10
+  ): Promise<Array<{ id: string; content: string; score: number; persona?: string }>> {
+    await this.init();
+
+    // Search without namespace filter to get all memories
+    const queryVector = await this.embedding.embed(query);
+    const results = await this.storage.search(queryVector, {
+      limit,
+      filter: { type: "memory" },
+    });
+
+    return results.map((r) => ({
+      id: r.id,
+      content: r.payload.content as string,
+      score: r.score,
+      persona: r.payload.namespace?.toString().replace("personas:", ""),
+    }));
+  }
+
+  /** Get memories by IDs */
+  async getMemories(ids: string[]): Promise<Array<{ id: string; content: string }>> {
+    await this.init();
+
+    const memories: Array<{ id: string; content: string }> = [];
+    for (const id of ids) {
+      const memory = await this.get(id);
+      if (memory) {
+        memories.push({ id: memory.id, content: memory.content });
+      }
+    }
+    return memories;
   }
 
   /** Get relevant context for a task */
@@ -905,6 +1087,34 @@ export class Memory {
   /** Cleanup old entries */
   async cleanup(): Promise<number> {
     return this.deleteExpired();
+  }
+
+  // ===========================================================================
+  // Session Restoration (from ContinuityManager)
+  // ===========================================================================
+
+  /** Restore a previous session by ID */
+  async restoreSession(sessionId: string): Promise<ConversationState | null> {
+    await this.init();
+
+    const state = await this.loadConversation(sessionId);
+    if (state) {
+      this.currentConversation = state;
+    }
+    return state;
+  }
+
+  /** Search for related context and return content strings */
+  async searchRelatedContext(query: string, limit = 5): Promise<string[]> {
+    await this.init();
+
+    const results = await this.search({
+      query,
+      limit,
+      threshold: 0.5,
+    });
+
+    return results.map((r) => r.entry.content);
   }
 }
 
