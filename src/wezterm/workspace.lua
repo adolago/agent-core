@@ -32,7 +32,7 @@ function M.spawn_drone_pane(window, persona)
     cwd = M.config.agent_core_path,
   })
 
-  drone_pane:send_text(string.format("opencode --agent %s\n", persona))
+  drone_pane:send_text(string.format("agent-core --agent %s\n", persona))
   return drone_pane
 end
 
