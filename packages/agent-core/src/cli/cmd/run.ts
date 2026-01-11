@@ -81,7 +81,7 @@ export const RunCommand = cmd({
       })
       .option("attach", {
         type: "string",
-        describe: "attach to a running agent-core server (e.g., http://localhost:4096)",
+        describe: "attach to a running agent-core server (e.g., http://localhost:3456)",
       })
       .option("port", {
         type: "number",

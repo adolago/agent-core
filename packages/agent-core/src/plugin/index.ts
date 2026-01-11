@@ -22,7 +22,7 @@ export namespace Plugin {
 
   const state = Instance.state(async () => {
     const client = createOpencodeClient({
-      baseUrl: "http://localhost:4096",
+      baseUrl: Server.url().origin,
       // @ts-ignore - fetch type incompatibility
       fetch: async (...args) => Server.App().fetch(...args),
     })

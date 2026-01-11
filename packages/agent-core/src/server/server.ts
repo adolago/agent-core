@@ -54,6 +54,7 @@ import { MDNS } from "./mdns"
 import { Worktree } from "../worktree"
 import { WhatsAppGateway } from "../gateway/whatsapp"
 import { TelegramGateway } from "../gateway/telegram"
+import { DEFAULT_API_PORT } from "../gateway/constants"
 
 // @ts-ignore This global is needed to prevent ai-sdk from logging warnings to stdout https://github.com/vercel/ai/blob/2dc67e0ef538307f21368db32d5a12345d98831b/packages/ai/src/logger/log-warnings.ts#L85
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -65,7 +66,7 @@ export namespace Server {
   let _corsWhitelist: string[] = []
 
   export function url(): URL {
-    return _url ?? new URL("http://localhost:4096")
+    return _url ?? new URL(`http://localhost:${DEFAULT_API_PORT}`)
   }
 
   export const Event = {
@@ -3827,7 +3828,7 @@ export namespace Server {
         return undefined
       }
     }
-    const server = opts.port === 0 ? (tryServe(4096) ?? tryServe(0)) : tryServe(opts.port)
+    const server = opts.port === 0 ? (tryServe(DEFAULT_API_PORT) ?? tryServe(0)) : tryServe(opts.port)
     if (!server) throw new Error(`Failed to start server on port ${opts.port}`)
 
     _url = server.url
@@ -3839,7 +3840,7 @@ export namespace Server {
       opts.hostname !== "localhost" &&
       opts.hostname !== "::1"
     if (shouldPublishMDNS) {
-      MDNS.publish(server.port!, `opencode-${server.port!}`)
+      MDNS.publish(server.port!, `agent-core-${server.port!}`)
     } else if (opts.mdns) {
       log.warn("mDNS enabled but hostname is loopback; skipping mDNS publish")
     }
