@@ -282,7 +282,11 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 
 ### Nice to Have
 - [x] Voice input (Whisper transcription) - implemented for mobile, WhatsApp, Telegram
-- [ ] Voice output (TTS responses via gateways) - mobile has TTS, gateways text-only
+- [x] Voice output (TTS responses via gateways)
+  - TTSConfig with CLI command template ({{Text}}, {{OutputPath}}, {{Voice}})
+  - Telegram gateway: sendVoice method with FormData upload
+  - WhatsApp gateway: sendVoice method with MessageMedia
+  - Graceful fallback to text if TTS fails or not configured
 - [ ] Multi-user support (shared Qdrant namespaces)
 - [ ] Plugin marketplace for personas
 - [x] Canvas/whiteboard for visual reasoning
