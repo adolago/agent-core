@@ -15,6 +15,12 @@ import type { McpServerConfig as MCPConfig } from "../mcp/types";
 import type { MemoryConfig } from "../memory/types";
 import type { SurfaceType } from "../surface/types";
 import type { LogLevel, DmPolicy, GroupPolicy, RetryConfig } from "./shared";
+import {
+  QDRANT_URL,
+  QDRANT_COLLECTION_MEMORY,
+  EMBEDDING_MODEL,
+  EMBEDDING_DIMENSIONS,
+} from "./constants";
 
 // =============================================================================
 // Main Configuration
@@ -330,13 +336,13 @@ export const DEFAULT_CONFIG: Partial<AgentCoreConfig> = {
   mcp: {},
   memory: {
     qdrant: {
-      url: "http://localhost:6333",
-      collection: "agent-core",
+      url: QDRANT_URL,
+      collection: QDRANT_COLLECTION_MEMORY,
     },
     embedding: {
       provider: "openai",
-      model: "text-embedding-3-small",
-      dimension: 1536,
+      model: EMBEDDING_MODEL,
+      dimension: EMBEDDING_DIMENSIONS,
     },
     autoLearn: true,
     patternMinObservations: 3,

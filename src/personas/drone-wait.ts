@@ -13,6 +13,7 @@ import type {
   WaitOptions,
   WorkerId,
 } from './types';
+import { TIMEOUT_DRONE_MS } from '../config/constants';
 
 // ============================================================================
 // Drone Waiter
@@ -28,13 +29,13 @@ export class DroneWaiter extends EventEmitter {
     startedAt: number;
   }>();
   private recentResults = new Map<WorkerId, { result: DroneResult; storedAt: number }>();
-  private resultTtlMs = 300000;
+  private resultTtlMs = TIMEOUT_DRONE_MS;
 
   /**
    * Wait for a drone to complete
    */
   async waitFor(workerId: WorkerId, options: WaitOptions = {}): Promise<DroneResult> {
-    const { timeoutMs = 300000 } = options; // Default 5 minutes
+    const { timeoutMs = TIMEOUT_DRONE_MS } = options;
     const recent = this.takeRecentResult(workerId);
     if (recent) {
       return recent;
@@ -273,7 +274,7 @@ export function buildSpawnConfig(options: SpawnWithWaitOptions) {
     wait: isFireAndForget
       ? null
       : {
-          timeoutMs: options.timeoutMs ?? 300000,
+          timeoutMs: options.timeoutMs ?? TIMEOUT_DRONE_MS,
         },
     announce: options.announce ?? null,
     cleanup: options.cleanup ?? isFireAndForget,

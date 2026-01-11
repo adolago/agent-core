@@ -35,6 +35,14 @@ import { generateDronePrompt } from "./persona";
 import { formatAnnouncement, getDroneWaiter, shouldAnnounce, shutdownDroneWaiter } from "./drone-wait";
 import { createConversationState } from "./continuity";
 import { Log } from "../../packages/agent-core/src/util/log";
+import {
+  QDRANT_URL,
+  QDRANT_COLLECTION_PERSONAS_STATE,
+  QDRANT_COLLECTION_PERSONAS_MEMORY,
+  CONTINUITY_MAX_KEY_FACTS,
+  CONTINUITY_SUMMARY_THRESHOLD,
+  TIMEOUT_DRONE_MS,
+} from "../config/constants";
 
 const log = Log.create({ service: "personas-tiara" });
 
@@ -50,14 +58,14 @@ const DEFAULT_CONFIG: PersonasConfig = {
     showStatusPane: true,
   },
   qdrant: {
-    url: "http://localhost:6333",
-    stateCollection: "personas_state",
-    memoryCollection: "personas_memory",
+    url: QDRANT_URL,
+    stateCollection: QDRANT_COLLECTION_PERSONAS_STATE,
+    memoryCollection: QDRANT_COLLECTION_PERSONAS_MEMORY,
   },
   continuity: {
     autoSummarize: true,
-    summaryThreshold: 60000,
-    maxKeyFacts: 50,
+    summaryThreshold: CONTINUITY_SUMMARY_THRESHOLD,
+    maxKeyFacts: CONTINUITY_MAX_KEY_FACTS,
   },
   tiara: {
     enabled: true,
@@ -520,7 +528,7 @@ export class Orchestrator extends EventEmitter implements PersonasOrchestrator {
    * Spawn a drone and wait for completion
    */
   async spawnDroneWithWait(options: SpawnWithWaitOptions): Promise<DroneResult> {
-    const { announce, cleanup, timeoutMs = 300000 } = options;
+    const { announce, cleanup, timeoutMs = TIMEOUT_DRONE_MS } = options;
 
     // Spawn the drone
     const worker = await this.spawnDrone({

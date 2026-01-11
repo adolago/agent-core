@@ -12,6 +12,7 @@ import type {
   VectorStorage,
 } from "./types";
 import { Log } from "../../packages/agent-core/src/util/log";
+import { QDRANT_URL, QDRANT_COLLECTION_MEMORY } from "../config/constants";
 
 const log = Log.create({ service: "qdrant" });
 
@@ -68,9 +69,9 @@ export class QdrantVectorStorage implements VectorStorage {
   private currentCollection: string;
 
   constructor(config: MemoryConfig["qdrant"]) {
-    this.baseUrl = (config.url ?? "http://localhost:6333").replace(/\/$/, "");
+    this.baseUrl = (config.url ?? QDRANT_URL).replace(/\/$/, "");
     this.apiKey = config.apiKey;
-    this.defaultCollection = config.collection ?? "agent_memories";
+    this.defaultCollection = config.collection ?? QDRANT_COLLECTION_MEMORY;
     this.currentCollection = this.defaultCollection;
   }
 
