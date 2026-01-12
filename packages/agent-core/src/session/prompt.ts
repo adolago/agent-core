@@ -687,8 +687,10 @@ export namespace SessionPrompt {
     for (const item of await ToolRegistry.tools(input.model.providerID, input.agent)) {
       const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
+        // Type assertion needed: AI SDK tool() requires specific string literal types, but our dynamic IDs are string variables
         id: item.id as any,
         description: item.description,
+        // Type assertion needed: AI SDK jsonSchema() expects JSONSchema7 but zod's toJSONSchema output has subtle type differences
         inputSchema: jsonSchema(schema as any),
         async execute(args, options) {
           const ctx = context(args, options)

@@ -1,12 +1,12 @@
 # Agent-Core - The Engine
 
-This is the **engine** that powers Artur's Agent System. agent-core is a fork of OpenCode with custom personas.
+This is the **engine** that powers Agent-Core, a fork of OpenCode.
 
 ## CRITICAL: Naming Convention
 
 **NEVER use "opencode" in new code, documentation, or user-facing text.**
 
-This project is `agent-core`, not OpenCode. While we're grateful to the original OpenCode maintainers, users must be able to run both projects without confusion:
+This project is `agent-core`, not OpenCode. We are grateful to the OpenCode developers and believe users must be able to run both projects without confusion:
 
 - CLI command: `agent-core` (not `opencode`)
 - Config directory: `~/.config/agent-core/`
@@ -20,15 +20,15 @@ Existing upstream code may still contain "opencode" references - that's fine. Bu
 
 **ALWAYS read these before making changes:**
 
-1. **Tiara** (`vendor/tiara/`) - The orchestration submodule with claude-flow
+1. **Tiara** (`vendor/tiara/`) - The orchestration submodule
    - `vendor/tiara/CLAUDE.md` - SPARC methodology, concurrent execution rules
    - `vendor/tiara/docs/` - Architecture, integrations, roadmaps
 
 2. **The Triad** (`.claude/skills/`) - The three personas:
-   - `.claude/skills/zee/SKILL.md` - Personal assistant (memory, messaging, calendar)
-   - `.claude/skills/stanley/SKILL.md` - Investing system (markets, portfolio, NautilusTrader)
-   - `.claude/skills/johny/SKILL.md` - Learning system (knowledge graph, spaced repetition)
-
+   - `.claude/skills/zee/SKILL.md` - Personal assistant (memory, messaging, calendar, and more)
+   - `.claude/skills/stanley/SKILL.md` - Investing assistant with access to a full platform (NautilusTrader, OpenBB, own GUI in rust) of APIS integration
+   - `.claude/skills/johny/SKILL.md` - Study assistant focused on diliberate practice, with knowledge graph and spaced repetition
+   - Each persona has its own configuration and capabilities, all have access to Tiara's orchestration offers
 3. **Shared capabilities** (`.claude/skills/shared/`, `.claude/skills/personas/`)
    - Orchestration, WezTerm integration, drone spawning
 
@@ -63,24 +63,28 @@ You are part of the **Personas** - three AI personas that share a common orchest
 ### Personas Capabilities (ALL Personas Have These)
 
 **1. Spawn Drones** - You can spawn background workers (drones) that:
+
 - Maintain your persona identity (a "Zee drone" acts like Zee)
 - Execute tasks in parallel while you continue the conversation
 - Report results back to you
 - Run in separate WezTerm panes for visibility
 
 **2. Shared Memory** - All personas share:
+
 - Qdrant vector memory for semantic search
 - Conversation continuity state (survives compacting)
 - Plan and objectives across sessions
 - Key facts extracted from conversations
 
 **3. Conversation Continuity** - When context gets compacted:
+
 - A summary is saved to Qdrant automatically
 - Key facts are extracted and preserved
 - Plan/objectives persist across sessions
 - You can restore context from previous sessions
 
 **4. WezTerm Pane Management** - Visual orchestration:
+
 - Each drone gets its own pane
 - Status pane shows Personas state
 - You can see what all workers are doing
@@ -88,6 +92,7 @@ You are part of the **Personas** - three AI personas that share a common orchest
 ### How to Use Personas Capabilities
 
 **Spawning a Drone:**
+
 ```
 When you need to do heavy background work, you can spawn a drone:
 1. Decide what task needs background processing
@@ -97,6 +102,7 @@ When you need to do heavy background work, you can spawn a drone:
 ```
 
 **Preserving Continuity:**
+
 ```
 Before context is compacted:
 1. Summarize the conversation state
@@ -106,6 +112,7 @@ Before context is compacted:
 ```
 
 **Checking State:**
+
 ```
 You can always check:
 - What drones are running
@@ -176,14 +183,6 @@ You can always check:
 
 No generic "build" or "plan" agents. Every interaction goes through a persona with domain expertise. The personas share orchestration (tiara) and memory (Qdrant) but have distinct purposes.
 
-## Personas
-
-| Persona | Inspiration | Domain | Skills Location |
-|---------|-------------|--------|-----------------|
-| **Johny** | von Neumann | Study, learning | `.claude/skills/johny/` |
-| **Stanley** | Druckenmiller | Trading, markets | `.claude/skills/stanley/` |
-| **Zee** | Personal | Memory, messaging | `.claude/skills/zee/` |
-
 ## Key Directories
 
 ```
@@ -208,6 +207,7 @@ agent-core/
 ## Integration
 
 Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
+
 ```
 .claude/skills/johny/     → Johny persona
 .claude/skills/stanley/   → Stanley persona
@@ -226,6 +226,7 @@ Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
 ## Experimental Features
 
 This system has experimental features enabled:
+
 - LLM Council for multi-model deliberation
 - Knowledge graph with FIRe (Fractional Implicit Repetition)
 - Semantic memory via Qdrant
@@ -233,26 +234,52 @@ This system has experimental features enabled:
 
 ## State Management
 
-| Data | Location |
-|------|----------|
-| Johny profile | `~/.zee/johny/profile.json` |
+| Data              | Location                        |
+| ----------------- | ------------------------------- |
+| Johny profile     | `~/.zee/johny/profile.json`     |
 | Stanley portfolio | `~/.zee/stanley/portfolio.json` |
-| Zee memories | `~/.zee/zee/memories.json` |
-| Credentials | `~/.zee/credentials/` |
+| Zee memories      | `~/.zee/zee/memories.json`      |
+| Credentials       | `~/.zee/credentials/`           |
 
 ## Running Processes & Binary Updates
 
+> ⚠️ **CRITICAL: Read `docs/OPS.md` before debugging fixes that "don't take effect"**
+>
+> The #1 cause of confusion is **not knowing which binary is running**:
+>
+> - **Dev mode** (`bun run dev`): Uses source files directly, restart takes effect
+> - **Production** (`~/bin/agent-core`): Uses compiled binary, must rebuild + copy + restart
+>
+> Use `./scripts/reload.sh --status` to see what's running and if source is newer than binary.
+
 ### Repository Location
+
 **Source code:** `~/.local/src/agent-core`
 
 This hidden location prevents accidentally running from the repo directory (which can cause config confusion).
 
 ### Binary Location
+
 **Installed binary:** `~/bin/agent-core` (also `$AGENT_CORE_BIN`)
 
 **Run from anywhere:** The binary can be launched from any directory. Just `cd` to your project folder and run `agent-core`.
 
 ### Rebuilding
+
+**Recommended:** Use the reload script (handles kill, build, copy, restart):
+
+```bash
+# Full reload - kill all, rebuild, restart daemon
+./scripts/reload.sh
+
+# Just check status (what's running, version info)
+./scripts/reload.sh --status
+
+# Restart without rebuilding (config changes only)
+./scripts/reload.sh --no-build
+```
+
+**Manual method** (if script unavailable):
 
 ```bash
 # Build from repo
@@ -264,6 +291,7 @@ cp ~/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/age
 ```
 
 ### Common Processes
+
 When updating the binary, you may encounter "Text file busy". Check for:
 
 ```bash
@@ -323,6 +351,7 @@ pgrep -af agent-core
 ```
 
 **Key Points:**
+
 - **Zee Gateway** = Transport layer only (handles WhatsApp/Telegram/Signal connections)
 - **agent-core daemon** = All agent logic, personas, memory, tools
 - **Persona routing** = Messages mentioning `@stanley` or `@johny` are routed to those personas
@@ -331,11 +360,13 @@ pgrep -af agent-core
 ### Running the External Gateway Architecture
 
 1. **Start agent-core daemon with external gateway mode:**
+
    ```bash
    agent-core daemon --external-gateway --hostname 127.0.0.1 --port 3210
    ```
 
 2. **Start zee gateway:**
+
    ```bash
    cd ~/Repositories/personas/zee && pnpm zee gateway
    ```
@@ -348,6 +379,7 @@ pgrep -af agent-core
 ### Architecture Decision
 
 Built-in messaging gateways have been **removed** from agent-core to:
+
 1. Avoid duplication with zee gateway (ClawdBot fork)
 2. Keep agent-core clean for upstream OpenCode
 3. Centralize messaging transport in one place
