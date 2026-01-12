@@ -95,10 +95,7 @@ export function Header() {
                 <For each={ancestry()}>
                   {(ancestor) => (
                     <>
-                      <text
-                        fg={theme.accent}
-                        onMouseDown={() => navigate({ type: "session", sessionID: ancestor.id })}
-                      >
+                      <text fg={theme.accent} onMouseDown={() => navigate({ type: "session", sessionID: ancestor.id })}>
                         {Locale.truncateMiddle(ancestor.title ?? "Session", 20)}
                       </text>
                       <text fg={theme.textMuted}>&gt;</text>

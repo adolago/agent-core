@@ -64,7 +64,7 @@ export async function initPersonas(): Promise<void> {
       if (payload.source === "whatsapp" || payload.source === "telegram") {
         await injectCrossSessionMemory(payload.sessionId, payload.persona)
       }
-    }
+    },
   )
 
   // Register session restore hook for memory injection
@@ -74,7 +74,7 @@ export async function initPersonas(): Promise<void> {
       if (payload.source === "whatsapp" || payload.source === "telegram") {
         await injectCrossSessionMemory(payload.sessionId, payload.persona)
       }
-    }
+    },
   )
 
   // Try to initialize external persona hooks (fact extraction, etc.)
@@ -100,10 +100,7 @@ export async function initPersonas(): Promise<void> {
 /**
  * Inject relevant memories from previous sessions
  */
-async function injectCrossSessionMemory(
-  sessionId: string,
-  persona: "zee" | "stanley" | "johny"
-): Promise<void> {
+async function injectCrossSessionMemory(sessionId: string, persona: "zee" | "stanley" | "johny"): Promise<void> {
   try {
     const memory = await getMemoryInstance()
     const memories: string[] = []
@@ -130,11 +127,10 @@ async function injectCrossSessionMemory(
       try {
         // Search for recent facts and important information using unified Memory API
         const personaContext = getPersonaSearchContext(persona)
-        const searchResults = await memory.searchPersonaMemories(
-          personaContext,
-          persona,
-          { limit: 5, categories: ["fact", "preference", "decision"] }
-        )
+        const searchResults = await memory.searchPersonaMemories(personaContext, persona, {
+          limit: 5,
+          categories: ["fact", "preference", "decision"],
+        })
 
         if (searchResults.length > 0) {
           log.info("Found relevant memories", {
@@ -165,7 +161,6 @@ async function injectCrossSessionMemory(
         memoriesCount: memories.length,
       })
     }
-
   } catch (error) {
     log.debug("Could not inject cross-session memory", {
       sessionId: sessionId.slice(0, 8),

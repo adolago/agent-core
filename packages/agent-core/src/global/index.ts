@@ -1,14 +1,23 @@
 import fs from "fs/promises"
-import { xdgData, xdgCache, xdgConfig, xdgState } from "xdg-basedir"
 import path from "path"
 import os from "os"
 
 const app = "agent-core"
 
-const data = path.join(xdgData!, app)
-const cache = path.join(xdgCache!, app)
-const config = path.join(xdgConfig!, app)
-const state = path.join(xdgState!, app)
+// Compute XDG paths dynamically to support test isolation
+// Tests set XDG_* env vars in preload.ts, so we must read them at access time
+function getXdgDataHome() {
+  return process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share")
+}
+function getXdgCacheHome() {
+  return process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache")
+}
+function getXdgConfigHome() {
+  return process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config")
+}
+function getXdgStateHome() {
+  return process.env.XDG_STATE_HOME || path.join(os.homedir(), ".local", "state")
+}
 
 export namespace Global {
   export const Path = {
@@ -16,12 +25,24 @@ export namespace Global {
     get home() {
       return process.env.AGENT_CORE_TEST_HOME || process.env.OPENCODE_TEST_HOME || os.homedir()
     },
-    data,
-    bin: path.join(data, "bin"),
-    log: path.join(data, "log"),
-    cache,
-    config,
-    state,
+    get data() {
+      return path.join(getXdgDataHome(), app)
+    },
+    get bin() {
+      return path.join(this.data, "bin")
+    },
+    get log() {
+      return path.join(this.data, "log")
+    },
+    get cache() {
+      return path.join(getXdgCacheHome(), app)
+    },
+    get config() {
+      return path.join(getXdgConfigHome(), app)
+    },
+    get state() {
+      return path.join(getXdgStateHome(), app)
+    },
   }
 }
 

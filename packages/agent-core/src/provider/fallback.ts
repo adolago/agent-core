@@ -130,10 +130,7 @@ export namespace Fallback {
   /**
    * Attempt to recover from a mid-stream error by switching to a fallback provider.
    */
-  async function tryMidStreamFallback(
-    error: Error,
-    context: StreamContext,
-  ): Promise<LLM.StreamOutput | undefined> {
+  async function tryMidStreamFallback(error: Error, context: StreamContext): Promise<LLM.StreamOutput | undefined> {
     // Record failure for circuit breaker
     CircuitBreaker.recordFailure(context.currentModel.providerID, error)
 

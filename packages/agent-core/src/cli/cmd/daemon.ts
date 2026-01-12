@@ -107,9 +107,7 @@ export namespace Daemon {
     return restoredCount
   }
 
-  export async function setupSignalHandlers(
-    cleanup: (signal?: NodeJS.Signals) => Promise<void>
-  ) {
+  export async function setupSignalHandlers(cleanup: (signal?: NodeJS.Signals) => Promise<void>) {
     const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"]
 
     for (const signal of signals) {

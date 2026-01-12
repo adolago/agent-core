@@ -517,6 +517,40 @@ export type EventSessionIdle = {
   }
 }
 
+export type EventCircuitBreakerStateChanged = {
+  type: "circuit-breaker.state-changed"
+  properties: {
+    providerID: string
+    previousState: "closed" | "open" | "half_open"
+    newState: "closed" | "open" | "half_open"
+    reason: string
+  }
+}
+
+export type EventFallbackUsed = {
+  type: "fallback.used"
+  properties: {
+    sessionID: string
+    originalProvider: string
+    originalModel: string
+    fallbackProvider: string
+    fallbackModel: string
+    reason: string
+    attempt: number
+  }
+}
+
+export type EventFallbackExhausted = {
+  type: "fallback.exhausted"
+  properties: {
+    sessionID: string
+    originalProvider: string
+    originalModel: string
+    attempted: Array<string>
+    lastError: string
+  }
+}
+
 export type QuestionOption = {
   /**
    * Display text (1-5 words, concise)
@@ -840,6 +874,123 @@ export type EventGlobalDisposed = {
   }
 }
 
+export type EventDaemonStart = {
+  type: "daemon.start"
+  properties: {
+    pid: number
+    port: number
+    hostname: string
+    directory: string
+    startTime: number
+  }
+}
+
+export type EventDaemonReady = {
+  type: "daemon.ready"
+  properties: {
+    pid: number
+    port: number
+    services: {
+      persistence: boolean
+      telegram: boolean
+      whatsapp: boolean
+      discord: boolean
+    }
+    sessionsWithIncompleteTodos: number
+  }
+}
+
+export type EventDaemonShutdown = {
+  type: "daemon.shutdown"
+  properties: {
+    pid: number
+    reason: "signal" | "error" | "manual"
+    signal?: string
+    error?: string
+    uptime: number
+  }
+}
+
+export type EventSessionLifecycleStart = {
+  type: "session.lifecycle.start"
+  properties: {
+    sessionId: string
+    persona: "zee" | "stanley" | "johny"
+    source: "daemon" | "telegram" | "whatsapp" | "tui" | "cli"
+    chatId?: number
+    directory: string
+  }
+}
+
+export type EventSessionLifecycleRestore = {
+  type: "session.lifecycle.restore"
+  properties: {
+    sessionId: string
+    persona: "zee" | "stanley" | "johny"
+    source: "daemon" | "telegram" | "whatsapp" | "tui" | "cli"
+    chatId?: number
+    hasTodos: boolean
+    incompleteTodos: number
+    triggerContinuation: boolean
+  }
+}
+
+export type EventSessionLifecycleEnd = {
+  type: "session.lifecycle.end"
+  properties: {
+    sessionId: string
+    persona?: "zee" | "stanley" | "johny"
+    reason: "completed" | "suspended" | "timeout" | "error"
+    duration: number
+    todosCompleted: number
+    todosRemaining: number
+  }
+}
+
+export type EventSessionLifecycleTransfer = {
+  type: "session.lifecycle.transfer"
+  properties: {
+    sessionId: string
+    fromContext: "daemon" | "telegram" | "tui" | "cli"
+    toContext: "daemon" | "telegram" | "tui" | "cli"
+    fromDevice?: string
+    toDevice?: string
+  }
+}
+
+export type EventTodoLifecycleContinuation = {
+  type: "todo.lifecycle.continuation"
+  properties: {
+    sessionId: string
+    totalTodos: number
+    completedTodos: number
+    remainingTodos: number
+    percentage: number
+    proceedWithoutAsking: boolean
+    reminderMessage: string
+  }
+}
+
+export type EventTodoLifecycleCompleted = {
+  type: "todo.lifecycle.completed"
+  properties: {
+    sessionId: string
+    totalTodos: number
+    duration: number
+  }
+}
+
+export type EventTodoLifecycleBlocked = {
+  type: "todo.lifecycle.blocked"
+  properties: {
+    sessionId: string
+    todoId: string
+    todoContent: string
+    reason: string
+    needsInput: boolean
+  }
+}
+
 export type Event =
   | EventInstallationUpdated
   | EventInstallationUpdateAvailable
@@ -855,6 +1006,9 @@ export type Event =
   | EventPermissionReplied
   | EventSessionStatus
   | EventSessionIdle
+  | EventCircuitBreakerStateChanged
+  | EventFallbackUsed
+  | EventFallbackExhausted
   | EventQuestionAsked
   | EventQuestionReplied
   | EventQuestionRejected
@@ -880,6 +1034,16 @@ export type Event =
   | EventPtyDeleted
   | EventServerConnected
   | EventGlobalDisposed
+  | EventDaemonStart
+  | EventDaemonReady
+  | EventDaemonShutdown
+  | EventSessionLifecycleStart
+  | EventSessionLifecycleRestore
+  | EventSessionLifecycleEnd
+  | EventSessionLifecycleTransfer
+  | EventTodoLifecycleContinuation
+  | EventTodoLifecycleCompleted
+  | EventTodoLifecycleBlocked
 
 export type GlobalEvent = {
   directory: string
@@ -969,6 +1133,10 @@ export type KeybindsConfig = {
    * Unshare current session
    */
   session_unshare?: string
+  /**
+   * Delegate to another persona
+   */
+  session_delegate?: string
   /**
    * Interrupt current session
    */
@@ -1286,6 +1454,64 @@ export type ServerConfig = {
   cors?: Array<string>
 }
 
+/**
+ * Daemon mode configuration for headless operation
+ */
+export type DaemonConfig = {
+  /**
+   * Enable daemon mode
+   */
+  enabled?: boolean
+  /**
+   * Session management configuration
+   */
+  session?: {
+    /**
+     * Enable session persistence
+     */
+    persistence?: boolean
+    /**
+     * Checkpoint interval in seconds
+     */
+    checkpoint_interval?: number
+    /**
+     * Enable crash recovery
+     */
+    recovery?: boolean
+  }
+  /**
+   * Todo continuation configuration
+   */
+  todo?: {
+    /**
+     * Automatically continue incomplete todos on session restore
+     */
+    auto_continue?: boolean
+    /**
+     * Send notifications for incomplete todos
+     */
+    notify_on_incomplete?: boolean
+  }
+  /**
+   * Remote communication gateway configuration
+   */
+  gateway?: {
+    /**
+     * Telegram gateway configuration
+     */
+    telegram?: {
+      /**
+       * Enable Telegram bot gateway
+       */
+      enabled?: boolean
+      /**
+       * Telegram bot token
+       */
+      bot_token?: string
+    }
+  }
+}
+
 export type PermissionActionConfig = "ask" | "allow" | "deny"
 
 export type PermissionObjectConfig = {
@@ -1321,6 +1547,7 @@ export type AgentConfig = {
   model?: string
   temperature?: number
   top_p?: number
+  top_k?: number
   prompt?: string
   /**
    * @deprecated Use 'permission' field instead
@@ -1354,6 +1581,34 @@ export type AgentConfig = {
    */
   maxSteps?: number
   permission?: PermissionConfig
+  /**
+   * Frequency penalty for repetition control (-2 to 2)
+   */
+  frequency_penalty?: number
+  /**
+   * Presence penalty for diversity control (-2 to 2)
+   */
+  presence_penalty?: number
+  /**
+   * Seed for reproducible outputs
+   */
+  seed?: number
+  /**
+   * Min-p sampling threshold (0 to 1)
+   */
+  min_p?: number
+  /**
+   * Additional system prompt content to inject for this agent/persona
+   */
+  systemPromptAdditions?: string
+  /**
+   * File paths to knowledge files to include in context
+   */
+  knowledge?: Array<string>
+  /**
+   * MCP server names to auto-start for this agent
+   */
+  mcpServers?: Array<string>
   [key: string]:
     | unknown
     | string
@@ -1371,6 +1626,11 @@ export type AgentConfig = {
     | string
     | number
     | PermissionConfig
+    | number
+    | number
+    | number
+    | Array<string>
+    | Array<string>
     | undefined
 }
 
@@ -1547,6 +1807,31 @@ export type Config = {
   keybinds?: KeybindsConfig
   logLevel?: LogLevel
   /**
+   * Wide event logging configuration
+   */
+  wideEvents?: {
+    /**
+     * Enable wide event logging
+     */
+    enabled?: boolean
+    /**
+     * Wide event log file path
+     */
+    file?: string
+    /**
+     * Sample rate for successful events
+     */
+    sampleRate?: number
+    /**
+     * Slow event threshold in ms
+     */
+    slowMs?: number
+    /**
+     * Payload detail policy for wide events
+     */
+    payloads?: "summary" | "debug" | "full"
+  }
+  /**
    * TUI specific settings
    */
   tui?: {
@@ -1569,6 +1854,7 @@ export type Config = {
     diff_style?: "auto" | "stacked"
   }
   server?: ServerConfig
+  daemon?: DaemonConfig
   /**
    * Command configuration, see https://opencode.ai/docs/commands
    */
@@ -1758,6 +2044,57 @@ export type Config = {
      * Timeout in milliseconds for model context protocol (MCP) requests
      */
     mcp_timeout?: number
+  }
+  /**
+   * Provider/model fallback configuration for automatic failover
+   */
+  fallback?: {
+    /**
+     * Enable automatic fallback to alternative providers/models on failure
+     */
+    enabled?: boolean
+    /**
+     * Maximum total attempts including the original request
+     */
+    maxAttempts?: number
+    /**
+     * Circuit breaker configuration for provider health management
+     */
+    circuitBreaker?: {
+      /**
+       * Number of consecutive failures before opening the circuit
+       */
+      failureThreshold?: number
+      /**
+       * Number of consecutive successes in half_open to close the circuit
+       */
+      successThreshold?: number
+      /**
+       * Time in ms before transitioning from open to half_open
+       */
+      timeout?: number
+    }
+    /**
+     * Fallback rules in priority order
+     */
+    rules?: Array<{
+      /**
+       * Error condition that triggers this rule
+       */
+      condition: "rate_limit" | "unavailable" | "timeout" | "error" | "circuit_open" | "any"
+      /**
+       * Fallback options - 'providerID/modelID' or just 'providerID' for equivalent tier
+       */
+      fallbacks: Array<string>
+    }>
+    /**
+     * Skip fallbacks that cost more than the original model
+     */
+    costAware?: boolean
+    /**
+     * Emit event/notification when fallback is used
+     */
+    notifyOnFallback?: boolean
   }
 }
 
@@ -1997,7 +2334,12 @@ export type Agent = {
   native?: boolean
   hidden?: boolean
   topP?: number
+  topK?: number
   temperature?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+  seed?: number
+  minP?: number
   color?: string
   theme?: string
   permission: PermissionRuleset
@@ -2010,6 +2352,9 @@ export type Agent = {
     [key: string]: unknown
   }
   steps?: number
+  systemPromptAdditions?: string
+  knowledge?: Array<string>
+  mcpServers?: Array<string>
 }
 
 export type McpStatusConnected = {
@@ -2067,8 +2412,8 @@ export type OAuth = {
   refresh: string
   access: string
   expires: number
-  accountId?: string
   enterpriseUrl?: string
+  [key: string]: unknown | "oauth" | string | number | undefined
 }
 
 export type ApiAuth = {
@@ -2430,6 +2775,83 @@ export type ConfigUpdateResponses = {
 
 export type ConfigUpdateResponse = ConfigUpdateResponses[keyof ConfigUpdateResponses]
 
+export type ThemesListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/themes"
+}
+
+export type ThemesListResponses = {
+  /**
+   * List of themes
+   */
+  200: Array<{
+    id: string
+    name: string
+    builtin: boolean
+    persona?: string
+  }>
+}
+
+export type ThemesListResponse = ThemesListResponses[keyof ThemesListResponses]
+
+export type PreferencesThemeGetData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/preferences/theme"
+}
+
+export type PreferencesThemeGetResponses = {
+  /**
+   * Current theme
+   */
+  200: {
+    theme: string
+  }
+}
+
+export type PreferencesThemeGetResponse = PreferencesThemeGetResponses[keyof PreferencesThemeGetResponses]
+
+export type PreferencesThemeSetData = {
+  body?: {
+    /**
+     * Theme ID to set
+     */
+    theme: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/preferences/theme"
+}
+
+export type PreferencesThemeSetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type PreferencesThemeSetError = PreferencesThemeSetErrors[keyof PreferencesThemeSetErrors]
+
+export type PreferencesThemeSetResponses = {
+  /**
+   * Theme updated
+   */
+  200: {
+    theme: string
+  }
+}
+
+export type PreferencesThemeSetResponse = PreferencesThemeSetResponses[keyof PreferencesThemeSetResponses]
+
 export type ToolIdsData = {
   body?: never
   path?: never
@@ -2675,6 +3097,138 @@ export type SessionStatusResponses = {
 
 export type SessionStatusResponse = SessionStatusResponses[keyof SessionStatusResponses]
 
+export type SyncDeltaData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    /**
+     * Timestamp (ms since epoch) to get changes since. Omit for full sync.
+     */
+    since?: number
+    /**
+     * Maximum sessions to return
+     */
+    limit?: number
+  }
+  url: "/sync"
+}
+
+export type SyncDeltaResponses = {
+  /**
+   * Sync data with server timestamp
+   */
+  200: {
+    /**
+     * Server timestamp for next sync
+     */
+    timestamp: number
+    /**
+     * Sessions updated since 'since' param
+     */
+    sessions: Array<Session>
+    /**
+     * Todos for updated sessions
+     */
+    todos: Array<{
+      sessionID: string
+      todos: Array<Todo>
+    }>
+  }
+}
+
+export type SyncDeltaResponse = SyncDeltaResponses[keyof SyncDeltaResponses]
+
+export type PersonasListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/personas"
+}
+
+export type PersonasListResponses = {
+  /**
+   * List of personas
+   */
+  200: Array<{
+    id: string
+    name: string
+    description: string
+    domain: string
+    capabilities: Array<string>
+  }>
+}
+
+export type PersonasListResponse = PersonasListResponses[keyof PersonasListResponses]
+
+export type EventsGlobalData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/events"
+}
+
+export type EventsGlobalResponses = {
+  /**
+   * Event stream (text/event-stream)
+   */
+  200: unknown
+}
+
+export type SessionHandoffData = {
+  body?: {
+    /**
+     * Target platform for handoff
+     */
+    targetSurface: "mobile" | "web" | "cli" | "telegram" | "whatsapp"
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/handoff"
+}
+
+export type SessionHandoffErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionHandoffError = SessionHandoffErrors[keyof SessionHandoffErrors]
+
+export type SessionHandoffResponses = {
+  /**
+   * Handoff data
+   */
+  200: {
+    sessionID: string
+    title: string
+    surface: string
+    timestamp: number
+    messageCount: number
+    lastMessage?: string
+    todos: Array<Todo>
+    resumeUrl: string
+  }
+}
+
+export type SessionHandoffResponse = SessionHandoffResponses[keyof SessionHandoffResponses]
+
 export type SessionDeleteData = {
   body?: never
   path: {
@@ -2847,6 +3401,40 @@ export type SessionTodoResponses = {
 }
 
 export type SessionTodoResponse = SessionTodoResponses[keyof SessionTodoResponses]
+
+export type SessionEventsData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/events"
+}
+
+export type SessionEventsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionEventsError = SessionEventsErrors[keyof SessionEventsErrors]
+
+export type SessionEventsResponses = {
+  /**
+   * Event stream (text/event-stream)
+   */
+  200: unknown
+}
 
 export type SessionInitData = {
   body?: {
@@ -3854,6 +4442,39 @@ export type ProviderAuthResponses = {
 }
 
 export type ProviderAuthResponse = ProviderAuthResponses[keyof ProviderAuthResponses]
+
+export type ProviderAuthStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/provider/auth/status"
+}
+
+export type ProviderAuthStatusResponses = {
+  /**
+   * Provider auth status
+   */
+  200: {
+    [key: string]: {
+      /**
+       * Whether the token is currently valid
+       */
+      valid: boolean
+      /**
+       * Whether the token will expire within the refresh buffer
+       */
+      expiringSoon: boolean
+      /**
+       * Seconds until token expiry (null for non-OAuth)
+       */
+      expiresIn: number | null
+    }
+  }
+}
+
+export type ProviderAuthStatusResponse = ProviderAuthStatusResponses[keyof ProviderAuthStatusResponses]
 
 export type ProviderOauthAuthorizeData = {
   body?: {

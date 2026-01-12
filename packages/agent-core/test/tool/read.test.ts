@@ -12,7 +12,7 @@ const ctx = {
   sessionID: "test",
   messageID: "",
   callID: "",
-  agent: "build",
+  agent: "zee",
   abort: AbortSignal.any([]),
   metadata: () => {},
   ask: async () => {},
@@ -135,7 +135,7 @@ describe("tool.read env file blocking", () => {
     ["environment.ts", false],
   ]
 
-  describe.each(["build", "plan"])("agent=%s", (agentName) => {
+  describe.each(["zee", "johny"])("agent=%s", (agentName) => {
     test.each(cases)("%s blocked=%s", async (filename, blocked) => {
       await using tmp = await tmpdir({
         init: (dir) => Bun.write(path.join(dir, filename), "content"),

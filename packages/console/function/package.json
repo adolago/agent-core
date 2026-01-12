@@ -6,7 +6,9 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsgo --noEmit",
+    "lint": "prettier --check .",
+    "test": "echo 'No tests configured' && exit 0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

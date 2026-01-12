@@ -20,7 +20,7 @@ const log = Log.create({ service: "net-util" })
 export async function fetchWithTimeout(
   url: string,
   options?: RequestInit,
-  timeoutMs: number = 10000
+  timeoutMs: number = 10000,
 ): Promise<Response | null> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
@@ -94,7 +94,7 @@ export function safeSubscribe<T extends { on: (event: string, handler: (...args:
   emitter: T,
   event: string,
   handler: (...args: any[]) => void,
-  cleanupList?: Unsubscribe[]
+  cleanupList?: Unsubscribe[],
 ): Unsubscribe {
   emitter.on(event, handler)
 
@@ -102,11 +102,11 @@ export function safeSubscribe<T extends { on: (event: string, handler: (...args:
     try {
       // Try various unsubscribe methods
       if ("off" in emitter && typeof emitter.off === "function") {
-        (emitter as any).off(event, handler)
+        ;(emitter as any).off(event, handler)
       } else if ("removeListener" in emitter && typeof emitter.removeListener === "function") {
-        (emitter as any).removeListener(event, handler)
+        ;(emitter as any).removeListener(event, handler)
       } else if ("removeEventListener" in emitter && typeof emitter.removeEventListener === "function") {
-        (emitter as any).removeEventListener(event, handler)
+        ;(emitter as any).removeEventListener(event, handler)
       }
     } catch {
       // Ignore errors during cleanup
@@ -133,7 +133,7 @@ export async function postJson(
   url: string,
   body: unknown,
   options?: Omit<RequestInit, "method" | "body" | "headers">,
-  timeoutMs: number = 10000
+  timeoutMs: number = 10000,
 ): Promise<Response | null> {
   return fetchWithTimeout(
     url,
@@ -146,6 +146,6 @@ export async function postJson(
       },
       body: JSON.stringify(body),
     },
-    timeoutMs
+    timeoutMs,
   )
 }

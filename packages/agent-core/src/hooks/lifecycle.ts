@@ -28,7 +28,7 @@ export namespace LifecycleHooks {
         hostname: z.string(),
         directory: z.string(),
         startTime: z.number(),
-      })
+      }),
     )
 
     export const Ready = BusEvent.define(
@@ -43,7 +43,7 @@ export namespace LifecycleHooks {
           discord: z.boolean(),
         }),
         sessionsWithIncompleteTodos: z.number(),
-      })
+      }),
     )
 
     export const Shutdown = BusEvent.define(
@@ -54,7 +54,7 @@ export namespace LifecycleHooks {
         signal: z.string().optional(),
         error: z.string().optional(),
         uptime: z.number(),
-      })
+      }),
     )
 
     export type StartPayload = z.infer<typeof Start.properties>
@@ -71,7 +71,7 @@ export namespace LifecycleHooks {
         source: z.enum(["daemon", "telegram", "whatsapp", "tui", "cli"]),
         chatId: z.number().optional(),
         directory: z.string(),
-      })
+      }),
     )
 
     export const Restore = BusEvent.define(
@@ -84,7 +84,7 @@ export namespace LifecycleHooks {
         hasTodos: z.boolean(),
         incompleteTodos: z.number(),
         triggerContinuation: z.boolean(),
-      })
+      }),
     )
 
     export const End = BusEvent.define(
@@ -96,7 +96,7 @@ export namespace LifecycleHooks {
         duration: z.number(),
         todosCompleted: z.number(),
         todosRemaining: z.number(),
-      })
+      }),
     )
 
     export const Transfer = BusEvent.define(
@@ -107,7 +107,7 @@ export namespace LifecycleHooks {
         toContext: z.enum(["daemon", "telegram", "tui", "cli"]),
         fromDevice: z.string().optional(),
         toDevice: z.string().optional(),
-      })
+      }),
     )
 
     export type StartPayload = z.infer<typeof Start.properties>
@@ -127,7 +127,7 @@ export namespace LifecycleHooks {
         percentage: z.number(),
         proceedWithoutAsking: z.boolean(),
         reminderMessage: z.string(),
-      })
+      }),
     )
 
     export const Completed = BusEvent.define(
@@ -136,7 +136,7 @@ export namespace LifecycleHooks {
         sessionId: z.string(),
         totalTodos: z.number(),
         duration: z.number(),
-      })
+      }),
     )
 
     export const Blocked = BusEvent.define(
@@ -147,7 +147,7 @@ export namespace LifecycleHooks {
         todoContent: z.string(),
         reason: z.string(),
         needsInput: z.boolean(),
-      })
+      }),
     )
 
     export type ContinuationPayload = z.infer<typeof Continuation.properties>
@@ -229,9 +229,7 @@ export namespace LifecycleHooks {
     await executeHandlers(Daemon.Ready.type, payload)
   }
 
-  export async function emitDaemonShutdown(
-    payload: Omit<Daemon.ShutdownPayload, "uptime">
-  ): Promise<void> {
+  export async function emitDaemonShutdown(payload: Omit<Daemon.ShutdownPayload, "uptime">): Promise<void> {
     const uptime = daemonStartTime ? Date.now() - daemonStartTime : 0
     const fullPayload: Daemon.ShutdownPayload = { ...payload, uptime }
 
@@ -272,9 +270,7 @@ export namespace LifecycleHooks {
     }
   }
 
-  export async function emitSessionRestore(
-    payload: SessionLifecycle.RestorePayload
-  ): Promise<void> {
+  export async function emitSessionRestore(payload: SessionLifecycle.RestorePayload): Promise<void> {
     sessionStartTimes.set(payload.sessionId, Date.now())
     log.info("Emitting session.restore hook", {
       sessionId: payload.sessionId,
@@ -317,9 +313,7 @@ export namespace LifecycleHooks {
     sessionStartTimes.delete(payload.sessionId)
   }
 
-  export async function emitSessionTransfer(
-    payload: SessionLifecycle.TransferPayload
-  ): Promise<void> {
+  export async function emitSessionTransfer(payload: SessionLifecycle.TransferPayload): Promise<void> {
     log.info("Emitting session.transfer hook", {
       sessionId: payload.sessionId,
       from: payload.fromContext,
@@ -336,14 +330,12 @@ export namespace LifecycleHooks {
 
   export async function emitTodoContinuation(
     sessionId: string,
-    persona?: "zee" | "stanley" | "johny"
+    persona?: "zee" | "stanley" | "johny",
   ): Promise<TodoLifecycle.ContinuationPayload | null> {
     try {
       const todos = await Todo.get(sessionId)
       const completedTodos = todos.filter((t) => t.status === "completed").length
-      const remainingTodos = todos.filter(
-        (t) => t.status !== "completed" && t.status !== "cancelled"
-      ).length
+      const remainingTodos = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled").length
       const totalTodos = todos.length
       const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 100
 
@@ -413,7 +405,7 @@ export namespace LifecycleHooks {
     todoId: string,
     todoContent: string,
     reason: string,
-    needsInput: boolean = true
+    needsInput: boolean = true,
   ): Promise<void> {
     const payload: TodoLifecycle.BlockedPayload = {
       sessionId,
@@ -437,11 +429,7 @@ export namespace LifecycleHooks {
   // Helper Functions
   // -------------------------------------------------------------------------
 
-  function generateReminderMessage(
-    completed: number,
-    total: number,
-    remaining: number
-  ): string {
+  function generateReminderMessage(completed: number, total: number, remaining: number): string {
     const lines: string[] = [
       "[SYSTEM REMINDER - TODO CONTINUATION]",
       "",
@@ -486,9 +474,7 @@ export namespace LifecycleHooks {
   /**
    * Format a todo continuation reminder for injection into conversation
    */
-  export function formatContinuationReminder(
-    payload: TodoLifecycle.ContinuationPayload
-  ): string {
+  export function formatContinuationReminder(payload: TodoLifecycle.ContinuationPayload): string {
     return `<system-reminder>
 ${payload.reminderMessage}
 </system-reminder>`

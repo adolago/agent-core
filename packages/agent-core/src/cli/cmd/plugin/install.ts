@@ -42,7 +42,9 @@ export const InstallCommand = cmd({
             UI.println(UI.Style.TEXT_SUCCESS + "✓" + UI.Style.TEXT_NORMAL + " " + result.message)
             if (result.plugin) {
               UI.empty()
-              UI.println(UI.Style.TEXT_DIM + `Capabilities: ${result.plugin.capabilities.join(", ")}` + UI.Style.TEXT_NORMAL)
+              UI.println(
+                UI.Style.TEXT_DIM + `Capabilities: ${result.plugin.capabilities.join(", ")}` + UI.Style.TEXT_NORMAL,
+              )
               UI.println(UI.Style.TEXT_DIM + "Restart agent-core for changes to take effect" + UI.Style.TEXT_NORMAL)
             }
           } else {

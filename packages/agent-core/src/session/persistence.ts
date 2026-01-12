@@ -430,7 +430,7 @@ export namespace Persistence {
   export async function setLastActive(
     persona: "zee" | "stanley" | "johny",
     sessionId: string,
-    chatId?: number
+    chatId?: number,
   ): Promise<void> {
     const state = await getLastActiveState()
 
@@ -509,7 +509,7 @@ export namespace Persistence {
    */
   export async function getDailySession(
     persona: "zee" | "stanley" | "johny",
-    date?: Date
+    date?: Date,
   ): Promise<DailySessionEntry | null> {
     const key = getDailyKey(persona, date)
     const state = await getDailySessionsState()
@@ -523,7 +523,7 @@ export namespace Persistence {
     persona: "zee" | "stanley" | "johny",
     sessionId: string,
     chatId?: number,
-    date?: Date
+    date?: Date,
   ): Promise<void> {
     const key = getDailyKey(persona, date)
     const state = await getDailySessionsState()
@@ -557,10 +557,7 @@ export namespace Persistence {
   /**
    * Check if a daily session exists and is still valid
    */
-  export async function hasDailySession(
-    persona: "zee" | "stanley" | "johny",
-    date?: Date
-  ): Promise<boolean> {
+  export async function hasDailySession(persona: "zee" | "stanley" | "johny", date?: Date): Promise<boolean> {
     const entry = await getDailySession(persona, date)
     if (!entry) return false
 
@@ -582,7 +579,7 @@ export namespace Persistence {
     options: {
       chatId?: number
       title?: string
-    } = {}
+    } = {},
   ): Promise<{ sessionId: string; isNew: boolean }> {
     // Check for existing daily session
     const existing = await getDailySession(persona)
@@ -643,7 +640,7 @@ export namespace Persistence {
    * Get the last active session for a persona with its todos
    */
   export async function getLastActiveSessionWithTodos(
-    persona: "zee" | "stanley" | "johny"
+    persona: "zee" | "stanley" | "johny",
   ): Promise<SessionWithTodos | null> {
     const lastActive = await getLastActive(persona)
     if (!lastActive) return null
@@ -680,10 +677,7 @@ export namespace Persistence {
    * Set cross-session context for a session
    * Used by personas bootstrap to inject memories
    */
-  export async function setSessionContext(
-    sessionId: string,
-    context: SessionContext
-  ): Promise<void> {
+  export async function setSessionContext(sessionId: string, context: SessionContext): Promise<void> {
     await fs.mkdir(PERSISTENCE_DIR, { recursive: true })
 
     let store: SessionContextStore = {}

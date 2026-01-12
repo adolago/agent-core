@@ -2,6 +2,11 @@
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@opencode-ai/console-resource",
   "license": "MIT",
+  "scripts": {
+    "typecheck": "echo 'Resource package - no typecheck' && exit 0",
+    "lint": "prettier --check .",
+    "test": "echo 'No tests configured' && exit 0"
+  },
   "dependencies": {
     "@cloudflare/workers-types": "catalog:"
   },

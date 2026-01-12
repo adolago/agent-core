@@ -46,12 +46,7 @@ export namespace ModelEquivalence {
       "mistral/mistral-small",
       "groq/llama-3.3-70b",
     ],
-    mini: [
-      "anthropic/claude-haiku-3",
-      "openai/gpt-4o-mini",
-      "google/gemini-2.0-flash-lite",
-      "groq/llama-3.1-8b",
-    ],
+    mini: ["anthropic/claude-haiku-3", "openai/gpt-4o-mini", "google/gemini-2.0-flash-lite", "groq/llama-3.1-8b"],
   }
 
   // Custom tiers from config (merged with defaults)

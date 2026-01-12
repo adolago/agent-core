@@ -188,8 +188,7 @@ export async function finishWideEvent(params: {
     ctx.event.meta = { ...(ctx.event.meta ?? {}), ...params.meta }
   }
   if (params.error) {
-    const err =
-      params.error instanceof Error ? { message: params.error.message } : params.error
+    const err = params.error instanceof Error ? { message: params.error.message } : params.error
     ctx.event.error = {
       code: err.code,
       message: err.message,

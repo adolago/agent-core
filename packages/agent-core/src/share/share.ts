@@ -57,12 +57,15 @@ export namespace Share {
     eventUnsubscribers.push(
       Bus.subscribe(Session.Event.Updated, async (evt) => {
         await sync("session/info/" + evt.properties.info.id, evt.properties.info)
-      })
+      }),
     )
     eventUnsubscribers.push(
       Bus.subscribe(MessageV2.Event.Updated, async (evt) => {
-        await sync("session/message/" + evt.properties.info.sessionID + "/" + evt.properties.info.id, evt.properties.info)
-      })
+        await sync(
+          "session/message/" + evt.properties.info.sessionID + "/" + evt.properties.info.id,
+          evt.properties.info,
+        )
+      }),
     )
     eventUnsubscribers.push(
       Bus.subscribe(MessageV2.Event.PartUpdated, async (evt) => {
@@ -75,7 +78,7 @@ export namespace Share {
             evt.properties.part.id,
           evt.properties.part,
         )
-      })
+      }),
     )
   }
 

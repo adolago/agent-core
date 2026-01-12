@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsgo -b",
-    "lint": "echo 'No linter configured' && exit 0",
+    "lint": "prettier --check 'src/**/*.{ts,tsx}' 'package.json'",
     "test": "echo 'No tests configured' && exit 0",
     "start": "vite",
     "dev": "vite",
