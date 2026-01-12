@@ -15,6 +15,8 @@ import { spawn, type ChildProcess } from "child_process"
 import fs from "fs/promises"
 import path from "path"
 import os from "os"
+import * as prompts from "@clack/prompts"
+import { UI } from "../ui"
 
 const log = Log.create({ service: "daemon" })
 
@@ -335,9 +337,28 @@ export const DaemonCommand = cmd({
     // Check if already running
     if (await Daemon.isRunning()) {
       const state = await Daemon.readPidFile()
-      console.error(`Daemon already running (PID: ${state?.pid}, Port: ${state?.port})`)
-      console.error(`Use 'agent-core daemon-stop' to stop it first`)
-      process.exit(1)
+      UI.warn(`Daemon is already running (PID: ${state?.pid}, Port: ${state?.port})`)
+      
+      const shouldKill = await prompts.confirm({
+        message: "Do you want to stop the existing daemon and start a new one?",
+        initialValue: false
+      })
+
+      if (prompts.isCancel(shouldKill) || !shouldKill) {
+        UI.info("Exiting.")
+        process.exit(0)
+      }
+
+      UI.info(`Stopping daemon (PID: ${state?.pid})...`)
+      try {
+        if (state?.pid) process.kill(state.pid, "SIGTERM")
+        await Daemon.removePidFile()
+        // Wait a bit
+        await new Promise(r => setTimeout(r, 1000))
+      } catch (e) {
+        UI.error(`Failed to stop daemon: ${e}`)
+        process.exit(1)
+      }
     }
 
     const opts = await resolveNetworkOptions(args)

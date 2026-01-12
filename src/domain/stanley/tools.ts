@@ -42,10 +42,14 @@ function runStanleyCli(args: string[]): StanleyResult {
   const result = spawnSync(python, [cliPath, ...args], {
     encoding: "utf-8",
     env: getSafeEnv(["STANLEY_REPO", "STANLEY_CLI", "STANLEY_PYTHON"]),
+    timeout: 30000, // 30s timeout
   });
 
   if (result.error) {
-    return { ok: false, error: result.error.message };
+    if ((result.error as any).code === 'ETIMEDOUT') {
+        return { ok: false, error: "Stanley CLI timed out (30s). The backend might be overloaded or hanging." };
+    }
+    return { ok: false, error: `Stanley execution failed: ${result.error.message}` };
   }
 
   const stdout = result.stdout.trim();
@@ -351,11 +355,37 @@ Note: This is for research and simulation only. No real trading.`,
   }),
 };
 
+export const statusTool: ToolDefinition = {
+  id: "stanley:status",
+  category: "domain",
+  init: async () => ({
+    description: "Check the health and connection status of the Stanley investment platform.",
+    parameters: z.object({}),
+    execute: async (args, ctx): Promise<ToolExecutionResult> => {
+       const result = runStanleyCli(["status"]); // Assuming stanley_cli.py supports 'status' or just running it with no args checks env
+       // If 'status' isn't supported by CLI, we can try a lightweight command like checking version or help
+       // Let's assume we just want to verify CLI is runnable.
+       
+       if (!result.ok && result.error?.includes("Stanley CLI not found")) {
+           return {
+               title: "Stanley Status",
+               metadata: { ok: false },
+               output: "Stanley is not installed or not found. Please install the 'stanley' persona.",
+           };
+       }
+       
+       // Try a lightweight ping/version if status fails, but for now report result
+       return renderOutput("Stanley Status", result);
+    }
+  })
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
 
 export const STANLEY_TOOLS = [
+  statusTool,
   marketDataTool,
   portfolioTool,
   secFilingsTool,

@@ -13,10 +13,16 @@ export const SetupCommand = cmd({
 
     // 1. Check Docker
     UI.info("Checking Docker availability...")
-    const dockerCheck = Bun.spawnSync(["docker", "info"])
-    if (dockerCheck.exitCode !== 0) {
-      UI.error("Docker is not running or not installed.")
-      UI.info("Please install Docker Desktop or start the docker service.")
+    try {
+      const dockerCheck = Bun.spawnSync(["docker", "info"])
+      if (dockerCheck.exitCode !== 0) {
+        UI.error("Docker is not running or not installed.")
+        UI.info("Please install Docker Desktop or start the docker service.")
+        return
+      }
+    } catch (e) {
+      UI.error("Docker executable not found in PATH.")
+      UI.info("Please install Docker: https://docs.docker.com/get-docker/")
       return
     }
     UI.success("Docker is running.")
