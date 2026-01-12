@@ -2,150 +2,127 @@
 
 > **Fork of [sst/opencode](https://github.com/sst/opencode)** — Built on OpenCode. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for creating an exceptional open-source AI coding agent. This fork extends OpenCode with a specialized personas system, semantic memory, and multi-surface orchestration. Please use the upstream repository for official releases and support; use this fork at your own risk.
 
-## The Personas System
+Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
 
-Agent-Core powers three specialized AI personas that share memory and orchestration:
+## Quick Start
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        PERSONAS                              │
-├─────────────────────────────────────────────────────────────┤
-│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐       │
-│   │   STANLEY   │   │     ZEE     │   │    JOHNY    │       │
-│   │  Investing  │   │  Personal   │   │  Learning   │       │
-│   │  Platform   │   │  Assistant  │   │   System    │       │
-│   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘       │
-│          └─────────────────┼─────────────────┘              │
-│                            │                                │
-│              ┌─────────────▼─────────────┐                  │
-│              │      SHARED LAYER         │                  │
-│              │ • Qdrant Vector Memory    │                  │
-│              │ • Tiara Orchestration     │                  │
-│              │ • Multi-surface (CLI/API) │                  │
-│              │ • LLM Council             │                  │
-│              └───────────────────────────┘                  │
-└─────────────────────────────────────────────────────────────┘
-```
+### Prerequisites
 
-| Persona | Domain | Inspiration |
-|---------|--------|-------------|
-| **Stanley** | Investment research, SEC filings, portfolio analytics | Druckenmiller |
-| **Zee** | Personal assistant, messaging, calendar, memory | Personal |
-| **Johny** | Study coaching, spaced repetition, knowledge graphs | von Neumann |
-
----
-
-<p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
-  </a>
-</p>
-<p align="center">The open source AI coding agent. Extended with personas.</p>
-<p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
-</p>
-
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
-
----
+- [Bun](https://bun.sh) (v1.1+)
+- [Qdrant](https://qdrant.tech) (local or cloud) for semantic memory
+- API key for Anthropic (Claude) or OpenAI
 
 ### Installation
 
 ```bash
-# YOLO
-curl -fsSL https://opencode.ai/install | bash
+# Clone the repository
+git clone https://github.com/yourusername/agent-core.git ~/.local/src/agent-core
 
-# Package managers
-npm i -g opencode-ai@latest        # or bun/pnpm/yarn
-scoop install opencode             # Windows
-choco install opencode             # Windows
-brew install anomalyco/tap/opencode # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-paru -S opencode-bin               # Arch Linux
-mise use -g opencode               # Any OS
-nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev branch
+# Install dependencies
+cd ~/.local/src/agent-core
+bun install
+
+# Build the project
+cd packages/agent-core
+bun run build
+
+# Install the binary (optional)
+cp dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
 ```
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
+### Configuration
 
-### Desktop App (BETA)
+1. Copy the environment template:
+```bash
+cp .env.example .env
+```
 
-OpenCode is also available as a desktop application. Download directly from the [releases page](https://github.com/anomalyco/opencode/releases) or [opencode.ai/download](https://opencode.ai/download).
+2. Edit `.env` and add your API keys:
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...  # For embeddings
+QDRANT_URL=http://localhost:6333
+```
 
-| Platform              | Download                              |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `opencode-desktop-darwin-x64.dmg`     |
-| Windows               | `opencode-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`, `.rpm`, or AppImage           |
+3. Start Qdrant (if running locally):
+```bash
+docker run -p 6333:6333 qdrant/qdrant
+```
+
+### Running
+
+**Interactive TUI:**
+```bash
+agent-core
+```
+
+**Daemon mode (for Zee gateway):**
+```bash
+agent-core daemon --gateway --hostname 127.0.0.1 --port 3210
+```
+
+## Architecture
+
+```
+agent-core/
+├── packages/agent-core/    # Main CLI and TUI (OpenCode fork)
+├── src/
+│   ├── personas/           # Persona logic and routing
+│   ├── memory/             # Qdrant semantic memory
+│   ├── daemon/             # HTTP/IPC daemon
+│   └── domain/             # Domain tools (zee/, stanley/)
+├── vendor/tiara/           # Orchestration layer (SPARC methodology)
+└── .claude/skills/         # Persona skill definitions
+```
+
+### Personas
+
+| Persona | Domain | Description |
+|---------|--------|-------------|
+| **Zee** | Personal Assistant | Memory, messaging, calendar, notifications |
+| **Stanley** | Investing | Markets, portfolio, trading strategies |
+| **Johny** | Learning | Knowledge graphs, spaced repetition |
+
+### Key Features
+
+- **Semantic Memory**: Vector-based memory with Qdrant for context persistence
+- **Multi-Persona Routing**: Route messages to specialized personas
+- **Orchestration**: SPARC methodology via tiara for complex tasks
+- **External Gateway**: HTTP API for messaging platform integration
+
+## Usage with Zee Gateway
+
+The Zee Gateway handles messaging platforms (WhatsApp, Telegram, Discord, etc.) and routes to agent-core:
 
 ```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/opencode-desktop
+# Terminal 1: Start agent-core daemon
+agent-core daemon --gateway
+
+# Terminal 2: Start zee gateway
+cd ~/Repositories/personas/zee
+pnpm zee gateway
 ```
 
-#### Installation Directory
+Messages mentioning `@stanley` or `@johny` are routed to those personas; all others go to Zee.
 
-The install script respects the following priority order for the installation path:
-
-1. `$OPENCODE_INSTALL_DIR` - Custom installation directory
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
-3. `$HOME/bin` - Standard user binary directory (if exists or can be created)
-4. `$HOME/.opencode/bin` - Default fallback
+## Development
 
 ```bash
-# Examples
-OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
+# Run tests
+bun test
+
+# Build
+bun run build
+
+# Type check
+bun run typecheck
 ```
 
-### Agents
+## Credits
 
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
+- **OpenCode** by [SST](https://github.com/sst/opencode) - The foundation this project builds on
+- **Claude-Flow** - SPARC orchestration patterns
 
-- **build** - Default, full access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
+## License
 
-Also, included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
-
-Learn more about [agents](https://opencode.ai/docs/agents).
-
-### Documentation
-
-For more info on how to configure OpenCode [**head over to our docs**](https://opencode.ai/docs).
-
-### Contributing
-
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
-### Building on OpenCode
-
-If you are working on a project that's related to OpenCode and is using "opencode" as a part of its name; for example, "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
-
-### FAQ
-
-#### How is this different from Claude Code?
-
-It's very similar to Claude Code in terms of capability. Here are the key differences:
-
-- 100% open source
-- Not coupled to any provider. Although we recommend the models we provide through [OpenCode Zen](https://opencode.ai/zen); OpenCode can be used with Claude, OpenAI, Google or even local models. As models evolve the gaps between them will close and pricing will drop so being provider-agnostic is important.
-- Out of the box LSP support
-- A focus on TUI. OpenCode is built by neovim users and the creators of [terminal.shop](https://terminal.shop); we are going to push the limits of what's possible in the terminal.
-- A client/server architecture. This for example can allow OpenCode to run on your computer, while you can drive it remotely from a mobile app. Meaning that the TUI frontend is just one of the possible clients.
-
----
-
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+Same as upstream OpenCode - see LICENSE file.

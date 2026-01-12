@@ -622,34 +622,68 @@ export class AgentCoreDaemon {
 
     log("info", "Stopping agent-core daemon...");
 
-    // Stop TCP server
-    if (this.tcpServer) {
-      await new Promise<void>((resolve) => {
-        this.tcpServer!.close(() => resolve());
-      });
+    // Track errors but continue cleanup
+    const errors: Error[] = [];
+
+    try {
+      // Stop TCP server
+      if (this.tcpServer) {
+        await new Promise<void>((resolve) => {
+          this.tcpServer!.close(() => resolve());
+        });
+      }
+    } catch (err) {
+      errors.push(err instanceof Error ? err : new Error(String(err)));
+      log("warn", `Error stopping TCP server: ${err}`);
     }
 
     // Stop LSP server
-    this.lspServer?.stop();
+    try {
+      this.lspServer?.stop();
+    } catch (err) {
+      errors.push(err instanceof Error ? err : new Error(String(err)));
+      log("warn", `Error stopping LSP server: ${err}`);
+    }
 
     // Stop IPC server
-    if (this.ipcServer) {
-      await this.ipcServer.stop();
-      this.ipcServer = undefined;
+    try {
+      if (this.ipcServer) {
+        await this.ipcServer.stop();
+        this.ipcServer = undefined;
+      }
+    } catch (err) {
+      errors.push(err instanceof Error ? err : new Error(String(err)));
+      log("warn", `Error stopping IPC server: ${err}`);
     }
 
     // Close all canvases
-    if (this.canvasManager) {
-      await this.canvasManager.closeAll();
-      this.canvasManager = undefined;
+    try {
+      if (this.canvasManager) {
+        await this.canvasManager.closeAll();
+        this.canvasManager = undefined;
+      }
+    } catch (err) {
+      errors.push(err instanceof Error ? err : new Error(String(err)));
+      log("warn", `Error closing canvas manager: ${err}`);
     }
 
-    // Shutdown tiara
-    const tiara = await getOrchestrator();
-    await tiara.shutdown();
+    // Shutdown tiara orchestrator
+    try {
+      const tiara = await getOrchestrator();
+      await tiara.shutdown();
+    } catch (err) {
+      errors.push(err instanceof Error ? err : new Error(String(err)));
+      log("warn", `Error shutting down tiara: ${err}`);
+    }
 
+    // Always mark as stopped, even if there were errors
     this.isRunning = false;
-    log("info", "Agent-core daemon stopped");
+
+    if (errors.length > 0) {
+      log("warn", `Daemon stopped with ${errors.length} error(s)`);
+    } else {
+      log("info", "Agent-core daemon stopped");
+    }
   }
 }
 
