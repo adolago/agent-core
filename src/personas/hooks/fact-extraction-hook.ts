@@ -8,7 +8,7 @@
 import { LifecycleHooks } from "../../../packages/agent-core/src/hooks/lifecycle";
 import { Session } from "../../../packages/agent-core/src/session";
 import type { MessageV2 } from "../../../packages/agent-core/src/session/message-v2";
-import { getMemoryStore } from "../../memory/store";
+import { getMemory } from "../../memory/unified";
 import { createFactExtractor, type ExtractedFact } from "../fact-extractor";
 import type { MemoryCategory } from "../../memory/types";
 import { Log } from "../../../packages/agent-core/src/util/log";
@@ -100,7 +100,7 @@ async function extractAndStoreFacts(
   extractor: ReturnType<typeof createFactExtractor>
 ): Promise<void> {
   // Get the memory store
-  const store = getMemoryStore();
+  const store = getMemory();
 
   // Try to get conversation content from the session
   // For now, we'll use a placeholder - in production this would
@@ -214,7 +214,7 @@ export async function extractFactsManually(
 
   // Optionally store if sessionId provided
   if (sessionId) {
-    const store = getMemoryStore();
+    const store = getMemory();
     for (const fact of facts) {
       if (fact.confidence >= FACT_EXTRACTION_CONFIG.minConfidence) {
         await store.save({

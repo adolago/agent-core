@@ -377,19 +377,74 @@ export class Memory {
   // Initialization
   // ===========================================================================
 
-  /** Initialize the memory store */
+  private initFailed = false;
+  private initError?: Error;
+
+  /** Initialize the memory store with retry logic */
   async init(): Promise<void> {
     if (this.initialized) return;
 
-    await this.storage.createCollection(this.collection, this.embedding.dimension);
-    this.storage.setCollection(this.collection);
-    this.initialized = true;
+    // If we already failed, don't retry unless explicitly reset
+    if (this.initFailed) {
+      log.warn("Memory init previously failed, skipping", { error: this.initError?.message });
+      return;
+    }
 
-    log.info("Memory initialized", {
-      collection: this.collection,
-      namespace: this.namespace,
-      dimension: this.embedding.dimension,
-    });
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.storage.createCollection(this.collection, this.embedding.dimension);
+        this.storage.setCollection(this.collection);
+        this.initialized = true;
+
+        log.info("Memory initialized", {
+          collection: this.collection,
+          namespace: this.namespace,
+          dimension: this.embedding.dimension,
+          attempt,
+        });
+        return;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        const isLastAttempt = attempt === maxRetries;
+
+        if (isLastAttempt) {
+          this.initFailed = true;
+          this.initError = error;
+          log.error("Memory initialization failed after all retries", {
+            collection: this.collection,
+            error: error.message,
+            attempts: maxRetries,
+          });
+          // Don't throw - allow daemon to continue without memory
+          // Operations will be no-ops until memory is available
+          return;
+        }
+
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        log.warn("Memory init failed, retrying", {
+          attempt,
+          maxRetries,
+          delay,
+          error: error.message,
+        });
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  /** Check if memory is available */
+  isAvailable(): boolean {
+    return this.initialized && !this.initFailed;
+  }
+
+  /** Reset init state to allow retry */
+  resetInit(): void {
+    this.initialized = false;
+    this.initFailed = false;
+    this.initError = undefined;
   }
 
   // ===========================================================================
@@ -399,6 +454,26 @@ export class Memory {
   /** Save a memory entry */
   async save(input: MemoryInput): Promise<MemoryEntry> {
     await this.init();
+
+    // Graceful degradation if memory unavailable
+    if (!this.isAvailable()) {
+      log.warn("Memory save skipped - storage unavailable", { category: input.category });
+      // Return a placeholder entry without actually storing
+      const id = randomUUID();
+      const now = Date.now();
+      return {
+        id,
+        category: input.category,
+        content: input.content,
+        summary: input.summary,
+        embedding: [],
+        metadata: input.metadata ?? {},
+        createdAt: now,
+        accessedAt: now,
+        ttl: input.ttl,
+        namespace: input.namespace ?? this.namespace,
+      };
+    }
 
     const id = randomUUID();
     const now = Date.now();
@@ -441,6 +516,12 @@ export class Memory {
   /** Search memories semantically */
   async search(params: MemorySearchParams): Promise<MemorySearchResult[]> {
     await this.init();
+
+    // Graceful degradation if memory unavailable
+    if (!this.isAvailable()) {
+      log.warn("Memory search skipped - storage unavailable", { query: params.query.slice(0, 50) });
+      return [];
+    }
 
     const queryVector = await this.embedding.embed(params.query);
 

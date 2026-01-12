@@ -629,9 +629,79 @@ export namespace ProviderTransform {
     return {}
   }
 
+  // Properties that should NOT be sent to provider APIs
+  // These are agent-core metadata fields that may slip through
+  const NON_PROVIDER_OPTIONS = new Set([
+    "theme",
+    "skill",
+    "includes",
+    "native",
+    "hidden",
+    "mode",
+    "description",
+    "color",
+    "name",
+    "systemPromptAdditions",
+    "knowledge",
+    "mcpServers",
+    "permission",
+  ])
+
+  /**
+   * Sanitize options by removing non-provider fields.
+   * This is a defense-in-depth measure to prevent agent metadata from being sent to provider APIs.
+   */
+  function sanitizeOptions(options: { [x: string]: any }): { [x: string]: any } {
+    const sanitized: { [x: string]: any } = {}
+    const filtered: string[] = []
+    for (const [key, value] of Object.entries(options)) {
+      if (!NON_PROVIDER_OPTIONS.has(key) && value !== undefined) {
+        sanitized[key] = value
+      } else if (NON_PROVIDER_OPTIONS.has(key) && value !== undefined) {
+        filtered.push(key)
+      }
+    }
+    if (filtered.length > 0) {
+      log.debug("filtered non-provider options", { filtered })
+    }
+    return sanitized
+  }
+
   export function providerOptions(model: Provider.Model, options: { [x: string]: any }) {
-    const key = sdkKey(model.api.npm) ?? model.providerID
-    return { [key]: options }
+    const sanitized = sanitizeOptions(options)
+    switch (model.api.npm) {
+      case "@ai-sdk/github-copilot":
+      case "@ai-sdk/openai":
+      case "@ai-sdk/azure":
+        return {
+          ["openai" as string]: sanitized,
+        }
+      case "@ai-sdk/amazon-bedrock":
+        return {
+          ["bedrock" as string]: sanitized,
+        }
+      case "@ai-sdk/anthropic":
+        return {
+          ["anthropic" as string]: sanitized,
+        }
+      case "@ai-sdk/google-vertex":
+      case "@ai-sdk/google":
+        return {
+          ["google" as string]: sanitized,
+        }
+      case "@ai-sdk/gateway":
+        return {
+          ["gateway" as string]: sanitized,
+        }
+      case "@openrouter/ai-sdk-provider":
+        return {
+          ["openrouter" as string]: sanitized,
+        }
+      default:
+        return {
+          [model.providerID]: sanitized,
+        }
+    }
   }
 
   export function maxOutputTokens(

@@ -16,6 +16,7 @@ import { Config } from "@/config/config"
 import { SessionCompaction } from "./compaction"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
+import { addWideEventFields, finishWideEvent, runWithWideEventContext } from "@/util/wide-events"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -44,14 +45,39 @@ export namespace SessionProcessor {
         return toolcalls[toolCallID]
       },
       async process(streamInput: LLM.StreamInput) {
-        log.info("process")
-        needsCompaction = false
-        const shouldBreak = (await Config.get()).experimental?.continue_loop_on_deny !== true
-        while (true) {
-          try {
-            let currentText: MessageV2.TextPart | undefined
-            let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
-            const stream = await Fallback.stream(streamInput)
+        const traceId = input.assistantMessage.parentID || input.assistantMessage.id
+        const toolNames = Object.keys(streamInput.tools ?? {})
+        const toolStats = {
+          calls: 0,
+          errors: 0,
+          names: new Set<string>(),
+        }
+        const baseEvent = {
+          service: "agent-core",
+          traceId,
+          requestId: input.assistantMessage.id,
+          sessionId: input.sessionID,
+          messageId: input.assistantMessage.id,
+          parentId: input.assistantMessage.parentID,
+          agent: input.assistantMessage.agent,
+          providerId: input.model.providerID,
+          modelId: input.model.id,
+          request: {
+            small: streamInput.small ?? false,
+            toolCount: toolNames.length,
+            toolNames: toolNames.length <= 12 ? toolNames : toolNames.slice(0, 12),
+          },
+        }
+
+        return await runWithWideEventContext(baseEvent, async () => {
+          log.info("process")
+          needsCompaction = false
+          const shouldBreak = (await Config.get()).experimental?.continue_loop_on_deny !== true
+          while (true) {
+            try {
+              let currentText: MessageV2.TextPart | undefined
+              let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
+              const stream = await Fallback.stream(streamInput)
 
             for await (const value of stream.fullStream) {
               input.abort.throwIfAborted()
@@ -125,6 +151,8 @@ export namespace SessionProcessor {
                   break
 
                 case "tool-call": {
+                  toolStats.calls += 1
+                  toolStats.names.add(value.toolName)
                   const match = toolcalls[value.toolCallId]
                   if (match) {
                     const part = await Session.updatePart({
@@ -195,6 +223,7 @@ export namespace SessionProcessor {
                 }
 
                 case "tool-error": {
+                  toolStats.errors += 1
                   const match = toolcalls[value.toolCallId]
                   if (match && match.state.status === "running") {
                     await Session.updatePart({
@@ -243,6 +272,13 @@ export namespace SessionProcessor {
                   input.assistantMessage.finish = value.finishReason
                   input.assistantMessage.cost += usage.cost
                   input.assistantMessage.tokens = usage.tokens
+                  addWideEventFields({
+                    meta: {
+                      tokens: usage.tokens,
+                      cost: usage.cost,
+                      finishReason: value.finishReason,
+                    },
+                  })
                   await Session.updatePart({
                     id: Identifier.ascending("part"),
                     reason: value.finishReason,
@@ -395,11 +431,32 @@ export namespace SessionProcessor {
           }
           input.assistantMessage.time.completed = Date.now()
           await Session.updateMessage(input.assistantMessage)
+          const error = input.assistantMessage.error
+          await finishWideEvent({
+            ok: !error,
+            error: error
+              ? {
+                  code: "name" in error ? String(error.name) : undefined,
+                  message: "message" in error ? String(error.message) : undefined,
+                }
+              : undefined,
+            meta: {
+              blocked,
+              needsCompaction,
+              toolCalls: toolStats.calls,
+              toolErrors: toolStats.errors,
+              toolNames:
+                toolStats.names.size <= 12
+                  ? Array.from(toolStats.names)
+                  : Array.from(toolStats.names).slice(0, 12),
+            },
+          })
           if (needsCompaction) return "compact"
           if (blocked) return "stop"
           if (input.assistantMessage.error) return "stop"
           return "continue"
         }
+        })
       },
     }
     return result

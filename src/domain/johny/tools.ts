@@ -14,6 +14,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ToolDefinition, ToolExecutionResult } from "../../mcp/types";
+import { getSafeEnv } from "../../util/safe-env";
 
 type JohnyResult = {
   ok: boolean;
@@ -41,7 +42,7 @@ function runJohnyCli(args: string[]): JohnyResult {
 
   const result = spawnSync(python, [cliPath, ...args], {
     encoding: "utf-8",
-    env: process.env,
+    env: getSafeEnv(["JOHNY_REPO", "JOHNY_CLI", "JOHNY_PYTHON"]),
     timeout: 30000,
   });
 

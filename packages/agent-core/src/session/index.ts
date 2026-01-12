@@ -23,6 +23,9 @@ import type { Provider } from "@/provider/provider"
 import { PermissionNext } from "@/permission/next"
 import { Global } from "@/global"
 
+// Re-export Thread for convenience
+export { Thread } from "./thread"
+
 export namespace Session {
   const log = Log.create({ service: "session" })
 

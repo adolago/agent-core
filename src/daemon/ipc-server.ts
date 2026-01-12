@@ -68,6 +68,10 @@ export class DaemonIpcServer {
     let buffer = "";
     socket.setEncoding("utf8");
 
+    const cleanup = () => {
+      buffer = ""; // Clear buffer to prevent memory leak
+    };
+
     socket.on("data", (chunk) => {
       buffer += chunk;
       let index: number;
@@ -75,13 +79,37 @@ export class DaemonIpcServer {
         const line = buffer.slice(0, index).trim();
         buffer = buffer.slice(index + 1);
         if (!line) continue;
-        void this.handleLine(line, socket);
+        this.handleLine(line, socket).catch((err) => {
+          this.log("error", `IPC handler error: ${err instanceof Error ? err.message : String(err)}`);
+        });
       }
     });
 
     socket.on("error", (err) => {
       this.log("error", `IPC socket error: ${err.message}`);
+      cleanup();
+      if (!socket.destroyed) {
+        socket.destroy();
+      }
     });
+
+    socket.on("close", () => {
+      this.log("debug", "IPC client disconnected");
+      cleanup();
+    });
+  }
+
+  private safeWrite(socket: Socket, data: string): boolean {
+    if (socket.destroyed || !socket.writable) {
+      this.log("warn", "Attempted to write to closed/destroyed socket");
+      return false;
+    }
+    try {
+      return socket.write(data);
+    } catch (err) {
+      this.log("error", `Socket write error: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
   }
 
   private async handleLine(line: string, socket: Socket): Promise<void> {
@@ -94,7 +122,7 @@ export class DaemonIpcServer {
         ok: false,
         error: "Invalid JSON request",
       };
-      socket.write(`${JSON.stringify(response)}\n`);
+      this.safeWrite(socket, `${JSON.stringify(response)}\n`);
       return;
     }
 
@@ -105,14 +133,14 @@ export class DaemonIpcServer {
         ok: true,
         result,
       };
-      socket.write(`${JSON.stringify(response)}\n`);
+      this.safeWrite(socket, `${JSON.stringify(response)}\n`);
     } catch (err) {
       const response: DaemonResponse = {
         id: request.id,
         ok: false,
         error: err instanceof Error ? err.message : String(err),
       };
-      socket.write(`${JSON.stringify(response)}\n`);
+      this.safeWrite(socket, `${JSON.stringify(response)}\n`);
     }
   }
 }

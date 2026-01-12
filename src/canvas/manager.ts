@@ -8,6 +8,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import type { CanvasConfig, CanvasMessage } from "./types.js";
+import { escapeShellArg, stripControlChars } from "../util/shell-escape.js";
 
 const execAsync = promisify(exec);
 
@@ -330,12 +331,17 @@ export class CanvasManager {
    * Send text to a WezTerm pane
    */
   private async sendToPane(paneId: string, text: string): Promise<void> {
-    // Escape special characters for shell
-    const escaped = text.replace(/'/g, "'\\''");
+    // Validate pane ID is numeric
+    if (!/^\d+$/.test(paneId)) {
+      throw new Error(`Invalid pane ID: ${paneId}`);
+    }
+    // Note: Canvas output is controlled by us (not user input), so we keep
+    // ANSI sequences intentionally. We use single-quote escaping for safety.
+    const escaped = escapeShellArg(text);
 
     try {
       await execAsync(
-        `wezterm cli send-text --pane-id ${paneId} --no-paste $'${escaped}'`
+        `wezterm cli send-text --pane-id ${paneId} --no-paste '${escaped}'`
       );
     } catch (error) {
       throw new Error(

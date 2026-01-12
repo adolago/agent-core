@@ -89,8 +89,8 @@ export interface MemorySearchParams {
   threshold?: number;
   /** Filter by category */
   category?: MemoryCategory | MemoryCategory[];
-  /** Filter by namespace */
-  namespace?: string;
+  /** Filter by namespace (null = search all namespaces) */
+  namespace?: string | null;
   /** Filter by tags */
   tags?: string[];
   /** Filter by time range */

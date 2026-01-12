@@ -80,7 +80,7 @@ async function loadCredentials(): Promise<{ client: OAuthClient; tokens: Tokens 
 }
 
 async function saveTokens(tokens: Tokens): Promise<void> {
-  await writeFile(TOKENS_PATH, JSON.stringify(tokens, null, 2));
+  await writeFile(TOKENS_PATH, JSON.stringify(tokens, null, 2), { mode: 0o600 });
 }
 
 async function refreshAccessToken(client: OAuthClient, tokens: Tokens): Promise<Tokens> {
@@ -272,4 +272,316 @@ export async function checkCredentialsExist(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// =============================================================================
+// Event Management Functions
+// =============================================================================
+
+interface EventInput {
+  summary: string;
+  description?: string;
+  location?: string;
+  start: { dateTime?: string; date?: string; timeZone?: string };
+  end: { dateTime?: string; date?: string; timeZone?: string };
+  attendees?: Array<{ email: string }>;
+}
+
+interface CalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { dateTime?: string; date?: string; timeZone?: string };
+  end: { dateTime?: string; date?: string; timeZone?: string };
+  location?: string;
+  attendees?: Array<{ email: string; displayName?: string; responseStatus?: string }>;
+  status: string;
+  htmlLink?: string;
+}
+
+export async function createEvent(
+  calendarId: string = "primary",
+  event: EventInput
+): Promise<CalendarEvent> {
+  const token = await getValidToken();
+  const url = `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(event),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create event: ${error}`);
+  }
+
+  return response.json() as Promise<CalendarEvent>;
+}
+
+export async function updateEvent(
+  calendarId: string = "primary",
+  eventId: string,
+  updates: Partial<EventInput>
+): Promise<CalendarEvent> {
+  const token = await getValidToken();
+  const url = `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to update event: ${error}`);
+  }
+
+  return response.json() as Promise<CalendarEvent>;
+}
+
+export async function deleteEvent(
+  calendarId: string = "primary",
+  eventId: string
+): Promise<void> {
+  const token = await getValidToken();
+  const url = `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to delete event: ${error}`);
+  }
+}
+
+export async function quickAddEvent(
+  calendarId: string = "primary",
+  text: string
+): Promise<CalendarEvent> {
+  const token = await getValidToken();
+  const url = new URL(`${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events/quickAdd`);
+  url.searchParams.set("text", text);
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to quick add event: ${error}`);
+  }
+
+  return response.json() as Promise<CalendarEvent>;
+}
+
+// =============================================================================
+// Smart Scheduling Functions
+// =============================================================================
+
+export interface TimeSlot {
+  start: Date;
+  end: Date;
+  durationMinutes: number;
+}
+
+export interface MeetingSuggestion extends TimeSlot {
+  score: number;
+  reason: string;
+}
+
+export async function findFreeSlots(
+  calendarId: string = "primary",
+  options: {
+    startDate: Date;
+    endDate: Date;
+    minDurationMinutes?: number;
+    workingHoursStart?: number; // 0-23
+    workingHoursEnd?: number;   // 0-23
+  }
+): Promise<TimeSlot[]> {
+  const {
+    startDate,
+    endDate,
+    minDurationMinutes = 30,
+    workingHoursStart = 9,
+    workingHoursEnd = 17,
+  } = options;
+
+  // Fetch events in the date range
+  const events = await listEvents(calendarId, {
+    timeMin: startDate.toISOString(),
+    timeMax: endDate.toISOString(),
+    singleEvents: true,
+    orderBy: "startTime",
+  });
+
+  const slots: TimeSlot[] = [];
+  let currentDay = new Date(startDate);
+  currentDay.setHours(0, 0, 0, 0);
+
+  while (currentDay < endDate) {
+    // Get working hours for this day
+    const dayStart = new Date(currentDay);
+    dayStart.setHours(workingHoursStart, 0, 0, 0);
+
+    const dayEnd = new Date(currentDay);
+    dayEnd.setHours(workingHoursEnd, 0, 0, 0);
+
+    // Find events on this day
+    const dayEvents = events
+      .filter((e) => {
+        const eventStart = new Date(e.start.dateTime || e.start.date || "");
+        return eventStart >= dayStart && eventStart < dayEnd;
+      })
+      .sort((a, b) => {
+        const aStart = new Date(a.start.dateTime || a.start.date || "").getTime();
+        const bStart = new Date(b.start.dateTime || b.start.date || "").getTime();
+        return aStart - bStart;
+      });
+
+    // Find gaps between events
+    let slotStart = dayStart;
+    for (const event of dayEvents) {
+      const eventStart = new Date(event.start.dateTime || event.start.date || "");
+      const eventEnd = new Date(event.end.dateTime || event.end.date || "");
+
+      if (eventStart > slotStart) {
+        const durationMinutes = (eventStart.getTime() - slotStart.getTime()) / (1000 * 60);
+        if (durationMinutes >= minDurationMinutes) {
+          slots.push({
+            start: new Date(slotStart),
+            end: new Date(eventStart),
+            durationMinutes: Math.floor(durationMinutes),
+          });
+        }
+      }
+      slotStart = new Date(Math.max(slotStart.getTime(), eventEnd.getTime()));
+    }
+
+    // Check remaining time until end of working hours
+    if (slotStart < dayEnd) {
+      const durationMinutes = (dayEnd.getTime() - slotStart.getTime()) / (1000 * 60);
+      if (durationMinutes >= minDurationMinutes) {
+        slots.push({
+          start: new Date(slotStart),
+          end: new Date(dayEnd),
+          durationMinutes: Math.floor(durationMinutes),
+        });
+      }
+    }
+
+    // Move to next day
+    currentDay.setDate(currentDay.getDate() + 1);
+  }
+
+  return slots;
+}
+
+export async function suggestMeetingTimes(
+  calendarId: string = "primary",
+  options: {
+    durationMinutes: number;
+    withinDays?: number;
+    preferMorning?: boolean;
+    preferAfternoon?: boolean;
+    workingHoursStart?: number;
+    workingHoursEnd?: number;
+  }
+): Promise<MeetingSuggestion[]> {
+  const {
+    durationMinutes,
+    withinDays = 7,
+    preferMorning = false,
+    preferAfternoon = false,
+    workingHoursStart = 9,
+    workingHoursEnd = 17,
+  } = options;
+
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setMinutes(Math.ceil(startDate.getMinutes() / 30) * 30); // Round up to next 30 min
+  startDate.setSeconds(0, 0);
+
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() + withinDays);
+
+  const freeSlots = await findFreeSlots(calendarId, {
+    startDate,
+    endDate,
+    minDurationMinutes: durationMinutes,
+    workingHoursStart,
+    workingHoursEnd,
+  });
+
+  // Score and filter slots
+  const suggestions: MeetingSuggestion[] = [];
+
+  for (const slot of freeSlots) {
+    if (slot.durationMinutes < durationMinutes) continue;
+
+    const hour = slot.start.getHours();
+    let score = 50; // Base score
+    let reason = "Available";
+
+    // Prefer slots that exactly fit the duration
+    if (slot.durationMinutes === durationMinutes) {
+      score += 10;
+      reason = "Perfect fit";
+    }
+
+    // Morning preference (9-12)
+    if (preferMorning && hour >= 9 && hour < 12) {
+      score += 20;
+      reason = "Morning slot";
+    }
+
+    // Afternoon preference (13-17)
+    if (preferAfternoon && hour >= 13 && hour <= 17) {
+      score += 20;
+      reason = "Afternoon slot";
+    }
+
+    // Prefer mid-week
+    const dayOfWeek = slot.start.getDay();
+    if (dayOfWeek >= 2 && dayOfWeek <= 4) {
+      score += 5;
+    }
+
+    // Prefer near-term slots
+    const daysAway = (slot.start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysAway < 2) {
+      score += 15;
+      reason = "Soon";
+    } else if (daysAway < 4) {
+      score += 10;
+    }
+
+    suggestions.push({
+      start: slot.start,
+      end: new Date(slot.start.getTime() + durationMinutes * 60 * 1000),
+      durationMinutes,
+      score,
+      reason,
+    });
+  }
+
+  // Sort by score descending, return top 5
+  return suggestions.sort((a, b) => b.score - a.score).slice(0, 5);
 }

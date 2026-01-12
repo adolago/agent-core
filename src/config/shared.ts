@@ -58,6 +58,14 @@ export interface LoggingConfig {
   consoleLevel?: LogLevel;
   /** Console output format */
   consoleStyle?: ConsoleStyle;
+  /** Wide event logging configuration */
+  wideEvents?: {
+    enabled?: boolean;
+    file?: string;
+    sampleRate?: number;
+    slowMs?: number;
+    payloads?: "summary" | "debug" | "full";
+  };
 }
 
 // =============================================================================

@@ -658,6 +658,9 @@ export namespace Config {
         "systemPromptAdditions",
         "knowledge",
         "mcpServers",
+        // Metadata fields (not passed to provider)
+        "theme",
+        "skill",
       ])
 
       // Extract unknown properties into options
@@ -992,6 +995,19 @@ export namespace Config {
       theme: z.string().optional().describe("Theme name to use for the interface"),
       keybinds: Keybinds.optional().describe("Custom keybind configurations"),
       logLevel: Log.Level.optional().describe("Log level"),
+      wideEvents: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable wide event logging"),
+          file: z.string().optional().describe("Wide event log file path"),
+          sampleRate: z.number().min(0).max(1).optional().describe("Sample rate for successful events"),
+          slowMs: z.number().int().nonnegative().optional().describe("Slow event threshold in ms"),
+          payloads: z
+            .union([z.literal("summary"), z.literal("debug"), z.literal("full")])
+            .optional()
+            .describe("Payload detail policy for wide events"),
+        })
+        .optional()
+        .describe("Wide event logging configuration"),
       tui: TUI.optional().describe("TUI specific settings"),
       server: Server.optional().describe("Server configuration for opencode serve and web commands"),
       daemon: Daemon.optional().describe("Daemon mode configuration for headless operation"),

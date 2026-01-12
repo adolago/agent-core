@@ -81,11 +81,101 @@ export const MemoryPersistencePlugin: PluginFactory = async (
    * Load memory from persistent storage
    */
   async function loadFromStorage(): Promise<void> {
-    if (config.backend !== 'file') {
-      // TODO: Implement Redis/Qdrant loading
+    // Qdrant backend
+    if (config.backend === 'qdrant') {
+      try {
+        const { QdrantVectorStorage } = await import('../../memory/qdrant');
+        const qdrant = new QdrantVectorStorage({
+          url: config.qdrantUrl || 'http://localhost:6333',
+          collection: `${config.namespace}-cache`,
+        });
+
+        // Check if collection exists by trying to get info
+        const collections = await qdrant.listCollections();
+        if (!collections.includes(`${config.namespace}-cache`)) {
+          ctx.logger.debug('Qdrant collection does not exist, starting fresh', {
+            collection: `${config.namespace}-cache`,
+          });
+          return;
+        }
+
+        // Use scroll to get all entries
+        const response = await fetch(
+          `${config.qdrantUrl || 'http://localhost:6333'}/collections/${config.namespace}-cache/points/scroll`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              limit: 10000,
+              with_payload: true,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json() as { result?: { points?: Array<{ id: string; payload: Record<string, unknown> }> } };
+          const points = data.result?.points ?? [];
+
+          for (const point of points) {
+            const entry = point.payload as unknown as MemoryEntry & { key: string };
+            if (entry.expiresAt && entry.expiresAt < Date.now()) continue;
+            cache.set(entry.key || String(point.id), entry);
+          }
+
+          ctx.logger.debug('Loaded memory from Qdrant', {
+            entries: cache.size,
+            collection: `${config.namespace}-cache`,
+          });
+        }
+      } catch (error) {
+        ctx.logger.warn('Failed to load memory from Qdrant', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       return;
     }
 
+    // Redis backend
+    if (config.backend === 'redis') {
+      try {
+        const redis = await import('redis');
+        const client = redis.createClient({ url: config.redisUrl });
+        await client.connect();
+
+        const pattern = `${config.namespace}:*`;
+        const keys = await client.keys(pattern);
+
+        for (const key of keys) {
+          const value = await client.get(key);
+          if (!value) continue;
+
+          try {
+            const entry = JSON.parse(value) as MemoryEntry;
+            if (entry.expiresAt && entry.expiresAt < Date.now()) {
+              await client.del(key);
+              continue;
+            }
+            cache.set(key, entry);
+          } catch {
+            // Skip malformed entries
+          }
+        }
+
+        await client.quit();
+
+        ctx.logger.debug('Loaded memory from Redis', {
+          entries: cache.size,
+          pattern,
+        });
+      } catch (error) {
+        ctx.logger.warn('Failed to load memory from Redis', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+
+    // File backend (default)
     const filePath = join(config.storagePath!, `${config.namespace}.json`);
 
     if (!existsSync(filePath)) {
@@ -120,10 +210,78 @@ export const MemoryPersistencePlugin: PluginFactory = async (
    * Save memory to persistent storage
    */
   async function saveToStorage(): Promise<void> {
-    if (!isDirty || config.backend !== 'file') {
+    if (!isDirty) {
       return;
     }
 
+    // Qdrant backend
+    if (config.backend === 'qdrant') {
+      try {
+        const { QdrantVectorStorage } = await import('../../memory/qdrant');
+        const qdrant = new QdrantVectorStorage({
+          url: config.qdrantUrl || 'http://localhost:6333',
+          collection: `${config.namespace}-cache`,
+        });
+
+        // Ensure collection exists (dimension 384 for small embedding models)
+        await qdrant.createCollection(`${config.namespace}-cache`, 384);
+
+        // Prepare entries with placeholder vectors (this is a key-value cache, not semantic search)
+        const entries = Array.from(cache.entries()).map(([key, entry]) => ({
+          id: key.replace(/[^a-zA-Z0-9-_]/g, '_'), // Sanitize for Qdrant ID
+          vector: new Array(384).fill(0).map(() => Math.random() * 0.01), // Minimal noise vector
+          payload: {
+            ...entry,
+            key, // Store original key in payload
+            namespace: config.namespace,
+          },
+        }));
+
+        if (entries.length > 0) {
+          await qdrant.insert(entries);
+        }
+
+        isDirty = false;
+        ctx.logger.debug('Saved memory to Qdrant', {
+          entries: cache.size,
+          collection: `${config.namespace}-cache`,
+        });
+      } catch (error) {
+        ctx.logger.error('Failed to save memory to Qdrant', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+
+    // Redis backend
+    if (config.backend === 'redis') {
+      try {
+        const redis = await import('redis');
+        const client = redis.createClient({ url: config.redisUrl });
+        await client.connect();
+
+        for (const [key, entry] of cache.entries()) {
+          const ttl = entry.ttl ? Math.floor(entry.ttl) : 0;
+          await client.set(key, JSON.stringify(entry), ttl > 0 ? { EX: ttl } : undefined);
+        }
+
+        await client.quit();
+        isDirty = false;
+
+        ctx.logger.debug('Saved memory to Redis', {
+          entries: cache.size,
+          ttl: config.defaultTtl,
+        });
+      } catch (error) {
+        ctx.logger.error('Failed to save memory to Redis', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+
+    // File backend (default)
     const filePath = join(config.storagePath!, `${config.namespace}.json`);
 
     // Ensure directory exists

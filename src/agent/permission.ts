@@ -12,6 +12,37 @@
 
 import { z } from "zod";
 import { Permission, PermissionConfig } from "./agent";
+import { Bus } from "../../packages/agent-core/src/bus";
+import { BusEvent } from "../../packages/agent-core/src/bus/bus-event";
+
+/**
+ * Permission events for UI integration
+ */
+export namespace PermissionEvents {
+  /** Emitted when a permission is requested and pending user response */
+  export const Requested = BusEvent.define(
+    "permission.manager.requested",
+    z.object({
+      id: z.string(),
+      sessionID: z.string(),
+      type: z.string(),
+      pattern: z.union([z.string(), z.array(z.string())]).optional(),
+      title: z.string().optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
+      createdAt: z.number(),
+    })
+  );
+
+  /** Emitted when a permission response is received */
+  export const Responded = BusEvent.define(
+    "permission.manager.responded",
+    z.object({
+      sessionID: z.string(),
+      permissionID: z.string(),
+      response: z.enum(["once", "always", "reject"]),
+    })
+  );
+}
 
 /**
  * Permission request context
@@ -431,7 +462,16 @@ export class PermissionManager {
       }
       this.pending.get(context.sessionID)!.set(id, pending);
 
-      // TODO: Emit event for UI to handle
+      // Emit event for UI to handle
+      Bus.publish(PermissionEvents.Requested, {
+        id,
+        sessionID: context.sessionID,
+        type: context.type,
+        pattern: context.pattern,
+        title: context.title,
+        metadata: context.metadata,
+        createdAt: Date.now(),
+      });
     });
   }
 
@@ -451,6 +491,13 @@ export class PermissionManager {
 
     // Remove from pending
     sessionPending.delete(permissionID);
+
+    // Emit response event
+    Bus.publish(PermissionEvents.Responded, {
+      sessionID,
+      permissionID,
+      response,
+    });
 
     switch (response) {
       case "once":

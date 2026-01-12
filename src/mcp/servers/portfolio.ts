@@ -18,6 +18,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { getSafeEnv } from "../../util/safe-env.js";
 
 type StanleyResult = {
   ok: boolean;
@@ -45,7 +46,7 @@ function runStanleyCli(args: string[]): StanleyResult {
 
   const result = spawnSync(python, [cliPath, ...args], {
     encoding: "utf-8",
-    env: process.env,
+    env: getSafeEnv(["STANLEY_REPO", "STANLEY_CLI", "STANLEY_PYTHON"]),
     timeout: 60000, // 60 second timeout
   });
 

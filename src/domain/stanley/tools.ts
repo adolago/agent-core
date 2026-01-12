@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
+import { getSafeEnv } from "../../util/safe-env";
 
 type StanleyResult = {
   ok: boolean;
@@ -40,7 +41,7 @@ function runStanleyCli(args: string[]): StanleyResult {
 
   const result = spawnSync(python, [cliPath, ...args], {
     encoding: "utf-8",
-    env: process.env,
+    env: getSafeEnv(["STANLEY_REPO", "STANLEY_CLI", "STANLEY_PYTHON"]),
   });
 
   if (result.error) {

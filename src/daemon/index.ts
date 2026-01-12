@@ -124,6 +124,7 @@ export class AgentCoreDaemon {
   private councilCoordinator?: CouncilCoordinator;
   private agentOrchestrator?: AgentOrchestrator;
   private isRunning = false;
+  private eventUnsubscribers: (() => void)[] = [];
 
   constructor(config?: Partial<DaemonConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -160,22 +161,30 @@ export class AgentCoreDaemon {
       tiara: this.agentOrchestrator,
     });
 
-    // Subscribe to tiara events for logging
-    tiara.subscribe("worker:spawned", (data) => {
-      log("info", `Worker spawned: ${data.workerId} (${data.persona})`);
-    });
+    // Subscribe to tiara events for logging (store unsubscribers for cleanup)
+    this.eventUnsubscribers.push(
+      tiara.subscribe("worker:spawned", (data) => {
+        log("info", `Worker spawned: ${data.workerId} (${data.persona})`);
+      })
+    );
 
-    tiara.subscribe("worker:status", (data) => {
-      log("debug", `Worker ${data.workerId}: status update`);
-    });
+    this.eventUnsubscribers.push(
+      tiara.subscribe("worker:status", (data) => {
+        log("debug", `Worker ${data.workerId}: status update`);
+      })
+    );
 
-    tiara.subscribe("task:completed", (data) => {
-      log("info", `Task completed: ${data.taskId}`);
-    });
+    this.eventUnsubscribers.push(
+      tiara.subscribe("task:completed", (data) => {
+        log("info", `Task completed: ${data.taskId}`);
+      })
+    );
 
-    tiara.subscribe("task:failed", (data) => {
-      log("error", `Task failed: ${data.taskId} - ${data.error}`);
-    });
+    this.eventUnsubscribers.push(
+      tiara.subscribe("task:failed", (data) => {
+        log("error", `Task failed: ${data.taskId} - ${data.error}`);
+      })
+    );
 
     // 2. Create LSP server
     log("info", "Creating LSP server...");
@@ -597,19 +606,21 @@ export class AgentCoreDaemon {
       });
     };
 
-    // Update on relevant events
-    tiara.subscribe("worker:spawned", updateLspState);
-    tiara.subscribe("worker:status", updateLspState);
-    tiara.subscribe("worker:terminated", updateLspState);
-    tiara.subscribe("task:submitted", updateLspState);
-    tiara.subscribe("task:assigned", updateLspState);
-    tiara.subscribe("task:completed", updateLspState);
-    tiara.subscribe("task:failed", updateLspState);
-    tiara.subscribe("plan:updated", updateLspState);
-    tiara.subscribe("objective:added", updateLspState);
+    // Update on relevant events (store unsubscribers for cleanup)
+    this.eventUnsubscribers.push(tiara.subscribe("worker:spawned", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("worker:status", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("worker:terminated", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("task:submitted", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("task:assigned", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("task:completed", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("task:failed", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("plan:updated", updateLspState));
+    this.eventUnsubscribers.push(tiara.subscribe("objective:added", updateLspState));
 
     // Initial state push
-    updateLspState();
+    updateLspState().catch((err) => {
+      log("warn", `Failed to push initial LSP state: ${err instanceof Error ? err.message : String(err)}`);
+    });
   }
 
   /**
@@ -665,6 +676,18 @@ export class AgentCoreDaemon {
     } catch (err) {
       errors.push(err instanceof Error ? err : new Error(String(err)));
       log("warn", `Error closing canvas manager: ${err}`);
+    }
+
+    // Unsubscribe from all tiara events (prevent memory leaks)
+    try {
+      for (const unsubscribe of this.eventUnsubscribers) {
+        unsubscribe();
+      }
+      this.eventUnsubscribers = [];
+      log("debug", "Unsubscribed from all tiara events");
+    } catch (err) {
+      errors.push(err instanceof Error ? err : new Error(String(err)));
+      log("warn", `Error unsubscribing from events: ${err}`);
     }
 
     // Shutdown tiara orchestrator
