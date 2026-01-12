@@ -10,6 +10,7 @@ export namespace Share {
   let queue: Promise<void> = Promise.resolve()
   const pending = new Map<string, any>()
   const eventUnsubscribers: Array<() => void> = []
+  let initialized = false
 
   export async function sync(key: string, content: any) {
     if (disabled) return
@@ -55,6 +56,11 @@ export namespace Share {
   }
 
   export function init() {
+    if (initialized) {
+      log.debug("Share module already initialized, skipping")
+      return
+    }
+    initialized = true
     eventUnsubscribers.push(
       Bus.subscribe(Session.Event.Updated, async (evt) => {
         await sync("session/info/" + evt.properties.info.id, evt.properties.info)
@@ -88,6 +94,7 @@ export namespace Share {
       unsub()
     }
     eventUnsubscribers.length = 0
+    initialized = false
     log.debug("Share module shutdown complete")
   }
 
