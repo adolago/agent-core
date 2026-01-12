@@ -57,6 +57,25 @@ npx tsx scripts/stanley-research.ts analyze AAPL --filing 10-K
 npx tsx scripts/stanley-research.ts screen --criteria "pe<15,roe>20"
 ```
 
+### Desktop GUI (GPUI)
+```bash
+# Launch Stanley GUI (starts backend automatically)
+bun run scripts/stanley-gui.ts
+
+# Launch GUI only (backend must be running)
+bun run scripts/stanley-gui.ts --no-backend
+
+# Rebuild GUI from source
+bun run scripts/stanley-gui.ts build
+```
+
+The GUI provides:
+- Portfolio views with real-time data
+- Agent chat with streaming responses
+- Charts, tables, and visualizations
+- Notes editor for research
+- Quick actions and keyboard shortcuts
+
 ### NautilusTrader Integration
 ```bash
 # Backtest a strategy
@@ -78,6 +97,7 @@ npx tsx scripts/stanley-nautilus.ts strategy-info momentum
 | `stanley:research` | Company research, news, analyst ratings |
 | `stanley:sec-filings` | SEC EDGAR filings (10-K, 10-Q, 8-K, 13F) |
 | `stanley:nautilus` | Algorithmic strategies via NautilusTrader |
+| `stanley:gui` | Launch desktop GUI application |
 
 ## Usage Examples
 
