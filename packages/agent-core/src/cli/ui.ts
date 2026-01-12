@@ -43,6 +43,24 @@ export namespace UI {
   }
 
   let blank = false
+  export function header(text: string) {
+    empty()
+    println(Style.TEXT_HIGHLIGHT_BOLD + text + Style.TEXT_NORMAL)
+    empty()
+  }
+
+  export function info(text: string) {
+    println(Style.TEXT_INFO + "ℹ " + Style.TEXT_NORMAL + text)
+  }
+
+  export function warn(text: string) {
+    println(Style.TEXT_WARNING + "⚠ " + Style.TEXT_NORMAL + text)
+  }
+
+  export function success(text: string) {
+    println(Style.TEXT_SUCCESS + "✔ " + Style.TEXT_NORMAL + text)
+  }
+
   export function empty() {
     if (blank) return
     println("" + Style.TEXT_NORMAL)

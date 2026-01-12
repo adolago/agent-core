@@ -930,6 +930,15 @@ export namespace Config {
   })
   export type Layout = z.infer<typeof Layout>
 
+  export const Grammar = z.object({
+    provider: z.literal("languagetool").describe("Grammar checking provider"),
+    username: z.string().optional().describe("LanguageTool username/email"),
+    apiKey: z.string().optional().describe("LanguageTool API key"),
+  }).meta({
+    ref: "GrammarConfig",
+  })
+  export type Grammar = z.infer<typeof Grammar>
+
   export const Provider = ModelsDev.Provider.partial()
     .extend({
       whitelist: z.array(z.string()).optional(),
@@ -1003,6 +1012,7 @@ export namespace Config {
         .optional()
         .describe("Wide event logging configuration"),
       tui: TUI.optional().describe("TUI specific settings"),
+      grammar: Grammar.optional().describe("Grammar checking configuration"),
       server: Server.optional().describe("Server configuration for opencode serve and web commands"),
       daemon: Daemon.optional().describe("Daemon mode configuration for headless operation"),
       command: z

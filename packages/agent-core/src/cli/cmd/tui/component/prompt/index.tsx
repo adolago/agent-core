@@ -32,6 +32,9 @@ import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
 import { useTextareaKeybindings } from "../textarea-keybindings"
 
+import { DialogGrammar } from "../dialog-grammar"
+import { Grammar } from "../../util/grammar"
+
 export type PromptProps = {
   sessionID?: string
   visible?: boolean
@@ -333,6 +336,96 @@ export function Prompt(props: PromptProps) {
           restoreExtmarksFromParts(updatedNonTextParts)
           input.cursorOffset = Bun.stringWidth(content)
         },
+      },
+      {
+        title: "Check grammar",
+        value: "prompt.grammar",
+        category: "Prompt",
+        disabled: !store.prompt.input,
+        onSelect: async (d) => {
+          if (!store.prompt.input) return
+          d.clear()
+          
+          toast.show({
+            variant: "info",
+            message: "Checking grammar...",
+            duration: 1000,
+          })
+
+          const matches = await Grammar.check(store.prompt.input, (sync.data.config as any).grammar)
+          if (matches.length === 0) {
+            toast.show({
+              variant: "success",
+              message: "No grammar errors found",
+              duration: 2000,
+            })
+            return
+          }
+
+          dialog.replace(() => (
+            <DialogGrammar
+              originalText={store.prompt.input}
+              matches={matches}
+              onApply={(content) => {
+                input.setText(content)
+                
+                // Try to preserve parts if possible (similar to editor logic)
+                const nonTextParts = store.prompt.parts.filter((p) => p.type !== "text")
+                const updatedNonTextParts = nonTextParts
+                  .map((part) => {
+                    let virtualText = ""
+                    if (part.type === "file" && part.source?.text) {
+                      virtualText = part.source.text.value
+                    } else if (part.type === "agent" && part.source) {
+                      virtualText = part.source.value
+                    }
+
+                    if (!virtualText) return part
+
+                    const newStart = content.indexOf(virtualText)
+                    if (newStart === -1) return null
+
+                    const newEnd = newStart + virtualText.length
+
+                    if (part.type === "file" && part.source?.text) {
+                      return {
+                        ...part,
+                        source: {
+                          ...part.source,
+                          text: {
+                            ...part.source.text,
+                            start: newStart,
+                            end: newEnd,
+                          },
+                        },
+                      }
+                    }
+
+                    if (part.type === "agent" && part.source) {
+                      return {
+                        ...part,
+                        source: {
+                          ...part.source,
+                          start: newStart,
+                          end: newEnd,
+                        },
+                      }
+                    }
+
+                    return part
+                  })
+                  .filter((part) => part !== null)
+
+                setStore("prompt", {
+                  input: content,
+                  parts: updatedNonTextParts,
+                })
+                restoreExtmarksFromParts(updatedNonTextParts)
+                input.cursorOffset = Bun.stringWidth(content)
+              }}
+            />
+          ))
+        }
       },
     ]
   })

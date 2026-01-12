@@ -43,6 +43,9 @@ export namespace Global {
     get state() {
       return path.join(getXdgStateHome(), app)
     },
+    get tmp() {
+        return path.join(os.tmpdir(), app)
+    },
   }
 }
 
@@ -52,6 +55,7 @@ await Promise.all([
   fs.mkdir(Global.Path.state, { recursive: true }),
   fs.mkdir(Global.Path.log, { recursive: true }),
   fs.mkdir(Global.Path.bin, { recursive: true }),
+  fs.mkdir(Global.Path.tmp, { recursive: true }),
 ])
 
 const CACHE_VERSION = "18"

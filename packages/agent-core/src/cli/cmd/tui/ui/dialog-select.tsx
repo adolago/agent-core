@@ -27,6 +27,7 @@ export interface DialogSelectProps<T> {
     onTrigger: (option: DialogSelectOption<T>) => void
   }[]
   current?: T
+  children?: JSX.Element
 }
 
 export interface DialogSelectOption<T = any> {
@@ -238,6 +239,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
           />
         </box>
       </box>
+      {props.children}
       <Show
         when={grouped().length > 0}
         fallback={
