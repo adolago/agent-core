@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
 # agent-core reload script
-# Usage: ./scripts/reload.sh [--no-build] [--no-daemon] [--status]
+# Usage: ./scripts/reload.sh [OPTIONS]
 #
 # This script:
 # 1. Kills all agent-core processes
-# 2. Rebuilds from source (unless --no-build)
-# 3. Copies binary to ~/bin/agent-core
-# 4. Starts daemon (unless --no-daemon)
-# 5. Verifies everything is working
+# 2. Optionally cleans build artifacts (--clean or --fresh)
+# 3. Rebuilds from source (unless --no-build)
+# 4. Copies binary to ~/bin/agent-core
+# 5. Starts daemon (unless --no-daemon)
+# 6. Verifies everything is working
 #
 
 set -euo pipefail
@@ -26,6 +27,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 log() { echo -e "${BLUE}[reload]${NC} $*"; }
@@ -37,23 +39,87 @@ err() { echo -e "${RED}[ERROR]${NC} $*"; }
 NO_BUILD=false
 NO_DAEMON=false
 STATUS_ONLY=false
+CLEAN_BUILD=false
+FRESH_BUILD=false
 
 for arg in "$@"; do
   case $arg in
     --no-build) NO_BUILD=true ;;
     --no-daemon) NO_DAEMON=true ;;
     --status) STATUS_ONLY=true ;;
+    --clean) CLEAN_BUILD=true ;;
+    --fresh) FRESH_BUILD=true ;;
     --help|-h)
-      echo "Usage: $0 [--no-build] [--no-daemon] [--status]"
+      echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Options:"
       echo "  --no-build   Skip rebuilding (just restart)"
       echo "  --no-daemon  Don't start daemon after reload"
       echo "  --status     Show status and diagnostics only"
+      echo "  --clean      Clean build artifacts before rebuilding"
+      echo "  --fresh      Full fresh build: clean + clear turbo cache + reinstall deps"
+      echo ""
+      echo "Examples:"
+      echo "  $0                  # Normal rebuild and restart"
+      echo "  $0 --status         # Just show current status"
+      echo "  $0 --clean          # Clean dist/, rebuild, restart"
+      echo "  $0 --fresh          # Nuclear option: purge everything, rebuild from scratch"
+      echo "  $0 --no-daemon      # Rebuild but don't start daemon"
       exit 0
       ;;
   esac
 done
+
+# Clean function
+do_clean() {
+  log "Cleaning build artifacts..."
+  
+  # Clean dist directory
+  if [[ -d "$PKG_DIR/dist" ]]; then
+    rm -rf "$PKG_DIR/dist"
+    ok "Removed $PKG_DIR/dist"
+  else
+    warn "No dist directory to clean"
+  fi
+}
+
+# Fresh/full clean function
+do_fresh_clean() {
+  log "Performing FULL fresh clean..."
+  
+  # Clean dist
+  if [[ -d "$PKG_DIR/dist" ]]; then
+    rm -rf "$PKG_DIR/dist"
+    ok "Removed dist/"
+  fi
+  
+  # Clean turbo cache
+  if [[ -d "$REPO_ROOT/.turbo" ]]; then
+    rm -rf "$REPO_ROOT/.turbo"
+    ok "Removed .turbo/ cache"
+  fi
+  
+  # Clean node_modules/.cache
+  if [[ -d "$REPO_ROOT/node_modules/.cache" ]]; then
+    rm -rf "$REPO_ROOT/node_modules/.cache"
+    ok "Removed node_modules/.cache"
+  fi
+  
+  # Clean bun cache for the package
+  if [[ -d "$PKG_DIR/node_modules/.cache" ]]; then
+    rm -rf "$PKG_DIR/node_modules/.cache"
+    ok "Removed package node_modules/.cache"
+  fi
+  
+  # Optionally reinstall deps
+  log "Reinstalling dependencies..."
+  cd "$REPO_ROOT"
+  if bun install 2>&1 | tail -3; then
+    ok "Dependencies reinstalled"
+  else
+    warn "bun install had warnings (may be ok)"
+  fi
+}
 
 # Status/diagnostics function
 show_status() {
@@ -158,50 +224,71 @@ echo "                   AGENT-CORE RELOAD"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
-# Step 1: Kill all agent-core processes
-log "Stopping all agent-core processes..."
+# Step 1: Kill ALL agent-core related processes (be aggressive!)
+log "Stopping ALL agent-core processes..."
 
-# Kill daemon
-if pgrep -f "agent-core daemon" > /dev/null 2>&1; then
-  pkill -9 -f "agent-core daemon" 2>/dev/null
-  ok "Killed daemon"
-else
-  warn "No daemon to kill"
-fi
+kill_procs() {
+  local pattern="$1"
+  local name="$2"
+  local pids=$(pgrep -f "$pattern" 2>/dev/null | grep -v $$ | grep -v "reload" || true)
+  if [[ -n "$pids" ]]; then
+    echo "$pids" | xargs -r kill -9 2>/dev/null || true
+    ok "Killed $name (PIDs: $(echo $pids | tr '\n' ' '))"
+    return 0
+  fi
+  return 1
+}
 
-# Kill TUI processes (compiled binary)
-if pgrep -f "agent-core.*print-logs" > /dev/null 2>&1; then
-  pkill -9 -f "agent-core.*print-logs" 2>/dev/null
-  ok "Killed TUI (binary)"
-else
-  warn "No binary TUI to kill"
-fi
+# Kill in order of dependency
+kill_procs "agent-core daemon" "daemon" || warn "No daemon to kill"
+kill_procs "agent-core.*gateway" "gateway" || true
+kill_procs "agent-core.*print-logs" "TUI (binary)" || true  
+kill_procs "bun.*print-logs" "TUI (dev)" || true
+kill_procs "bun.*agent-core" "bun agent-core" || true
+kill_procs "/bin/agent-core" "agent-core binary" || true
 
-# Kill dev mode TUI (bun run dev)
-if pgrep -f "bun.*print-logs" > /dev/null 2>&1; then
-  pkill -9 -f "bun.*print-logs" 2>/dev/null
-  ok "Killed TUI (dev mode)"
-else
-  warn "No dev TUI to kill"
-fi
-
-# Give processes time to die
+# Wait for processes to die
 sleep 1
 
-# Verify nothing is running
-remaining=$(pgrep -f "agent-core" 2>/dev/null | grep -v $$ | grep -v "reload" || true)
+# Nuclear option: kill ANYTHING with agent-core in the command
+remaining=$(pgrep -af "agent-core" 2>/dev/null | grep -v $$ | grep -v "reload.sh" | grep -v "grep" || true)
 if [[ -n "$remaining" ]]; then
-  warn "Some processes still running, force killing..."
-  echo "$remaining" | xargs -r kill -9 2>/dev/null || true
+  warn "Lingering processes found:"
+  echo "$remaining"
+  echo ""
+  log "Force killing ALL remaining..."
+  pgrep -f "agent-core" 2>/dev/null | grep -v $$ | grep -v "reload" | xargs -r kill -9 2>/dev/null || true
   sleep 1
 fi
-ok "All processes stopped"
 
-# Step 2: Rebuild
+# Also kill any process listening on the daemon port
+port_pid=$(lsof -ti:$DAEMON_PORT 2>/dev/null || true)
+if [[ -n "$port_pid" ]]; then
+  kill -9 $port_pid 2>/dev/null || true
+  ok "Killed process on port $DAEMON_PORT (PID: $port_pid)"
+fi
+
+# Final verification
+final_check=$(pgrep -af "agent-core" 2>/dev/null | grep -v $$ | grep -v "reload" || true)
+if [[ -n "$final_check" ]]; then
+  err "WARNING: Some processes may still be running:"
+  echo "$final_check"
+else
+  ok "All processes stopped"
+fi
+
+# Step 2: Clean if requested
+if $FRESH_BUILD; then
+  do_fresh_clean
+elif $CLEAN_BUILD; then
+  do_clean
+fi
+
+# Step 3: Rebuild
 if ! $NO_BUILD; then
   log "Rebuilding agent-core..."
   cd "$PKG_DIR"
-  if bun run build 2>&1 | tail -5; then
+  if bun run build 2>&1 | tail -10; then
     ok "Build complete"
   else
     err "Build failed!"
@@ -211,7 +298,7 @@ else
   warn "Skipping build (--no-build)"
 fi
 
-# Step 3: Copy binary
+# Step 4: Copy binary
 log "Installing binary..."
 if [[ -f "$BINARY_SRC" ]]; then
   cp "$BINARY_SRC" "$BINARY_DST"
@@ -222,7 +309,7 @@ else
   exit 1
 fi
 
-# Step 4: Start daemon
+# Step 5: Start daemon
 if ! $NO_DAEMON; then
   log "Starting daemon..."
   nohup "$BINARY_DST" daemon --hostname "$DAEMON_HOST" --port "$DAEMON_PORT" --gateway > /tmp/agent-core-daemon.log 2>&1 &
