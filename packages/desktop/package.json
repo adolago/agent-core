@@ -6,6 +6,8 @@
   "license": "MIT",
   "scripts": {
     "typecheck": "tsgo -b",
+    "lint": "echo 'No linter configured' && exit 0",
+    "test": "echo 'No tests configured' && exit 0",
     "predev": "bun ./scripts/predev.ts",
     "dev": "vite",
     "build": "bun run typecheck && vite build",

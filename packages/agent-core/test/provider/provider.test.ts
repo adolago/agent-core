@@ -9,7 +9,7 @@ test("provider loaded from env variable", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -35,7 +35,7 @@ test("provider loaded from config with apiKey option", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -62,7 +62,7 @@ test("disabled_providers excludes provider", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           disabled_providers: ["anthropic"],
@@ -86,7 +86,7 @@ test("enabled_providers restricts to only listed providers", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           enabled_providers: ["anthropic"],
@@ -112,12 +112,12 @@ test("model whitelist filters models for provider", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
-              whitelist: ["claude-sonnet-4-20250514"],
+              whitelist: ["claude-sonnet-4-5"],
             },
           },
         }),
@@ -133,7 +133,7 @@ test("model whitelist filters models for provider", async () => {
       const providers = await Provider.list()
       expect(providers["anthropic"]).toBeDefined()
       const models = Object.keys(providers["anthropic"].models)
-      expect(models).toContain("claude-sonnet-4-20250514")
+      expect(models).toContain("claude-sonnet-4-5")
       expect(models.length).toBe(1)
     },
   })
@@ -143,12 +143,12 @@ test("model blacklist excludes specific models", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
-              blacklist: ["claude-sonnet-4-20250514"],
+              blacklist: ["claude-sonnet-4-5"],
             },
           },
         }),
@@ -164,7 +164,7 @@ test("model blacklist excludes specific models", async () => {
       const providers = await Provider.list()
       expect(providers["anthropic"]).toBeDefined()
       const models = Object.keys(providers["anthropic"].models)
-      expect(models).not.toContain("claude-sonnet-4-20250514")
+      expect(models).not.toContain("claude-sonnet-4-5")
     },
   })
 })
@@ -173,14 +173,14 @@ test("custom model alias via config", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
                 "my-alias": {
-                  id: "claude-sonnet-4-20250514",
+                  id: "claude-sonnet-4-5",
                   name: "My Custom Alias",
                 },
               },
@@ -208,7 +208,7 @@ test("custom provider with npm package", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -251,7 +251,7 @@ test("env variable takes precedence, config merges options", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -283,7 +283,7 @@ test("getModel returns model for valid provider/model", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -296,10 +296,10 @@ test("getModel returns model for valid provider/model", async () => {
       Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
-      const model = await Provider.getModel("anthropic", "claude-sonnet-4-20250514")
+      const model = await Provider.getModel("anthropic", "claude-sonnet-4-5")
       expect(model).toBeDefined()
       expect(model.providerID).toBe("anthropic")
-      expect(model.id).toBe("claude-sonnet-4-20250514")
+      expect(model.id).toBe("claude-sonnet-4-5")
       const language = await Provider.getLanguage(model)
       expect(language).toBeDefined()
     },
@@ -310,7 +310,7 @@ test("getModel throws ModelNotFoundError for invalid model", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -332,7 +332,7 @@ test("getModel throws ModelNotFoundError for invalid provider", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -363,7 +363,7 @@ test("defaultModel returns first available model when no config set", async () =
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -387,10 +387,10 @@ test("defaultModel respects config model setting", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
-          model: "anthropic/claude-sonnet-4-20250514",
+          model: "anthropic/claude-sonnet-4-5",
         }),
       )
     },
@@ -403,7 +403,7 @@ test("defaultModel respects config model setting", async () => {
     fn: async () => {
       const model = await Provider.defaultModel()
       expect(model.providerID).toBe("anthropic")
-      expect(model.modelID).toBe("claude-sonnet-4-20250514")
+      expect(model.modelID).toBe("claude-sonnet-4-5")
     },
   })
 })
@@ -412,7 +412,7 @@ test("provider with baseURL from config", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -451,7 +451,7 @@ test("model cost defaults to zero when not specified", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -492,13 +492,13 @@ test("model options are merged from existing model", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   options: {
                     customOption: "custom-value",
                   },
@@ -517,7 +517,7 @@ test("model options are merged from existing model", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.options.customOption).toBe("custom-value")
     },
   })
@@ -527,7 +527,7 @@ test("provider removed when all models filtered out", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -555,7 +555,7 @@ test("closest finds model by partial match", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -580,7 +580,7 @@ test("closest returns undefined for nonexistent provider", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -600,14 +600,14 @@ test("getModel uses realIdByKey for aliased models", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
                 "my-sonnet": {
-                  id: "claude-sonnet-4-20250514",
+                  id: "claude-sonnet-4-5",
                   name: "My Sonnet Alias",
                 },
               },
@@ -638,7 +638,7 @@ test("provider api field sets model api.url", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -677,7 +677,7 @@ test("explicit baseURL overrides api field", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -716,13 +716,13 @@ test("model inherits properties from existing database model", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   name: "Custom Name for Sonnet",
                 },
               },
@@ -739,7 +739,7 @@ test("model inherits properties from existing database model", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.name).toBe("Custom Name for Sonnet")
       expect(model.capabilities.toolcall).toBe(true)
       expect(model.capabilities.attachment).toBe(true)
@@ -752,7 +752,7 @@ test("disabled_providers prevents loading even with env var", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           disabled_providers: ["openai"],
@@ -776,7 +776,7 @@ test("enabled_providers with empty array allows no providers", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           enabled_providers: [],
@@ -801,13 +801,13 @@ test("whitelist and blacklist can be combined", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
-              whitelist: ["claude-sonnet-4-20250514", "claude-opus-4-20250514"],
-              blacklist: ["claude-opus-4-20250514"],
+              whitelist: ["claude-sonnet-4-5", "claude-opus-4-5"],
+              blacklist: ["claude-opus-4-5"],
             },
           },
         }),
@@ -823,8 +823,8 @@ test("whitelist and blacklist can be combined", async () => {
       const providers = await Provider.list()
       expect(providers["anthropic"]).toBeDefined()
       const models = Object.keys(providers["anthropic"].models)
-      expect(models).toContain("claude-sonnet-4-20250514")
-      expect(models).not.toContain("claude-opus-4-20250514")
+      expect(models).toContain("claude-sonnet-4-5")
+      expect(models).not.toContain("claude-opus-4-5")
       expect(models.length).toBe(1)
     },
   })
@@ -834,7 +834,7 @@ test("model modalities default correctly", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -871,7 +871,7 @@ test("model with custom cost values", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -916,7 +916,7 @@ test("getSmallModel returns appropriate small model", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -940,10 +940,10 @@ test("getSmallModel respects config small_model override", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
-          small_model: "anthropic/claude-sonnet-4-20250514",
+          small_model: "anthropic/claude-sonnet-4-5",
         }),
       )
     },
@@ -957,7 +957,7 @@ test("getSmallModel respects config small_model override", async () => {
       const model = await Provider.getSmallModel("anthropic")
       expect(model).toBeDefined()
       expect(model?.providerID).toBe("anthropic")
-      expect(model?.id).toBe("claude-sonnet-4-20250514")
+      expect(model?.id).toBe("claude-sonnet-4-5")
     },
   })
 })
@@ -981,7 +981,7 @@ test("multiple providers can be configured simultaneously", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1016,7 +1016,7 @@ test("provider with custom npm package", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1058,14 +1058,14 @@ test("model alias name defaults to alias key when id differs", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
                 sonnet: {
-                  id: "claude-sonnet-4-20250514",
+                  id: "claude-sonnet-4-5",
                   // no name specified - should default to "sonnet" (the key)
                 },
               },
@@ -1091,7 +1091,7 @@ test("provider with multiple env var options only includes apiKey when single en
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1133,7 +1133,7 @@ test("provider with single env var includes apiKey automatically", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1175,13 +1175,13 @@ test("model cost overrides existing cost values", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   cost: {
                     input: 999,
                     output: 888,
@@ -1201,7 +1201,7 @@ test("model cost overrides existing cost values", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.cost.input).toBe(999)
       expect(model.cost.output).toBe(888)
     },
@@ -1212,7 +1212,7 @@ test("completely new provider not in database can be configured", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1262,7 +1262,7 @@ test("disabled_providers and enabled_providers interaction", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           // enabled_providers takes precedence - only these are considered
@@ -1296,7 +1296,7 @@ test("model with tool_call false", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1331,7 +1331,7 @@ test("model defaults tool_call to true when not specified", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1366,7 +1366,7 @@ test("model headers are preserved", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1409,7 +1409,7 @@ test("provider env fallback - second env var used if first missing", async () =>
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1449,7 +1449,7 @@ test("getModel returns consistent results", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1462,8 +1462,8 @@ test("getModel returns consistent results", async () => {
       Env.set("ANTHROPIC_API_KEY", "test-api-key")
     },
     fn: async () => {
-      const model1 = await Provider.getModel("anthropic", "claude-sonnet-4-20250514")
-      const model2 = await Provider.getModel("anthropic", "claude-sonnet-4-20250514")
+      const model1 = await Provider.getModel("anthropic", "claude-sonnet-4-5")
+      const model2 = await Provider.getModel("anthropic", "claude-sonnet-4-5")
       expect(model1.providerID).toEqual(model2.providerID)
       expect(model1.id).toEqual(model2.id)
       expect(model1).toEqual(model2)
@@ -1475,7 +1475,7 @@ test("provider name defaults to id when not in database", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1510,7 +1510,7 @@ test("ModelNotFoundError includes suggestions for typos", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1538,7 +1538,7 @@ test("ModelNotFoundError for provider includes suggestions", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1566,7 +1566,7 @@ test("getProvider returns undefined for nonexistent provider", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1586,7 +1586,7 @@ test("getProvider returns provider info", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1610,7 +1610,7 @@ test("closest returns undefined when no partial match found", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1633,7 +1633,7 @@ test("closest checks multiple query terms in order", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1658,7 +1658,7 @@ test("model limit defaults to zero when not specified", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1695,7 +1695,7 @@ test("provider options are deeply merged", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1732,7 +1732,7 @@ test("custom model inherits npm package from models.dev provider config", async 
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1768,7 +1768,7 @@ test("custom model inherits api.url from models.dev provider", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -1812,7 +1812,7 @@ test("model variants are generated for reasoning models", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
         }),
@@ -1827,7 +1827,7 @@ test("model variants are generated for reasoning models", async () => {
     fn: async () => {
       const providers = await Provider.list()
       // Claude sonnet 4 has reasoning capability
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.capabilities.reasoning).toBe(true)
       expect(model.variants).toBeDefined()
       expect(Object.keys(model.variants!).length).toBeGreaterThan(0)
@@ -1839,13 +1839,13 @@ test("model variants can be disabled via config", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   variants: {
                     high: { disabled: true },
                   },
@@ -1864,7 +1864,7 @@ test("model variants can be disabled via config", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.variants).toBeDefined()
       expect(model.variants!["high"]).toBeUndefined()
       // max variant should still exist
@@ -1877,13 +1877,13 @@ test("model variants can be customized via config", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   variants: {
                     high: {
                       thinking: {
@@ -1907,7 +1907,7 @@ test("model variants can be customized via config", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.variants!["high"]).toBeDefined()
       expect(model.variants!["high"].thinking.budgetTokens).toBe(20000)
     },
@@ -1918,13 +1918,13 @@ test("disabled key is stripped from variant config", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   variants: {
                     max: {
                       disabled: false,
@@ -1946,7 +1946,7 @@ test("disabled key is stripped from variant config", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.variants!["max"]).toBeDefined()
       expect(model.variants!["max"].disabled).toBeUndefined()
       expect(model.variants!["max"].customField).toBe("test")
@@ -1958,13 +1958,13 @@ test("all variants can be disabled via config", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   variants: {
                     high: { disabled: true },
                     max: { disabled: true },
@@ -1984,7 +1984,7 @@ test("all variants can be disabled via config", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.variants).toBeDefined()
       expect(Object.keys(model.variants!).length).toBe(0)
     },
@@ -1995,13 +1995,13 @@ test("variant config merges with generated variants", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
             anthropic: {
               models: {
-                "claude-sonnet-4-20250514": {
+                "claude-sonnet-4-5": {
                   variants: {
                     high: {
                       extraOption: "custom-value",
@@ -2022,7 +2022,7 @@ test("variant config merges with generated variants", async () => {
     },
     fn: async () => {
       const providers = await Provider.list()
-      const model = providers["anthropic"].models["claude-sonnet-4-20250514"]
+      const model = providers["anthropic"].models["claude-sonnet-4-5"]
       expect(model.variants!["high"]).toBeDefined()
       // Should have both the generated thinking config and the custom option
       expect(model.variants!["high"].thinking).toBeDefined()
@@ -2035,7 +2035,7 @@ test("variants filtered in second pass for database models", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
@@ -2073,7 +2073,7 @@ test("custom model with variants enabled and disabled", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(
-        path.join(dir, "opencode.json"),
+        path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           provider: {
