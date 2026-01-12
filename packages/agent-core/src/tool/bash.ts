@@ -50,7 +50,8 @@ const parser = lazy(async () => {
   return p
 })
 
-// TODO: we may wanna rename this tool so it works better on other shells
+// NOTE: Tool is named 'bash' for backwards compatibility, but it uses the system's
+// preferred shell (detected by Shell.acceptable()). Renaming would break existing prompts.
 export const BashTool = Tool.define("bash", async () => {
   const shell = Shell.acceptable()
   log.info("bash tool using shell", { shell })

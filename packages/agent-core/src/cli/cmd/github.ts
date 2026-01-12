@@ -202,7 +202,8 @@ export const GithubInstallCommand = cmd({
           await installGitHubApp()
 
           const providers = await ModelsDev.get().then((p) => {
-            // TODO: add guide for copilot, for now just hide it
+            // NOTE: GitHub Copilot provider is hidden until setup guide is ready.
+            // It requires special auth flow documentation before being user-facing.
             delete p["github-copilot"]
             return p
           })

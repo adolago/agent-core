@@ -77,7 +77,8 @@ export namespace Server {
   const app = new Hono()
   export const App: () => Hono = lazy(
     () =>
-      // TODO: Break server.ts into smaller route files to fix type inference
+      // KNOWN_ISSUE: Route chain is too deep for TypeScript inference (TS2589)
+      // server.ts is 3600+ lines; splitting into smaller route modules would fix this
       // @ts-expect-error - TS2589: Route chain too deep for type inference
       app
         .onError((err, c) => {
@@ -3181,7 +3182,8 @@ export namespace Server {
             },
           }),
           async (c) => {
-            // TODO: open dialog
+            // STUB: Dialog opening is handled by TUI via events, not this endpoint
+            // This endpoint exists for API completeness but does nothing server-side
             return c.json(true)
           },
         )

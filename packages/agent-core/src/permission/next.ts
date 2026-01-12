@@ -209,8 +209,8 @@ export namespace PermissionNext {
           pending.resolve()
         }
 
-        // TODO: we don't save the permission ruleset to disk yet until there's
-        // UI to manage it
+        // FUTURE: Permission ruleset persistence is disabled until a UI exists
+        // to view and manage saved permissions. Currently only session-scoped.
         // await Storage.write(["permission", Instance.project.id], s.approved)
         return
       }

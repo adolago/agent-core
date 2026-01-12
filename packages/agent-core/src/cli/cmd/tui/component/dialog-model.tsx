@@ -10,7 +10,8 @@ import * as fuzzysort from "fuzzysort"
 
 /** Get auth status indicator for a provider (placeholder for future implementation) */
 function getAuthIndicator(_providerID: string): string {
-  // TODO: Implement provider_auth_status tracking in sync store
+  // FUTURE: Will show lock/key icons when provider_auth_status is added to sync store
+  // For now, returns empty string (no indicator)
   return ""
 }
 
