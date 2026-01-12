@@ -1,5 +1,8 @@
 # Agent-Core
 
+[![Version](https://img.shields.io/badge/version-0.1.20250112-blue?style=flat-square)](https://github.com/adolago/agent-core/releases/tag/v0.1.20250112)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+
 > **Fork of [sst/opencode](https://github.com/sst/opencode)** — Built on OpenCode. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for creating an exceptional open-source AI coding agent. This fork extends OpenCode with a specialized personas system, semantic memory, and multi-surface orchestration. Please use the upstream repository for official releases and support; use this fork at your own risk.
 
 Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
