@@ -333,6 +333,19 @@ fi
 
 # Step 5: Start daemon
 if ! $NO_DAEMON; then
+  # Kill any daemon that may have started during build
+  log "Ensuring no daemon is running..."
+  "$BINARY_DST" daemon-stop 2>/dev/null || true
+  sleep 1
+  
+  # Kill by port as final measure
+  port_pid=$(lsof -ti:$DAEMON_PORT 2>/dev/null || true)
+  if [[ -n "$port_pid" ]]; then
+    kill -9 $port_pid 2>/dev/null || true
+    ok "Killed process on port $DAEMON_PORT"
+    sleep 1
+  fi
+  
   log "Starting daemon..."
   nohup "$BINARY_DST" daemon --hostname "$DAEMON_HOST" --port "$DAEMON_PORT" --gateway > /tmp/agent-core-daemon.log 2>&1 &
   DAEMON_PID=$!
