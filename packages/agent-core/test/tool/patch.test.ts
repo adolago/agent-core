@@ -3,7 +3,7 @@ import path from "path"
 import { PatchTool } from "../../src/tool/patch"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
-import { PermissionNext } from "../../src/permission/next"
+import type { PermissionNext } from "../../src/permission/next"
 import * as fs from "fs/promises"
 
 const ctx = {
@@ -49,19 +49,31 @@ describe("tool.patch", () => {
     })
   })
 
-  test.skip("should ask permission for files outside working directory", async () => {
+  test("should ask permission for files outside working directory", async () => {
+    const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
+    const ctxWithAsk = {
+      ...ctx,
+      ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
+        requests.push(req)
+      },
+    }
+
     await Instance.provide({
-      directory: "/tmp",
+      directory: "/tmp/test-project",
       fn: async () => {
-        const maliciousPatch = `*** Begin Patch
-*** Add File: /etc/passwd
-+malicious content
+        const externalPatch = `*** Begin Patch
+*** Add File: /etc/test-file.txt
++test content
 *** End Patch`
-        patchTool.execute({ patchText: maliciousPatch }, ctx)
-        // TODO: this sucks
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        const pending = await PermissionNext.list()
-        expect(pending.find((p) => p.sessionID === ctx.sessionID)).toBeDefined()
+        // The execute will call ask() for external directory permission
+        try {
+          await patchTool.execute({ patchText: externalPatch }, ctxWithAsk)
+        } catch {
+          // May throw if permission not granted, that's expected
+        }
+        const req = requests.find((r) => r.permission === "external_directory")
+        expect(req).toBeDefined()
+        expect(req!.patterns).toBeDefined()
       },
     })
   })
