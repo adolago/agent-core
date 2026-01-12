@@ -1,9 +1,9 @@
 import { Hono } from "hono"
 import { describeRoute, validator } from "hono-openapi"
 import { resolver } from "hono-openapi"
-import { Question } from "../question"
+import { Question } from "../../question"
 import z from "zod"
-import { errors } from "./error"
+import { errors } from "../error"
 
 export const QuestionRoute = new Hono()
   .get(
