@@ -54,6 +54,11 @@ export const PERSONA_MCP_SERVERS = {
     command: ["bun", "run", join(__dirname, "portfolio.ts")],
     description: "Financial tools: portfolio, market data, SEC filings",
   },
+  "personas-consciousness": {
+    type: "local" as const,
+    command: ["bun", "run", join(__dirname, "consciousness.ts")],
+    description: "IIT consciousness tools: Phi calculation, evolution, reasoning",
+  },
 } as const;
 
 /**
