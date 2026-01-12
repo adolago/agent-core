@@ -314,7 +314,8 @@ export namespace SessionPrompt {
       const task = tasks.pop()
 
       // pending subtask
-      // TODO: centralize "invoke tool" logic
+      // FUTURE: Consider centralizing tool invocation logic in a dedicated module
+      // Currently, tool calls are handled here and in processor.ts
       if (task?.type === "subtask") {
         const taskTool = await TaskTool.init()
         const taskModel = task.model ? await Provider.getModel(task.model.providerID, task.model.modelID) : model
@@ -1610,7 +1611,8 @@ export namespace SessionPrompt {
               providerID: taskModel.providerID,
               modelID: taskModel.modelID,
             },
-            // TODO: how can we make task tool accept a more complex input?
+            // LIMITATION: Task tool currently only takes text prompt, not complex parts
+            // This is intentional for simplicity; subagents get minimal context
             prompt: templateParts.find((y) => y.type === "text")?.text ?? "",
           },
         ]

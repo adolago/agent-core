@@ -15,7 +15,8 @@ import { Installation } from "@/installation"
 import { useKV } from "../context/kv"
 import { useCommandDialog } from "../component/dialog-command"
 
-// TODO: what is the best way to do this?
+// Module-level flag to prevent initial prompt from being set multiple times
+// This ensures the prompt is only auto-filled once per app lifecycle
 let once = false
 
 export function Home() {

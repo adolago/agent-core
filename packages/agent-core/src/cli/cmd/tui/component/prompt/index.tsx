@@ -224,7 +224,8 @@ export function Prompt(props: PromptProps) {
         onSelect: (dialog) => {
           if (autocomplete.visible) return
           if (!input.focused) return
-          // TODO: this should be its own command
+          // FUTURE: Shell mode toggle should be its own registered command
+          // for better discoverability in the command palette
           if (store.mode === "shell") {
             setStore("mode", "normal")
             return

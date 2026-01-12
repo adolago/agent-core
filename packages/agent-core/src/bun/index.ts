@@ -89,7 +89,8 @@ export namespace BunProc {
       "add",
       "--force",
       "--exact",
-      // TODO: get rid of this case (see: https://github.com/oven-sh/bun/issues/19936)
+      // WORKAROUND: Bun has cache issues when a proxy is configured
+      // See: https://github.com/oven-sh/bun/issues/19936
       ...(proxied ? ["--no-cache"] : []),
       "--cwd",
       Global.Path.cache,
