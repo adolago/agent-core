@@ -560,6 +560,129 @@ export namespace MCP {
     s.status[name] = { status: "disabled" }
   }
 
+  /**
+   * Check if an MCP server connection is healthy by attempting to list tools.
+   * Returns true if connected and responsive, false otherwise.
+   */
+  export async function isHealthy(name: string): Promise<boolean> {
+    const s = await state()
+    const client = s.clients[name]
+    
+    if (!client) {
+      return false
+    }
+    
+    if (s.status[name]?.status !== "connected") {
+      return false
+    }
+
+    try {
+      // Attempt a simple operation to verify connection is alive
+      await withTimeout(client.listTools(), 5000)
+      return true
+    } catch (e) {
+      log.warn("MCP health check failed", { name, error: e instanceof Error ? e.message : String(e) })
+      return false
+    }
+  }
+
+  /**
+   * Reconnect to an MCP server that has failed or disconnected.
+   * Returns the new status after reconnection attempt.
+   */
+  export async function reconnect(name: string): Promise<Status> {
+    const cfg = await Config.get()
+    const mcpConfig = cfg.mcp?.[name]
+    
+    if (!mcpConfig) {
+      log.error("MCP config not found for reconnect", { name })
+      return { status: "failed", error: "MCP config not found" }
+    }
+
+    if (!isMcpConfigured(mcpConfig)) {
+      log.error("MCP config invalid for reconnect", { name })
+      return { status: "failed", error: "Invalid MCP configuration" }
+    }
+
+    // Close existing client if any
+    const s = await state()
+    const existingClient = s.clients[name]
+    if (existingClient) {
+      await existingClient.close().catch((error) => {
+        log.debug("Failed to close existing MCP client during reconnect", { name, error })
+      })
+      delete s.clients[name]
+    }
+
+    log.info("Attempting MCP reconnection", { name })
+
+    // Create new connection
+    const result = await create(name, { ...mcpConfig, enabled: true })
+    
+    if (!result) {
+      s.status[name] = { status: "failed", error: "Unknown error during reconnection" }
+      return s.status[name]
+    }
+
+    s.status[name] = result.status
+    if (result.mcpClient) {
+      s.clients[name] = result.mcpClient
+      log.info("MCP reconnection successful", { name })
+    } else {
+      log.warn("MCP reconnection failed", { name, status: result.status })
+    }
+
+    return result.status
+  }
+
+  /**
+   * Attempt to reconnect all failed MCP servers.
+   * Returns a map of server names to their new statuses.
+   */
+  export async function reconnectAll(): Promise<Record<string, Status>> {
+    const s = await state()
+    const results: Record<string, Status> = {}
+    
+    for (const [name, currentStatus] of Object.entries(s.status)) {
+      if (currentStatus.status === "failed") {
+        results[name] = await reconnect(name)
+      } else {
+        results[name] = currentStatus
+      }
+    }
+    
+    return results
+  }
+
+  /**
+   * Check health of all connected MCPs and reconnect any that have failed.
+   * This can be called periodically or after daemon restart.
+   */
+  export async function healthCheckAndReconnect(): Promise<Record<string, Status>> {
+    const s = await state()
+    const results: Record<string, Status> = {}
+
+    for (const [name, currentStatus] of Object.entries(s.status)) {
+      if (currentStatus.status === "connected") {
+        // Check if still healthy
+        const healthy = await isHealthy(name)
+        if (!healthy) {
+          log.warn("MCP connection unhealthy, attempting reconnect", { name })
+          results[name] = await reconnect(name)
+        } else {
+          results[name] = currentStatus
+        }
+      } else if (currentStatus.status === "failed") {
+        // Attempt to reconnect failed connections
+        results[name] = await reconnect(name)
+      } else {
+        results[name] = currentStatus
+      }
+    }
+
+    return results
+  }
+
   export async function tools() {
     const result: Record<string, Tool> = {}
     const s = await state()
@@ -574,16 +697,32 @@ export namespace MCP {
         continue
       }
 
-      const toolsResult = await client.listTools().catch((e) => {
-        log.error("failed to get tools", { clientName, error: e.message })
-        const failedStatus = {
-          status: "failed" as const,
-          error: e instanceof Error ? e.message : String(e),
-        }
-        s.status[clientName] = failedStatus
-        delete s.clients[clientName]
+      let toolsResult = await client.listTools().catch((e) => {
+        log.warn("failed to get tools, will attempt reconnect", { clientName, error: e.message })
         return undefined
       })
+
+      // If initial fetch failed, attempt reconnection
+      if (!toolsResult) {
+        const reconnectStatus = await reconnect(clientName)
+        if (reconnectStatus.status === "connected") {
+          // Try again with new client
+          const newClient = s.clients[clientName]
+          if (newClient) {
+            toolsResult = await newClient.listTools().catch((e) => {
+              log.error("failed to get tools after reconnect", { clientName, error: e.message })
+              const failedStatus = {
+                status: "failed" as const,
+                error: e instanceof Error ? e.message : String(e),
+              }
+              s.status[clientName] = failedStatus
+              delete s.clients[clientName]
+              return undefined
+            })
+          }
+        }
+      }
+
       if (!toolsResult) {
         continue
       }
@@ -593,7 +732,11 @@ export namespace MCP {
       for (const mcpTool of toolsResult.tools) {
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
-        result[sanitizedClientName + "_" + sanitizedToolName] = await convertMcpTool(mcpTool, client, timeout)
+        result[sanitizedClientName + "_" + sanitizedToolName] = await convertMcpTool(
+          mcpTool,
+          s.clients[clientName] ?? client,
+          timeout,
+        )
       }
     }
     return result

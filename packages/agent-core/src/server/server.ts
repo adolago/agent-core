@@ -2010,10 +2010,18 @@ export namespace Server {
             c.status(200)
             c.header("Content-Type", "application/json")
             return stream(c, async (stream) => {
-              const sessionID = c.req.valid("param").sessionID
-              const body = c.req.valid("json")
-              const msg = await SessionPrompt.prompt({ ...body, sessionID })
-              stream.write(JSON.stringify(msg))
+              try {
+                const sessionID = c.req.valid("param").sessionID
+                const body = c.req.valid("json")
+                const msg = await SessionPrompt.prompt({ ...body, sessionID })
+                stream.write(JSON.stringify(msg))
+              } catch (err) {
+                // Ensure we always write valid JSON even on error
+                // This prevents "Unexpected end of JSON input" on the client
+                const errorMsg = err instanceof Error ? err.message : String(err)
+                Log.Default.error("session.prompt stream error", { error: errorMsg })
+                stream.write(JSON.stringify({ error: errorMsg, info: null, parts: [] }))
+              }
             })
           },
         )
@@ -2039,13 +2047,17 @@ export namespace Server {
           ),
           validator("json", SessionPrompt.PromptInput.omit({ sessionID: true })),
           async (c) => {
-            c.status(204)
-            c.header("Content-Type", "application/json")
-            return stream(c, async () => {
-              const sessionID = c.req.valid("param").sessionID
-              const body = c.req.valid("json")
-              SessionPrompt.prompt({ ...body, sessionID })
+            const sessionID = c.req.valid("param").sessionID
+            const body = c.req.valid("json")
+            // Fire-and-forget: start the prompt but don't wait for it
+            SessionPrompt.prompt({ ...body, sessionID }).catch((err) => {
+              Log.Default.error("session.prompt_async error", {
+                error: err instanceof Error ? err.message : String(err),
+                sessionID,
+              })
             })
+            // 204 No Content - no body, no Content-Type header needed
+            return c.body(null, 204)
           },
         )
         .post(
@@ -2994,6 +3006,74 @@ export namespace Server {
             const { name } = c.req.valid("param")
             await MCP.disconnect(name)
             return c.json(true)
+          },
+        )
+        .post(
+          "/mcp/:name/reconnect",
+          describeRoute({
+            summary: "Reconnect an MCP server",
+            description: "Attempt to reconnect to an MCP server that has failed or disconnected.",
+            operationId: "mcp.reconnect",
+            responses: {
+              200: {
+                description: "MCP reconnection result",
+                content: {
+                  "application/json": {
+                    schema: resolver(MCP.Status),
+                  },
+                },
+              },
+            },
+          }),
+          validator("param", z.object({ name: z.string() })),
+          async (c) => {
+            const { name } = c.req.valid("param")
+            const status = await MCP.reconnect(name)
+            return c.json(status)
+          },
+        )
+        .post(
+          "/mcp/reconnect-all",
+          describeRoute({
+            summary: "Reconnect all failed MCP servers",
+            description: "Attempt to reconnect to all MCP servers that are in a failed state.",
+            operationId: "mcp.reconnectAll",
+            responses: {
+              200: {
+                description: "MCP reconnection results",
+                content: {
+                  "application/json": {
+                    schema: resolver(z.record(z.string(), MCP.Status)),
+                  },
+                },
+              },
+            },
+          }),
+          async (c) => {
+            const results = await MCP.reconnectAll()
+            return c.json(results)
+          },
+        )
+        .post(
+          "/mcp/health-check",
+          describeRoute({
+            summary: "Health check and reconnect MCP servers",
+            description: "Check health of all connected MCPs and attempt to reconnect any that have failed.",
+            operationId: "mcp.healthCheckAndReconnect",
+            responses: {
+              200: {
+                description: "MCP health check results",
+                content: {
+                  "application/json": {
+                    schema: resolver(z.record(z.string(), MCP.Status)),
+                  },
+                },
+              },
+            },
+          }),
+          async (c) => {
+            const results = await MCP.healthCheckAndReconnect()
+            return c.json(results)
           },
         )
         .get(

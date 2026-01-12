@@ -139,13 +139,15 @@ export namespace ProviderTransform {
 
           // Include reasoning_content | reasoning_details directly on the message for all assistant messages
           if (reasoningText) {
+            // Type assertion: providerOptions is Record<string, unknown> but we need to spread existing openaiCompatible options
+            const existingOptions = (msg.providerOptions as Record<string, unknown>)?.openaiCompatible
             return {
               ...msg,
               content: filteredContent,
               providerOptions: {
                 ...msg.providerOptions,
                 openaiCompatible: {
-                  ...(msg.providerOptions as any)?.openaiCompatible,
+                  ...(typeof existingOptions === "object" ? existingOptions : {}),
                   [field]: reasoningText,
                 },
               },
@@ -299,14 +301,14 @@ export namespace ProviderTransform {
 
   export function topP(model: Provider.Model) {
     const id = model.id.toLowerCase()
+    // Claude thinking models (extended thinking) require topP >= 0.95 OR unset
+    // Return undefined to leave it unset and let Claude use its default
+    if (id.includes("claude") && id.includes("thinking")) return undefined
     if (id.includes("qwen")) return 1
     if (id.includes("minimax-m2")) {
       return 0.95
     }
     if (id.includes("gemini")) return 0.95
-    // Claude thinking models (extended thinking) require topP >= 0.95
-    // This applies to any provider serving Claude thinking models (Antigravity, Vertex, etc.)
-    if (id.includes("claude") && id.includes("thinking")) return 0.95
     return undefined
   }
 

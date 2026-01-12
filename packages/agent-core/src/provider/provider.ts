@@ -918,7 +918,7 @@ export namespace Provider {
                 },
                 status: "active",
                 headers: {},
-                options: { topP: 0.95 }, // Claude thinking requires topP >= 0.95
+                options: {}, // topP unset - Claude thinking requires topP >= 0.95 or unset
                 cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
                 limit: { context: 200000, output: 64000 },
                 capabilities: {
@@ -974,7 +974,7 @@ export namespace Provider {
                 },
                 status: "active",
                 headers: {},
-                options: { topP: 0.95 }, // Claude thinking requires topP >= 0.95
+                options: {}, // topP unset - Claude thinking requires topP >= 0.95 or unset
                 cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
                 limit: { context: 200000, output: 64000 },
                 capabilities: {

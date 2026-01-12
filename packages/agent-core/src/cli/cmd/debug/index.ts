@@ -12,6 +12,7 @@ import { RipgrepCommand } from "./ripgrep"
 import { ScrapCommand } from "./scrap"
 import { SkillCommand } from "./skill"
 import { SnapshotCommand } from "./snapshot"
+import { StatusCommand } from "./status"
 import { TasksCommand } from "./tasks"
 import { AgentCommand } from "./agent"
 
@@ -33,6 +34,7 @@ export const DebugCommand = cmd({
       .command(SnapshotCommand)
       .command(TasksCommand)
       .command(AgentCommand)
+      .command(StatusCommand)
       .command(PathsCommand)
       .command(FlagsCommand)
       .command({

@@ -71,6 +71,12 @@ if (version !== CACHE_VERSION) {
         }),
       ),
     )
-  } catch (e) {}
+  } catch (e) {
+    // Ignore ENOENT (cache dir doesn't exist) - expected on first run
+    // Log other errors for debugging
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.error("[agent-core] Cache cleanup failed:", e)
+    }
+  }
   await Bun.file(path.join(Global.Path.cache, "version")).write(CACHE_VERSION)
 }
