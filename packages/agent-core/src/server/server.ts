@@ -1,6 +1,6 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Log } from "../util/log"
-import { describeRoute, generateSpecs, resolver, openAPIRouteHandler } from "hono-openapi"
+import { describeRoute, generateSpecs, resolver } from "hono-openapi"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { streamSSE } from "hono/streaming"

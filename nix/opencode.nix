@@ -97,11 +97,11 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     mkdir -p $out/lib/opencode/node_modules/@opentui
 
     mkdir -p $out/bin
-    makeWrapper ${bun}/bin/bun $out/bin/opencode \
+    makeWrapper ${bun}/bin/bun $out/bin/agent-core \
       --add-flags "run" \
       --add-flags "$out/lib/opencode/dist/src/index.js" \
       --prefix PATH : ${lib.makeBinPath [ ripgrep ]} \
-      --argv0 opencode
+      --argv0 agent-core
 
     runHook postInstall
   '';
@@ -133,6 +133,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       "aarch64-darwin"
       "x86_64-darwin"
     ];
-    mainProgram = "opencode";
+    mainProgram = "agent-core";
   };
 })

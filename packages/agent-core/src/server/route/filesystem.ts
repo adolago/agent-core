@@ -1,9 +1,9 @@
 import { describeRoute, resolver, validator } from "hono-openapi"
 import { Hono } from "hono"
 import { z } from "zod"
-import { Ripgrep } from "../../tool/ripgrep"
+import { Ripgrep } from "../../file/ripgrep"
 import { Instance } from "../../project/instance"
-import { File } from "../../fs/file"
+import { File } from "../../file"
 import { LSP } from "../../lsp"
 import { errors } from "../error"
 
@@ -178,7 +178,7 @@ export const FilesystemRoute = new Hono()
           description: "File status",
           content: {
             "application/json": {
-              schema: resolver(File.Status.array()),
+              schema: resolver(File.Info.array()),
             },
           },
         },
