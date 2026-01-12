@@ -7,15 +7,20 @@
  * Primary API:
  * - Memory class (unified.ts) - Single class for all memory operations
  * - getMemory() - Get shared Memory instance
- *
- * Legacy exports (for backwards compatibility):
- * - QdrantVectorStorage - Low-level Qdrant client
- * - MemoryStore - Legacy store API
- * - createEmbeddingProvider - Embedding factory
  */
 
 // Primary API - unified Memory class
-export { Memory, getMemory, resetMemory, extractKeyFacts } from "./unified";
+export {
+  Memory,
+  getMemory,
+  resetMemory,
+  extractKeyFacts,
+  generateSummary,
+  mergeFacts,
+  createConversationState,
+  updateConversationState,
+  formatContextForPrompt,
+} from "./unified";
 export type {
   MemoryConfig,
   PersonaId,
@@ -32,6 +37,3 @@ export * from "./embedding";
 
 // Low-level storage (for advanced use cases)
 export { QdrantVectorStorage, QdrantMemoryStore } from "./qdrant";
-
-// Legacy store API (deprecated - use Memory class instead)
-export { MemoryStore, getMemoryStore, resetMemoryStore } from "./store";

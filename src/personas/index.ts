@@ -21,29 +21,28 @@ export {
   generateWorkerName,
 } from "./persona";
 
-// Memory bridge
+// Unified Memory System (replaces memory-bridge.ts and continuity.ts)
 export {
-  QdrantMemoryBridge,
-  createMemoryBridge,
-} from "./memory-bridge";
-
-// WezTerm integration
-export {
-  WeztermPaneBridge,
-  createWeztermBridge,
-} from "./wezterm";
-
-// Continuity
-export {
-  ContinuityManager,
-  createContinuityManager,
+  Memory,
+  getMemory,
+  resetMemory,
   extractKeyFacts,
   generateSummary,
   mergeFacts,
   createConversationState,
   updateConversationState,
   formatContextForPrompt,
-} from "./continuity";
+  type ConversationState,
+  type PersonaId,
+  type PersonasState,
+  type MemoryConfig,
+} from "../memory/unified";
+
+// WezTerm integration
+export {
+  WeztermPaneBridge,
+  createWeztermBridge,
+} from "./wezterm";
 
 // Orchestrator
 export {

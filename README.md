@@ -118,6 +118,15 @@ bun run build
 bun run typecheck
 ```
 
+## Wide events
+
+Agent-core emits wide event JSONL logs for per-request diagnostics:
+
+```bash
+agent-core logs wide --lines 50
+agent-core logs wide --where sessionId=session_123
+```
+
 ## Credits
 
 - **OpenCode** by [SST](https://github.com/sst/opencode) - The foundation this project builds on

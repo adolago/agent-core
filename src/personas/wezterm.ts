@@ -16,6 +16,12 @@ import type {
   PersonaId,
 } from "./types";
 import { getPersonaConfig } from "./persona";
+import {
+  escapeShellArg,
+  escapeDoubleQuoted,
+  stripControlChars,
+  validatePersona,
+} from "../util/shell-escape";
 
 const execAsync = promisify(exec);
 const log = Log.create({ service: "personas-wezterm" });
@@ -107,9 +113,14 @@ export class WeztermPaneBridge implements WeztermBridge {
    * Send a command to a pane
    */
   async sendCommand(paneId: string, command: string): Promise<void> {
-    // Escape the command for shell
-    const escapedCommand = command.replace(/'/g, "'\\''");
-    await execAsync(`wezterm cli send-text --pane-id ${paneId} --no-paste '${escapedCommand}\n'`);
+    // Validate pane ID is numeric
+    if (!/^\d+$/.test(paneId)) {
+      throw new Error(`Invalid pane ID: ${paneId}`);
+    }
+    // Strip any control characters from command and escape for shell
+    const sanitized = stripControlChars(command);
+    const escaped = escapeShellArg(sanitized);
+    await execAsync(`wezterm cli send-text --pane-id ${paneId} --no-paste '${escaped}\n'`);
   }
 
   /**
@@ -130,8 +141,15 @@ export class WeztermPaneBridge implements WeztermBridge {
    * Set pane title
    */
   async setPaneTitle(paneId: string, title: string): Promise<void> {
-    // WezTerm uses escape sequences for titles
-    const escapeSequence = `\\033]0;${title}\\007`;
+    // Validate pane ID is numeric
+    if (!/^\d+$/.test(paneId)) {
+      throw new Error(`Invalid pane ID: ${paneId}`);
+    }
+    // Sanitize title to prevent escape sequence injection
+    const sanitizedTitle = stripControlChars(title);
+    const escapedTitle = escapeShellArg(sanitizedTitle);
+    // WezTerm uses OSC escape sequence for titles: ESC ] 0 ; title BEL
+    const escapeSequence = `\\033]0;${escapedTitle}\\007`;
     await execAsync(
       `wezterm cli send-text --pane-id ${paneId} --no-paste $'${escapeSequence}'`
     );
@@ -207,7 +225,9 @@ export class WeztermPaneBridge implements WeztermBridge {
     if (!this.statusPaneId) return;
 
     const lines: string[] = [];
-    lines.push("\\033[2J\\033[H"); // Clear screen
+    // Use printf for controlled escape sequence interpretation
+    // Clear screen and move cursor to top
+    lines.push("\x1b[2J\x1b[H");
     lines.push("╔══════════════════════════════════════════╗");
     lines.push("║           ◆ PERSONAS STATUS ◆            ║");
     lines.push("╠══════════════════════════════════════════╣");
@@ -226,8 +246,11 @@ export class WeztermPaneBridge implements WeztermBridge {
       const config = getPersonaConfig(persona as PersonaId);
       const queens = workers.filter((w) => w.role === "queen");
       const drones = workers.filter((w) => w.role === "drone");
+      // Sanitize displayName to prevent injection
+      const safeName = stripControlChars(config.displayName).padEnd(8);
+      const safeIcon = stripControlChars(config.icon);
       lines.push(
-        `║ ${config.icon} ${config.displayName.padEnd(8)} Q:${queens.length} D:${drones.length} ${this.getStatusIndicator(workers)}`.padEnd(43) + "║"
+        `║ ${safeIcon} ${safeName} Q:${queens.length} D:${drones.length} ${this.getStatusIndicator(workers)}`.padEnd(43) + "║"
       );
     }
 
@@ -244,8 +267,10 @@ export class WeztermPaneBridge implements WeztermBridge {
     if (state.conversation) {
       const lead = getPersonaConfig(state.conversation.leadPersona);
       const leadIndicator = this.colorize("●", lead.color);
-      lines.push(`║ Presence: ${leadIndicator} ${lead.displayName} (Queen)`.padEnd(43) + "║");
-      lines.push(`║ Lead: ${lead.icon} ${lead.displayName}`.padEnd(43) + "║");
+      const safeLeadName = stripControlChars(lead.displayName);
+      const safeLeadIcon = stripControlChars(lead.icon);
+      lines.push(`║ Presence: ${leadIndicator} ${safeLeadName} (Queen)`.padEnd(43) + "║");
+      lines.push(`║ Lead: ${safeLeadIcon} ${safeLeadName}`.padEnd(43) + "║");
       if (state.conversation.objectives.length > 0) {
         lines.push(`║ Goals: ${state.conversation.objectives.length} active`.padEnd(43) + "║");
       }
@@ -255,9 +280,11 @@ export class WeztermPaneBridge implements WeztermBridge {
     lines.push(`║ Last sync: ${new Date(state.lastSyncAt).toLocaleTimeString()}`.padEnd(43) + "║");
     lines.push("╚══════════════════════════════════════════╝");
 
-    // Send to status pane
-    const output = lines.join("\\n");
-    await this.sendCommand(this.statusPaneId, `echo -e "${output}"`);
+    // Send to status pane using printf for controlled escape handling
+    // printf interprets escapes, but the content is sanitized
+    const output = lines.join("\n");
+    const escaped = escapeShellArg(output);
+    await execAsync(`wezterm cli send-text --pane-id ${this.statusPaneId} --no-paste '${escaped}'`);
   }
 
   /**
@@ -306,17 +333,20 @@ export class WeztermPaneBridge implements WeztermBridge {
 
     // Change directory if specified
     if (options.workingDir) {
-      commands.push(`cd "${options.workingDir}"`);
+      // Escape the path for double-quoted shell argument
+      const escapedPath = escapeDoubleQuoted(options.workingDir);
+      commands.push(`cd "${escapedPath}"`);
     }
 
     // Build agent-core command
     let agentCmd = "agent-core";
     if (options.prompt) {
-      // Create a temp file with the prompt to avoid shell escaping issues
-      // For now, using direct string since agent-core run handles it
-      const promptArg = options.prompt.replace(/"/g, '\\"').replace(/\n/g, "\\n");
-      const personaArg = options.persona ? `--agent ${options.persona}` : "";
-      agentCmd = `agent-core run "${promptArg}" ${personaArg}`;
+      // Escape prompt for double-quoted shell argument
+      const escapedPrompt = escapeDoubleQuoted(options.prompt);
+      // Validate persona against whitelist to prevent injection
+      const validPersona = validatePersona(options.persona);
+      const personaArg = validPersona ? `--agent ${validPersona}` : "";
+      agentCmd = `agent-core run "${escapedPrompt}" ${personaArg}`;
     }
 
     commands.push(agentCmd);

@@ -36,7 +36,7 @@ import {
   type TimeSlot,
 } from "./google/calendar.js";
 import { requestDaemon } from "../../daemon/ipc-client.js";
-import { getMemoryStore } from "../../memory/store.js";
+import { getMemory } from "../../memory/unified.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -75,7 +75,7 @@ Examples:
       ctx.metadata({ title: `Storing memory: ${category}` });
 
       try {
-        const store = getMemoryStore();
+        const store = getMemory();
         const entry = await store.save({
           category,
           content,
@@ -169,7 +169,7 @@ Examples:
       ctx.metadata({ title: `Searching: ${query}` });
 
       try {
-        const store = getMemoryStore();
+        const store = getMemory();
         const results = await store.search({
           query,
           limit: limit ?? 5,

@@ -12,7 +12,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { getMemoryStore } from "../../memory/store.js";
+import { getMemory } from "../../memory/unified.js";
 import type { MemoryCategory } from "../../memory/types.js";
 
 const MEMORY_CATEGORIES = [
@@ -58,7 +58,7 @@ The memory is stored with semantic embeddings for later retrieval.`,
     const { content, category, importance, tags, summary } = args;
 
     try {
-      const store = getMemoryStore();
+      const store = getMemory();
       const entry = await store.save({
         category: category ?? "note",
         content,
@@ -117,7 +117,7 @@ not just keyword matching. Results are ranked by similarity score.`,
     const { query, category, limit, threshold, tags } = args;
 
     try {
-      const store = getMemoryStore();
+      const store = getMemory();
       const results = await store.search({
         query,
         category,
@@ -178,7 +178,7 @@ Returns memories sorted by creation date (newest first).`,
     const { category, limit } = args;
 
     try {
-      const store = getMemoryStore();
+      const store = getMemory();
       const entries = await store.list({
         category,
         limit: limit ?? 20,
@@ -232,7 +232,7 @@ server.tool(
     const { id } = args;
 
     try {
-      const store = getMemoryStore();
+      const store = getMemory();
       await store.delete(id);
 
       return {
@@ -269,7 +269,7 @@ server.tool(
   {},
   async () => {
     try {
-      const store = getMemoryStore();
+      const store = getMemory();
       const stats = await store.stats();
 
       return {

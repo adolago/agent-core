@@ -166,8 +166,8 @@ const SearchMemoryCommand = cmd({
     await bootstrap(process.cwd(), async () => {
       try {
         // Try to get the memory store from src/memory (root of monorepo)
-        const { getMemoryStore } = await import("../../../../../../src/memory/store")
-        const store = getMemoryStore()
+        const { getMemory } = await import("../../../../../../src/memory/unified")
+        const store = getMemory()
 
         // Search using the memory store
         const results = await store.search({

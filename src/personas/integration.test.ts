@@ -6,9 +6,9 @@
  */
 
 import {
-  createMemoryBridge,
+  Memory,
+  getMemory,
   createWeztermBridge,
-  createContinuityManager,
   createOrchestrator,
   type PersonasState,
   type ConversationState,
@@ -46,30 +46,30 @@ async function sleep(ms: number) {
 }
 
 // ============================================================================
-// Memory Bridge Tests
+// Memory Tests (using unified Memory class)
 // ============================================================================
 
-async function testMemoryBridge() {
-  log("Testing Memory Bridge...");
+async function testMemory() {
+  log("Testing Memory...");
 
-  const bridge = createMemoryBridge(TEST_CONFIG.qdrant);
+  const memory = new Memory({
+    qdrantUrl: TEST_CONFIG.qdrant.url,
+    collection: TEST_CONFIG.qdrant.memoryCollection,
+    namespace: "test",
+  });
 
   try {
-    // Initialize
-    await bridge.init();
-    success("Memory bridge initialized");
-
     // Store a memory
-    const memoryId = await bridge.storeMemory(
-      "User prefers dark mode for all applications",
-      { type: "preference", persona: "zee" }
-    );
-    success(`Stored memory: ${memoryId}`);
+    const entry = await memory.save({
+      content: "User prefers dark mode for all applications",
+      category: "preference",
+    });
+    success(`Stored memory: ${entry.id}`);
 
     // Search memories
-    const results = await bridge.searchMemories("dark mode preference", 5);
-    if (results.length > 0 && results[0].content.includes("dark mode")) {
-      success(`Found memory via search: "${results[0].content.slice(0, 50)}..."`);
+    const results = await memory.search({ query: "dark mode preference", limit: 5 });
+    if (results.length > 0 && results[0].entry.content.includes("dark mode")) {
+      success(`Found memory via search: "${results[0].entry.content.slice(0, 50)}..."`);
     } else {
       fail("Memory search did not return expected results");
     }
@@ -86,32 +86,29 @@ async function testMemoryBridge() {
         totalTokensUsed: 10000,
       },
     };
-    await bridge.saveState(testState);
+    await memory.saveState(testState);
     success("Saved personas state");
 
     // Load state
-    const loadedState = await bridge.loadState();
+    const loadedState = await memory.loadState();
     if (loadedState && loadedState.stats.totalTasksCompleted === 5) {
       success("Loaded personas state correctly");
     } else {
       fail("State loading failed or data mismatch");
     }
 
-    // Test conversation state
-    const convState: ConversationState = {
-      sessionId: "test-session-123",
-      leadPersona: "zee",
-      summary: "Discussed project setup and configuration",
-      plan: "1. Set up environment\n2. Configure services\n3. Test integration",
-      objectives: ["Complete setup", "Verify all services"],
-      keyFacts: ["User prefers TypeScript", "Project uses Bun"],
-      sessionChain: [],
-      updatedAt: Date.now(),
-    };
-    await bridge.saveConversationState(convState);
+    // Test conversation state via session API
+    await memory.startSession("test-session-123", "zee");
+    await memory.setSummary("Discussed project setup and configuration");
+    await memory.setPlan("1. Set up environment\n2. Configure services\n3. Test integration");
+    await memory.addObjective("Complete setup");
+    await memory.addObjective("Verify all services");
+    await memory.addKeyFact("User prefers TypeScript");
+    await memory.addKeyFact("Project uses Bun");
+    await memory.endSession();
     success("Saved conversation state");
 
-    const loadedConv = await bridge.loadConversationState("test-session-123");
+    const loadedConv = await memory.loadConversation("test-session-123");
     if (loadedConv && loadedConv.objectives.length === 2) {
       success("Loaded conversation state correctly");
     } else {
@@ -120,25 +117,28 @@ async function testMemoryBridge() {
 
     return true;
   } catch (e) {
-    fail(`Memory bridge error: ${e}`);
+    fail(`Memory error: ${e}`);
     return false;
   }
 }
 
 // ============================================================================
-// Continuity Manager Tests
+// Continuity Tests (using unified Memory class)
 // ============================================================================
 
-async function testContinuityManager() {
-  log("Testing Continuity Manager...");
+async function testContinuity() {
+  log("Testing Continuity...");
 
-  const bridge = createMemoryBridge(TEST_CONFIG.qdrant);
-  await bridge.init();
-  const continuity = createContinuityManager(bridge, { maxKeyFacts: 10 });
+  const memory = new Memory({
+    qdrantUrl: TEST_CONFIG.qdrant.url,
+    collection: TEST_CONFIG.qdrant.memoryCollection,
+    namespace: "test-continuity",
+    maxKeyFacts: 10,
+  });
 
   try {
     // Start a session
-    const state = await continuity.startSession("cont-test-session", "stanley");
+    const state = await memory.startSession("cont-test-session", "stanley");
     success(`Started session: ${state.sessionId}`);
 
     // Process some messages
@@ -148,11 +148,11 @@ async function testContinuityManager() {
       "We decided to set a price target of $200",
       "User prefers fundamental analysis over technical",
     ];
-    await continuity.processMessages(messages);
+    await memory.processMessages(messages);
     success("Processed messages");
 
     // Check extracted facts
-    const currentState = continuity.getState();
+    const currentState = memory.getConversationState();
     if (currentState && currentState.keyFacts.length > 0) {
       success(`Extracted ${currentState.keyFacts.length} key facts`);
     } else {
@@ -160,15 +160,15 @@ async function testContinuityManager() {
     }
 
     // Update plan
-    await continuity.updatePlan("Analyze tech stocks for Q1 portfolio");
+    await memory.setPlan("Analyze tech stocks for Q1 portfolio");
     success("Updated plan");
 
     // Add objective
-    await continuity.addObjective("Complete AAPL analysis");
+    await memory.addObjective("Complete AAPL analysis");
     success("Added objective");
 
     // Get context for prompt
-    const context = continuity.getContextForPrompt();
+    const context = memory.formatContextForPrompt();
     if (context.includes("AAPL") || context.includes("portfolio")) {
       success("Context formatted correctly for prompt injection");
     } else {
@@ -176,11 +176,11 @@ async function testContinuityManager() {
     }
 
     // End session
-    await continuity.endSession();
+    await memory.endSession();
     success("Session ended");
 
     // Restore session
-    const restored = await continuity.restoreSession("cont-test-session");
+    const restored = await memory.restoreSession("cont-test-session");
     if (restored && restored.objectives.includes("Complete AAPL analysis")) {
       success("Session restored correctly");
     } else {
@@ -189,7 +189,7 @@ async function testContinuityManager() {
 
     return true;
   } catch (e) {
-    fail(`Continuity manager error: ${e}`);
+    fail(`Continuity error: ${e}`);
     return false;
   }
 }
@@ -328,10 +328,10 @@ async function runTests() {
   const results: Record<string, boolean> = {};
 
   // Run tests
-  results["Memory Bridge"] = await testMemoryBridge();
+  results["Memory"] = await testMemory();
   console.log("");
 
-  results["Continuity Manager"] = await testContinuityManager();
+  results["Continuity"] = await testContinuity();
   console.log("");
 
   results["WezTerm Bridge"] = await testWeztermBridge();

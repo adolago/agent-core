@@ -347,7 +347,7 @@ export class MessagingSurface extends BaseSurface implements Surface {
     }
   }
 
-  async sendStreamChunk(chunk: StreamChunk, threadId?: string): Promise<void> {
+  override async sendStreamChunk(chunk: StreamChunk, threadId?: string): Promise<void> {
     // Buffer all chunks
     this.batcher.append(chunk);
 
@@ -360,7 +360,7 @@ export class MessagingSurface extends BaseSurface implements Surface {
     }
   }
 
-  async sendTypingIndicator(threadId?: string): Promise<void> {
+  override async sendTypingIndicator(threadId?: string): Promise<void> {
     if (!threadId || !this.config.showTyping) return;
 
     // Start typing loop
@@ -414,12 +414,12 @@ export class MessagingSurface extends BaseSurface implements Surface {
   // Tool Notifications
   // ---------------------------------------------------------------------------
 
-  async notifyToolStart(_toolCall: ToolCall): Promise<void> {
+  override async notifyToolStart(_toolCall: ToolCall): Promise<void> {
     // For messaging, we just maintain typing indicator
     // Tool details are not shown unless configured
   }
 
-  async notifyToolEnd(_result: ToolResult): Promise<void> {
+  override async notifyToolEnd(_result: ToolResult): Promise<void> {
     // Optionally include tool output in batched response
     // This is handled by the batcher when processing stream chunks
   }

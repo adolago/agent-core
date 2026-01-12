@@ -20,6 +20,9 @@ import { Snapshot } from "@/snapshot"
 import type { Provider } from "@/provider/provider"
 import { PermissionNext } from "@/permission/next"
 
+// Re-export Thread for convenience
+export { Thread } from "./thread"
+
 export namespace Session {
   const log = Log.create({ service: "session" })
 

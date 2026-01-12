@@ -141,6 +141,8 @@ export const Worker = z.object({
   tiaraAgentId: z.string().optional(),
   createdAt: z.number(),
   lastActivityAt: z.number(),
+  /** Worker metadata (e.g., topology, SPARC phase) */
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type Worker = z.infer<typeof Worker>;
 
@@ -332,8 +334,12 @@ export const PersonasConfig = z.object({
   tiara: z.object({
     /** Use tiara for orchestration */
     enabled: z.boolean().default(true),
-    /** Topology for swarm */
-    topology: z.enum(["mesh", "hierarchical", "star"]).default("star"),
+    /** Topology for swarm - 'auto' enables dynamic selection based on task type */
+    topology: z.enum(["mesh", "hierarchical", "star", "adaptive", "auto"]).default("auto"),
+    /** Enable SPARC methodology for complex planning tasks */
+    sparcEnabled: z.boolean().default(false),
+    /** Enable neural pattern training for optimization */
+    neuralTrainingEnabled: z.boolean().default(false),
   }).default({}),
 });
 export type PersonasConfig = z.infer<typeof PersonasConfig>;

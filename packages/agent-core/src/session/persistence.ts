@@ -51,6 +51,7 @@ export namespace Persistence {
   const CHECKPOINT_DIR = path.join(PERSISTENCE_DIR, "checkpoints")
   const WAL_FILE = path.join(PERSISTENCE_DIR, "wal.jsonl")
   const LAST_ACTIVE_FILE = path.join(PERSISTENCE_DIR, "last-active.json")
+  const DAILY_SESSIONS_FILE = path.join(PERSISTENCE_DIR, "daily-sessions.json")
   const RECOVERY_MARKER = path.join(PERSISTENCE_DIR, "recovery-needed")
 
   interface LastActiveState {
@@ -474,6 +475,136 @@ export namespace Persistence {
   }
 
   // -------------------------------------------------------------------------
+  // Daily Session Tracking (One session per persona per day)
+  // -------------------------------------------------------------------------
+
+  interface DailySessionEntry {
+    sessionId: string
+    chatId?: number
+    createdAt: number
+  }
+
+  interface DailySessionsState {
+    // Format: { "zee-2026-01-11": { sessionId, chatId, createdAt }, ... }
+    [key: string]: DailySessionEntry
+  }
+
+  function getDailyKey(persona: "zee" | "stanley" | "johny", date?: Date): string {
+    const d = date || new Date()
+    const dateStr = d.toISOString().split("T")[0] // YYYY-MM-DD
+    return `${persona}-${dateStr}`
+  }
+
+  async function getDailySessionsState(): Promise<DailySessionsState> {
+    try {
+      const content = await fs.readFile(DAILY_SESSIONS_FILE, "utf-8")
+      return JSON.parse(content) as DailySessionsState
+    } catch {
+      return {}
+    }
+  }
+
+  /**
+   * Get today's session for a persona (or specific date)
+   */
+  export async function getDailySession(
+    persona: "zee" | "stanley" | "johny",
+    date?: Date
+  ): Promise<DailySessionEntry | null> {
+    const key = getDailyKey(persona, date)
+    const state = await getDailySessionsState()
+    return state[key] || null
+  }
+
+  /**
+   * Set today's session for a persona (or specific date)
+   */
+  export async function setDailySession(
+    persona: "zee" | "stanley" | "johny",
+    sessionId: string,
+    chatId?: number,
+    date?: Date
+  ): Promise<void> {
+    const key = getDailyKey(persona, date)
+    const state = await getDailySessionsState()
+
+    state[key] = {
+      sessionId,
+      chatId,
+      createdAt: Date.now(),
+    }
+
+    // Cleanup old entries (keep last 30 days)
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+    for (const k of Object.keys(state)) {
+      if (state[k].createdAt < cutoff) {
+        delete state[k]
+      }
+    }
+
+    await fs.writeFile(DAILY_SESSIONS_FILE, JSON.stringify(state, null, 2))
+
+    // Also log to WAL
+    appendToWAL({
+      timestamp: Date.now(),
+      operation: "session_activate",
+      data: { persona, sessionId, chatId, daily: true, date: getDailyKey(persona, date) },
+    })
+
+    log.debug("Set daily session", { persona, sessionId, chatId, key })
+  }
+
+  /**
+   * Check if a daily session exists and is still valid
+   */
+  export async function hasDailySession(
+    persona: "zee" | "stanley" | "johny",
+    date?: Date
+  ): Promise<boolean> {
+    const entry = await getDailySession(persona, date)
+    if (!entry) return false
+
+    // Verify session still exists
+    try {
+      const session = await Session.get(entry.sessionId)
+      return !!session
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Get or create a daily session for a persona
+   * Returns the session ID to use
+   */
+  export async function getOrCreateDailySession(
+    persona: "zee" | "stanley" | "johny",
+    options: {
+      chatId?: number
+      title?: string
+    } = {}
+  ): Promise<{ sessionId: string; isNew: boolean }> {
+    // Check for existing daily session
+    const existing = await getDailySession(persona)
+    if (existing) {
+      // Verify it still exists
+      try {
+        const session = await Session.get(existing.sessionId)
+        if (session) {
+          log.debug("Reusing daily session", { persona, sessionId: existing.sessionId })
+          return { sessionId: existing.sessionId, isNew: false }
+        }
+      } catch {
+        // Session no longer exists, will create new one
+      }
+    }
+
+    // Need to create new session - return null sessionId to indicate caller should create
+    // (We don't create here because session creation needs proper API context)
+    return { sessionId: "", isNew: true }
+  }
+
+  // -------------------------------------------------------------------------
   // Session Recovery Helpers
   // -------------------------------------------------------------------------
 
@@ -527,6 +658,79 @@ export namespace Persistence {
       return { session, todos, incompleteTodos }
     } catch {
       return null
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Session Context (for cross-session memory injection)
+  // -------------------------------------------------------------------------
+
+  const SESSION_CONTEXT_FILE = path.join(PERSISTENCE_DIR, "session-contexts.json")
+
+  interface SessionContext {
+    timestamp: number
+    memories: string[]
+  }
+
+  interface SessionContextStore {
+    [sessionId: string]: SessionContext
+  }
+
+  /**
+   * Set cross-session context for a session
+   * Used by personas bootstrap to inject memories
+   */
+  export async function setSessionContext(
+    sessionId: string,
+    context: SessionContext
+  ): Promise<void> {
+    await fs.mkdir(PERSISTENCE_DIR, { recursive: true })
+
+    let store: SessionContextStore = {}
+    try {
+      const content = await fs.readFile(SESSION_CONTEXT_FILE, "utf-8")
+      store = JSON.parse(content)
+    } catch {
+      // File doesn't exist yet
+    }
+
+    store[sessionId] = context
+
+    // Cleanup old contexts (keep last 100)
+    const entries = Object.entries(store)
+    if (entries.length > 100) {
+      entries.sort((a, b) => b[1].timestamp - a[1].timestamp)
+      store = Object.fromEntries(entries.slice(0, 100))
+    }
+
+    await fs.writeFile(SESSION_CONTEXT_FILE, JSON.stringify(store, null, 2))
+  }
+
+  /**
+   * Get cross-session context for a session
+   * Used by prompt builder to inject memories into system prompt
+   */
+  export async function getSessionContext(sessionId: string): Promise<SessionContext | null> {
+    try {
+      const content = await fs.readFile(SESSION_CONTEXT_FILE, "utf-8")
+      const store: SessionContextStore = JSON.parse(content)
+      return store[sessionId] ?? null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Clear session context after it's been used
+   */
+  export async function clearSessionContext(sessionId: string): Promise<void> {
+    try {
+      const content = await fs.readFile(SESSION_CONTEXT_FILE, "utf-8")
+      const store: SessionContextStore = JSON.parse(content)
+      delete store[sessionId]
+      await fs.writeFile(SESSION_CONTEXT_FILE, JSON.stringify(store, null, 2))
+    } catch {
+      // Ignore if file doesn't exist
     }
   }
 }

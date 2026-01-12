@@ -14,6 +14,7 @@ import type {
   PluginInstance,
   AuthProvider,
 } from '../plugin';
+import { redactSecrets } from '../../util/shell-escape';
 
 export interface CopilotAuthConfig {
   /** GitHub OAuth client ID */
@@ -177,7 +178,7 @@ export const CopilotAuthPlugin: PluginFactory = async (
             };
           } catch (error) {
             ctx.logger.error('Copilot OAuth failed', {
-              error: error instanceof Error ? error.message : String(error),
+              error: redactSecrets(error instanceof Error ? error.message : String(error)),
             });
             throw error;
           }
@@ -322,7 +323,7 @@ async function getCopilotToken(
     return data.token;
   } catch (error) {
     logger.error('Copilot token request failed', {
-      error: error instanceof Error ? error.message : String(error),
+      error: redactSecrets(error instanceof Error ? error.message : String(error)),
     });
     return null;
   }

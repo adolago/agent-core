@@ -139,74 +139,89 @@ Added `daemon` section to config schema:
 ---
 
 ### Phase 2: Remote Communication Gateway
-**Status: Telegram + WhatsApp Complete**
+**Status: Complete (External Architecture)**
 **Prerequisites: Phase 1 complete**
 
-Zee becomes the universal gateway for all communication.
+Messaging is handled by an **external gateway** service, keeping agent-core clean for upstream sync.
 
-#### 2.1 Telegram Gateway (DONE)
+#### 2.1 Architecture
 
-Implementation at `packages/agent-core/src/gateway/telegram.ts`:
-
-- [x] Long polling for incoming messages (no webhook required)
-- [x] Intent-based persona routing (finance → Stanley, learning → Johny, else → Zee)
-- [x] User/chat authorization via allowlist
-- [x] Bot commands (/start, /status, /new, /zee, /stanley, /johny)
-- [x] Automatic message chunking for Telegram's 4096 char limit
-- [x] Integration with daemon startup
-- [x] Outbound notification support
-
-**Usage:**
-```bash
-# Set up your bot token (get from @BotFather)
-export TELEGRAM_BOT_TOKEN=your-token-here
-
-# Optionally restrict to specific users (get ID from @userinfobot)
-export TELEGRAM_ALLOWED_USERS=123456789,987654321
-
-# Start daemon with Telegram gateway
-agent-core daemon --port 4567
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       GATEWAY ARCHITECTURE                          │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────┐
+│  │             Zee Gateway (External Transport Layer)               │
+│  │                ~/Repositories/personas/zee/                      │
+│  │                                                                 │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  │ WhatsApp │  │ Telegram │  │  Signal  │  │ Discord  │        │
+│  │  │(whatsapp-│  │ (grammY) │  │          │  │          │        │
+│  │  │ web.js)  │  │          │  │          │  │          │        │
+│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
+│  │       └──────────────┼──────────────┼──────────────┘            │
+│  │                      ▼                                          │
+│  │          ┌─────────────────────────┐                            │
+│  │          │   Persona Detection     │                            │
+│  │          │   @stanley → stanley    │                            │
+│  │          │   @johny → johny        │                            │
+│  │          │   default → zee         │                            │
+│  │          └───────────┬─────────────┘                            │
+│  └──────────────────────┼──────────────────────────────────────────┘
+│                         │ HTTP POST /session/:id/message
+│                         │ + agent: persona
+│                         ▼
+│  ┌─────────────────────────────────────────────────────────────────┐
+│  │               agent-core daemon --external-gateway               │
+│  │                    http://127.0.0.1:3210                        │
+│  │                                                                 │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │  │     ZEE     │  │   STANLEY   │  │    JOHNY    │              │
+│  │  │   Persona   │  │   Persona   │  │   Persona   │              │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘              │
+│  └─────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Bot Commands:**
-- `/start` - Welcome message and help
-- `/status` - Check system status
-- `/new` - Start new conversation
-- `/zee` - Switch to Zee persona
-- `/stanley` - Switch to Stanley persona
-- `/johny` - Switch to Johny persona
+#### 2.2 Running the Gateway
 
-**Intent Routing Patterns:**
-- Stanley: portfolio, stock, market, invest, trading, finance, ticker, NVDA/AAPL/TSLA
-- Johny: study, learn, quiz, teach, explain, knowledge, practice, math/calculus
-- Zee: Everything else (default)
-
-#### 2.2 WhatsApp Gateway (DONE)
-
-Implementation at `packages/agent-core/src/gateway/whatsapp.ts`:
-
-- [x] WhatsApp Web connection via whatsapp-web.js
-- [x] QR code authentication (scan on first run)
-- [x] Session persistence (survives restarts)
-- [x] Intent-based persona routing (same patterns as Telegram)
-- [x] Phone number allowlist
-- [x] Bot commands (/start, /status, /new, /zee, /stanley, /johny)
-
-**Usage:**
+**Step 1: Start agent-core daemon**
 ```bash
-# Start daemon with WhatsApp gateway
-agent-core daemon --whatsapp --port 4567
-
-# Optionally restrict to specific phone numbers (with country code, no +)
-WHATSAPP_ALLOWED_NUMBERS=1234567890,0987654321 agent-core daemon --whatsapp
+# Start daemon in external gateway mode
+agent-core daemon --external-gateway
 ```
 
-#### 2.3 Future Platforms
-- [ ] Discord bot as alternative
+**Step 2: Start zee gateway (in separate terminal)**
+```bash
+cd ~/Repositories/personas/zee
+pnpm zee gateway
+```
 
-#### 2.4 Security (PARTIAL)
-- [x] User ID allowlist
-- [x] Chat ID allowlist
+**Step 3: Send messages via phone**
+- WhatsApp/Telegram messages go to zee gateway
+- Gateway routes to agent-core daemon
+- Persona routing: mention `@stanley` or `@johny` in message, or let Zee handle default
+
+#### 2.3 Persona Routing
+
+Messages are routed based on mentions:
+- `@stanley What's the market doing?` → Routes to Stanley persona
+- `@johny Help me study calculus` → Routes to Johny persona
+- `Hello, what's the weather?` → Routes to Zee (default)
+
+#### 2.4 Supported Platforms
+
+| Platform | Status | Implementation |
+|----------|--------|----------------|
+| WhatsApp | ✅ Done | whatsapp-web.js in zee gateway |
+| Telegram | ✅ Done | grammY in zee gateway |
+| Discord | 🔜 Planned | - |
+| Signal | 🔜 Planned | - |
+
+#### 2.5 Security
+- [x] User allowlist per platform
+- [x] Chat/group restrictions
+- [x] Persona routing validation
 - [ ] Rate limiting (future)
 - [ ] Audit logging (future)
 
@@ -401,15 +416,24 @@ await WeztermOrchestration.closeSessionPane(sessionId)
 - Phase 5: Session pane management API
 - Phase 5: Graceful degradation when no display
 - Phase 5: Integration with lifecycle hooks for auto-updates
+- Phase 6: Channel/persona mapping (WhatsApp=Zee, Telegram=Stanley/Johny)
+- Phase 6: Daily session management (`persistence.ts` daily sessions API)
+- Phase 6: Thread abstraction (`session/thread.ts`)
+- Phase 6: Inter-persona delegation (`zee-delegate.ts` tool)
+- Phase 6: @mention support (detectMention in WhatsApp gateway)
+- Phase 6: Cross-session memory injection (`bootstrap/personas.ts`)
+- Phase 6: Personas bootstrap initialization in daemon
 
 ### In Progress
-- None (All core phases complete: 0-5)
+- None (All core phases complete: 0-6)
 
 ### Next Steps
 1. Add Discord gateway (if needed)
 2. Add web dashboard (Phase 5.2)
 3. Rate limiting and audit logging for gateways
 4. TUI integration with session lifecycle hooks
+5. Qdrant semantic search for memory injection
+6. Fact extraction from conversations
 
 ---
 
@@ -544,4 +568,309 @@ User (via Telegram): "Continue working on the auth feature"
 → Restore session with todo-continuation
 → Resume work autonomously
 → Zee: Sends completion notification when done
+```
+
+---
+
+## Phase 6: Persistent Chat Design
+**Status: Complete**
+**Prerequisites: Phase 2-4 complete**
+
+Enhanced conversation management with daily sessions, inter-persona delegation, and cross-session memory.
+
+### 6.1 Channel/Persona Mapping
+
+Each channel has a designated persona:
+
+| Channel | Primary Persona | Routing |
+|---------|-----------------|---------|
+| WhatsApp | Zee only | Fixed - Zee handles all WhatsApp messages |
+| Telegram | Stanley, Johny | Dedicated bots per persona |
+| TUI | Any | User selects via model/persona settings |
+| API | Any | Specified in request |
+
+**WhatsApp is Zee-only** because:
+- Zee is the personal assistant with life admin focus
+- Simpler UX - no persona switching needed
+- Delegation handles cross-persona queries
+- Matches original design intent
+
+### 6.2 Daily Session Management
+
+One session per persona per day for gateway channels:
+
+```
+Implementation: packages/agent-core/src/session/persistence.ts
+
+~/.local/state/agent-core/persistence/
+├── daily-sessions.json   # Tracks current daily session per persona
+└── ...
+```
+
+**Daily Session Schema:**
+```typescript
+interface DailySessionEntry {
+  sessionId: string    // The active session ID
+  chatId?: string      // Associated chat/phone number
+  createdAt: number    // Session creation timestamp
+}
+
+// Keyed by: "{persona}:{YYYY-MM-DD}"
+// e.g., "zee:2026-01-11" → { sessionId: "...", chatId: "1234567890" }
+```
+
+**API:**
+```typescript
+// Get today's session for a persona
+const session = await Persistence.getDailySession("zee")
+
+// Check if today's session exists
+const exists = await Persistence.hasDailySession("zee")
+
+// Get or create today's session
+const { sessionId, isNew } = await Persistence.getOrCreateDailySession("zee", {
+  chatId: "1234567890",
+  directory: "/home/user/code"
+})
+```
+
+**Session Titles:**
+- `Zee - 2026-01-11` (WhatsApp daily)
+- `Stanley - Telegram - 2026-01-11` (Telegram daily)
+- `Johny - Telegram - 2026-01-11` (Telegram daily)
+
+### 6.3 Thread Abstraction
+
+Higher-level interface over sessions:
+
+```
+Implementation: packages/agent-core/src/session/thread.ts
+```
+
+**Thread Features:**
+- Maps to sessions but adds metadata (channel, persona, user)
+- Handles daily session creation automatically
+- Provides thread history and message counts
+- Supports looking up threads by user+persona+channel
+
+**API:**
+```typescript
+import { Thread } from "@/session/thread"
+
+// Get or create a thread for Zee via WhatsApp
+const thread = await Thread.getOrCreate("zee", "whatsapp", {
+  userId: "1234567890"
+})
+
+// Get thread messages
+const messages = await Thread.getMessages(thread.id, { limit: 10 })
+
+// Get thread summary for display
+const summary = Thread.getSummary(thread)
+// → "💬 Zee via WhatsApp (42 msgs, last: 1/11/2026 5:00 PM)"
+
+// List recent threads for a persona
+const recent = await Thread.listRecent("stanley", { limit: 5 })
+```
+
+### 6.4 Inter-Persona Delegation
+
+Zee can delegate queries to Stanley or Johny and relay responses:
+
+```
+Implementation: .agent-core/tool/zee-delegate.ts
+```
+
+**How it works:**
+1. User asks Zee a question that requires another persona
+2. Zee uses `zee-delegate` tool to send query to target persona
+3. Tool creates headless session with target persona
+4. Target persona processes query and responds
+5. Response is formatted with persona identification and returned
+6. Zee relays formatted response to user
+
+**Example Flow:**
+```
+User (WhatsApp): "Ask Stanley about NVDA stock"
+→ Zee: Detects delegation needed
+→ zee-delegate tool: Creates Stanley session, sends query
+→ Stanley (via Opus): Analyzes NVDA
+→ Returns formatted response:
+
+  📊 **Stanley** (via opus):
+
+  NVDA is currently trading at $142.50...
+
+  ---
+  📎 Session: `session_abc123`
+  💡 To continue directly: `agent-core attach session_abc123`
+  🔗 Or ask me to follow up with Stanley
+```
+
+**Response Format:**
+- Persona emoji (📊 Stanley, 📚 Johny, 💬 Zee)
+- Persona name with model info
+- Response content
+- Session ID for jumping to conversation
+- Attach command for direct continuation
+
+### 6.5 @Mention Support
+
+Users can @mention personas in chat to trigger delegation hints:
+
+```
+Implementation: packages/agent-core/src/gateway/whatsapp.ts (detectMention)
+```
+
+**Detection Patterns:**
+- Explicit: `@stanley`, `@johny`
+- Natural: "ask Stanley about...", "check with Johny on..."
+
+**Behavior:**
+When mention detected, Zee's system prompt includes delegation hint:
+```
+[Delegation hint: User mentioned Stanley. Consider using zee-delegate tool
+to ask Stanley and relay their response.]
+```
+
+### 6.6 Cross-Session Memory Injection
+
+Personas bootstrap initializes hooks for memory injection:
+
+```
+Implementation: packages/agent-core/src/bootstrap/personas.ts
+```
+
+**Hook Points:**
+- `session.lifecycle.start` - New session created
+- `session.lifecycle.restore` - Existing session restored
+
+**Memory Injection Flow:**
+1. Session starts/restores for WhatsApp or Telegram
+2. Hook retrieves yesterday's session summary (if exists)
+3. Relevant context injected into session
+4. Persona has continuity across days
+
+**Future Enhancement:**
+- Qdrant semantic search for relevant memories
+- Fact extraction from conversations
+- Priority-based memory injection
+
+### 6.7 WhatsApp Commands
+
+Updated commands for Zee-only WhatsApp:
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome message with Zee introduction |
+| `/help` | Available commands and delegation info |
+| `/status` | System status (daemon, services) |
+| `/new` | Start fresh conversation |
+| `/stanley` | Info about using Telegram for Stanley |
+| `/johny` | Info about using Telegram for Johny |
+
+**Delegation Info in Help:**
+```
+I can also ask Stanley (investing) or Johny (learning) questions for you.
+Just say "ask Stanley about..." or "check with Johny about..."
+```
+
+---
+
+## Architecture: Message Flow
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          MESSAGE FLOW                                     │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────┐                                                        │
+│  │  WhatsApp   │──────┐                                                 │
+│  │  (Zee only) │      │                                                 │
+│  └─────────────┘      │                                                 │
+│                       ▼                                                  │
+│  ┌─────────────┐    ┌─────────────────────────────────────────────┐    │
+│  │  Telegram   │───►│           GATEWAY LAYER                      │    │
+│  │  (Stanley)  │    │                                             │    │
+│  └─────────────┘    │  • Daily session management                 │    │
+│                       │  • @mention detection                       │    │
+│  ┌─────────────┐    │  • User authorization                       │    │
+│  │  Telegram   │───►│  • Channel/persona routing                  │    │
+│  │  (Johny)    │    └──────────────┬──────────────────────────────┘    │
+│  └─────────────┘                    │                                   │
+│                                     ▼                                   │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                      THREAD ABSTRACTION                           │  │
+│  │                                                                   │  │
+│  │  Thread.getOrCreate(persona, channel, {userId}) → thread.id       │  │
+│  │  Thread.getMessages(thread.id) → message history                  │  │
+│  │  Thread.getSummary(thread) → display string                       │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                     │                                   │
+│                                     ▼                                   │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                      SESSION LAYER                                │  │
+│  │                                                                   │  │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐  │  │
+│  │  │  Daily Sessions  │  │  Persistence     │  │  Cross-Session │  │  │
+│  │  │  (per persona)   │  │  (checkpoints,   │  │  Memory        │  │  │
+│  │  │                  │  │   WAL, recovery) │  │  Injection     │  │  │
+│  │  └──────────────────┘  └──────────────────┘  └────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                     │                                   │
+│                                     ▼                                   │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                      PERSONA LAYER                                │  │
+│  │                                                                   │  │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐                           │  │
+│  │  │   ZEE   │◄─┤  TOOLS  ├─►│ STANLEY │                           │  │
+│  │  │         │  │         │  │         │                           │  │
+│  │  │ delegate│  │ memory  │  │ finance │                           │  │
+│  │  │ calendar│  │ calendar│  │ markets │                           │  │
+│  │  │ contact │  │ delegate│  │ research│                           │  │
+│  │  └────┬────┘  └────┬────┘  └────┬────┘                           │  │
+│  │       │            │            │                                 │  │
+│  │       │       ┌────┴────┐       │                                 │  │
+│  │       └──────►│  JOHNY  │◄──────┘                                 │  │
+│  │               │         │                                         │  │
+│  │               │ learning│                                         │  │
+│  │               │ knowledge│                                        │  │
+│  │               └─────────┘                                         │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Appendix: Delegation Examples
+
+```
+User (WhatsApp): "Check with Stanley on how my portfolio is doing"
+→ Zee: Detects @stanley mention
+→ Delegation hint injected
+→ Zee uses zee-delegate(persona="stanley", query="How is my portfolio doing?")
+→ Stanley (new headless session): Analyzes portfolio
+→ Response formatted:
+
+  📊 **Stanley** (via opus):
+
+  Your portfolio is up 2.3% today. NVDA leading gains at +4.1%...
+
+  ---
+  📎 Session: `session_xyz789`
+  💡 To continue: `agent-core attach session_xyz789`
+
+User (WhatsApp): "Ask Johny to quiz me on calculus"
+→ Zee: Detects delegation request
+→ Zee uses zee-delegate(persona="johny", query="Quiz me on calculus")
+→ Johny (new headless session): Generates quiz
+→ Response:
+
+  📚 **Johny** (via sonnet):
+
+  Let's test your understanding of derivatives!
+
+  Q1: What is d/dx of x³ + 2x² - 5x + 1?
+  ...
 ```
