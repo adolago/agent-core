@@ -1,4 +1,5 @@
 import { realpathSync } from "fs"
+import { exists, realpath } from "fs/promises"
 import { dirname, join, relative } from "path"
 
 export namespace Filesystem {
@@ -13,6 +14,37 @@ export namespace Filesystem {
       .stat()
       .then((s) => s.isDirectory())
       .catch(() => false)
+  /**
+   * Check if child path is contained within parent, resolving symlinks.
+   * This prevents symlink escape attacks where a symlink inside the project
+   * points to a location outside the project directory.
+   *
+   * @returns true if the resolved child path is within the resolved parent
+   */
+  export async function containsResolved(parent: string, child: string): Promise<boolean> {
+    try {
+      // Resolve both paths to their real locations (following symlinks)
+      const resolvedParent = await realpath(parent).catch(() => parent)
+      const resolvedChild = await realpath(child).catch(() => child)
+      return !relative(resolvedParent, resolvedChild).startsWith("..")
+    } catch {
+      // If realpath fails (file doesn't exist yet), fall back to lexical check
+      return contains(parent, child)
+    }
+  }
+
+  /**
+   * Synchronous version of containsResolved for cases where async isn't possible.
+   */
+  export function containsResolvedSync(parent: string, child: string): boolean {
+    try {
+      const resolvedParent = realpathSync(parent)
+      const resolvedChild = realpathSync(child)
+      return !relative(resolvedParent, resolvedChild).startsWith("..")
+    } catch {
+      return contains(parent, child)
+    }
+  }
   /**
    * On Windows, normalize a path to its canonical casing using the filesystem.
    * This is needed because Windows paths are case-insensitive but LSP servers

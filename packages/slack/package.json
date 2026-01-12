@@ -4,8 +4,10 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsgo --noEmit",
+    "lint": "echo 'No linter configured' && exit 0",
+    "test": "echo 'No tests configured' && exit 0",
+    "dev": "bun run src/index.ts"
   },
   "dependencies": {
     "@opencode-ai/sdk": "workspace:*",

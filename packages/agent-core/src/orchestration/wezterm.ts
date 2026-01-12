@@ -22,6 +22,31 @@ import { Todo } from "../session/todo"
 const execAsync = promisify(exec)
 const log = Log.create({ service: "wezterm-orchestration" })
 
+/**
+ * Escape a string for use in a single-quoted shell argument.
+ * This prevents command injection by properly handling single quotes and backslashes.
+ *
+ * The pattern 'str'\''str' ends the single-quoted string, adds an escaped
+ * literal single quote, then starts a new single-quoted string.
+ */
+function shellEscapeSingleQuote(str: string): string {
+  // Replace single quotes with the shell idiom: end quote, escaped quote, start quote
+  return str.replace(/'/g, "'\\''")
+}
+
+/**
+ * Escape a string for use in bash $'...' ANSI-C quoting.
+ * This is needed for sending escape sequences to terminals.
+ */
+function shellEscapeAnsiC(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\") // Escape backslashes first
+    .replace(/'/g, "\\'") // Escape single quotes
+    .replace(/\n/g, "\\n") // Escape newlines
+    .replace(/\r/g, "\\r") // Escape carriage returns
+    .replace(/\t/g, "\\t") // Escape tabs
+}
+
 export namespace WeztermOrchestration {
   // -------------------------------------------------------------------------
   // Configuration
@@ -416,7 +441,7 @@ export namespace WeztermOrchestration {
     if (!paneId) return false
 
     try {
-      const escapedCommand = command.replace(/'/g, "'\\''")
+      const escapedCommand = shellEscapeSingleQuote(command)
       await execAsync(`wezterm cli send-text --pane-id ${paneId} --no-paste '${escapedCommand}\n'`)
       return true
     } catch {
@@ -444,7 +469,9 @@ export namespace WeztermOrchestration {
   // -------------------------------------------------------------------------
 
   async function setPaneTitle(paneId: string, title: string): Promise<void> {
-    const escapeSequence = `\\033]0;${title}\\007`
+    // Escape the title for ANSI-C quoting to prevent command injection
+    const escapedTitle = shellEscapeAnsiC(title)
+    const escapeSequence = `\\033]0;${escapedTitle}\\007`
     await execAsync(`wezterm cli send-text --pane-id ${paneId} --no-paste $'${escapeSequence}'`)
   }
 

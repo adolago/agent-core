@@ -22,6 +22,8 @@
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
+    "lint": "echo 'No linter configured' && exit 0",
+    "test": "echo 'No tests configured' && exit 0",
     "dev": "vite",
     "generate:tailwind": "bun run script/tailwind.ts"
   },

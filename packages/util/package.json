@@ -8,7 +8,9 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No linter configured' && exit 0",
+    "test": "echo 'No tests configured' && exit 0"
   },
   "dependencies": {
     "zod": "catalog:"
