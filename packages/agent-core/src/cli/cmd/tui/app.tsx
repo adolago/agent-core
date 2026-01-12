@@ -615,7 +615,7 @@ function App() {
     toast.show({
       variant: "info",
       title: "Update Available",
-      message: `agent-core v${evt.properties.version} is available. Run 'opencode upgrade' to update manually.`,
+      message: `agent-core v${evt.properties.version} is available. Run 'agent-core upgrade' to update manually.`,
       duration: 10000,
     })
   })
