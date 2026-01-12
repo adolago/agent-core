@@ -1,23 +1,128 @@
-> **Fork** — This is a fork of [sst/opencode](https://github.com/sst/opencode) with customizations. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for building such a fantastic experience. Please use the [upstream repository](https://github.com/sst/opencode) for official releases and support. Use  this fork at your own risk.
+> **Fork** — This is a fork of [sst/opencode](https://github.com/sst/opencode) with customizations. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for building such a fantastic experience. Please use the [upstream repository](https://github.com/sst/opencode) for official releases and support. Use this fork at your own risk.
 
-# This repo is built on OpenCode
+# Agent-Core
 
-### Building on OpenCode
+Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
 
-If you are working on a project that's related to OpenCode and is using "opencode" as a part of its name; for example, "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
+## Quick Start
 
-### FAQ
+### Prerequisites
 
-#### How is this different from Claude Code?
+- [Bun](https://bun.sh) (v1.1+)
+- [Qdrant](https://qdrant.tech) (local or cloud) for semantic memory
+- API key for Anthropic (Claude) or OpenAI
 
-It's very similar to Claude Code in terms of capability. Here are the key differences:
+### Installation
 
-- 100% open source
-- Not coupled to any provider. Although we recommend the models we provide through [OpenCode Zen](https://opencode.ai/zen); OpenCode can be used with Claude, OpenAI, Google or even local models. As models evolve the gaps between them will close and pricing will drop so being provider-agnostic is important.
-- Out of the box LSP support
-- A focus on TUI. OpenCode is built by neovim users and the creators of [terminal.shop](https://terminal.shop); we are going to push the limits of what's possible in the terminal.
-- A client/server architecture. This for example can allow OpenCode to run on your computer, while you can drive it remotely from a mobile app. Meaning that the TUI frontend is just one of the possible clients.
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/agent-core.git ~/.local/src/agent-core
 
----
+# Install dependencies
+cd ~/.local/src/agent-core
+bun install
 
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+# Build the project
+cd packages/agent-core
+bun run build
+
+# Install the binary (optional)
+cp dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
+```
+
+### Configuration
+
+1. Copy the environment template:
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` and add your API keys:
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...  # For embeddings
+QDRANT_URL=http://localhost:6333
+```
+
+3. Start Qdrant (if running locally):
+```bash
+docker run -p 6333:6333 qdrant/qdrant
+```
+
+### Running
+
+**Interactive TUI:**
+```bash
+agent-core
+```
+
+**Daemon mode (for external gateways):**
+```bash
+agent-core daemon --external-gateway --hostname 127.0.0.1 --port 3210
+```
+
+## Architecture
+
+```
+agent-core/
+├── packages/agent-core/    # Main CLI and TUI (OpenCode fork)
+├── src/
+│   ├── personas/           # Persona logic and routing
+│   ├── memory/             # Qdrant semantic memory
+│   ├── daemon/             # HTTP/IPC daemon
+│   └── domain/             # Domain tools (zee/, stanley/)
+├── vendor/tiara/           # Orchestration layer (SPARC methodology)
+└── .claude/skills/         # Persona skill definitions
+```
+
+### Personas
+
+| Persona | Domain | Description |
+|---------|--------|-------------|
+| **Zee** | Personal Assistant | Memory, messaging, calendar, notifications |
+| **Stanley** | Investing | Markets, portfolio, trading strategies |
+| **Johny** | Learning | Knowledge graphs, spaced repetition |
+
+### Key Features
+
+- **Semantic Memory**: Vector-based memory with Qdrant for context persistence
+- **Multi-Persona Routing**: Route messages to specialized personas
+- **Orchestration**: SPARC methodology via tiara for complex tasks
+- **External Gateway**: HTTP API for messaging platform integration
+
+## Usage with Zee Gateway
+
+The Zee Gateway handles messaging platforms (WhatsApp, Telegram, Discord, etc.) and routes to agent-core:
+
+```bash
+# Terminal 1: Start agent-core daemon
+agent-core daemon --external-gateway
+
+# Terminal 2: Start zee gateway
+cd ~/Repositories/personas/zee
+pnpm zee gateway
+```
+
+Messages mentioning `@stanley` or `@johny` are routed to those personas; all others go to Zee.
+
+## Development
+
+```bash
+# Run tests
+bun test
+
+# Build
+bun run build
+
+# Type check
+bun run typecheck
+```
+
+## Credits
+
+- **OpenCode** by [SST](https://github.com/sst/opencode) - The foundation this project builds on
+- **Claude-Flow** - SPARC orchestration patterns
+
+## License
+
+Same as upstream OpenCode - see LICENSE file.
