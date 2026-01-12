@@ -54,7 +54,37 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     install -Dm755 dist/agent-core-*/bin/opencode $out/bin/agent-core
     install -Dm644 schema.json $out/share/agent-core/schema.json
 
-    wrapProgram $out/bin/agent-core \
+    mkdir -p $out/lib/opencode
+    cp -r dist $out/lib/opencode/
+    chmod -R u+w $out/lib/opencode/dist
+
+    # Select bundled worker assets deterministically (sorted find output)
+    worker_file=$(find "$out/lib/opencode/dist" -type f \( -path '*/tui/worker.*' -o -name 'worker.*' \) | sort | head -n1)
+    parser_worker_file=$(find "$out/lib/opencode/dist" -type f -name 'parser.worker.*' | sort | head -n1)
+    if [ -z "$worker_file" ]; then
+      echo "ERROR: bundled worker not found"
+      exit 1
+    fi
+
+    main_wasm=$(printf '%s\n' "$out"/lib/opencode/dist/tree-sitter-*.wasm | sort | head -n1)
+    wasm_list=$(find "$out/lib/opencode/dist" -maxdepth 1 -name 'tree-sitter-*.wasm' -print)
+    for patch_file in "$worker_file" "$parser_worker_file"; do
+      [ -z "$patch_file" ] && continue
+      [ ! -f "$patch_file" ] && continue
+      if [ -n "$wasm_list" ] && grep -q 'tree-sitter' "$patch_file"; then
+        # Rewrite wasm references to absolute store paths to avoid runtime resolve failures.
+        bun --bun ${scripts + "/patch-wasm.ts"} "$patch_file" "$main_wasm" $wasm_list
+      fi
+    done
+
+    mkdir -p $out/lib/opencode/node_modules
+    cp -r ../../node_modules/.bun $out/lib/opencode/node_modules/
+    mkdir -p $out/lib/opencode/node_modules/@opentui
+
+    mkdir -p $out/bin
+    makeWrapper ${bun}/bin/bun $out/bin/agent-core \
+      --add-flags "run" \
+      --add-flags "$out/lib/opencode/dist/src/index.js" \
       --prefix PATH : ${
         lib.makeBinPath (
           [
@@ -63,7 +93,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
           # bun runs sysctl to detect if dunning on rosetta2
           ++ lib.optional stdenvNoCC.hostPlatform.isDarwin sysctl
         )
-      }
+      } \
+      --argv0 agent-core
 
     runHook postInstall
   '';
@@ -91,7 +122,12 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     description = "The open source coding agent";
     homepage = "https://opencode.ai/";
     license = lib.licenses.mit;
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+      "aarch64-darwin"
+      "x86_64-darwin"
+    ];
     mainProgram = "agent-core";
-    inherit (node_modules.meta) platforms;
   };
 })

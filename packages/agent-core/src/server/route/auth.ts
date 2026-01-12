@@ -1,7 +1,7 @@
 import { describeRoute, resolver, validator } from "hono-openapi"
 import { Hono } from "hono"
 import { z } from "zod"
-import { Auth } from "../../config/auth"
+import { Auth } from "../../auth"
 import { errors } from "../error"
 
 export const AuthRoute = new Hono()
@@ -38,7 +38,12 @@ export const AuthRoute = new Hono()
     async (c) => {
       const providerID = c.req.valid("param").providerID
       const body = c.req.valid("json")
-      await Auth.set(providerID, body)
+      if (body.api_key) {
+        await Auth.set(providerID, {
+          type: "api",
+          key: body.api_key,
+        })
+      }
       return c.json(true)
     },
   )

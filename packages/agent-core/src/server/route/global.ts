@@ -2,7 +2,7 @@ import { describeRoute, resolver, validator } from "hono-openapi"
 import { Hono } from "hono"
 import { z } from "zod"
 import { streamSSE } from "hono/streaming"
-import { Bus } from "@/bus"
+import { GlobalBus } from "@/bus/global"
 import { Instance } from "../../project/instance"
 import { Log } from "../../util/log"
 import { Agent } from "../../agent/agent"
@@ -48,14 +48,14 @@ export const GlobalRoute = new Hono()
         const subscriptions: (() => void)[] = []
 
         // Pass through all events from the bus
-        subscriptions.push(
-          Bus.subscribe(/.*/, async (event) => {
-            await stream.writeSSE({
-              event: event.type,
-              data: JSON.stringify(event.properties),
-            })
-          }),
-        )
+        const handler = async (event: { directory?: string; payload: any }) => {
+          await stream.writeSSE({
+            event: event.payload.type,
+            data: JSON.stringify(event.payload.properties),
+          })
+        }
+        GlobalBus.on("event", handler)
+        subscriptions.push(() => GlobalBus.off("event", handler))
 
         // Send initial state
         await stream.writeSSE({

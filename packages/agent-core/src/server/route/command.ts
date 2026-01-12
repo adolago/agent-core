@@ -1,7 +1,7 @@
 import { describeRoute, resolver } from "hono-openapi"
 import { Hono } from "hono"
 import { z } from "zod"
-import { Command } from "../../command/command"
+import { Command } from "../../command"
 
 export const CommandRoute = new Hono().get(
   "/",
@@ -30,6 +30,6 @@ export const CommandRoute = new Hono().get(
     },
   }),
   async (c) => {
-    return c.json(Command.help())
+    return c.json(Command.list())
   },
 )

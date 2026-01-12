@@ -28,6 +28,7 @@ import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
 import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand } from "./cli/cmd/daemon"
 import { PluginCommand } from "./cli/cmd/plugin"
+import { SetupCommand } from "./cli/cmd/setup"
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -104,6 +105,7 @@ const cli = yargs(hideBin(process.argv))
   .command(DaemonStatusCommand)
   .command(DaemonStopCommand)
   .command(PluginCommand)
+  .command(SetupCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
