@@ -277,6 +277,9 @@ else
   ok "All processes stopped"
 fi
 
+# Extra wait to ensure file handles are released
+sleep 2
+
 # Step 2: Clean if requested
 if $FRESH_BUILD; then
   do_fresh_clean
@@ -298,12 +301,31 @@ else
   warn "Skipping build (--no-build)"
 fi
 
-# Step 4: Copy binary
+# Step 4: Copy binary (with retry for "Text file busy")
 log "Installing binary..."
 if [[ -f "$BINARY_SRC" ]]; then
-  cp "$BINARY_SRC" "$BINARY_DST"
-  chmod +x "$BINARY_DST"
-  ok "Installed to $BINARY_DST"
+  # Remove old binary first to avoid "Text file busy"
+  if [[ -f "$BINARY_DST" ]]; then
+    rm -f "$BINARY_DST" 2>/dev/null || true
+    sleep 0.5
+  fi
+  
+  # Retry copy with increasing delays
+  for attempt in 1 2 3 4 5; do
+    if cp "$BINARY_SRC" "$BINARY_DST" 2>/dev/null; then
+      chmod +x "$BINARY_DST"
+      ok "Installed to $BINARY_DST"
+      break
+    else
+      if [[ $attempt -eq 5 ]]; then
+        err "Failed to copy binary after 5 attempts (Text file busy?)"
+        err "Try: rm -f $BINARY_DST && then re-run this script"
+        exit 1
+      fi
+      warn "Copy attempt $attempt failed, retrying in ${attempt}s..."
+      sleep $attempt
+    fi
+  done
 else
   err "Binary not found at $BINARY_SRC"
   exit 1
