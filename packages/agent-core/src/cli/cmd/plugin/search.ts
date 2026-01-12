@@ -39,7 +39,11 @@ export const SearchCommand = cmd({
       if (plugins.length === 0) {
         UI.println(UI.Style.TEXT_WARNING + "No plugins found" + UI.Style.TEXT_NORMAL)
         if (args.query) {
-          UI.println(UI.Style.TEXT_DIM + "Try a different search term or browse all with: agent-core plugin search" + UI.Style.TEXT_NORMAL)
+          UI.println(
+            UI.Style.TEXT_DIM +
+              "Try a different search term or browse all with: agent-core plugin search" +
+              UI.Style.TEXT_NORMAL,
+          )
         }
         return
       }
@@ -49,14 +53,18 @@ export const SearchCommand = cmd({
 
       for (const plugin of plugins) {
         UI.println(
-          UI.Style.TEXT_HIGHLIGHT_BOLD + plugin.displayName + UI.Style.TEXT_NORMAL +
-          UI.Style.TEXT_DIM + ` (${plugin.name})` + UI.Style.TEXT_NORMAL
+          UI.Style.TEXT_HIGHLIGHT_BOLD +
+            plugin.displayName +
+            UI.Style.TEXT_NORMAL +
+            UI.Style.TEXT_DIM +
+            ` (${plugin.name})` +
+            UI.Style.TEXT_NORMAL,
         )
         UI.println("  " + plugin.description)
         UI.println(
           UI.Style.TEXT_DIM +
-          `  ${plugin.npm}@${plugin.version} · ${plugin.category} · ${plugin.tags.join(", ")}` +
-          UI.Style.TEXT_NORMAL
+            `  ${plugin.npm}@${plugin.version} · ${plugin.category} · ${plugin.tags.join(", ")}` +
+            UI.Style.TEXT_NORMAL,
         )
         UI.empty()
       }

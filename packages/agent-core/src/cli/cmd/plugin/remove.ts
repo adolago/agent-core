@@ -23,7 +23,9 @@ export const RemoveCommand = cmd({
           // Check if installed
           if (!(await isInstalled(name))) {
             UI.println(UI.Style.TEXT_WARNING + `Plugin "${name}" is not installed` + UI.Style.TEXT_NORMAL)
-            UI.println(UI.Style.TEXT_DIM + "Use 'agent-core plugin list' to see installed plugins" + UI.Style.TEXT_NORMAL)
+            UI.println(
+              UI.Style.TEXT_DIM + "Use 'agent-core plugin list' to see installed plugins" + UI.Style.TEXT_NORMAL,
+            )
             return
           }
 

@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "typecheck": "echo 'Function package - no typecheck' && exit 0",
-    "lint": "echo 'No linter configured' && exit 0",
+    "lint": "prettier --check .",
     "test": "echo 'No tests configured' && exit 0"
   },
   "devDependencies": {

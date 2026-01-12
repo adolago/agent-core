@@ -60,8 +60,31 @@ export namespace Agent {
   const state = Instance.state(async () => {
     const cfg = await Config.get()
 
-    const defaults = PermissionNext.fromConfig({
+    // Base permissions: allow everything by default, with specific security rules
+    const basePermissions = PermissionNext.fromConfig({
       "*": "allow",
+      question: "deny",
+      // .env blocking is now handled in ReadTool itself (defense in depth)
+      // but we keep the permission rules here for documentation
+      read: {
+        "*": "allow",
+        ".env": "deny",
+        ".env.*": "deny",
+        "*.env": "deny",
+        "*.env.*": "deny",
+        ".env.example": "allow",
+        "*.env.example": "allow",
+        ".env.sample": "allow",
+        "*.env.sample": "allow",
+        ".env.template": "allow",
+        "*.env.template": "allow",
+      },
+    })
+
+    // Security defaults that should be applied AFTER user config, unless user
+    // has explicitly configured them. These ensure doom_loop and external_directory
+    // always prompt unless the user explicitly allows/denies them.
+    const securityDefaults = PermissionNext.fromConfig({
       doom_loop: "ask",
       external_directory: {
         "*": "ask",
@@ -79,26 +102,47 @@ export namespace Agent {
         "*.env.example": "allow",
       },
     })
+
     const user = PermissionNext.fromConfig(cfg.permission ?? {})
+
+    // Helper: Check if user has explicitly configured a permission
+    const userHasPermission = (perm: string) => user.some((r) => r.permission === perm)
+
+    // Build defaults: base + user + security defaults (for unconfigured permissions)
+    // This ensures user can override security defaults if they explicitly want to,
+    // but wildcards like "*": "allow" don't accidentally override them
+    const buildDefaults = () => {
+      const result = [...basePermissions, ...user]
+      // Add security defaults only if user hasn't explicitly configured them
+      if (!userHasPermission("doom_loop")) {
+        result.push(...securityDefaults.filter((r) => r.permission === "doom_loop"))
+      }
+      if (!userHasPermission("external_directory")) {
+        result.push(...securityDefaults.filter((r) => r.permission === "external_directory"))
+      }
+      return result
+    }
+    const defaults = buildDefaults()
 
     // NOTE: Built-in agents (build, plan, general, explore) removed.
     // agent-core uses the Personas system (Zee, Stanley, Johny) defined in .claude/skills/
     // Custom agents are loaded from config and skill files.
+
+    // System agents (compaction, title, summary) have fixed permissions that cannot be
+    // overridden by user config. These are internal system functions that should never
+    // have access to tools.
+    const systemDenyAll = PermissionNext.fromConfig({ "*": "deny" })
+
     const result: Record<string, Info> = {
       // Internal system agents - required for core functionality
+      // NOTE: These do NOT include user permissions - they're locked down
       compaction: {
         name: "compaction",
         mode: "primary",
         native: true,
         hidden: true,
         prompt: PROMPT_COMPACTION,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-          }),
-          user,
-        ),
+        permission: systemDenyAll,
         options: {},
       },
       title: {
@@ -108,13 +152,7 @@ export namespace Agent {
         native: true,
         hidden: true,
         temperature: 0.5,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-          }),
-          user,
-        ),
+        permission: systemDenyAll,
         prompt: PROMPT_TITLE,
       },
       summary: {
@@ -123,13 +161,7 @@ export namespace Agent {
         options: {},
         native: true,
         hidden: true,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-          }),
-          user,
-        ),
+        permission: systemDenyAll,
         prompt: PROMPT_SUMMARY,
       },
     }
@@ -149,7 +181,8 @@ export namespace Agent {
         hidden: false,
         temperature: agentConfig.temperature,
         color: agentConfig.color,
-        permission: PermissionNext.merge(defaults, user),
+        // defaults already includes user global permissions
+        permission: [...defaults],
         options: agentConfig.options ?? {},
         // Persona-specific fields
         systemPromptAdditions: personaConfig.systemPromptAdditions,
@@ -168,7 +201,8 @@ export namespace Agent {
         item = result[key] = {
           name: key,
           mode: "all",
-          permission: PermissionNext.merge(defaults, user),
+          // defaults already includes user global permissions
+          permission: [...defaults],
           options: {},
           native: false,
         }

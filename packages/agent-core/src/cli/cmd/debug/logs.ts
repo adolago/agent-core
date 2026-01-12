@@ -68,7 +68,10 @@ const TailLogsCommand = cmd({
 
     if (!logFile) {
       const files = await fs.readdir(logDir)
-      const logFiles = files.filter((f) => f.endsWith(".log")).sort().reverse()
+      const logFiles = files
+        .filter((f) => f.endsWith(".log"))
+        .sort()
+        .reverse()
       if (logFiles.length === 0) {
         console.error("No log files found")
         return
@@ -117,9 +120,7 @@ const SearchLogsCommand = cmd({
       }),
   async handler(args) {
     const logDir = Global.Path.log
-    const pattern = args.ignoreCase
-      ? new RegExp(args.pattern, "i")
-      : new RegExp(args.pattern)
+    const pattern = args.ignoreCase ? new RegExp(args.pattern, "i") : new RegExp(args.pattern)
 
     let filesToSearch: string[] = []
 

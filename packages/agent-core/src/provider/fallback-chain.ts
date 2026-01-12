@@ -167,7 +167,10 @@ export namespace FallbackChain {
     if (lowerMessage.includes("too many requests") || lowerMessage.includes("429")) {
       return "rate_limit"
     }
-    if (lowerMessage.includes("insufficient_quota") || lowerMessage.includes("exceeded") && lowerMessage.includes("quota")) {
+    if (
+      lowerMessage.includes("insufficient_quota") ||
+      (lowerMessage.includes("exceeded") && lowerMessage.includes("quota"))
+    ) {
       return "rate_limit"
     }
     if (lowerMessage.includes("overloaded") || lowerMessage.includes("capacity")) {

@@ -79,9 +79,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   })
 
   const childSessions = createMemo(() =>
-    sync.data.session
-      .filter((s) => s.parentID === props.sessionID)
-      .sort((a, b) => b.time.created - a.time.created),
+    sync.data.session.filter((s) => s.parentID === props.sessionID).sort((a, b) => b.time.created - a.time.created),
   )
 
   const siblingsSessions = createMemo(() => {
@@ -297,9 +295,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     onMouseDown={() => navigate({ type: "session", sessionID: parentSession()!.id })}
                   >
                     <text fg={theme.textMuted}>↑</text>
-                    <text fg={theme.accent}>
-                      {Locale.truncateMiddle(parentSession()!.title ?? "Parent", 30)}
-                    </text>
+                    <text fg={theme.accent}>{Locale.truncateMiddle(parentSession()!.title ?? "Parent", 30)}</text>
                   </box>
                 </Show>
                 <For each={siblingsSessions()}>
@@ -310,9 +306,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                       onMouseDown={() => navigate({ type: "session", sessionID: sibling.id })}
                     >
                       <text fg={theme.textMuted}>├</text>
-                      <text fg={theme.textMuted}>
-                        {Locale.truncateMiddle(sibling.title ?? "Branch", 30)}
-                      </text>
+                      <text fg={theme.textMuted}>{Locale.truncateMiddle(sibling.title ?? "Branch", 30)}</text>
                     </box>
                   )}
                 </For>
@@ -330,9 +324,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                       onMouseDown={() => navigate({ type: "session", sessionID: child.id })}
                     >
                       <text fg={theme.textMuted}>↓</text>
-                      <text fg={theme.accent}>
-                        {Locale.truncateMiddle(child.title ?? "Child", 30)}
-                      </text>
+                      <text fg={theme.accent}>{Locale.truncateMiddle(child.title ?? "Child", 30)}</text>
                     </box>
                   )}
                 </For>

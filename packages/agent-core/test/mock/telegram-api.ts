@@ -108,7 +108,7 @@ export function createMockTelegramApi(options: MockTelegramApiOptions = {}) {
             error_code: 500,
             description: `Mock error for ${method}`,
           }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
+          { status: 200, headers: { "Content-Type": "application/json" } },
         )
       }
 
@@ -208,11 +208,7 @@ export function createMockTelegramApi(options: MockTelegramApiOptions = {}) {
     /**
      * Add a text message update
      */
-    addTextMessage(
-      chatId: number,
-      text: string,
-      from: Partial<MockTelegramUser> = {}
-    ) {
+    addTextMessage(chatId: number, text: string, from: Partial<MockTelegramUser> = {}) {
       this.addUpdate({
         message: {
           message_id: messageIdCounter++,

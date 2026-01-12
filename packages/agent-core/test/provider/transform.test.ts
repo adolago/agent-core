@@ -1430,7 +1430,7 @@ describe("ProviderTransform.variants", () => {
       expect(result.max).toEqual({
         thinking: {
           type: "enabled",
-          budgetTokens: 31999,
+          budgetTokens: 32000,
         },
       })
     })
@@ -1480,7 +1480,7 @@ describe("ProviderTransform.variants", () => {
       expect(result.max).toEqual({
         thinkingConfig: {
           includeThoughts: true,
-          thinkingBudget: 24576,
+          thinkingBudget: 32000,
         },
       })
     })

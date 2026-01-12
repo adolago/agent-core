@@ -53,7 +53,7 @@ export async function installPlugin(name: string): Promise<InstallResult> {
 
     // Check if already installed (any version)
     const existingIdx = plugins.findIndex(
-      (p) => typeof p === "string" && (p === plugin.npm || p.startsWith(`${plugin.npm}@`))
+      (p) => typeof p === "string" && (p === plugin.npm || p.startsWith(`${plugin.npm}@`)),
     )
 
     if (existingIdx >= 0) {
@@ -89,9 +89,7 @@ export async function removePlugin(name: string): Promise<RemoveResult> {
   const plugins = [...(config.plugin ?? [])]
 
   // Find plugin in config (could be name or name@version)
-  const idx = plugins.findIndex(
-    (p) => typeof p === "string" && (p === name || p.startsWith(`${name}@`))
-  )
+  const idx = plugins.findIndex((p) => typeof p === "string" && (p === name || p.startsWith(`${name}@`)))
 
   if (idx === -1) {
     return {

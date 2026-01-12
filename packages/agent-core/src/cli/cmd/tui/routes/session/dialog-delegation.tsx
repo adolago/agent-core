@@ -4,10 +4,7 @@ import { DialogSelect } from "@tui/ui/dialog-select"
 import { useDialog } from "@tui/ui/dialog"
 import type { PromptInfo } from "@tui/component/prompt/history"
 
-export function DialogDelegation(props: {
-  prompt: PromptInfo
-  setPrompt: (prompt: PromptInfo) => void
-}) {
+export function DialogDelegation(props: { prompt: PromptInfo; setPrompt: (prompt: PromptInfo) => void }) {
   const local = useLocal()
   const dialog = useDialog()
 

@@ -8,7 +8,11 @@ import { Flag } from "../flag/flag"
 
 export namespace ModelsDev {
   const log = Log.create({ service: "models.dev" })
-  const filepath = path.join(Global.Path.cache, "models.json")
+  // Use getter to ensure path is evaluated at runtime, not module load time
+  // This is necessary for test isolation where XDG_CACHE_HOME is set dynamically
+  function getFilepath() {
+    return path.join(Global.Path.cache, "models.json")
+  }
 
   export const Model = z.object({
     id: z.string(),
@@ -78,20 +82,22 @@ export namespace ModelsDev {
 
   export async function get() {
     refresh()
-    const file = Bun.file(filepath)
+    const file = Bun.file(getFilepath())
     const result = await file.json().catch(() => {})
     if (result) return result as Record<string, Provider>
+    // Fallback: macro may not be available in test mode, fetch directly
     if (typeof data === "function") {
       const json = await data()
       return JSON.parse(json) as Record<string, Provider>
     }
-    const json = await fetch("https://models.dev/api.json").then((x) => x.text())
-    return JSON.parse(json) as Record<string, Provider>
+    // Direct fetch as final fallback
+    const response = await fetch("https://models.dev/api.json")
+    return (await response.json()) as Record<string, Provider>
   }
 
   export async function refresh() {
     if (Flag.OPENCODE_DISABLE_MODELS_FETCH) return
-    const file = Bun.file(filepath)
+    const file = Bun.file(getFilepath())
     log.info("refreshing", {
       file,
     })

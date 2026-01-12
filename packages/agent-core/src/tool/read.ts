@@ -8,10 +8,63 @@ import DESCRIPTION from "./read.txt"
 import { Instance } from "../project/instance"
 import { Identifier } from "../id/id"
 import { assertExternalDirectory } from "./external-directory"
+import { PermissionNext } from "../permission/next"
 
 const DEFAULT_READ_LIMIT = 2000
 const MAX_LINE_LENGTH = 2000
 const MAX_BYTES = 50 * 1024
+
+/**
+ * Check if a filename is a .env file that should be blocked for security.
+ * This is a hardcoded check that cannot be overridden by config.
+ *
+ * Blocked patterns:
+ * - .env (exact)
+ * - .env.* (e.g., .env.local, .env.production)
+ * - *.env (e.g., config.env)
+ * - *.env.* (e.g., config.env.local)
+ *
+ * Allowed patterns (safe to read):
+ * - .env.example, .env.sample, .env.template
+ * - *.env.example, *.env.sample, *.env.template
+ * - .envrc (direnv config, not secrets)
+ */
+function isBlockedEnvFile(filename: string): boolean {
+  const base = path.basename(filename).toLowerCase()
+
+  // Allow safe template/example files
+  if (base.endsWith(".env.example") || base.endsWith(".env.sample") || base.endsWith(".env.template")) {
+    return false
+  }
+
+  // Allow .envrc (direnv configuration, not secrets)
+  if (base === ".envrc") {
+    return false
+  }
+
+  // Block .env exact match
+  if (base === ".env") {
+    return true
+  }
+
+  // Block .env.* patterns (e.g., .env.local, .env.production)
+  if (base.startsWith(".env.")) {
+    return true
+  }
+
+  // Block *.env patterns (e.g., config.env)
+  if (base.endsWith(".env")) {
+    return true
+  }
+
+  // Block *.env.* patterns (e.g., config.env.local)
+  // Match pattern: something.env.something (but not .env.example etc already handled)
+  if (/\.env\.[^.]+$/.test(base) && !base.startsWith(".env.")) {
+    return true
+  }
+
+  return false
+}
 
 export const ReadTool = Tool.define("read", {
   description: DESCRIPTION,
@@ -31,9 +84,18 @@ export const ReadTool = Tool.define("read", {
       bypass: Boolean(ctx.extra?.["bypassCwdCheck"]),
     })
 
+    // SECURITY: Block .env files containing secrets (hardcoded, cannot be overridden)
+    // This is defense-in-depth in case permission rules are misconfigured
+    if (isBlockedEnvFile(filepath)) {
+      throw new PermissionNext.DeniedError([{ permission: "read", pattern: path.basename(filepath), action: "deny" }])
+    }
+
+    // Check permission against both full path and basename
+    // This allows patterns like ".env" to match "/path/to/.env"
+    const basename = path.basename(filepath)
     await ctx.ask({
       permission: "read",
-      patterns: [filepath],
+      patterns: [filepath, basename],
       always: ["*"],
       metadata: {},
     })

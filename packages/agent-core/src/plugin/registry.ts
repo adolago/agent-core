@@ -123,7 +123,7 @@ export function searchPlugins(registry: Registry, query: string): RegistryPlugin
       p.displayName.toLowerCase().includes(q) ||
       p.description.toLowerCase().includes(q) ||
       p.tags.some((t) => t.toLowerCase().includes(q)) ||
-      p.category.toLowerCase().includes(q)
+      p.category.toLowerCase().includes(q),
   )
 }
 

@@ -203,9 +203,7 @@ export namespace WeztermOrchestration {
 
     try {
       // Create status pane at bottom
-      const { stdout } = await execAsync(
-        `wezterm cli split-pane --bottom --percent ${config.statusPanePercent}`
-      )
+      const { stdout } = await execAsync(`wezterm cli split-pane --bottom --percent ${config.statusPanePercent}`)
       statusPaneId = stdout.trim()
 
       // Set pane title
@@ -319,9 +317,7 @@ export namespace WeztermOrchestration {
         for await (const session of Session.list()) {
           sessionCount++
           const todos = await Todo.get(session.id)
-          const incomplete = todos.filter(
-            (t) => t.status !== "completed" && t.status !== "cancelled"
-          ).length
+          const incomplete = todos.filter((t) => t.status !== "completed" && t.status !== "cancelled").length
           if (incomplete > 0) sessionsWithTodos++
         }
       } catch {
@@ -340,7 +336,9 @@ export namespace WeztermOrchestration {
       lines.push("╠════════════════════════════════════════════════════════╣")
 
       // Daemon info
-      lines.push(`║ PID: ${String(cachedStatus.pid || process.pid).padEnd(10)} Port: ${String(cachedStatus.port || "N/A").padEnd(8)} Uptime: ${uptimeStr.padEnd(12)}║`)
+      lines.push(
+        `║ PID: ${String(cachedStatus.pid || process.pid).padEnd(10)} Port: ${String(cachedStatus.port || "N/A").padEnd(8)} Uptime: ${uptimeStr.padEnd(12)}║`,
+      )
 
       lines.push("╠════════════════════════════════════════════════════════╣")
 
@@ -350,12 +348,16 @@ export namespace WeztermOrchestration {
       const discord = cachedStatus.services?.discord ? "●" : "◌"
       const wezterm = isInitialized ? "●" : "○"
 
-      lines.push(`║ Services: Persistence ${persistence}  Telegram ${telegram}  Discord ${discord}  WezTerm ${wezterm} ║`)
+      lines.push(
+        `║ Services: Persistence ${persistence}  Telegram ${telegram}  Discord ${discord}  WezTerm ${wezterm} ║`,
+      )
 
       lines.push("╠════════════════════════════════════════════════════════╣")
 
       // Sessions
-      lines.push(`║ Sessions: ${String(sessionCount).padEnd(3)} total   ${String(sessionsWithTodos).padEnd(3)} with incomplete todos       ║`)
+      lines.push(
+        `║ Sessions: ${String(sessionCount).padEnd(3)} total   ${String(sessionsWithTodos).padEnd(3)} with incomplete todos       ║`,
+      )
 
       lines.push("╠════════════════════════════════════════════════════════╣")
 
@@ -367,9 +369,7 @@ export namespace WeztermOrchestration {
 
       // Send to pane
       const output = lines.join("\\n")
-      await execAsync(
-        `wezterm cli send-text --pane-id ${statusPaneId} --no-paste 'echo -e "${output}"'`
-      )
+      await execAsync(`wezterm cli send-text --pane-id ${statusPaneId} --no-paste 'echo -e "${output}"'`)
       await execAsync(`wezterm cli send-text --pane-id ${statusPaneId} --no-paste '\n'`)
     } catch (error) {
       log.debug("Failed to update status pane", {
@@ -388,7 +388,7 @@ export namespace WeztermOrchestration {
   export async function createSessionPane(
     sessionId: string,
     title: string,
-    persona: "zee" | "stanley" | "johny"
+    persona: "zee" | "stanley" | "johny",
   ): Promise<string | null> {
     if (!isInitialized) return null
 

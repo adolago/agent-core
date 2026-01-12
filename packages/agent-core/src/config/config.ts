@@ -621,14 +621,8 @@ export namespace Config {
         .string()
         .optional()
         .describe("Additional system prompt content to inject for this agent/persona"),
-      knowledge: z
-        .array(z.string())
-        .optional()
-        .describe("File paths to knowledge files to include in context"),
-      mcpServers: z
-        .array(z.string())
-        .optional()
-        .describe("MCP server names to auto-start for this agent"),
+      knowledge: z.array(z.string()).optional().describe("File paths to knowledge files to include in context"),
+      mcpServers: z.array(z.string()).optional().describe("MCP server names to auto-start for this agent"),
     })
     .catchall(z.any())
     .transform((agent, ctx) => {
@@ -1257,10 +1251,7 @@ export namespace Config {
             )
             .optional()
             .describe("Fallback rules in priority order"),
-          costAware: z
-            .boolean()
-            .default(false)
-            .describe("Skip fallbacks that cost more than the original model"),
+          costAware: z.boolean().default(false).describe("Skip fallbacks that cost more than the original model"),
           notifyOnFallback: z.boolean().default(true).describe("Emit event/notification when fallback is used"),
         })
         .optional()

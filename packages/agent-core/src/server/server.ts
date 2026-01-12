@@ -1199,9 +1199,7 @@ export namespace Server {
             // Build resume URL based on target surface
             const baseUrl = Server.url().toString().replace(/\/$/, "")
             const resumeUrl =
-              targetSurface === "web"
-                ? `${baseUrl}/session/${sessionID}`
-                : `agentcore://session/${sessionID}`
+              targetSurface === "web" ? `${baseUrl}/session/${sessionID}` : `agentcore://session/${sessionID}`
 
             return c.json({
               sessionID,
@@ -2856,7 +2854,10 @@ export namespace Server {
             const name = c.req.param("name")
             const supportsOAuth = await MCP.supportsOAuth(name)
             if (!supportsOAuth) {
-              return c.json({ data: null, errors: [{ message: `MCP server ${name} does not support OAuth` }], success: false }, 400)
+              return c.json(
+                { data: null, errors: [{ message: `MCP server ${name} does not support OAuth` }], success: false },
+                400,
+              )
             }
             const result = await MCP.startAuth(name)
             return c.json(result)
@@ -2916,7 +2917,10 @@ export namespace Server {
             const name = c.req.param("name")
             const supportsOAuth = await MCP.supportsOAuth(name)
             if (!supportsOAuth) {
-              return c.json({ data: null, errors: [{ message: `MCP server ${name} does not support OAuth` }], success: false }, 400)
+              return c.json(
+                { data: null, errors: [{ message: `MCP server ${name} does not support OAuth` }], success: false },
+                400,
+              )
             }
             const status = await MCP.authenticate(name)
             return c.json(status)

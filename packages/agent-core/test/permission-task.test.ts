@@ -35,7 +35,7 @@ describe("PermissionNext.evaluate for permission.task", () => {
     const ruleset = createRuleset({ "orchestrator-*": "deny" })
     expect(PermissionNext.evaluate("task", "orchestrator-fast", ruleset).action).toBe("deny")
     expect(PermissionNext.evaluate("task", "orchestrator-slow", ruleset).action).toBe("deny")
-    expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("ask")
+    expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("ask")
   })
 
   test("matches wildcard patterns with allow", () => {
@@ -139,7 +139,7 @@ describe("PermissionNext.disabled for task tool", () => {
 
 // Integration tests that load permissions from real config files
 describe("permission.task with real config files", () => {
-  test("loads task permissions from opencode.json config", async () => {
+  test("loads task permissions from agent-core.json config", async () => {
     await using tmp = await tmpdir({
       git: true,
       config: {
@@ -157,7 +157,7 @@ describe("permission.task with real config files", () => {
         const config = await Config.get()
         const ruleset = PermissionNext.fromConfig(config.permission ?? {})
         // general and orchestrator-fast should be allowed, code-reviewer denied
-        expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("allow")
+        expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("allow")
         expect(PermissionNext.evaluate("task", "orchestrator-fast", ruleset).action).toBe("allow")
         expect(PermissionNext.evaluate("task", "code-reviewer", ruleset).action).toBe("deny")
       },
@@ -182,7 +182,7 @@ describe("permission.task with real config files", () => {
         const config = await Config.get()
         const ruleset = PermissionNext.fromConfig(config.permission ?? {})
         // general and code-reviewer should be ask, orchestrator-* denied
-        expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("ask")
+        expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("ask")
         expect(PermissionNext.evaluate("task", "code-reviewer", ruleset).action).toBe("ask")
         expect(PermissionNext.evaluate("task", "orchestrator-fast", ruleset).action).toBe("deny")
       },
@@ -195,7 +195,7 @@ describe("permission.task with real config files", () => {
       config: {
         permission: {
           task: {
-            general: "allow",
+            "*": "allow",
             "code-reviewer": "deny",
           },
         },
@@ -206,10 +206,12 @@ describe("permission.task with real config files", () => {
       fn: async () => {
         const config = await Config.get()
         const ruleset = PermissionNext.fromConfig(config.permission ?? {})
-        expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("allow")
+        // "zee" matches "*" wildcard, gets "allow"
+        expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("allow")
+        // "code-reviewer" has explicit deny rule that comes after "*" in object iteration
         expect(PermissionNext.evaluate("task", "code-reviewer", ruleset).action).toBe("deny")
-        // Unspecified agents default to "ask"
-        expect(PermissionNext.evaluate("task", "unknown-agent", ruleset).action).toBe("ask")
+        // "unknown-agent" also matches "*", gets "allow"
+        expect(PermissionNext.evaluate("task", "unknown-agent", ruleset).action).toBe("allow")
       },
     })
   })
@@ -234,8 +236,9 @@ describe("permission.task with real config files", () => {
         const config = await Config.get()
         const ruleset = PermissionNext.fromConfig(config.permission ?? {})
 
-        // Verify task permissions
+        // Verify task permissions - "general" is explicitly allowed, others match "*" which is "deny"
         expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("allow")
+        expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("deny")
         expect(PermissionNext.evaluate("task", "code-reviewer", ruleset).action).toBe("deny")
 
         // Verify other tool permissions
@@ -273,7 +276,7 @@ describe("permission.task with real config files", () => {
         const ruleset = PermissionNext.fromConfig(config.permission ?? {})
 
         // Last matching rule wins - "*" deny is last, so all agents are denied
-        expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("deny")
+        expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("deny")
         expect(PermissionNext.evaluate("task", "code-reviewer", ruleset).action).toBe("deny")
         expect(PermissionNext.evaluate("task", "unknown", ruleset).action).toBe("deny")
 
@@ -292,7 +295,7 @@ describe("permission.task with real config files", () => {
         permission: {
           task: {
             "*": "deny",
-            general: "allow",
+            zee: "allow",
           },
         },
       },
@@ -303,13 +306,13 @@ describe("permission.task with real config files", () => {
         const config = await Config.get()
         const ruleset = PermissionNext.fromConfig(config.permission ?? {})
 
-        // Evaluate uses findLast - "general" allow comes after "*" deny
-        expect(PermissionNext.evaluate("task", "general", ruleset).action).toBe("allow")
+        // Evaluate uses findLast - "zee" allow comes after "*" deny
+        expect(PermissionNext.evaluate("task", "zee", ruleset).action).toBe("allow")
         // Other agents still denied by the earlier "*" deny
         expect(PermissionNext.evaluate("task", "code-reviewer", ruleset).action).toBe("deny")
 
         // disabled() uses findLast and checks if the last rule has pattern: "*" with action: "deny"
-        // In this case, the last rule is {pattern: "general", action: "allow"}, not pattern: "*"
+        // In this case, the last rule is {pattern: "zee", action: "allow"}, not pattern: "*"
         // So the task tool is NOT disabled (even though most subagents are denied)
         const disabled = PermissionNext.disabled(["task"], ruleset)
         expect(disabled.has("task")).toBe(false)

@@ -33,9 +33,7 @@ export const TasksCommand = cmd({
           status: status?.type || "idle",
           statusDetails: status,
           created: new Date(session.time.created).toISOString(),
-          updated: session.time.updated
-            ? new Date(session.time.updated).toISOString()
-            : "-",
+          updated: session.time.updated ? new Date(session.time.updated).toISOString() : "-",
         })
       }
 
@@ -57,10 +55,13 @@ export const TasksCommand = cmd({
       }
 
       // Count by status
-      const statusCounts = tasks.reduce((acc, t) => {
-        acc[t.status] = (acc[t.status] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
+      const statusCounts = tasks.reduce(
+        (acc, t) => {
+          acc[t.status] = (acc[t.status] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
 
       console.log("Session Status Summary:")
       for (const [status, count] of Object.entries(statusCounts)) {

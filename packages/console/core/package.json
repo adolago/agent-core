@@ -36,7 +36,9 @@
     "update-black": "script/update-black.ts",
     "promote-black-to-dev": "script/promote-black.ts dev",
     "promote-black-to-prod": "script/promote-black.ts production",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsgo --noEmit",
+    "lint": "prettier --check .",
+    "test": "echo 'No tests configured' && exit 0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

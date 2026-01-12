@@ -72,7 +72,7 @@ export namespace Thread {
       userId?: string
       chatId?: string
       directory?: string
-    }
+    },
   ): Promise<Info> {
     const directory = options?.directory ?? Instance.directory
 
@@ -152,20 +152,14 @@ export namespace Thread {
   /**
    * Get messages for a thread
    */
-  export async function getMessages(
-    threadId: string,
-    options?: { limit?: number }
-  ): Promise<MessageV2.WithParts[]> {
+  export async function getMessages(threadId: string, options?: { limit?: number }): Promise<MessageV2.WithParts[]> {
     return Session.messages({ sessionID: threadId, limit: options?.limit })
   }
 
   /**
    * Get the current daily thread for a persona+channel
    */
-  export async function getCurrentDaily(
-    persona: Persona,
-    channel: Channel
-  ): Promise<Info | null> {
+  export async function getCurrentDaily(persona: Persona, channel: Channel): Promise<Info | null> {
     if (channel !== "whatsapp" && channel !== "telegram") {
       return null
     }
@@ -179,10 +173,7 @@ export namespace Thread {
   /**
    * Check if a daily thread exists for today
    */
-  export async function hasDailyThread(
-    persona: Persona,
-    channel: Channel
-  ): Promise<boolean> {
+  export async function hasDailyThread(persona: Persona, channel: Channel): Promise<boolean> {
     if (channel !== "whatsapp" && channel !== "telegram") {
       return false
     }
@@ -193,10 +184,7 @@ export namespace Thread {
   /**
    * List recent threads for a persona
    */
-  export async function listRecent(
-    persona: Persona,
-    options?: { limit?: number }
-  ): Promise<Info[]> {
+  export async function listRecent(persona: Persona, options?: { limit?: number }): Promise<Info[]> {
     const threads: Info[] = []
     const limit = options?.limit ?? 10
 

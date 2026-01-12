@@ -156,9 +156,7 @@ describe("WhatsApp Gateway", () => {
       })
 
       await mockApi.client.initialize()
-      await expect(
-        mockApi.client.sendMessage("123@c.us", "test")
-      ).rejects.toThrow("Mock send message error")
+      await expect(mockApi.client.sendMessage("123@c.us", "test")).rejects.toThrow("Mock send message error")
     })
   })
 

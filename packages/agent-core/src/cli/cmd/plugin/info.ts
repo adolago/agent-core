@@ -54,21 +54,40 @@ export const InfoCommand = cmd({
             UI.empty()
             UI.println(plugin.description)
             UI.empty()
-            UI.println(UI.Style.TEXT_NORMAL_BOLD + "Package:     " + UI.Style.TEXT_NORMAL + `${plugin.npm}@${plugin.version}`)
+            UI.println(
+              UI.Style.TEXT_NORMAL_BOLD + "Package:     " + UI.Style.TEXT_NORMAL + `${plugin.npm}@${plugin.version}`,
+            )
             UI.println(UI.Style.TEXT_NORMAL_BOLD + "Category:    " + UI.Style.TEXT_NORMAL + plugin.category)
             UI.println(UI.Style.TEXT_NORMAL_BOLD + "Tags:        " + UI.Style.TEXT_NORMAL + plugin.tags.join(", "))
-            UI.println(UI.Style.TEXT_NORMAL_BOLD + "Capabilities:" + UI.Style.TEXT_NORMAL + " " + plugin.capabilities.join(", "))
+            UI.println(
+              UI.Style.TEXT_NORMAL_BOLD + "Capabilities:" + UI.Style.TEXT_NORMAL + " " + plugin.capabilities.join(", "),
+            )
             UI.println(UI.Style.TEXT_NORMAL_BOLD + "Author:      " + UI.Style.TEXT_NORMAL + plugin.author)
             if (plugin.homepage) {
-              UI.println(UI.Style.TEXT_NORMAL_BOLD + "Homepage:    " + UI.Style.TEXT_INFO + plugin.homepage + UI.Style.TEXT_NORMAL)
+              UI.println(
+                UI.Style.TEXT_NORMAL_BOLD +
+                  "Homepage:    " +
+                  UI.Style.TEXT_INFO +
+                  plugin.homepage +
+                  UI.Style.TEXT_NORMAL,
+              )
             }
             UI.empty()
 
             if (installed) {
-              UI.println(UI.Style.TEXT_SUCCESS + "✓ Installed" + UI.Style.TEXT_NORMAL + UI.Style.TEXT_DIM + ` (${installed.spec})` + UI.Style.TEXT_NORMAL)
+              UI.println(
+                UI.Style.TEXT_SUCCESS +
+                  "✓ Installed" +
+                  UI.Style.TEXT_NORMAL +
+                  UI.Style.TEXT_DIM +
+                  ` (${installed.spec})` +
+                  UI.Style.TEXT_NORMAL,
+              )
             } else {
               UI.println(UI.Style.TEXT_DIM + "Not installed" + UI.Style.TEXT_NORMAL)
-              UI.println(UI.Style.TEXT_DIM + `Install with: agent-core plugin install ${plugin.name}` + UI.Style.TEXT_NORMAL)
+              UI.println(
+                UI.Style.TEXT_DIM + `Install with: agent-core plugin install ${plugin.name}` + UI.Style.TEXT_NORMAL,
+              )
             }
           } else if (installed) {
             // Plugin not in registry but is installed
@@ -76,7 +95,14 @@ export const InfoCommand = cmd({
             UI.empty()
             UI.println(UI.Style.TEXT_NORMAL_BOLD + "Package:" + UI.Style.TEXT_NORMAL + ` ${installed.spec}`)
             UI.empty()
-            UI.println(UI.Style.TEXT_WARNING + "⚠" + UI.Style.TEXT_NORMAL + UI.Style.TEXT_DIM + " This plugin is not in the official registry" + UI.Style.TEXT_NORMAL)
+            UI.println(
+              UI.Style.TEXT_WARNING +
+                "⚠" +
+                UI.Style.TEXT_NORMAL +
+                UI.Style.TEXT_DIM +
+                " This plugin is not in the official registry" +
+                UI.Style.TEXT_NORMAL,
+            )
           }
         } catch (error) {
           UI.error(`Failed to get plugin info: ${error instanceof Error ? error.message : error}`)

@@ -1155,7 +1155,9 @@ export namespace Provider {
 
         // Parse Claude model names into family and version
         // Formats: claude-{type}-{major}-{minor}, claude-{major}-{minor}-{type}, claude-{major}-{type}
-        function parseClaudeModel(id: string): { family: string; version: number; dated: string | null; isLatest: boolean } | null {
+        function parseClaudeModel(
+          id: string,
+        ): { family: string; version: number; dated: string | null; isLatest: boolean } | null {
           const isLatest = id.endsWith("-latest")
           const dateMatch = id.match(datePattern)
           const dated = dateMatch ? dateMatch[1] : null
@@ -1198,7 +1200,12 @@ export namespace Provider {
           const parsed = parseClaudeModel(modelID)
           if (parsed) {
             if (!families[parsed.family]) families[parsed.family] = []
-            families[parsed.family].push({ id: modelID, version: parsed.version, dated: parsed.dated, isLatest: parsed.isLatest })
+            families[parsed.family].push({
+              id: modelID,
+              version: parsed.version,
+              dated: parsed.dated,
+              isLatest: parsed.isLatest,
+            })
           }
         }
 

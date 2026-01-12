@@ -59,14 +59,14 @@ export interface MockWhatsAppApiOptions {
 }
 
 export interface MockWhatsAppClientEvents {
-  "qr": (qr: string) => void
-  "ready": () => void
-  "authenticated": () => void
-  "auth_failure": (msg: string) => void
-  "disconnected": (reason: string) => void
-  "message": (message: MockWhatsAppMessage) => void
-  "message_create": (message: MockWhatsAppMessage) => void
-  "message_ack": (message: MockWhatsAppMessage, ack: number) => void
+  qr: (qr: string) => void
+  ready: () => void
+  authenticated: () => void
+  auth_failure: (msg: string) => void
+  disconnected: (reason: string) => void
+  message: (message: MockWhatsAppMessage) => void
+  message_create: (message: MockWhatsAppMessage) => void
+  message_ack: (message: MockWhatsAppMessage, ack: number) => void
 }
 
 const DEFAULT_CONTACT: MockWhatsAppContact = {
@@ -132,9 +132,7 @@ export function createMockWhatsAppApi(options: MockWhatsAppApiOptions = {}) {
     }
   }
 
-  function createMessage(
-    data: Omit<MockWhatsAppMessage, "reply" | "getChat" | "getContact">
-  ): MockWhatsAppMessage {
+  function createMessage(data: Omit<MockWhatsAppMessage, "reply" | "getChat" | "getContact">): MockWhatsAppMessage {
     const contact = contactMap.get(data.from) || DEFAULT_CONTACT
     const chat: MockWhatsAppChat = {
       ...DEFAULT_CHAT,
@@ -183,10 +181,7 @@ export function createMockWhatsAppApi(options: MockWhatsAppApiOptions = {}) {
     /**
      * Register event listener
      */
-    on<K extends keyof MockWhatsAppClientEvents>(
-      event: K,
-      handler: MockWhatsAppClientEvents[K]
-    ) {
+    on<K extends keyof MockWhatsAppClientEvents>(event: K, handler: MockWhatsAppClientEvents[K]) {
       if (!eventListeners.has(event)) {
         eventListeners.set(event, new Set())
       }
@@ -197,10 +192,7 @@ export function createMockWhatsAppApi(options: MockWhatsAppApiOptions = {}) {
     /**
      * Remove event listener
      */
-    off<K extends keyof MockWhatsAppClientEvents>(
-      event: K,
-      handler: MockWhatsAppClientEvents[K]
-    ) {
+    off<K extends keyof MockWhatsAppClientEvents>(event: K, handler: MockWhatsAppClientEvents[K]) {
       const listeners = eventListeners.get(event)
       if (listeners) {
         listeners.delete(handler)
@@ -211,10 +203,7 @@ export function createMockWhatsAppApi(options: MockWhatsAppApiOptions = {}) {
     /**
      * Remove event listener (alias)
      */
-    removeListener<K extends keyof MockWhatsAppClientEvents>(
-      event: K,
-      handler: MockWhatsAppClientEvents[K]
-    ) {
+    removeListener<K extends keyof MockWhatsAppClientEvents>(event: K, handler: MockWhatsAppClientEvents[K]) {
       return this.off(event, handler)
     },
 
@@ -262,7 +251,7 @@ export function createMockWhatsAppApi(options: MockWhatsAppApiOptions = {}) {
     async sendMessage(
       chatId: string,
       content: string,
-      _options?: { quotedMessageId?: string }
+      _options?: { quotedMessageId?: string },
     ): Promise<MockWhatsAppMessage> {
       await simulateDelay()
 
