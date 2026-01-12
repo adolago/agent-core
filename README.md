@@ -2,6 +2,9 @@
 
 # Agent-Core
 
+[![Version](https://img.shields.io/badge/version-0.1.20260112-blue?style=flat-square)](https://github.com/adolago/agent-core/releases/tag/v0.1.20260112)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+
 Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
 
 ## Quick Start
