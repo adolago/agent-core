@@ -16,6 +16,15 @@ import pkg from "../package.json"
 import { Script } from "@opencode-ai/script"
 
 const personasRoot = path.resolve(dir, "..", "..", "vendor", "personas")
+const zeeRoot = path.join(personasRoot, "zee")
+
+async function ensureZeeDependencies() {
+  const nodeModules = path.join(zeeRoot, "node_modules")
+  if (fs.existsSync(nodeModules)) return
+  if (!fs.existsSync(path.join(zeeRoot, "package.json"))) return
+  console.log("installing zee dependencies for bundling")
+  await $`pnpm install --prod --ignore-scripts`.cwd(zeeRoot)
+}
 
 function bundlePersonas(distRoot: string) {
   if (!fs.existsSync(personasRoot)) return
@@ -30,6 +39,9 @@ function bundlePersonas(distRoot: string) {
       dereference: true,
       filter: (srcPath) => {
         const base = path.basename(srcPath)
+        if (entry.name === "zee") {
+          return base !== ".git" && base !== ".venv" && base !== "venv"
+        }
         return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
       },
     })
@@ -155,6 +167,10 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
+if (fs.existsSync(zeeRoot)) {
+  await ensureZeeDependencies()
+}
+
 for (const item of targets) {
   const baseName = [
     pkg.name,
