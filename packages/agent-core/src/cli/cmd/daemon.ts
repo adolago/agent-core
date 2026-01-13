@@ -63,16 +63,32 @@ export namespace Daemon {
 
   export async function isRunning(): Promise<boolean> {
     const state = await readPidFile()
-    if (!state) return false
+    if (!state) {
+      // No PID file, but check for stale lock file
+      await checkAndCleanStaleLock()
+      return false
+    }
 
     try {
       // Check if process is running
       process.kill(state.pid, 0)
       return true
     } catch {
-      // Process not running, clean up stale pid file
+      // Process not running, clean up stale files
       await removePidFile()
+      await checkAndCleanStaleLock()
       return false
+    }
+  }
+
+  async function checkAndCleanStaleLock() {
+    try {
+      await fs.stat(LOCK_FILE)
+      // If we reach here, lock exists but PID doesn't (or is dead)
+      await fs.unlink(LOCK_FILE)
+      log.info("removed stale lock file", { path: LOCK_FILE })
+    } catch {
+      // No lock file, all good
     }
   }
 
