@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
-const childProcess = require("child_process")
-const fs = require("fs")
-const path = require("path")
-const os = require("os")
+import childProcess from "child_process"
+import fs from "fs"
+import path from "path"
+import os from "os"
+import { fileURLToPath } from "url"
+
+const __filename = fileURLToPath(import.meta.url)
+const base = "agent-core"
 
 function run(target) {
   const result = childProcess.spawnSync(target, process.argv.slice(2), {
     stdio: "inherit",
+    env: process.env,
   })
   if (result.error) {
     console.error(result.error.message)
@@ -23,7 +28,7 @@ if (envPath) {
   run(envPath)
 }
 
-const scriptPath = fs.realpathSync(__filename)
+const scriptPath = fs.realpathSync(path.resolve(__filename))
 const scriptDir = path.dirname(scriptPath)
 
 const platformMap = {
@@ -52,6 +57,12 @@ const agentCoreBinary = platform === "windows" ? "agent-core.exe" : "agent-core"
 const opencodeBinary = platform === "windows" ? "opencode.exe" : "opencode"
 
 function findBinary(startDir) {
+  // First check dist/ folder for development builds
+  const distCandidate = path.join(startDir, "..", "dist", agentCoreBase, "bin", agentCoreBinary)
+  if (fs.existsSync(distCandidate)) {
+    return distCandidate
+  }
+
   let current = startDir
   for (;;) {
     const modules = path.join(current, "node_modules")
@@ -89,6 +100,14 @@ if (!resolved) {
       '" package',
   )
   process.exit(1)
+}
+
+const candidateRoot = path.resolve(path.dirname(resolved), "..")
+if (!process.env.AGENT_CORE_ROOT) {
+  const vendorDir = path.join(candidateRoot, "vendor", "personas")
+  if (fs.existsSync(vendorDir)) {
+    process.env.AGENT_CORE_ROOT = candidateRoot
+  }
 }
 
 run(resolved)

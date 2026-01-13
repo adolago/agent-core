@@ -22,8 +22,14 @@ type StanleyResult = {
   error?: string;
 };
 
+function resolvePersonaRepo(name: string): string {
+  const root = process.env.AGENT_CORE_ROOT;
+  if (root) return join(root, "vendor", "personas", name);
+  return join(homedir(), ".local", "src", "agent-core", "vendor", "personas", name);
+}
+
 function resolveStanleyCli(): { python: string; cliPath: string } {
-  const repo = process.env.STANLEY_REPO || join(homedir(), "Repositories", "personas", "stanley");
+  const repo = process.env.STANLEY_REPO || resolvePersonaRepo("stanley");
   const cliPath = process.env.STANLEY_CLI || join(repo, "scripts", "stanley_cli.py");
   const venvPython = join(repo, ".venv", "bin", "python");
   const python = process.env.STANLEY_PYTHON || (existsSync(venvPython) ? venvPython : "python3");
