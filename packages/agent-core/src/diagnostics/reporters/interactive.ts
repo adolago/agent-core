@@ -3,7 +3,7 @@
  * @description TTY-friendly colored output for health check results
  */
 
-import { CheckReport, CheckResult, CheckCategory } from "../types";
+import type { CheckReport, CheckResult, CheckCategory } from "../types";
 
 // ANSI color codes
 const colors = {

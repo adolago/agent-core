@@ -3,7 +3,7 @@
  * @description Machine-readable JSON output for CI/scripting
  */
 
-import { CheckReport } from "../types";
+import type { CheckReport } from "../types";
 
 export class JsonReporter {
   private pretty: boolean;

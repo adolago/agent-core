@@ -3,7 +3,7 @@
  * @description Single-line output for scripts and CI
  */
 
-import { CheckReport } from "../types";
+import type { CheckReport } from "../types";
 
 export class MinimalReporter {
   format(report: CheckReport): string {

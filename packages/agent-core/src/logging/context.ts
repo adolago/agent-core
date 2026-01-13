@@ -78,6 +78,6 @@ export function setContextValue<K extends keyof LogContext>(
 ): void {
   const current = asyncLocalStorage.getStore();
   if (current) {
-    (current as Record<string, unknown>)[key] = value;
+    current[key] = value;
   }
 }

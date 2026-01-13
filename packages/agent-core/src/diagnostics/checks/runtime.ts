@@ -7,7 +7,7 @@ import { execSync } from "child_process";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-import { CheckResult, CheckOptions } from "../types";
+import type { CheckResult, CheckOptions } from "../types";
 
 /** Minimum required Bun version */
 const MIN_BUN_VERSION = "1.0.0";
