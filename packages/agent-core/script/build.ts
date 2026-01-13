@@ -18,6 +18,7 @@ import { Script } from "@opencode-ai/script"
 const personasRoot = path.resolve(dir, "..", "..", "vendor", "personas")
 const zeeRoot = path.join(personasRoot, "zee")
 const stanleyRoot = path.join(personasRoot, "stanley")
+const tiaraRoot = path.resolve(dir, "..", "..", "vendor", "tiara")
 
 async function ensureZeeDependencies() {
   const nodeModules = path.join(zeeRoot, "node_modules")
@@ -39,11 +40,50 @@ function resolveStanleyRuntime(): string | undefined {
   return undefined
 }
 
-function ensureStanleyRuntime() {
+function resolveStanleyPythonBinary(): string {
+  const runtimeRoot = resolveStanleyRuntime()
+  if (!runtimeRoot) return "python3"
+  const candidates = ["python3.12", "python3.13", "python3"]
+  for (const candidate of candidates) {
+    const python = path.join(runtimeRoot, "bin", candidate)
+    if (fs.existsSync(python)) return python
+  }
+  return "python3"
+}
+
+async function getPythonVersion(pythonBin: string): Promise<string | undefined> {
+  const version = await $`${pythonBin} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
+    .quiet()
+    .nothrow()
+    .text()
+    .then((v) => v.trim())
+  return version || undefined
+}
+
+async function ensureStanleyRuntime() {
   const runtimeRoot = resolveStanleyRuntime()
   if (!runtimeRoot) return
   const destRoot = path.join(stanleyRoot, ".python-runtime")
-  if (fs.existsSync(destRoot)) return
+  if (fs.existsSync(destRoot)) {
+    const srcPython = resolveStanleyPythonBinary()
+    const destPythonCandidates = ["python3.12", "python3.13", "python3"].map((candidate) =>
+      path.join(destRoot, "bin", candidate),
+    )
+    const destPython = destPythonCandidates.find((candidate) => fs.existsSync(candidate))
+    if (!destPython) {
+      fs.rmSync(destRoot, { recursive: true, force: true })
+    } else {
+      const [srcVersion, destVersion] = await Promise.all([
+        getPythonVersion(srcPython),
+        getPythonVersion(destPython),
+      ])
+      if (srcVersion && destVersion && srcVersion !== destVersion) {
+        fs.rmSync(destRoot, { recursive: true, force: true })
+      } else {
+        return
+      }
+    }
+  }
   console.log("bundling stanley python runtime")
   fs.cpSync(runtimeRoot, destRoot, {
     recursive: true,
@@ -59,7 +99,9 @@ function getStanleyRequirementsFile(): string | undefined {
   return undefined
 }
 
-function readStanleyDepsStamp(stampPath: string): { requirements: string; mtimeMs: number } | null {
+function readStanleyDepsStamp(
+  stampPath: string,
+): { requirements: string; mtimeMs: number; depsKey?: string } | null {
   try {
     const raw = fs.readFileSync(stampPath, "utf-8")
     return JSON.parse(raw) as { requirements: string; mtimeMs: number }
@@ -71,46 +113,52 @@ function readStanleyDepsStamp(stampPath: string): { requirements: string; mtimeM
 async function ensureStanleyDependencies() {
   const requirementsFile = getStanleyRequirementsFile()
   if (!requirementsFile) return
+  const pythonBin = resolveStanleyPythonBinary()
   const pythonDepsRoot = path.join(stanleyRoot, ".python")
   const stampPath = path.join(pythonDepsRoot, ".stanley-deps.json")
   const constraintsPath = path.join(pythonDepsRoot, ".stanley-constraints.txt")
   const requirementsStat = fs.statSync(requirementsFile)
-  const stamp = readStanleyDepsStamp(stampPath)
-  if (stamp && stamp.requirements === requirementsFile && stamp.mtimeMs === requirementsStat.mtimeMs) {
-    return
-  }
   fs.mkdirSync(pythonDepsRoot, { recursive: true })
-  if (
-    (await $`PYTHONPATH=${pythonDepsRoot} python3 -c "import openbb, yfinance"`.cwd(stanleyRoot).quiet().nothrow())
-      .exitCode === 0
-  ) {
-    fs.writeFileSync(
-      stampPath,
-      JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs }),
-    )
-    return
-  }
-
-  const pythonVersion = await $`python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
+  const pythonVersion = await $`${pythonBin} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
     .cwd(stanleyRoot)
     .quiet()
     .nothrow()
     .text()
     .then((v) => v.trim())
   const [major, minor] = pythonVersion.split(".").map((v) => Number(v))
-  const supportsOpenbb = Number.isFinite(major) && Number.isFinite(minor) ? major < 3 || (major === 3 && minor < 14) : true
-  const deps = supportsOpenbb ? ["openbb==4.6.0", "yfinance==0.2.66"] : ["yfinance==0.2.66"]
-
-  if (!fs.existsSync(constraintsPath)) {
-    fs.writeFileSync(constraintsPath, deps.join("\n"))
+  const supportsOpenbb =
+    Number.isFinite(major) && Number.isFinite(minor) ? major < 3 || (major === 3 && minor < 14) : true
+  const deps = supportsOpenbb
+    ? ["openbb==4.6.0", "yfinance==0.2.66", "dbnomics==1.2.0", "nautilus_trader==1.222.0"]
+    : ["yfinance==0.2.66", "dbnomics==1.2.0", "nautilus_trader==1.222.0"]
+  const depsKey = deps.join("|")
+  const stamp = readStanleyDepsStamp(stampPath)
+  if (stamp && stamp.requirements === requirementsFile && stamp.mtimeMs === requirementsStat.mtimeMs && stamp.depsKey === depsKey) {
+    return
   }
+  if (
+    (
+      await $`PYTHONPATH=${pythonDepsRoot} ${pythonBin} -c "import openbb, yfinance, dbnomics, nautilus_trader"`
+        .cwd(stanleyRoot)
+        .quiet()
+        .nothrow()
+    ).exitCode === 0
+  ) {
+    fs.writeFileSync(
+      stampPath,
+      JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs, depsKey }),
+    )
+    return
+  }
+
+  fs.writeFileSync(constraintsPath, deps.join("\n"))
   console.log("installing minimal stanley dependencies for bundling")
-  await $`python3 -m pip install --only-binary=:all: --target ${pythonDepsRoot} -r ${constraintsPath}`.cwd(
+  await $`${pythonBin} -m pip install --only-binary=:all: --target ${pythonDepsRoot} -r ${constraintsPath}`.cwd(
     stanleyRoot,
   )
   fs.writeFileSync(
     stampPath,
-    JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs }),
+    JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs, depsKey }),
   )
 }
 
@@ -137,6 +185,20 @@ function bundlePersonas(distRoot: string) {
       },
     })
   }
+}
+
+function bundleTiara(distRoot: string) {
+  if (!fs.existsSync(tiaraRoot)) return
+  const destRoot = path.join(distRoot, "vendor", "tiara")
+  fs.mkdirSync(destRoot, { recursive: true })
+  fs.cpSync(tiaraRoot, destRoot, {
+    recursive: true,
+    dereference: true,
+    filter: (srcPath) => {
+      const base = path.basename(srcPath)
+      return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
+    },
+  })
 }
 
 const singleFlag = process.argv.includes("--single")
@@ -263,7 +325,7 @@ if (fs.existsSync(zeeRoot)) {
 }
 if (fs.existsSync(stanleyRoot)) {
   await ensureStanleyDependencies()
-  ensureStanleyRuntime()
+  await ensureStanleyRuntime()
 }
 
 for (const item of targets) {
@@ -329,6 +391,7 @@ for (const item of targets) {
   )
   // Bundle personas so standalone installs can resolve them via AGENT_CORE_ROOT.
   bundlePersonas(path.join(dir, "dist", name))
+  bundleTiara(path.join(dir, "dist", name))
   binaries[name] = Script.version
 }
 
