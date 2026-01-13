@@ -31,9 +31,19 @@ function resolvePersonaRepo(name: string): string {
 function resolveStanleyCli(): { python: string; cliPath: string; pythonPath?: string } {
   const repo = process.env.STANLEY_REPO || resolvePersonaRepo("stanley");
   const pythonPath = process.env.STANLEY_PYTHONPATH || (existsSync(join(repo, ".python")) ? join(repo, ".python") : undefined);
+  const runtimePython = join(repo, ".python-runtime", "bin", "python3");
+  const runtimePythonAlt = join(repo, ".python-runtime", "bin", "python3.13");
+  const bundledPython = existsSync(runtimePython)
+    ? runtimePython
+    : existsSync(runtimePythonAlt)
+      ? runtimePythonAlt
+      : undefined;
   const cliPath = process.env.STANLEY_CLI || join(repo, "scripts", "stanley_cli.py");
   const venvPython = join(repo, ".venv", "bin", "python");
-  const python = process.env.STANLEY_PYTHON || (pythonPath ? "python3" : existsSync(venvPython) ? venvPython : "python3");
+  const python =
+    process.env.STANLEY_PYTHON ||
+    bundledPython ||
+    (pythonPath ? "python3" : existsSync(venvPython) ? venvPython : "python3");
   return { python, cliPath, pythonPath };
 }
 
