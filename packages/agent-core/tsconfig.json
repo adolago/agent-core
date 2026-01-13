@@ -14,5 +14,6 @@
       "@root/*": ["../../src/*"],
       "@personas/*": ["../../src/personas/*"]
     }
-  }
+  },
+  "exclude": ["dist"]
 }
