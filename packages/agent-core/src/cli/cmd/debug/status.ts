@@ -192,7 +192,7 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
 
   // Check source file timestamps (for rebuild detection)
   if (verbose && status.binary.modifiedTs) {
-    const srcRoot = path.join(process.env.HOME || "", ".local", "src", "agent-core", "packages", "agent-core", "src")
+    const srcRoot = path.join(Global.Path.source, "packages", "agent-core", "src")
     const keyFiles = ["provider/transform.ts", "provider/provider.ts", "server/server.ts"]
 
     for (const file of keyFiles) {
@@ -343,10 +343,10 @@ function printStatus(status: SystemStatus, verbose: boolean) {
     console.log("")
     console.log(`${BLUE}Quick fixes:${RESET}`)
     if (status.issues.some((i) => i.includes("rebuild"))) {
-      console.log("  Rebuild: ~/.local/src/agent-core/scripts/reload.sh")
+      console.log(`  Rebuild: ${Global.Path.source}/scripts/reload.sh`)
     }
     if (status.issues.some((i) => i.includes("restart"))) {
-      console.log("  Restart: ~/.local/src/agent-core/scripts/reload.sh --no-build")
+      console.log(`  Restart: ${Global.Path.source}/scripts/reload.sh --no-build`)
     }
   }
 }

@@ -19,10 +19,10 @@ Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/agent-core.git ~/.local/src/agent-core
+git clone https://github.com/yourusername/agent-core.git
 
 # Install dependencies
-cd ~/.local/src/agent-core
+cd agent-core
 bun install
 
 # Build the project
@@ -36,11 +36,13 @@ cp dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
 ### Configuration
 
 1. Copy the environment template:
+
 ```bash
 cp .env.example .env
 ```
 
 2. Edit `.env` and add your API keys:
+
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...  # For embeddings
@@ -48,6 +50,7 @@ QDRANT_URL=http://localhost:6333
 ```
 
 3. Start Qdrant (if running locally):
+
 ```bash
 docker run -p 6333:6333 qdrant/qdrant
 ```
@@ -55,11 +58,12 @@ docker run -p 6333:6333 qdrant/qdrant
 ### Running
 
 **Interactive TUI:**
+
 ```bash
 agent-core
 ```
 
-**Daemon mode (for Zee gateway):**
+**Daemon mode (for external gateways):**
 ```bash
 agent-core daemon --gateway --hostname 127.0.0.1 --port 3210
 ```
@@ -80,11 +84,11 @@ agent-core/
 
 ### Personas
 
-| Persona | Domain | Description |
-|---------|--------|-------------|
-| **Zee** | Personal Assistant | Memory, messaging, calendar, notifications |
-| **Stanley** | Investing | Markets, portfolio, trading strategies |
-| **Johny** | Learning | Knowledge graphs, spaced repetition |
+| Persona     | Domain             | Description                                |
+| ----------- | ------------------ | ------------------------------------------ |
+| **Zee**     | Personal Assistant | Memory, messaging, calendar, notifications |
+| **Stanley** | Investing          | Markets, portfolio, trading strategies     |
+| **Johny**   | Learning           | Knowledge graphs, spaced repetition        |
 
 ### Key Features
 

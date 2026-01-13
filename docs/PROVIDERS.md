@@ -4,12 +4,12 @@ This document describes the working provider setup for agent-core.
 
 ## Config Locations
 
-| Type | Location |
-|------|----------|
-| Project config | `~/.local/src/agent-core/.agent-core/agent-core.jsonc` |
-| Global config (symlink) | `~/.config/agent-core/agent-core.jsonc` |
-| Agent definitions | `~/.local/src/agent-core/.agent-core/agent/` |
-| Global agents (symlink) | `~/.config/agent-core/agent/` |
+| Type                    | Location                                         |
+| ----------------------- | ------------------------------------------------ |
+| Project config          | `.agent-core/agent-core.jsonc` (in project root) |
+| Global config (symlink) | `~/.config/agent-core/agent-core.jsonc`          |
+| Agent definitions       | `.agent-core/agent/` (in project root)           |
+| Global agents (symlink) | `~/.config/agent-core/agent/`                    |
 
 The global config is symlinked to project config so changes in one location reflect in both.
 
@@ -31,6 +31,7 @@ Free-tier models via the `opencode-antigravity-auth` plugin.
 | `google/antigravity-gemini-3-flash` | Gemini 3 Flash | Fast |
 
 **Notes:**
+
 - Models are hardcoded in `provider.ts` and auto-loaded when the antigravity plugin detects auth
 - Opus 4.5 is only available as the `-thinking` variant
 - Thinking models require `topP >= 0.95` (handled automatically by ProviderTransform)
@@ -57,26 +58,27 @@ Access to various models including Grok, Llama, etc.
 ## Disabled Providers
 
 These are disabled in `agent-core.jsonc`:
+
 - `google-vertex` - Direct Vertex AI (redundant with Antigravity)
 - `google-vertex-anthropic` - Vertex Claude (redundant with Antigravity)
 
 ## Agent Defaults
 
-| Agent | Default Model | Purpose |
-|-------|---------------|---------|
-| Zee | `cerebras/zai-glm-4.7` | Personal assistant |
-| Stanley | `openrouter/x-ai/grok-4.1-fast` | Investing assistant |
-| Johny | `google/antigravity-claude-opus-4-5-thinking` | Learning assistant |
-| title | `cerebras/gpt-oss-120b` | Conversation titles (hidden) |
-| compaction | `google/antigravity-gemini-3-flash` | Context compaction (hidden) |
+| Agent      | Default Model                                 | Purpose                      |
+| ---------- | --------------------------------------------- | ---------------------------- |
+| Zee        | `cerebras/zai-glm-4.7`                        | Personal assistant           |
+| Stanley    | `openrouter/x-ai/grok-4.1-fast`               | Investing assistant          |
+| Johny      | `google/antigravity-claude-opus-4-5-thinking` | Learning assistant           |
+| title      | `cerebras/gpt-oss-120b`                       | Conversation titles (hidden) |
+| compaction | `google/antigravity-gemini-3-flash`           | Context compaction (hidden)  |
 
 ## Auth Storage
 
-| Provider | Auth Location | Type |
-|----------|---------------|------|
-| Google (Antigravity) | `~/.local/share/agent-core/auth.json` under `google` key | OAuth |
-| Cerebras | Environment variable | API Key |
-| OpenRouter | Environment variable | API Key |
+| Provider             | Auth Location                                            | Type    |
+| -------------------- | -------------------------------------------------------- | ------- |
+| Google (Antigravity) | `~/.local/share/agent-core/auth.json` under `google` key | OAuth   |
+| Cerebras             | Environment variable                                     | API Key |
+| OpenRouter           | Environment variable                                     | API Key |
 
 ## Adding New Models
 
