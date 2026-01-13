@@ -1,9 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
-  "small_model": "cerebras/gpt-oss-120b",
   "default_agent": "zee",
-  "disabled_providers": ["google-vertex", "google-vertex-anthropic"],
   "instructions": ["STYLE_GUIDE.md"],
   "mcp": {
     "context7": {
@@ -12,53 +9,23 @@
     },
     "personas-memory": {
       "type": "local",
-      "command": ["bun", "run", "src/mcp/servers/memory.ts"],
+      "command": ["bun", "run", "~/.local/src/agent-core/src/mcp/servers/memory.ts"],
       "enabled": true
     },
     "personas-calendar": {
       "type": "local",
-      "command": ["bun", "run", "src/mcp/servers/calendar.ts"],
+      "command": ["bun", "run", "~/.local/src/agent-core/src/mcp/servers/calendar.ts"],
       "enabled": true
     },
     "personas-portfolio": {
       "type": "local",
-      "command": ["bun", "run", "src/mcp/servers/portfolio.ts"],
+      "command": ["bun", "run", "~/.local/src/agent-core/src/mcp/servers/portfolio.ts"],
       "enabled": true
     }
   },
   "tools": {
     "github-triage": false,
     "github-pr-search": false
-  },
-  "provider": {
-    "cerebras": {
-      "name": "Cerebras",
-      "api": "https://api.cerebras.ai/v1",
-      "npm": "@ai-sdk/cerebras",
-      "env": ["CEREBRAS_API_KEY"],
-      "models": {
-        "zai-glm-4.7": {
-          "name": "GLM-4.7 (Z.AI on Cerebras)",
-          "release_date": "2025-01-01",
-          "temperature": true,
-          "reasoning": true,
-          "tool_call": true,
-          "attachment": false,
-          "limit": {
-            "context": 131000,
-            "output": 40000
-          },
-          "modalities": {
-            "input": ["text"],
-            "output": ["text"]
-          },
-          "cost": {
-            "input": 0,
-            "output": 0
-          }
-        }
-      }
-    }
   },
   "agent": {
     "zee": {
@@ -77,12 +44,10 @@
       "color": "#7fd88c"
     },
     "title": {
-      "model": "cerebras/gpt-oss-120b",
       "temperature": 0.5,
       "hidden": true
     },
     "compaction": {
-      "model": "google/antigravity-gemini-3-flash",
       "temperature": 0.3,
       "hidden": true
     }
