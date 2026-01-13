@@ -254,9 +254,9 @@ This system has experimental features enabled:
 
 ### Repository Location
 
-**Source code:** `~/.local/src/agent-core`
+**Source code:** The project root (can be customized via `AGENT_CORE_SOURCE` env var)
 
-This hidden location prevents accidentally running from the repo directory (which can cause config confusion).
+By default, the canonical location is `~/.local/src/agent-core`, but the project can be cloned anywhere.
 
 ### Binary Location
 
@@ -283,11 +283,11 @@ This hidden location prevents accidentally running from the repo directory (whic
 
 ```bash
 # Build from repo
-cd ~/.local/src/agent-core/packages/agent-core && bun run build
+cd packages/agent-core && bun run build
 
 # Kill running instances and install (MUST close TUI first)
 pkill -f agent-core; sleep 1
-cp ~/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
+cp packages/agent-core/dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
 ```
 
 ### Common Processes

@@ -25,6 +25,9 @@ export namespace Global {
     get home() {
       return process.env.AGENT_CORE_TEST_HOME || process.env.OPENCODE_TEST_HOME || os.homedir()
     },
+    get source() {
+      return process.env.AGENT_CORE_SOURCE || path.join(this.home, ".local", "src", "agent-core")
+    },
     get data() {
       return path.join(getXdgDataHome(), app)
     },

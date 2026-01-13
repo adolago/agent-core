@@ -20,7 +20,7 @@
 ### 1. Development Mode (`bun run dev`)
 
 ```bash
-cd ~/.local/src/agent-core/packages/agent-core
+cd packages/agent-core
 bun run dev --print-logs
 ```
 
@@ -66,7 +66,7 @@ pgrep -af "/bin/agent-core"
 │                    WHY FIXES DON'T TAKE EFFECT                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  You edit: ~/.local/src/agent-core/packages/agent-core/src/foo.ts      │
+│  You edit: packages/agent-core/src/foo.ts                              │
 │                                                                         │
 │  BUT your TUI is running:                                               │
 │                                                                         │
@@ -99,7 +99,7 @@ pgrep -af "/bin/agent-core"
 
 ## The Reload Script
 
-Located at: `~/.local/src/agent-core/scripts/reload.sh`
+Located at: `./scripts/reload.sh` (from project root)
 
 ### What It Does
 
@@ -199,7 +199,7 @@ When a fix doesn't take effect, check in order:
 - [ ] **4. When was the source file modified?**
 
   ```bash
-  ls -la ~/.local/src/agent-core/packages/agent-core/src/path/to/file.ts
+  ls -la packages/agent-core/src/path/to/file.ts
   ```
 
 - [ ] **5. Is source newer than binary?**
@@ -215,16 +215,16 @@ When a fix doesn't take effect, check in order:
 
 ## Location Reference
 
-| What              | Path                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------- |
-| Source repository | `~/.local/src/agent-core`                                                              |
-| Package source    | `~/.local/src/agent-core/packages/agent-core/src/`                                     |
-| Compiled binary   | `~/bin/agent-core`                                                                     |
-| Build output      | `~/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core` |
-| Reload script     | `~/.local/src/agent-core/scripts/reload.sh`                                            |
-| Config directory  | `~/.config/agent-core/`                                                                |
-| Custom tools      | `~/.config/agent-core/tool/`                                                           |
-| Daemon logs       | `/tmp/agent-core-daemon.log`                                                           |
+| What              | Path                                                           |
+| ----------------- | -------------------------------------------------------------- |
+| Source repository | Project root (or set `AGENT_CORE_SOURCE`)                      |
+| Package source    | `packages/agent-core/src/`                                     |
+| Compiled binary   | `~/bin/agent-core`                                             |
+| Build output      | `packages/agent-core/dist/agent-core-linux-x64/bin/agent-core` |
+| Reload script     | `./scripts/reload.sh`                                          |
+| Config directory  | `~/.config/agent-core/`                                        |
+| Custom tools      | `~/.config/agent-core/tool/`                                   |
+| Daemon logs       | `/tmp/agent-core-daemon.log`                                   |
 
 ## MCP Servers Note
 

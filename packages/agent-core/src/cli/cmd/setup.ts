@@ -28,11 +28,11 @@ export const SetupCommand = cmd({
     UI.success("Docker is running.")
 
     // 2. Locate docker-compose.yml
-    // We expect it in the project root or ~/.local/src/agent-core/
+    // We expect it in the project root or Global.Path.source
     // Since this is running from compiled code potentially, we look in known locations or cwd
     const candidates = [
       path.join(process.cwd(), "docker-compose.yml"),
-      path.join(Global.Path.home, ".local/src/agent-core/docker-compose.yml"),
+      path.join(Global.Path.source, "docker-compose.yml"),
       // If we are in the source tree:
       path.resolve(__dirname, "../../../../../docker-compose.yml"),
     ]
