@@ -6,7 +6,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-import { CheckResult, CheckOptions } from "../types";
+import type { CheckResult, CheckOptions } from "../types";
 
 const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 

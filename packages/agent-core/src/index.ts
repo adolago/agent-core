@@ -31,6 +31,7 @@ import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand } from "./cli/cmd
 import { PluginCommand } from "./cli/cmd/plugin"
 import { SetupCommand } from "./cli/cmd/setup"
 import { BugReportCommand } from "./cli/cmd/bug-report"
+import { CheckCommand } from "./cli/cmd/check"
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -89,6 +90,7 @@ const cli = yargs(hideBin(process.argv))
   .command(TuiSpawnCommand)
   .command(AttachCommand)
   .command(RunCommand)
+  .command(CheckCommand)
   .command(GenerateCommand)
   .command(DebugCommand)
   .command(AuthCommand)

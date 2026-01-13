@@ -4,7 +4,7 @@
  */
 
 import * as os from "os";
-import {
+import type {
   CheckResult,
   CheckOptions,
   CheckReport,

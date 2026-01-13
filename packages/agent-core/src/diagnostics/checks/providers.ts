@@ -3,7 +3,7 @@
  * @description Network and AI provider connectivity checks
  */
 
-import { CheckResult, CheckOptions } from "../types";
+import type { CheckResult, CheckOptions } from "../types";
 
 interface ProviderConfig {
   name: string;
