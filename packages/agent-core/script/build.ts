@@ -27,6 +27,30 @@ async function ensureZeeDependencies() {
   await $`pnpm install --prod --ignore-scripts`.cwd(zeeRoot)
 }
 
+function resolveStanleyRuntime(): string | undefined {
+  const configured = process.env.STANLEY_PYTHON_RUNTIME
+  if (configured && fs.existsSync(configured)) return configured
+  const pyenvRoot = process.env.PYENV_ROOT
+  const pyenvVersion = process.env.PYENV_VERSION
+  if (pyenvRoot && pyenvVersion) {
+    const candidate = path.join(pyenvRoot, "versions", pyenvVersion)
+    if (fs.existsSync(candidate)) return candidate
+  }
+  return undefined
+}
+
+function ensureStanleyRuntime() {
+  const runtimeRoot = resolveStanleyRuntime()
+  if (!runtimeRoot) return
+  const destRoot = path.join(stanleyRoot, ".python-runtime")
+  if (fs.existsSync(destRoot)) return
+  console.log("bundling stanley python runtime")
+  fs.cpSync(runtimeRoot, destRoot, {
+    recursive: true,
+    dereference: true,
+  })
+}
+
 function getStanleyRequirementsFile(): string | undefined {
   const locked = path.join(stanleyRoot, "requirements-lock.txt")
   if (fs.existsSync(locked)) return locked
@@ -75,7 +99,7 @@ async function ensureStanleyDependencies() {
     .then((v) => v.trim())
   const [major, minor] = pythonVersion.split(".").map((v) => Number(v))
   const supportsOpenbb = Number.isFinite(major) && Number.isFinite(minor) ? major < 3 || (major === 3 && minor < 14) : true
-  const deps = supportsOpenbb ? ["openbb==4.6.0", "yfinance==0.2.50"] : ["yfinance==0.2.50"]
+  const deps = supportsOpenbb ? ["openbb==4.6.0", "yfinance==0.2.66"] : ["yfinance==0.2.66"]
 
   if (!fs.existsSync(constraintsPath)) {
     fs.writeFileSync(constraintsPath, deps.join("\n"))
@@ -239,6 +263,7 @@ if (fs.existsSync(zeeRoot)) {
 }
 if (fs.existsSync(stanleyRoot)) {
   await ensureStanleyDependencies()
+  ensureStanleyRuntime()
 }
 
 for (const item of targets) {
