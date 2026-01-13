@@ -6,6 +6,8 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
+import { parse } from "jsonc-parser";
+import type { ParseError } from "jsonc-parser";
 import type { CheckResult, CheckOptions } from "../types";
 
 /** Deprecated configuration options that should be migrated */
@@ -36,13 +38,16 @@ function getConfigDir(): string {
  * Parse JSONC (JSON with comments) - basic implementation
  */
 function parseJsonc(content: string): unknown {
-  // Remove single-line comments
-  const noSingleLine = content.replace(/\/\/.*$/gm, "");
-  // Remove multi-line comments
-  const noComments = noSingleLine.replace(/\/\*[\s\S]*?\*\//g, "");
-  // Remove trailing commas before } or ]
-  const noTrailingCommas = noComments.replace(/,(\s*[}\]])/g, "$1");
-  return JSON.parse(noTrailingCommas);
+  const errors: ParseError[] = [];
+  const result = parse(content, errors, {
+    allowTrailingComma: true,
+    allowEmptyContent: false,
+  });
+  if (errors.length > 0) {
+    const err = errors[0];
+    throw new Error(`JSON Parse error at position ${err.offset}`);
+  }
+  return result;
 }
 
 /**
