@@ -7689,6 +7689,21 @@
               }
             },
             "required": ["messageID"]
+          },
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "number"
+              },
+              "output": {
+                "type": "number"
+              },
+              "reasoning": {
+                "type": "number"
+              }
+            },
+            "required": ["input", "output", "reasoning"]
           }
         },
         "required": ["id", "projectID", "directory", "title", "version", "time"]

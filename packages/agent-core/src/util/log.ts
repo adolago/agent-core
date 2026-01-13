@@ -4,10 +4,11 @@ import { Global } from "../global"
 import z from "zod"
 
 export namespace Log {
-  export const Level = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]).meta({ ref: "LogLevel", description: "Log level" })
+  export const Level = z.enum(["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]).meta({ ref: "LogLevel", description: "Log level" })
   export type Level = z.infer<typeof Level>
 
   const levelPriority: Record<Level, number> = {
+    TRACE: -1,
     DEBUG: 0,
     INFO: 1,
     WARN: 2,
@@ -29,6 +30,7 @@ export namespace Log {
   export type LogMeta = Record<string, any>
 
   export type Logger = {
+    trace(message?: string, extra?: LogMeta): void
     debug(message?: string, extra?: LogMeta): void
     info(message?: string, extra?: LogMeta): void
     error(message?: string, extra?: LogMeta): void
@@ -133,6 +135,11 @@ export namespace Log {
       return [next.toISOString().split(".")[0], "+" + diff + "ms", prefix, message].filter(Boolean).join(" ") + "\n"
     }
     const result: Logger = {
+      trace(message?: any, extra?: Record<string, any>) {
+        if (shouldLog("TRACE")) {
+          write("TRACE " + build(message, extra))
+        }
+      },
       debug(message?: any, extra?: Record<string, any>) {
         if (shouldLog("DEBUG")) {
           write("DEBUG " + build(message, extra))

@@ -272,6 +272,14 @@ export namespace SessionProcessor {
                     input.assistantMessage.finish = value.finishReason
                     input.assistantMessage.cost += usage.cost
                     input.assistantMessage.tokens = usage.tokens
+                    await Session.update(input.sessionID, (session) => {
+                      if (!session.tokens) {
+                        session.tokens = { input: 0, output: 0, reasoning: 0 }
+                      }
+                      session.tokens.input += usage.tokens.input
+                      session.tokens.output += usage.tokens.output
+                      session.tokens.reasoning += usage.tokens.reasoning
+                    })
                     addWideEventFields({
                       meta: {
                         tokens: usage.tokens,

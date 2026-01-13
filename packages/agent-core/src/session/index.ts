@@ -79,6 +79,13 @@ export namespace Session {
           diff: z.string().optional(),
         })
         .optional(),
+      tokens: z
+        .object({
+          input: z.number(),
+          output: z.number(),
+          reasoning: z.number(),
+        })
+        .optional(),
     })
     .meta({
       ref: "Session",
