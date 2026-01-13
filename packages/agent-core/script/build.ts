@@ -206,7 +206,7 @@ const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
 const binarySuffix = process.env.OPENCODE_BINARY_SUFFIX?.trim()
 const targetsArg =
-  process.env.OPENCODE_TARGETS ??
+  process.env.AGENT_CORE_TARGETS ??
   (() => {
     const idx = process.argv.indexOf("--targets")
     if (idx === -1) return undefined
