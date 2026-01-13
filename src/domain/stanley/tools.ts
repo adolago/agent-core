@@ -11,7 +11,7 @@ import { z } from "zod";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, delimiter } from "node:path";
 import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
 import { getSafeEnv } from "../../util/safe-env";
 
@@ -28,16 +28,17 @@ function resolvePersonaRepo(name: string): string {
   return join(homedir(), ".local", "src", "agent-core", "vendor", "personas", name);
 }
 
-function resolveStanleyCli(): { python: string; cliPath: string } {
+function resolveStanleyCli(): { python: string; cliPath: string; pythonPath?: string } {
   const repo = process.env.STANLEY_REPO || resolvePersonaRepo("stanley");
+  const pythonPath = process.env.STANLEY_PYTHONPATH || (existsSync(join(repo, ".python")) ? join(repo, ".python") : undefined);
   const cliPath = process.env.STANLEY_CLI || join(repo, "scripts", "stanley_cli.py");
   const venvPython = join(repo, ".venv", "bin", "python");
-  const python = process.env.STANLEY_PYTHON || (existsSync(venvPython) ? venvPython : "python3");
-  return { python, cliPath };
+  const python = process.env.STANLEY_PYTHON || (pythonPath ? "python3" : existsSync(venvPython) ? venvPython : "python3");
+  return { python, cliPath, pythonPath };
 }
 
 function runStanleyCli(args: string[]): StanleyResult {
-  const { python, cliPath } = resolveStanleyCli();
+  const { python, cliPath, pythonPath } = resolveStanleyCli();
   if (!existsSync(cliPath)) {
     return {
       ok: false,
@@ -45,9 +46,14 @@ function runStanleyCli(args: string[]): StanleyResult {
     };
   }
 
+  const env = getSafeEnv(["STANLEY_REPO", "STANLEY_CLI", "STANLEY_PYTHON", "STANLEY_PYTHONPATH", "PYTHONPATH"]);
+  if (pythonPath) {
+    env.PYTHONPATH = env.PYTHONPATH ? `${pythonPath}${delimiter}${env.PYTHONPATH}` : pythonPath;
+  }
+
   const result = spawnSync(python, [cliPath, ...args], {
     encoding: "utf-8",
-    env: getSafeEnv(["STANLEY_REPO", "STANLEY_CLI", "STANLEY_PYTHON"]),
+    env,
     timeout: 30000, // 30s timeout
   });
 

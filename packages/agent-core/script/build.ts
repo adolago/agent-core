@@ -17,6 +17,7 @@ import { Script } from "@opencode-ai/script"
 
 const personasRoot = path.resolve(dir, "..", "..", "vendor", "personas")
 const zeeRoot = path.join(personasRoot, "zee")
+const stanleyRoot = path.join(personasRoot, "stanley")
 
 async function ensureZeeDependencies() {
   const nodeModules = path.join(zeeRoot, "node_modules")
@@ -24,6 +25,69 @@ async function ensureZeeDependencies() {
   if (!fs.existsSync(path.join(zeeRoot, "package.json"))) return
   console.log("installing zee dependencies for bundling")
   await $`pnpm install --prod --ignore-scripts`.cwd(zeeRoot)
+}
+
+function getStanleyRequirementsFile(): string | undefined {
+  const locked = path.join(stanleyRoot, "requirements-lock.txt")
+  if (fs.existsSync(locked)) return locked
+  const fallback = path.join(stanleyRoot, "requirements.txt")
+  if (fs.existsSync(fallback)) return fallback
+  return undefined
+}
+
+function readStanleyDepsStamp(stampPath: string): { requirements: string; mtimeMs: number } | null {
+  try {
+    const raw = fs.readFileSync(stampPath, "utf-8")
+    return JSON.parse(raw) as { requirements: string; mtimeMs: number }
+  } catch {
+    return null
+  }
+}
+
+async function ensureStanleyDependencies() {
+  const requirementsFile = getStanleyRequirementsFile()
+  if (!requirementsFile) return
+  const pythonDepsRoot = path.join(stanleyRoot, ".python")
+  const stampPath = path.join(pythonDepsRoot, ".stanley-deps.json")
+  const constraintsPath = path.join(pythonDepsRoot, ".stanley-constraints.txt")
+  const requirementsStat = fs.statSync(requirementsFile)
+  const stamp = readStanleyDepsStamp(stampPath)
+  if (stamp && stamp.requirements === requirementsFile && stamp.mtimeMs === requirementsStat.mtimeMs) {
+    return
+  }
+  fs.mkdirSync(pythonDepsRoot, { recursive: true })
+  if (
+    (await $`PYTHONPATH=${pythonDepsRoot} python3 -c "import openbb, yfinance"`.cwd(stanleyRoot).quiet().nothrow())
+      .exitCode === 0
+  ) {
+    fs.writeFileSync(
+      stampPath,
+      JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs }),
+    )
+    return
+  }
+
+  const pythonVersion = await $`python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
+    .cwd(stanleyRoot)
+    .quiet()
+    .nothrow()
+    .text()
+    .then((v) => v.trim())
+  const [major, minor] = pythonVersion.split(".").map((v) => Number(v))
+  const supportsOpenbb = Number.isFinite(major) && Number.isFinite(minor) ? major < 3 || (major === 3 && minor < 14) : true
+  const deps = supportsOpenbb ? ["openbb==4.6.0", "yfinance==0.2.50"] : ["yfinance==0.2.50"]
+
+  if (!fs.existsSync(constraintsPath)) {
+    fs.writeFileSync(constraintsPath, deps.join("\n"))
+  }
+  console.log("installing minimal stanley dependencies for bundling")
+  await $`python3 -m pip install --only-binary=:all: --target ${pythonDepsRoot} -r ${constraintsPath}`.cwd(
+    stanleyRoot,
+  )
+  fs.writeFileSync(
+    stampPath,
+    JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs }),
+  )
 }
 
 function bundlePersonas(distRoot: string) {
@@ -41,6 +105,9 @@ function bundlePersonas(distRoot: string) {
         const base = path.basename(srcPath)
         if (entry.name === "zee") {
           return base !== ".git" && base !== ".venv" && base !== "venv"
+        }
+        if (entry.name === "stanley") {
+          return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
         }
         return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
       },
@@ -169,6 +236,9 @@ if (!skipInstall) {
 }
 if (fs.existsSync(zeeRoot)) {
   await ensureZeeDependencies()
+}
+if (fs.existsSync(stanleyRoot)) {
+  await ensureStanleyDependencies()
 }
 
 for (const item of targets) {
