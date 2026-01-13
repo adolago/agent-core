@@ -142,7 +142,10 @@ export namespace Daemon {
  * Gateway supervisor - manages zee gateway as a child process with auto-restart
  */
 export namespace GatewaySupervisor {
-  const ZEE_GATEWAY_DIR = path.join(os.homedir(), "Repositories/personas/zee")
+  const agentCoreRoot = process.env.AGENT_CORE_ROOT
+  const ZEE_GATEWAY_DIR = agentCoreRoot
+    ? path.join(agentCoreRoot, "vendor", "personas", "zee")
+    : path.join(os.homedir(), ".local", "src", "agent-core", "vendor", "personas", "zee")
   const RESTART_DELAY_MS = 2000
   const MAX_RESTART_ATTEMPTS = 5
   const RESTART_WINDOW_MS = 60_000 // Reset restart counter after 1 minute of stability

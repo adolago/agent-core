@@ -31,6 +31,8 @@ import { PluginCommand } from "./cli/cmd/plugin"
 import { SetupCommand } from "./cli/cmd/setup"
 import { BugReportCommand } from "./cli/cmd/bug-report"
 import { CheckCommand } from "./cli/cmd/check"
+import path from "node:path"
+import fs from "node:fs"
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -62,6 +64,13 @@ const cli = yargs(hideBin(process.argv))
     choices: ["DEBUG", "INFO", "WARN", "ERROR"],
   })
   .middleware(async (opts) => {
+    if (!process.env.AGENT_CORE_ROOT) {
+      const rootCandidate = path.resolve(path.dirname(process.execPath), "..")
+      if (fs.existsSync(path.join(rootCandidate, "vendor", "personas"))) {
+        process.env.AGENT_CORE_ROOT = rootCandidate
+      }
+    }
+
     await Log.init({
       print: process.argv.includes("--print-logs"),
       dev: Installation.isLocal(),

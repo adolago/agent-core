@@ -23,8 +23,14 @@ type JohnyResult = {
   error?: string;
 };
 
+function resolvePersonaRepo(name: string): string {
+  const root = process.env.AGENT_CORE_ROOT;
+  if (root) return join(root, "vendor", "personas", name);
+  return join(homedir(), ".local", "src", "agent-core", "vendor", "personas", name);
+}
+
 function resolveJohnyCli(): { python: string; cliPath: string } {
-  const repo = process.env.JOHNY_REPO || join(homedir(), "Repositories", "personas", "johny");
+  const repo = process.env.JOHNY_REPO || resolvePersonaRepo("johny");
   const cliPath = process.env.JOHNY_CLI || join(repo, "scripts", "johny_cli.py");
   const venvPython = join(repo, ".venv", "bin", "python");
   const python = process.env.JOHNY_PYTHON || (existsSync(venvPython) ? venvPython : "python3");

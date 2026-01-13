@@ -15,9 +15,37 @@ process.chdir(dir)
 import pkg from "../package.json"
 import { Script } from "@opencode-ai/script"
 
+const personasRoot = path.join(dir, "vendor", "personas")
+
+function bundlePersonas(distRoot: string) {
+  if (!fs.existsSync(personasRoot)) return
+  const destRoot = path.join(distRoot, "vendor", "personas")
+  fs.mkdirSync(destRoot, { recursive: true })
+  for (const entry of fs.readdirSync(personasRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const src = path.join(personasRoot, entry.name)
+    const dest = path.join(destRoot, entry.name)
+    fs.cpSync(src, dest, {
+      recursive: true,
+      dereference: true,
+      filter: (srcPath) => {
+        const base = path.basename(srcPath)
+        return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
+      },
+    })
+  }
+}
+
 const singleFlag = process.argv.includes("--single")
 const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
+const targetsArg =
+  process.env.OPENCODE_TARGETS ??
+  (() => {
+    const idx = process.argv.indexOf("--targets")
+    if (idx === -1) return undefined
+    return process.argv[idx + 1]
+  })()
 
 const allTargets: {
   os: string
@@ -78,26 +106,46 @@ const allTargets: {
   },
 ]
 
-const targets = singleFlag
-  ? allTargets.filter((item) => {
-      if (item.os !== process.platform || item.arch !== process.arch) {
-        return false
-      }
-
-      // When building for the current platform, prefer a single native binary by default.
-      // Baseline binaries require additional Bun artifacts and can be flaky to download.
-      if (item.avx2 === false) {
-        return baselineFlag
-      }
-
-      // also skip abi-specific builds for the same reason
-      if (item.abi !== undefined) {
-        return false
-      }
-
-      return true
+const targetsFilter = (() => {
+  if (!targetsArg) return undefined
+  const requested = targetsArg
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => item.split("-"))
+  return (item: (typeof allTargets)[number]) => {
+    return requested.some(([os, arch, variant]) => {
+      if (os && item.os !== os) return false
+      if (arch && item.arch !== arch) return false
+      if (variant === "baseline") return item.avx2 === false
+      if (variant === "musl") return item.abi === "musl"
+      return item.avx2 !== false && item.abi === undefined
     })
-  : allTargets
+  }
+})()
+
+const targets = targetsFilter
+  ? allTargets.filter(targetsFilter)
+  : singleFlag
+    ? allTargets.filter((item) => {
+        if (item.os !== process.platform || item.arch !== process.arch) {
+          return false
+        }
+
+        // When building for the current platform, prefer a single native binary by default.
+        // Baseline binaries require additional Bun artifacts and can be flaky to download.
+        if (item.avx2 === false) {
+          return baselineFlag
+        }
+
+        // also skip abi-specific builds for the same reason
+        if (item.abi !== undefined) {
+          return false
+        }
+
+        return true
+      })
+    : allTargets
 
 await $`rm -rf dist`
 
@@ -166,6 +214,8 @@ for (const item of targets) {
       2,
     ),
   )
+  // Bundle personas so standalone installs can resolve them via AGENT_CORE_ROOT.
+  bundlePersonas(path.join(dir, "dist", name))
   binaries[name] = Script.version
 }
 
