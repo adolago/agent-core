@@ -1,116 +1,110 @@
-import { UI } from "../ui"
-import { Global } from "../../global"
-import { Auth } from "../../auth"
-import * as prompts from "@clack/prompts"
-import fs from "fs"
-import os from "os"
-import path from "path"
+/**
+ * @file CLI Check Command
+ * @description CLI entry point for health checks
+ */
 
-export async function checkEnvironment() {
-  UI.header("Doctor Diagnostics")
-  let issues = 0
+import { Command } from "commander";
+import { CheckEngine } from "../../diagnostics/check-engine";
+import { InteractiveReporter } from "../../diagnostics/reporters/interactive";
+import { JsonReporter } from "../../diagnostics/reporters/json";
+import { MinimalReporter } from "../../diagnostics/reporters/minimal";
+import type { CheckCategory } from "../../diagnostics/types";
 
-  // 1. System Resources
-  const totalMem = os.totalmem()
-  const freeMem = os.freemem()
-  const memUsage = ((totalMem - freeMem) / totalMem) * 100
-  
-  if (memUsage > 90) {
-    UI.warn(`High memory usage detected: ${memUsage.toFixed(1)}% used.`)
-    issues++
-  } else {
-    UI.success(`Memory: ${(freeMem / 1024 / 1024 / 1024).toFixed(2)}GB free / ${(totalMem / 1024 / 1024 / 1024).toFixed(2)}GB total`)
-  }
+export function createCheckCommand(): Command {
+  return new Command("check")
+    .description("Run diagnostic health checks")
+    .option("--full", "Run extended checks (slower but more thorough)", false)
+    .option("--fix", "Attempt to auto-fix detected issues", false)
+    .option("--json", "Output in JSON format for scripting", false)
+    .option("--minimal", "Single-line output for scripts", false)
+    .option("-v, --verbose", "Show detailed output including check details", false)
+    .option("--timeout <ms>", "Timeout per category in milliseconds", "10000")
+    .option(
+      "--category <names...>",
+      "Run only specific categories (runtime, config, providers, integrity)"
+    )
+    .option("--skip <ids...>", "Skip specific check IDs")
+    .option("--no-color", "Disable colored output")
+    .action(async (options) => {
+      try {
+        // Parse categories
+        let categories: CheckCategory[] | undefined;
+        if (options.category) {
+          const validCategories = ["runtime", "config", "providers", "integrity"];
+          categories = options.category.filter((c: string) =>
+            validCategories.includes(c)
+          ) as CheckCategory[];
 
-  // Disk write check (simple)
-  try {
-    const testFile = path.join(process.cwd(), ".agent-core-write-test")
-    fs.writeFileSync(testFile, "test")
-    fs.unlinkSync(testFile)
-    UI.success("Write permissions: OK")
-  } catch (e) {
-    UI.error("Write permissions: FAILED (Current Directory)")
-    issues++
-  }
-  
-  try {
-    if (!fs.existsSync(Global.Path.config)) {
-       fs.mkdirSync(Global.Path.config, { recursive: true })
-    }
-    const testFile = path.join(Global.Path.config, ".write-test")
-    fs.writeFileSync(testFile, "test")
-    fs.unlinkSync(testFile)
-    UI.success("Config directory access: OK")
-  } catch (e) {
-     UI.error(`Config directory access: FAILED (${Global.Path.config})`)
-     issues++
-  }
-
-  // 2. Auth Check
-  const auths = await Auth.all()
-  if (Object.keys(auths).length === 0) {
-    UI.warn("No authentication providers found.")
-    issues++
-    
-    // Only prompt if interactive and not running as part of another command that might suppress input
-    if (process.stdout.isTTY) {
-        const shouldSetup = await prompts.confirm({
-        message: "Do you want to set up an API key now (Anthropic/OpenAI)?",
-        initialValue: true
-        })
-        
-        if (shouldSetup && !prompts.isCancel(shouldSetup)) {
-            UI.info("Please run 'agent-core auth login' to configure your provider.")
-        }
-    }
-  } else {
-      UI.success(`Providers configured: ${Object.keys(auths).join(", ")}`)
-      
-      // Basic connectivity check for common providers
-      const commonEndpoints = {
-          "anthropic": "https://api.anthropic.com/v1/models", // roughly
-          "openai": "https://api.openai.com/v1/models",
-          "google": "https://generativelanguage.googleapis.com"
-      }
-
-      for (const [provider, token] of Object.entries(auths)) {
-          // Rudimentary connectivity check (just pinging the domain, not full auth)
-          // We map provider names to endpoints if known
-          let url = ""
-          if (provider.includes("anthropic")) url = "https://api.anthropic.com"
-          else if (provider.includes("openai")) url = "https://api.openai.com"
-          else if (provider.includes("google")) url = "https://generativelanguage.googleapis.com"
-          
-          if (url) {
-              try { 
-                  const start = performance.now()
-                  await fetch(url, { method: "HEAD" }) 
-                  const latency = (performance.now() - start).toFixed(0)
-                  UI.success(`${provider} connectivity: OK (${latency}ms)`)
-              } catch (e) {
-                  UI.warn(`${provider} connectivity: Unreachable (${url})`)
-                  issues++
-              }
+          if (categories.length === 0) {
+            console.error(
+              `Invalid categories. Valid options: ${validCategories.join(", ")}`
+            );
+            process.exit(2);
           }
+        }
+
+        // Create engine with options
+        const engine = new CheckEngine({
+          full: options.full,
+          fix: options.fix,
+          verbose: options.verbose,
+          timeout: parseInt(options.timeout, 10),
+          categories,
+          skip: options.skip,
+        });
+
+        // Run checks
+        const report = await engine.runAll();
+
+        // Output based on format
+        if (options.json) {
+          const reporter = new JsonReporter();
+          console.log(reporter.format(report));
+        } else if (options.minimal) {
+          const reporter = new MinimalReporter();
+          console.log(reporter.format(report));
+        } else {
+          const reporter = new InteractiveReporter({
+            verbose: options.verbose,
+            colors: options.color !== false,
+          });
+          console.log(reporter.format(report));
+        }
+
+        // Exit with appropriate code
+        if (report.summary.failed > 0) {
+          process.exit(1);
+        }
+        process.exit(0);
+      } catch (error) {
+        console.error(
+          "Health check failed:",
+          error instanceof Error ? error.message : String(error)
+        );
+        process.exit(2);
       }
-  }
-
-  // 3. Qdrant Check
-  try {
-    const resp = await fetch("http://localhost:6333/healthz")
-    if (!resp.ok) throw new Error("Not OK")
-    UI.success("Vector Database (Qdrant): OK")
-  } catch (e) {
-    if (!process.argv.includes("setup")) {
-         UI.warn("Vector Database (Qdrant): Unreachable (localhost:6333)")
-         UI.info("Run 'agent-core setup' to start the infrastructure.")
-         issues++
-    }
-  }
-
-  if (issues === 0) {
-      UI.success("All checks passed! System is ready.")
-  } else {
-      UI.warn(`Found ${issues} potential issue(s).`)
-  }
+    });
 }
+
+// Help examples
+export const checkExamples = `
+Examples:
+  $ agent-core check                    # Run basic health checks
+  $ agent-core check --full             # Run all checks including extended
+  $ agent-core check --fix              # Auto-fix repairable issues
+  $ agent-core check --json             # Output as JSON for CI
+  $ agent-core check --category runtime # Check only runtime category
+  $ agent-core check --skip runtime.disk-space  # Skip specific check
+  $ agent-core check --verbose          # Show detailed output
+
+Check Categories:
+  runtime    - Bun version, directories, disk, memory
+  config     - Configuration validation, deprecated options
+  providers  - AI provider connectivity (Anthropic, OpenAI, Gemini, Ollama)
+  integrity  - Lock files, processes, session files
+
+Exit Codes:
+  0 - All checks passed
+  1 - One or more checks failed
+  2 - Command error (invalid args, etc.)
+`;
