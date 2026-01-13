@@ -15,7 +15,7 @@ process.chdir(dir)
 import pkg from "../package.json"
 import { Script } from "@opencode-ai/script"
 
-const personasRoot = path.join(dir, "vendor", "personas")
+const personasRoot = path.resolve(dir, "..", "..", "vendor", "personas")
 
 function bundlePersonas(distRoot: string) {
   if (!fs.existsSync(personasRoot)) return
@@ -39,6 +39,7 @@ function bundlePersonas(distRoot: string) {
 const singleFlag = process.argv.includes("--single")
 const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
+const binarySuffix = process.env.OPENCODE_BINARY_SUFFIX?.trim()
 const targetsArg =
   process.env.OPENCODE_TARGETS ??
   (() => {
@@ -155,7 +156,7 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
 for (const item of targets) {
-  const name = [
+  const baseName = [
     pkg.name,
     // changing to win32 flags npm for some reason
     item.os === "win32" ? "windows" : item.os,
@@ -165,6 +166,7 @@ for (const item of targets) {
   ]
     .filter(Boolean)
     .join("-")
+  const name = [baseName, binarySuffix].filter(Boolean).join("-")
   console.log(`building ${name}`)
   await $`mkdir -p dist/${name}/bin`
 
@@ -186,7 +188,7 @@ for (const item of targets) {
       //@ts-ignore (bun types aren't up to date)
       autoloadTsconfig: true,
       autoloadPackageJson: true,
-      target: name.replace(pkg.name, "bun") as any,
+      target: baseName.replace(pkg.name, "bun") as any,
       outfile: `dist/${name}/bin/agent-core`,
       execArgv: [`--user-agent=agent-core/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
