@@ -120,10 +120,11 @@ Keep Qdrant collection dimensions aligned with your embedding dimensions by sett
 
 ### Running
 
-**Interactive TUI:**
+**Interactive TUI (auto-starts daemon + gateway if needed):**
 
 ```bash
 agent-core
+agent-core --no-daemon   # run without the daemon (local worker only)
 ```
 
 **Daemon mode (spawns the Zee gateway):**
