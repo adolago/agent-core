@@ -364,7 +364,15 @@ const targets = targetsFilter
 
         return true
       })
-    : allTargets
+    : allTargets.filter((item) => {
+        if (item.os === "linux" && item.arch === "x64" && item.abi === undefined && item.avx2 !== false) {
+          return true
+        }
+        if (item.os === "darwin" && item.arch === "arm64" && item.abi === undefined && item.avx2 !== false) {
+          return true
+        }
+        return false
+      })
 
 await $`rm -rf dist`
 
