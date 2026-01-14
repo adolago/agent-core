@@ -46,6 +46,7 @@ agent-core auth login
 
 ```bash
 agent-core
+agent-core --no-daemon
 agent-core daemon --hostname 127.0.0.1 --port 3210
 ```
 
