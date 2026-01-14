@@ -26,7 +26,7 @@ Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, 
 Prebuilt binaries are published to npm for Linux x64 and macOS arm64:
 
 ```bash
-npm install -g agent-core@0.1.0-20260114
+npm install -g @adolago/agent-core@0.1.0-20260114
 ```
 
 ### Install (from source)

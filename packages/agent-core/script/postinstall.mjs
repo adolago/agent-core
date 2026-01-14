@@ -47,25 +47,43 @@ function detectPlatformAndArch() {
   return { platform, arch }
 }
 
+function resolvePackageScope() {
+  try {
+    const pkgRaw = fs.readFileSync(path.join(__dirname, "package.json"), "utf8")
+    const pkg = JSON.parse(pkgRaw)
+    if (typeof pkg.name === "string" && pkg.name.startsWith("@")) {
+      return pkg.name.split("/")[0]
+    }
+  } catch {}
+  return null
+}
+
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `agent-core-${platform}-${arch}`
+  const baseName = `agent-core-${platform}-${arch}`
+  const scope = resolvePackageScope()
+  const packageNames = [scope ? `${scope}/${baseName}` : null, baseName].filter(Boolean)
   const binaryName = platform === "windows" ? "agent-core.exe" : "agent-core"
 
-  try {
-    // Use require.resolve to find the package
-    const packageJsonPath = require.resolve(`${packageName}/package.json`)
-    const packageDir = path.dirname(packageJsonPath)
-    const binaryPath = path.join(packageDir, "bin", binaryName)
+  for (const packageName of packageNames) {
+    try {
+      // Use require.resolve to find the package
+      const packageJsonPath = require.resolve(`${packageName}/package.json`)
+      const packageDir = path.dirname(packageJsonPath)
+      const binaryPath = path.join(packageDir, "bin", binaryName)
 
-    if (!fs.existsSync(binaryPath)) {
-      throw new Error(`Binary not found at ${binaryPath}`)
+      if (!fs.existsSync(binaryPath)) {
+        throw new Error(`Binary not found at ${binaryPath}`)
+      }
+
+      return { binaryPath, binaryName }
+    } catch {
+      continue
     }
-
-    return { binaryPath, binaryName }
-  } catch (error) {
-    throw new Error(`Could not find package ${packageName}: ${error.message}`)
   }
+
+  const label = packageNames.join(" or ")
+  throw new Error(`Could not find package ${label}`)
 }
 
 function prepareBinDirectory(binaryName) {

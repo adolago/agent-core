@@ -63,25 +63,40 @@ function findBinary(startDir) {
     return distCandidate
   }
 
+  const candidates = [
+    { base: agentCoreBase, binary: agentCoreBinary },
+    { base: opencodeBase, binary: opencodeBinary },
+  ]
+
+  function resolveCandidate(root, entryName) {
+    for (const candidate of candidates) {
+      if (!entryName.startsWith(candidate.base)) continue
+      const resolved = path.join(root, entryName, "bin", candidate.binary)
+      if (fs.existsSync(resolved)) {
+        return resolved
+      }
+    }
+  }
+
   let current = startDir
   for (;;) {
     const modules = path.join(current, "node_modules")
     if (fs.existsSync(modules)) {
-      const entries = fs.readdirSync(modules)
+      const entries = fs.readdirSync(modules, { withFileTypes: true })
       for (const entry of entries) {
-        // Check agent-core packages first, then opencode for upstream compatibility
-        if (entry.startsWith(agentCoreBase)) {
-          const candidate = path.join(modules, entry, "bin", agentCoreBinary)
-          if (fs.existsSync(candidate)) {
-            return candidate
+        if (!entry.isDirectory()) continue
+        if (entry.name.startsWith("@")) {
+          const scopeDir = path.join(modules, entry.name)
+          const scopedEntries = fs.readdirSync(scopeDir, { withFileTypes: true })
+          for (const scopedEntry of scopedEntries) {
+            if (!scopedEntry.isDirectory()) continue
+            const resolved = resolveCandidate(scopeDir, scopedEntry.name)
+            if (resolved) return resolved
           }
+          continue
         }
-        if (entry.startsWith(opencodeBase)) {
-          const candidate = path.join(modules, entry, "bin", opencodeBinary)
-          if (fs.existsSync(candidate)) {
-            return candidate
-          }
-        }
+        const resolved = resolveCandidate(modules, entry.name)
+        if (resolved) return resolved
       }
     }
     const parent = path.dirname(current)

@@ -127,11 +127,12 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
   }
 
   if (method !== "curl" && method !== "unknown") {
+    const npmPackage = await Installation.resolveNpmPackage(method)
     const cmds: Record<string, string> = {
-      npm: "npm uninstall -g agent-core-ai",
-      pnpm: "pnpm uninstall -g agent-core-ai",
-      bun: "bun remove -g agent-core-ai",
-      yarn: "yarn global remove agent-core-ai",
+      npm: `npm uninstall -g ${npmPackage}`,
+      pnpm: `pnpm uninstall -g ${npmPackage}`,
+      bun: `bun remove -g ${npmPackage}`,
+      yarn: `yarn global remove ${npmPackage}`,
       brew: "brew uninstall agent-core",
     }
     prompts.log.info(`  ✓ Package: ${cmds[method] || method}`)
@@ -176,11 +177,12 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
   }
 
   if (method !== "curl" && method !== "unknown") {
+    const npmPackage = await Installation.resolveNpmPackage(method)
     const cmds: Record<string, string[]> = {
-      npm: ["npm", "uninstall", "-g", "agent-core-ai"],
-      pnpm: ["pnpm", "uninstall", "-g", "agent-core-ai"],
-      bun: ["bun", "remove", "-g", "agent-core-ai"],
-      yarn: ["yarn", "global", "remove", "agent-core-ai"],
+      npm: ["npm", "uninstall", "-g", npmPackage],
+      pnpm: ["pnpm", "uninstall", "-g", npmPackage],
+      bun: ["bun", "remove", "-g", npmPackage],
+      yarn: ["yarn", "global", "remove", npmPackage],
       brew: ["brew", "uninstall", "agent-core"],
     }
 
