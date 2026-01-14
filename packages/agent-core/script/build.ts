@@ -429,6 +429,8 @@ for (const item of targets) {
     },
     entrypoints: ["./src/index.ts", parserWorker, workerPath],
     define: {
+      AGENT_CORE_VERSION: `'${Script.version}'`,
+      AGENT_CORE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_VERSION: `'${Script.version}'`,
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
       OPENCODE_WORKER_PATH: workerPath,

@@ -21,6 +21,7 @@ import { Instance } from "../project/instance"
 import { ProjectRoute } from "./route/project"
 import { QuestionRoute } from "./route/question"
 import { GlobalRoute } from "./route/global"
+import { AppRoute } from "./route/app"
 import { PtyRoute } from "./route/pty"
 import { ConfigRoute } from "./route/config"
 import { InstanceRoute } from "./route/instance"
@@ -114,9 +115,6 @@ export namespace Server {
             },
           }),
         )
-        // Mount Global Route
-        .route("/global", GlobalRoute)
-        
         // Middleware to provide instance context
         .use(async (c, next) => {
           let directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()
@@ -135,6 +133,8 @@ export namespace Server {
         })
         
         // Mount Routes
+        .route("/", AppRoute)
+        .route("/global", GlobalRoute)
         .route("/pty", PtyRoute)
         .route("/", ConfigRoute)
         .route("/", InstanceRoute)

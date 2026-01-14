@@ -687,6 +687,50 @@ function listGatewayProcesses(): Array<{ pid: number; cmd: string }> {
   }
 }
 
+async function verifyAgentEndpoint(daemonUrl: string, directory: string) {
+  const url = new URL("/agent", daemonUrl)
+  url.searchParams.set("directory", directory)
+
+  let lastError: Error | undefined
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+
+      if (!response.ok) {
+        throw new Error(`Agent endpoint returned ${response.status} ${response.statusText}`)
+      }
+
+      const contentType = response.headers.get("content-type") ?? ""
+      const body = await response.text()
+      if (!contentType.includes("json")) {
+        const preview = body.slice(0, 200)
+        throw new Error(`Agent endpoint returned ${contentType || "unknown content-type"}: ${preview}`)
+      }
+
+      let data: unknown
+      try {
+        data = JSON.parse(body)
+      } catch {
+        const preview = body.slice(0, 200)
+        throw new Error(`Agent endpoint returned invalid JSON: ${preview}`)
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("Agent endpoint returned no agents")
+      }
+
+      return
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+  }
+
+  throw lastError ?? new Error("Agent endpoint check failed")
+}
+
 export const DaemonCommand = cmd({
   command: "daemon",
   builder: (yargs) =>
@@ -772,6 +816,16 @@ export const DaemonCommand = cmd({
     const daemonHost = serverHost === "0.0.0.0" ? "127.0.0.1" : serverHost
     const daemonPort = server.port ?? opts.port
     const daemonUrl = `http://${daemonHost}:${daemonPort}`
+
+    try {
+      await verifyAgentEndpoint(daemonUrl, directory)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      log.error("startup sanity check failed", { error: message })
+      console.error(`Error: Failed to load agents (${message}).`)
+      await server.stop().catch(() => {})
+      process.exit(1)
+    }
 
     // Write PID file
     const state: Daemon.DaemonState = {

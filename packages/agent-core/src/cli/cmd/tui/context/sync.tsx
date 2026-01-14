@@ -28,6 +28,7 @@ import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import { Log } from "@/util/log"
 import type { Path } from "@opencode-ai/sdk"
+import { useToast } from "../ui/toast"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
   name: "Sync",
@@ -103,6 +104,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     })
 
     const sdk = useSDK()
+    const toast = useToast()
 
     sdk.event.listen((e) => {
       const event = e.details
@@ -348,7 +350,24 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             setStore("provider_next", reconcile(x.data!))
           })
         }),
-        sdk.client.app.agents({}, { throwOnError: true }).then((x) => setStore("agent", reconcile(x.data ?? []))),
+        sdk.client.app.agents({}, { throwOnError: true }).then((x) => {
+          const agents = Array.isArray(x.data) ? x.data : []
+          if (!Array.isArray(x.data)) {
+            Log.Default.error("agents response invalid", { type: typeof x.data })
+            toast.show({
+              variant: "error",
+              message: "Agents failed to load (invalid response). Check the daemon status.",
+              duration: 5000,
+            })
+          } else if (agents.length === 0) {
+            toast.show({
+              variant: "error",
+              message: "No agents loaded. Check agent-core config and restart the daemon.",
+              duration: 5000,
+            })
+          }
+          setStore("agent", reconcile(agents))
+        }),
         sdk.client.config.get({}, { throwOnError: true }).then((x) => setStore("config", reconcile(x.data!))),
         ...(args.continue ? [sessionListPromise] : []),
       ]

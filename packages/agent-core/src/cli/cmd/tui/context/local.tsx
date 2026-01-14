@@ -282,6 +282,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         parsed: createMemo(() => {
           const value = currentModel()
           if (!value) {
+            const agents = sync.data?.agent
+            if (sync.status === "complete" && (!Array.isArray(agents) || agents.length === 0)) {
+              return {
+                provider: "Agents unavailable",
+                model: "Check daemon/config",
+                reasoning: false,
+              }
+            }
             return {
               provider: "Connect a provider",
               model: "No provider selected",
