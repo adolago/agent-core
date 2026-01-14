@@ -99,9 +99,9 @@ For each conflicted file:
 ### Gateway Ownership
 
 ```
-// Upstream adds standalone gateway or council transport
-// Our change: agent-core is the only gateway supervisor
-// Resolution: keep agent-core embedded gateway; do not reintroduce standalone gateways
+// Upstream adds standalone gateway
+// Our change: agent-core is the only gateway supervisor; council stays in tiara (karpathy)
+// Resolution: keep agent-core embedded gateway; do not reintroduce standalone gateways here
 ```
 
 ### Agent Schema
