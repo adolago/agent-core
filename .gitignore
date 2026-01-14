@@ -25,3 +25,4 @@ target
 opencode-dev
 logs/
 *.bun-build
+.dev-config/
