@@ -10,3 +10,6 @@
 [submodule "vendor/personas/johny"]
 	path = vendor/personas/johny
 	url = https://github.com/adolago/johny.git
+[submodule "packages/opencode-anthropic-auth"]
+	path = packages/opencode-anthropic-auth
+	url = https://github.com/anomalyco/opencode-anthropic-auth
