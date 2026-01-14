@@ -40,18 +40,19 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 
 const tags = [Script.channel]
 
+const publishFlag = Script.preview ? "--dry-run" : ""
 const tasks = Object.entries(binaries).map(async ([name]) => {
   if (process.platform !== "win32") {
     await $`chmod -R 755 .`.cwd(`./dist/${name}`)
   }
   await $`bun pm pack`.cwd(`./dist/${name}`)
   for (const tag of tags) {
-    await $`npm publish *.tgz --access public --tag ${tag}`.cwd(`./dist/${name}`)
+    await $`npm publish ${publishFlag} *.tgz --access public --tag ${tag}`.cwd(`./dist/${name}`)
   }
 })
 await Promise.all(tasks)
 for (const tag of tags) {
-  await $`cd ./dist/${pkg.name} && bun pm pack && npm publish *.tgz --access public --tag ${tag}`
+  await $`cd ./dist/${pkg.name} && bun pm pack && npm publish ${publishFlag} *.tgz --access public --tag ${tag}`
 }
 
 if (!Script.preview) {
