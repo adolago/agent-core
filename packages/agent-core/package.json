@@ -1,7 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "0.1.20260112",
+  "version": "0.1.0-20260114",
   "name": "agent-core",
+  "description": "CLI + daemon powering the Personas system (Zee, Stanley, Johny)",
   "type": "module",
   "license": "MIT",
   "private": true,
