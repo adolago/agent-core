@@ -1,6 +1,6 @@
 {
   "name": "@opencode-ai/ui",
-  "version": "0.1.20260112",
+  "version": "1.1.19",
   "type": "module",
   "license": "MIT",
   "exports": {
@@ -22,8 +22,6 @@
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "lint": "prettier --check .",
-    "test": "echo 'No tests configured' && exit 0",
     "dev": "vite",
     "generate:tailwind": "bun run script/tailwind.ts"
   },
@@ -53,6 +51,7 @@
     "fuzzysort": "catalog:",
     "katex": "0.16.27",
     "luxon": "catalog:",
+    "dompurify": "catalog:",
     "marked": "catalog:",
     "marked-katex-extension": "5.1.6",
     "marked-shiki": "catalog:",

@@ -36,6 +36,7 @@ import { createGateway } from "@ai-sdk/gateway"
 import { createTogetherAI } from "@ai-sdk/togetherai"
 import { createPerplexity } from "@ai-sdk/perplexity"
 import { createVercel } from "@ai-sdk/vercel"
+import { createGitLab } from "@gitlab/gitlab-ai-provider"
 import { ProviderTransform } from "./transform"
 
 export namespace Provider {
@@ -61,6 +62,7 @@ export namespace Provider {
     "@ai-sdk/togetherai": createTogetherAI,
     "@ai-sdk/perplexity": createPerplexity,
     "@ai-sdk/vercel": createVercel,
+    "@gitlab/gitlab-ai-provider": createGitLab,
     // GitHub Copilot uses a custom OpenAI-compatible wrapper (see sdk/openai-compatible/)
     // @ts-ignore - types from custom wrapper don't match SDK factory signature
     "@ai-sdk/github-copilot": createGitHubCopilotOpenAICompatible,
@@ -239,6 +241,7 @@ export namespace Provider {
                 "nova-lite",
                 "nova-pro",
                 "nova-premier",
+                "nova-2",
                 "claude",
                 "deepseek",
               ].some((m) => modelID.includes(m))
@@ -391,6 +394,43 @@ export namespace Provider {
         },
       }
     },
+    async gitlab(input) {
+      const instanceUrl = Env.get("GITLAB_INSTANCE_URL") || "https://gitlab.com"
+
+      const auth = await Auth.get(input.id)
+      const apiKey = await (async () => {
+        if (auth?.type === "oauth") return auth.access
+        if (auth?.type === "api") return auth.key
+        return Env.get("GITLAB_TOKEN")
+      })()
+
+      const config = await Config.get()
+      const providerConfig = config.provider?.["gitlab"]
+
+      return {
+        autoload: !!apiKey,
+        options: {
+          instanceUrl,
+          apiKey,
+          featureFlags: {
+            duo_agent_platform_agentic_chat: true,
+            duo_agent_platform: true,
+            ...(providerConfig?.options?.featureFlags || {}),
+          },
+        },
+        async getModel(sdk: ReturnType<typeof createGitLab>, modelID: string, options?: { anthropicModel?: string }) {
+          const anthropicModel = options?.anthropicModel
+          return sdk.agenticChat(modelID, {
+            anthropicModel,
+            featureFlags: {
+              duo_agent_platform_agentic_chat: true,
+              duo_agent_platform: true,
+              ...(providerConfig?.options?.featureFlags || {}),
+            },
+          })
+        },
+      }
+    },
     "cloudflare-ai-gateway": async (input) => {
       const accountId = Env.get("CLOUDFLARE_ACCOUNT_ID")
       const gateway = Env.get("CLOUDFLARE_GATEWAY_ID")
@@ -420,11 +460,26 @@ export namespace Provider {
             "HTTP-Referer": "https://opencode.ai/",
             "X-Title": "opencode",
           },
-          // Custom fetch to strip Authorization header - AI Gateway uses cf-aig-authorization instead
-          // Sending Authorization header with invalid value causes auth errors
+          // Custom fetch to handle parameter transformation and auth
           fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
             const headers = new Headers(init?.headers)
+            // Strip Authorization header - AI Gateway uses cf-aig-authorization instead
             headers.delete("Authorization")
+
+            // Transform max_tokens to max_completion_tokens for newer models
+            if (init?.body && init.method === "POST") {
+              try {
+                const body = JSON.parse(init.body as string)
+                if (body.max_tokens !== undefined && !body.max_completion_tokens) {
+                  body.max_completion_tokens = body.max_tokens
+                  delete body.max_tokens
+                  init = { ...init, body: JSON.stringify(body) }
+                }
+              } catch (e) {
+                // If body parsing fails, continue with original request
+              }
+            }
+
             return fetch(input, { ...init, headers })
           },
         },

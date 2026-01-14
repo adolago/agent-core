@@ -610,7 +610,6 @@ function App() {
       duration: 5000,
     })
   })
-
   sdk.event.on(Installation.Event.UpdateAvailable.type, (evt) => {
     toast.show({
       variant: "info",

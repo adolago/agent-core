@@ -1,4 +1,4 @@
-- To test opencode in the `packages/agent-core` directory you can run `bun dev`
-- To regenerate the javascript SDK, run ./packages/sdk/js/script/build.ts
+- To test agent-core in `packages/agent-core`, run `bun dev`.
+- To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
 - ALWAYS USE PARALLEL TOOLS WHEN APPLICABLE.
-- the default branch in this repo is `dev`
+- The default branch in this repo is `dev`.

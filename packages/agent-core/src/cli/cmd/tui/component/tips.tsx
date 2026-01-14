@@ -1,4 +1,49 @@
-export const TIPS = [
+import { For } from "solid-js"
+import { useTheme } from "@tui/context/theme"
+
+type TipPart = { text: string; highlight: boolean }
+
+function parse(tip: string): TipPart[] {
+  const parts: TipPart[] = []
+  const regex = /\{highlight\}(.*?)\{\/highlight\}/g
+  const matches = Array.from(tip.matchAll(regex))
+  let index = 0
+
+  for (const match of matches) {
+    const start = match.index ?? 0
+    if (start > index) {
+      parts.push({ text: tip.slice(index, start), highlight: false })
+    }
+    parts.push({ text: match[1], highlight: true })
+    index = start + match[0].length
+  }
+
+  if (index < tip.length) {
+    parts.push({ text: tip.slice(index), highlight: false })
+  }
+
+  return parts
+}
+
+export function Tips() {
+  const theme = useTheme().theme
+  const parts = parse(TIPS[Math.floor(Math.random() * TIPS.length)])
+
+  return (
+    <box flexDirection="row" maxWidth="100%">
+      <text flexShrink={0} style={{ fg: theme.warning }}>
+        ● Tip{" "}
+      </text>
+      <text flexShrink={1}>
+        <For each={parts}>
+          {(part) => <span style={{ fg: part.highlight ? theme.text : theme.textMuted }}>{part.text}</span>}
+        </For>
+      </text>
+    </box>
+  )
+}
+
+const TIPS = [
   "Type {highlight}@{/highlight} followed by a filename to fuzzy search and attach files to your prompt.",
   "Start a message with {highlight}!{/highlight} to run shell commands directly (e.g., {highlight}!ls -la{/highlight}).",
   "Press {highlight}Ctrl+X H{/highlight} to toggle between HOLD (research) and RELEASE (edit) modes.",
