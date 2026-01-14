@@ -9,16 +9,19 @@ import { fileURLToPath } from "url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const dir = path.resolve(__dirname, "..")
+const repoRoot = path.resolve(dir, "..", "..")
 
 process.chdir(dir)
 
 import pkg from "../package.json"
 import { Script } from "@opencode-ai/script"
 
-const personasRoot = path.resolve(dir, "..", "..", "vendor", "personas")
+const personasRoot = path.resolve(repoRoot, "vendor", "personas")
 const zeeRoot = path.join(personasRoot, "zee")
 const stanleyRoot = path.join(personasRoot, "stanley")
-const tiaraRoot = path.resolve(dir, "..", "..", "vendor", "tiara")
+const tiaraRoot = path.resolve(repoRoot, "vendor", "tiara")
+const agentCoreAssetsRoot = path.join(repoRoot, ".agent-core")
+const claudeSkillsRoot = path.join(repoRoot, ".claude", "skills")
 
 async function ensureZeeDependencies() {
   const nodeModules = path.join(zeeRoot, "node_modules")
@@ -199,6 +202,56 @@ function bundleTiara(distRoot: string) {
       return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
     },
   })
+}
+
+function bundleAgentCoreAssets(distRoot: string) {
+  if (!fs.existsSync(agentCoreAssetsRoot)) return
+  const destRoot = path.join(distRoot, ".agent-core")
+  fs.mkdirSync(destRoot, { recursive: true })
+  const entries = ["agent", "command", "themes", "skill"]
+  for (const entry of entries) {
+    const src = path.join(agentCoreAssetsRoot, entry)
+    if (!fs.existsSync(src)) continue
+    const dest = path.join(destRoot, entry)
+    fs.cpSync(src, dest, {
+      recursive: true,
+      dereference: true,
+      filter: (srcPath) => {
+        const base = path.basename(srcPath)
+        return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
+      },
+    })
+  }
+
+  // Bundle a safe version of the config with default_agent set
+  const configSrc = path.join(agentCoreAssetsRoot, "agent-core.jsonc")
+  if (fs.existsSync(configSrc)) {
+    const configDest = path.join(destRoot, "agent-core.jsonc")
+    const raw = fs.readFileSync(configSrc, "utf-8")
+    // Strip local-only MCP paths that won't work in dist
+    const safeConfig = raw.replace(/"command":\s*\[.*?\]/g, '"command": []')
+    fs.writeFileSync(configDest, safeConfig)
+  }
+}
+
+function bundlePersonaSkills(distRoot: string) {
+  if (!fs.existsSync(claudeSkillsRoot)) return
+  const destRoot = path.join(distRoot, ".agent-core", "skill")
+  fs.mkdirSync(destRoot, { recursive: true })
+  const skills = ["zee", "stanley", "johny", "personas"]
+  for (const skill of skills) {
+    const src = path.join(claudeSkillsRoot, skill)
+    if (!fs.existsSync(src)) continue
+    const dest = path.join(destRoot, skill)
+    fs.cpSync(src, dest, {
+      recursive: true,
+      dereference: true,
+      filter: (srcPath) => {
+        const base = path.basename(srcPath)
+        return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
+      },
+    })
+  }
 }
 
 const singleFlag = process.argv.includes("--single")
@@ -392,6 +445,8 @@ for (const item of targets) {
   // Bundle personas so standalone installs can resolve them via AGENT_CORE_ROOT.
   bundlePersonas(path.join(dir, "dist", name))
   bundleTiara(path.join(dir, "dist", name))
+  bundleAgentCoreAssets(path.join(dir, "dist", name))
+  bundlePersonaSkills(path.join(dir, "dist", name))
   binaries[name] = Script.version
 }
 
