@@ -154,4 +154,3 @@ Our custom themes (`zee.json`, `stanley.json`, `johny.json`) are additive. If up
 
 - [Upstream OpenCode](https://github.com/sst/opencode)
 - [Patch Directory](../patches/agent-core/)
-- [Roadmap Phase 5](./ROADMAP.md#phase-5-upstream-sync)
