@@ -11,8 +11,6 @@
 
 import { createServer, type Server } from "net";
 import { getOrchestrator } from "../personas";
-import { createAgentOrchestrator, type AgentOrchestrator } from "../tiara.js";
-import { CouncilCoordinator } from "../council/index.js";
 import { AgentLSPServer } from "../lsp";
 import { DaemonIpcServer } from "./ipc-server";
 import { resolveIpcSocketPath } from "./ipc";
@@ -121,8 +119,6 @@ export class AgentCoreDaemon {
   private lspServer?: AgentLSPServer;
   private ipcServer?: DaemonIpcServer;
   private canvasManager?: CanvasManager;
-  private councilCoordinator?: CouncilCoordinator;
-  private agentOrchestrator?: AgentOrchestrator;
   private isRunning = false;
   private eventUnsubscribers: (() => void)[] = [];
 
@@ -149,16 +145,6 @@ export class AgentCoreDaemon {
     log("info", "Initializing personas layer tiara...");
     const tiara = await getOrchestrator({
       wezterm: { enabled: weztermEnabled },
-    });
-
-    // Create AgentOrchestrator adapter for council integration
-    log("info", "Creating AgentOrchestrator adapter...");
-    this.agentOrchestrator = createAgentOrchestrator(tiara);
-
-    // Create CouncilCoordinator with tiara integration
-    log("info", "Creating CouncilCoordinator...");
-    this.councilCoordinator = await CouncilCoordinator.create({
-      tiara: this.agentOrchestrator,
     });
 
     // Subscribe to tiara events for logging (store unsubscribers for cleanup)
@@ -378,145 +364,6 @@ export class AgentCoreDaemon {
               throw new Error("Canvas manager not initialized");
             }
             return this.canvasManager.listActive();
-          }
-
-          // Council IPC methods
-          case "council:deliberate": {
-            if (!this.councilCoordinator) {
-              throw new Error("Council coordinator not initialized");
-            }
-            const params = request.params ?? {};
-            const question = params.question ? String(params.question) : "";
-            if (!question) {
-              throw new Error("council:deliberate requires question");
-            }
-            const mode = params.mode as "raw_llm" | "agent" | "hybrid" | undefined;
-            const models = Array.isArray(params.models)
-              ? params.models.map(String)
-              : undefined;
-            const agents = Array.isArray(params.agents)
-              ? params.agents.map(String)
-              : undefined;
-            const context = params.context ? String(params.context) : undefined;
-            const includeDebug = Boolean(params.includeDebug);
-
-            // Build members from models and agents
-            const members: Array<{
-              type: "llm" | "agent";
-              id: string;
-              provider?: string;
-              model?: string;
-              modelRoute?: string;
-              agentType?: string;
-            }> = [];
-
-            if (models && models.length > 0) {
-              for (let i = 0; i < models.length; i++) {
-                members.push({
-                  type: "llm",
-                  id: `llm-${i}`,
-                  provider: "openrouter",
-                  model: models[i],
-                  modelRoute: models[i],
-                });
-              }
-            }
-
-            if (agents && agents.length > 0) {
-              for (let i = 0; i < agents.length; i++) {
-                members.push({
-                  type: "agent",
-                  id: `agent-${i}`,
-                  agentType: agents[i],
-                });
-              }
-            }
-
-            // Default members if none specified
-            if (members.length === 0) {
-              members.push(
-                {
-                  type: "llm",
-                  id: "claude",
-                  provider: "openrouter",
-                  model: "anthropic/claude-3-opus",
-                  modelRoute: "anthropic/claude-3-opus",
-                },
-                {
-                  type: "llm",
-                  id: "gpt4",
-                  provider: "openrouter",
-                  model: "openai/gpt-4-turbo",
-                  modelRoute: "openai/gpt-4-turbo",
-                }
-              );
-            }
-
-            const result = await this.councilCoordinator.deliberate(
-              question,
-              {
-                mode: mode ?? (agents ? "hybrid" : "raw_llm"),
-                members: members as Parameters<typeof this.councilCoordinator.deliberate>[1]["members"],
-                chairman: { mode: "highest_scorer" },
-              },
-              { context, includeDebug }
-            );
-
-            return {
-              success: result.success,
-              sessionId: result.sessionId,
-              finalAnswer: result.finalAnswer,
-              summary: result.summary,
-              debug: result.debug,
-            };
-          }
-
-          case "council:quick_consensus": {
-            if (!this.councilCoordinator) {
-              throw new Error("Council coordinator not initialized");
-            }
-            const params = request.params ?? {};
-            const question = params.question ? String(params.question) : "";
-            if (!question) {
-              throw new Error("council:quick_consensus requires question");
-            }
-            const models = Array.isArray(params.models)
-              ? params.models.map(String)
-              : undefined;
-
-            const result = await this.councilCoordinator.quickConsensus(question, models);
-            return {
-              question: result.question,
-              consensus: result.consensus,
-              agreement: result.agreement,
-              responses: result.responses,
-            };
-          }
-
-          case "council:list_sessions": {
-            if (!this.councilCoordinator) {
-              throw new Error("Council coordinator not initialized");
-            }
-            const params = request.params ?? {};
-            const limit = params.limit ? Number(params.limit) : undefined;
-            const status = params.status as Parameters<typeof this.councilCoordinator.listSessions>[0]["status"];
-            return this.councilCoordinator.listSessions({ limit, status });
-          }
-
-          case "council:get_session": {
-            if (!this.councilCoordinator) {
-              throw new Error("Council coordinator not initialized");
-            }
-            const params = request.params ?? {};
-            const sessionId = params.sessionId ? String(params.sessionId) : "";
-            if (!sessionId) {
-              throw new Error("council:get_session requires sessionId");
-            }
-            const session = this.councilCoordinator.getSession(sessionId);
-            if (!session) {
-              throw new Error(`Session not found: ${sessionId}`);
-            }
-            return session;
           }
 
           default:

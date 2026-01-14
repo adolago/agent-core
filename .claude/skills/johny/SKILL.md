@@ -76,7 +76,7 @@ johny: Shows mastery levels, at-risk topics, review schedule
 
 ## Integration Points
 
-- **persona repo**: `~/Repositories/personas/johny/scripts/johny_cli.py`
+- **persona repo**: `~/.local/src/agent-core/vendor/personas/johny/scripts/johny_cli.py`
 - **Memory**: Qdrant vector store for topic embeddings
 - **Council**: Multi-model deliberation for explanations
 - **Browser**: Ingest content from web, PDFs, videos
@@ -91,8 +91,8 @@ npx tsx scripts/johny-daemon.ts status
 
 ## Environment
 
-- `JOHNY_REPO` (default: `~/Repositories/personas/johny`)
-- `JOHNY_CLI` (default: `~/Repositories/personas/johny/scripts/johny_cli.py`)
+- `JOHNY_REPO` (default: `~/.local/src/agent-core/vendor/personas/johny`)
+- `JOHNY_CLI` (default: `~/.local/src/agent-core/vendor/personas/johny/scripts/johny_cli.py`)
 
 ## When to Use johny
 

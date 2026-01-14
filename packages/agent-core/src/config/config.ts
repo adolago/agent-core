@@ -992,6 +992,67 @@ export namespace Config {
     })
   export type Provider = z.infer<typeof Provider>
 
+  export const Memory = z
+    .object({
+      backend: z.enum(["file", "redis", "qdrant"]).optional().describe("Memory backend"),
+      storagePath: z.string().optional().describe("Storage path for file backend"),
+      redisUrl: z.string().optional().describe("Redis connection URL"),
+      qdrantUrl: z.string().optional().describe("Qdrant endpoint URL"),
+      qdrantApiKey: z.string().optional().describe("Qdrant API key"),
+      qdrantCollection: z.string().optional().describe("Qdrant collection for memory"),
+      qdrant: z
+        .object({
+          url: z.string().optional().describe("Qdrant endpoint URL"),
+          apiKey: z.string().optional().describe("Qdrant API key"),
+          collection: z.string().optional().describe("Qdrant collection for memory"),
+        })
+        .optional()
+        .describe("Nested Qdrant configuration"),
+      embedding: z
+        .object({
+          profile: z.string().optional().describe("Embedding profile (e.g. openai/text-embedding-3-small)"),
+          provider: z.string().optional().describe("Embedding provider ID"),
+          model: z.string().optional().describe("Embedding model name"),
+          dimensions: z.number().int().positive().optional().describe("Embedding vector dimensions"),
+          dimension: z.number().int().positive().optional().describe("Alias for dimensions"),
+          apiKey: z.string().optional().describe("Embedding API key"),
+          baseUrl: z.string().optional().describe("Embedding API base URL"),
+        })
+        .optional()
+        .describe("Embedding provider configuration"),
+      defaultTtl: z.number().int().nonnegative().optional().describe("Default TTL in seconds"),
+      autoSaveInterval: z.number().int().nonnegative().optional().describe("Auto-save interval in ms"),
+      compression: z.boolean().optional().describe("Enable compression"),
+      namespace: z.string().optional().describe("Memory namespace"),
+    })
+    .strict()
+    .meta({
+      ref: "MemoryConfig",
+    })
+
+  export const Tiara = z
+    .object({
+      qdrant: z
+        .object({
+          url: z.string().optional().describe("Qdrant endpoint URL"),
+          apiKey: z.string().optional().describe("Qdrant API key"),
+          stateCollection: z.string().optional().describe("Collection for personas state"),
+          memoryCollection: z.string().optional().describe("Collection for personas memory"),
+          embeddingDimension: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .describe("Embedding dimension for tiara Qdrant collections"),
+        })
+        .optional()
+        .describe("Qdrant configuration for tiara"),
+    })
+    .strict()
+    .meta({
+      ref: "TiaraConfig",
+    })
+
   export const Info = z
     .object({
       $schema: z.string().optional().describe("JSON schema reference for configuration validation"),
@@ -1104,6 +1165,8 @@ export namespace Config {
         )
         .optional()
         .describe("MCP (Model Context Protocol) server configurations"),
+      memory: Memory.optional().describe("Memory and storage configuration"),
+      tiara: Tiara.optional().describe("Tiara orchestration configuration"),
       formatter: z
         .union([
           z.literal(false),

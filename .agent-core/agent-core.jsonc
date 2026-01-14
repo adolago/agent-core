@@ -9,18 +9,37 @@
     },
     "personas-memory": {
       "type": "local",
-      "command": ["bun", "run", "~/.local/src/agent-core/src/mcp/servers/memory.ts"],
+      "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/memory.ts"],
       "enabled": true
     },
     "personas-calendar": {
       "type": "local",
-      "command": ["bun", "run", "~/.local/src/agent-core/src/mcp/servers/calendar.ts"],
+      "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/calendar.ts"],
       "enabled": true
     },
     "personas-portfolio": {
       "type": "local",
-      "command": ["bun", "run", "~/.local/src/agent-core/src/mcp/servers/portfolio.ts"],
+      "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/portfolio.ts"],
       "enabled": true
+    }
+  },
+  "memory": {
+    "qdrant": {
+      "url": "http://localhost:6333",
+      "collection": "personas_memory"
+    },
+    "embedding": {
+      "profile": "nebius/qwen3-embedding-8b",
+      "dimensions": 4096,
+      "apiKey": "{env:NEBIUS_API_KEY}"
+    }
+  },
+  "tiara": {
+    "qdrant": {
+      "url": "http://localhost:6333",
+      "stateCollection": "personas_state",
+      "memoryCollection": "personas_memory",
+      "embeddingDimension": 4096
     }
   },
   "tools": {
@@ -44,10 +63,12 @@
       "color": "#7fd88c"
     },
     "title": {
+      "model": "google/antigravity-gemini-3-flash",
       "temperature": 0.5,
       "hidden": true
     },
     "compaction": {
+      "model": "google/antigravity-gemini-3-flash",
       "temperature": 0.3,
       "hidden": true
     }

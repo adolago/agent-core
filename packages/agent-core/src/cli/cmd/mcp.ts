@@ -381,12 +381,15 @@ export const McpLogoutCommand = cmd({
 
 async function resolveConfigPath(baseDir: string, global = false) {
   // Check for existing config files (prefer .jsonc over .json, check .agent-core/ subdirectory too)
-  const candidates = [path.join(baseDir, "agent-core.json"), path.join(baseDir, "agent-core.jsonc")]
+  const candidates = [
+    path.join(baseDir, "agent-core.jsonc"),
+    path.join(baseDir, "agent-core.json"),
+  ]
 
   if (!global) {
     candidates.push(
-      path.join(baseDir, ".agent-core", "agent-core.json"),
       path.join(baseDir, ".agent-core", "agent-core.jsonc"),
+      path.join(baseDir, ".agent-core", "agent-core.json"),
     )
   }
 
@@ -396,7 +399,7 @@ async function resolveConfigPath(baseDir: string, global = false) {
     }
   }
 
-  // Default to agent-core.json if none exist
+  // Default to agent-core.jsonc if none exist
   return candidates[0]
 }
 

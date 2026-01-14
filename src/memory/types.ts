@@ -298,6 +298,7 @@ export interface EmbeddingProvider {
 /** Supported embedding providers */
 export type EmbeddingProviderType =
   | "openai"
+  | "google"
   | "anthropic"
   | "cohere"
   | "voyage"

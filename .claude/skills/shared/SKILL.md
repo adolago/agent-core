@@ -57,7 +57,7 @@ npx tsx scripts/shared-plan.ts read 2026-01-07-10-00-00-project_alpha.md
 
 ## Environment
 
-- `ZEE_REPO` (default: `~/Repositories/personas/zee`)
+- `ZEE_REPO` (default: `~/.local/src/agent-core/vendor/personas/zee`)
 - `ZEE_RUNTIME` (default: `bun`)
 
 Telegram (user mode):

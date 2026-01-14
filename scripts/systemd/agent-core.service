@@ -11,18 +11,18 @@ Group=artur
 # Environment setup
 Environment=HOME=/home/artur
 Environment=AGENT_CORE_HEADLESS=1
+Environment=AGENT_CORE_ROOT=/home/artur/.local/src/agent-core
 Environment=NODE_ENV=production
 Environment=PATH=/home/artur/bin:/home/artur/.local/bin:/home/artur/.bun/bin:/usr/local/bin:/usr/bin:/bin
 
 # API keys can be loaded from environment file (create ~/.config/agent-core/daemon.env)
 EnvironmentFile=-/home/artur/.config/agent-core/daemon.env
 
-# Working directory - use home for general access
-WorkingDirectory=/home/artur
+# Working directory - use repo root for relative assets
+WorkingDirectory=/home/artur/.local/src/agent-core
 
-# Use installed binary - starts both agent-core daemon AND zee gateway
-# Gateway auto-starts with supervision and auto-restart on crash
-ExecStart=/home/artur/bin/agent-core daemon --hostname 127.0.0.1 --port 3210 --gateway
+# Use repo-local binary - starts agent-core daemon with embedded Zee gateway
+ExecStart=/home/artur/.local/src/agent-core/packages/agent-core/bin/agent-core daemon --hostname 127.0.0.1 --port 3210 --directory /home/artur/.local/src/agent-core
 
 # Restart policy
 Restart=always
@@ -38,7 +38,7 @@ PrivateTmp=true
 # Agent-core needs write access to config, state, logs, and session data
 # Gateway needs access to zee directory for cache and session data
 # Signal needs access to its data directory
-ReadWritePaths=/home/artur/.config/agent-core /home/artur/.local/state/agent-core /home/artur/.local/share/agent-core /home/artur/.local/share/signal-cli /home/artur/.zee /home/artur/Repositories/personas/zee
+ReadWritePaths=/home/artur/.config/agent-core /home/artur/.local/state/agent-core /home/artur/.local/share/agent-core /home/artur/.local/share/signal-cli /home/artur/.zee /home/artur/.local/src/agent-core/vendor/personas
 
 # Logging
 StandardOutput=journal

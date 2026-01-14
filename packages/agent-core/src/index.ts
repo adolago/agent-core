@@ -26,7 +26,7 @@ import { EOL } from "os"
 import { WebCommand } from "./cli/cmd/web"
 import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
-import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand } from "./cli/cmd/daemon"
+import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand, GatewayStatusCommand } from "./cli/cmd/daemon"
 import { PluginCommand } from "./cli/cmd/plugin"
 import { SetupCommand } from "./cli/cmd/setup"
 import { BugReportCommand } from "./cli/cmd/bug-report"
@@ -116,6 +116,7 @@ const cli = yargs(hideBin(process.argv))
   .command(DaemonCommand)
   .command(DaemonStatusCommand)
   .command(DaemonStopCommand)
+  .command(GatewayStatusCommand)
   .command(PluginCommand)
   .command(SetupCommand)
   .command(BugReportCommand)

@@ -81,7 +81,7 @@ export namespace Installation {
       },
       {
         name: "brew" as const,
-        command: () => $`brew list --formula opencode`.throws(false).quiet().text(),
+        command: () => $`brew list --formula`.throws(false).quiet().text(),
       },
       {
         name: "scoop" as const,
@@ -101,13 +101,20 @@ export namespace Installation {
       return 0
     })
 
+    const npmPackages = ["agent-core-ai", "opencode-ai"]
+    const brewPackages = ["agent-core", "opencode"]
+
     for (const check of checks) {
       const output = await check.command()
-      const installedName =
-        check.name === "brew" || check.name === "choco" || check.name === "scoop" ? "opencode" : "opencode-ai"
-      if (output.includes(installedName)) {
-        return check.name
+      if (check.name === "brew") {
+        if (brewPackages.some((pkg) => output.includes(pkg))) return check.name
+        continue
       }
+      if (check.name === "choco" || check.name === "scoop") {
+        if (output.includes("opencode")) return check.name
+        continue
+      }
+      if (npmPackages.some((pkg) => output.includes(pkg))) return check.name
     }
 
     return "unknown"
@@ -121,30 +128,32 @@ export namespace Installation {
   )
 
   async function getBrewFormula() {
-    const tapFormula = await $`brew list --formula anomalyco/tap/opencode`.throws(false).quiet().text()
-    if (tapFormula.includes("opencode")) return "anomalyco/tap/opencode"
-    const coreFormula = await $`brew list --formula opencode`.throws(false).quiet().text()
-    if (coreFormula.includes("opencode")) return "opencode"
-    return "opencode"
+    const tapFormula = await $`brew list --formula adolago/tap/agent-core`.throws(false).quiet().text()
+    if (tapFormula.includes("agent-core")) return "adolago/tap/agent-core"
+    const coreFormula = await $`brew list --formula agent-core`.throws(false).quiet().text()
+    if (coreFormula.includes("agent-core")) return "agent-core"
+    const legacyFormula = await $`brew list --formula opencode`.throws(false).quiet().text()
+    if (legacyFormula.includes("opencode")) return "opencode"
+    return "agent-core"
   }
 
   export async function upgrade(method: Method, target: string) {
     let cmd
     switch (method) {
       case "curl":
-        cmd = $`curl -fsSL https://opencode.ai/install | bash`.env({
+        cmd = $`curl -fsSL https://raw.githubusercontent.com/adolago/agent-core/dev/install | bash`.env({
           ...process.env,
           VERSION: target,
         })
         break
       case "npm":
-        cmd = $`npm install -g opencode-ai@${target}`
+        cmd = $`npm install -g agent-core-ai@${target}`
         break
       case "pnpm":
-        cmd = $`pnpm install -g opencode-ai@${target}`
+        cmd = $`pnpm install -g agent-core-ai@${target}`
         break
       case "bun":
-        cmd = $`bun install -g opencode-ai@${target}`
+        cmd = $`bun install -g agent-core-ai@${target}`
         break
       case "brew": {
         const formula = await getBrewFormula()
@@ -189,7 +198,7 @@ export namespace Installation {
 
     if (detectedMethod === "brew") {
       const formula = await getBrewFormula()
-      if (formula === "opencode") {
+      if (formula === "agent-core" || formula === "adolago/tap/agent-core") {
         return fetch("https://formulae.brew.sh/api/formula/agent-core.json")
           .then((res) => {
             if (!res.ok) throw new Error(res.statusText)
@@ -206,7 +215,7 @@ export namespace Installation {
         return reg.endsWith("/") ? reg.slice(0, -1) : reg
       })
       const channel = CHANNEL
-      return fetch(`${registry}/opencode-ai/${channel}`)
+      return fetch(`${registry}/agent-core-ai/${channel}`)
         .then((res) => {
           if (!res.ok) throw new Error(res.statusText)
           return res.json()
@@ -237,7 +246,7 @@ export namespace Installation {
         .then((data: any) => data.version)
     }
 
-    return fetch("https://api.github.com/repos/anomalyco/opencode/releases/latest")
+    return fetch("https://api.github.com/repos/adolago/agent-core/releases/latest")
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
         return res.json()

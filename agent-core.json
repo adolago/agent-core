@@ -3,5 +3,9 @@
     "provider": "languagetool",
     "username": "dolagoartur@gmail.com",
     "apiKey": "pit-oqFnllGFX5eB"
-  }
+  },
+  "plugin": [
+    "file:///home/artur/.local/src/agent-core/packages/opencode-anthropic-auth/index.mjs"
+  ],
+  "$schema": "https://opencode.ai/config.json"
 }

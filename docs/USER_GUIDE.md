@@ -40,10 +40,17 @@ This will:
 ### Authentication
 
 You need an LLM provider (Anthropic is recommended for best results).
+Google Antigravity OAuth is available via the `opencode-google-auth` plugin (not built in).
+
+```bash
+agent-core plugin install opencode-google-auth
+```
 
 ```bash
 agent-core auth login
 ```
+
+Select **Google** to complete the OAuth flow.
 
 Select "Anthropic" or "OpenAI" and paste your API key.
 
@@ -112,7 +119,7 @@ The system keeps the last 5 sessions automatically.
 
 To unlock the full power of the Investment Persona:
 
-1. Clone the Stanley repo to `~/Repositories/personas/stanley`.
+1. Clone the Stanley repo to `~/.local/src/agent-core/vendor/personas/stanley`.
 2. Set up the Python environment there (`pip install -r requirements.txt`).
 3. Agent-Core will automatically detect the CLI.
 

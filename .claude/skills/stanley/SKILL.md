@@ -153,7 +153,7 @@ npx tsx scripts/stanley-daemon.ts status
 
 Environment variables used by the CLI bridge:
 
-- `STANLEY_REPO` (default: `~/Repositories/personas/stanley`)
+- `STANLEY_REPO` (default: `~/.local/src/agent-core/vendor/personas/stanley`)
 - `STANLEY_PYTHON` (default: `python3`)
 - `STANLEY_OPENBB_PROVIDER` (default: `yfinance`)
 - `STANLEY_PORTFOLIO_FILE` (default: `~/.zee/stanley/portfolio.json`)

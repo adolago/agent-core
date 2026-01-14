@@ -27,3 +27,18 @@ opencode-dev
 logs/
 *.bun-build
 .dev-config/
+
+# Removed gateway docs (embedded gateway only)
+vendor/personas/zee/docs/gateway/external-gateway.md
+vendor/personas/zee/docs/gateway/index.md
+vendor/personas/zee/docs/gateway/troubleshooting.md
+vendor/personas/zee/docs/install/docker.md
+vendor/personas/zee/docs/platforms/linux.md
+vendor/personas/zee/docs/platforms/exe-dev.md
+vendor/personas/zee/docker-compose.yml
+
+# Removed council components (tiara-only mode)
+src/council/
+src/agent-types.ts
+src/model-catalog.ts
+src/tiara.ts

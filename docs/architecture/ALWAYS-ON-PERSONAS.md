@@ -138,11 +138,11 @@ Added `daemon` section to config schema:
 
 ---
 
-### Phase 2: Remote Communication Gateway
-**Status: Complete (External Architecture)**
+### Phase 2: Messaging Gateway
+**Status: Complete (Embedded Gateway)**
 **Prerequisites: Phase 1 complete**
 
-Messaging is handled by an **external gateway** service, keeping agent-core clean for upstream sync.
+Messaging is handled by the Zee gateway, launched and supervised by agent-core.
 
 #### 2.1 Architecture
 
@@ -152,7 +152,7 @@ Messaging is handled by an **external gateway** service, keeping agent-core clea
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────────┐
 │  │             Zee Gateway (External Transport Layer)               │
-│  │                ~/Repositories/personas/zee/                      │
+│  │                   ~/.local/src/agent-core/vendor/personas/zee/                           │
 │  │                                                                 │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
 │  │  │ WhatsApp │  │ Telegram │  │  Signal  │  │ Discord  │        │
@@ -172,7 +172,7 @@ Messaging is handled by an **external gateway** service, keeping agent-core clea
 │                         │ + agent: persona
 │                         ▼
 │  ┌─────────────────────────────────────────────────────────────────┐
-│  │               agent-core daemon --external-gateway               │
+│  │               agent-core daemon (spawns gateway)                 │
 │  │                    http://127.0.0.1:3210                        │
 │  │                                                                 │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
@@ -185,19 +185,12 @@ Messaging is handled by an **external gateway** service, keeping agent-core clea
 
 #### 2.2 Running the Gateway
 
-**Step 1: Start agent-core daemon**
+**Step 1: Start agent-core daemon (gateway auto-starts)**
 ```bash
-# Start daemon in external gateway mode
-agent-core daemon --external-gateway
+agent-core daemon
 ```
 
-**Step 2: Start zee gateway (in separate terminal)**
-```bash
-cd ~/Repositories/personas/zee
-pnpm zee gateway
-```
-
-**Step 3: Send messages via phone**
+**Step 2: Send messages via phone**
 - WhatsApp/Telegram messages go to zee gateway
 - Gateway routes to agent-core daemon
 - Persona routing: mention `@stanley` or `@johny` in message, or let Zee handle default
@@ -224,6 +217,11 @@ Messages are routed based on mentions:
 - [x] Persona routing validation
 - [ ] Rate limiting (future)
 - [ ] Audit logging (future)
+
+#### 2.6 Resilience (DONE)
+- [x] Gateway supervised by agent-core with restart/backoff
+- [x] Health probe restarts gateway if it becomes unresponsive
+- [x] Diagnostics: `agent-core status` and `agent-core check` report gateway health
 
 ---
 

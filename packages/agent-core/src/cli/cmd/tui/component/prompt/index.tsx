@@ -83,7 +83,7 @@ export function Prompt(props: PromptProps) {
       message: "Connect a provider to send prompts",
       duration: 3000,
     })
-    if (sync.data.provider.length === 0) {
+    if (sync.data?.provider?.length ?? 0 === 0) {
       dialog.replace(() => <DialogProviderConnect />)
     }
   }
@@ -93,14 +93,14 @@ export function Prompt(props: PromptProps) {
   // Track incomplete todos for hint display
   const incompleteTodos = createMemo(() => {
     if (!props.sessionID) return []
-    const todos = sync.data.todo[props.sessionID] ?? []
+    const todos = sync.data?.todo?.[props.sessionID] ?? []
     return todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
   })
 
   const todoHint = createMemo(() => {
     const incomplete = incompleteTodos()
     if (incomplete.length === 0) return null
-    const todos = sync.data.todo[props.sessionID ?? ""] ?? []
+    const todos = sync.data?.todo?.[props.sessionID ?? ""] ?? []
     const completed = todos.filter((t) => t.status === "completed").length
     const inProgress = incomplete.find((t) => t.status === "in_progress")
     return {
@@ -132,7 +132,7 @@ export function Prompt(props: PromptProps) {
 
   const lastUserMessage = createMemo(() => {
     if (!props.sessionID) return undefined
-    const messages = sync.data.message[props.sessionID]
+    const messages = sync.data?.message?.[props.sessionID]
     if (!messages) return undefined
     return messages.findLast((m) => m.role === "user")
   })
@@ -663,7 +663,7 @@ export function Prompt(props: PromptProps) {
       iife(() => {
         const command = inputText.split(" ")[0].slice(1)
         console.log(command)
-        return sync.data.command.some((x) => x.name === command)
+        return sync.data?.command?.some((x) => x.name === command)
       })
     ) {
       let [command, ...args] = inputText.split(" ")
@@ -1024,7 +1024,7 @@ export function Prompt(props: PromptProps) {
                 const lineCount = (pastedContent.match(/\n/g)?.length ?? 0) + 1
                 if (
                   (lineCount >= 3 || pastedContent.length > 150) &&
-                  !sync.data.config.experimental?.disable_paste_summary
+                  !sync.data?.config?.experimental?.disable_paste_summary
                 ) {
                   event.preventDefault()
                   pasteText(pastedContent, `[Pasted ~${lineCount} lines]`)

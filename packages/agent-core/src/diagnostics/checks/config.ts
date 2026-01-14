@@ -21,6 +21,7 @@ const DEPRECATED_OPTIONS = [
 const RECOMMENDED_ENV_VARS = [
   { name: "ANTHROPIC_API_KEY", description: "Anthropic Claude API key" },
   { name: "OPENAI_API_KEY", description: "OpenAI API key" },
+  { name: "NEBIUS_API_KEY", description: "Nebius embeddings API key" },
   { name: "GOOGLE_API_KEY", description: "Google Gemini API key" },
 ];
 

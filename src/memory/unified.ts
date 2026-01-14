@@ -26,6 +26,7 @@ import {
   QDRANT_COLLECTION_MEMORY,
   CONTINUITY_MAX_KEY_FACTS,
 } from "../config/constants";
+import { getMemoryEmbeddingConfig, getMemoryQdrantConfig } from "../config/runtime";
 import { Log } from "../../packages/agent-core/src/util/log";
 
 const log = Log.create({ service: "memory" });
@@ -339,16 +340,24 @@ export class Memory {
   private readonly collection: string;
   private readonly instanceId: string;
   private readonly maxKeyFacts: number;
+  private readonly configuredEmbeddingDimensions?: number;
+  private embeddingDimension?: number;
   private initialized = false;
 
   // Current conversation state (for continuity)
   private currentConversation?: ConversationState;
 
   constructor(config: Partial<MemoryConfig> = {}) {
+    const fileQdrant = getMemoryQdrantConfig();
+    const fileEmbedding = getMemoryEmbeddingConfig();
     const qdrantConfig = {
-      url: config.qdrant?.url ?? process.env.QDRANT_URL ?? QDRANT_URL,
-      apiKey: config.qdrant?.apiKey,
-      collection: config.qdrant?.collection ?? QDRANT_COLLECTION_MEMORY,
+      url: config.qdrant?.url ?? fileQdrant.url ?? process.env.QDRANT_URL ?? QDRANT_URL,
+      apiKey: config.qdrant?.apiKey ?? fileQdrant.apiKey,
+      collection:
+        config.qdrant?.collection ??
+        fileQdrant.collection ??
+        process.env.QDRANT_MEMORY_COLLECTION ??
+        QDRANT_COLLECTION_MEMORY,
     };
 
     this.collection = qdrantConfig.collection;
@@ -357,19 +366,28 @@ export class Memory {
     this.instanceId = generateInstanceId();
     this.maxKeyFacts = config.maxKeyFacts ?? CONTINUITY_MAX_KEY_FACTS;
 
+    const configuredDimensions = config.embedding?.dimensions ?? fileEmbedding.dimensions;
+    const provider = (config.embedding?.provider ?? fileEmbedding.provider ?? "openai") as EmbeddingConfig["provider"];
+    const apiKey =
+      config.embedding?.apiKey ??
+      fileEmbedding.apiKey ??
+      (provider === "openai" ? process.env.OPENAI_API_KEY : undefined);
+    const embeddingConfig: EmbeddingConfig = {
+      provider,
+      model: config.embedding?.model ?? fileEmbedding.model,
+      dimensions: configuredDimensions,
+      apiKey,
+      baseUrl: config.embedding?.baseUrl ?? fileEmbedding.baseUrl,
+    };
+    this.configuredEmbeddingDimensions = configuredDimensions;
+
     // Use mock embeddings if no API key available
-    const usesMock = !process.env.OPENAI_API_KEY && !config.embedding?.apiKey;
+    const usesMock = provider === "openai" && !apiKey;
     if (usesMock) {
       this.embedding = new MockEmbeddingProvider();
       log.debug("Using mock embeddings (no API key)");
     } else {
-      this.embedding = createEmbeddingProvider({
-        provider: config.embedding?.provider ?? "openai",
-        model: config.embedding?.model,
-        dimensions: config.embedding?.dimensions,
-        apiKey: config.embedding?.apiKey,
-        baseUrl: config.embedding?.baseUrl,
-      });
+      this.embedding = createEmbeddingProvider(embeddingConfig);
     }
   }
 
@@ -379,6 +397,47 @@ export class Memory {
 
   private initFailed = false;
   private initError?: Error;
+
+  private async resolveEmbeddingDimension(): Promise<number> {
+    if (this.embeddingDimension && this.embeddingDimension > 0) {
+      return this.embeddingDimension;
+    }
+
+    const existingDimension = await this.storage.getCollectionDimension(this.collection);
+    if (this.configuredEmbeddingDimensions && this.configuredEmbeddingDimensions > 0) {
+      if (existingDimension && existingDimension !== this.configuredEmbeddingDimensions) {
+        throw new Error(
+          `Qdrant collection "${this.collection}" uses dimension ${existingDimension}, but embedding dimensions are configured as ${this.configuredEmbeddingDimensions}. Update memory.qdrant.collection or memory.embedding.dimensions.`,
+        );
+      }
+      this.embeddingDimension = this.configuredEmbeddingDimensions;
+      this.embedding.dimension = this.embeddingDimension;
+      return this.embeddingDimension;
+    }
+
+    if (existingDimension && existingDimension > 0) {
+      const probe = await this.embedding.embed("dimension-probe");
+      const probeLength = probe.length;
+      if (probeLength && probeLength !== existingDimension) {
+        throw new Error(
+          `Embedding dimension ${probeLength} does not match Qdrant collection ${existingDimension} for "${this.collection}". Create a new collection or set memory.embedding.dimensions to match.`,
+        );
+      }
+      this.embeddingDimension = probeLength || existingDimension;
+      this.embedding.dimension = this.embeddingDimension;
+      return this.embeddingDimension;
+    }
+
+    const probe = await this.embedding.embed("dimension-probe");
+    const probeLength = probe.length;
+    if (!probeLength) {
+      throw new Error("Embedding provider returned empty vector for dimension probe");
+    }
+
+    this.embeddingDimension = probeLength;
+    this.embedding.dimension = probeLength;
+    return probeLength;
+  }
 
   /** Initialize the memory store with retry logic */
   async init(): Promise<void> {
@@ -395,7 +454,8 @@ export class Memory {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await this.storage.createCollection(this.collection, this.embedding.dimension);
+        const dimension = await this.resolveEmbeddingDimension();
+        await this.storage.createCollection(this.collection, dimension);
         this.storage.setCollection(this.collection);
         this.initialized = true;
 

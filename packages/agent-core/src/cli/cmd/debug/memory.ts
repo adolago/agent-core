@@ -1,8 +1,9 @@
 import { cmd } from "../cmd"
 import { bootstrap } from "../../bootstrap"
+import { Config } from "../../../config/config"
 
-/** Default Qdrant URL, configurable via environment */
-const DEFAULT_QDRANT_URL = process.env.QDRANT_URL ?? "http://localhost:6333"
+const FALLBACK_QDRANT_URL = "http://localhost:6333"
+const FALLBACK_QDRANT_COLLECTION = "agent_memory"
 
 export const MemoryCommand = cmd({
   command: "memory",
@@ -11,7 +12,6 @@ export const MemoryCommand = cmd({
     yargs
       .option("qdrant-url", {
         type: "string",
-        default: DEFAULT_QDRANT_URL,
         describe: "Qdrant server URL",
       })
       .command(StatsMemoryCommand)
@@ -36,8 +36,11 @@ const StatsMemoryCommand = cmd({
 
       try {
         // Dynamic import to avoid hard dependency
+        const qdrant = await resolveQdrantConfig({
+          url: typeof args.qdrantUrl === "string" ? args.qdrantUrl : undefined,
+        })
         const { QdrantClient } = await import("@qdrant/js-client-rest")
-        const client = new QdrantClient({ url: DEFAULT_QDRANT_URL })
+        const client = new QdrantClient({ url: qdrant.url, apiKey: qdrant.apiKey })
 
         // Get collections
         const collections = await client.getCollections()
@@ -144,7 +147,6 @@ const SearchMemoryCommand = cmd({
       .option("collection", {
         alias: "c",
         type: "string",
-        default: "agent_memory",
         describe: "collection to search",
       })
       .option("limit", {
@@ -207,11 +209,15 @@ const SearchMemoryCommand = cmd({
         console.log("")
 
         try {
+          const qdrant = await resolveQdrantConfig({
+            url: typeof args.qdrantUrl === "string" ? args.qdrantUrl : undefined,
+            collection: typeof args.collection === "string" ? args.collection : undefined,
+          })
           const { QdrantClient } = await import("@qdrant/js-client-rest")
-          const client = new QdrantClient({ url: DEFAULT_QDRANT_URL })
+          const client = new QdrantClient({ url: qdrant.url, apiKey: qdrant.apiKey })
 
-          const info = await client.getCollection(args.collection)
-          console.log(`Collection: ${args.collection}`)
+          const info = await client.getCollection(qdrant.collection)
+          console.log(`Collection: ${qdrant.collection}`)
           console.log(`  Points: ${info.points_count ?? 0}`)
           console.log(`  Vectors: ${info.indexed_vectors_count ?? 0}`)
           console.log("")
@@ -225,6 +231,34 @@ const SearchMemoryCommand = cmd({
     })
   },
 })
+
+async function resolveQdrantConfig(opts: {
+  url?: string
+  collection?: string
+}): Promise<{ url: string; collection: string; apiKey?: string }> {
+  let url = opts.url?.trim()
+  let collection = opts.collection?.trim()
+  let apiKey: string | undefined
+
+  if (!url || !collection || !apiKey) {
+    try {
+      const config = await Config.get()
+      const memory = config.memory ?? {}
+      const qdrant = memory.qdrant ?? {}
+      url = url || qdrant.url || memory.qdrantUrl
+      collection = collection || qdrant.collection || memory.qdrantCollection
+      apiKey = apiKey || qdrant.apiKey || memory.qdrantApiKey
+    } catch {
+      // Ignore config errors and fall back to defaults.
+    }
+  }
+
+  return {
+    url: url || FALLBACK_QDRANT_URL,
+    collection: collection || FALLBACK_QDRANT_COLLECTION,
+    apiKey,
+  }
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`

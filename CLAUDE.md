@@ -126,7 +126,7 @@ You can always check:
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        AGENT-CORE (Engine)                          │
-│                ~/Repositories/agent-core/                           │
+│               ~/.local/src/agent-core/                              │
 │                                                                     │
 │  packages/agent-core/     ← Fork of OpenCode TUI (built-in agents    │
 │                           removed, only triad remains)              │
@@ -168,7 +168,6 @@ You can always check:
 │  src/                                                               │
 │  ├── domain/          ← Domain tools (stanley/, zee/)              │
 │  ├── personas/        ← Persona logic (knowledge-graph, etc.)      │
-│  ├── council/         ← LLM Council multi-model deliberation       │
 │  └── memory/          ← Qdrant vector storage types                │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -198,7 +197,6 @@ agent-core/
 │   ├── personas/
 │   │   └── johny/
 │   │       └── knowledge-graph/  # MathAcademy-inspired learning system
-│   ├── council/             # LLM Council implementation
 │   └── memory/              # Qdrant vector storage types
 └── docs/
     └── SKILLS.md            # Skills documentation
@@ -227,7 +225,6 @@ Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
 
 This system has experimental features enabled:
 
-- LLM Council for multi-model deliberation
 - Knowledge graph with FIRe (Fractional Implicit Repetition)
 - Semantic memory via Qdrant
 - All OpenCode experimental flags active
@@ -307,7 +304,7 @@ pgrep -af agent-core
 **Related but separate (don't kill):**
 | Process | Location | Description |
 |---------|----------|-------------|
-| Zee Gateway | `~/Repositories/personas/zee/` | Node.js messaging gateway (WhatsApp, Telegram, Signal) |
+| Zee Gateway | `~/.local/src/agent-core/vendor/personas/zee/` | Node.js messaging gateway (WhatsApp, Telegram, Signal) |
 
 ### Gateway Architecture
 
@@ -317,7 +314,7 @@ pgrep -af agent-core
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────────┐
 │  │                   Zee Gateway (Transport)                        │
-│  │              ~/Repositories/personas/zee/                        │
+│  │                 ~/.local/src/agent-core/vendor/personas/zee/                             │
 │  │                                                                 │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
 │  │  │ WhatsApp │  │ Telegram │  │  Signal  │  │ Discord  │        │
@@ -336,7 +333,7 @@ pgrep -af agent-core
 │                         │ + agent: persona
 │                         ▼
 │  ┌─────────────────────────────────────────────────────────────────┐
-│  │              agent-core daemon --external-gateway                │
+│  │              agent-core daemon (spawns gateway)                  │
 │  │                   http://127.0.0.1:3210                         │
 │  │                                                                 │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
@@ -357,31 +354,25 @@ pgrep -af agent-core
 - **Persona routing** = Messages mentioning `@stanley` or `@johny` are routed to those personas
 - **Daemon-only mode** = Zee REQUIRES agent-core daemon to be running
 
-### Running the External Gateway Architecture
+### Running the Embedded Gateway
 
-1. **Start agent-core daemon with external gateway mode:**
-
-   ```bash
-   agent-core daemon --external-gateway --hostname 127.0.0.1 --port 3210
-   ```
-
-2. **Start zee gateway:**
+1. **Start agent-core daemon (gateway auto-starts):**
 
    ```bash
-   cd ~/Repositories/personas/zee && pnpm zee gateway
+   agent-core daemon --hostname 127.0.0.1 --port 3210
    ```
 
-3. **Send a message** via WhatsApp/Telegram mentioning a persona:
+2. **Send a message** via WhatsApp/Telegram mentioning a persona:
    - "Hello" → routes to Zee (default)
    - "@stanley What's the market doing?" → routes to Stanley
    - "@johny Help me study" → routes to Johny
 
 ### Architecture Decision
 
-Built-in messaging gateways have been **removed** from agent-core to:
+Messaging transport remains in Zee, but the gateway is launched by agent-core to:
 
 1. Avoid duplication with zee gateway (ClawdBot fork)
 2. Keep agent-core clean for upstream OpenCode
 3. Centralize messaging transport in one place
 
-All messaging flows through the zee gateway at `~/Repositories/personas/zee/`.
+All messaging flows through the Zee gateway at `~/.local/src/agent-core/vendor/personas/zee/`, managed by the daemon.

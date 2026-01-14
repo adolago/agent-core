@@ -13,6 +13,7 @@ import { createInterface } from "readline";
 import type { LSPServerConfig, DroneStatus, TaskStatus } from "./types";
 import { AgentCodeActionKind } from "./types";
 import { requestDaemon } from "../daemon/ipc-client";
+import { Grammar } from "../util/grammar";
 
 // LSP message types (minimal definitions)
 interface LSPMessage {
@@ -88,9 +89,22 @@ export class AgentLSPServer {
       diagnosticRefreshInterval: config?.diagnosticRefreshInterval ?? 5000,
       enableCodeActions: config?.enableCodeActions ?? true,
       enableHover: config?.enableHover ?? true,
+      enableGrammar: config?.enableGrammar ?? true,
+      grammarConfig: config?.grammarConfig,
       port: config?.port,
       personasUrl: config?.personasUrl,
     };
+  }
+
+  /**
+   * Get position from offset
+   */
+  private getPosition(text: string, offset: number): Position {
+    const prefix = text.slice(0, offset);
+    const lines = prefix.split("\n");
+    const line = lines.length - 1;
+    const character = lines[lines.length - 1].length;
+    return { line, character };
   }
 
   /**
@@ -249,7 +263,7 @@ export class AgentLSPServer {
       version: params.textDocument.version,
       content: params.textDocument.text,
     });
-    this.publishDiagnostics(params.textDocument.uri);
+    this.publishDiagnostics(params.textDocument.uri).catch(err => console.error("Failed to publish diagnostics", err));
   }
 
   /**
@@ -261,7 +275,7 @@ export class AgentLSPServer {
       doc.version = params.textDocument.version;
       doc.content = params.contentChanges[params.contentChanges.length - 1].text;
     }
-    this.publishDiagnostics(params.textDocument.uri);
+    this.publishDiagnostics(params.textDocument.uri).catch(err => console.error("Failed to publish diagnostics", err));
   }
 
   /**
@@ -283,7 +297,7 @@ export class AgentLSPServer {
 
     // Refresh diagnostics for all open documents
     for (const uri of this.openDocuments.keys()) {
-      this.publishDiagnostics(uri);
+      this.publishDiagnostics(uri).catch(err => console.error("Failed to publish diagnostics", err));
     }
   }
 
@@ -320,7 +334,7 @@ export class AgentLSPServer {
   private startDiagnosticRefresh(): void {
     this.refreshInterval = setInterval(() => {
       for (const uri of this.openDocuments.keys()) {
-        this.publishDiagnostics(uri);
+        this.publishDiagnostics(uri).catch(err => console.error("Failed to publish diagnostics", err));
       }
     }, this.config.diagnosticRefreshInterval);
   }
@@ -328,7 +342,7 @@ export class AgentLSPServer {
   /**
    * Publish diagnostics for a document
    */
-  private publishDiagnostics(uri: string): void {
+  private async publishDiagnostics(uri: string): Promise<void> {
     const diagnostics: Diagnostic[] = [];
 
     // Add drone status diagnostics
@@ -366,6 +380,25 @@ export class AgentLSPServer {
         source: "agent-core",
         data: { type: "task", id: task.id, status: task.status, persona: task.persona },
       });
+    }
+
+    // Grammar check
+    if (this.config.enableGrammar) {
+      const doc = this.openDocuments.get(uri);
+      if (doc) {
+        const matches = await Grammar.check(doc.content, this.config.grammarConfig);
+        for (const match of matches) {
+          const start = this.getPosition(doc.content, match.offset);
+          const end = this.getPosition(doc.content, match.offset + match.length);
+          diagnostics.push({
+            severity: DiagnosticSeverity.Information,
+            range: { start, end },
+            message: match.message,
+            source: "LanguageTool",
+            code: match.rule.id,
+          });
+        }
+      }
     }
 
     this.notify("textDocument/publishDiagnostics", { uri, diagnostics });
@@ -549,7 +582,7 @@ export class AgentLSPServer {
     if (state.plan !== undefined) this.plan = state.plan;
 
     for (const uri of this.openDocuments.keys()) {
-      this.publishDiagnostics(uri);
+      this.publishDiagnostics(uri).catch(err => console.error("Failed to publish diagnostics", err));
     }
   }
 

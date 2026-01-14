@@ -6,13 +6,206 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
+import { execSync } from "child_process";
+import net from "net";
 import type { CheckResult, CheckOptions } from "../types";
+import { Zee } from "../../paths";
 
 const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+const ZEE_CONFIG_FILES = ["zee.json", "zee.jsonc"];
+const GATEWAY_ENV_HINTS = [
+  "ZEE_GATEWAY_TOKEN",
+  "ZEE_GATEWAY_PASSWORD",
+  "TELEGRAM_BOT_TOKEN",
+  "TELEGRAM_USER_PHONE",
+  "TELEGRAM_API_ID",
+  "TELEGRAM_API_HASH",
+  "DISCORD_BOT_TOKEN",
+  "SLACK_BOT_TOKEN",
+  "SLACK_APP_TOKEN",
+];
 
 function getStateDir(): string {
   return process.env.AGENT_CORE_STATE_DIR || 
     path.join(os.homedir(), ".local", "state", "agent-core");
+}
+
+function getGatewayPort(): number {
+  const portRaw = Number.parseInt(process.env.ZEE_GATEWAY_PORT ?? "", 10);
+  return Number.isFinite(portRaw) ? portRaw : 18789;
+}
+
+function getGatewayEnvHints(): string[] {
+  return GATEWAY_ENV_HINTS.filter((key) => Boolean(process.env[key]?.trim()));
+}
+
+async function findZeeConfig(): Promise<string | undefined> {
+  for (const file of ZEE_CONFIG_FILES) {
+    const candidate = path.join(Zee.dataDir(), file);
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Ignore missing config path
+    }
+  }
+  return undefined;
+}
+
+async function hasPnpm(): Promise<boolean> {
+  const envPath = process.env.PNPM_BIN?.trim();
+  if (envPath) {
+    try {
+      await fs.access(envPath);
+      return true;
+    } catch {
+      // Fall through to PATH check
+    }
+  }
+
+  const localPnpm = path.join(os.homedir(), ".local", "bin", "pnpm");
+  try {
+    await fs.access(localPnpm);
+    return true;
+  } catch {
+    // Ignore
+  }
+
+  try {
+    execSync("pnpm --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isPortOpen(host: string, port: number): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const socket = net.createConnection({ host, port });
+    const timeout = setTimeout(() => {
+      socket.destroy();
+      resolve(false);
+    }, 1000);
+
+    socket.once("connect", () => {
+      clearTimeout(timeout);
+      socket.end();
+      resolve(true);
+    });
+    socket.once("error", () => {
+      clearTimeout(timeout);
+      resolve(false);
+    });
+  });
+}
+
+async function checkGatewayConfig(): Promise<CheckResult> {
+  const start = Date.now();
+  const configPath = await findZeeConfig();
+  const envHints = getGatewayEnvHints();
+  const configured = Boolean(configPath || envHints.length > 0);
+
+  if (!configured) {
+    return {
+      id: "integrity.gateway-config",
+      name: "Gateway Configuration",
+      category: "integrity",
+      status: "skip",
+      message: "Gateway not configured",
+      details: "Add ~/.zee/zee.json or provider env vars to enable messaging",
+      severity: "info",
+      durationMs: Date.now() - start,
+      autoFixable: false,
+    };
+  }
+
+  const issues: string[] = [];
+  try {
+    await fs.access(Zee.repo());
+  } catch {
+    issues.push(`Zee repo missing at ${Zee.repo()}`);
+  }
+
+  const pnpmAvailable = await hasPnpm();
+  if (!pnpmAvailable) {
+    issues.push("pnpm not found (needed to run gateway)");
+  }
+
+  if (issues.length > 0) {
+    return {
+      id: "integrity.gateway-config",
+      name: "Gateway Configuration",
+      category: "integrity",
+      status: "warn",
+      message: "Gateway configured with missing prerequisites",
+      details: issues.join("\n"),
+      severity: "warning",
+      durationMs: Date.now() - start,
+      autoFixable: false,
+      metadata: { configPath, envHints },
+    };
+  }
+
+  return {
+    id: "integrity.gateway-config",
+    name: "Gateway Configuration",
+    category: "integrity",
+    status: "pass",
+    message: configPath ? `Config found at ${configPath}` : "Configured via environment",
+    severity: "info",
+    durationMs: Date.now() - start,
+    autoFixable: false,
+    metadata: { configPath, envHints },
+  };
+}
+
+async function checkGatewayPort(): Promise<CheckResult> {
+  const start = Date.now();
+  const configPath = await findZeeConfig();
+  const envHints = getGatewayEnvHints();
+  const configured = Boolean(configPath || envHints.length > 0);
+
+  if (!configured) {
+    return {
+      id: "integrity.gateway-port",
+      name: "Gateway Reachability",
+      category: "integrity",
+      status: "skip",
+      message: "Gateway not configured",
+      severity: "info",
+      durationMs: Date.now() - start,
+      autoFixable: false,
+    };
+  }
+
+  const port = getGatewayPort();
+  const portOpen = await isPortOpen("127.0.0.1", port);
+  if (portOpen) {
+    return {
+      id: "integrity.gateway-port",
+      name: "Gateway Reachability",
+      category: "integrity",
+      status: "pass",
+      message: `Gateway listening on ${port}`,
+      severity: "info",
+      durationMs: Date.now() - start,
+      autoFixable: false,
+      metadata: { port },
+    };
+  }
+
+  return {
+    id: "integrity.gateway-port",
+    name: "Gateway Reachability",
+    category: "integrity",
+    status: "warn",
+    message: `Gateway not listening on ${port}`,
+    details: "Restart agent-core to recover the embedded gateway",
+    severity: "warning",
+    durationMs: Date.now() - start,
+    autoFixable: false,
+    metadata: { port },
+  };
 }
 
 async function checkStaleLocks(): Promise<CheckResult> {
@@ -96,11 +289,37 @@ async function checkStaleLocks(): Promise<CheckResult> {
 
 async function checkOrphanedProcesses(): Promise<CheckResult> {
   const start = Date.now();
-  const pidFile = path.join(getStateDir(), "daemon.pid");
+  const pidFile = path.join(getStateDir(), "daemon", "daemon.pid");
 
   try {
     const pidContent = await fs.readFile(pidFile, "utf-8");
-    const storedPid = parseInt(pidContent.trim(), 10);
+    let storedPid = Number.NaN;
+
+    try {
+      const parsed = JSON.parse(pidContent) as { pid?: number };
+      if (typeof parsed?.pid === "number") {
+        storedPid = parsed.pid;
+      }
+    } catch {
+      storedPid = parseInt(pidContent.trim(), 10);
+    }
+
+    if (!Number.isFinite(storedPid)) {
+      return {
+        id: "integrity.orphan-procs",
+        name: "Daemon Process",
+        category: "integrity",
+        status: "warn",
+        message: "PID file exists but is unreadable",
+        severity: "warning",
+        durationMs: Date.now() - start,
+        autoFixable: true,
+        fix: async () => {
+          await fs.unlink(pidFile);
+          return { success: true, message: "Removed unreadable PID file" };
+        },
+      };
+    }
 
     try {
       process.kill(storedPid, 0); // Signal 0 = check if process exists
@@ -262,6 +481,8 @@ export async function runIntegrityChecks(options: CheckOptions): Promise<CheckRe
   
   results.push(await checkStaleLocks());
   results.push(await checkOrphanedProcesses());
+  results.push(await checkGatewayConfig());
+  results.push(await checkGatewayPort());
   
   if (options.full) {
     results.push(await checkCorruptedSessions());

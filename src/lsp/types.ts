@@ -83,6 +83,13 @@ export const LSPServerConfig = z.object({
   enableCodeActions: z.boolean().default(true),
   /** Enable hover provider */
   enableHover: z.boolean().default(true),
+  /** Enable grammar checking diagnostics */
+  enableGrammar: z.boolean().default(true),
+  /** Grammar checking configuration */
+  grammarConfig: z.object({
+    username: z.string().optional(),
+    apiKey: z.string().optional(),
+  }).optional(),
   /** personas tiara connection */
   personasUrl: z.string().optional(),
 });
