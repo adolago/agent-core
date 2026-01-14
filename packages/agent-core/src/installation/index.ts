@@ -14,6 +14,40 @@ declare global {
 
 export namespace Installation {
   const log = Log.create({ service: "installation" })
+  const DEFAULT_NPM_PACKAGE = "@adolago/agent-core"
+  export const NPM_PACKAGES = Array.from(
+    new Set(
+      [process.env.AGENT_CORE_NPM_PACKAGE?.trim(), DEFAULT_NPM_PACKAGE, "agent-core-ai"].filter(Boolean),
+    ),
+  ) as string[]
+
+  function preferredNpmPackage() {
+    return NPM_PACKAGES[0] ?? DEFAULT_NPM_PACKAGE
+  }
+
+  async function listGlobalPackages(manager: "npm" | "pnpm" | "bun" | "yarn") {
+    switch (manager) {
+      case "npm":
+        return $`npm list -g --depth=0`.throws(false).quiet().text()
+      case "pnpm":
+        return $`pnpm list -g --depth=0`.throws(false).quiet().text()
+      case "bun":
+        return $`bun pm ls -g`.throws(false).quiet().text()
+      case "yarn":
+        return $`yarn global list`.throws(false).quiet().text()
+    }
+  }
+
+  export async function resolveNpmPackage(method: Method) {
+    if (method !== "npm" && method !== "pnpm" && method !== "bun" && method !== "yarn") {
+      return preferredNpmPackage()
+    }
+    const output = await listGlobalPackages(method)
+    for (const pkg of NPM_PACKAGES) {
+      if (output.includes(pkg)) return pkg
+    }
+    return preferredNpmPackage()
+  }
 
   export type Method = Awaited<ReturnType<typeof method>>
 
@@ -93,7 +127,7 @@ export namespace Installation {
       return 0
     })
 
-    const npmPackages = ["agent-core-ai"]
+    const npmPackages = NPM_PACKAGES
     const brewPackages = ["agent-core", "adolago/tap/agent-core"]
 
     for (const check of checks) {
@@ -133,13 +167,13 @@ export namespace Installation {
         })
         break
       case "npm":
-        cmd = $`npm install -g agent-core-ai@${target}`
+        cmd = $`npm install -g ${(await resolveNpmPackage(method))}@${target}`
         break
       case "pnpm":
-        cmd = $`pnpm install -g agent-core-ai@${target}`
+        cmd = $`pnpm install -g ${(await resolveNpmPackage(method))}@${target}`
         break
       case "bun":
-        cmd = $`bun install -g agent-core-ai@${target}`
+        cmd = $`bun install -g ${(await resolveNpmPackage(method))}@${target}`
         break
       case "brew": {
         const formula = await getBrewFormula()
@@ -188,14 +222,16 @@ export namespace Installation {
       }
     }
 
-    if (detectedMethod === "npm" || detectedMethod === "bun" || detectedMethod === "pnpm") {
+    if (detectedMethod === "npm" || detectedMethod === "bun" || detectedMethod === "pnpm" || detectedMethod === "yarn") {
       const registry = await iife(async () => {
         const r = (await $`npm config get registry`.quiet().nothrow().text()).trim()
         const reg = r || "https://registry.npmjs.org"
         return reg.endsWith("/") ? reg.slice(0, -1) : reg
       })
       const channel = CHANNEL
-      return fetch(`${registry}/agent-core-ai/${channel}`)
+      const npmPackage = await resolveNpmPackage(detectedMethod)
+      const encoded = encodeURIComponent(npmPackage)
+      return fetch(`${registry}/${encoded}/${channel}`)
         .then((res) => {
           if (!res.ok) throw new Error(res.statusText)
           return res.json()

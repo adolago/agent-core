@@ -9,7 +9,7 @@ Agent-core is a CLI + daemon that powers the Personas system (Zee, Stanley, John
 ## Install
 
 ```bash
-npm install -g agent-core@0.1.0-20260114
+npm install -g @adolago/agent-core@0.1.0-20260114
 ```
 
 ## Configure

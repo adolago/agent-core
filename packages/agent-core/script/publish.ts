@@ -8,6 +8,10 @@ const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
 
 const { binaries } = await import("./build.ts")
+const DEFAULT_NPM_PACKAGE = "@adolago/agent-core"
+const NPM_PACKAGE = process.env.AGENT_CORE_NPM_PACKAGE?.trim() || DEFAULT_NPM_PACKAGE
+const SCOPE_PREFIX = NPM_PACKAGE.startsWith("@") ? NPM_PACKAGE.split("/")[0] : ""
+const scopedName = (name: string) => (SCOPE_PREFIX ? `${SCOPE_PREFIX}/${name}` : name)
 {
   const binarySuffix = process.env.OPENCODE_BINARY_SUFFIX?.trim()
   const osName = process.platform === "win32" ? "windows" : process.platform
@@ -23,7 +27,7 @@ await $`cp ./script/postinstall.mjs ./dist/${pkg.name}/postinstall.mjs`
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
     {
-      name: pkg.name + "-ai",
+      name: NPM_PACKAGE,
       bin: {
         [pkg.name]: `./bin/${pkg.name}`,
       },
@@ -31,7 +35,9 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
         postinstall: "bun ./postinstall.mjs || node ./postinstall.mjs",
       },
       version: Script.version,
-      optionalDependencies: binaries,
+      optionalDependencies: Object.fromEntries(
+        Object.entries(binaries).map(([name, version]) => [scopedName(name), version]),
+      ),
     },
     null,
     2,
@@ -39,9 +45,15 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 )
 
 const tags = [Script.channel]
+const skipDocker = ["1", "true", "yes"].includes((process.env.AGENT_CORE_SKIP_DOCKER ?? "").toLowerCase())
 
 const publishFlag = Script.preview ? "--dry-run" : ""
 const tasks = Object.entries(binaries).map(async ([name]) => {
+  const pkgPath = `./dist/${name}/package.json`
+  const raw = await Bun.file(pkgPath).text()
+  const parsed = JSON.parse(raw)
+  parsed.name = scopedName(name)
+  await Bun.file(pkgPath).write(JSON.stringify(parsed, null, 2))
   if (process.platform !== "win32") {
     await $`chmod -R 755 .`.cwd(`./dist/${name}`)
   }
@@ -55,7 +67,7 @@ for (const tag of tags) {
   await $`cd ./dist/${pkg.name} && bun pm pack && npm publish ${publishFlag} *.tgz --access public --tag ${tag}`
 }
 
-if (!Script.preview) {
+if (!Script.preview && !skipDocker) {
   // Create archives for GitHub release
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
