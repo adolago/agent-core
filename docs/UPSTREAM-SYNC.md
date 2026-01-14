@@ -32,6 +32,7 @@ These are additions that don't conflict with upstream:
 | Persona Skills | Zee, Stanley, Johny skills | `.claude/skills/` |
 | Custom Themes | Persona-specific TUI themes | `context/theme/*.json` |
 | Tiara Submodule | Orchestration layer | `vendor/tiara/` |
+| Anthropic Auth Submodule | Auth plugin tracked separately | `packages/opencode-anthropic-auth/` |
 | Memory Types | Qdrant integration types | `src/memory/` |
 
 ### Medium Complexity (Modifications)
@@ -81,8 +82,9 @@ For each conflicted file:
 
 1. **Build**: `cd packages/agent-core && bun run build`
 2. **Test**: Run with all three personas
-3. **Commit**: Include sync metadata in commit message
-4. **Update version mapping** in this document
+3. **Update submodules**: `git submodule update --remote packages/opencode-anthropic-auth` (if needed)
+4. **Commit**: Include sync metadata in commit message
+5. **Update version mapping** in this document
 
 ## Common Conflict Patterns
 
