@@ -35,7 +35,6 @@ import {
   type FormattedEvent,
   type TimeSlot,
 } from "./google/calendar.js";
-import { requestDaemon } from "../../daemon/ipc-client.js";
 import { getMemory } from "../../memory/unified.js";
 
 // =============================================================================
@@ -489,8 +488,6 @@ const CalendarParams = z.object({
     start: z.string(),
     end: z.string(),
   }).optional().describe("Date range for 'list' or 'find-free' action (ISO dates)"),
-  showInCanvas: z.boolean().default(true)
-    .describe("Display results in canvas sidecar"),
   year: z.number().optional().describe("Year for 'month' action"),
   month: z.number().min(0).max(11).optional().describe("Month (0-11) for 'month' action"),
   // Event creation/update parameters
@@ -518,8 +515,7 @@ export const calendarTool: ToolDefinition = {
     description: `Google Calendar with smart scheduling.
 
 **View Events:**
-- today/week/month/list: View events
-- show: Display calendar canvas
+- today/week/month/list/show: View events
 
 **Manage Events:**
 - create: Create event with { event: { summary, start, end, location?, attendees? } }
@@ -538,7 +534,7 @@ Examples:
 - { action: "quick-add", quickAddText: "Coffee with Sarah tomorrow 3pm" }`,
     parameters: CalendarParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, dateRange, showInCanvas, year, month, event, eventId, durationMinutes, withinDays, preferMorning, preferAfternoon, quickAddText } = args;
+      const { action, dateRange, year, month, event, eventId, durationMinutes, withinDays, preferMorning, preferAfternoon, quickAddText } = args;
 
       ctx.metadata({ title: `Calendar: ${action}` });
 
@@ -736,38 +732,12 @@ ${slotsList}${slots.length > 10 ? `\n... and ${slots.length - 10} more` : ""}`,
             }).join("\n")
           : "No events found.";
 
-        // Show in canvas sidecar if requested
-        if (showInCanvas && events.length > 0) {
-          try {
-            const canvasEvents = events.map((e) => ({
-              date: e.date,
-              title: e.title,
-            }));
-
-            const targetDate = action === "month" && year && month !== undefined
-              ? `${year}-${String(month + 1).padStart(2, "0")}-15`
-              : new Date().toISOString().split("T")[0];
-
-            await requestDaemon("canvas:spawn", {
-              kind: "calendar",
-              id: "zee-calendar",
-              config: {
-                title: `Calendar: ${periodLabel}`,
-                date: targetDate,
-                events: canvasEvents,
-              },
-            });
-          } catch {
-            // Canvas might not be available
-          }
-        }
-
         return {
           title: `Calendar: ${periodLabel}`,
           metadata: { action, eventCount: events.length, period: periodLabel },
           output: `${periodLabel} - ${events.length} event(s)
 
-${eventsList}${showInCanvas ? "\n\n▦ Calendar displayed in canvas sidecar." : ""}`,
+${eventsList}`,
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -981,9 +951,6 @@ The reaction would be:
   }),
 };
 
-import { createZeeBrowserTool } from "./browser-tool";
-import { createZeeCodexBarTool } from "./codexbar-tool";
-
 // =============================================================================
 // Exports
 // =============================================================================
@@ -998,17 +965,8 @@ export const ZEE_TOOLS = [
   whatsappReactionTool,
 ];
 
-// Dynamically created tools
-export const DYNAMIC_ZEE_TOOLS = [
-  createZeeBrowserTool(),
-  createZeeCodexBarTool(),
-];
-
 export function registerZeeTools(registry: { register: (tool: ToolDefinition, options: { source: string }) => void }): void {
   for (const tool of ZEE_TOOLS) {
-    registry.register(tool, { source: "domain" });
-  }
-  for (const tool of DYNAMIC_ZEE_TOOLS) {
     registry.register(tool, { source: "domain" });
   }
 }

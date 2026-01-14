@@ -351,12 +351,11 @@ export class Memory {
     const fileQdrant = getMemoryQdrantConfig();
     const fileEmbedding = getMemoryEmbeddingConfig();
     const qdrantConfig = {
-      url: config.qdrant?.url ?? fileQdrant.url ?? process.env.QDRANT_URL ?? QDRANT_URL,
+      url: config.qdrant?.url ?? fileQdrant.url ?? QDRANT_URL,
       apiKey: config.qdrant?.apiKey ?? fileQdrant.apiKey,
       collection:
         config.qdrant?.collection ??
         fileQdrant.collection ??
-        process.env.QDRANT_MEMORY_COLLECTION ??
         QDRANT_COLLECTION_MEMORY,
     };
 

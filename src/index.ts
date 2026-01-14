@@ -51,9 +51,6 @@ export * as Config from "./config/index.js";
 // Transport - Communication abstractions
 export * as Transport from "./transport/types.js";
 
-// Canvas - TUI toolkit for agent displays (tmux/WezTerm)
-export * as Canvas from "./canvas/index.js";
-
 // Utilities - Common helpers and types
 export * as Util from "./util/types.js";
 

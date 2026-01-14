@@ -145,7 +145,7 @@ Daemon API: http://127.0.0.1:3210
 
 Tool directories:
 [  OK  ] /home/artur/.config/agent-core/tool (1 tools)
-      - canvas.ts                                  ← Custom tools loaded
+      - example.ts                                 ← Custom tools loaded
 
 Source timestamps:
 [  OK  ] transform.ts (19:05:23)                   ← Source file modification times

@@ -160,7 +160,7 @@ You can always check:
 │  │              ┌─────────────────┐                               │  │
 │  │              │  SHARED LAYER   │                               │  │
 │  │              │  • personas/    │  Orchestration, drones        │  │
-│  │              │  • shared/      │  Qdrant, WezTerm, canvas      │  │
+│  │              │  • shared/      │  Qdrant, WezTerm              │  │
 │  │              │  • agents-menu/ │  Delegation routing           │  │
 │  │              └─────────────────┘                               │  │
 │  └───────────────────────────────────────────────────────────────┘  │
@@ -211,7 +211,7 @@ Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
 .claude/skills/stanley/   → Stanley persona
 .claude/skills/zee/       → Zee persona
 .claude/skills/personas/  → Shared orchestration
-.claude/skills/shared/    → Shared tools (Qdrant, WezTerm, canvas)
+.claude/skills/shared/    → Shared tools (Qdrant, WezTerm)
 ```
 
 ## Development Guidelines

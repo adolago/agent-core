@@ -907,18 +907,6 @@ export namespace Config {
         })
         .optional()
         .describe("Todo continuation configuration"),
-      gateway: z
-        .object({
-          telegram: z
-            .object({
-              enabled: z.boolean().optional().default(false).describe("Enable Telegram bot gateway"),
-              bot_token: z.string().optional().describe("Telegram bot token"),
-            })
-            .optional()
-            .describe("Telegram gateway configuration"),
-        })
-        .optional()
-        .describe("Remote communication gateway configuration"),
     })
     .strict()
     .meta({

@@ -10,7 +10,6 @@ import { getToolRegistry } from '../registry';
 
 import { StanleyMarketDataTool, StanleyResearchTool, StanleyPortfolioTool, StanleySecFilingTool } from './stanley';
 import { ZeeMemoryStoreTool, ZeeMemorySearchTool, ZeeMessagingTool, ZeeNotificationTool } from './zee';
-import { CANVAS_TOOLS } from '../../domain/shared/canvas-tool';
 
 // ============================================================================
 // Domain Tools Registry
@@ -39,7 +38,7 @@ export const zeeTools: ToolDefinition[] = [
 /**
  * Shared domain tools (available to all personas)
  */
-export const sharedTools: ToolDefinition[] = CANVAS_TOOLS;
+export const sharedTools: ToolDefinition[] = [];
 
 /**
  * All domain tools

@@ -86,7 +86,7 @@ You can route requests to specific personas:
 
 ### Daemon Mode
 
-To run Agent-Core in the background (required for external tools like the Mobile App or WhatsApp gateway):
+To run Agent-Core in the background (required for Zee messaging gateway on WhatsApp/Telegram):
 
 ```bash
 agent-core daemon

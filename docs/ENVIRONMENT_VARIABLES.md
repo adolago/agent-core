@@ -17,12 +17,11 @@ Complete reference for environment variables across the agent-core ecosystem.
 | `AGENT_CORE_TEST_HOME` | - | Override home directory for testing |
 | `AGENT_CORE_ORIGINAL_PWD` | - | Original working directory before agent-core started |
 
-### Daemon & IPC
+### Daemon
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AGENT_CORE_DAEMON_PORT` | `3456` | HTTP port for the daemon API |
-| `AGENT_CORE_IPC_SOCKET` | `/tmp/agent-core.sock` | Unix socket path for IPC |
 | `AGENT_CORE_URL` | `http://127.0.0.1:3210` | Full URL to daemon |
 | `AGENT_CORE_WEZTERM_ENABLED` | - | Enable WezTerm integration (`true`/`false`) |
 | `PERSONAS_WEZTERM_ENABLED` | - | Alias for WezTerm integration |
@@ -39,7 +38,6 @@ Complete reference for environment variables across the agent-core ecosystem.
 | `TMUX` | - | Indicates running inside tmux |
 | `WEZTERM_PANE` | - | WezTerm pane ID when running in WezTerm |
 | `WEZTERM_EXECUTABLE` | - | Path to WezTerm executable |
-| `CANVAS_TERMINAL` | - | Preferred terminal: `wezterm`, `tmux`, or auto-detect |
 
 ### Network & Proxy
 
@@ -63,14 +61,7 @@ Complete reference for environment variables across the agent-core ecosystem.
 
 ## Memory & Embeddings
 
-Prefer `agent-core.json(c)` for Qdrant and embedding settings. Environment variables are treated as fallback defaults.
-
-### Qdrant Vector Database
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `QDRANT_URL` | `http://localhost:6333` | Qdrant server URL (fallback) |
-| `QDRANT_MEMORY_COLLECTION` | `personas_memory` | Memory collection name (fallback) |
+Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection settings are config-only.
 
 ### Embedding Providers
 
@@ -302,7 +293,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 export NEBIUS_API_KEY="..."
 
 # Configure memory in ~/.config/agent-core/agent-core.jsonc
-# (Qdrant + embeddings are read from config; env vars are fallback only)
+# (Qdrant config is config-only; API keys come from env)
 
 # Start daemon
 agent-core daemon
@@ -316,7 +307,6 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 export OPENAI_API_KEY="sk-..."
 
 # Local services
-export QDRANT_URL="http://localhost:6333"
 
 # Debug mode
 export CLAUDE_FLOW_DEBUG=true
