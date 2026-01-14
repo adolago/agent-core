@@ -17,12 +17,7 @@ export namespace Installation {
   const DEFAULT_NPM_PACKAGE = "@adolago/agent-core"
   export const NPM_PACKAGES = Array.from(
     new Set(
-      [
-        process.env.AGENT_CORE_NPM_PACKAGE?.trim(),
-        DEFAULT_NPM_PACKAGE,
-        "agent-core-ai",
-        "opencode-ai",
-      ].filter(Boolean),
+      [process.env.AGENT_CORE_NPM_PACKAGE?.trim(), DEFAULT_NPM_PACKAGE, "opencode-ai"].filter(Boolean),
     ),
   ) as string[]
 
