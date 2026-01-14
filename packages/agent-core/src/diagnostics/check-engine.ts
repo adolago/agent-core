@@ -169,6 +169,8 @@ export class CheckEngine {
       }
     }
 
+    const clampedDurationMs = Math.max(1, durationMs);
+
     return {
       timestamp: new Date().toISOString(),
       version: process.env.AGENT_CORE_VERSION || "dev",
@@ -184,7 +186,7 @@ export class CheckEngine {
       categories,
       checks: results,
       fixes,
-      durationMs,
+      durationMs: clampedDurationMs,
     };
   }
 }

@@ -21,7 +21,9 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const toast = useToast()
 
     function isModelValid(model: { providerID: string; modelID: string }) {
-      const provider = sync.data.provider.find((x) => x.id === model.providerID)
+      const providers = sync.data?.provider
+      if (!providers || !Array.isArray(providers)) return false
+      const provider = providers.find((x) => x.id === model.providerID)
       return !!provider?.models[model.modelID]
     }
 
@@ -34,16 +36,17 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     }
 
     const agent = iife(() => {
-      const agents = createMemo(
-        () =>
-          sync.data.agent
-            .filter((x) => x.mode !== "subagent" && !x.hidden)
-            .sort((a, b) => b.name.localeCompare(a.name)), // Reverse alpha: Zee, Stanley, Johny
-      )
+      const agents = createMemo(() => {
+        const list = sync.data?.agent
+        if (!list || !Array.isArray(list)) return []
+        return list
+          .filter((x) => x.mode !== "subagent" && !x.hidden)
+          .sort((a, b) => b.name.localeCompare(a.name)) // Reverse alpha: Zee, Stanley, Johny
+      })
       const [agentStore, setAgentStore] = createStore<{
         current: string
       }>({
-        current: agents()[0]?.name ?? "",
+        current: agents()?.[0]?.name ?? "",
       })
 
       // Effect to initialize agent selection when agents load
@@ -84,14 +87,15 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
       return {
         list() {
-          return agents()
+          return agents() ?? []
         },
         current() {
+          const list = agents() ?? []
           // Find matching agent, or fallback to first agent if current doesn't match
-          const found = agents().find((x) => x.name === agentStore.current)
+          const found = list.find((x) => x.name === agentStore.current)
           if (found) return found
           // Update store to first agent if we had a stale value
-          const first = agents()[0]
+          const first = list[0]
           if (first) {
             if (agentStore.current !== first.name) {
               setAgentStore("current", first.name)
@@ -102,7 +106,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           return placeholderAgent
         },
         set(name: string) {
-          if (!agents().some((x) => x.name === name))
+          const list = agents() ?? []
+          if (!list.some((x) => x.name === name))
             return toast.show({
               variant: "warning",
               message: `Agent not found: ${name}`,
@@ -112,15 +117,18 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         },
         move(direction: 1 | -1) {
           batch(() => {
-            let next = agents().findIndex((x) => x.name === agentStore.current) + direction
-            if (next < 0) next = agents().length - 1
-            if (next >= agents().length) next = 0
-            const value = agents()[next]
-            setAgentStore("current", value.name)
+            const list = agents() ?? []
+            if (list.length === 0) return
+            let next = list.findIndex((x) => x.name === agentStore.current) + direction
+            if (next < 0) next = list.length - 1
+            if (next >= list.length) next = 0
+            const value = list[next]
+            if (value) setAgentStore("current", value.name)
           })
         },
         color(name: string) {
-          const all = sync.data.agent
+          const all = sync.data?.agent
+          if (!all || !Array.isArray(all)) return colors()[0]
           const agent = all.find((x) => x.name === name)
           if (agent?.color) return RGBA.fromHex(agent.color)
           const index = all.findIndex((x) => x.name === name)

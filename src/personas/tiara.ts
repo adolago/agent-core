@@ -34,6 +34,7 @@ import { WeztermPaneBridge, createWeztermBridge } from "./wezterm";
 import { generateDronePrompt } from "./persona";
 import { formatAnnouncement, getDroneWaiter, shouldAnnounce, shutdownDroneWaiter } from "./drone-wait";
 import { Log } from "../../packages/agent-core/src/util/log";
+import { getTiaraQdrantConfig } from "../config/runtime";
 import {
   QDRANT_URL,
   QDRANT_COLLECTION_PERSONAS_STATE,
@@ -44,6 +45,7 @@ import {
 } from "../config/constants";
 
 const log = Log.create({ service: "personas-tiara" });
+const defaultQdrant = getTiaraQdrantConfig();
 
 /**
  * Default personas layer configuration
@@ -57,9 +59,10 @@ const DEFAULT_CONFIG: PersonasConfig = {
     showStatusPane: true,
   },
   qdrant: {
-    url: QDRANT_URL,
-    stateCollection: QDRANT_COLLECTION_PERSONAS_STATE,
-    memoryCollection: QDRANT_COLLECTION_PERSONAS_MEMORY,
+    url: defaultQdrant.url ?? QDRANT_URL,
+    apiKey: defaultQdrant.apiKey,
+    stateCollection: defaultQdrant.stateCollection ?? QDRANT_COLLECTION_PERSONAS_STATE,
+    memoryCollection: defaultQdrant.memoryCollection ?? QDRANT_COLLECTION_PERSONAS_MEMORY,
   },
   continuity: {
     autoSummarize: true,

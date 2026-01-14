@@ -44,6 +44,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
 # OpenAI API key (optional)
 # OPENAI_API_KEY=your-key-here
 
+# Nebius API key (embeddings)
+# NEBIUS_API_KEY=your-key-here
+
 # =============================================================================
 # Tool API Keys
 # =============================================================================
@@ -91,8 +94,8 @@ echo "  - zee gateway (WhatsApp/Telegram/Signal messaging)"
 echo ""
 echo "Next steps:"
 echo "  1. Edit your API keys in: $ENV_FILE"
-echo "  2. Install agent-core binary: ~/bin/agent-core"
-echo "  3. Ensure zee gateway is set up: ~/Repositories/personas/zee"
+echo "  2. Install agent-core binary: cd /home/artur/.local/src/agent-core/packages/agent-core && bun link"
+echo "  3. Ensure zee gateway is set up: ~/.local/src/agent-core/vendor/personas/zee"
 echo "  4. Enable the service:    sudo systemctl enable agent-core"
 echo "  5. Start the service:     sudo systemctl start agent-core"
 echo "  6. Check status:          sudo systemctl status agent-core"

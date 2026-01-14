@@ -9,9 +9,11 @@ process.chdir(dir)
 
 const { binaries } = await import("./build.ts")
 {
-  const name = `${pkg.name}-${process.platform}-${process.arch}`
-  console.log(`smoke test: running dist/${name}/bin/opencode --version`)
-  await $`./dist/${name}/bin/opencode --version`
+  const binarySuffix = process.env.OPENCODE_BINARY_SUFFIX?.trim()
+  const osName = process.platform === "win32" ? "windows" : process.platform
+  const name = [pkg.name, osName, process.arch, binarySuffix].filter(Boolean).join("-")
+  console.log(`smoke test: running dist/${name}/bin/agent-core --version`)
+  await $`./dist/${name}/bin/agent-core --version`
 }
 
 await $`mkdir -p ./dist/${pkg.name}`
@@ -62,7 +64,7 @@ if (!Script.preview) {
     }
   }
 
-  const image = "ghcr.io/anomalyco/opencode"
+  const image = "ghcr.io/adolago/agent-core"
   const platforms = "linux/amd64,linux/arm64"
   const tags = [`${image}:${Script.version}`, `${image}:latest`]
   const tagFlags = tags.flatMap((t) => ["-t", t])

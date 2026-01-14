@@ -94,6 +94,14 @@ For each conflicted file:
 // Resolution: Add both, ensure our loader doesn't conflict with new one
 ```
 
+### Gateway Ownership
+
+```
+// Upstream adds standalone gateway or council transport
+// Our change: agent-core is the only gateway supervisor
+// Resolution: keep agent-core embedded gateway; do not reintroduce standalone gateways
+```
+
 ### Agent Schema
 
 ```typescript

@@ -120,6 +120,34 @@ export class QdrantVectorStorage implements VectorStorage {
     }
   }
 
+  async getCollectionDimension(name: string): Promise<number | null> {
+    try {
+      const info = await this.request<{
+        config?: { params?: { vectors?: unknown } };
+      }>("GET", `/collections/${name}`);
+      const vectors = info?.config?.params?.vectors;
+      if (!vectors || typeof vectors !== "object") return null;
+
+      if ("size" in vectors) {
+        const size = (vectors as { size?: unknown }).size;
+        return typeof size === "number" ? size : null;
+      }
+
+      for (const entry of Object.values(vectors as Record<string, unknown>)) {
+        if (entry && typeof entry === "object" && "size" in entry) {
+          const size = (entry as { size?: unknown }).size;
+          if (typeof size === "number") return size;
+        }
+      }
+    } catch (error) {
+      log.debug("Failed to read Qdrant collection dimension", {
+        collection: name,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return null;
+  }
+
   async init(): Promise<void> {
     // No-op - collections are created on demand
   }
@@ -127,6 +155,12 @@ export class QdrantVectorStorage implements VectorStorage {
   async createCollection(name: string, dimension: number): Promise<void> {
     const exists = await this.collectionExists(name);
     if (exists) {
+      const existingDimension = await this.getCollectionDimension(name);
+      if (existingDimension && existingDimension !== dimension) {
+        throw new Error(
+          `Qdrant collection "${name}" has dimension ${existingDimension}, expected ${dimension}.`,
+        );
+      }
       // Still set currentCollection even if collection already exists
       this.currentCollection = name;
       return;

@@ -2,7 +2,7 @@
 
 # Agent-Core
 
-[![Version](https://img.shields.io/badge/version-0.1.20260112-blue?style=flat-square)](https://github.com/adolago/agent-core/releases/tag/v0.1.20260112)
+[![Version](https://img.shields.io/npm/v/agent-core?style=flat-square)](https://www.npmjs.com/package/agent-core)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
@@ -49,6 +49,15 @@ OPENAI_API_KEY=sk-...  # For embeddings
 QDRANT_URL=http://localhost:6333
 ```
 
+Optional: Google Antigravity (plugin-based OAuth):
+
+```bash
+agent-core plugin install opencode-google-auth
+agent-core auth login
+```
+
+Select **Google** when prompted.
+
 3. Start Qdrant (if running locally):
 
 ```bash
@@ -63,10 +72,10 @@ docker run -p 6333:6333 qdrant/qdrant
 agent-core
 ```
 
-**Daemon mode (for external gateways):**
+**Daemon mode (spawns the Zee gateway):**
 
 ```bash
-agent-core daemon --external-gateway --hostname 127.0.0.1 --port 3210
+agent-core daemon --hostname 127.0.0.1 --port 3210
 ```
 
 ## Architecture
@@ -96,19 +105,14 @@ agent-core/
 - **Semantic Memory**: Vector-based memory with Qdrant for context persistence
 - **Multi-Persona Routing**: Route messages to specialized personas
 - **Orchestration**: SPARC methodology via tiara for complex tasks
-- **External Gateway**: HTTP API for messaging platform integration
+- **Embedded Gateway**: Zee messaging gateway launched by agent-core
 
 ## Usage with Zee Gateway
 
-The Zee Gateway handles messaging platforms (WhatsApp, Telegram, Discord, etc.) and routes to agent-core:
+The Zee gateway is launched and supervised by agent-core when the daemon starts:
 
 ```bash
-# Terminal 1: Start agent-core daemon
-agent-core daemon --external-gateway
-
-# Terminal 2: Start zee gateway
-cd ~/Repositories/personas/zee
-pnpm zee gateway
+agent-core daemon
 ```
 
 Messages mentioning `@stanley` or `@johny` are routed to those personas; all others go to Zee.

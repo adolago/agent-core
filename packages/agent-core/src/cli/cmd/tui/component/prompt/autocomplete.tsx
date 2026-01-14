@@ -280,7 +280,7 @@ export function Autocomplete(props: {
     const options: AutocompleteOption[] = []
     const width = props.anchor().width - 4
 
-    for (const res of Object.values(sync.data.mcp_resource)) {
+    for (const res of Object.values(sync.data?.mcp_resource ?? {})) {
       const text = `${res.name} (${res.uri})`
       options.push({
         display: Locale.truncateMiddle(text, width),
@@ -311,8 +311,9 @@ export function Autocomplete(props: {
   })
 
   const agents = createMemo(() => {
-    const agents = sync.data.agent
-    return agents
+    const agentList = sync.data?.agent
+    if (!agentList || !Array.isArray(agentList)) return []
+    return agentList
       .filter((agent) => !agent.hidden && agent.mode !== "primary")
       .map(
         (agent): AutocompleteOption => ({
@@ -336,7 +337,7 @@ export function Autocomplete(props: {
   const commands = createMemo((): AutocompleteOption[] => {
     const results: AutocompleteOption[] = []
     const s = session()
-    for (const command of sync.data.command) {
+    for (const command of sync.data?.command ?? []) {
       results.push({
         display: ":" + command.name + (command.mcp ? " (MCP)" : ""),
         description: command.description,
@@ -406,7 +407,7 @@ export function Autocomplete(props: {
           onSelect: () => command.trigger("session.toggle.thinking"),
         },
       )
-      if (sync.data.config.share !== "disabled") {
+      if (sync.data?.config?.share !== "disabled") {
         results.push({
           display: "/share",
           disabled: !!s.share?.url,

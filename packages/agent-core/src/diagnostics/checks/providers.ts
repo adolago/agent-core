@@ -29,6 +29,13 @@ const PROVIDERS: ProviderConfig[] = [
     timeout: 5000,
   },
   {
+    name: "Nebius (OpenAI-compatible)",
+    id: "nebius",
+    endpoint: "https://api.tokenfactory.nebius.com/v1/models",
+    envKey: "NEBIUS_API_KEY",
+    timeout: 5000,
+  },
+  {
     name: "Google Gemini",
     id: "gemini",
     endpoint: "https://generativelanguage.googleapis.com/v1/models",

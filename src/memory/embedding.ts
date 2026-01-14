@@ -1,6 +1,6 @@
 /**
  * Embedding client for generating vector representations of text.
- * Supports OpenAI, Ollama, vLLM, and local (OpenAI-compatible) providers.
+ * Supports OpenAI, Google, Voyage, Ollama, vLLM, and local (OpenAI-compatible) providers.
  *
  * Includes LRU caching to avoid redundant API calls.
  *
@@ -100,15 +100,27 @@ class EmbeddingCache {
 class OpenAIEmbeddingProvider implements EmbeddingProvider {
   readonly id = "openai";
   readonly model: string;
-  readonly dimension: number;
+  dimension: number;
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  private readonly dimensionsParam?: number;
 
   constructor(config: EmbeddingConfig) {
-    this.apiKey = config.apiKey ?? process.env.OPENAI_API_KEY ?? "";
+    const resolvedBaseUrl = (config.baseUrl ?? "https://api.openai.com/v1").replace(
+      /\/$/,
+      ""
+    );
+    const isNebius = resolvedBaseUrl.includes("nebius.com");
+    this.apiKey =
+      config.apiKey ??
+      process.env.OPENAI_API_KEY ??
+      (isNebius ? process.env.NEBIUS_API_KEY : undefined) ??
+      "";
     this.model = config.model ?? "text-embedding-3-small";
-    this.dimension = config.dimensions ?? 1536;
-    this.baseUrl = config.baseUrl ?? "https://api.openai.com/v1";
+    this.dimensionsParam =
+      typeof config.dimensions === "number" ? config.dimensions : undefined;
+    this.dimension = this.dimensionsParam ?? 1536;
+    this.baseUrl = resolvedBaseUrl;
 
     if (!this.apiKey) {
       throw new Error(
@@ -125,17 +137,26 @@ class OpenAIEmbeddingProvider implements EmbeddingProvider {
   async embedBatch(texts: string[]): Promise<number[][]> {
     if (texts.length === 0) return [];
 
+    const body: {
+      model: string;
+      input: string[];
+      dimensions?: number;
+    } = {
+      model: this.model,
+      input: texts,
+    };
+
+    if (this.dimensionsParam) {
+      body.dimensions = this.dimensionsParam;
+    }
+
     const response = await fetch(`${this.baseUrl}/embeddings`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: this.model,
-        input: texts,
-        dimensions: this.dimension,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -151,7 +172,108 @@ class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
     // Sort by index to maintain order
     const sorted = data.data.sort((a, b) => a.index - b.index);
+    if (!this.dimensionsParam && sorted.length > 0) {
+      const length = sorted[0]?.embedding.length ?? 0;
+      if (length > 0) this.dimension = length;
+    }
     return sorted.map((item) => item.embedding);
+  }
+}
+
+/**
+ * Google embedding client using Generative Language API
+ */
+class GoogleEmbeddingProvider implements EmbeddingProvider {
+  readonly id = "google";
+  readonly model: string;
+  dimension: number;
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly outputDimensionality?: number;
+
+  constructor(config: EmbeddingConfig) {
+    this.apiKey =
+      config.apiKey ??
+      process.env.GOOGLE_API_KEY ??
+      process.env.GEMINI_API_KEY ??
+      "";
+    this.model = config.model ?? "text-embedding-004";
+    this.outputDimensionality =
+      typeof config.dimensions === "number" ? config.dimensions : undefined;
+    this.dimension = this.outputDimensionality ?? 768;
+    this.baseUrl = (config.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta").replace(
+      /\/$/,
+      ""
+    );
+
+    if (!this.apiKey) {
+      throw new Error(
+        "Google API key required: set embedding.apiKey or GOOGLE_API_KEY/GEMINI_API_KEY env"
+      );
+    }
+  }
+
+  private resolveModel(): string {
+    return this.model.startsWith("models/") ? this.model : `models/${this.model}`;
+  }
+
+  async embed(text: string): Promise<number[]> {
+    const result = await this.embedBatch([text]);
+    return result[0] ?? [];
+  }
+
+  async embedBatch(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+
+    const model = this.resolveModel();
+    const requests = texts.map((text) => {
+      const request: {
+        model: string;
+        content: { parts: Array<{ text: string }> };
+        outputDimensionality?: number;
+      } = {
+        model,
+        content: { parts: [{ text }] },
+      };
+      if (this.outputDimensionality) {
+        request.outputDimensionality = this.outputDimensionality;
+      }
+      return request;
+    });
+
+    const response = await fetch(
+      `${this.baseUrl}/${model}:batchEmbedContents?key=${encodeURIComponent(
+        this.apiKey
+      )}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requests }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Google embedding failed (${response.status}): ${errorText}`
+      );
+    }
+
+    const data = (await response.json()) as {
+      embeddings?: Array<{ values?: number[] }>;
+    };
+
+    const vectors = (data.embeddings ?? []).map((item) => item.values ?? []);
+    if (vectors.length === 0) {
+      throw new Error("Google embedding returned no vectors");
+    }
+    if (!this.outputDimensionality && vectors.length > 0) {
+      const length = vectors[0]?.length ?? 0;
+      if (length > 0) this.dimension = length;
+    }
+    return vectors;
   }
 }
 
@@ -161,7 +283,7 @@ class OpenAIEmbeddingProvider implements EmbeddingProvider {
 class VLLMEmbeddingProvider implements EmbeddingProvider {
   readonly id = "vllm";
   readonly model: string;
-  readonly dimension: number;
+  dimension: number;
   private readonly baseUrl: string;
 
   constructor(config: EmbeddingConfig) {
@@ -211,7 +333,7 @@ class VLLMEmbeddingProvider implements EmbeddingProvider {
 class OllamaEmbeddingProvider implements EmbeddingProvider {
   readonly id = "ollama";
   readonly model: string;
-  readonly dimension: number;
+  dimension: number;
   private readonly baseUrl: string;
 
   constructor(config: EmbeddingConfig) {
@@ -267,7 +389,7 @@ class OllamaEmbeddingProvider implements EmbeddingProvider {
 class LocalEmbeddingProvider implements EmbeddingProvider {
   readonly id = "local";
   readonly model: string;
-  readonly dimension: number;
+  dimension: number;
   private readonly apiKey: string;
   private readonly baseUrl: string;
 
@@ -326,7 +448,7 @@ class LocalEmbeddingProvider implements EmbeddingProvider {
 class VoyageEmbeddingProvider implements EmbeddingProvider {
   readonly id = "voyage";
   readonly model: string;
-  readonly dimension: number;
+  dimension: number;
   private readonly apiKey: string;
   private readonly baseUrl: string;
 
@@ -470,6 +592,9 @@ export function createEmbeddingProvider(
     case "openai":
       provider = new OpenAIEmbeddingProvider(config);
       break;
+    case "google":
+      provider = new GoogleEmbeddingProvider(config);
+      break;
     case "voyage":
       provider = new VoyageEmbeddingProvider(config);
       break;
@@ -500,6 +625,7 @@ export function createEmbeddingProvider(
 export {
   EmbeddingCache,
   OpenAIEmbeddingProvider,
+  GoogleEmbeddingProvider,
   VoyageEmbeddingProvider,
   VLLMEmbeddingProvider,
   OllamaEmbeddingProvider,

@@ -63,17 +63,23 @@ Complete reference for environment variables across the agent-core ecosystem.
 
 ## Memory & Embeddings
 
+Prefer `agent-core.json(c)` for Qdrant and embedding settings. Environment variables are treated as fallback defaults.
+
 ### Qdrant Vector Database
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `QDRANT_URL` | `http://localhost:6333` | Qdrant server URL |
+| `QDRANT_URL` | `http://localhost:6333` | Qdrant server URL (fallback) |
+| `QDRANT_MEMORY_COLLECTION` | `personas_memory` | Memory collection name (fallback) |
 
 ### Embedding Providers
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | - | OpenAI API key for embeddings (text-embedding-3-small) |
+| `NEBIUS_API_KEY` | - | Nebius API key for OpenAI-compatible embeddings (Qwen3) |
+| `GOOGLE_API_KEY` | - | Google API key for embeddings (text-embedding-004) |
+| `GEMINI_API_KEY` | - | Alternate Google API key name |
 | `VOYAGE_API_KEY` | - | Voyage AI API key for embeddings (alternative) |
 
 ---
@@ -207,7 +213,7 @@ Complete reference for environment variables across the agent-core ecosystem.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `STANLEY_PORTFOLIO_FILE` | `~/.zee/stanley/portfolio.json` | Portfolio file path |
-| `STANLEY_REPO` | `~/Repositories/personas/stanley` | Stanley repo path |
+| `STANLEY_REPO` | `~/.local/src/agent-core/vendor/personas/stanley` | Stanley repo path |
 | `STANLEY_CLI` | `$STANLEY_REPO/scripts/stanley_cli.py` | CLI script path |
 | `STANLEY_PYTHON` | Auto-detect venv or `python3` | Python interpreter |
 
@@ -219,7 +225,7 @@ Complete reference for environment variables across the agent-core ecosystem.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JOHNY_REPO` | `~/Repositories/personas/johny` | Johny repo path |
+| `JOHNY_REPO` | `~/.local/src/agent-core/vendor/personas/johny` | Johny repo path |
 | `JOHNY_CLI` | `$JOHNY_REPO/scripts/johny_cli.py` | CLI script path |
 | `JOHNY_PYTHON` | Auto-detect venv or `python3` | Python interpreter |
 
@@ -292,12 +298,14 @@ Complete reference for environment variables across the agent-core ecosystem.
 # Required for LLM functionality
 export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Required for memory/embeddings
-export OPENAI_API_KEY="sk-..."
-export QDRANT_URL="http://localhost:6333"
+# Embeddings (example: Nebius Qwen3)
+export NEBIUS_API_KEY="..."
+
+# Configure memory in ~/.config/agent-core/agent-core.jsonc
+# (Qdrant + embeddings are read from config; env vars are fallback only)
 
 # Start daemon
-agent-core daemon --external-gateway
+agent-core daemon
 ```
 
 ### Development Setup

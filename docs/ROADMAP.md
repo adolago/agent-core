@@ -233,7 +233,7 @@ Agent-core is a fork of OpenCode with three personas (Zee, Stanley, Johny) shari
 |----------|--------|----------|
 | TUI (agent-core) | ✅ Primary | This repo |
 | Web (OpenCode) | ✅ Upstream | opencode-ai/opencode |
-| Mobile (Zee) | ✅ Companion | personas/zee mobile app |
+| Mobile (Zee) | ✅ Companion | .local/src/agent-core/vendor/personas/zee mobile app |
 
 ### 6.2 Integration Points - COMPLETE
 - [x] Shared session state across platforms

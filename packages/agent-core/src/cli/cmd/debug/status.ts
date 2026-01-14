@@ -6,6 +6,20 @@ import { Global } from "../../../global"
 import { Flag } from "../../../flag/flag"
 import fs from "fs/promises"
 import path from "path"
+import net from "net"
+import { Zee } from "../../../paths"
+
+const GATEWAY_ENV_HINTS = [
+  "ZEE_GATEWAY_TOKEN",
+  "ZEE_GATEWAY_PASSWORD",
+  "TELEGRAM_BOT_TOKEN",
+  "TELEGRAM_USER_PHONE",
+  "TELEGRAM_API_ID",
+  "TELEGRAM_API_HASH",
+  "DISCORD_BOT_TOKEN",
+  "SLACK_BOT_TOKEN",
+  "SLACK_APP_TOKEN",
+]
 
 export const StatusCommand = cmd({
   command: "status",
@@ -67,6 +81,18 @@ interface SystemStatus {
     provider?: string
     model?: string
   }
+  gateway: {
+    configured: boolean
+    port: number
+    listening: boolean
+    configPath?: string
+    envHints: string[]
+    processes: Array<{
+      pid: number
+      cmd: string
+    }>
+    issues: string[]
+  }
   sources: Array<{
     file: string
     modifiedAt: string
@@ -93,6 +119,14 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
     },
     config: {
       directories: [],
+    },
+    gateway: {
+      configured: false,
+      port: 18789,
+      listening: false,
+      envHints: [],
+      processes: [],
+      issues: [],
     },
     sources: [],
     issues: [],
@@ -170,6 +204,41 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
     if (status.daemon.running) {
       status.issues.push("Daemon process running but health check failed")
     }
+  }
+
+  // Gateway status
+  const gatewayPort = getGatewayPort()
+  status.gateway.port = gatewayPort
+  status.gateway.envHints = getGatewayEnvHints()
+  status.gateway.configPath = await findZeeConfig()
+  status.gateway.configured = Boolean(status.gateway.configPath || status.gateway.envHints.length > 0)
+
+  try {
+    status.gateway.listening = await isPortOpen("127.0.0.1", gatewayPort)
+  } catch {
+    status.gateway.listening = false
+  }
+
+  try {
+    const { execSync } = await import("child_process")
+    const gatewayOutput = execSync('pgrep -af "zee.*gateway" 2>/dev/null || true', { encoding: "utf-8" })
+    const lines = gatewayOutput.trim().split("\n").filter(Boolean)
+    status.gateway.processes = lines
+      .map((line) => {
+        const match = line.match(/^(\d+)\s+(.*)$/)
+        if (!match) return null
+        const cmd = match[2]
+        if (cmd.includes("pgrep")) return null
+        return { pid: Number.parseInt(match[1], 10), cmd }
+      })
+      .filter((entry): entry is { pid: number; cmd: string } => Boolean(entry))
+  } catch {
+    // Ignore gateway process check errors
+  }
+
+  if (status.gateway.configured && !status.gateway.listening) {
+    status.gateway.issues.push("Gateway configured but not listening")
+    status.issues.push("Gateway configured but not listening")
   }
 
   // Tool directories
@@ -296,6 +365,34 @@ function printStatus(status: SystemStatus, verbose: boolean) {
   }
   console.log("")
 
+  // Gateway
+  console.log(`${BLUE}Gateway:${RESET}`)
+  console.log(`  Port: ${status.gateway.port}`)
+  if (status.gateway.listening) {
+    console.log(`  ${ok("Listening")}`)
+  } else if (status.gateway.configured) {
+    console.log(`  ${warn("Configured but not listening")}`)
+  } else {
+    console.log(`  ${warn("Not configured")}`)
+  }
+  if (status.gateway.configPath) {
+    console.log(`  Config: ${status.gateway.configPath}`)
+  }
+  if (status.gateway.envHints.length > 0) {
+    console.log(`  Env: ${status.gateway.envHints.join(", ")}`)
+  }
+  if (verbose) {
+    if (status.gateway.processes.length > 0) {
+      console.log("  Processes:")
+      for (const proc of status.gateway.processes) {
+        console.log(`    ${DIM}${proc.pid} ${proc.cmd}${RESET}`)
+      }
+    } else {
+      console.log(`  ${DIM}Processes: none${RESET}`)
+    }
+  }
+  console.log("")
+
   // Tools
   console.log(`${BLUE}Tools:${RESET}`)
   if (status.tools.directories.length === 0) {
@@ -349,4 +446,46 @@ function printStatus(status: SystemStatus, verbose: boolean) {
       console.log(`  Restart: ${Global.Path.source}/scripts/reload.sh --no-build`)
     }
   }
+}
+
+function getGatewayPort(): number {
+  const portRaw = Number.parseInt(process.env.ZEE_GATEWAY_PORT || "", 10)
+  return Number.isFinite(portRaw) ? portRaw : 18789
+}
+
+function getGatewayEnvHints(): string[] {
+  return GATEWAY_ENV_HINTS.filter((key) => Boolean(process.env[key]?.trim()))
+}
+
+async function findZeeConfig(): Promise<string | undefined> {
+  const candidates = ["zee.json", "zee.jsonc"].map((file) => path.join(Zee.dataDir(), file))
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate)
+      return candidate
+    } catch {
+      // Ignore missing config path
+    }
+  }
+  return undefined
+}
+
+async function isPortOpen(host: string, port: number): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const socket = net.createConnection({ host, port })
+    const timeout = setTimeout(() => {
+      socket.destroy()
+      resolve(false)
+    }, 1000)
+
+    socket.once("connect", () => {
+      clearTimeout(timeout)
+      socket.end()
+      resolve(true)
+    })
+    socket.once("error", () => {
+      clearTimeout(timeout)
+      resolve(false)
+    })
+  })
 }

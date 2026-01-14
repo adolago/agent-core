@@ -16,9 +16,9 @@ local M = {}
 -- LSP server configuration
 M.server_config = {
   name = "agent_core",
-  cmd = { "bun", "run", vim.fn.expand("~/Repositories/agent-core/src/lsp/server.ts") },
+  cmd = { "bun", "run", vim.fn.expand("~/.local/src/agent-core/src/lsp/server.ts") },
   -- Alternative: use node
-  -- cmd = { "node", vim.fn.expand("~/Repositories/agent-core/dist/lsp/server.js") },
+  -- cmd = { "node", vim.fn.expand("~/.local/src/agent-core/dist/lsp/server.js") },
   filetypes = { "*" }, -- Attach to all file types
   root_dir = function(fname)
     return vim.fn.getcwd()
