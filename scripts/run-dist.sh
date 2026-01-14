@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Clear stale daemon socket to ensure standalone mode
+unset AGENT_CORE_IPC_SOCKET
+
 TARGET="${AGENT_CORE_TARGET:-}"
 if [[ -z "$TARGET" ]]; then
   os="$(uname -s | tr '[:upper:]' '[:lower:]')"
