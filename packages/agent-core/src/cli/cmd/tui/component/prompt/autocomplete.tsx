@@ -518,8 +518,8 @@ export function Autocomplete(props: {
         const offset = props.input().cursorOffset
         if (offset === 0) return
 
-        // Check for ":" at position 0 - reopen command autocomplete
-        if ((value.startsWith(":") || value.startsWith("/")) && !value.slice(0, offset).match(/\s/)) {
+        // Check for ":" at position 0 - reopen command palette
+        if (value.startsWith(":") && !value.slice(0, offset).match(/\s/)) {
           show(":")
           setStore("index", 0)
           return
