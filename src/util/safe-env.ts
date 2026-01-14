@@ -80,7 +80,6 @@ const SAFE_VARS = new Set([
   "AGENT_CORE_LOG_LEVEL",
   "AGENT_CORE_WEZTERM_ENABLED",
   "AGENT_CORE_DISABLE_TERMINAL_TITLE",
-  "QDRANT_URL",
 
   // Persona repos (paths only, not credentials)
   "STANLEY_REPO",

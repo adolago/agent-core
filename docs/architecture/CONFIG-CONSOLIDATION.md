@@ -47,7 +47,7 @@ The following types are defined in agent-core and can be imported by zee for typ
 agent-core (Engine)
 ├── src/config/shared.ts    ← Shared primitives (canonical)
 ├── src/config/types.ts     ← Uses shared primitives
-├── src/domain/zee/         ← Delegates to zee daemon
+├── src/domain/zee/         ← Zee domain tools (memory, calendar, messaging)
 └── packages/agent-core/    ← TUI/CLI implementation
 
 zee (Gateway)
@@ -66,8 +66,7 @@ zee (Gateway)
 
 ### Browser Control
 - zee owns the browser implementation (`src/browser/`, `src/agents/tools/browser-tool.ts`)
-- agent-core delegates via daemon IPC (`requestDaemon("spawn_drone_with_wait", ...)`)
-- Future: Could expose zee browser as MCP server for direct calls
+- agent-core does not proxy browser control; use Zee gateway endpoints when enabled
 
 ### Memory/Qdrant
 - agent-core owns the Qdrant implementation (`src/memory/`)

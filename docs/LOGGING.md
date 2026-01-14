@@ -199,7 +199,6 @@ log.info("auth", { token: "secret123" })      // Sensitive data
 | `src/memory/` | `Log` utility | ✓ Structured |
 | `src/mcp/` | `Log` utility | ✓ Structured |
 | `src/domain/` | `Log` utility | ✓ Structured |
-| `src/daemon/` | Custom wrapper | ✓ Timestamped |
 | `zee/src/` | `createSubsystemLogger` | ✓ Structured |
 | Test files | `console.log` | ✓ Acceptable |
 | MCP stdio servers | `console.error` | ✓ Protocol standard |

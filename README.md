@@ -2,7 +2,7 @@
 
 # Agent-Core
 
-[![Version](https://img.shields.io/npm/v/agent-core?style=flat-square)](https://www.npmjs.com/package/agent-core)
+[![Version](https://img.shields.io/npm/v/@adolago/agent-core?style=flat-square)](https://www.npmjs.com/package/@adolago/agent-core)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
@@ -52,7 +52,7 @@ cp dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
 ### Configuration
 
 Agent-core reads JSONC config from `~/.config/agent-core/agent-core.jsonc` or `.agent-core/agent-core.jsonc`.
-Environment variables are used only for secrets.
+Environment variables are used only for secrets (Qdrant settings are config-only).
 
 Example memory + embeddings configuration:
 
@@ -137,11 +137,10 @@ agent-core daemon --hostname 127.0.0.1 --port 3210
 
 ```
 agent-core/
-├── packages/agent-core/    # Main CLI and TUI (OpenCode fork)
+├── packages/agent-core/    # Main CLI/TUI/daemon (OpenCode fork)
 ├── src/
 │   ├── personas/           # Persona logic and routing
 │   ├── memory/             # Qdrant semantic memory
-│   ├── daemon/             # HTTP/IPC daemon
 │   └── domain/             # Domain tools (zee/, stanley/)
 ├── vendor/tiara/           # Orchestration layer (SPARC methodology)
 └── .claude/skills/         # Persona skill definitions

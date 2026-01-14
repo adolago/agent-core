@@ -1,8 +1,7 @@
 /**
  * Infrastructure Constants
  *
- * Centralized constants for infrastructure configuration.
- * All values can be overridden via environment variables.
+ * Centralized constants for infrastructure configuration defaults.
  *
  * @module config/constants
  */
@@ -12,7 +11,7 @@
 // =============================================================================
 
 /** Default Qdrant server URL */
-export const QDRANT_URL = process.env.QDRANT_URL ?? "http://localhost:6333";
+export const QDRANT_URL = "http://localhost:6333";
 
 /** Default collection for agent memory */
 export const QDRANT_COLLECTION_MEMORY = "agent_memory";
@@ -45,9 +44,6 @@ export const TIMEOUT_DRONE_MS = 300_000;
 
 /** Default fact extraction timeout in ms (30 seconds) */
 export const TIMEOUT_FACT_EXTRACTION_MS = 30_000;
-
-/** Default IPC client timeout in ms (3 seconds) */
-export const TIMEOUT_IPC_MS = 3_000;
 
 /** Default provider timeout in ms (5 minutes) */
 export const TIMEOUT_PROVIDER_MS = 300_000;
