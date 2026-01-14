@@ -8,6 +8,8 @@ import { iife } from "@/util/iife"
 import { Flag } from "../flag/flag"
 
 declare global {
+  const AGENT_CORE_VERSION: string
+  const AGENT_CORE_CHANNEL: string
   const OPENCODE_VERSION: string
   const OPENCODE_CHANNEL: string
 }
@@ -203,8 +205,18 @@ export namespace Installation {
   }
 
   // Version format: V0.YYYYMMDD
-  export const VERSION = typeof OPENCODE_VERSION === "string" ? OPENCODE_VERSION : "V0.20260109"
-  export const CHANNEL = typeof OPENCODE_CHANNEL === "string" ? OPENCODE_CHANNEL : "local"
+  export const VERSION =
+    typeof AGENT_CORE_VERSION === "string"
+      ? AGENT_CORE_VERSION
+      : typeof OPENCODE_VERSION === "string"
+        ? OPENCODE_VERSION
+        : "V0.20260109"
+  export const CHANNEL =
+    typeof AGENT_CORE_CHANNEL === "string"
+      ? AGENT_CORE_CHANNEL
+      : typeof OPENCODE_CHANNEL === "string"
+        ? OPENCODE_CHANNEL
+        : "local"
   export const USER_AGENT = `agent-core/${CHANNEL}/${VERSION}/${Flag.OPENCODE_CLIENT}`
 
   export async function latest(installMethod?: Method) {
