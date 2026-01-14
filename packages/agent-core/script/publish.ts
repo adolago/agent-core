@@ -46,6 +46,11 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 
 const tags = [Script.channel]
 const skipDocker = ["1", "true", "yes"].includes((process.env.AGENT_CORE_SKIP_DOCKER ?? "").toLowerCase())
+const npmOtp =
+  process.env.AGENT_CORE_NPM_OTP?.trim() ||
+  process.env.NPM_OTP?.trim() ||
+  process.env.NPM_CONFIG_OTP?.trim()
+const otpFlag = npmOtp ? `--otp ${npmOtp}` : ""
 
 const publishFlag = Script.preview ? "--dry-run" : ""
 const tasks = Object.entries(binaries).map(async ([name]) => {
@@ -59,12 +64,12 @@ const tasks = Object.entries(binaries).map(async ([name]) => {
   }
   await $`bun pm pack`.cwd(`./dist/${name}`)
   for (const tag of tags) {
-    await $`npm publish ${publishFlag} *.tgz --access public --tag ${tag}`.cwd(`./dist/${name}`)
+    await $`npm publish ${publishFlag} *.tgz --access public --tag ${tag} ${otpFlag}`.cwd(`./dist/${name}`)
   }
 })
 await Promise.all(tasks)
 for (const tag of tags) {
-  await $`cd ./dist/${pkg.name} && bun pm pack && npm publish ${publishFlag} *.tgz --access public --tag ${tag}`
+  await $`cd ./dist/${pkg.name} && bun pm pack && npm publish ${publishFlag} *.tgz --access public --tag ${tag} ${otpFlag}`
 }
 
 if (!Script.preview && !skipDocker) {
