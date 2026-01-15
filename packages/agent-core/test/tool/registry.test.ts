@@ -6,13 +6,13 @@ import { Instance } from "../../src/project/instance"
 import { ToolRegistry } from "../../src/tool/registry"
 
 describe("tool.registry", () => {
-  test("loads tools from .opencode/tool (singular)", async () => {
+  test("loads tools from .agent-core/tool (singular)", async () => {
     await using tmp = await tmpdir({
       init: async (dir) => {
-        const opencodeDir = path.join(dir, ".opencode")
-        await fs.mkdir(opencodeDir, { recursive: true })
+        const agentCoreDir = path.join(dir, ".agent-core")
+        await fs.mkdir(agentCoreDir, { recursive: true })
 
-        const toolDir = path.join(opencodeDir, "tool")
+        const toolDir = path.join(agentCoreDir, "tool")
         await fs.mkdir(toolDir, { recursive: true })
 
         await Bun.write(
@@ -40,13 +40,13 @@ describe("tool.registry", () => {
     })
   })
 
-  test("loads tools from .opencode/tools (plural)", async () => {
+  test("loads tools from .agent-core/tools (plural)", async () => {
     await using tmp = await tmpdir({
       init: async (dir) => {
-        const opencodeDir = path.join(dir, ".opencode")
-        await fs.mkdir(opencodeDir, { recursive: true })
+        const agentCoreDir = path.join(dir, ".agent-core")
+        await fs.mkdir(agentCoreDir, { recursive: true })
 
-        const toolsDir = path.join(opencodeDir, "tools")
+        const toolsDir = path.join(agentCoreDir, "tools")
         await fs.mkdir(toolsDir, { recursive: true })
 
         await Bun.write(

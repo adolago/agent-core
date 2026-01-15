@@ -372,13 +372,13 @@ Test agent prompt`,
   })
 })
 
-test("loads agents from .opencode/agents (plural)", async () => {
+test("loads agents from .agent-core/agents (plural)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
-      const opencodeDir = path.join(dir, ".opencode")
-      await fs.mkdir(opencodeDir, { recursive: true })
+      const agentCoreDir = path.join(dir, ".agent-core")
+      await fs.mkdir(agentCoreDir, { recursive: true })
 
-      const agentsDir = path.join(opencodeDir, "agents")
+      const agentsDir = path.join(agentCoreDir, "agents")
       await fs.mkdir(path.join(agentsDir, "nested"), { recursive: true })
 
       await Bun.write(
@@ -423,13 +423,13 @@ Nested agent prompt`,
   })
 })
 
-test("loads commands from .opencode/command (singular)", async () => {
+test("loads commands from .agent-core/command (singular)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
-      const opencodeDir = path.join(dir, ".opencode")
-      await fs.mkdir(opencodeDir, { recursive: true })
+      const agentCoreDir = path.join(dir, ".agent-core")
+      await fs.mkdir(agentCoreDir, { recursive: true })
 
-      const commandDir = path.join(opencodeDir, "command")
+      const commandDir = path.join(agentCoreDir, "command")
       await fs.mkdir(path.join(commandDir, "nested"), { recursive: true })
 
       await Bun.write(
@@ -468,13 +468,13 @@ Nested command template`,
   })
 })
 
-test("loads commands from .opencode/commands (plural)", async () => {
+test("loads commands from .agent-core/commands (plural)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
-      const opencodeDir = path.join(dir, ".opencode")
-      await fs.mkdir(opencodeDir, { recursive: true })
+      const agentCoreDir = path.join(dir, ".agent-core")
+      await fs.mkdir(agentCoreDir, { recursive: true })
 
-      const commandsDir = path.join(opencodeDir, "commands")
+      const commandsDir = path.join(agentCoreDir, "commands")
       await fs.mkdir(path.join(commandsDir, "nested"), { recursive: true })
 
       await Bun.write(

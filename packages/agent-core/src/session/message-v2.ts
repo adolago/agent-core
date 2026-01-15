@@ -432,7 +432,7 @@ export namespace MessageV2 {
   })
   export type WithParts = z.infer<typeof WithParts>
 
-  export function toModelMessage(input: WithParts[]): ModelMessage[] {
+  export async function toModelMessage(input: WithParts[]): Promise<ModelMessage[]> {
     const result: UIMessage[] = []
 
     for (const msg of input) {
@@ -565,7 +565,7 @@ export namespace MessageV2 {
       }
     }
 
-    return convertToModelMessages(result.filter((msg) => msg.parts.some((part) => part.type !== "step-start")))
+    return await convertToModelMessages(result.filter((msg) => msg.parts.some((part) => part.type !== "step-start")))
   }
 
   export const stream = fn(Identifier.schema("session"), async function* (sessionID) {
