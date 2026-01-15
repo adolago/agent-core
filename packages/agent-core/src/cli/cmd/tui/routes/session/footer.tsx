@@ -15,6 +15,8 @@ export function Footer() {
   const mcp = createMemo(() => Object.values(sync.data.mcp).filter((x) => x.status === "connected").length)
   const mcpError = createMemo(() => Object.values(sync.data.mcp).some((x) => x.status === "failed"))
   const lsp = createMemo(() => Object.keys(sync.data.lsp))
+  const internet = createMemo(() => sync.data.health.internet)
+  const connectedProviders = createMemo(() => sync.data.health.providers.filter((p) => p.status === "ok").length)
   const permissions = createMemo(() => {
     if (route.data.type !== "session") return []
     return sync.data.permission[route.data.sessionID] ?? []
@@ -69,6 +71,25 @@ export function Footer() {
               <text fg={theme.warning}>
                 <span style={{ fg: theme.warning }}>△</span> {permissions().length} Permission
                 {permissions().length > 1 ? "s" : ""}
+              </text>
+            </Show>
+            <text fg={theme.text}>
+              <Switch>
+                <Match when={internet() === "ok"}>
+                  <span style={{ fg: theme.success }}>◉</span>
+                </Match>
+                <Match when={internet() === "fail"}>
+                  <span style={{ fg: theme.error }}>◉</span>
+                </Match>
+                <Match when={internet() === "checking"}>
+                  <span style={{ fg: theme.textMuted }}>◉</span>
+                </Match>
+              </Switch>
+              {" "}NET
+            </text>
+            <Show when={connectedProviders() > 0}>
+              <text fg={theme.text}>
+                <span style={{ fg: theme.success }}>◈</span> {connectedProviders()} LLM
               </text>
             </Show>
             <text fg={theme.text}>
