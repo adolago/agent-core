@@ -37,7 +37,7 @@ export namespace ShareNext {
             type: "model",
             data: [
               await Provider.getModel(evt.properties.info.model.providerID, evt.properties.info.model.modelID).then(
-                (m) => m,
+                (m) => m as SDK.Model,
               ),
             ],
           },
@@ -169,7 +169,7 @@ export namespace ShareNext {
       messages
         .filter((m) => m.info.role === "user")
         .map((m) => (m.info as SDK.UserMessage).model)
-        .map((m) => Provider.getModel(m.providerID, m.modelID).then((m) => m)),
+        .map((m) => Provider.getModel(m.providerID, m.modelID).then((m) => m as SDK.Model)),
     )
     await sync(sessionID, [
       {

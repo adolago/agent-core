@@ -46,15 +46,18 @@ export namespace ProviderTransform {
     if (model.api.id.includes("claude")) {
       return msgs.map((msg) => {
         if ((msg.role === "assistant" || msg.role === "tool") && Array.isArray(msg.content)) {
-          msg.content = msg.content.map((part) => {
-            if ((part.type === "tool-call" || part.type === "tool-result") && "toolCallId" in part) {
-              return {
-                ...part,
-                toolCallId: part.toolCallId.replace(/[^a-zA-Z0-9_-]/g, "_"),
+          // Filter out approval parts and transform tool IDs
+          msg.content = msg.content
+            .filter((part) => part.type !== "tool-approval-request" && part.type !== "tool-approval-response")
+            .map((part) => {
+              if ((part.type === "tool-call" || part.type === "tool-result") && "toolCallId" in part) {
+                return {
+                  ...part,
+                  toolCallId: part.toolCallId.replace(/[^a-zA-Z0-9_-]/g, "_"),
+                }
               }
-            }
-            return part
-          })
+              return part
+            }) as typeof msg.content
         }
         return msg
       })
@@ -66,21 +69,24 @@ export namespace ProviderTransform {
         const nextMsg = msgs[i + 1]
 
         if ((msg.role === "assistant" || msg.role === "tool") && Array.isArray(msg.content)) {
-          msg.content = msg.content.map((part) => {
-            if ((part.type === "tool-call" || part.type === "tool-result") && "toolCallId" in part) {
-              // Mistral requires alphanumeric tool call IDs with exactly 9 characters
-              const normalizedId = part.toolCallId
-                .replace(/[^a-zA-Z0-9]/g, "") // Remove non-alphanumeric characters
-                .substring(0, 9) // Take first 9 characters
-                .padEnd(9, "0") // Pad with zeros if less than 9 characters
+          // Filter out approval parts and transform tool IDs
+          msg.content = msg.content
+            .filter((part) => part.type !== "tool-approval-request" && part.type !== "tool-approval-response")
+            .map((part) => {
+              if ((part.type === "tool-call" || part.type === "tool-result") && "toolCallId" in part) {
+                // Mistral requires alphanumeric tool call IDs with exactly 9 characters
+                const normalizedId = part.toolCallId
+                  .replace(/[^a-zA-Z0-9]/g, "") // Remove non-alphanumeric characters
+                  .substring(0, 9) // Take first 9 characters
+                  .padEnd(9, "0") // Pad with zeros if less than 9 characters
 
-              return {
-                ...part,
-                toolCallId: normalizedId,
+                return {
+                  ...part,
+                  toolCallId: normalizedId,
+                }
               }
-            }
-            return part
-          })
+              return part
+            }) as typeof msg.content
         }
 
         result.push(msg)
@@ -101,11 +107,12 @@ export namespace ProviderTransform {
       return result
     }
 
-    if (
-      model.capabilities.interleaved &&
-      typeof model.capabilities.interleaved === "object" &&
-      model.capabilities.interleaved.field === "reasoning_content"
-    ) {
+    const interleavedField =
+      model.capabilities.interleaved && typeof model.capabilities.interleaved === "object"
+        ? model.capabilities.interleaved.field
+        : null
+
+    if (interleavedField === "reasoning_content" || interleavedField === "reasoning") {
       return msgs.map((msg) => {
         if (msg.role === "assistant" && Array.isArray(msg.content)) {
           const reasoningParts = msg.content.filter((part: any) => part.type === "reasoning")
@@ -114,7 +121,7 @@ export namespace ProviderTransform {
           // Filter out reasoning parts from content
           const filteredContent = msg.content.filter((part: any) => part.type !== "reasoning")
 
-          // Include reasoning_content directly on the message for all assistant messages
+          // Include interleaved reasoning field directly on the message for all assistant messages
           if (reasoningText) {
             // Type assertion: providerOptions is Record<string, unknown> but we need to spread existing openaiCompatible options
             const existingOptions = (msg.providerOptions as Record<string, unknown>)?.openaiCompatible
@@ -125,7 +132,7 @@ export namespace ProviderTransform {
                 ...msg.providerOptions,
                 openaiCompatible: {
                   ...(typeof existingOptions === "object" ? existingOptions : {}),
-                  reasoning_content: reasoningText,
+                  [interleavedField]: reasoningText,
                 },
               },
             }
@@ -168,9 +175,9 @@ export namespace ProviderTransform {
 
       if (shouldUseContentOptions) {
         const lastContent = msg.content[msg.content.length - 1]
-        if (lastContent && typeof lastContent === "object") {
-          lastContent.providerOptions = {
-            ...lastContent.providerOptions,
+        if (lastContent && typeof lastContent === "object" && "providerOptions" in lastContent) {
+          ;(lastContent as { providerOptions?: Record<string, unknown> }).providerOptions = {
+            ...(lastContent as { providerOptions?: Record<string, unknown> }).providerOptions,
             ...providerOptions,
           }
           continue

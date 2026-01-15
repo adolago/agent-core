@@ -54,6 +54,8 @@ export function prepareResponsesTools({
           strict: strictJsonSchema,
         })
         break
+      case "provider":
+      // @ts-expect-error - "provider-defined" is valid at runtime even if types don't reflect it
       case "provider-defined": {
         switch (tool.id) {
           case "openai.file_search": {
