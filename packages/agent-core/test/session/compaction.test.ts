@@ -7,6 +7,26 @@ import { Log } from "../../src/util/log"
 import { tmpdir } from "../fixture/fixture"
 import { Session } from "../../src/session"
 import type { Provider } from "../../src/provider/provider"
+import type { LanguageModelUsage } from "ai"
+
+// Helper to create usage with required AI SDK v6 properties
+function createUsage(usage: Partial<LanguageModelUsage>): LanguageModelUsage {
+  return {
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
+    },
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+    ...usage,
+  }
+}
 
 Log.init({ print: false })
 
@@ -167,11 +187,11 @@ describe("session.getUsage", () => {
     const model = createModel({ context: 100_000, output: 32_000 })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 1000,
         outputTokens: 500,
         totalTokens: 1500,
-      },
+      }),
     })
 
     expect(result.tokens.input).toBe(1000)
@@ -185,12 +205,12 @@ describe("session.getUsage", () => {
     const model = createModel({ context: 100_000, output: 32_000 })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 1000,
         outputTokens: 500,
         totalTokens: 1500,
         cachedInputTokens: 200,
-      },
+      }),
     })
 
     expect(result.tokens.input).toBe(800)
@@ -201,11 +221,11 @@ describe("session.getUsage", () => {
     const model = createModel({ context: 100_000, output: 32_000 })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 1000,
         outputTokens: 500,
         totalTokens: 1500,
-      },
+      }),
       metadata: {
         anthropic: {
           cacheCreationInputTokens: 300,
@@ -220,12 +240,12 @@ describe("session.getUsage", () => {
     const model = createModel({ context: 100_000, output: 32_000 })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 1000,
         outputTokens: 500,
         totalTokens: 1500,
         cachedInputTokens: 200,
-      },
+      }),
       metadata: {
         anthropic: {},
       },
@@ -239,12 +259,12 @@ describe("session.getUsage", () => {
     const model = createModel({ context: 100_000, output: 32_000 })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 1000,
         outputTokens: 500,
         totalTokens: 1500,
         reasoningTokens: 100,
-      },
+      }),
     })
 
     expect(result.tokens.reasoning).toBe(100)
@@ -254,11 +274,11 @@ describe("session.getUsage", () => {
     const model = createModel({ context: 100_000, output: 32_000 })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
-      },
+      }),
     })
 
     expect(result.tokens.input).toBe(0)
@@ -281,11 +301,11 @@ describe("session.getUsage", () => {
     })
     const result = Session.getUsage({
       model,
-      usage: {
+      usage: createUsage({
         inputTokens: 1_000_000,
         outputTokens: 100_000,
         totalTokens: 1_100_000,
-      },
+      }),
     })
 
     expect(result.cost).toBe(3 + 1.5)

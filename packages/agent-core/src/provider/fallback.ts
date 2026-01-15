@@ -80,7 +80,7 @@ export namespace Fallback {
    * a proxy that intercepts Symbol.asyncIterator.
    */
   function wrapFullStream<T extends ToolSet>(
-    stream: StreamTextResult<T, unknown>,
+    stream: StreamTextResult<T, any>,
     context: StreamContext,
   ): typeof stream.fullStream {
     const originalFullStream = stream.fullStream

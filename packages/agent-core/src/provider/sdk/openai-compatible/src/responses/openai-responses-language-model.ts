@@ -4,7 +4,7 @@ import {
   type LanguageModelV2CallWarning,
   type LanguageModelV2Content,
   type LanguageModelV2FinishReason,
-  type LanguageModelV2ProviderDefinedTool,
+  type LanguageModelV2ProviderTool,
   type LanguageModelV2StreamPart,
   type LanguageModelV2Usage,
   type SharedV2ProviderMetadata,
@@ -218,7 +218,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     function hasOpenAITool(id: string) {
-      return tools?.find((tool) => tool.type === "provider-defined" && tool.id === id) != null
+      return (
+        tools?.find(
+          // @ts-expect-error - tool.type can be "provider-defined" at runtime even if types don't reflect it
+          (tool) => (tool.type === "provider" || tool.type === "provider-defined") && tool.id === id,
+        ) != null
+      )
     }
 
     // when logprobs are requested, automatically include them:
@@ -237,9 +242,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const webSearchToolName = (
       tools?.find(
         (tool) =>
-          tool.type === "provider-defined" &&
+          // @ts-expect-error - tool.type can be "provider-defined" at runtime even if types don't reflect it
+          (tool.type === "provider" || tool.type === "provider-defined") &&
           (tool.id === "openai.web_search" || tool.id === "openai.web_search_preview"),
-      ) as LanguageModelV2ProviderDefinedTool | undefined
+      ) as LanguageModelV2ProviderTool | undefined
     )?.name
 
     if (webSearchToolName) {
