@@ -5,6 +5,11 @@ const rootPkgPath = path.resolve(import.meta.dir, "../../../package.json")
 const rootPkg = await Bun.file(rootPkgPath).json()
 const expectedBunVersion = rootPkg.packageManager?.split("@")[1]
 
+// Read version from agent-core package.json as fallback
+const agentCorePkgPath = path.resolve(import.meta.dir, "../../agent-core/package.json")
+const agentCorePkg = await Bun.file(agentCorePkgPath).json().catch(() => ({}))
+const packageJsonVersion = agentCorePkg.version as string | undefined
+
 if (!expectedBunVersion) {
   throw new Error("packageManager field not found in root package.json")
 }
@@ -39,6 +44,8 @@ const IS_PREVIEW = CHANNEL !== "latest"
 const VERSION = await (async () => {
   if (env.AGENT_CORE_VERSION) return env.AGENT_CORE_VERSION
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
+  // Use package.json version if available (for local builds)
+  if (packageJsonVersion && packageJsonVersion !== "0.0.0") return packageJsonVersion
   if (IS_PREVIEW) {
     const now = new Date()
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
