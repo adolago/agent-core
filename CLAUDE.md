@@ -257,13 +257,28 @@ By default, the canonical location is `~/.local/src/agent-core`, but the project
 
 ### Binary Location
 
-**Installed binary:** `~/bin/agent-core` (also `$AGENT_CORE_BIN`)
+Two installation methods are supported:
+
+1. **Bun global install (recommended):** `~/.bun/bin/agent-core`
+   - Installed via `bun install -g agent-core`
+   - Wrapper script resolves the actual binary automatically
+
+2. **Manual install:** `~/bin/agent-core` (also `$AGENT_CORE_BIN`)
+   - Direct binary copy from build output
+   - Used by `reload.sh` script
 
 **Run from anywhere:** The binary can be launched from any directory. Just `cd` to your project folder and run `agent-core`.
 
 ### Rebuilding
 
-**Recommended:** Use the reload script (handles kill, build, copy, restart):
+**For bun global install:**
+
+```bash
+# Build and the global install auto-updates
+cd packages/agent-core && bun run build
+```
+
+**For manual install (reload script):**
 
 ```bash
 # Full reload - kill all, rebuild, restart daemon

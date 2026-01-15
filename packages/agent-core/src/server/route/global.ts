@@ -4,6 +4,19 @@ import { z } from "zod"
 import { streamSSE } from "hono/streaming"
 import { GlobalBus } from "@/bus/global"
 import { Instance } from "../../project/instance"
+import { Provider } from "@/provider/provider"
+
+// Health status schema for system monitoring
+const HealthStatus = z.object({
+  internet: z.enum(["ok", "fail", "checking"]),
+  providers: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      status: z.enum(["ok", "fail", "skip"]),
+    }),
+  ),
+})
 
 export const GlobalRoute = new Hono()
   .get(
@@ -25,6 +38,52 @@ export const GlobalRoute = new Hono()
     }),
     async (c) => {
       return c.json(true)
+    },
+  )
+  .get(
+    "/health/status",
+    describeRoute({
+      summary: "System health status",
+      description: "Get internet connectivity and LLM provider status for system monitoring.",
+      operationId: "health.status",
+      responses: {
+        200: {
+          description: "Health status",
+          content: {
+            "application/json": {
+              schema: resolver(HealthStatus),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      // Check internet connectivity
+      let internet: "ok" | "fail" | "checking" = "checking"
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 3000)
+        const response = await fetch("https://cloudflare.com/cdn-cgi/trace", {
+          method: "HEAD",
+          signal: controller.signal,
+        })
+        clearTimeout(timeout)
+        internet = response.ok || response.status < 500 ? "ok" : "fail"
+      } catch {
+        internet = "fail"
+      }
+
+      // Get configured providers and their connection status
+      // Provider.list() returns Record<string, Provider.Info> of loaded providers
+      const loadedProviders = await Provider.list()
+
+      const providers = Object.values(loadedProviders).map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: "ok" as "ok" | "fail" | "skip",
+      }))
+
+      return c.json({ internet, providers })
     },
   )
   .get(

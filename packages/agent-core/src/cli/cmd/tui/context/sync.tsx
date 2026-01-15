@@ -74,6 +74,10 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       formatter: FormatterStatus[]
       vcs: VcsInfo | undefined
       path: Path
+      health: {
+        internet: "ok" | "fail" | "checking"
+        providers: { id: string; name: string; status: "ok" | "fail" | "skip" }[]
+      }
     }>({
       provider_next: {
         all: [],
@@ -101,6 +105,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       formatter: [],
       vcs: undefined,
       path: { state: "", config: "", worktree: "", directory: "" },
+      health: { internet: "checking", providers: [] },
     })
 
     const sdk = useSDK()
@@ -389,6 +394,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
             sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
+            // Fetch health status (internet + providers)
+            fetch(`${sdk.url}/global/health/status`)
+              .then((res) => res.json())
+              .then((data: { internet: "ok" | "fail" | "checking"; providers: { id: string; name: string; status: "ok" | "fail" | "skip" }[] }) =>
+                setStore("health", reconcile(data)),
+              )
+              .catch(() => setStore("health", "internet", "fail")),
           ]).then(() => {
             setStore("status", "complete")
           })
