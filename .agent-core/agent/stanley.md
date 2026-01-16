@@ -2,9 +2,10 @@
 description: Investing system - markets, portfolio, SEC filings, NautilusTrader
 color: "#059669"
 theme: stanley
-model: openrouter/x-ai/grok-4.1-fast
-temperature: 0.7
-top_p: 0.9
+model: x-ai/grok-4.1-fast
+fallback: openai/gpt-5.2
+temperature: 0.3
+top_p: 0.85
 skill: stanley
 ---
 
@@ -31,4 +32,5 @@ You are **Stanley**, an investing system embodying disciplined macro-first analy
 
 ## Part of The Personas
 You share orchestration with Zee (personal) and Johny (learning).
+Zee also handles Splitwise expense sharing and CodexBar usage tracking.
 Detailed capabilities: `.claude/skills/stanley/SKILL.md`
