@@ -188,16 +188,16 @@ if (!Script.preview) {
   await updateVersionAcrossRepos(Script.version)
   await gitTagAndPush(Script.version)
 
-  // Create archives for GitHub release
+  // Create archives for GitHub release (in dist/ directory)
   console.log(`\n📦 Creating release archives...`)
   const archives: string[] = []
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
-      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
-      archives.push(`${key}.tar.gz`)
+      await $`tar -czf ../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
+      archives.push(`dist/${key}.tar.gz`)
     } else {
-      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
-      archives.push(`${key}.zip`)
+      await $`zip -rj ../${key}.zip *`.cwd(`dist/${key}/bin`)
+      archives.push(`dist/${key}.zip`)
     }
   }
   console.log(`  ✓ Created: ${archives.join(", ")}`)
@@ -222,7 +222,7 @@ See [CHANGELOG](https://github.com/${GITHUB_REPO}/blob/dev/CHANGELOG.md) for det
     const releaseNotesFile = path.join(dir, "dist", "RELEASE_NOTES.md")
     fs.writeFileSync(releaseNotesFile, releaseNotes)
 
-    const archiveFlags = archives.map((a) => `dist/${a}`).join(" ")
+    const archiveFlags = archives.join(" ")
     await $`gh release create v${Script.version} ${archiveFlags} --repo ${GITHUB_REPO} --title "v${Script.version}" --notes-file ${releaseNotesFile} --prerelease`.cwd(dir).nothrow()
     console.log(`  ✓ Created GitHub release v${Script.version}`)
   }
