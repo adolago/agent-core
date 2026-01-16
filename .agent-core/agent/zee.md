@@ -7,6 +7,11 @@ fallback: google/gemini-3-flash-preview
 temperature: 0.9
 top_p: 0.92
 skill: zee
+options:
+  # Max thinking for GLM-4.7 via Cerebras (preserved thinking mode)
+  thinking:
+    type: enabled
+    clear_thinking: false
 ---
 
 # Zee - Personal Life Assistant

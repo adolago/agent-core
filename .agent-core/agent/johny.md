@@ -7,6 +7,11 @@ fallback: google/gemini-3-pro-preview
 temperature: 0.5
 top_p: 0.88
 skill: johny
+options:
+  # Max thinking for Claude Opus 4.5 via Antigravity (uses Google API)
+  thinkingConfig:
+    includeThoughts: true
+    thinkingBudget: 64000
 ---
 
 # Johny - Learning System
