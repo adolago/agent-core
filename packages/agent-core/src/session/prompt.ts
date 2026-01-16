@@ -1561,8 +1561,11 @@ export namespace SessionPrompt {
       return await lastModel(input.sessionID)
     })()
 
+    // Handle both legacy string format ("provider/model") and object format
+    const resolvedModel = typeof model === "string" ? Provider.parseModel(model) : model
+
     try {
-      await Provider.getModel(model.providerID, model.modelID)
+      await Provider.getModel(resolvedModel.providerID, resolvedModel.modelID)
     } catch (e) {
       if (Provider.ModelNotFoundError.isInstance(e)) {
         const { providerID, modelID, suggestions } = e.data
@@ -1605,7 +1608,7 @@ export namespace SessionPrompt {
     const result = (await prompt({
       sessionID: input.sessionID,
       messageID: input.messageID,
-      model,
+      model: resolvedModel,
       agent: agentName,
       parts,
       variant: input.variant,

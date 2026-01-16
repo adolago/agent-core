@@ -200,7 +200,8 @@ export function getSummary(query: UsageSummaryQuery = {}): UsageSummary {
   const { startTime, endTime } = getPeriodRange(query.period ?? "day", query.from, query.to)
 
   const conditions: string[] = ["timestamp >= $startTime AND timestamp <= $endTime"]
-  const params: Record<string, unknown> = { $startTime: startTime, $endTime: endTime }
+  // biome-ignore lint/suspicious/noExplicitAny: SQLite bindings accept dynamic params
+  const params: Record<string, any> = { $startTime: startTime, $endTime: endTime }
 
   if (query.providerId) {
     conditions.push("provider_id = $providerId")
