@@ -1,6 +1,9 @@
 /// <reference path="../env.d.ts" />
 import { tool } from "@opencode-ai/plugin"
-import DESCRIPTION from "./github-pr-search.txt"
+const DESCRIPTION = `Search open pull requests in anomalyco/opencode.
+
+Requires:
+- GITHUB_TOKEN env var with repo access.`
 
 async function githubFetch(endpoint: string, options: RequestInit = {}) {
   const response = await fetch(`https://api.github.com${endpoint}`, {

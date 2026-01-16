@@ -42,6 +42,12 @@
       "embeddingDimension": 4096
     }
   },
+  "zee": {
+    "splitwise": {
+      "enabled": true,
+      "token": "{env:SPLITWISE_TOKEN}"
+    }
+  },
   "tools": {
     "github-triage": false,
     "github-pr-search": false

@@ -18,6 +18,8 @@ zee handles the cognitive load of life administration:
 - **Calendar**: Smart scheduling with context
 - **Contacts**: Unified address book
 - **Notifications**: Proactive reminders and alerts
+- **Expenses**: Splitwise group balances, reimbursements
+- **Usage Monitoring**: CodexBar provider limits + reset tracking
 
 ## Core Capabilities
 
@@ -69,6 +71,31 @@ npx tsx scripts/zee-contacts.ts get "Sarah Johnson"
 npx tsx scripts/zee-contacts.ts sync --source google,whatsapp
 ```
 
+### Splitwise (Shared Expenses)
+Track shared expenses, balances, and settle-ups via Splitwise API (OAuth token required).
+Enable with `zee.splitwise.enabled` in `agent-core.jsonc`.
+
+```bash
+# List groups (balances by group)
+curl -H "Authorization: Bearer $SPLITWISE_TOKEN" \
+  "https://secure.splitwise.com/api/v3.0/get_groups"
+
+# Create expense (see dev.splitwise.com for full payload)
+curl -X POST -H "Authorization: Bearer $SPLITWISE_TOKEN" \
+  -d "cost=42.50&description=Dinner&group_id=12345" \
+  "https://secure.splitwise.com/api/v3.0/create_expense"
+```
+
+### CodexBar (Usage Monitoring)
+Track provider usage windows and reset timers from the macOS menu bar (CodexBar app + CLI).
+Enable with `zee.codexbar.enabled` in `agent-core.jsonc`.
+
+```bash
+# Show local cost usage (Codex/Claude)
+codexbar cost --provider codex
+codexbar cost --provider claude
+```
+
 ## Domain Tools
 
 | Tool | Purpose |
@@ -79,6 +106,8 @@ npx tsx scripts/zee-contacts.ts sync --source google,whatsapp
 | `zee:notification` | Proactive alerts and reminders |
 | `zee:calendar` | Google Calendar integration |
 | `zee:contacts` | Unified contact management |
+| `zee:splitwise` | Shared expenses, balances, reimbursements |
+| `zee:codexbar` | Provider usage monitoring via CodexBar CLI |
 
 ## Runtime Status
 
@@ -155,6 +184,8 @@ zee operates across multiple surfaces:
 - **Plugins**: `/src/plugin/builtin/domains/zee-messaging.ts`
 - **Memory**: `/src/plugin/builtin/memory-persistence.ts`
 - **Qdrant**: Vector database for semantic memory
+- **CodexBar**: Menu bar usage tracking + `codexbar` CLI
+- **Splitwise**: Expense sharing API (`https://secure.splitwise.com/api/v3.0`)
 
 ## Permissions
 

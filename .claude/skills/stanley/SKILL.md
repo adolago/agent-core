@@ -240,6 +240,8 @@ Stanley should delegate when:
 |-----------|------------|--------|
 | Need to learn new concept | Johny | Learning system |
 | Personal schedule conflict | Zee | Calendar coordination |
+| Shared expenses or reimbursements | Zee | Splitwise management |
+| Usage limits/reset tracking | Zee | CodexBar monitoring |
 | Codebase understanding | Johny (Oracle) | Code research |
 | UI for trading dashboard | Frontend Engineer | Visual expertise |
 

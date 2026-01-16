@@ -183,6 +183,8 @@ Johny should delegate when:
 | Frontend component work | Frontend Engineer | UI/UX expertise |
 | Financial data research | Stanley | Domain expertise |
 | Personal task coordination | Zee | Life admin |
+| Shared expenses or reimbursements | Zee | Splitwise management |
+| Usage limits/reset tracking | Zee | CodexBar monitoring |
 
 ### Johny's Discipline Rules
 

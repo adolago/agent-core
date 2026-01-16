@@ -1,7 +1,11 @@
 /// <reference path="../env.d.ts" />
 // import { Octokit } from "@octokit/rest"
 import { tool } from "@opencode-ai/plugin"
-import DESCRIPTION from "./github-triage.txt"
+const DESCRIPTION = `Assign GitHub issues and apply labels in anomalyco/opencode.
+
+Requires:
+- ISSUE_NUMBER env var
+- GITHUB_TOKEN env var with repo access.`
 
 function getIssueNumber(): number {
   const issue = parseInt(process.env.ISSUE_NUMBER ?? "", 10)
