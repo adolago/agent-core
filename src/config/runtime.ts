@@ -42,6 +42,10 @@ type RuntimeConfig = {
       embeddingDimension?: number;
     };
   };
+  zee?: {
+    splitwise?: ZeeSplitwiseConfig;
+    codexbar?: ZeeCodexbarConfig;
+  };
 };
 
 export type MemoryQdrantConfig = {
@@ -64,6 +68,20 @@ export type MemoryEmbeddingConfig = {
   dimensions?: number;
   apiKey?: string;
   baseUrl?: string;
+};
+
+export type ZeeSplitwiseConfig = {
+  enabled?: boolean;
+  token?: string;
+  tokenFile?: string;
+  baseUrl?: string;
+  timeoutMs?: number;
+};
+
+export type ZeeCodexbarConfig = {
+  enabled?: boolean;
+  command?: string | string[];
+  timeoutMs?: number;
 };
 
 const CONFIG_PATHS = [
@@ -118,6 +136,18 @@ function mergeConfigs(base: RuntimeConfig, override: RuntimeConfig): RuntimeConf
       qdrant: {
         ...base.tiara?.qdrant,
         ...override.tiara?.qdrant,
+      },
+    },
+    zee: {
+      ...base.zee,
+      ...override.zee,
+      splitwise: {
+        ...base.zee?.splitwise,
+        ...override.zee?.splitwise,
+      },
+      codexbar: {
+        ...base.zee?.codexbar,
+        ...override.zee?.codexbar,
       },
     },
   };
@@ -200,4 +230,12 @@ export function getTiaraQdrantConfig(): TiaraQdrantConfig {
     memoryCollection,
     embeddingDimension,
   };
+}
+
+export function getZeeSplitwiseConfig(): ZeeSplitwiseConfig {
+  return loadRuntimeConfig().zee?.splitwise ?? {};
+}
+
+export function getZeeCodexbarConfig(): ZeeCodexbarConfig {
+  return loadRuntimeConfig().zee?.codexbar ?? {};
 }

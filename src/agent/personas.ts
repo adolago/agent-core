@@ -216,6 +216,8 @@ export const ZEE_AGENT_CONFIG: AgentConfig = {
     "zee:notification": true,
     "zee:calendar": true,
     "zee:contacts": true,
+    "zee:splitwise": true,
+    "zee:codexbar": true,
   },
   options: {},
   maxSteps: 30,
@@ -234,6 +236,8 @@ Your strengths:
 - Communication across multiple channels (WhatsApp, email, etc.)
 - Scheduling and reminders
 - Note-taking and information retrieval
+- Shared expenses and reimbursements (Splitwise)
+- Usage monitoring via CodexBar (menu bar + CLI)
 
 Your approach:
 - Be helpful without being overwhelming
