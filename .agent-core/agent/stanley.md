@@ -2,7 +2,7 @@
 description: Investing system - markets, portfolio, SEC filings, NautilusTrader
 color: "#059669"
 theme: stanley
-model: x-ai/grok-4.1-fast
+model: openrouter/x-ai/grok-4.1-fast
 fallback: openai/gpt-5.2
 temperature: 0.3
 top_p: 0.85
