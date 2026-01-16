@@ -220,6 +220,78 @@ export const MemoryRoute = new Hono()
     }
   )
 
+  // Get memory statistics (must come before /:id to avoid matching "stats" as an ID)
+  .get(
+    "/memory/stats",
+    describeRoute({
+      summary: "Get memory statistics",
+      description: "Get statistics about stored memories.",
+      operationId: "memory.stats",
+      tags: ["Memory"],
+      responses: {
+        200: {
+          description: "Memory statistics",
+          content: {
+            "application/json": {
+              schema: resolver(MemoryStatsSchema),
+            },
+          },
+        },
+        ...errors(500),
+      },
+    }),
+    async (c) => {
+      try {
+        const memory = await getMemoryService()
+        const stats = await memory.stats()
+        return c.json(stats)
+      } catch (err) {
+        log.error("Memory stats failed", { error: err })
+        return c.json({ error: "Failed to get memory statistics" }, 500)
+      }
+    }
+  )
+
+  // Health check for memory service (must come before /:id)
+  .get(
+    "/memory/health",
+    describeRoute({
+      summary: "Memory health check",
+      description: "Check if the memory service is available and connected.",
+      operationId: "memory.health",
+      tags: ["Memory"],
+      responses: {
+        200: {
+          description: "Health status",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.object({
+                  available: z.boolean(),
+                  initialized: z.boolean(),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      try {
+        const memory = await getMemoryService()
+        return c.json({
+          available: memory.isAvailable(),
+          initialized: true,
+        })
+      } catch (err) {
+        return c.json({
+          available: false,
+          initialized: false,
+        })
+      }
+    }
+  )
+
   // Get memory by ID
   .get(
     "/memory/:id",
@@ -378,38 +450,6 @@ export const MemoryRoute = new Hono()
     }
   )
 
-  // Get memory statistics
-  .get(
-    "/memory/stats",
-    describeRoute({
-      summary: "Get memory statistics",
-      description: "Get statistics about stored memories.",
-      operationId: "memory.stats",
-      tags: ["Memory"],
-      responses: {
-        200: {
-          description: "Memory statistics",
-          content: {
-            "application/json": {
-              schema: resolver(MemoryStatsSchema),
-            },
-          },
-        },
-        ...errors(500),
-      },
-    }),
-    async (c) => {
-      try {
-        const memory = await getMemoryService()
-        const stats = await memory.stats()
-        return c.json(stats)
-      } catch (err) {
-        log.error("Memory stats failed", { error: err })
-        return c.json({ error: "Failed to get memory statistics" }, 500)
-      }
-    }
-  )
-
   // Cleanup expired memories
   .post(
     "/memory/cleanup",
@@ -443,23 +483,24 @@ export const MemoryRoute = new Hono()
     }
   )
 
-  // Health check for memory service
-  .get(
-    "/memory/health",
+  // Reset and reinitialize memory service
+  .post(
+    "/memory/reset",
     describeRoute({
-      summary: "Memory health check",
-      description: "Check if the memory service is available and connected.",
-      operationId: "memory.health",
+      summary: "Reset memory service",
+      description: "Reset the memory service state and retry initialization. Use this if memory init failed.",
+      operationId: "memory.reset",
       tags: ["Memory"],
       responses: {
         200: {
-          description: "Health status",
+          description: "Reset result",
           content: {
             "application/json": {
               schema: resolver(
                 z.object({
+                  success: z.boolean(),
                   available: z.boolean(),
-                  initialized: z.boolean(),
+                  error: z.string().optional(),
                 })
               ),
             },
@@ -470,14 +511,19 @@ export const MemoryRoute = new Hono()
     async (c) => {
       try {
         const memory = await getMemoryService()
+        memory.resetInit()
+        await memory.init()
         return c.json({
+          success: true,
           available: memory.isAvailable(),
-          initialized: true,
         })
       } catch (err) {
+        const error = err instanceof Error ? err.message : String(err)
+        log.error("Memory reset failed", { error })
         return c.json({
+          success: false,
           available: false,
-          initialized: false,
+          error,
         })
       }
     }

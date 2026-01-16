@@ -22,7 +22,7 @@
     },
     "packages/agent-core": {
       "name": "agent-core",
-      "version": "0.1.0-20260114",
+      "version": "0.1.0-alpha.1",
       "bin": {
         "agent-core": "./bin/agent-core",
       },
