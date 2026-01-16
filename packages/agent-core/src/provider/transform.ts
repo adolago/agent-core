@@ -658,7 +658,397 @@ export namespace ProviderTransform {
     "knowledge",
     "mcpServers",
     "permission",
+    // Fallback config should never be sent to provider APIs
+    "fallback",
+    "fallbacks",
   ])
+
+  /**
+   * Provider SDK supported parameters.
+   * Maps npm package name to the set of request body parameters that provider accepts.
+   * Parameters not in this list will be filtered out before sending to the provider API.
+   *
+   * NOTE: This is a critical defense mechanism against API errors from unsupported params.
+   * When adding new providers or parameters, verify against the provider's API documentation.
+   *
+   * Provider Parameter Reference:
+   * - Anthropic: https://docs.anthropic.com/en/api/messages
+   * - OpenAI: https://platform.openai.com/docs/api-reference/chat/create
+   * - Google: https://ai.google.dev/api/rest/v1beta/models/generateContent
+   * - xAI: https://docs.x.ai/api
+   * - Cerebras: https://inference-docs.cerebras.ai/api-reference/chat-completions
+   * - OpenRouter: https://openrouter.ai/docs/parameters
+   */
+  const PROVIDER_SUPPORTED_PARAMS: Record<string, Set<string> | null> = {
+    // ═══════════════════════════════════════════════════════════════════════
+    // ANTHROPIC (Claude models)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/anthropic": new Set([
+      // Thinking/reasoning
+      "thinking", // { type: "enabled", budgetTokens: number }
+
+      // Caching
+      "cacheControl", // Enable prompt caching
+      "promptCacheKey", // Custom cache key
+
+      // Beta features
+      "betas", // Array of beta feature flags
+
+      // Request customization
+      "headers", // Custom HTTP headers
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPENAI (GPT-4, o1, o3-mini models)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/openai": new Set([
+      // Reasoning (o1, o3-mini)
+      "reasoningEffort", // "low" | "medium" | "high"
+      "reasoningSummary", // Include reasoning summary in response
+
+      // Response content
+      "include", // Array of additional response fields
+
+      // Caching
+      "promptCacheKey", // Custom cache key
+
+      // Service configuration
+      "serviceTier", // "auto" | "default" | "flex"
+      "store", // Store conversation for fine-tuning
+
+      // Tool calling
+      "parallelToolCalls", // Allow parallel tool execution
+
+      // User identification
+      "user", // User ID for abuse detection
+
+      // Output control
+      "structuredOutputs", // Enable structured JSON outputs
+      "logprobs", // Return log probabilities
+      "topLogprobs", // Number of top logprobs to return
+
+      // Sampling
+      "seed", // Deterministic sampling
+      "frequencyPenalty", // -2.0 to 2.0
+      "presencePenalty", // -2.0 to 2.0
+      "stop", // Stop sequences
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // AZURE OPENAI
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/azure": new Set([
+      // Reasoning
+      "reasoningEffort",
+      "reasoningSummary",
+      "include",
+
+      // Service
+      "serviceTier",
+
+      // Tools
+      "parallelToolCalls",
+
+      // User
+      "user",
+
+      // Output
+      "structuredOutputs",
+      "logprobs",
+      "topLogprobs",
+
+      // Sampling
+      "seed",
+      "frequencyPenalty",
+      "presencePenalty",
+      "stop",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GOOGLE AI (Gemini via ai.google.dev)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/google": new Set([
+      // Thinking/reasoning (Gemini 2.0+ with thinking)
+      "thinkingConfig", // { thinkingBudget: number }
+      "thinkingLevel", // "none" | "low" | "medium" | "high"
+      "thinkingBudget", // Direct budget number
+
+      // Safety
+      "safetySettings", // Array of safety category settings
+
+      // Caching
+      "cachedContent", // Cache name for context caching
+
+      // Output
+      "structuredOutputs", // Enable structured JSON outputs
+
+      // Search grounding (Gemini 2.0+)
+      "useSearchGrounding", // Enable Google Search grounding
+
+      // Response modalities
+      "responseModalities", // ["text"] | ["audio"] | ["text", "audio"]
+
+      // Speech config
+      "speechConfig", // { voiceConfig: { prebuiltVoiceConfig: { voiceName: string } } }
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GOOGLE VERTEX AI
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/google-vertex": new Set([
+      // Thinking
+      "thinkingConfig",
+      "thinkingLevel",
+      "thinkingBudget",
+
+      // Safety
+      "safetySettings",
+
+      // Caching
+      "cachedContent",
+
+      // Output
+      "structuredOutputs",
+
+      // Search grounding
+      "useSearchGrounding",
+
+      // Response modalities
+      "responseModalities",
+
+      // Speech
+      "speechConfig",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // XAI (Grok models)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/xai": new Set([
+      // Reasoning
+      "reasoningEffort", // "low" | "medium" | "high" for Grok reasoning models
+
+      // User
+      "user",
+
+      // Sampling
+      "seed",
+      "frequencyPenalty",
+      "presencePenalty",
+      "stop",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CEREBRAS (Wafer-scale inference)
+    // Has built-in reasoning but accepts NO configuration parameters for it
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/cerebras": new Set([
+      // Cerebras explicitly rejects: thinking, fallback, reasoningEffort
+      // Their inference is optimized for speed, not configurable reasoning
+      // Empty set = filter out ALL provider options
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPENROUTER (Multi-provider gateway)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@openrouter/ai-sdk-provider": new Set([
+      // Usage tracking
+      "usage", // Include token usage in response
+
+      // Reasoning (passed to underlying provider)
+      "reasoning", // Enable reasoning mode
+      "reasoningEffort", // Passed to underlying model if supported
+
+      // Provider routing
+      "provider", // { order: string[], allow_fallbacks: boolean }
+
+      // Transforms
+      "transforms", // ["middle-out"] for prompt compression
+
+      // Model routing
+      "route", // "fallback" for automatic fallback routing
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Z.AI / ZHIPUAI (GLM models via OpenAI-compatible API)
+    // Uses @ai-sdk/openai-compatible but with specific param support
+    // ═══════════════════════════════════════════════════════════════════════
+    // Note: Z.AI is handled via openai-compatible, but we add thinking support
+    // in the transform.ts options() function for zai/zhipuai providers
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPENAI-COMPATIBLE (Generic - Ollama, LM Studio, etc.)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/openai-compatible": new Set([
+      // Thinking (DeepSeek R1, Qwen, etc.)
+      "thinking", // Some compatible providers support this
+
+      // Reasoning
+      "reasoningEffort", // Pass through if backend supports
+
+      // Template customization (local models)
+      "chat_template_args", // Custom template arguments
+
+      // Common OpenAI params that many providers accept
+      "user",
+      "seed",
+      "stop",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GROQ (Fast inference)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/groq": new Set([
+      // Thinking (for DeepSeek R1 on Groq)
+      "includeThoughts", // Include reasoning in response
+      "thinkingLevel", // "none" | "low" | "medium" | "high"
+
+      // Common params
+      "user",
+      "seed",
+      "stop",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MISTRAL
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/mistral": new Set([
+      // Mistral API is straightforward, minimal special params
+      "safePrompt", // Enable safe mode
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COHERE
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/cohere": new Set([
+      // Cohere-specific features
+      "documents", // RAG document context
+      "searchQueriesOnly", // Return only search queries
+      "preamble", // System preamble
+      "connectors", // External data connectors
+      "citationQuality", // Citation generation quality
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PERPLEXITY (Search-focused)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/perplexity": new Set([
+      // Search configuration
+      "searchRecency", // "month" | "week" | "day" | "hour"
+      "searchDomainFilter", // Domains to search
+      "returnImages", // Include images in response
+      "returnRelatedQuestions", // Include related questions
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TOGETHER.AI
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/togetherai": new Set([
+      // Reasoning
+      "reasoningEffort",
+
+      // Common params
+      "user",
+      "seed",
+      "stop",
+      "repetitionPenalty",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DEEPINFRA
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/deepinfra": new Set([
+      // Reasoning
+      "reasoningEffort",
+
+      // Common params
+      "user",
+      "seed",
+      "stop",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // AI GATEWAY (Vercel)
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/gateway": new Set([
+      // Reasoning (passed to underlying provider)
+      "reasoningEffort",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // AMAZON BEDROCK
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/amazon-bedrock": new Set([
+      // Guardrails
+      "guardrailConfig", // { guardrailIdentifier, guardrailVersion, trace }
+
+      // Caching
+      "cacheConfig", // { ttl: number }
+
+      // Model-specific fields
+      "additionalModelRequestFields", // Pass-through for model-specific params
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GITHUB COPILOT
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/github-copilot": new Set([
+      // Reasoning
+      "reasoningEffort",
+      "reasoningSummary",
+      "include",
+
+      // Caching
+      "promptCacheKey",
+    ]),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // VERCEL AI SDK
+    // ═══════════════════════════════════════════════════════════════════════
+    "@ai-sdk/vercel": new Set([
+      // Vercel's own provider, typically proxies to other models
+      "reasoningEffort",
+    ]),
+
+    // null = allow all params (fallback for unknown providers)
+    // This ensures forward compatibility with new providers
+  }
+
+  /**
+   * Filter options based on provider's supported parameters.
+   * Returns a new object with only the supported parameters.
+   */
+  function filterProviderParams(
+    npm: string,
+    options: Record<string, any>,
+  ): Record<string, any> {
+    const supported = PROVIDER_SUPPORTED_PARAMS[npm]
+
+    // If provider not in map or null, allow all params (backward compatible)
+    if (supported === undefined || supported === null) {
+      return options
+    }
+
+    const filtered: Record<string, any> = {}
+    const removed: string[] = []
+
+    for (const [key, value] of Object.entries(options)) {
+      if (supported.has(key)) {
+        filtered[key] = value
+      } else if (value !== undefined) {
+        removed.push(key)
+      }
+    }
+
+    if (removed.length > 0) {
+      log.info("filtered unsupported provider params", {
+        npm,
+        removed,
+        hint: "These parameters are not supported by this provider SDK",
+      })
+    }
+
+    return filtered
+  }
 
   /**
    * Sanitize options by removing non-provider fields.
@@ -681,38 +1071,42 @@ export namespace ProviderTransform {
   }
 
   export function providerOptions(model: Provider.Model, options: { [x: string]: any }) {
+    // First sanitize to remove agent-core metadata fields
     const sanitized = sanitizeOptions(options)
+    // Then filter to only include params supported by this provider SDK
+    const filtered = filterProviderParams(model.api.npm, sanitized)
+
     switch (model.api.npm) {
       case "@ai-sdk/github-copilot":
       case "@ai-sdk/openai":
       case "@ai-sdk/azure":
         return {
-          ["openai" as string]: sanitized,
+          ["openai" as string]: filtered,
         }
       case "@ai-sdk/amazon-bedrock":
         return {
-          ["bedrock" as string]: sanitized,
+          ["bedrock" as string]: filtered,
         }
       case "@ai-sdk/anthropic":
         return {
-          ["anthropic" as string]: sanitized,
+          ["anthropic" as string]: filtered,
         }
       case "@ai-sdk/google-vertex":
       case "@ai-sdk/google":
         return {
-          ["google" as string]: sanitized,
+          ["google" as string]: filtered,
         }
       case "@ai-sdk/gateway":
         return {
-          ["gateway" as string]: sanitized,
+          ["gateway" as string]: filtered,
         }
       case "@openrouter/ai-sdk-provider":
         return {
-          ["openrouter" as string]: sanitized,
+          ["openrouter" as string]: filtered,
         }
       default:
         return {
-          [model.providerID]: sanitized,
+          [model.providerID]: filtered,
         }
     }
   }
