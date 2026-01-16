@@ -221,7 +221,7 @@ describe("ProviderTransform.schema - gemini array items", () => {
   })
 })
 
-describe("ProviderTransform.message - DeepSeek reasoning content", () => {
+describe("ProviderTransform.message - interleaved reasoning fields", () => {
   test("DeepSeek with tool calls includes reasoning_content in providerOptions", () => {
     const msgs = [
       {
@@ -287,6 +287,56 @@ describe("ProviderTransform.message - DeepSeek reasoning content", () => {
       },
     ])
     expect(result[0].providerOptions?.openaiCompatible?.reasoning_content).toBe("Let me think about this...")
+  })
+
+  test("Cerebras interleaved reasoning uses reasoning field", () => {
+    const msgs = [
+      {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "Thinking..." },
+          { type: "text", text: "Answer" },
+        ],
+      },
+    ] as any[]
+
+    const result = ProviderTransform.message(msgs, {
+      id: "cerebras/zai-glm-4.7",
+      providerID: "cerebras",
+      api: {
+        id: "zai-glm-4.7",
+        url: "https://api.cerebras.ai",
+        npm: "@ai-sdk/openai-compatible",
+      },
+      name: "Z.AI GLM-4.7",
+      capabilities: {
+        temperature: true,
+        reasoning: true,
+        attachment: false,
+        toolcall: true,
+        input: { text: true, audio: false, image: false, video: false, pdf: false },
+        output: { text: true, audio: false, image: false, video: false, pdf: false },
+        interleaved: {
+          field: "reasoning",
+        },
+      },
+      cost: {
+        input: 0,
+        output: 0,
+        cache: { read: 0, write: 0 },
+      },
+      limit: {
+        context: 131072,
+        output: 40000,
+      },
+      status: "active",
+      options: {},
+      headers: {},
+      release_date: "2026-01-10",
+    })
+
+    expect(result[0].content).toEqual([{ type: "text", text: "Answer" }])
+    expect(result[0].providerOptions?.openaiCompatible?.reasoning).toBe("Thinking...")
   })
 
   test("Non-DeepSeek providers leave reasoning content unchanged", () => {
@@ -1591,6 +1641,138 @@ describe("ProviderTransform.variants", () => {
       })
       const result = ProviderTransform.variants(model)
       expect(result).toEqual({})
+    })
+  })
+})
+
+describe("ProviderTransform.options - persona thinking configs", () => {
+  const sessionID = "test-session-123"
+
+  describe("Zee (GLM-4.7 via Cerebras)", () => {
+    test("should enable preserved thinking mode for zai provider", () => {
+      const model = {
+        id: "cerebras/zai-glm-4.7",
+        providerID: "zai",
+        api: {
+          id: "zai-glm-4.7",
+          url: "https://api.cerebras.ai",
+          npm: "@ai-sdk/openai-compatible",
+        },
+      } as any
+      const result = ProviderTransform.options(model, sessionID, {})
+      expect(result.thinking).toEqual({
+        type: "enabled",
+        clear_thinking: false,
+      })
+    })
+
+    test("should enable preserved thinking mode for zhipuai provider", () => {
+      const model = {
+        id: "zhipuai/glm-4.7",
+        providerID: "zhipuai",
+        api: {
+          id: "glm-4.7",
+          url: "https://api.zhipuai.cn",
+          npm: "@ai-sdk/openai-compatible",
+        },
+      } as any
+      const result = ProviderTransform.options(model, sessionID, {})
+      expect(result.thinking).toEqual({
+        type: "enabled",
+        clear_thinking: false,
+      })
+    })
+  })
+
+  describe("Stanley (Grok 4.1 via xAI)", () => {
+    test("xAI models support reasoningEffort variants", () => {
+      const model = {
+        id: "x-ai/grok-4.1-fast",
+        providerID: "x-ai",
+        api: {
+          id: "grok-4.1-fast",
+          url: "https://api.x.ai",
+          npm: "@ai-sdk/xai",
+        },
+        capabilities: {
+          reasoning: true,
+        },
+        release_date: "2025-01-01",
+      } as any
+      const variants = ProviderTransform.variants(model)
+      expect(Object.keys(variants)).toEqual(["low", "medium", "high"])
+      expect(variants.high).toEqual({ reasoningEffort: "high" })
+    })
+  })
+
+  describe("Johny (Claude Opus 4.5 via Antigravity/Google)", () => {
+    test("should enable thinkingConfig for Google provider models", () => {
+      const model = {
+        id: "google/antigravity-claude-opus-4-5-thinking",
+        providerID: "google",
+        api: {
+          id: "antigravity-claude-opus-4-5-thinking",
+          url: "https://generativelanguage.googleapis.com",
+          npm: "@ai-sdk/google",
+        },
+      } as any
+      const result = ProviderTransform.options(model, sessionID, {})
+      expect(result.thinkingConfig).toEqual({
+        includeThoughts: true,
+      })
+    })
+
+    test("should set thinkingLevel high for Gemini 3 models", () => {
+      const model = {
+        id: "google/gemini-3-pro",
+        providerID: "google",
+        api: {
+          id: "gemini-3-pro",
+          url: "https://generativelanguage.googleapis.com",
+          npm: "@ai-sdk/google",
+        },
+      } as any
+      const result = ProviderTransform.options(model, sessionID, {})
+      expect(result.thinkingConfig).toEqual({
+        includeThoughts: true,
+        thinkingLevel: "high",
+      })
+    })
+  })
+
+  describe("Fallback models (Gemini 3)", () => {
+    test("gemini-3-flash-preview gets thinkingLevel high", () => {
+      const model = {
+        id: "google/gemini-3-flash-preview",
+        providerID: "google",
+        api: {
+          id: "gemini-3-flash-preview",
+          url: "https://generativelanguage.googleapis.com",
+          npm: "@ai-sdk/google",
+        },
+      } as any
+      const result = ProviderTransform.options(model, sessionID, {})
+      expect(result.thinkingConfig).toEqual({
+        includeThoughts: true,
+        thinkingLevel: "high",
+      })
+    })
+
+    test("gemini-3-pro-preview gets thinkingLevel high", () => {
+      const model = {
+        id: "google/gemini-3-pro-preview",
+        providerID: "google",
+        api: {
+          id: "gemini-3-pro-preview",
+          url: "https://generativelanguage.googleapis.com",
+          npm: "@ai-sdk/google",
+        },
+      } as any
+      const result = ProviderTransform.options(model, sessionID, {})
+      expect(result.thinkingConfig).toEqual({
+        includeThoughts: true,
+        thinkingLevel: "high",
+      })
     })
   })
 })
