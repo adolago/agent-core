@@ -748,6 +748,7 @@ export namespace Config {
       model_cycle_recent_reverse: z.string().optional().default("shift+f2").describe("Previous recently used model"),
       model_cycle_favorite: z.string().optional().default("none").describe("Next favorite model"),
       model_cycle_favorite_reverse: z.string().optional().default("none").describe("Previous favorite model"),
+      model_fallback_toggle: z.string().optional().default("f3").describe("Toggle between primary and fallback model"),
       command_list: z.string().optional().default("ctrl+p").describe("List available commands"),
       agent_list: z.string().optional().default("<leader>a").describe("List agents"),
       agent_cycle: z.string().optional().default("tab").describe("Next agent"),
@@ -1041,6 +1042,35 @@ export namespace Config {
       ref: "TiaraConfig",
     })
 
+  export const Zee = z
+    .object({
+      splitwise: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable Splitwise tooling"),
+          token: z.string().optional().describe("Splitwise OAuth token (Bearer)"),
+          tokenFile: z.string().optional().describe("Path to file containing Splitwise token"),
+          baseUrl: z.string().optional().describe("Splitwise API base URL override"),
+          timeoutMs: z.number().int().positive().optional().describe("Splitwise API timeout in ms"),
+        })
+        .optional()
+        .describe("Splitwise API configuration"),
+      codexbar: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable CodexBar tooling"),
+          command: z
+            .union([z.string(), z.array(z.string())])
+            .optional()
+            .describe("CodexBar CLI command override"),
+          timeoutMs: z.number().int().positive().optional().describe("CodexBar CLI timeout in ms"),
+        })
+        .optional()
+        .describe("CodexBar CLI configuration"),
+    })
+    .strict()
+    .meta({
+      ref: "ZeeConfig",
+    })
+
   export const Info = z
     .object({
       $schema: z.string().optional().describe("JSON schema reference for configuration validation"),
@@ -1155,6 +1185,7 @@ export namespace Config {
         .describe("MCP (Model Context Protocol) server configurations"),
       memory: Memory.optional().describe("Memory and storage configuration"),
       tiara: Tiara.optional().describe("Tiara orchestration configuration"),
+      zee: Zee.optional().describe("Zee integration configuration"),
       formatter: z
         .union([
           z.literal(false),

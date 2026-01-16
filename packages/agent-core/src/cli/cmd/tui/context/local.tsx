@@ -144,6 +144,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         // Session-scoped model selection (keyed by agentName, clears on session change)
         sessionModel: Record<string, { providerID: string; modelID: string }>
         sessionID: string | null
+        // Fallback toggle state (per agent, session-scoped)
+        useFallback: Record<string, boolean>
         recent: {
           providerID: string
           modelID: string
@@ -157,6 +159,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         ready: false,
         sessionModel: {},
         sessionID: null,
+        useFallback: {},
         recent: [],
         favorite: [],
         variant: {},
@@ -248,6 +251,12 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         if (!a?.name) {
           return undefined
         }
+        // Check if fallback mode is active for this agent
+        const isFallbackActive = modelStore.useFallback[a.name] ?? false
+        if (isFallbackActive && a.fallback) {
+          // Use agent's fallback model when toggle is active
+          return a.fallback
+        }
         // Session-scoped user selection takes priority (allows overriding agent defaults within session)
         const sessionSelection = modelStore.sessionModel[a.name]
         if (sessionSelection && isModelValid(sessionSelection)) {
@@ -272,12 +281,32 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         favorite() {
           return modelStore.favorite
         },
-        // Called when session changes - clears session-scoped model selection
+        // Called when session changes - clears session-scoped model selection and fallback toggle
         setSession(sessionID: string | null) {
           if (modelStore.sessionID !== sessionID) {
             setModelStore("sessionID", sessionID)
             setModelStore("sessionModel", {}) // Clear session model on session change
+            setModelStore("useFallback", {}) // Clear fallback toggle on session change
           }
+        },
+        // Toggle between primary and fallback model for current agent
+        toggleFallback() {
+          const a = agent.current()
+          if (!a?.name || !a.fallback) return false
+          const current = modelStore.useFallback[a.name] ?? false
+          setModelStore("useFallback", a.name, !current)
+          return !current
+        },
+        // Check if fallback mode is active for current agent
+        isFallbackActive() {
+          const a = agent.current()
+          if (!a?.name) return false
+          return modelStore.useFallback[a.name] ?? false
+        },
+        // Check if current agent has a fallback configured
+        hasFallback() {
+          const a = agent.current()
+          return !!a?.fallback
         },
         parsed: createMemo(() => {
           const value = currentModel()

@@ -378,6 +378,24 @@ function App() {
       },
     },
     {
+      title: "Toggle fallback model",
+      value: "model.fallback_toggle",
+      keybind: "model_fallback_toggle",
+      category: "Agent",
+      onSelect: () => {
+        if (!local.model.hasFallback()) {
+          toast.show({ message: "No fallback model configured for this agent", variant: "warning", duration: 2000 })
+          return
+        }
+        const isNowFallback = local.model.toggleFallback()
+        toast.show({
+          message: isNowFallback ? "Switched to fallback model" : "Switched to primary model",
+          variant: "info",
+          duration: 2000,
+        })
+      },
+    },
+    {
       title: "Switch agent",
       value: "agent.list",
       keybind: "agent_list",
