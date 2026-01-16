@@ -33,6 +33,39 @@ import { BugReportCommand } from "./cli/cmd/bug-report"
 import { CheckCommand } from "./cli/cmd/check"
 import path from "node:path"
 import fs from "node:fs"
+import os from "node:os"
+
+function loadDaemonEnv(): void {
+  const configDir =
+    process.env.AGENT_CORE_CONFIG_DIR ||
+    process.env.OPENCODE_CONFIG_DIR ||
+    path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"), "agent-core")
+  const envPath = path.join(configDir, "daemon.env")
+  if (!fs.existsSync(envPath)) return
+
+  const content = fs.readFileSync(envPath, "utf-8")
+  for (const rawLine of content.split(/\r?\n/)) {
+    let line = rawLine.trim()
+    if (!line || line.startsWith("#")) continue
+    if (line.startsWith("export ")) {
+      line = line.slice("export ".length).trim()
+    }
+    const eqIndex = line.indexOf("=")
+    if (eqIndex <= 0) continue
+    const key = line.slice(0, eqIndex).trim()
+    if (!key || process.env[key] !== undefined) continue
+    let value = line.slice(eqIndex + 1).trim()
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    process.env[key] = value
+  }
+}
+
+loadDaemonEnv()
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {

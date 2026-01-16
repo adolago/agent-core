@@ -28,6 +28,39 @@ export const McpRoute = new Hono()
     },
   )
   .post(
+    "/:name/tool",
+    describeRoute({
+      summary: "Call MCP tool",
+      description: "Execute a tool on a connected MCP server.",
+      operationId: "mcp.tool.call",
+      responses: {
+        200: {
+          description: "MCP tool execution result",
+          content: {
+            "application/json": {
+              schema: resolver(z.any()),
+            },
+          },
+        },
+        ...errors(400, 404),
+      },
+    }),
+    validator("param", z.object({ name: z.string() })),
+    validator(
+      "json",
+      z.object({
+        tool: z.string(),
+        arguments: z.record(z.string(), z.unknown()).optional(),
+      }),
+    ),
+    async (c) => {
+      const { name } = c.req.valid("param")
+      const { tool, arguments: args } = c.req.valid("json")
+      const result = await MCP.callTool(name, tool, args ?? {})
+      return c.json(result)
+    },
+  )
+  .post(
     "/",
     describeRoute({
       summary: "Add MCP server",

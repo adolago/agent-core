@@ -784,6 +784,47 @@ export namespace MCP {
     return result
   }
 
+  export async function callTool(
+    serverName: string,
+    toolName: string,
+    args: Record<string, unknown> = {},
+  ) {
+    const s = await state()
+    let client = s.clients[serverName]
+
+    if (!client || s.status[serverName]?.status !== "connected") {
+      const reconnectStatus = await reconnect(serverName)
+      if (reconnectStatus.status !== "connected") {
+        throw new Failed({ name: serverName })
+      }
+      client = s.clients[serverName]
+    }
+
+    if (!client) {
+      throw new Failed({ name: serverName })
+    }
+
+    const config = await Config.get()
+    try {
+      return await client.callTool(
+        {
+          name: toolName,
+          arguments: args,
+        },
+        CallToolResultSchema,
+        {
+          resetTimeoutOnProgress: true,
+          timeout: config.experimental?.mcp_timeout ?? DEFAULT_TIMEOUT,
+        },
+      )
+    } catch (error) {
+      if (error instanceof UnauthorizedError) {
+        s.status[serverName] = { status: "needs_auth" }
+      }
+      throw error
+    }
+  }
+
   export async function getPrompt(clientName: string, name: string, args?: Record<string, string>) {
     const clientsSnapshot = await clients()
     const client = clientsSnapshot[clientName]

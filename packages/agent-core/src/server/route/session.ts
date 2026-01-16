@@ -1175,7 +1175,7 @@ export const SessionRoute = new Hono()
           name: "Zee",
           description: "Personal assistant for life admin",
           domain: "personal",
-          capabilities: ["memory", "messaging", "calendar", "contacts", "notifications"],
+          capabilities: ["memory", "messaging", "calendar", "contacts", "notifications", "splitwise", "codexbar"],
         },
         {
           id: "stanley",

@@ -1569,7 +1569,7 @@ export namespace SessionPrompt {
           return cmdAgent.model
         }
       }
-      if (input.model) return Provider.parseModel(input.model)
+      if (input.model) return input.model
       return await lastModel(input.sessionID)
     })()
 
