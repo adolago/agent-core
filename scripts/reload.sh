@@ -309,7 +309,7 @@ if [[ -f "$BINARY_SRC" ]]; then
     rm -f "$BINARY_DST" 2>/dev/null || true
     sleep 0.5
   fi
-  
+
   # Retry copy with increasing delays
   for attempt in 1 2 3 4 5; do
     if cp "$BINARY_SRC" "$BINARY_DST" 2>/dev/null; then
@@ -326,6 +326,25 @@ if [[ -f "$BINARY_SRC" ]]; then
       sleep $attempt
     fi
   done
+
+  # Also update bun global install if it exists
+  BUN_GLOBAL_BIN="$HOME/.bun/install/global/node_modules/agent-core-linux-x64/bin/agent-core"
+  if [[ -f "$BUN_GLOBAL_BIN" ]]; then
+    log "Updating bun global install..."
+    if cp "$BINARY_SRC" "$BUN_GLOBAL_BIN" 2>/dev/null; then
+      chmod +x "$BUN_GLOBAL_BIN"
+      ok "Updated bun global install"
+    else
+      warn "Could not update bun global install (may need manual: cp $BINARY_SRC $BUN_GLOBAL_BIN)"
+    fi
+
+    # Also sync .agent-core configs to bun global install
+    BUN_GLOBAL_CONFIG="$HOME/.bun/install/global/node_modules/agent-core-linux-x64/.agent-core"
+    DIST_CONFIG="$PKG_DIR/dist/agent-core-linux-x64/.agent-core"
+    if [[ -d "$DIST_CONFIG" ]] && [[ -d "$BUN_GLOBAL_CONFIG" ]]; then
+      cp -r "$DIST_CONFIG"/* "$BUN_GLOBAL_CONFIG"/ 2>/dev/null && ok "Synced .agent-core configs" || warn "Could not sync configs"
+    fi
+  fi
 else
   err "Binary not found at $BINARY_SRC"
   exit 1
