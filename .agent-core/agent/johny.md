@@ -5,7 +5,7 @@ theme: johny
 model: google/antigravity-claude-opus-4-5-thinking
 fallback: google/gemini-3-pro-preview
 temperature: 0.5
-top_p: 0.88
+# Note: top_p omitted - Claude thinking models require >= 0.95 or unset
 skill: johny
 options:
   # Max thinking for Claude Opus 4.5 via Antigravity (uses Google API)
