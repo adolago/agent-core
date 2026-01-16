@@ -11,6 +11,15 @@
 import { z } from "zod";
 import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
 import { Log } from "../../../packages/agent-core/src/util/log";
+import {
+  SPLITWISE_ACTIONS,
+  buildSplitwiseRequest,
+  callSplitwiseApi,
+  resolveSplitwiseConfig,
+  type SplitwiseAction,
+  type SplitwiseValue,
+} from "./splitwise.js";
+import { resolveCodexbarConfig, runCodexbar } from "./codexbar.js";
 
 const log = Log.create({ service: "zee-tools" });
 
@@ -825,6 +834,227 @@ Contacts are synced across:
 };
 
 // =============================================================================
+// Splitwise Tool
+// =============================================================================
+
+const SplitwiseValueSchema = z.union([z.string(), z.number(), z.boolean()]);
+
+const SplitwiseParams = z.object({
+  action: z.enum(SPLITWISE_ACTIONS as [SplitwiseAction, ...SplitwiseAction[]])
+    .describe("Splitwise action to perform"),
+  groupId: z.number().optional().describe("Group ID for group actions"),
+  friendId: z.number().optional().describe("Friend ID for friend actions"),
+  expenseId: z.number().optional().describe("Expense ID for expense actions"),
+  endpoint: z.string().optional().describe("Endpoint for request action (e.g., get_expenses)"),
+  method: z.enum(["GET", "POST", "PUT", "DELETE"]).optional().describe("HTTP method for request action"),
+  query: z.record(SplitwiseValueSchema).optional().describe("Query parameters"),
+  payload: z.record(SplitwiseValueSchema).optional().describe("Request payload"),
+  payloadFormat: z.enum(["json", "form"]).default("json").describe("Payload encoding for POST/PUT"),
+  timeoutMs: z.number().optional().describe("Override timeout in ms"),
+});
+
+export const splitwiseTool: ToolDefinition = {
+  id: "zee:splitwise",
+  category: "domain",
+  init: async () => ({
+    description: `Access Splitwise API for shared expenses and balances.
+
+Requires configuration:
+- agent-core.jsonc: { "zee": { "splitwise": { "enabled": true, "token": "{env:SPLITWISE_TOKEN}" } } }
+
+Token sources (when enabled):
+- zee.splitwise.token in agent-core.jsonc
+- zee.splitwise.tokenFile in agent-core.jsonc
+- SPLITWISE_TOKEN environment variable.
+
+Examples:
+- Current user: { action: "current-user" }
+- List groups: { action: "groups" }
+- List expenses: { action: "expenses", query: { group_id: 12345 } }
+- Create expense: { action: "create-expense", payload: { cost: "42.50", description: "Dinner", group_id: 12345 } }
+- Custom request: { action: "request", endpoint: "get_expenses", method: "GET", query: { dated_after: "2024-01-01" } }`,
+    parameters: SplitwiseParams,
+    execute: async (args, ctx): Promise<ToolExecutionResult> => {
+      ctx.metadata({ title: `Splitwise: ${args.action}` });
+
+      const config = resolveSplitwiseConfig();
+      if (!config.enabled) {
+        return {
+          title: "Splitwise Disabled",
+          metadata: { action: args.action, enabled: false },
+          output: `Splitwise tooling is disabled.
+
+Enable it in agent-core.jsonc:
+{
+  "zee": {
+    "splitwise": {
+      "enabled": true,
+      "token": "{env:SPLITWISE_TOKEN}"
+    }
+  }
+}`,
+        };
+      }
+
+      if (config.error) {
+        return {
+          title: "Splitwise Configuration Error",
+          metadata: { action: args.action, enabled: true },
+          output: config.error,
+        };
+      }
+
+      if (!config.token) {
+        return {
+          title: "Splitwise Token Missing",
+          metadata: { action: args.action, enabled: true },
+          output: `Splitwise token is not configured.
+
+Set one of:
+- zee.splitwise.token in agent-core.jsonc
+- zee.splitwise.tokenFile in agent-core.jsonc
+- SPLITWISE_TOKEN environment variable`,
+        };
+      }
+
+      const requestResult = buildSplitwiseRequest({
+        action: args.action,
+        groupId: args.groupId,
+        friendId: args.friendId,
+        expenseId: args.expenseId,
+        endpoint: args.endpoint,
+        method: args.method,
+        query: args.query as Record<string, SplitwiseValue> | undefined,
+        payload: args.payload as Record<string, SplitwiseValue> | undefined,
+        payloadFormat: args.payloadFormat,
+        timeoutMs: args.timeoutMs,
+      });
+
+      if (requestResult.error || !requestResult.request) {
+        return {
+          title: "Splitwise Request Error",
+          metadata: { action: args.action },
+          output: requestResult.error || "Invalid Splitwise request.",
+        };
+      }
+
+      try {
+        const response = await callSplitwiseApi(requestResult.request, config);
+        const output =
+          typeof response.data === "string"
+            ? response.data
+            : JSON.stringify(response.data, null, 2);
+
+        if (!response.ok) {
+          return {
+            title: `Splitwise Error (${response.status})`,
+            metadata: {
+              action: args.action,
+              endpoint: requestResult.request.endpoint,
+              status: response.status,
+            },
+            output: output || response.raw || "Splitwise request failed.",
+          };
+        }
+
+        return {
+          title: `Splitwise ${args.action}`,
+          metadata: {
+            action: args.action,
+            endpoint: requestResult.request.endpoint,
+            status: response.status,
+          },
+          output: output || "Splitwise request succeeded.",
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const isTimeout = error instanceof Error && error.name === "AbortError";
+        return {
+          title: "Splitwise Request Failed",
+          metadata: { action: args.action, error: errorMsg },
+          output: isTimeout
+            ? `Splitwise request timed out.`
+            : `Splitwise request failed: ${errorMsg}`,
+        };
+      }
+    },
+  }),
+};
+
+// =============================================================================
+// CodexBar Tool
+// =============================================================================
+
+const CodexbarParams = z.object({
+  args: z.array(z.string()).default([]).describe("Arguments to pass to codexbar CLI"),
+  timeoutMs: z.number().optional().describe("Override timeout in ms"),
+});
+
+export const codexbarTool: ToolDefinition = {
+  id: "zee:codexbar",
+  category: "domain",
+  init: async () => ({
+    description: `Run CodexBar CLI commands to check provider usage and resets.
+
+Requires configuration:
+- agent-core.jsonc: { "zee": { "codexbar": { "enabled": true } } }
+
+Examples:
+- Show status: { args: ["status"] }
+- Cost usage: { args: ["cost", "--provider", "codex"] }`,
+    parameters: CodexbarParams,
+    execute: async (args, ctx): Promise<ToolExecutionResult> => {
+      ctx.metadata({ title: "CodexBar" });
+
+      const config = resolveCodexbarConfig();
+      if (!config.enabled) {
+        return {
+          title: "CodexBar Disabled",
+          metadata: { enabled: false },
+          output: `CodexBar tooling is disabled.
+
+Enable it in agent-core.jsonc:
+{
+  "zee": {
+    "codexbar": {
+      "enabled": true
+    }
+  }
+}`,
+        };
+      }
+
+      if (config.error) {
+        return {
+          title: "CodexBar Configuration Error",
+          metadata: { enabled: true },
+          output: config.error,
+        };
+      }
+
+      const result = runCodexbar(args.args, config, args.timeoutMs);
+      const stdout = result.stdout.trim();
+      const stderr = result.stderr.trim();
+      const output = stdout || stderr;
+
+      if (!result.ok) {
+        return {
+          title: "CodexBar Failed",
+          metadata: { exitCode: result.status, error: result.error },
+          output: result.error || output || "CodexBar command failed.",
+        };
+      }
+
+      return {
+        title: "CodexBar Output",
+        metadata: { exitCode: result.status },
+        output: output || "CodexBar command completed with no output.",
+      };
+    },
+  }),
+};
+
+// =============================================================================
 // WhatsApp Reaction Tool
 // =============================================================================
 
@@ -962,6 +1192,8 @@ export const ZEE_TOOLS = [
   notificationTool,
   calendarTool,
   contactsTool,
+  splitwiseTool,
+  codexbarTool,
   whatsappReactionTool,
 ];
 
