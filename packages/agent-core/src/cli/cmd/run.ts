@@ -136,7 +136,7 @@ export const RunCommand = cmd({
       process.exit(1)
     }
 
-    const execute = async (sdk: OpencodeClient, sessionID: string) => {
+    const execute = async (sdk: OpencodeClient, sessionID: string, resolvedAgent: string | undefined) => {
       const printEvent = (color: string, type: string, title: string) => {
         UI.println(
           color + `|`,
@@ -231,29 +231,6 @@ export const RunCommand = cmd({
         }
       })()
 
-      // Validate agent if specified
-      const resolvedAgent = await (async () => {
-        if (!args.agent) return undefined
-        const agent = await Agent.get(args.agent)
-        if (!agent) {
-          UI.println(
-            UI.Style.TEXT_WARNING_BOLD + "!",
-            UI.Style.TEXT_NORMAL,
-            `agent "${args.agent}" not found. Falling back to default agent`,
-          )
-          return undefined
-        }
-        if (agent.mode === "subagent") {
-          UI.println(
-            UI.Style.TEXT_WARNING_BOLD + "!",
-            UI.Style.TEXT_NORMAL,
-            `agent "${args.agent}" is a subagent, not a primary agent. Falling back to default agent`,
-          )
-          return undefined
-        }
-        return args.agent
-      })()
-
       if (args.command) {
         await sdk.session.command({
           sessionID,
@@ -338,7 +315,8 @@ export const RunCommand = cmd({
         }
       }
 
-      return await execute(sdk, sessionID)
+      // In attach mode, skip local agent validation - server will validate
+      return await execute(sdk, sessionID, args.agent)
     }
 
     await bootstrap(process.cwd(), async () => {
@@ -392,7 +370,30 @@ export const RunCommand = cmd({
         }
       }
 
-      await execute(sdk, sessionID)
+      // Validate agent if specified (only in bootstrap mode where Instance context exists)
+      const resolvedAgent = await (async () => {
+        if (!args.agent) return undefined
+        const agent = await Agent.get(args.agent)
+        if (!agent) {
+          UI.println(
+            UI.Style.TEXT_WARNING_BOLD + "!",
+            UI.Style.TEXT_NORMAL,
+            `agent "${args.agent}" not found. Falling back to default agent`,
+          )
+          return undefined
+        }
+        if (agent.mode === "subagent") {
+          UI.println(
+            UI.Style.TEXT_WARNING_BOLD + "!",
+            UI.Style.TEXT_NORMAL,
+            `agent "${args.agent}" is a subagent, not a primary agent. Falling back to default agent`,
+          )
+          return undefined
+        }
+        return args.agent
+      })()
+
+      await execute(sdk, sessionID, resolvedAgent)
     })
   },
 })

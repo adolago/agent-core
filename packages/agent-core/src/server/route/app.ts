@@ -27,7 +27,8 @@ export const AppRoute = new Hono()
         const handler = async (event: { directory?: string; payload: any }) => {
           await stream.writeSSE({
             event: event.payload.type,
-            data: JSON.stringify(event.payload.properties),
+            // Include both type and properties in data for SDK compatibility
+            data: JSON.stringify({ type: event.payload.type, properties: event.payload.properties }),
           })
         }
         GlobalBus.on("event", handler)
