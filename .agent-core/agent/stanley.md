@@ -7,6 +7,9 @@ fallback: openai/gpt-5.2
 temperature: 0.3
 top_p: 0.85
 skill: stanley
+options:
+  # Max reasoning for Grok 4.1 (xAI reasoning effort)
+  reasoningEffort: high
 ---
 
 # Stanley - Investing System
