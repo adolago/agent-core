@@ -11,6 +11,7 @@ import { Instance } from "../../project/instance"
 import { LifecycleHooks } from "../../hooks/lifecycle"
 import { WeztermOrchestration } from "../../orchestration/wezterm"
 import { initPersonas } from "../../bootstrap/personas"
+import * as UsageTracker from "../../usage/tracker"
 import { execSync, spawn, spawnSync, type ChildProcess } from "child_process"
 import fs from "fs/promises"
 import fsSync from "fs"
@@ -878,6 +879,19 @@ export const DaemonCommand = cmd({
       })
     }
 
+    // Initialize usage tracking
+    let usageEnabled = false
+    try {
+      await UsageTracker.init()
+      usageEnabled = true
+      console.log("Usage:      Tracking enabled")
+    } catch (error) {
+      log.error("Failed to initialize usage tracking", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      console.error(`Warning: Usage tracking initialization failed: ${error instanceof Error ? error.message : error}`)
+    }
+
     // Initialize WezTerm orchestration if enabled
     let weztermEnabled = false
     if (args.wezterm) {
@@ -934,6 +948,11 @@ export const DaemonCommand = cmd({
         await WeztermOrchestration.shutdown()
       }
 
+      // Shutdown usage tracking
+      if (usageEnabled) {
+        await UsageTracker.shutdown()
+      }
+
       // Shutdown zee gateway
       if (GatewaySupervisor.isEnabled()) {
         await GatewaySupervisor.stop()
@@ -967,6 +986,7 @@ export const DaemonCommand = cmd({
     })
 
     const persistenceStatus = persistenceEnabled ? "Active (checkpoints + WAL)" : "Disabled"
+    const usageStatus = usageEnabled ? "Active (SQLite)" : "Disabled"
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
     const gatewayState = GatewaySupervisor.getState()
     const gatewayStatus = gatewayStarted
@@ -986,6 +1006,7 @@ URL:       http://${server.hostname}:${server.port}
 
 Services:
   Persistence: ${persistenceStatus}
+  Usage:       ${usageStatus}
   WezTerm:     ${weztermStatus}
   Gateway:     ${gatewayStatus}
 

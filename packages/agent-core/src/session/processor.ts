@@ -17,6 +17,7 @@ import { SessionCompaction } from "./compaction"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { addWideEventFields, finishWideEvent, runWithWideEventContext } from "@/util/wide-events"
+import * as UsageTracker from "@/usage/tracker"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -280,6 +281,27 @@ export namespace SessionProcessor {
                       session.tokens.output += usage.tokens.output
                       session.tokens.reasoning += usage.tokens.reasoning
                     })
+                    // Record usage for analytics
+                    if (UsageTracker.isInitialized()) {
+                      UsageTracker.record({
+                        sessionId: input.sessionID,
+                        messageId: input.assistantMessage.id,
+                        providerId: input.model.providerID,
+                        modelId: input.model.id,
+                        modelName: input.model.name,
+                        inputTokens: usage.tokens.input,
+                        outputTokens: usage.tokens.output,
+                        cacheReadTokens: usage.tokens.cache.read,
+                        cacheWriteTokens: usage.tokens.cache.write,
+                        reasoningTokens: usage.tokens.reasoning,
+                        inputCost: usage.cost * (usage.tokens.input / (usage.tokens.input + usage.tokens.output + usage.tokens.reasoning || 1)),
+                        outputCost: usage.cost * ((usage.tokens.output + usage.tokens.reasoning) / (usage.tokens.input + usage.tokens.output + usage.tokens.reasoning || 1)),
+                        cacheCost: 0, // Cache cost already included in inputCost for Anthropic
+                        durationMs: Date.now() - (input.assistantMessage.time.start || Date.now()),
+                        streaming: true,
+                        toolCalls: Object.keys(toolcalls).length || undefined,
+                      }).catch((e) => log.warn("failed to record usage", { error: String(e) }))
+                    }
                     addWideEventFields({
                       meta: {
                         tokens: usage.tokens,

@@ -35,6 +35,9 @@ import { LspRoute } from "./route/lsp"
 import { TuiRoute } from "./route/tui"
 import { AuthRoute } from "./route/auth"
 import { ToolRoute } from "./route/tool"
+import { ProcessRoute } from "./route/process"
+import { MemoryRoute } from "./route/memory"
+import { UsageRoute } from "../usage/route"
 
 // Default API port for the daemon
 const DEFAULT_API_PORT = 3210
@@ -150,6 +153,9 @@ export namespace Server {
         .route("/", ToolRoute) // /experimental/tool
         .route("/question", QuestionRoute)
         .route("/project", ProjectRoute)
+        .route("/", ProcessRoute)
+        .route("/", MemoryRoute)
+        .route("/usage", UsageRoute)
 
         // API Documentation
         .get(
