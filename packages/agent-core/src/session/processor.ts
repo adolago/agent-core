@@ -297,7 +297,7 @@ export namespace SessionProcessor {
                         inputCost: usage.cost * (usage.tokens.input / (usage.tokens.input + usage.tokens.output + usage.tokens.reasoning || 1)),
                         outputCost: usage.cost * ((usage.tokens.output + usage.tokens.reasoning) / (usage.tokens.input + usage.tokens.output + usage.tokens.reasoning || 1)),
                         cacheCost: 0, // Cache cost already included in inputCost for Anthropic
-                        durationMs: Date.now() - (input.assistantMessage.time.start || Date.now()),
+                        durationMs: Date.now() - (input.assistantMessage.time.created || Date.now()),
                         streaming: true,
                         toolCalls: Object.keys(toolcalls).length || undefined,
                       }).catch((e) => log.warn("failed to record usage", { error: String(e) }))

@@ -10,8 +10,7 @@ import {
   type ParentProps,
 } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
-import { useKeybind } from "@tui/context/keybind"
-import type { KeybindsConfig } from "@opencode-ai/sdk/v2"
+import { useKeybind, type KeybindsConfig } from "@tui/context/keybind"
 
 type Context = ReturnType<typeof init>
 const ctx = createContext<Context>()

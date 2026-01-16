@@ -138,7 +138,7 @@ export namespace ProviderTransform {
         ? model.capabilities.interleaved.field
         : null
 
-    if (interleavedField === "reasoning_content" || interleavedField === "reasoning") {
+    if (interleavedField === "reasoning_content" || interleavedField === "reasoning_details") {
       return msgs.map((msg) => {
         if (msg.role === "assistant" && Array.isArray(msg.content)) {
           const reasoningParts = msg.content.filter((part: any) => part.type === "reasoning")
@@ -157,7 +157,7 @@ export namespace ProviderTransform {
               providerOptions: {
                 ...msg.providerOptions,
                 openaiCompatible: {
-                  ...(typeof existingOptions === "object" ? existingOptions : {}),
+                  ...(existingOptions && typeof existingOptions === "object" ? existingOptions : {}),
                   [interleavedField]: reasoningText,
                 },
               },

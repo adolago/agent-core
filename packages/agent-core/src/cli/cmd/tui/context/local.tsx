@@ -12,6 +12,12 @@ import { Provider } from "@/provider/provider"
 import { useArgs } from "./args"
 import { useSDK } from "./sdk"
 import { RGBA } from "@opentui/core"
+import type { Agent as SDKAgent } from "@opencode-ai/sdk/v2"
+
+// Extended agent type with fallback model support (internal feature not yet in SDK)
+type AgentWithFallback = SDKAgent & {
+  fallback?: { providerID: string; modelID: string }
+}
 
 export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
   name: "Local",
@@ -36,8 +42,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     }
 
     const agent = iife(() => {
-      const agents = createMemo(() => {
-        const list = sync.data?.agent
+      const agents = createMemo((): AgentWithFallback[] => {
+        const list = sync.data?.agent as AgentWithFallback[] | undefined
         if (!list || !Array.isArray(list)) return []
         return list
           .filter((x) => x.mode !== "subagent" && !x.hidden)
@@ -83,6 +89,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         permission: [],
         options: {},
         model: undefined as { providerID: string; modelID: string } | undefined,
+        fallback: undefined as { providerID: string; modelID: string } | undefined,
       }
 
       return {

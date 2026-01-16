@@ -1066,8 +1066,8 @@ export function Prompt(props: PromptProps) {
                   </text>
                   <text fg={theme.textMuted}>{local.model.parsed().provider}</text>
                   <Show when={local.model.isFallbackActive()}>
-                    <text fg={theme.warning} style={{ bold: true }}>
-                      [FB]
+                    <text>
+                      <span style={{ fg: theme.warning, bold: true }}>[FB]</span>
                     </text>
                   </Show>
                   <Show when={showVariant()}>

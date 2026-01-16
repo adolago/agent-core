@@ -2,11 +2,16 @@ import { createMemo } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { Keybind } from "@/util/keybind"
 import { pipe, mapValues } from "remeda"
-import type { KeybindsConfig } from "@opencode-ai/sdk/v2"
+import type { KeybindsConfig as SDKKeybindsConfig } from "@opencode-ai/sdk/v2"
 import type { ParsedKey, Renderable } from "@opentui/core"
 import { createStore } from "solid-js/store"
 import { useKeyboard, useRenderer } from "@opentui/solid"
 import { createSimpleContext } from "./helper"
+
+// Extended keybinds type with new keybinds not yet in SDK
+export type KeybindsConfig = SDKKeybindsConfig & {
+  model_fallback_toggle?: string
+}
 
 export const { use: useKeybind, provider: KeybindProvider } = createSimpleContext({
   name: "Keybind",
@@ -14,9 +19,9 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
     const sync = useSync()
     const keybinds = createMemo(() => {
       return pipe(
-        sync.data.config.keybinds ?? {},
+        (sync.data.config.keybinds ?? {}) as KeybindsConfig,
         mapValues((value) => Keybind.parse(value)),
-      )
+      ) as { [K in keyof KeybindsConfig]?: Keybind.Info[] }
     })
     const [store, setStore] = createStore({
       leader: false,

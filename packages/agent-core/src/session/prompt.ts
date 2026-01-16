@@ -1573,8 +1573,11 @@ export namespace SessionPrompt {
       return await lastModel(input.sessionID)
     })()
 
+    // Handle both legacy string format ("provider/model") and object format
+    const resolvedModel = typeof taskModel === "string" ? Provider.parseModel(taskModel) : taskModel
+
     try {
-      await Provider.getModel(taskModel.providerID, taskModel.modelID)
+      await Provider.getModel(resolvedModel.providerID, resolvedModel.modelID)
     } catch (e) {
       if (Provider.ModelNotFoundError.isInstance(e)) {
         const { providerID, modelID, suggestions } = e.data
@@ -1608,8 +1611,8 @@ export namespace SessionPrompt {
             description: command.description ?? "",
             command: input.command,
             model: {
-              providerID: taskModel.providerID,
-              modelID: taskModel.modelID,
+              providerID: resolvedModel.providerID,
+              modelID: resolvedModel.modelID,
             },
             // LIMITATION: Task tool currently only takes text prompt, not complex parts
             // This is intentional for simplicity; subagents get minimal context
@@ -1623,7 +1626,7 @@ export namespace SessionPrompt {
       ? input.model
         ? Provider.parseModel(input.model)
         : await lastModel(input.sessionID)
-      : taskModel
+      : resolvedModel
 
     await Plugin.trigger(
       "command.execute.before",
