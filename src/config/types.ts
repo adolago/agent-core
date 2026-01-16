@@ -51,6 +51,9 @@ export interface AgentCoreConfig {
 
   /** General settings */
   settings: GeneralSettings;
+
+  /** Zee-specific integrations */
+  zee?: ZeeConfig;
 }
 
 // =============================================================================
@@ -301,6 +304,29 @@ export interface GeneralSettings {
 
   /** Experimental features */
   experimental?: Record<string, boolean>;
+}
+
+// =============================================================================
+// Zee Integrations
+// =============================================================================
+
+export interface ZeeConfig {
+  splitwise?: ZeeSplitwiseConfig;
+  codexbar?: ZeeCodexbarConfig;
+}
+
+export interface ZeeSplitwiseConfig {
+  enabled?: boolean;
+  token?: string;
+  tokenFile?: string;
+  baseUrl?: string;
+  timeoutMs?: number;
+}
+
+export interface ZeeCodexbarConfig {
+  enabled?: boolean;
+  command?: string | string[];
+  timeoutMs?: number;
 }
 
 // =============================================================================
