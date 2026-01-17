@@ -116,6 +116,18 @@ export namespace LSPClient {
       45_000,
     ).catch((err) => {
       l.error("initialize error", { error: err })
+      // Clean up connection and server process on init failure
+      try {
+        connection.end()
+        connection.dispose()
+      } catch (disposeErr) {
+        l.debug("failed to dispose connection on init error", { error: String(disposeErr) })
+      }
+      try {
+        input.server.process.kill()
+      } catch (killErr) {
+        l.debug("failed to kill server process on init error", { error: String(killErr) })
+      }
       throw new InitializeError(
         { serverID: input.serverID },
         {

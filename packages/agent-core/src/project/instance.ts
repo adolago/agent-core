@@ -78,8 +78,11 @@ export const Instance = {
   },
   async disposeAll() {
     Log.Default.info("disposing all instances")
-    for (const [_key, value] of cache) {
-      const awaited = await value.catch(() => {})
+    for (const [key, value] of cache) {
+      const awaited = await value.catch((err) => {
+        Log.Default.debug("failed to await instance during disposal", { key, error: String(err) })
+        return undefined
+      })
       if (awaited) {
         await context.provide(await value, async () => {
           await Instance.dispose()

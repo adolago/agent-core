@@ -113,8 +113,9 @@ export const McpRoute = new Hono()
         ...errors(400, 404),
       },
     }),
+    validator("param", z.object({ name: z.string() })),
     async (c) => {
-      const name = c.req.param("name")
+      const { name } = c.req.valid("param")
       const supportsOAuth = await MCP.supportsOAuth(name)
       if (!supportsOAuth) {
         return c.json(
@@ -145,6 +146,7 @@ export const McpRoute = new Hono()
         ...errors(400, 404),
       },
     }),
+    validator("param", z.object({ name: z.string() })),
     validator(
       "json",
       z.object({
@@ -152,7 +154,7 @@ export const McpRoute = new Hono()
       }),
     ),
     async (c) => {
-      const name = c.req.param("name")
+      const { name } = c.req.valid("param")
       const { code } = c.req.valid("json")
       const status = await MCP.finishAuth(name, code)
       return c.json(status)
@@ -176,8 +178,9 @@ export const McpRoute = new Hono()
         ...errors(400, 404),
       },
     }),
+    validator("param", z.object({ name: z.string() })),
     async (c) => {
-      const name = c.req.param("name")
+      const { name } = c.req.valid("param")
       const supportsOAuth = await MCP.supportsOAuth(name)
       if (!supportsOAuth) {
         return c.json(
@@ -207,8 +210,9 @@ export const McpRoute = new Hono()
         ...errors(404),
       },
     }),
+    validator("param", z.object({ name: z.string() })),
     async (c) => {
-      const name = c.req.param("name")
+      const { name } = c.req.valid("param")
       await MCP.removeAuth(name)
       return c.json({ success: true as const })
     },

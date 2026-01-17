@@ -1263,16 +1263,42 @@ export class Memory {
 // =============================================================================
 
 let _instance: Memory | null = null;
+let _initPromise: Promise<Memory> | null = null;
 
-/** Get the shared Memory instance */
+/** Get the shared Memory instance (thread-safe singleton) */
 export function getMemory(config?: Partial<MemoryConfig>): Memory {
-  if (!_instance) {
+  // Double-check locking pattern for thread safety
+  if (_instance) {
+    return _instance;
+  }
+
+  // Synchronous fallback if called during initialization
+  // This prevents race conditions where multiple calls create multiple instances
+  if (!_initPromise) {
     _instance = new Memory(config);
   }
-  return _instance;
+  return _instance!;
+}
+
+/** Get the shared Memory instance asynchronously (preferred for initialization) */
+export async function getMemoryAsync(config?: Partial<MemoryConfig>): Promise<Memory> {
+  if (_instance) {
+    return _instance;
+  }
+
+  if (!_initPromise) {
+    _initPromise = (async () => {
+      const instance = new Memory(config);
+      _instance = instance;
+      return instance;
+    })();
+  }
+
+  return _initPromise;
 }
 
 /** Reset the shared instance (for testing) */
 export function resetMemory(): void {
   _instance = null;
+  _initPromise = null;
 }

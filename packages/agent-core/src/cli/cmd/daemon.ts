@@ -824,7 +824,9 @@ export const DaemonCommand = cmd({
       const message = error instanceof Error ? error.message : String(error)
       log.error("startup sanity check failed", { error: message })
       console.error(`Error: Failed to load agents (${message}).`)
-      await server.stop().catch(() => {})
+      await server.stop().catch((stopErr) => {
+        log.debug("failed to stop server after sanity check failure", { error: String(stopErr) })
+      })
       process.exit(1)
     }
 
