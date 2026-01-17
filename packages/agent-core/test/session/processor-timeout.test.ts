@@ -83,6 +83,7 @@ describe("SessionProcessor", () => {
 
           const stored = await MessageV2.get({ sessionID: session.id, messageID: assistant.id })
           expect(stored.info.role).toBe("assistant")
+          if (stored.info.role !== "assistant") throw new Error("Expected assistant message")
           expect(stored.info.time.completed).toBeDefined()
           expect(stored.info.error).toBeDefined()
         },
