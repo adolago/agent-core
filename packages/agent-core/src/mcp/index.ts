@@ -139,7 +139,7 @@ export namespace MCP {
   }
 
   // Convert MCP tool definition to AI SDK Tool type
-  async function convertMcpTool(mcpTool: MCPToolDef, client: MCPClient, timeout?: number): Promise<Tool> {
+  async function convertMcpTool(mcpTool: MCPToolDef, client: MCPClient, timeout: number): Promise<Tool> {
     const inputSchema = mcpTool.inputSchema
 
     // Spread first, then override type to ensure it's always "object"
@@ -738,7 +738,7 @@ export namespace MCP {
     const cfg = await Config.get()
     const config = cfg.mcp ?? {}
     const clientsSnapshot = await clients()
-    const defaultTimeout = cfg.experimental?.mcp_timeout
+    const defaultTimeout = cfg.experimental?.mcp_timeout ?? DEFAULT_TIMEOUT
 
     for (const [clientName, client] of Object.entries(clientsSnapshot)) {
       // Only include tools from connected MCPs (skip disabled ones)
@@ -853,7 +853,13 @@ export namespace MCP {
       throw new Failed({ name: serverName })
     }
 
-    const config = await Config.get()
+    const cfg = await Config.get()
+    const config = cfg.mcp ?? {}
+    const mcpConfig = config[serverName]
+    const timeout =
+      (mcpConfig && isMcpConfigured(mcpConfig) ? mcpConfig.timeout : undefined) ??
+      cfg.experimental?.mcp_timeout ??
+      DEFAULT_TIMEOUT
     try {
       return await client.callTool(
         {
@@ -863,7 +869,7 @@ export namespace MCP {
         CallToolResultSchema,
         {
           resetTimeoutOnProgress: true,
-          timeout: config.experimental?.mcp_timeout ?? DEFAULT_TIMEOUT,
+          timeout,
         },
       )
     } catch (error) {
