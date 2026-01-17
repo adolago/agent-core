@@ -201,6 +201,12 @@ export namespace Pty {
       return
     }
     log.info("client connected to session", { id })
+    // Proactively clean up any stale subscribers
+    for (const sub of session.subscribers) {
+      if (sub.readyState !== 1) {
+        session.subscribers.delete(sub)
+      }
+    }
     session.subscribers.add(ws)
     if (session.buffer) {
       const buffer = session.buffer.length <= BUFFER_LIMIT ? session.buffer : session.buffer.slice(-BUFFER_LIMIT)
@@ -222,6 +228,10 @@ export namespace Pty {
       },
       onClose: () => {
         log.info("client disconnected from session", { id })
+        session.subscribers.delete(ws)
+      },
+      onError: (err: unknown) => {
+        log.warn("client websocket error", { id, error: String(err) })
         session.subscribers.delete(ws)
       },
     }
