@@ -286,9 +286,9 @@ export const AuthLoginCommand = cmd({
           openrouter: 5,
           vercel: 6,
         }
-        let provider = providerArg
+        let provider = providerArg ?? ""
         if (!provider) {
-          provider = await prompts.autocomplete({
+          const selected = await prompts.autocomplete({
             message: "Select provider",
             maxItems: 8,
             options: [
@@ -315,7 +315,8 @@ export const AuthLoginCommand = cmd({
               },
             ],
           })
-          if (prompts.isCancel(provider)) throw new UI.CancelledError()
+          if (prompts.isCancel(selected)) throw new UI.CancelledError()
+          provider = selected as string
         }
 
         const knownProvider = provider in providers
@@ -338,13 +339,12 @@ export const AuthLoginCommand = cmd({
         }
 
         if (provider === "other") {
-          provider = await prompts.text({
+          const entered = await prompts.text({
             message: "Enter provider id",
             validate: (x) => (x && x.match(/^[0-9a-z-]+$/) ? undefined : "a-z, 0-9 and hyphens only"),
           })
-          if (prompts.isCancel(provider)) throw new UI.CancelledError()
-          provider = provider.replace(/^@ai-sdk\//, "")
-          if (prompts.isCancel(provider)) throw new UI.CancelledError()
+          if (prompts.isCancel(entered)) throw new UI.CancelledError()
+          provider = entered.replace(/^@ai-sdk\//, "")
 
           // Check if a plugin provides auth for this custom provider
           const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
