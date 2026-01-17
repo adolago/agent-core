@@ -273,8 +273,8 @@ function ApiMethod(props: ApiMethodProps) {
       onConfirm={async (value) => {
         if (!value) return
         const result = await sdk.client.auth.set({
-          path: { id: props.providerID },
-          body: {
+          providerID: props.providerID,
+          auth: {
             type: "api",
             key: value,
           },
