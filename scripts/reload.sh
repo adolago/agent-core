@@ -338,11 +338,25 @@ if [[ -f "$BINARY_SRC" ]]; then
       warn "Could not update bun global install (may need manual: cp $BINARY_SRC $BUN_GLOBAL_BIN)"
     fi
 
-    # Also sync .agent-core configs to bun global install
+    # Sync .agent-core configs to bun global install
+    # Use SOURCE config (not dist) because dist strips MCP command arrays for distribution
     BUN_GLOBAL_CONFIG="$HOME/.bun/install/global/node_modules/agent-core-linux-x64/.agent-core"
-    DIST_CONFIG="$PKG_DIR/dist/agent-core-linux-x64/.agent-core"
-    if [[ -d "$DIST_CONFIG" ]] && [[ -d "$BUN_GLOBAL_CONFIG" ]]; then
-      cp -r "$DIST_CONFIG"/* "$BUN_GLOBAL_CONFIG"/ 2>/dev/null && ok "Synced .agent-core configs" || warn "Could not sync configs"
+    SOURCE_CONFIG="$REPO_ROOT/.agent-core"
+    if [[ -d "$SOURCE_CONFIG" ]] && [[ -d "$BUN_GLOBAL_CONFIG" ]]; then
+      # Copy config file (preserves full MCP commands for local dev)
+      cp "$SOURCE_CONFIG/agent-core.jsonc" "$BUN_GLOBAL_CONFIG/" 2>/dev/null && ok "Synced agent-core.jsonc (from source)"
+      # Copy tools if they exist
+      if [[ -d "$SOURCE_CONFIG/tool" ]]; then
+        mkdir -p "$BUN_GLOBAL_CONFIG/tool"
+        cp -r "$SOURCE_CONFIG/tool"/* "$BUN_GLOBAL_CONFIG/tool/" 2>/dev/null && ok "Synced tools"
+      fi
+      # Copy agents if they exist
+      if [[ -d "$SOURCE_CONFIG/agent" ]]; then
+        mkdir -p "$BUN_GLOBAL_CONFIG/agent"
+        cp -r "$SOURCE_CONFIG/agent"/* "$BUN_GLOBAL_CONFIG/agent/" 2>/dev/null && ok "Synced agents"
+      fi
+    else
+      warn "Could not sync configs (source: $SOURCE_CONFIG, dest: $BUN_GLOBAL_CONFIG)"
     fi
   fi
 else

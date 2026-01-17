@@ -10,19 +10,19 @@ export default tool({
   description: `Send messages via WhatsApp or Telegram gateways.
 
 Channels:
-- **whatsapp**: Zee's WhatsApp gateway (requires active daemon with --whatsapp)
-- **telegram**: Stanley/Johny Telegram bots (requires active daemon with --telegram-*)
+- **whatsapp**: Zee's WhatsApp gateway (requires agent-core daemon with gateway enabled)
+- **telegram**: Telegram bots (requires agent-core daemon with gateway enabled)
 
 WhatsApp:
-- \`to\`: Chat ID (from incoming message context, e.g., "1234567890@c.us")
+- to: E164 phone (e.g., "+1555...") or chat JID (e.g., "1234567890@c.us" or "...@g.us")
 - Only Zee can send via WhatsApp
 
 Telegram:
-- \`to\`: Numeric chat ID (from incoming message context)
-- \`persona\`: Which bot to use - "stanley" (default) or "johny"
+- to: Chat ID (numeric) or @username
+- persona: Which bot/account to use - "stanley" (default) or "johny"
 
 Examples:
-- WhatsApp: { channel: "whatsapp", to: "1234567890@c.us", message: "Hello!" }
+- WhatsApp: { channel: "whatsapp", to: "+15551234567", message: "Hello!" }
 - Telegram via Stanley: { channel: "telegram", to: "123456789", message: "Market update!", persona: "stanley" }`,
   args: {
     channel: tool.schema
@@ -38,9 +38,11 @@ Examples:
   async execute(args) {
     const { channel, to, message, persona } = args
 
-    // Get daemon port from environment or default
-    const daemonPort = process.env.AGENT_CORE_DAEMON_PORT || "3456"
-    const baseUrl = `http://127.0.0.1:${daemonPort}`
+    const rawBaseUrl =
+      process.env.AGENT_CORE_URL ||
+      process.env.AGENT_CORE_DAEMON_URL ||
+      `http://127.0.0.1:${process.env.AGENT_CORE_PORT || "3210"}`
+    const baseUrl = rawBaseUrl.replace(/\/$/, "")
 
     try {
       if (channel === "whatsapp") {
@@ -56,9 +58,9 @@ Examples:
           return `Failed to send WhatsApp message: ${error}
 
 Troubleshooting:
-- Ensure daemon is running with --whatsapp flag
-- Check WhatsApp connection status
-- Verify chatId format (e.g., "1234567890@c.us")`
+- Ensure \`agent-core daemon\` is running
+- Check \`agent-core debug status\` shows Gateway: Active
+- Verify recipient format (E164 like "+1555..." or JID like "1234567890@c.us")`
         }
 
         const result = await response.json()
@@ -91,8 +93,8 @@ Chat ID must be a numeric value (e.g., 123456789).`
           return `Failed to send Telegram message via ${selectedPersona}: ${error}
 
 Troubleshooting:
-- Ensure daemon is running with --telegram-${selectedPersona}-token flag
-- Check bot connection status
+- Ensure \`agent-core daemon\` is running
+- Check \`agent-core debug status\` shows Gateway: Active
 - Verify chatId is numeric`
         }
 

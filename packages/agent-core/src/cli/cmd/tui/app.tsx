@@ -419,20 +419,29 @@ function App() {
         local.agent.move(1)
       },
     },
-    {
-      title: "Agent cycle reverse",
-      value: "agent.cycle.reverse",
-      keybind: "agent_cycle_reverse",
-      category: "Agent",
-      onSelect: () => {
-        local.agent.move(-1)
-      },
-    },
-    {
-      title: local.mode.isHold() ? "Switch to Release mode" : "Switch to Hold mode",
-      value: "mode.toggle",
-      keybind: "mode_toggle",
-      category: "Mode",
+	    {
+	      title: "Agent cycle reverse",
+	      value: "agent.cycle.reverse",
+	      keybind: "agent_cycle_reverse",
+	      category: "Agent",
+	      onSelect: () => {
+	        local.agent.move(-1)
+	      },
+	    },
+	    {
+	      title: "Variant cycle",
+	      value: "variant.cycle",
+	      keybind: "variant_cycle",
+	      category: "Agent",
+	      onSelect: () => {
+	        local.model.variant.cycle()
+	      },
+	    },
+	    {
+	      title: local.mode.isHold() ? "Switch to Release mode" : "Switch to Hold mode",
+	      value: "mode.toggle",
+	      keybind: "mode_toggle",
+	      category: "Mode",
       onSelect: () => {
         local.mode.toggle()
       },

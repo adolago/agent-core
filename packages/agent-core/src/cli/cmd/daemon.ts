@@ -27,6 +27,7 @@ export namespace Daemon {
   const STATE_DIR = path.join(Global.Path.state, "daemon")
   const PID_FILE = path.join(STATE_DIR, "daemon.pid")
   const LOCK_FILE = path.join(STATE_DIR, "daemon.lock")
+  let lockHandle: fs.FileHandle | null = null
 
   export interface DaemonState {
     pid: number
@@ -92,6 +93,60 @@ export namespace Daemon {
       log.info("removed stale lock file", { path: LOCK_FILE })
     } catch {
       // No lock file, all good
+    }
+  }
+
+  async function readLockFile(): Promise<{ pid?: number; startTime?: number } | null> {
+    try {
+      const content = await fs.readFile(LOCK_FILE, "utf-8")
+      return JSON.parse(content)
+    } catch {
+      return null
+    }
+  }
+
+  export async function acquireLock() {
+    await ensureStateDir()
+    try {
+      lockHandle = await fs.open(LOCK_FILE, "wx")
+      await lockHandle.writeFile(JSON.stringify({ pid: process.pid, startTime: Date.now() }, null, 2))
+      return
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? (error as NodeJS.ErrnoException).code : ""
+      if (code !== "EEXIST") throw error
+    }
+
+    const existing = await readLockFile()
+    if (existing?.pid) {
+      try {
+        process.kill(existing.pid, 0)
+        throw new Error(`Daemon is already running (PID: ${existing.pid})`)
+      } catch {
+        // Stale lock
+      }
+    }
+
+    await checkAndCleanStaleLock()
+    lockHandle = await fs.open(LOCK_FILE, "wx")
+    await lockHandle.writeFile(JSON.stringify({ pid: process.pid, startTime: Date.now() }, null, 2))
+  }
+
+  export async function releaseLock() {
+    try {
+      if (lockHandle) {
+        await lockHandle.close()
+      }
+    } catch {
+      // Ignore lock close errors
+    } finally {
+      lockHandle = null
+    }
+
+    try {
+      await fs.unlink(LOCK_FILE)
+      log.info("removed lock file", { path: LOCK_FILE })
+    } catch {
+      // Ignore if file doesn't exist
     }
   }
 
@@ -801,6 +856,14 @@ export const DaemonCommand = cmd({
       }
     }
 
+    try {
+      await Daemon.acquireLock()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      UI.error(`Failed to acquire daemon lock: ${message}`)
+      process.exit(1)
+    }
+
     const opts = await resolveNetworkOptions(args)
     const directory = args.directory as string
 
@@ -812,7 +875,15 @@ export const DaemonCommand = cmd({
     })
 
     // Start the server
-    const server = Server.listen(opts)
+    let server: ReturnType<typeof Server.listen>
+    try {
+      server = Server.listen(opts)
+    } catch (error) {
+      await Daemon.releaseLock()
+      const message = error instanceof Error ? error.message : String(error)
+      UI.error(`Failed to start daemon server: ${message}`)
+      process.exit(1)
+    }
     const serverHost = server.hostname ?? opts.hostname
     const daemonHost = serverHost === "0.0.0.0" ? "127.0.0.1" : serverHost
     const daemonPort = server.port ?? opts.port
@@ -827,6 +898,7 @@ export const DaemonCommand = cmd({
       await server.stop().catch((stopErr) => {
         log.debug("failed to stop server after sanity check failure", { error: String(stopErr) })
       })
+      await Daemon.releaseLock()
       process.exit(1)
     }
 
@@ -971,6 +1043,7 @@ export const DaemonCommand = cmd({
       }
 
       await Daemon.removePidFile()
+      await Daemon.releaseLock()
       await server.stop()
     }
 
@@ -1109,10 +1182,12 @@ export const DaemonStopCommand = cmd({
       console.log("Daemon did not stop gracefully, sending SIGKILL")
       process.kill(state.pid, "SIGKILL")
       await Daemon.removePidFile()
+      await Daemon.releaseLock()
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code === "ESRCH") {
         console.log("Daemon process not found, cleaning up PID file")
         await Daemon.removePidFile()
+        await Daemon.releaseLock()
       } else {
         throw e
       }

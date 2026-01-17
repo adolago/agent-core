@@ -17,10 +17,14 @@ import { SessionCompaction } from "./compaction"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { addWideEventFields, finishWideEvent, runWithWideEventContext } from "@/util/wide-events"
+import { Flag } from "@/flag/flag"
+import { withTimeout } from "@/util/timeout"
 import * as UsageTracker from "@/usage/tracker"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
+  const DEFAULT_LLM_STREAM_START_TIMEOUT_MS = 30_000
+  const LLM_STREAM_START_TIMEOUT_BUFFER_MS = 250
   const log = Log.create({ service: "session.processor" })
 
   export type Info = Awaited<ReturnType<typeof create>>
@@ -78,11 +82,48 @@ export namespace SessionProcessor {
             try {
               let currentText: MessageV2.TextPart | undefined
               let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
-              const stream = await Fallback.stream(streamInput)
+              const streamStartTimeoutMs =
+                Flag.OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS ?? DEFAULT_LLM_STREAM_START_TIMEOUT_MS
+              const streamStartController = new AbortController()
+	              const streamStartTimer = setTimeout(() => {
+	                streamStartController.abort(
+	                  new DOMException(`LLM stream did not start within ${streamStartTimeoutMs}ms`, "AbortError"),
+	                )
+	              }, streamStartTimeoutMs)
+	              const streamAbort = AbortSignal.any([input.abort, streamStartController.signal])
+	              let removeAbortListener: (() => void) | undefined
+	              const abortPromise = new Promise<never>((_, reject) => {
+	                const onAbort = () => {
+	                  const reason = streamAbort.reason ?? new DOMException("Aborted", "AbortError")
+	                  reject(reason)
+	                }
 
-              for await (const value of stream.fullStream) {
-                input.abort.throwIfAborted()
-                switch (value.type) {
+	                if (streamAbort.aborted) {
+	                  onAbort()
+	                  return
+	                }
+
+	                streamAbort.addEventListener("abort", onAbort, { once: true })
+	                removeAbortListener = () => streamAbort.removeEventListener("abort", onAbort)
+	              })
+	              let streamStartTimerCleared = false
+	              try {
+	                const stream = await withTimeout(
+	                  Fallback.stream({ ...streamInput, abort: streamAbort }),
+	                  streamStartTimeoutMs + LLM_STREAM_START_TIMEOUT_BUFFER_MS,
+	                )
+
+	                const iterator = stream.fullStream[Symbol.asyncIterator]()
+	                while (true) {
+	                  const result = await Promise.race([iterator.next(), abortPromise])
+	                  if (result.done) break
+	                  const value = result.value
+	                  if (!streamStartTimerCleared) {
+	                    streamStartTimerCleared = true
+	                    clearTimeout(streamStartTimer)
+	                  }
+	                  streamAbort.throwIfAborted()
+	                  switch (value.type) {
                   case "start":
                     SessionStatus.set(input.sessionID, { type: "busy" })
                     break
@@ -396,17 +437,24 @@ export namespace SessionProcessor {
                     break
 
                   default:
-                    log.info("unhandled", {
-                      ...value,
-                    })
-                    continue
-                }
-                if (needsCompaction) break
-              }
-            } catch (e: any) {
-              log.error("process", {
-                error: e,
-                stack: JSON.stringify(e.stack),
+	                    log.info("unhandled", {
+	                      ...value,
+	                    })
+	                    continue
+	                }
+	                  if (needsCompaction) {
+	                    await iterator.return?.()
+	                    break
+	                  }
+	                }
+	              } finally {
+	                clearTimeout(streamStartTimer)
+	                removeAbortListener?.()
+	              }
+	            } catch (e: any) {
+	              log.error("process", {
+	                error: e,
+	                stack: JSON.stringify(e.stack),
               })
               const error = MessageV2.fromError(e, { providerID: input.model.providerID })
               const retry = SessionRetry.retryable(error)

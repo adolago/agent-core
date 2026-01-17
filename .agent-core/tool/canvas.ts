@@ -38,8 +38,6 @@ Examples:
     config: tool.schema.string().describe("JSON configuration for the canvas content"),
   },
   async execute(args) {
-    const { requestDaemon } = await import("../../../src/daemon/ipc-client.js")
-
     let config: Record<string, unknown>
     try {
       config = JSON.parse(args.config)
@@ -47,22 +45,18 @@ Examples:
       return `Invalid JSON config: ${args.config}`
     }
 
-    try {
-      const result = await requestDaemon<{ paneId: string; id: string; kind: string }>(
-        "canvas:spawn",
-        { kind: args.kind, id: args.id, config }
-      )
-      return `Canvas "${args.id}" (${args.kind}) displayed in pane ${result.paneId}.
+    // Canvas daemon integration not yet implemented
+    // For now, return the content as formatted text
+    const title = (config.title as string) || args.id
+    const content = (config.content as string) || JSON.stringify(config, null, 2)
 
-Content:
-${JSON.stringify(config, null, 2)}`
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      return `Failed to spawn canvas: ${msg}
+    return `=== ${title} ===
+(Canvas type: ${args.kind})
 
-Note: Canvas requires the agent-core daemon to be running.
-Start it with: agent-core daemon`
-    }
+${content}
+
+---
+Note: WezTerm canvas panes are not yet implemented. Content displayed inline.`
   },
 })
 
@@ -78,8 +72,6 @@ Examples:
     config: tool.schema.string().describe("New JSON configuration"),
   },
   async execute(args) {
-    const { requestDaemon } = await import("../../../src/daemon/ipc-client.js")
-
     let config: Record<string, unknown>
     try {
       config = JSON.parse(args.config)
@@ -87,16 +79,11 @@ Examples:
       return `Invalid JSON config: ${args.config}`
     }
 
-    try {
-      await requestDaemon("canvas:update", { id: args.id, config })
-      return `Canvas "${args.id}" updated.
+    // Canvas daemon integration not yet implemented
+    return `Canvas "${args.id}" update requested (not yet implemented).
 
 New content:
 ${JSON.stringify(config, null, 2)}`
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      return `Failed to update canvas: ${msg}`
-    }
   },
 })
 
@@ -107,15 +94,8 @@ export const canvasClose = tool({
     id: tool.schema.string().describe("Canvas identifier to close"),
   },
   async execute(args) {
-    const { requestDaemon } = await import("../../../src/daemon/ipc-client.js")
-
-    try {
-      await requestDaemon("canvas:close", { id: args.id })
-      return `Canvas "${args.id}" closed.`
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      return `Failed to close canvas: ${msg}`
-    }
+    // Canvas daemon integration not yet implemented
+    return `Canvas "${args.id}" close requested (not yet implemented).`
   },
 })
 
@@ -124,29 +104,7 @@ export const canvasList = tool({
   description: `List all active canvases.`,
   args: {},
   async execute() {
-    const { requestDaemon } = await import("../../../src/daemon/ipc-client.js")
-
-    try {
-      const canvases = await requestDaemon<
-        Array<{
-          id: string
-          kind: string
-          paneId: string
-          createdAt: number
-        }>
-      >("canvas:list", {})
-
-      if (canvases.length === 0) {
-        return "No active canvases."
-      }
-
-      const list = canvases.map((c) => `- ${c.id} (${c.kind}) in pane ${c.paneId}`).join("\n")
-
-      return `${canvases.length} active canvas(es):
-${list}`
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error)
-      return `Failed to list canvases: ${msg}`
-    }
+    // Canvas daemon integration not yet implemented
+    return `Canvas listing not yet implemented. WezTerm canvas panes are a planned feature.`
   },
 })
