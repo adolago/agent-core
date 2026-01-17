@@ -73,7 +73,9 @@ export namespace FileWatcher {
         })
         const sub = await withTimeout(pending, SUBSCRIBE_TIMEOUT_MS).catch((err) => {
           log.error("failed to subscribe to Instance.directory", { error: err })
-          pending.then((s) => s.unsubscribe()).catch(() => {})
+          pending.then((s) => s.unsubscribe()).catch((unsubErr) => {
+            log.debug("failed to unsubscribe after timeout", { dir: Instance.directory, error: String(unsubErr) })
+          })
           return undefined
         })
         if (sub) subs.push(sub)
@@ -95,7 +97,9 @@ export namespace FileWatcher {
         })
         const sub = await withTimeout(pending, SUBSCRIBE_TIMEOUT_MS).catch((err) => {
           log.error("failed to subscribe to vcsDir", { error: err })
-          pending.then((s) => s.unsubscribe()).catch(() => {})
+          pending.then((s) => s.unsubscribe()).catch((unsubErr) => {
+            log.debug("failed to unsubscribe after timeout", { vcsDir, error: String(unsubErr) })
+          })
           return undefined
         })
         if (sub) subs.push(sub)

@@ -201,6 +201,14 @@ export namespace Pty {
       return
     }
     log.info("client connected to session", { id })
+
+    // Proactively clean up any stale subscribers before adding new one
+    for (const subscriber of session.subscribers) {
+      if (subscriber.readyState !== 1) {
+        session.subscribers.delete(subscriber)
+      }
+    }
+
     session.subscribers.add(ws)
     if (session.buffer) {
       const buffer = session.buffer.length <= BUFFER_LIMIT ? session.buffer : session.buffer.slice(-BUFFER_LIMIT)
@@ -216,13 +224,21 @@ export namespace Pty {
         return
       }
     }
+
+    // Helper to remove this subscriber
+    const removeSubscriber = () => {
+      log.info("client disconnected from session", { id })
+      session.subscribers.delete(ws)
+    }
+
     return {
       onMessage: (message: string | ArrayBuffer) => {
         session.process.write(String(message))
       },
-      onClose: () => {
-        log.info("client disconnected from session", { id })
-        session.subscribers.delete(ws)
+      onClose: removeSubscriber,
+      onError: (error: Error) => {
+        log.debug("client websocket error", { id, error: String(error) })
+        removeSubscriber()
       },
     }
   }

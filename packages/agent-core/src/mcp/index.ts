@@ -28,6 +28,28 @@ export namespace MCP {
   const log = Log.create({ service: "mcp" })
   const DEFAULT_TIMEOUT = 30_000
 
+  // Per-server mutex to prevent concurrent state mutations for the same server
+  const serverMutexes = new Map<string, Promise<void>>()
+
+  async function withServerMutex<T>(serverName: string, fn: () => T | Promise<T>): Promise<T> {
+    const currentMutex = serverMutexes.get(serverName) ?? Promise.resolve()
+    let release: () => void
+    const newMutex = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    serverMutexes.set(serverName, newMutex)
+    await currentMutex
+    try {
+      return await fn()
+    } finally {
+      release!()
+      // Clean up mutex if this is the last one
+      if (serverMutexes.get(serverName) === newMutex) {
+        serverMutexes.delete(serverName)
+      }
+    }
+  }
+
   export const Resource = z
     .object({
       name: z.string(),
@@ -248,37 +270,40 @@ export namespace MCP {
   }
 
   export async function add(name: string, mcp: Config.Mcp) {
-    const s = await state()
-    const result = await create(name, mcp)
-    if (!result) {
-      const status = {
-        status: "failed" as const,
-        error: "unknown error",
+    // Use mutex to prevent concurrent state mutations for the same server
+    return withServerMutex(name, async () => {
+      const s = await state()
+      const result = await create(name, mcp)
+      if (!result) {
+        const status = {
+          status: "failed" as const,
+          error: "unknown error",
+        }
+        s.status[name] = status
+        return {
+          status,
+        }
       }
-      s.status[name] = status
-      return {
-        status,
+      if (!result.mcpClient) {
+        s.status[name] = result.status
+        return {
+          status: s.status,
+        }
       }
-    }
-    if (!result.mcpClient) {
+      // Close existing client if present to prevent memory leaks
+      const existingClient = s.clients[name]
+      if (existingClient) {
+        await existingClient.close().catch((error) => {
+          log.error("Failed to close existing MCP client", { name, error })
+        })
+      }
+      s.clients[name] = result.mcpClient
       s.status[name] = result.status
+
       return {
         status: s.status,
       }
-    }
-    // Close existing client if present to prevent memory leaks
-    const existingClient = s.clients[name]
-    if (existingClient) {
-      await existingClient.close().catch((error) => {
-        log.error("Failed to close existing MCP client", { name, error })
-      })
-    }
-    s.clients[name] = result.mcpClient
-    s.status[name] = result.status
-
-    return {
-      status: s.status,
-    }
+    })
   }
 
   async function create(key: string, mcp: Config.Mcp) {
@@ -336,8 +361,10 @@ export namespace MCP {
       ]
 
       let lastError: Error | undefined
+      let usedTransportIndex = -1
       const connectTimeout = mcp.timeout ?? DEFAULT_TIMEOUT
-      for (const { name, transport } of transports) {
+      for (let i = 0; i < transports.length; i++) {
+        const { name, transport } = transports[i]
         try {
           const client = new Client({
             name: "opencode",
@@ -346,6 +373,7 @@ export namespace MCP {
           await withTimeout(client.connect(transport), connectTimeout)
           registerNotificationHandlers(client, key)
           mcpClient = client
+          usedTransportIndex = i
           log.info("connected", { key, transport: name })
           status = { status: "connected" }
           break
@@ -372,6 +400,7 @@ export namespace MCP {
             } else {
               // Store transport for later finishAuth call
               pendingOAuthTransports.set(key, transport)
+              usedTransportIndex = i // Mark as used for OAuth
               status = { status: "needs_auth" as const }
               // Show toast for needs_auth
               Bus.publish(TuiEvent.ToastShow, {
@@ -384,6 +413,9 @@ export namespace MCP {
             break
           }
 
+          // Close failed transport to prevent resource leak
+          transport.close?.().catch((e) => log.debug("failed to close transport", { key, transport: name, error: e }))
+
           log.debug("transport connection failed", {
             key,
             transport: name,
@@ -394,6 +426,14 @@ export namespace MCP {
             status: "failed" as const,
             error: lastError.message,
           }
+        }
+      }
+
+      // Clean up unused transports (ones we didn't try or that weren't used)
+      for (let i = 0; i < transports.length; i++) {
+        if (i !== usedTransportIndex) {
+          const { name, transport } = transports[i]
+          transport.close?.().catch((e) => log.debug("failed to close unused transport", { key, transport: name, error: e }))
         }
       }
     }
@@ -503,54 +543,60 @@ export namespace MCP {
   }
 
   export async function connect(name: string) {
-    const cfg = await Config.get()
-    const config = cfg.mcp ?? {}
-    const mcp = config[name]
-    if (!mcp) {
-      log.error("MCP config not found", { name })
-      return
-    }
+    // Use mutex to prevent concurrent state mutations for the same server
+    return withServerMutex(name, async () => {
+      const cfg = await Config.get()
+      const config = cfg.mcp ?? {}
+      const mcp = config[name]
+      if (!mcp) {
+        log.error("MCP config not found", { name })
+        return
+      }
 
-    if (!isMcpConfigured(mcp)) {
-      log.error("Ignoring MCP connect request for config without type", { name })
-      return
-    }
+      if (!isMcpConfigured(mcp)) {
+        log.error("Ignoring MCP connect request for config without type", { name })
+        return
+      }
 
-    const result = await create(name, { ...mcp, enabled: true })
+      const result = await create(name, { ...mcp, enabled: true })
 
-    if (!result) {
+      if (!result) {
+        const s = await state()
+        s.status[name] = {
+          status: "failed",
+          error: "Unknown error during connection",
+        }
+        return
+      }
+
       const s = await state()
-      s.status[name] = {
-        status: "failed",
-        error: "Unknown error during connection",
+      s.status[name] = result.status
+      if (result.mcpClient) {
+        // Close existing client if present to prevent memory leaks
+        const existingClient = s.clients[name]
+        if (existingClient) {
+          await existingClient.close().catch((error) => {
+            log.error("Failed to close existing MCP client", { name, error })
+          })
+        }
+        s.clients[name] = result.mcpClient
       }
-      return
-    }
-
-    const s = await state()
-    s.status[name] = result.status
-    if (result.mcpClient) {
-      // Close existing client if present to prevent memory leaks
-      const existingClient = s.clients[name]
-      if (existingClient) {
-        await existingClient.close().catch((error) => {
-          log.error("Failed to close existing MCP client", { name, error })
-        })
-      }
-      s.clients[name] = result.mcpClient
-    }
+    })
   }
 
   export async function disconnect(name: string) {
-    const s = await state()
-    const client = s.clients[name]
-    if (client) {
-      await client.close().catch((error) => {
-        log.error("Failed to close MCP client", { name, error })
-      })
-      delete s.clients[name]
-    }
-    s.status[name] = { status: "disabled" }
+    // Use mutex to prevent concurrent state mutations for the same server
+    return withServerMutex(name, async () => {
+      const s = await state()
+      const client = s.clients[name]
+      if (client) {
+        await client.close().catch((error) => {
+          log.error("Failed to close MCP client", { name, error })
+        })
+        delete s.clients[name]
+      }
+      s.status[name] = { status: "disabled" }
+    })
   }
 
   /**
@@ -584,48 +630,51 @@ export namespace MCP {
    * Returns the new status after reconnection attempt.
    */
   export async function reconnect(name: string): Promise<Status> {
-    const cfg = await Config.get()
-    const mcpConfig = cfg.mcp?.[name]
-    
-    if (!mcpConfig) {
-      log.error("MCP config not found for reconnect", { name })
-      return { status: "failed", error: "MCP config not found" }
-    }
+    // Use mutex to prevent concurrent state mutations for the same server
+    return withServerMutex(name, async () => {
+      const cfg = await Config.get()
+      const mcpConfig = cfg.mcp?.[name]
 
-    if (!isMcpConfigured(mcpConfig)) {
-      log.error("MCP config invalid for reconnect", { name })
-      return { status: "failed", error: "Invalid MCP configuration" }
-    }
+      if (!mcpConfig) {
+        log.error("MCP config not found for reconnect", { name })
+        return { status: "failed", error: "MCP config not found" }
+      }
 
-    // Close existing client if any
-    const s = await state()
-    const existingClient = s.clients[name]
-    if (existingClient) {
-      await existingClient.close().catch((error) => {
-        log.debug("Failed to close existing MCP client during reconnect", { name, error })
-      })
-      delete s.clients[name]
-    }
+      if (!isMcpConfigured(mcpConfig)) {
+        log.error("MCP config invalid for reconnect", { name })
+        return { status: "failed", error: "Invalid MCP configuration" }
+      }
 
-    log.info("Attempting MCP reconnection", { name })
+      // Close existing client if any
+      const s = await state()
+      const existingClient = s.clients[name]
+      if (existingClient) {
+        await existingClient.close().catch((error) => {
+          log.debug("Failed to close existing MCP client during reconnect", { name, error })
+        })
+        delete s.clients[name]
+      }
 
-    // Create new connection
-    const result = await create(name, { ...mcpConfig, enabled: true })
-    
-    if (!result) {
-      s.status[name] = { status: "failed", error: "Unknown error during reconnection" }
-      return s.status[name]
-    }
+      log.info("Attempting MCP reconnection", { name })
 
-    s.status[name] = result.status
-    if (result.mcpClient) {
-      s.clients[name] = result.mcpClient
-      log.info("MCP reconnection successful", { name })
-    } else {
-      log.warn("MCP reconnection failed", { name, status: result.status })
-    }
+      // Create new connection
+      const result = await create(name, { ...mcpConfig, enabled: true })
 
-    return result.status
+      if (!result) {
+        s.status[name] = { status: "failed", error: "Unknown error during reconnection" }
+        return s.status[name]
+      }
+
+      s.status[name] = result.status
+      if (result.mcpClient) {
+        s.clients[name] = result.mcpClient
+        log.info("MCP reconnection successful", { name })
+      } else {
+        log.warn("MCP reconnection failed", { name, status: result.status })
+      }
+
+      return result.status
+    })
   }
 
   /**

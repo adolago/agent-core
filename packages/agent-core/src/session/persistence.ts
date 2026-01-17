@@ -79,6 +79,48 @@ export namespace Persistence {
   let walFlushInterval: NodeJS.Timeout | null = null
   let isRunning = false
 
+  // Mutex for WAL buffer operations to prevent race conditions
+  let walMutexPromise: Promise<void> = Promise.resolve()
+
+  async function withWALMutex<T>(fn: () => T | Promise<T>): Promise<T> {
+    const currentMutex = walMutexPromise
+    let release: () => void
+    walMutexPromise = new Promise((resolve) => {
+      release = resolve
+    })
+    await currentMutex
+    try {
+      return await fn()
+    } finally {
+      release!()
+    }
+  }
+
+  // Mutex for state file operations (last-active.json, daily-sessions.json)
+  // Prevents read-modify-write race conditions
+  let stateMutexPromise: Promise<void> = Promise.resolve()
+
+  async function withStateMutex<T>(fn: () => T | Promise<T>): Promise<T> {
+    const currentMutex = stateMutexPromise
+    let release: () => void
+    stateMutexPromise = new Promise((resolve) => {
+      release = resolve
+    })
+    await currentMutex
+    try {
+      return await fn()
+    } finally {
+      release!()
+    }
+  }
+
+  // Atomic write: write to temp file then rename to avoid partial writes
+  async function atomicWriteJSON(filePath: string, data: unknown): Promise<void> {
+    const tempPath = `${filePath}.tmp.${Date.now()}`
+    await fs.writeFile(tempPath, JSON.stringify(data, null, 2))
+    await fs.rename(tempPath, filePath)
+  }
+
   // -------------------------------------------------------------------------
   // Initialization
   // -------------------------------------------------------------------------
@@ -194,21 +236,27 @@ export namespace Persistence {
 
   function appendToWAL(entry: WALEntry): void {
     if (!config.enableWAL || !isRunning) return
-    walBuffer.push(entry)
+    // Use synchronous push but the mutex protects flushWAL from reading while we push
+    // For truly concurrent safety, we queue this through the mutex
+    withWALMutex(() => {
+      walBuffer.push(entry)
+    }).catch((e) => log.error("Failed to append to WAL", { error: String(e) }))
   }
 
   async function flushWAL(): Promise<void> {
-    if (walBuffer.length === 0) return
+    await withWALMutex(async () => {
+      if (walBuffer.length === 0) return
 
-    const entries = walBuffer
-    walBuffer = []
+      const entries = walBuffer
+      walBuffer = []
 
-    const lines = entries.map((e) => JSON.stringify(e)).join("\n") + "\n"
+      const lines = entries.map((e) => JSON.stringify(e)).join("\n") + "\n"
 
-    await fs.appendFile(WAL_FILE, lines).catch((e) => {
-      // Put entries back if write failed
-      walBuffer = [...entries, ...walBuffer]
-      throw e
+      await fs.appendFile(WAL_FILE, lines).catch((e) => {
+        // Put entries back if write failed (inside mutex, so safe)
+        walBuffer = [...entries, ...walBuffer]
+        throw e
+      })
     })
   }
 
@@ -432,17 +480,21 @@ export namespace Persistence {
     sessionId: string,
     chatId?: number,
   ): Promise<void> {
-    const state = await getLastActiveState()
+    // Use mutex to prevent read-modify-write race conditions
+    await withStateMutex(async () => {
+      const state = await getLastActiveState()
 
-    state[persona] = {
-      sessionId,
-      chatId,
-      updatedAt: Date.now(),
-    }
+      state[persona] = {
+        sessionId,
+        chatId,
+        updatedAt: Date.now(),
+      }
 
-    await fs.writeFile(LAST_ACTIVE_FILE, JSON.stringify(state, null, 2))
+      // Atomic write to prevent partial writes
+      await atomicWriteJSON(LAST_ACTIVE_FILE, state)
+    })
 
-    // Also log to WAL
+    // Also log to WAL (outside mutex to avoid holding lock during I/O)
     appendToWAL({
       timestamp: Date.now(),
       operation: "session_activate",
@@ -526,25 +578,30 @@ export namespace Persistence {
     date?: Date,
   ): Promise<void> {
     const key = getDailyKey(persona, date)
-    const state = await getDailySessionsState()
 
-    state[key] = {
-      sessionId,
-      chatId,
-      createdAt: Date.now(),
-    }
+    // Use mutex to prevent read-modify-write race conditions
+    await withStateMutex(async () => {
+      const state = await getDailySessionsState()
 
-    // Cleanup old entries (keep last 30 days)
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
-    for (const k of Object.keys(state)) {
-      if (state[k].createdAt < cutoff) {
-        delete state[k]
+      state[key] = {
+        sessionId,
+        chatId,
+        createdAt: Date.now(),
       }
-    }
 
-    await fs.writeFile(DAILY_SESSIONS_FILE, JSON.stringify(state, null, 2))
+      // Cleanup old entries (keep last 30 days)
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+      for (const k of Object.keys(state)) {
+        if (state[k].createdAt < cutoff) {
+          delete state[k]
+        }
+      }
 
-    // Also log to WAL
+      // Atomic write to prevent partial writes
+      await atomicWriteJSON(DAILY_SESSIONS_FILE, state)
+    })
+
+    // Also log to WAL (outside mutex to avoid holding lock during I/O)
     appendToWAL({
       timestamp: Date.now(),
       operation: "session_activate",
@@ -570,9 +627,14 @@ export namespace Persistence {
     }
   }
 
+  // Track in-progress reservations to prevent TOCTOU races
+  const pendingReservations = new Map<string, Promise<{ sessionId: string; isNew: boolean }>>()
+
   /**
    * Get or create a daily session for a persona
    * Returns the session ID to use
+   *
+   * Uses mutex to prevent TOCTOU race where multiple callers both see isNew:true
    */
   export async function getOrCreateDailySession(
     persona: "zee" | "stanley" | "johny",
@@ -581,24 +643,46 @@ export namespace Persistence {
       title?: string
     } = {},
   ): Promise<{ sessionId: string; isNew: boolean }> {
-    // Check for existing daily session
-    const existing = await getDailySession(persona)
-    if (existing) {
-      // Verify it still exists
-      try {
-        const session = await Session.get(existing.sessionId)
-        if (session) {
-          log.debug("Reusing daily session", { persona, sessionId: existing.sessionId })
-          return { sessionId: existing.sessionId, isNew: false }
-        }
-      } catch {
-        // Session no longer exists, will create new one
-      }
+    const key = getDailyKey(persona)
+
+    // Check if there's already an in-progress reservation for this key
+    const pending = pendingReservations.get(key)
+    if (pending) {
+      // Wait for the pending reservation to complete, then re-check
+      await pending
+      return getOrCreateDailySession(persona, options)
     }
 
-    // Need to create new session - return null sessionId to indicate caller should create
-    // (We don't create here because session creation needs proper API context)
-    return { sessionId: "", isNew: true }
+    // Use mutex to ensure atomic check-and-reserve
+    const reservationPromise = withStateMutex(async () => {
+      // Check for existing daily session
+      const existing = await getDailySession(persona)
+      if (existing) {
+        // Verify it still exists
+        try {
+          const session = await Session.get(existing.sessionId)
+          if (session) {
+            log.debug("Reusing daily session", { persona, sessionId: existing.sessionId })
+            return { sessionId: existing.sessionId, isNew: false }
+          }
+        } catch {
+          // Session no longer exists, will create new one
+        }
+      }
+
+      // Need to create new session - return empty sessionId to indicate caller should create
+      // (We don't create here because session creation needs proper API context)
+      return { sessionId: "", isNew: true }
+    })
+
+    // Track this reservation while it's in progress
+    pendingReservations.set(key, reservationPromise)
+
+    try {
+      return await reservationPromise
+    } finally {
+      pendingReservations.delete(key)
+    }
   }
 
   // -------------------------------------------------------------------------

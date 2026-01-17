@@ -229,11 +229,15 @@ export namespace Config {
       {
         cwd: dir,
       },
-    ).catch(() => {})
+    ).catch((err) => {
+      log.debug("failed to add plugin package", { error: String(err), dir })
+    })
 
     // Install any additional dependencies defined in the package.json
     // This allows local plugins and custom tools to use external packages
-    await BunProc.run(["install"], { cwd: dir }).catch(() => {})
+    await BunProc.run(["install"], { cwd: dir }).catch((err) => {
+      log.debug("failed to install plugin dependencies", { error: String(err), dir })
+    })
   }
 
   function rel(item: string, patterns: string[]) {
@@ -1360,7 +1364,9 @@ export namespace Config {
         await Bun.write(path.join(Global.Path.config, "config.json"), JSON.stringify(result, null, 2))
         await fs.unlink(path.join(Global.Path.config, "config"))
       })
-      .catch(() => {})
+      .catch((err) => {
+        log.debug("failed to migrate TOML config", { error: String(err) })
+      })
 
     return result
   })
@@ -1447,7 +1453,9 @@ export namespace Config {
     if (parsed.success) {
       if (!parsed.data.$schema) {
         parsed.data.$schema = "https://opencode.ai/config.json"
-        await Bun.write(configFilepath, JSON.stringify(parsed.data, null, 2)).catch(() => {})
+        await Bun.write(configFilepath, JSON.stringify(parsed.data, null, 2)).catch((err) => {
+          log.debug("failed to write config schema", { error: String(err), path: configFilepath })
+        })
       }
       const data = parsed.data
       if (data.plugin) {
