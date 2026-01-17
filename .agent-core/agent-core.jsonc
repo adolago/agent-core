@@ -7,17 +7,17 @@
       "type": "remote",
       "url": "https://mcp.context7.com/mcp"
     },
-    "personas-memory": {
+    "memory": {
       "type": "local",
       "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/memory.ts"],
       "enabled": true
     },
-    "personas-calendar": {
+    "calendar": {
       "type": "local",
       "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/calendar.ts"],
       "enabled": true
     },
-    "personas-portfolio": {
+    "portfolio": {
       "type": "local",
       "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/portfolio.ts"],
       "enabled": true

@@ -6,6 +6,7 @@ import { fn } from "@/util/fn"
 import type { AuthOuathResult, Hooks } from "@opencode-ai/plugin"
 import { NamedError } from "@opencode-ai/util/error"
 import { Auth } from "@/auth"
+import { Provider } from "@/provider/provider"
 
 export namespace ProviderAuth {
   const state = Instance.state(async () => {
@@ -91,27 +92,29 @@ export namespace ProviderAuth {
         result = await match.callback()
       }
 
-      if (result?.type === "success") {
-        if ("key" in result) {
-          await Auth.set(input.providerID, {
-            type: "api",
-            key: result.key,
-          })
-        }
-        if ("refresh" in result) {
-          const info: Auth.Info = {
-            type: "oauth",
-            access: result.access,
-            refresh: result.refresh,
-            expires: result.expires,
+        if (result?.type === "success") {
+          if ("key" in result) {
+            await Auth.set(input.providerID, {
+              type: "api",
+              key: result.key,
+            })
+            await Provider.reload()
           }
-          if (result.accountId) {
-            info.accountId = result.accountId
+          if ("refresh" in result) {
+            const info: Auth.Info = {
+              type: "oauth",
+              access: result.access,
+              refresh: result.refresh,
+              expires: result.expires,
+            }
+            if (result.accountId) {
+              info.accountId = result.accountId
+            }
+            await Auth.set(input.providerID, info)
+            await Provider.reload()
           }
-          await Auth.set(input.providerID, info)
+          return
         }
-        return
-      }
 
       throw new OauthCallbackFailed({})
     },
@@ -127,6 +130,14 @@ export namespace ProviderAuth {
         type: "api",
         key: input.key,
       })
+      await Provider.reload()
+      try {
+        await Provider.validateAuth(input.providerID)
+      } catch (error) {
+        await Auth.remove(input.providerID)
+        await Provider.reload()
+        throw error
+      }
     },
   )
 

@@ -22,6 +22,33 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   google: 4,
 }
 
+function extractErrorMessage(error: unknown): string | null {
+  if (!error) return null
+  if (typeof error === "string") return error
+  if (error instanceof Error) return error.message || null
+  if (typeof error !== "object") return null
+
+  const err = error as Record<string, unknown>
+  if (typeof err.message === "string") return err.message
+
+  const errors =
+    (Array.isArray(err.errors) ? err.errors : undefined) ??
+    (typeof err.data === "object" && err.data && Array.isArray((err.data as Record<string, unknown>).errors)
+      ? ((err.data as Record<string, unknown>).errors as unknown[])
+      : undefined)
+
+  if (errors) {
+    for (const item of errors) {
+      if (typeof item === "string") return item
+      if (item && typeof item === "object" && typeof (item as Record<string, unknown>).message === "string") {
+        return String((item as Record<string, unknown>).message)
+      }
+    }
+  }
+
+  return null
+}
+
 export function createDialogProviderOptions() {
   const sync = useSync()
   const dialog = useDialog()
@@ -221,34 +248,45 @@ function ApiMethod(props: ApiMethodProps) {
   const sdk = useSDK()
   const sync = useSync()
   const { theme } = useTheme()
+  const toast = useToast()
+  const [error, setError] = createSignal<string | null>(null)
 
   return (
     <DialogPrompt
       title={props.title}
       placeholder="API key"
-      description={
-        props.providerID === "opencode" ? (
-          <box gap={1}>
-            <text fg={theme.textMuted}>
-              OpenCode Zen gives you access to all the best coding models at the cheapest prices with a single API key.
-            </text>
-            <text fg={theme.text}>
-              Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> to get a key
-            </text>
-          </box>
-        ) : undefined
-      }
+      description={() => (
+        <box gap={1}>
+          {props.providerID === "opencode" ? (
+            <box gap={1}>
+              <text fg={theme.textMuted}>
+                OpenCode Zen gives you access to all the best coding models at the cheapest prices with a single API key.
+              </text>
+              <text fg={theme.text}>
+                Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> to get a key
+              </text>
+            </box>
+          ) : null}
+          {error() ? <text fg={theme.error}>{error()}</text> : null}
+        </box>
+      )}
       onConfirm={async (value) => {
         if (!value) return
-        await sdk.client.auth.set({
-          providerID: props.providerID,
-          auth: {
+        const result = await sdk.client.auth.set({
+          path: { id: props.providerID },
+          body: {
             type: "api",
             key: value,
           },
         })
+        if (result.error) {
+          setError(extractErrorMessage(result.error) ?? "Failed to validate API key")
+          return
+        }
         await sdk.client.instance.dispose()
         await sync.bootstrap()
+        const suffix = value.slice(-4)
+        toast.show({ message: `Provider connected and validated (key ••••${suffix})`, variant: "success" })
         dialog.replace(() => <DialogModel providerID={props.providerID} />)
       }}
     />

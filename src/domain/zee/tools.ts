@@ -270,19 +270,19 @@ export const messagingTool: ToolDefinition = {
     description: `Send messages via WhatsApp or Telegram gateways.
 
 Channels:
-- **whatsapp**: Zee's WhatsApp gateway (requires active daemon with --whatsapp)
-- **telegram**: Stanley/Johny Telegram bots (requires active daemon with --telegram-*)
+- **whatsapp**: Zee's WhatsApp gateway (requires `agent-core daemon` with gateway enabled)
+- **telegram**: Telegram bots (requires `agent-core daemon` with gateway enabled)
 
 WhatsApp:
-- \`to\`: Chat ID (from incoming message context, e.g., "1234567890@c.us")
+- \`to\`: E164 phone (e.g., "+1555...") or chat JID (e.g., "1234567890@c.us" or "...@g.us")
 - Only Zee can send via WhatsApp
 
 Telegram:
-- \`to\`: Numeric chat ID (from incoming message context)
-- \`persona\`: Which bot to use - "stanley" (default) or "johny"
+- \`to\`: Chat ID (numeric) or @username
+- \`persona\`: Which bot/account to use - "stanley" (default) or "johny"
 
 Examples:
-- WhatsApp: { channel: "whatsapp", to: "1234567890@c.us", message: "Hello!" }
+- WhatsApp: { channel: "whatsapp", to: "+15551234567", message: "Hello!" }
 - Telegram via Stanley: { channel: "telegram", to: "123456789", message: "Market update!", persona: "stanley" }`,
     parameters: MessagingParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
@@ -290,9 +290,11 @@ Examples:
 
       ctx.metadata({ title: `Sending via ${channel}` });
 
-      // Get daemon port from environment or default
-      const daemonPort = process.env.AGENT_CORE_DAEMON_PORT || "3456";
-      const baseUrl = `http://127.0.0.1:${daemonPort}`;
+      const rawBaseUrl =
+        process.env.AGENT_CORE_URL ||
+        process.env.AGENT_CORE_DAEMON_URL ||
+        `http://127.0.0.1:${process.env.AGENT_CORE_PORT || process.env.AGENT_CORE_DAEMON_PORT || "3210"}`;
+      const baseUrl = rawBaseUrl.replace(/\/$/, "");
 
       try {
         if (channel === "whatsapp") {
@@ -326,9 +328,9 @@ Examples:
               output: `Failed to send WhatsApp message: ${result.error || "Unknown error"}
 
 Troubleshooting:
-- Ensure daemon is running with --whatsapp flag
-- Check WhatsApp connection status
-- Verify chatId format (e.g., "1234567890@c.us")`,
+- Ensure `agent-core daemon` is running
+- Check `agent-core debug status` shows Gateway: Active
+- Verify recipient format (E164 like "+1555..." or JID like "1234567890@c.us")`,
             };
           }
 
@@ -384,8 +386,8 @@ Chat ID must be a numeric value (e.g., 123456789).`,
               output: `Failed to send Telegram message via ${selectedPersona}: ${result.error || "Unknown error"}
 
 Troubleshooting:
-- Ensure daemon is running with --telegram-${selectedPersona}-token flag
-- Check bot connection status
+- Ensure `agent-core daemon` is running
+- Check `agent-core debug status` shows Gateway: Active
 - Verify chatId is numeric`,
             };
           }
@@ -1090,9 +1092,11 @@ Examples:
 
       ctx.metadata({ title: `WhatsApp: ${remove ? "Remove" : "Add"} reaction` });
 
-      // Get daemon port from environment or default
-      const daemonPort = process.env.AGENT_CORE_DAEMON_PORT || "3456";
-      const baseUrl = `http://127.0.0.1:${daemonPort}`;
+      const rawBaseUrl =
+        process.env.AGENT_CORE_URL ||
+        process.env.AGENT_CORE_DAEMON_URL ||
+        `http://127.0.0.1:${process.env.AGENT_CORE_PORT || process.env.AGENT_CORE_DAEMON_PORT || "3210"}`;
+      const baseUrl = rawBaseUrl.replace(/\/$/, "");
 
       try {
         // Note: This endpoint needs to be added to the server
