@@ -314,6 +314,7 @@ export namespace MessageV2 {
     }),
     system: z.string().optional(),
     tools: z.record(z.string(), z.boolean()).optional(),
+    options: z.record(z.string(), z.any()).optional(),
     variant: z.string().optional(),
   }).meta({
     ref: "UserMessage",

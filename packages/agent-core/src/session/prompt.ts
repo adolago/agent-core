@@ -19,7 +19,7 @@ import { Plugin } from "../plugin"
 // NOTE: PROMPT_PLAN and BUILD_SWITCH removed - replaced by hold/release mode in TUI
 import MAX_STEPS from "../session/prompt/max-steps.txt"
 import { defer } from "../util/defer"
-import { clone } from "remeda"
+import { clone, mergeDeep } from "remeda"
 import { ToolRegistry } from "../tool/registry"
 import { MCP } from "../mcp"
 import { LSP } from "../lsp"
@@ -99,6 +99,7 @@ export namespace SessionPrompt {
         "@deprecated tools and permissions have been merged, you can set permissions on the session itself now",
       ),
     system: z.string().optional(),
+    options: z.record(z.string(), z.any()).optional(),
     variant: z.string().optional(),
     parts: z.array(
       z.discriminatedUnion("type", [
@@ -508,7 +509,10 @@ export namespace SessionPrompt {
       }
 
       // normal processing
-      const agent = await Agent.get(lastUser.agent)
+      const baseAgent = await Agent.get(lastUser.agent)
+      const agent = lastUser.options
+        ? { ...baseAgent, options: mergeDeep(baseAgent.options, lastUser.options) }
+        : baseAgent
       const maxSteps = agent.steps ?? Infinity
       const isLastStep = step >= maxSteps
       msgs = await insertReminders({
@@ -833,6 +837,7 @@ export namespace SessionPrompt {
       agent: agent.name,
       model: input.model ?? agent.model ?? (await lastModel(input.sessionID)),
       system: input.system,
+      options: input.options,
       variant: input.variant,
     }
 
