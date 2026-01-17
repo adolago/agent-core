@@ -1,12 +1,15 @@
-import { describe, expect, test, mock } from "bun:test"
+import { describe, expect, test, afterAll } from "bun:test"
 import { Auth } from "../../src/auth"
+import { Provider } from "../../src/provider/provider"
 
-mock.module("../../src/provider/provider", () => ({
-  Provider: {
-    reload: async () => {},
-    validateAuth: async () => {},
-  },
-}))
+const originalReload = Provider.reload
+const originalValidateAuth = Provider.validateAuth
+Provider.reload = async () => {}
+Provider.validateAuth = async () => {}
+afterAll(() => {
+  Provider.reload = originalReload
+  Provider.validateAuth = originalValidateAuth
+})
 
 const { AuthRoute } = await import("../../src/server/route/auth")
 
@@ -50,4 +53,3 @@ describe("auth.set endpoint", () => {
     expect(stored && "key" in stored ? stored.key : undefined).toBe("legacy-key")
   })
 })
-
