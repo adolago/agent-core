@@ -20,10 +20,73 @@ function writeOsc52(text: string): void {
   process.stdout.write(sequence)
 }
 
+// 4MB threshold - leave 1MB margin for the 5MB API limit
+const IMAGE_SIZE_THRESHOLD = 4 * 1024 * 1024
+
 export namespace Clipboard {
   export interface Content {
     data: string
     mime: string
+  }
+
+  /**
+   * Compress an image buffer using ImageMagick if it exceeds the size threshold.
+   * Returns the original buffer if compression fails or isn't needed.
+   */
+  async function compressImageIfNeeded(buffer: Buffer, mime: string): Promise<{ data: Buffer; mime: string }> {
+    if (buffer.length <= IMAGE_SIZE_THRESHOLD) {
+      return { data: buffer, mime }
+    }
+
+    // Check if ImageMagick is available
+    const magick = Bun.which("magick") || Bun.which("convert")
+    if (!magick) {
+      console.warn(`[clipboard] Image is ${(buffer.length / 1024 / 1024).toFixed(1)}MB but ImageMagick not available for compression`)
+      return { data: buffer, mime }
+    }
+
+    const tmpInput = path.join(tmpdir(), `agent-core-img-in-${Date.now()}.png`)
+    const tmpOutput = path.join(tmpdir(), `agent-core-img-out-${Date.now()}.jpg`)
+
+    try {
+      // Write original image to temp file
+      await Bun.write(tmpInput, buffer)
+
+      // Progressive compression: try different quality levels until under threshold
+      // Start with high quality JPEG, reduce if needed
+      const qualities = [85, 70, 50, 30]
+      const resizeSteps = ["100%", "75%", "50%", "25%"]
+
+      for (const resize of resizeSteps) {
+        for (const quality of qualities) {
+          const cmd = magick.endsWith("convert")
+            ? `convert "${tmpInput}" -resize ${resize} -quality ${quality} -strip "${tmpOutput}"`
+            : `magick "${tmpInput}" -resize ${resize} -quality ${quality} -strip "${tmpOutput}"`
+
+          await $`sh -c ${cmd}`.nothrow().quiet()
+
+          const outputFile = Bun.file(tmpOutput)
+          if (await outputFile.exists()) {
+            const compressed = Buffer.from(await outputFile.arrayBuffer())
+            if (compressed.length <= IMAGE_SIZE_THRESHOLD && compressed.length > 0) {
+              const ratio = ((1 - compressed.length / buffer.length) * 100).toFixed(0)
+              console.log(`[clipboard] Compressed image: ${(buffer.length / 1024 / 1024).toFixed(1)}MB → ${(compressed.length / 1024 / 1024).toFixed(1)}MB (${ratio}% reduction, quality=${quality}, resize=${resize})`)
+              return { data: compressed, mime: "image/jpeg" }
+            }
+          }
+        }
+      }
+
+      // If all compression attempts failed, return original with warning
+      console.warn(`[clipboard] Could not compress image below ${IMAGE_SIZE_THRESHOLD / 1024 / 1024}MB threshold`)
+      return { data: buffer, mime }
+    } catch (err) {
+      console.warn(`[clipboard] Image compression failed:`, err)
+      return { data: buffer, mime }
+    } finally {
+      // Clean up temp files
+      await $`rm -f "${tmpInput}" "${tmpOutput}"`.nothrow().quiet()
+    }
   }
 
   export async function read(): Promise<Content | undefined> {
@@ -36,8 +99,9 @@ export namespace Clipboard {
           .nothrow()
           .quiet()
         const file = Bun.file(tmpfile)
-        const buffer = await file.arrayBuffer()
-        return { data: Buffer.from(buffer).toString("base64"), mime: "image/png" }
+        const buffer = Buffer.from(await file.arrayBuffer())
+        const compressed = await compressImageIfNeeded(buffer, "image/png")
+        return { data: compressed.data.toString("base64"), mime: compressed.mime }
       } catch {
       } finally {
         await $`rm -f "${tmpfile}"`.nothrow().quiet()
@@ -51,7 +115,8 @@ export namespace Clipboard {
       if (base64) {
         const imageBuffer = Buffer.from(base64.trim(), "base64")
         if (imageBuffer.length > 0) {
-          return { data: imageBuffer.toString("base64"), mime: "image/png" }
+          const compressed = await compressImageIfNeeded(imageBuffer, "image/png")
+          return { data: compressed.data.toString("base64"), mime: compressed.mime }
         }
       }
     }
@@ -59,11 +124,15 @@ export namespace Clipboard {
     if (os === "linux") {
       const wayland = await $`wl-paste -t image/png`.nothrow().arrayBuffer()
       if (wayland && wayland.byteLength > 0) {
-        return { data: Buffer.from(wayland).toString("base64"), mime: "image/png" }
+        const buffer = Buffer.from(wayland)
+        const compressed = await compressImageIfNeeded(buffer, "image/png")
+        return { data: compressed.data.toString("base64"), mime: compressed.mime }
       }
       const x11 = await $`xclip -selection clipboard -t image/png -o`.nothrow().arrayBuffer()
       if (x11 && x11.byteLength > 0) {
-        return { data: Buffer.from(x11).toString("base64"), mime: "image/png" }
+        const buffer = Buffer.from(x11)
+        const compressed = await compressImageIfNeeded(buffer, "image/png")
+        return { data: compressed.data.toString("base64"), mime: compressed.mime }
       }
     }
 
