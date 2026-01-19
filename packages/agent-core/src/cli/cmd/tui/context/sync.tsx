@@ -74,6 +74,21 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       formatter: FormatterStatus[]
       vcs: VcsInfo | undefined
       path: Path
+      daemon?: {
+        healthy?: boolean
+        version?: string
+        channel?: string
+        mode?: "source" | "binary"
+        execPath?: string
+        entry?: string
+        pid?: number
+        packageVersion?: string
+        execModifiedAt?: string
+        execModifiedTs?: number
+        entryModifiedAt?: string
+        entryModifiedTs?: number
+        legacy?: boolean
+      }
       health: {
         internet: "ok" | "fail" | "checking"
         providers: { id: string; name: string; status: "ok" | "fail" | "skip" }[]
@@ -105,8 +120,41 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       formatter: [],
       vcs: undefined,
       path: { state: "", config: "", worktree: "", directory: "" },
+      daemon: undefined,
       health: { internet: "checking", providers: [] },
     })
+
+    function normalizeDaemonHealth(data: unknown) {
+      if (data && typeof data === "object") {
+        const record = data as Record<string, unknown>
+        const mode =
+          record.mode === "source" || record.mode === "binary"
+            ? (record.mode as "source" | "binary")
+            : undefined
+        return {
+          healthy: typeof record.healthy === "boolean" ? record.healthy : true,
+          version: typeof record.version === "string" ? record.version : undefined,
+          channel: typeof record.channel === "string" ? record.channel : undefined,
+          mode,
+          execPath: typeof record.execPath === "string" ? record.execPath : undefined,
+          entry: typeof record.entry === "string" ? record.entry : undefined,
+          pid: typeof record.pid === "number" ? record.pid : undefined,
+          packageVersion: typeof record.packageVersion === "string" ? record.packageVersion : undefined,
+          execModifiedAt: typeof record.execModifiedAt === "string" ? record.execModifiedAt : undefined,
+          execModifiedTs: typeof record.execModifiedTs === "number" ? record.execModifiedTs : undefined,
+          entryModifiedAt: typeof record.entryModifiedAt === "string" ? record.entryModifiedAt : undefined,
+          entryModifiedTs: typeof record.entryModifiedTs === "number" ? record.entryModifiedTs : undefined,
+          legacy: false,
+        }
+      }
+      if (typeof data === "boolean") {
+        return {
+          healthy: data,
+          legacy: true,
+        }
+      }
+      return undefined
+    }
 
     const sdk = useSDK()
     const toast = useToast()
@@ -394,6 +442,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
             sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
+            fetch(`${sdk.url}/global/health`)
+              .then((res) => res.json())
+              .then((data) => {
+                const normalized = normalizeDaemonHealth(data)
+                setStore("daemon", normalized ? reconcile(normalized) : undefined)
+              })
+              .catch(() => setStore("daemon", undefined)),
             // Fetch health status (internet + providers)
             fetch(`${sdk.url}/global/health/status`)
               .then((res) => res.json())

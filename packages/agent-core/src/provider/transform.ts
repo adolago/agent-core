@@ -42,11 +42,7 @@ export namespace ProviderTransform {
     return undefined
   }
 
-  function normalizeMessages(
-    msgs: ModelMessage[],
-    model: Provider.Model,
-    options: Record<string, unknown>,
-  ): ModelMessage[] {
+  function normalizeMessages(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
     // Anthropic rejects messages with empty content - filter out empty string messages
     // and remove empty text/reasoning parts from array content
     if (model.api.npm === "@ai-sdk/anthropic") {
@@ -259,7 +255,7 @@ export namespace ProviderTransform {
 
   export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
     msgs = unsupportedParts(msgs, model)
-    msgs = normalizeMessages(msgs, model, options)
+    msgs = normalizeMessages(msgs, model)
     if (
       model.providerID === "anthropic" ||
       model.api.id.includes("anthropic") ||
@@ -286,7 +282,13 @@ export namespace ProviderTransform {
         return {
           ...msg,
           providerOptions: remap(msg.providerOptions),
-          content: msg.content.map((part) => ({ ...part, providerOptions: remap(part.providerOptions) })),
+          content: msg.content.map((part) => {
+            if (!("providerOptions" in part)) return part
+            const providerOptions = remap(
+              (part as { providerOptions?: Record<string, any> }).providerOptions,
+            )
+            return providerOptions ? { ...part, providerOptions } : part
+          }),
         } as typeof msg
       })
     }
@@ -354,7 +356,6 @@ export namespace ProviderTransform {
         high: { reasoningEffort: "high" },
       }
     }
-    if (id.includes("grok")) return {}
 
     switch (model.api.npm) {
       case "@openrouter/ai-sdk-provider":
@@ -388,6 +389,18 @@ export namespace ProviderTransform {
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/deepinfra
       case "@ai-sdk/openai-compatible":
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+
+      case "@ai-sdk/github-copilot":
+        return Object.fromEntries(
+          WIDELY_SUPPORTED_EFFORTS.map((effort) => [
+            effort,
+            {
+              reasoningEffort: effort,
+              reasoningSummary: "auto",
+              include: ["reasoning.encrypted_content"],
+            },
+          ]),
+        )
 
       case "@ai-sdk/azure":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure
@@ -1079,39 +1092,8 @@ export namespace ProviderTransform {
     // Then filter to only include params supported by this provider SDK
     const filtered = filterProviderParams(model.api.npm, sanitized)
 
-    switch (model.api.npm) {
-      case "@ai-sdk/github-copilot":
-      case "@ai-sdk/openai":
-      case "@ai-sdk/azure":
-        return {
-          ["openai" as string]: filtered,
-        }
-      case "@ai-sdk/amazon-bedrock":
-        return {
-          ["bedrock" as string]: filtered,
-        }
-      case "@ai-sdk/anthropic":
-        return {
-          ["anthropic" as string]: filtered,
-        }
-      case "@ai-sdk/google-vertex":
-      case "@ai-sdk/google":
-        return {
-          ["google" as string]: filtered,
-        }
-      case "@ai-sdk/gateway":
-        return {
-          ["gateway" as string]: filtered,
-        }
-      case "@openrouter/ai-sdk-provider":
-        return {
-          ["openrouter" as string]: filtered,
-        }
-      default:
-        return {
-          [model.providerID]: filtered,
-        }
-    }
+    const key = sdkKey(model.api.npm) ?? model.providerID
+    return { [key]: filtered }
   }
 
   export function maxOutputTokens(

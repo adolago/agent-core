@@ -4,6 +4,8 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"
+import path from "node:path"
+import { existsSync } from "node:fs"
 import {
   CallToolResultSchema,
   type Tool as MCPToolDef,
@@ -22,6 +24,8 @@ import { McpAuth } from "./auth"
 import { BusEvent } from "../bus/bus-event"
 import { Bus } from "@/bus"
 import { TuiEvent } from "@/cli/cmd/tui/event"
+import { getAgentCoreRoot } from "../paths"
+import { Global } from "@/global"
 import open from "open"
 
 export namespace MCP {
@@ -180,6 +184,26 @@ export namespace MCP {
   type McpEntry = NonNullable<Config.Info["mcp"]>[string]
   function isMcpConfigured(entry: McpEntry): entry is Config.Mcp {
     return typeof entry === "object" && entry !== null && "type" in entry
+  }
+
+  function resolveLocalCommand(
+    serverName: string,
+    mcp: z.infer<typeof Config.McpLocal>,
+    agentCoreRoot: string,
+  ): string[] | undefined {
+    if (mcp.command?.length && mcp.command[0]) {
+      return mcp.command
+    }
+
+    const roots = [Global.Path.source, agentCoreRoot]
+    for (const root of roots) {
+      const candidate = path.join(root, "src", "mcp", "servers", `${serverName}.ts`)
+      if (existsSync(candidate)) {
+        return ["bun", "run", candidate]
+      }
+    }
+
+    return undefined
   }
 
   const state = Instance.state(
@@ -446,8 +470,19 @@ export namespace MCP {
     }
 
     if (mcp.type === "local") {
-      const [cmd, ...args] = mcp.command
       const cwd = Instance.directory
+      // Ensure AGENT_CORE_ROOT is set for MCP servers that depend on it
+      const agentCoreRoot = process.env.AGENT_CORE_ROOT || getAgentCoreRoot()
+      const resolvedCommand = resolveLocalCommand(key, mcp, agentCoreRoot)
+      const [cmd, ...args] = resolvedCommand ?? []
+      if (!cmd) {
+        const error = "Missing command for local MCP server"
+        log.error("local mcp startup failed", { key, command: mcp.command, cwd, error })
+        return {
+          mcpClient: undefined,
+          status: { status: "failed" as const, error },
+        }
+      }
       const transport = new StdioClientTransport({
         stderr: "ignore",
         command: cmd,
@@ -455,6 +490,7 @@ export namespace MCP {
         cwd,
         env: {
           ...process.env,
+          AGENT_CORE_ROOT: agentCoreRoot,
           ...(cmd === "opencode" ? { BUN_BE_BUN: "1" } : {}),
           ...mcp.environment,
         },
