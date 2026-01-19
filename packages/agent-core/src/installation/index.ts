@@ -1,11 +1,13 @@
 import { BusEvent } from "@/bus/bus-event"
 import path from "path"
+import fs from "node:fs"
 import { $ } from "bun"
 import z from "zod"
 import { NamedError } from "@opencode-ai/util/error"
 import { Log } from "../util/log"
 import { iife } from "@/util/iife"
 import { Flag } from "../flag/flag"
+import { fileURLToPath } from "url"
 
 declare global {
   const AGENT_CORE_VERSION: string
@@ -17,6 +19,24 @@ declare global {
 export namespace Installation {
   const log = Log.create({ service: "installation" })
   const DEFAULT_NPM_PACKAGE = "@adolago/agent-core"
+  const PACKAGE_JSON_PATH = (() => {
+    try {
+      const here = path.dirname(fileURLToPath(import.meta.url))
+      return path.resolve(here, "..", "..", "package.json")
+    } catch {
+      return undefined
+    }
+  })()
+  const PACKAGE_VERSION = (() => {
+    if (!PACKAGE_JSON_PATH) return undefined
+    try {
+      const raw = fs.readFileSync(PACKAGE_JSON_PATH, "utf-8")
+      const parsed = JSON.parse(raw) as { version?: string }
+      return typeof parsed.version === "string" ? parsed.version : undefined
+    } catch {
+      return undefined
+    }
+  })()
   export const NPM_PACKAGES = Array.from(
     new Set(
       [process.env.AGENT_CORE_NPM_PACKAGE?.trim(), DEFAULT_NPM_PACKAGE, "agent-core-ai"].filter(Boolean),
@@ -91,6 +111,49 @@ export namespace Installation {
 
   export function isLocal() {
     return CHANNEL === "local"
+  }
+
+  export type RuntimeMode = "source" | "binary"
+  export type RuntimeInfo = {
+    version: string
+    channel: string
+    mode: RuntimeMode
+    execPath: string
+    entry?: string
+    pid: number
+    packageVersion?: string
+    execModifiedAt?: string
+    execModifiedTs?: number
+    entryModifiedAt?: string
+    entryModifiedTs?: number
+  }
+
+  export function runtimeMode(execPath: string = process.execPath): RuntimeMode {
+    const exec = path.basename(execPath).toLowerCase()
+    if (exec === "bun" || exec === "node" || exec === "deno") return "source"
+    return "binary"
+  }
+
+  export function isSourceRuntime() {
+    return runtimeMode() === "source"
+  }
+
+  function resolveEntryPath(): string | undefined {
+    const candidate = process.argv[1]
+    if (!candidate) return undefined
+    const resolved = path.isAbsolute(candidate) ? candidate : path.resolve(process.cwd(), candidate)
+    if (!fs.existsSync(resolved)) return undefined
+    return resolved
+  }
+
+  function statPath(target?: string): { modifiedAt: string; modifiedTs: number } | undefined {
+    if (!target) return undefined
+    try {
+      const stat = fs.statSync(target)
+      return { modifiedAt: stat.mtime.toISOString(), modifiedTs: stat.mtime.getTime() }
+    } catch {
+      return undefined
+    }
   }
 
   export async function method() {
@@ -204,13 +267,13 @@ export namespace Installation {
     await $`${process.execPath} --version`.nothrow().quiet().text()
   }
 
-  // Version format: V0.YYYYMMDD
+  // Version set at build time; fallback uses package.json or "dev".
   export const VERSION =
     typeof AGENT_CORE_VERSION === "string"
       ? AGENT_CORE_VERSION
       : typeof OPENCODE_VERSION === "string"
         ? OPENCODE_VERSION
-        : "V0.20260109"
+        : PACKAGE_VERSION ?? "dev"
   export const CHANNEL =
     typeof AGENT_CORE_CHANNEL === "string"
       ? AGENT_CORE_CHANNEL
@@ -218,6 +281,26 @@ export namespace Installation {
         ? OPENCODE_CHANNEL
         : "local"
   export const USER_AGENT = `agent-core/${CHANNEL}/${VERSION}/${Flag.OPENCODE_CLIENT}`
+
+  export function runtimeInfo(): RuntimeInfo {
+    const execPath = process.execPath
+    const entry = resolveEntryPath()
+    const execStat = statPath(execPath)
+    const entryStat = statPath(entry)
+    return {
+      version: VERSION,
+      channel: CHANNEL,
+      mode: runtimeMode(execPath),
+      execPath,
+      entry,
+      pid: process.pid,
+      packageVersion: PACKAGE_VERSION,
+      execModifiedAt: execStat?.modifiedAt,
+      execModifiedTs: execStat?.modifiedTs,
+      entryModifiedAt: entryStat?.modifiedAt,
+      entryModifiedTs: entryStat?.modifiedTs,
+    }
+  }
 
   export async function latest(installMethod?: Method) {
     const detectedMethod = installMethod || (await method())

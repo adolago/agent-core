@@ -24,6 +24,7 @@
     }
   },
   "memory": {
+    "required": true,
     "qdrant": {
       "url": "http://localhost:6333",
       "collection": "personas_memory"

@@ -11,6 +11,19 @@ export function DialogStatus() {
   const { theme } = useTheme()
 
   const enabledFormatters = createMemo(() => sync.data.formatter.filter((f) => f.enabled))
+  const tuiRuntime = Installation.runtimeInfo()
+  const daemonRuntime = createMemo(() => sync.data.daemon)
+  const daemonLabel = createMemo(() => {
+    const daemon = daemonRuntime()
+    if (!daemon) return "Unavailable"
+    const status = daemon.healthy ? "healthy" : "unhealthy"
+    return `${daemon.version} (${daemon.channel}/${daemon.mode}, ${status})`
+  })
+  const mismatch = createMemo(() => {
+    const daemon = daemonRuntime()
+    if (!daemon) return false
+    return daemon.version !== tuiRuntime.version || daemon.execPath !== tuiRuntime.execPath
+  })
 
   const plugins = createMemo(() => {
     const list = sync.data.config.plugin ?? []
@@ -45,7 +58,38 @@ export function DialogStatus() {
         </text>
         <text fg={theme.textMuted}>esc</text>
       </box>
-      <text fg={theme.textMuted}>OpenCode v{Installation.VERSION}</text>
+      <box>
+        <text fg={theme.text}>Runtime</text>
+        <box flexDirection="row" gap={1}>
+          <text fg={theme.textMuted}>TUI</text>
+          <text fg={theme.text}>{`${tuiRuntime.version} (${tuiRuntime.channel}/${tuiRuntime.mode})`}</text>
+        </box>
+        <text fg={theme.textMuted} wrapMode="word">
+          {tuiRuntime.execPath}
+        </text>
+        <Show when={tuiRuntime.entry}>
+          <text fg={theme.textMuted} wrapMode="word">
+            {tuiRuntime.entry}
+          </text>
+        </Show>
+        <box flexDirection="row" gap={1}>
+          <text fg={theme.textMuted}>Daemon</text>
+          <text fg={theme.text}>{daemonLabel()}</text>
+        </box>
+        <Show when={daemonRuntime()?.execPath}>
+          <text fg={theme.textMuted} wrapMode="word">
+            {daemonRuntime()!.execPath}
+          </text>
+        </Show>
+        <Show when={daemonRuntime()?.entry}>
+          <text fg={theme.textMuted} wrapMode="word">
+            {daemonRuntime()!.entry}
+          </text>
+        </Show>
+        <Show when={mismatch()}>
+          <text fg={theme.warning}>TUI and daemon are different builds. Restart both from the same install.</text>
+        </Show>
+      </box>
       <Show when={Object.keys(sync.data.mcp).length > 0} fallback={<text fg={theme.text}>No MCP Servers</text>}>
         <box>
           <text fg={theme.text}>{Object.keys(sync.data.mcp).length} MCP Servers</text>

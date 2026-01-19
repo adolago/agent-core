@@ -296,7 +296,6 @@ export namespace Agent {
     const system = SystemPrompt.header(defaultModel.providerID)
     system.push(PROMPT_GENERATE)
     const existing = await list()
-
     const params = {
       experimental_telemetry: {
         isEnabled: cfg.experimental?.openTelemetry,

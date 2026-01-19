@@ -5,6 +5,7 @@ import { streamSSE } from "hono/streaming"
 import { GlobalBus } from "@/bus/global"
 import { Instance } from "../../project/instance"
 import { Provider } from "@/provider/provider"
+import { Installation } from "@/installation"
 
 // Health status schema for system monitoring
 const HealthStatus = z.object({
@@ -16,6 +17,20 @@ const HealthStatus = z.object({
       status: z.enum(["ok", "fail", "skip"]),
     }),
   ),
+})
+const HealthCheck = z.object({
+  healthy: z.boolean(),
+  version: z.string(),
+  channel: z.string(),
+  mode: z.enum(["source", "binary"]),
+  execPath: z.string(),
+  entry: z.string().optional(),
+  pid: z.number(),
+  packageVersion: z.string().optional(),
+  execModifiedAt: z.string().optional(),
+  execModifiedTs: z.number().optional(),
+  entryModifiedAt: z.string().optional(),
+  entryModifiedTs: z.number().optional(),
 })
 
 export const GlobalRoute = new Hono()
@@ -30,14 +45,15 @@ export const GlobalRoute = new Hono()
           description: "Health check passed",
           content: {
             "application/json": {
-              schema: resolver(z.boolean()),
+              schema: resolver(HealthCheck),
             },
           },
         },
       },
     }),
     async (c) => {
-      return c.json(true)
+      const runtime = Installation.runtimeInfo()
+      return c.json({ healthy: true, ...runtime })
     },
   )
   .get(

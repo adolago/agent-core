@@ -17,6 +17,11 @@ Complete reference for environment variables across the agent-core ecosystem.
 | `AGENT_CORE_TEST_HOME` | - | Override home directory for testing |
 | `AGENT_CORE_ORIGINAL_PWD` | - | Original working directory before agent-core started |
 
+### Experimental feature flags
+
+Maturity and ownership for experimental flags are tracked in
+`docs/architecture/feature-flag-maturity.md`.
+
 ### Daemon
 
 | Variable | Default | Description |
@@ -38,6 +43,16 @@ Complete reference for environment variables across the agent-core ecosystem.
 | `TMUX` | - | Indicates running inside tmux |
 | `WEZTERM_PANE` | - | WezTerm pane ID when running in WezTerm |
 | `WEZTERM_EXECUTABLE` | - | Path to WezTerm executable |
+
+### Dictation (TUI)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `INWORLD_API_KEY` | - | Base64 runtime API key for Inworld STT |
+| `INWORLD_STT_ENDPOINT` | - | Inworld runtime graph endpoint (`.../graph:start`) |
+| `OPENCODE_INWORLD_API_KEY` | - | Alias for `INWORLD_API_KEY` |
+| `OPENCODE_INWORLD_STT_ENDPOINT` | - | Alias for `INWORLD_STT_ENDPOINT` |
+| `OPENCODE_DICTATION_RECORD_COMMAND` | - | Override the recorder command used for dictation |
 
 ### Network & Proxy
 

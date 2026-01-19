@@ -7,7 +7,7 @@
 # 1. Kills all agent-core processes
 # 2. Optionally cleans build artifacts (--clean or --fresh)
 # 3. Rebuilds from source (unless --no-build)
-# 4. Copies binary to ~/bin/agent-core
+# 4. Links binary via bun link (~/.bun/bin/agent-core)
 # 5. Starts daemon (unless --no-daemon)
 # 6. Verifies everything is working
 #
@@ -18,9 +18,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 PKG_DIR="$REPO_ROOT/packages/agent-core"
 BINARY_SRC="$PKG_DIR/dist/agent-core-linux-x64/bin/agent-core"
-BINARY_DST="$HOME/bin/agent-core"
+BINARY_LINK="$HOME/.bun/bin/agent-core"
 DAEMON_PORT="${AGENT_CORE_PORT:-3210}"
 DAEMON_HOST="${AGENT_CORE_HOST:-127.0.0.1}"
+DAEMON_URL="${AGENT_CORE_URL:-http://$DAEMON_HOST:$DAEMON_PORT}"
 
 # Colors
 RED='\033[0;31m'
@@ -35,17 +36,23 @@ ok() { echo -e "${GREEN}[  OK  ]${NC} $*"; }
 warn() { echo -e "${YELLOW}[ WARN ]${NC} $*"; }
 err() { echo -e "${RED}[ERROR]${NC} $*"; }
 
+resolve_agent_bin() {
+  command -v agent-core 2>/dev/null || true
+}
+
 # Parse args
 NO_BUILD=false
 NO_DAEMON=false
 STATUS_ONLY=false
 CLEAN_BUILD=false
 FRESH_BUILD=false
+GATEWAY=false
 
 for arg in "$@"; do
   case $arg in
     --no-build) NO_BUILD=true ;;
     --no-daemon) NO_DAEMON=true ;;
+    --gateway) GATEWAY=true ;;
     --status) STATUS_ONLY=true ;;
     --clean) CLEAN_BUILD=true ;;
     --fresh) FRESH_BUILD=true ;;
@@ -55,6 +62,7 @@ for arg in "$@"; do
       echo "Options:"
       echo "  --no-build   Skip rebuilding (just restart)"
       echo "  --no-daemon  Don't start daemon after reload"
+      echo "  --gateway    Start Zee messaging gateway with the daemon"
       echo "  --status     Show status and diagnostics only"
       echo "  --clean      Clean build artifacts before rebuilding"
       echo "  --fresh      Full fresh build: clean + clear turbo cache + reinstall deps"
@@ -65,6 +73,7 @@ for arg in "$@"; do
       echo "  $0 --clean          # Clean dist/, rebuild, restart"
       echo "  $0 --fresh          # Nuclear option: purge everything, rebuild from scratch"
       echo "  $0 --no-daemon      # Rebuild but don't start daemon"
+      echo "  $0 --gateway        # Rebuild and start daemon + gateway"
       exit 0
       ;;
   esac
@@ -130,9 +139,27 @@ show_status() {
   echo ""
 
   # Binary info
-  echo "Binary: $BINARY_DST"
-  if [[ -f "$BINARY_DST" ]]; then
-    local mod_time=$(stat -c "%Y" "$BINARY_DST" 2>/dev/null || stat -f "%m" "$BINARY_DST" 2>/dev/null)
+  local path_bin=$(resolve_agent_bin)
+  echo "Binary (PATH): ${path_bin:-<not found>}"
+  if [[ -n "$path_bin" && -f "$path_bin" ]]; then
+    local mod_time=$(stat -c "%Y" "$path_bin" 2>/dev/null || stat -f "%m" "$path_bin" 2>/dev/null)
+    local mod_date=$(date -d "@$mod_time" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$mod_time" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
+    ok "Exists (modified: $mod_date)"
+  else
+    err "Not found"
+  fi
+  echo ""
+  echo "Bun link: $BINARY_LINK"
+  if [[ -L "$BINARY_LINK" || -f "$BINARY_LINK" ]]; then
+    local link_target=$(readlink -f "$BINARY_LINK" 2>/dev/null || true)
+    ok "Exists ${link_target:+(-> $link_target)}"
+  else
+    err "Not found (run: cd packages/agent-core && bun link)"
+  fi
+  echo ""
+  echo "Native binary: $BINARY_SRC"
+  if [[ -f "$BINARY_SRC" ]]; then
+    local mod_time=$(stat -c "%Y" "$BINARY_SRC" 2>/dev/null || stat -f "%m" "$BINARY_SRC" 2>/dev/null)
     local mod_date=$(date -d "@$mod_time" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r "$mod_time" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
     ok "Exists (modified: $mod_date)"
   else
@@ -163,11 +190,17 @@ show_status() {
   echo ""
 
   # Daemon health
-  echo "Daemon API: http://$DAEMON_HOST:$DAEMON_PORT"
-  local health=$(curl -sf "http://$DAEMON_HOST:$DAEMON_PORT/global/health" 2>/dev/null || echo "")
+  echo "Daemon API: $DAEMON_URL"
+  local health=$(curl -sf "$DAEMON_URL/global/health" 2>/dev/null || echo "")
   if [[ -n "$health" ]]; then
     local version=$(echo "$health" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
-    ok "Healthy (version: $version)"
+    local channel=$(echo "$health" | grep -o '"channel":"[^"]*"' | cut -d'"' -f4)
+    local mode=$(echo "$health" | grep -o '"mode":"[^"]*"' | cut -d'"' -f4)
+    local suffix=""
+    if [[ -n "$channel" || -n "$mode" ]]; then
+      suffix=" (${channel}/${mode})"
+    fi
+    ok "Healthy (version: $version$suffix)"
   else
     warn "Not responding"
   fi
@@ -196,19 +229,27 @@ show_status() {
     "$PKG_DIR/src/server/server.ts"
     "$PKG_DIR/src/session/llm.ts"
   )
-  local binary_time=$(stat -c "%Y" "$BINARY_DST" 2>/dev/null || echo 0)
-  for src in "${src_files[@]}"; do
-    if [[ -f "$src" ]]; then
-      local src_time=$(stat -c "%Y" "$src" 2>/dev/null || echo 0)
-      local src_date=$(date -d "@$src_time" "+%H:%M:%S" 2>/dev/null || date -r "$src_time" "+%H:%M:%S" 2>/dev/null)
-      local name=$(basename "$src")
-      if [[ $src_time -gt $binary_time ]]; then
-        warn "$name ($src_date) - NEWER than binary, rebuild needed!"
-      else
-        ok "$name ($src_date)"
+  local binary_path="$BINARY_SRC"
+  if [[ ! -f "$binary_path" && -n "$path_bin" && -f "$path_bin" ]]; then
+    binary_path="$path_bin"
+  fi
+  if [[ ! -f "$binary_path" ]]; then
+    warn "No binary found for timestamp comparison"
+  else
+    local binary_time=$(stat -c "%Y" "$binary_path" 2>/dev/null || echo 0)
+    for src in "${src_files[@]}"; do
+      if [[ -f "$src" ]]; then
+        local src_time=$(stat -c "%Y" "$src" 2>/dev/null || echo 0)
+        local src_date=$(date -d "@$src_time" "+%H:%M:%S" 2>/dev/null || date -r "$src_time" "+%H:%M:%S" 2>/dev/null)
+        local name=$(basename "$src")
+        if [[ $src_time -gt $binary_time ]]; then
+          warn "$name ($src_date) - NEWER than binary, rebuild needed!"
+        else
+          ok "$name ($src_date)"
+        fi
       fi
-    fi
-  done
+    done
+  fi
   echo ""
   echo "═══════════════════════════════════════════════════════════════"
 }
@@ -301,63 +342,15 @@ else
   warn "Skipping build (--no-build)"
 fi
 
-# Step 4: Copy binary (with retry for "Text file busy")
-log "Installing binary..."
+# Step 4: Link binary (bun link)
+log "Linking binary..."
 if [[ -f "$BINARY_SRC" ]]; then
-  # Remove old binary first to avoid "Text file busy"
-  if [[ -f "$BINARY_DST" ]]; then
-    rm -f "$BINARY_DST" 2>/dev/null || true
-    sleep 0.5
-  fi
-
-  # Retry copy with increasing delays
-  for attempt in 1 2 3 4 5; do
-    if cp "$BINARY_SRC" "$BINARY_DST" 2>/dev/null; then
-      chmod +x "$BINARY_DST"
-      ok "Installed to $BINARY_DST"
-      break
-    else
-      if [[ $attempt -eq 5 ]]; then
-        err "Failed to copy binary after 5 attempts (Text file busy?)"
-        err "Try: rm -f $BINARY_DST && then re-run this script"
-        exit 1
-      fi
-      warn "Copy attempt $attempt failed, retrying in ${attempt}s..."
-      sleep $attempt
-    fi
-  done
-
-  # Also update bun global install if it exists
-  BUN_GLOBAL_BIN="$HOME/.bun/install/global/node_modules/agent-core-linux-x64/bin/agent-core"
-  if [[ -f "$BUN_GLOBAL_BIN" ]]; then
-    log "Updating bun global install..."
-    if cp "$BINARY_SRC" "$BUN_GLOBAL_BIN" 2>/dev/null; then
-      chmod +x "$BUN_GLOBAL_BIN"
-      ok "Updated bun global install"
-    else
-      warn "Could not update bun global install (may need manual: cp $BINARY_SRC $BUN_GLOBAL_BIN)"
-    fi
-
-    # Sync .agent-core configs to bun global install
-    # Use SOURCE config (not dist) because dist strips MCP command arrays for distribution
-    BUN_GLOBAL_CONFIG="$HOME/.bun/install/global/node_modules/agent-core-linux-x64/.agent-core"
-    SOURCE_CONFIG="$REPO_ROOT/.agent-core"
-    if [[ -d "$SOURCE_CONFIG" ]] && [[ -d "$BUN_GLOBAL_CONFIG" ]]; then
-      # Copy config file (preserves full MCP commands for local dev)
-      cp "$SOURCE_CONFIG/agent-core.jsonc" "$BUN_GLOBAL_CONFIG/" 2>/dev/null && ok "Synced agent-core.jsonc (from source)"
-      # Copy tools if they exist
-      if [[ -d "$SOURCE_CONFIG/tool" ]]; then
-        mkdir -p "$BUN_GLOBAL_CONFIG/tool"
-        cp -r "$SOURCE_CONFIG/tool"/* "$BUN_GLOBAL_CONFIG/tool/" 2>/dev/null && ok "Synced tools"
-      fi
-      # Copy agents if they exist
-      if [[ -d "$SOURCE_CONFIG/agent" ]]; then
-        mkdir -p "$BUN_GLOBAL_CONFIG/agent"
-        cp -r "$SOURCE_CONFIG/agent"/* "$BUN_GLOBAL_CONFIG/agent/" 2>/dev/null && ok "Synced agents"
-      fi
-    else
-      warn "Could not sync configs (source: $SOURCE_CONFIG, dest: $BUN_GLOBAL_CONFIG)"
-    fi
+  cd "$PKG_DIR"
+  if bun link 2>&1 | tail -5; then
+    ok "Linked to $BINARY_LINK"
+  else
+    err "bun link failed"
+    exit 1
   fi
 else
   err "Binary not found at $BINARY_SRC"
@@ -368,7 +361,11 @@ fi
 if ! $NO_DAEMON; then
   # Kill any daemon that may have started during build
   log "Ensuring no daemon is running..."
-  "$BINARY_DST" daemon-stop 2>/dev/null || true
+  AGENT_BIN="$(resolve_agent_bin)"
+  if [[ -z "$AGENT_BIN" ]]; then
+    AGENT_BIN="$BINARY_LINK"
+  fi
+  "$AGENT_BIN" daemon-stop 2>/dev/null || true
   sleep 1
   
   # Kill by port as final measure
@@ -380,7 +377,11 @@ if ! $NO_DAEMON; then
   fi
   
   log "Starting daemon..."
-  nohup "$BINARY_DST" daemon --hostname "$DAEMON_HOST" --port "$DAEMON_PORT" --gateway > /tmp/agent-core-daemon.log 2>&1 &
+  daemon_args=(daemon --hostname "$DAEMON_HOST" --port "$DAEMON_PORT")
+  if $GATEWAY; then
+    daemon_args+=(--gateway)
+  fi
+  nohup "$AGENT_BIN" "${daemon_args[@]}" > /tmp/agent-core-daemon.log 2>&1 &
   DAEMON_PID=$!
   sleep 2
 
@@ -388,10 +389,16 @@ if ! $NO_DAEMON; then
   if kill -0 "$DAEMON_PID" 2>/dev/null; then
     # Check health endpoint
     for i in {1..5}; do
-      health=$(curl -sf "http://$DAEMON_HOST:$DAEMON_PORT/global/health" 2>/dev/null || echo "")
+      health=$(curl -sf "$DAEMON_URL/global/health" 2>/dev/null || echo "")
       if [[ -n "$health" ]]; then
         version=$(echo "$health" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
-        ok "Daemon started (PID: $DAEMON_PID, version: $version)"
+        channel=$(echo "$health" | grep -o '"channel":"[^"]*"' | cut -d'"' -f4)
+        mode=$(echo "$health" | grep -o '"mode":"[^"]*"' | cut -d'"' -f4)
+        suffix=""
+        if [[ -n "$channel" || -n "$mode" ]]; then
+          suffix=" (${channel}/${mode})"
+        fi
+        ok "Daemon started (PID: $DAEMON_PID, version: $version$suffix)"
         break
       fi
       sleep 1

@@ -2,6 +2,7 @@
 - To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
 - ALWAYS USE PARALLEL TOOLS WHEN APPLICABLE.
 - The default branch in this repo is `dev`.
+- When creating GitHub issues or PRs, target the fork at `origin` (e.g., `adolago/agent-core`), not upstream or other repos.
 ## Binary Installation
 
 **Single source of truth**: The `agent-core` binary is installed via `bun link` from `packages/agent-core/`.

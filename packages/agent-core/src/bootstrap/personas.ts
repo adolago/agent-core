@@ -61,9 +61,7 @@ export async function initPersonas(): Promise<void> {
   LifecycleHooks.on<LifecycleHooks.SessionLifecycle.StartPayload>(
     LifecycleHooks.SessionLifecycle.Start,
     async (payload) => {
-      if (payload.source === "whatsapp" || payload.source === "telegram") {
-        await injectCrossSessionMemory(payload.sessionId, payload.persona)
-      }
+      await injectCrossSessionMemory(payload.sessionId, payload.persona)
     },
   )
 
@@ -71,9 +69,7 @@ export async function initPersonas(): Promise<void> {
   LifecycleHooks.on<LifecycleHooks.SessionLifecycle.RestorePayload>(
     LifecycleHooks.SessionLifecycle.Restore,
     async (payload) => {
-      if (payload.source === "whatsapp" || payload.source === "telegram") {
-        await injectCrossSessionMemory(payload.sessionId, payload.persona)
-      }
+      await injectCrossSessionMemory(payload.sessionId, payload.persona)
     },
   )
 

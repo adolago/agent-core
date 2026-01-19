@@ -98,7 +98,20 @@ export namespace Config {
     result.mode = result.mode || {}
     result.plugin = result.plugin || []
 
-    const directories = [
+    const directories = []
+
+    // Support running from any directory via launcher script that sets AGENT_CORE_ROOT.
+    // Treat packaged config as the lowest-precedence defaults so user/project config can override it.
+    const agentCoreRoot = process.env.AGENT_CORE_ROOT
+    if (agentCoreRoot) {
+      const rootConfigDir = path.join(agentCoreRoot, ".agent-core")
+      if (existsSync(rootConfigDir)) {
+        directories.push(rootConfigDir)
+        log.debug("loading config from AGENT_CORE_ROOT", { path: rootConfigDir })
+      }
+    }
+
+    directories.push(
       Global.Path.config,
       ...(await Array.fromAsync(
         Filesystem.up({
@@ -114,17 +127,7 @@ export namespace Config {
           stop: Global.Path.home,
         }),
       )),
-    ]
-
-    // Support running from any directory via launcher script that sets AGENT_CORE_ROOT
-    const agentCoreRoot = process.env.AGENT_CORE_ROOT
-    if (agentCoreRoot) {
-      const rootConfigDir = path.join(agentCoreRoot, ".agent-core")
-      if (existsSync(rootConfigDir)) {
-        directories.push(rootConfigDir)
-        log.debug("loading config from AGENT_CORE_ROOT", { path: rootConfigDir })
-      }
-    }
+    )
 
     if (Flag.OPENCODE_CONFIG_DIR) {
       directories.push(Flag.OPENCODE_CONFIG_DIR)
@@ -762,6 +765,7 @@ export namespace Config {
       input_clear: z.string().optional().default("ctrl+c").describe("Clear input field"),
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
       input_submit: z.string().optional().default("return").describe("Submit input"),
+      input_dictation_toggle: z.string().optional().default("f4").describe("Toggle dictation recording"),
       input_newline: z
         .string()
         .optional()
@@ -866,6 +870,22 @@ export namespace Config {
       .enum(["auto", "stacked"])
       .optional()
       .describe("Control diff rendering style: 'auto' adapts to terminal width, 'stacked' always shows single column"),
+    dictation: z
+      .object({
+        enabled: z.boolean().optional().describe("Enable dictation"),
+        endpoint: z.string().optional().describe("Inworld runtime graph endpoint"),
+        api_key: z.string().optional().describe("Inworld base64 runtime API key"),
+        input_key: z.string().optional().default("audio").describe("Graph input key for audio data"),
+        sample_rate: z.number().int().positive().optional().default(16000).describe("Audio sample rate"),
+        auto_submit: z.boolean().optional().default(false).describe("Auto-submit after dictation"),
+        response_path: z.string().optional().describe("Dot path to transcript in response payload"),
+        record_command: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .describe("Override dictation recording command"),
+      })
+      .optional()
+      .describe("Dictation settings"),
   })
 
   export const Server = z
@@ -883,6 +903,11 @@ export namespace Config {
   export const Daemon = z
     .object({
       enabled: z.boolean().optional().default(false).describe("Enable daemon mode"),
+      systemd_only: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Disallow TUI daemon spawn; require systemd-managed daemon or --no-daemon"),
       session: z
         .object({
           persistence: z.boolean().optional().default(true).describe("Enable session persistence"),
@@ -987,6 +1012,10 @@ export namespace Config {
 
   export const Memory = z
     .object({
+      required: z
+        .boolean()
+        .optional()
+        .describe("Require memory backend availability before prompting"),
       backend: z.enum(["file", "redis", "qdrant"]).optional().describe("Memory backend"),
       storagePath: z.string().optional().describe("Storage path for file backend"),
       redisUrl: z.string().optional().describe("Redis connection URL"),

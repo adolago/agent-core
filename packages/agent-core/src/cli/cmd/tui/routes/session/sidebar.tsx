@@ -68,6 +68,10 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     sync.data.provider.some((x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0)),
   )
   const gettingStartedDismissed = createMemo(() => kv.get("dismissed_getting_started", false))
+  const runtimeLabel = createMemo(() => {
+    const runtime = Installation.runtimeInfo()
+    return `${runtime.version} (${runtime.channel}/${runtime.mode})`
+  })
 
   const { navigate } = useRoute()
 
@@ -373,7 +377,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
             <span style={{ fg: theme.text }}>
               <b>-core</b>
             </span>{" "}
-            <span>{Installation.VERSION}</span>
+            <span>{runtimeLabel()}</span>
           </text>
         </box>
       </box>

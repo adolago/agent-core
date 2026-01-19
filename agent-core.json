@@ -1,4 +1,5 @@
 {
+  "$schema": "https://opencode.ai/config.json",
   "grammar": {
     "provider": "languagetool",
     "username": "dolagoartur@gmail.com",
@@ -7,5 +8,11 @@
   "plugin": [
     "file:///home/artur/.local/src/agent-core/packages/opencode-anthropic-auth/index.mjs"
   ],
-  "$schema": "https://opencode.ai/config.json"
+  "memory": {
+    "embedding": {
+      "profile": "nebius/qwen3-embedding-8b",
+      "baseUrl": "https://api.studio.nebius.ai/v1",
+      "apiKey": "{env:NEBIUS_API_KEY}"
+    }
+  }
 }

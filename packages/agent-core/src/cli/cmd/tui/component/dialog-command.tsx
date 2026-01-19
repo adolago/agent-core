@@ -12,7 +12,7 @@ import {
 import { useKeyboard } from "@opentui/solid"
 import { useKeybind, type KeybindsConfig } from "@tui/context/keybind"
 
-type Context = ReturnType<typeof init>
+type Context = ReturnType<typeof createCommandDialog>
 const ctx = createContext<Context>()
 
 export type Slash = {
@@ -27,12 +27,11 @@ export type CommandOption = DialogSelectOption<string> & {
   enabled?: boolean
 }
 
-function init() {
+export function createCommandDialog() {
   const [registrations, setRegistrations] = createSignal<Accessor<CommandOption[]>[]>([])
   const [suspendCount, setSuspendCount] = createSignal(0)
   const dialog = useDialog()
   const keybind = useKeybind()
-
   const entries = createMemo(() => {
     const all = registrations().flatMap((x) => x())
     return all.map((x) => ({
@@ -109,7 +108,7 @@ export function useCommandDialog() {
 }
 
 export function CommandProvider(props: ParentProps) {
-  const value = init()
+  const value = createCommandDialog()
   const dialog = useDialog()
   const keybind = useKeybind()
 

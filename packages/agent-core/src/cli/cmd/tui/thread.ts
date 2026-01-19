@@ -3,17 +3,15 @@ import { tui } from "./app"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "./worker"
 import path from "path"
-import fs from "node:fs"
-import { spawn } from "child_process"
+import { spawnSync } from "child_process"
 import { UI } from "@/cli/ui"
 import { iife } from "@/util/iife"
 import { Log } from "@/util/log"
 import { withNetworkOptions, resolveNetworkOptions, type NetworkOptions } from "@/cli/network"
 import { Daemon } from "@/cli/cmd/daemon"
-import { Installation } from "@/installation"
+import { Config } from "@/config/config"
 import type { Event } from "@opencode-ai/sdk/v2"
 import type { EventSource } from "./context/sdk"
-import { fileURLToPath } from "url"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -47,12 +45,45 @@ function createEventSource(client: RpcClient): EventSource {
 
 const DEFAULT_DAEMON_PORT = 3210
 const DAEMON_HEALTH_PATH = "/global/health"
-const DAEMON_START_TIMEOUT_MS = 30_000
-const DAEMON_POLL_INTERVAL_MS = 500
+
+type SystemdServiceState = {
+  available: boolean
+  installed: boolean
+  active: boolean
+  status?: string
+}
 
 function normalizeDaemonHost(hostname?: string): string {
   if (!hostname || hostname === "0.0.0.0") return "127.0.0.1"
   return hostname
+}
+
+function getSystemdServiceState(): SystemdServiceState {
+  if (process.platform !== "linux") {
+    return { available: false, installed: false, active: false }
+  }
+  try {
+    const result = spawnSync("systemctl", ["is-active", "agent-core"], {
+      encoding: "utf-8",
+    })
+    if (result.error) {
+      return { available: false, installed: false, active: false }
+    }
+    const stdout = (result.stdout ?? "").trim()
+    const stderr = (result.stderr ?? "").trim()
+    if (result.status === 0) {
+      return { available: true, installed: true, active: true, status: stdout || stderr }
+    }
+    if (result.status === 3) {
+      return { available: true, installed: true, active: false, status: stdout || stderr }
+    }
+    if (result.status === 4) {
+      return { available: true, installed: false, active: false, status: stdout || stderr }
+    }
+    return { available: true, installed: true, active: false, status: stdout || stderr }
+  } catch {
+    return { available: false, installed: false, active: false }
+  }
 }
 
 function resolveDaemonUrl(network: NetworkOptions, state?: Daemon.DaemonState | null): string {
@@ -80,57 +111,35 @@ async function checkDaemonHealth(url: string): Promise<boolean> {
   }
 }
 
-function resolveAgentCoreRoot(directory?: string): string | undefined {
-  if (process.env.AGENT_CORE_ROOT) return process.env.AGENT_CORE_ROOT
-  if (directory) {
-    let current = path.resolve(directory)
-    for (;;) {
-      if (
-        fs.existsSync(path.join(current, "vendor", "personas")) ||
-        fs.existsSync(path.join(current, ".agent-core"))
-      ) {
-        return current
-      }
-      const parent = path.dirname(current)
-      if (parent === current) break
-      current = parent
+async function ensureDaemonRunning(
+  network: NetworkOptions,
+  _directory: string,
+  options?: { systemdOnly?: boolean },
+): Promise<string> {
+  const systemdOnly = options?.systemdOnly ?? false
+  const systemd = getSystemdServiceState()
+
+  if (systemd.available && systemd.installed) {
+    const url = resolveDaemonUrl(network, await Daemon.readPidFile())
+    if (!systemd.active) {
+      UI.error("Systemd service 'agent-core' is installed but not running.")
+      UI.info("Start it with: sudo systemctl start agent-core")
+      UI.info("Or run locally with: agent-core --no-daemon")
+      process.exit(1)
     }
-  }
-  const rootCandidate = path.resolve(path.dirname(process.execPath), "..")
-  if (fs.existsSync(path.join(rootCandidate, "vendor", "personas"))) {
-    return rootCandidate
-  }
-  return undefined
-}
-
-async function spawnDaemon(network: NetworkOptions, directory: string) {
-  const hostname = normalizeDaemonHost(network.hostname)
-  const port = network.port && network.port !== 0 ? network.port : DEFAULT_DAEMON_PORT
-  const args = ["daemon", "--hostname", hostname, "--port", String(port), "--directory", directory]
-  const env = { ...process.env }
-  const resolvedRoot = resolveAgentCoreRoot(directory)
-  if (resolvedRoot) env.AGENT_CORE_ROOT = resolvedRoot
-
-  if (Installation.isLocal()) {
-    const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..")
-    const entry = path.join(packageRoot, "src", "index.ts")
-    const bunArgs = ["run", "--conditions=browser", entry, ...args]
-    if (!env.AGENT_CORE_ROOT) env.AGENT_CORE_ROOT = packageRoot
-    const child = spawn(process.execPath, bunArgs, {
-      cwd: packageRoot,
-      env,
-      detached: true,
-      stdio: "ignore",
-    })
-    child.unref()
-    return
+    if (await checkDaemonHealth(url)) return url
+    UI.error("Systemd service 'agent-core' is active but the daemon is unhealthy.")
+    UI.info("Check: systemctl status agent-core")
+    UI.info("Logs:  journalctl -u agent-core -f")
+    process.exit(1)
   }
 
-  const child = spawn(process.execPath, args, { env, detached: true, stdio: "ignore" })
-  child.unref()
-}
+  if (systemdOnly) {
+    UI.error("Daemon spawning is disabled by config (daemon.systemd_only).")
+    UI.info("Start the systemd service or run with: agent-core --no-daemon")
+    process.exit(1)
+  }
 
-async function ensureDaemonRunning(network: NetworkOptions, directory: string): Promise<string> {
   const running = await Daemon.isRunning()
   const state = await Daemon.readPidFile()
   let url = resolveDaemonUrl(network, state)
@@ -144,18 +153,9 @@ async function ensureDaemonRunning(network: NetworkOptions, directory: string): 
     process.exit(1)
   }
 
-  UI.info("Starting agent-core daemon...")
-  await spawnDaemon(network, directory)
-
-  const deadline = Date.now() + DAEMON_START_TIMEOUT_MS
-  while (Date.now() < deadline) {
-    const latestState = await Daemon.readPidFile()
-    url = resolveDaemonUrl(network, latestState)
-    if (await checkDaemonHealth(url)) return url
-    await new Promise((resolve) => setTimeout(resolve, DAEMON_POLL_INTERVAL_MS))
-  }
-
-  UI.error("Timed out waiting for agent-core daemon to start.")
+  UI.error("Daemon is not running.")
+  UI.info("Start it with: systemctl start agent-core")
+  UI.info("If not installed: ./scripts/systemd/install.sh --polkit")
   process.exit(1)
 }
 
@@ -194,7 +194,7 @@ export const TuiThreadCommand = cmd({
       .option("daemon", {
         type: "boolean",
         default: true,
-        describe: "start or attach to the agent-core daemon (spawns gateway + tiara)",
+        describe: "start or attach to the agent-core daemon (tiara; gateway is opt-in)",
       }),
   handler: async (args) => {
     // Use AGENT_CORE_ORIGINAL_PWD if set (from launcher script), otherwise PWD or cwd
@@ -214,6 +214,18 @@ export const TuiThreadCommand = cmd({
       return
     }
 
+    let systemdOnly = false
+    if (args.daemon) {
+      try {
+        const config = await Config.get()
+        systemdOnly = Boolean(config.daemon?.systemd_only)
+      } catch (error) {
+        Log.Default.debug("Failed to load config for daemon policy", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+
     const prompt = await iife(async () => {
       const piped = !process.stdin.isTTY ? await Bun.stdin.text() : undefined
       if (!args.prompt) return piped
@@ -228,7 +240,9 @@ export const TuiThreadCommand = cmd({
     let client: RpcClient | undefined
 
     if (args.daemon) {
-      url = await ensureDaemonRunning(networkOpts, cwd)
+      url = await ensureDaemonRunning(networkOpts, cwd, {
+        systemdOnly,
+      })
     } else {
       const worker = new Worker(workerPath, {
         env: Object.fromEntries(
