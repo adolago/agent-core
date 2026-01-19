@@ -28,6 +28,62 @@ export namespace LLM {
 
   export const OUTPUT_TOKEN_MAX = Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
 
+  function isUsageV3Shape(usage: any): boolean {
+    return (
+      !!usage &&
+      typeof usage === "object" &&
+      !!usage.inputTokens &&
+      typeof usage.inputTokens === "object" &&
+      "total" in usage.inputTokens &&
+      !!usage.outputTokens &&
+      typeof usage.outputTokens === "object" &&
+      "total" in usage.outputTokens
+    )
+  }
+
+  // Normalize legacy usage shapes to the V3 usage schema expected by ai v6.
+  function normalizeUsage(usage: any) {
+    if (isUsageV3Shape(usage)) return usage
+
+    const inputTotal = typeof usage?.inputTokens === "number" ? usage.inputTokens : undefined
+    const outputTotal = typeof usage?.outputTokens === "number" ? usage.outputTokens : undefined
+    const cachedInput = typeof usage?.cachedInputTokens === "number" ? usage.cachedInputTokens : undefined
+    const reasoning = typeof usage?.reasoningTokens === "number" ? usage.reasoningTokens : undefined
+
+    const noCache =
+      typeof inputTotal === "number"
+        ? typeof cachedInput === "number"
+          ? Math.max(0, inputTotal - cachedInput)
+          : inputTotal
+        : undefined
+    const textTokens =
+      typeof outputTotal === "number"
+        ? typeof reasoning === "number"
+          ? Math.max(0, outputTotal - reasoning)
+          : outputTotal
+        : undefined
+
+    return {
+      inputTokens: {
+        total: inputTotal,
+        noCache,
+        cacheRead: cachedInput,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: outputTotal,
+        text: textTokens,
+        reasoning,
+      },
+      raw: usage?.raw,
+    }
+  }
+
+  function normalizeStreamPart(part: any) {
+    if (!part || part.type !== "finish") return part
+    return { ...part, usage: normalizeUsage(part.usage) }
+  }
+
   export type StreamInput = {
     user: MessageV2.User
     sessionID: string
@@ -248,6 +304,26 @@ export namespace LLM {
                 args.params.prompt = ProviderTransform.message(args.params.prompt, input.model)
               }
               return args.params
+            },
+          },
+          {
+            specificationVersion: "v3" as const,
+            async wrapGenerate({ doGenerate }) {
+              const result = await doGenerate()
+              return { ...result, usage: normalizeUsage(result.usage) }
+            },
+            async wrapStream({ doStream }) {
+              const result = await doStream()
+              return {
+                ...result,
+                stream: result.stream.pipeThrough(
+                  new TransformStream({
+                    transform(part, controller) {
+                      controller.enqueue(normalizeStreamPart(part))
+                    },
+                  }),
+                ),
+              }
             },
           },
           extractReasoningMiddleware({ tagName: "think", startWithReasoning: false }),

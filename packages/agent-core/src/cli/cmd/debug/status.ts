@@ -5,6 +5,7 @@ import { Config } from "../../../config/config"
 import { Global } from "../../../global"
 import { Flag } from "../../../flag/flag"
 import fs from "fs/promises"
+import fsSync from "node:fs"
 import path from "path"
 import net from "net"
 import { Zee } from "../../../paths"
@@ -53,19 +54,32 @@ export const StatusCommand = cmd({
 
 interface SystemStatus {
   version: string
+  runtime: Installation.RuntimeInfo
   binary: {
     path: string
+    source: string
     exists: boolean
+    resolved?: string
     modifiedAt?: string
     modifiedTs?: number
   }
+  binaries: Array<{
+    path: string
+    source: string
+    exists: boolean
+    resolved?: string
+    modifiedAt?: string
+    modifiedTs?: number
+  }>
   daemon: {
     running: boolean
     pid?: number
     port?: number
+    url?: string
     version?: string
     healthy?: boolean
     error?: string
+    runtime?: Installation.RuntimeInfo
   }
   processes: Array<{
     pid: number
@@ -102,13 +116,87 @@ interface SystemStatus {
   issues: string[]
 }
 
+type BinaryInfo = {
+  path: string
+  source: string
+  exists: boolean
+  resolved?: string
+  modifiedAt?: string
+  modifiedTs?: number
+}
+
+type DaemonHealth = Installation.RuntimeInfo & {
+  healthy: boolean
+}
+
+function resolvePathBinary(): string | undefined {
+  const pathEnv = process.env.PATH ?? ""
+  for (const dir of pathEnv.split(path.delimiter)) {
+    if (!dir) continue
+    const candidate = path.join(dir, "agent-core")
+    if (fsSync.existsSync(candidate)) return candidate
+  }
+  return undefined
+}
+
+function describeBinary(pathname: string, source: string): BinaryInfo {
+  try {
+    const stat = fsSync.statSync(pathname)
+    const resolved = fsSync.realpathSync(pathname)
+    return {
+      path: pathname,
+      source,
+      exists: true,
+      resolved,
+      modifiedAt: stat.mtime.toISOString(),
+      modifiedTs: stat.mtime.getTime(),
+    }
+  } catch {
+    return { path: pathname, source, exists: false }
+  }
+}
+
+function resolveBinaryCandidates(): BinaryInfo[] {
+  const candidates: Array<{ path: string; source: string }> = []
+  const home = process.env.HOME ?? ""
+  const pathBinary = resolvePathBinary()
+  if (pathBinary) candidates.push({ path: pathBinary, source: "PATH" })
+  if (process.env.AGENT_CORE_BIN_PATH) {
+    candidates.push({ path: process.env.AGENT_CORE_BIN_PATH, source: "AGENT_CORE_BIN_PATH" })
+  }
+  if (home) {
+    candidates.push({ path: path.join(home, ".bun", "bin", "agent-core"), source: "BUN_LINK" })
+    candidates.push({ path: path.join(home, "bin", "agent-core"), source: "LEGACY_HOME_BIN" })
+    candidates.push({ path: path.join(home, ".local", "bin", "agent-core"), source: "LEGACY_LOCAL_BIN" })
+  }
+  const seen = new Set<string>()
+  const unique = candidates.filter((candidate) => {
+    if (seen.has(candidate.path)) return false
+    seen.add(candidate.path)
+    return true
+  })
+  return unique.map((candidate) => describeBinary(candidate.path, candidate.source))
+}
+
+function selectPrimaryBinary(binaries: BinaryInfo[]): BinaryInfo {
+  const fromPath = binaries.find((b) => b.source === "PATH")
+  if (fromPath) return fromPath
+  const bunLink = binaries.find((b) => b.source === "BUN_LINK")
+  if (bunLink) return bunLink
+  return binaries[0] ?? { path: "agent-core", source: "PATH", exists: false }
+}
+
 async function collectStatus(verbose: boolean): Promise<SystemStatus> {
+  const runtime = Installation.runtimeInfo()
   const status: SystemStatus = {
-    version: Installation.VERSION,
+    version: runtime.version,
+    runtime,
     binary: {
-      path: process.execPath,
+      path: "agent-core",
+      source: "PATH",
       exists: false,
     },
+    binaries: [],
     daemon: {
       running: false,
     },
@@ -133,18 +221,35 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
   }
 
   // Binary info
-  const binaryPath = path.join(process.env.HOME || "", "bin", "agent-core")
-  try {
-    const stat = await fs.stat(binaryPath)
-    status.binary = {
-      path: binaryPath,
-      exists: true,
-      modifiedAt: stat.mtime.toISOString(),
-      modifiedTs: stat.mtime.getTime(),
+  status.binaries = resolveBinaryCandidates()
+  status.binary = selectPrimaryBinary(status.binaries)
+  const pathBinary = status.binaries.find((b) => b.source === "PATH")
+  const bunLink = status.binaries.find((b) => b.source === "BUN_LINK")
+  const legacyHome = status.binaries.find((b) => b.source === "LEGACY_HOME_BIN")
+  const legacyLocal = status.binaries.find((b) => b.source === "LEGACY_LOCAL_BIN")
+  const envBin = status.binaries.find((b) => b.source === "AGENT_CORE_BIN_PATH")
+
+  if (!pathBinary) {
+    status.issues.push("agent-core not found in PATH")
+  }
+  if (bunLink && !bunLink.exists) {
+    status.issues.push("~/.bun/bin/agent-core missing; run `cd packages/agent-core && bun link`")
+  }
+  if (legacyHome?.exists) {
+    status.issues.push("Legacy ~/bin/agent-core exists; remove to avoid confusion")
+  }
+  if (legacyLocal?.exists) {
+    status.issues.push("Legacy ~/.local/bin/agent-core exists; remove to avoid confusion")
+  }
+  if (envBin && !envBin.exists) {
+    status.issues.push("AGENT_CORE_BIN_PATH points to a missing binary")
+  }
+  if (pathBinary && bunLink) {
+    const pathResolved = pathBinary.resolved ?? pathBinary.path
+    const bunResolved = bunLink.resolved ?? bunLink.path
+    if (pathResolved !== bunResolved) {
+      status.issues.push(`PATH agent-core points to ${pathBinary.path} (expected ${bunLink.path})`)
     }
-  } catch {
-    status.binary = { path: binaryPath, exists: false }
-    status.issues.push("Binary not found at ~/bin/agent-core")
   }
 
   // Check for running processes
@@ -178,24 +283,39 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
   }
 
   // Daemon health check
-  const daemonPort = parseInt(process.env.AGENT_CORE_PORT || "3210")
   const daemonHost = process.env.AGENT_CORE_HOST || "127.0.0.1"
+  let daemonPort = parseInt(process.env.AGENT_CORE_PORT || "3210")
+  let daemonUrl = process.env.AGENT_CORE_URL?.trim()
+  if (daemonUrl) {
+    try {
+      const parsed = new URL(daemonUrl)
+      if (parsed.port) daemonPort = parseInt(parsed.port, 10)
+    } catch {
+      daemonUrl = undefined
+    }
+  }
+  if (!daemonUrl) daemonUrl = `http://${daemonHost}:${daemonPort}`
   status.daemon.port = daemonPort
+  status.daemon.url = daemonUrl
 
   try {
-    const response = await fetch(`http://${daemonHost}:${daemonPort}/global/health`, {
+    const response = await fetch(`${daemonUrl}/global/health`, {
       signal: AbortSignal.timeout(2000),
     })
     if (response.ok) {
-      const health = (await response.json()) as { healthy: boolean; version: string }
-      status.daemon.healthy = health.healthy
-      status.daemon.version = health.version
+      const health = (await response.json()) as DaemonHealth
+      const { healthy, ...runtimeInfo } = health
+      status.daemon.healthy = Boolean(healthy)
+      status.daemon.version = runtimeInfo.version
+      status.daemon.runtime = runtimeInfo
 
-      // Check version mismatch
-      if (health.version !== Installation.VERSION) {
+      if (runtimeInfo.version !== status.runtime.version) {
         status.issues.push(
-          `Daemon version (${health.version}) differs from binary (${Installation.VERSION}) - restart needed`,
+          `Daemon version (${runtimeInfo.version}) differs from runtime (${status.runtime.version}) - restart needed`,
         )
+      }
+      if (runtimeInfo.mode !== status.runtime.mode) {
+        status.issues.push(`Daemon mode (${runtimeInfo.mode}) differs from runtime (${status.runtime.mode})`)
       }
     }
   } catch (e) {
@@ -260,7 +380,18 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
   }
 
   // Check source file timestamps (for rebuild detection)
-  if (verbose && status.binary.modifiedTs) {
+  let binaryTimestampPath: string | undefined
+  if (process.env.AGENT_CORE_BIN_PATH && fsSync.existsSync(process.env.AGENT_CORE_BIN_PATH)) {
+    binaryTimestampPath = process.env.AGENT_CORE_BIN_PATH
+  } else if (status.daemon.runtime?.execPath && fsSync.existsSync(status.daemon.runtime.execPath)) {
+    binaryTimestampPath = status.daemon.runtime.execPath
+  } else if (status.binary.exists) {
+    binaryTimestampPath = status.binary.resolved ?? status.binary.path
+  }
+
+  if (verbose && binaryTimestampPath) {
+    const binaryStat = fsSync.statSync(binaryTimestampPath)
+    const binaryTs = binaryStat.mtime.getTime()
     const srcRoot = path.join(Global.Path.source, "packages", "agent-core", "src")
     const keyFiles = ["provider/transform.ts", "provider/provider.ts", "server/server.ts"]
 
@@ -268,7 +399,7 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
       const fullPath = path.join(srcRoot, file)
       try {
         const stat = await fs.stat(fullPath)
-        const newerThanBinary = stat.mtime.getTime() > status.binary.modifiedTs!
+        const newerThanBinary = stat.mtime.getTime() > binaryTs
         status.sources.push({
           file,
           modifiedAt: stat.mtime.toISOString(),
@@ -319,19 +450,38 @@ function printStatus(status: SystemStatus, verbose: boolean) {
   console.log("═══════════════════════════════════════════════════════════════")
   console.log("")
 
-  // Version
-  console.log(`${BLUE}Version:${RESET} ${status.version}`)
+  // Runtime
+  console.log(`${BLUE}Runtime:${RESET}`)
+  console.log(`  Version: ${status.runtime.version} (${status.runtime.channel}/${status.runtime.mode})`)
+  console.log(`  Exec: ${status.runtime.execPath}`)
+  if (status.runtime.entry) {
+    console.log(`  Entry: ${status.runtime.entry}`)
+  }
   console.log("")
 
   // Binary
   console.log(`${BLUE}Binary:${RESET}`)
   if (status.binary.exists) {
-    console.log(`  ${ok(`${status.binary.path}`)}`)
+    console.log(`  ${ok(`${status.binary.path} [${status.binary.source}]`)}`)
     if (status.binary.modifiedAt) {
       console.log(`  ${DIM}Modified: ${new Date(status.binary.modifiedAt).toLocaleString()}${RESET}`)
     }
+    if (verbose && status.binary.resolved && status.binary.resolved !== status.binary.path) {
+      console.log(`  ${DIM}Resolved: ${status.binary.resolved}${RESET}`)
+    }
   } else {
-    console.log(`  ${err("Not found at " + status.binary.path)}`)
+    console.log(`  ${err(`Not found at ${status.binary.path} [${status.binary.source}]`)}`)
+  }
+  if (verbose && status.binaries.length > 0) {
+    console.log("  Candidates:")
+    for (const candidate of status.binaries) {
+      const label = `${candidate.path} [${candidate.source}]`
+      if (candidate.exists) {
+        console.log(`    ${ok(label)}`)
+      } else {
+        console.log(`    ${warn(label)}`)
+      }
+    }
   }
   console.log("")
 
@@ -352,9 +502,24 @@ function printStatus(status: SystemStatus, verbose: boolean) {
 
   // Daemon
   console.log(`${BLUE}Daemon:${RESET}`)
-  console.log(`  Port: ${status.daemon.port}`)
+  if (status.daemon.url) {
+    console.log(`  URL: ${status.daemon.url}`)
+  } else {
+    console.log(`  Port: ${status.daemon.port}`)
+  }
   if (status.daemon.healthy) {
-    console.log(`  ${ok(`Healthy (version: ${status.daemon.version})`)}`)
+    const daemonRuntime = status.daemon.runtime
+    const version = daemonRuntime?.version ?? status.daemon.version ?? "unknown"
+    const channel = daemonRuntime?.channel
+    const mode = daemonRuntime?.mode
+    const suffix = channel && mode ? ` (${channel}/${mode})` : ""
+    console.log(`  ${ok(`Healthy (version: ${version}${suffix})`)}`)
+    if (verbose && daemonRuntime?.execPath) {
+      console.log(`  ${DIM}Exec: ${daemonRuntime.execPath}${RESET}`)
+    }
+    if (verbose && daemonRuntime?.entry) {
+      console.log(`  ${DIM}Entry: ${daemonRuntime.entry}${RESET}`)
+    }
   } else if (status.daemon.running) {
     console.log(`  ${warn("Process running but not healthy")}`)
     if (status.daemon.error) {
@@ -439,6 +604,9 @@ function printStatus(status: SystemStatus, verbose: boolean) {
   if (status.issues.length > 0) {
     console.log("")
     console.log(`${BLUE}Quick fixes:${RESET}`)
+    if (status.issues.some((i) => i.includes("bun link") || i.includes("PATH agent-core"))) {
+      console.log(`  Link: cd ${Global.Path.source}/packages/agent-core && bun link`)
+    }
     if (status.issues.some((i) => i.includes("rebuild"))) {
       console.log(`  Rebuild: ${Global.Path.source}/scripts/reload.sh`)
     }

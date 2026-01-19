@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-AGENT_BIN="${AGENT_BIN:-$HOME/.local/bin/agent-core}"
+AGENT_BIN="${AGENT_BIN:-$HOME/.bun/bin/agent-core}"
 AGENT_CORE_BIN_PATH="${AGENT_CORE_BIN_PATH:-$HOME/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core}"
 REPORT_DIR="${REPORT_DIR:-/tmp/agent-core-beta}"
 REPORT_FILE="$REPORT_DIR/report.txt"

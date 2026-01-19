@@ -34,6 +34,10 @@ export function Home() {
   const connectedMcpCount = createMemo(() => {
     return Object.values(sync.data.mcp).filter((x) => x.status === "connected").length
   })
+  const runtimeLabel = createMemo(() => {
+    const runtime = Installation.runtimeInfo()
+    return `${runtime.version} (${runtime.channel}/${runtime.mode})`
+  })
 
   const isFirstTimeUser = createMemo(() => sync.data.session.length === 0)
   const tipsHidden = createMemo(() => kv.get("tips_hidden", false))
@@ -133,7 +137,7 @@ export function Home() {
         </box>
         <box flexGrow={1} />
         <box flexShrink={0}>
-          <text fg={theme.textMuted}>{Installation.VERSION}</text>
+          <text fg={theme.textMuted}>{runtimeLabel()}</text>
         </box>
       </box>
     </>

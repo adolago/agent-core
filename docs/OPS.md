@@ -6,6 +6,10 @@
 > 2. The daemon is still running an old version
 > 3. The TUI was started before the binary was updated
 
+## Ergonomics Directive
+
+Agents must use the **same execution paths and tooling** that users rely on (TUI, daemon, gateway). Avoid internal-only shortcuts or hidden service flows. If a feature requires a separate daemon path, surface it in the TUI status and docs so users and agents see the same behavior and versioning.
+
 ## Quick Reference
 
 | Command                          | Purpose                              |
@@ -40,21 +44,21 @@ pgrep -af "bun.*print-logs"
 ### 2. Production Mode (Compiled Binary)
 
 ```bash
-~/bin/agent-core --print-logs           # TUI
-~/bin/agent-core daemon --port 3210     # Daemon
+~/.bun/bin/agent-core --print-logs           # TUI
+~/.bun/bin/agent-core daemon --port 3210     # Daemon
 ```
 
 **Characteristics:**
 
-- Runs from compiled binary at `~/bin/agent-core`
-- Requires rebuild (`bun run build`) and copy to take effect
-- Process shows as: `/home/artur/bin/agent-core`
+- Runs from compiled binary linked via `bun link` at `~/.bun/bin/agent-core`
+- Requires rebuild (`bun run build`) and re-link (`bun link`) to take effect
+- Process shows as: `/home/artur/.bun/bin/agent-core`
 - What gets deployed and used in production
 
 **How to identify:**
 
 ```bash
-pgrep -af "/bin/agent-core"
+pgrep -af "/.bun/bin/agent-core"
 ```
 
 ## Why Fixes "Don't Take Effect"
@@ -75,10 +79,10 @@ pgrep -af "/bin/agent-core"
 │  ├── Uses: Source files directly                                        │
 │  └── Fix: Just restart the TUI                                          │
 │                                                                         │
-│  CASE B: ~/bin/agent-core (compiled binary)                             │
-│  ├── Process: /home/artur/bin/agent-core                                │
+│  CASE B: ~/.bun/bin/agent-core (compiled binary)                        │
+│  ├── Process: /home/artur/.bun/bin/agent-core                           │
 │  ├── Uses: Bundled code from WHEN IT WAS BUILT                          │
-│  └── Fix: Must rebuild, copy, then restart                              │
+│  └── Fix: Must rebuild + bun link, then restart                         │
 │                                                                         │
 │  CASE C: Daemon is separate                                             │
 │  ├── TUI connects to daemon via HTTP                                    │
@@ -105,7 +109,7 @@ Located at: `./scripts/reload.sh` (from project root)
 
 1. **Kills ALL agent-core processes** (daemon, TUI binary, AND dev mode)
 2. **Rebuilds** from source (unless `--no-build`)
-3. **Copies** new binary to `~/bin/agent-core`
+3. **Links** new binary via `bun link` (`~/.bun/bin/agent-core`)
 4. **Starts daemon** (unless `--no-daemon`)
 5. **Verifies** everything is working
 
@@ -132,7 +136,13 @@ Located at: `./scripts/reload.sh` (from project root)
                     AGENT-CORE STATUS
 ═══════════════════════════════════════════════════════════════
 
-Binary: /home/artur/bin/agent-core
+Binary (PATH): /home/artur/.bun/bin/agent-core
+[  OK  ] Exists (modified: 2026-01-12 20:17:35)    ← When wrapper was last updated
+
+Bun link: /home/artur/.bun/bin/agent-core
+[  OK  ] Exists (-> /home/artur/.local/src/agent-core/packages/agent-core/bin/agent-core)
+
+Native binary: /home/artur/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core
 [  OK  ] Exists (modified: 2026-01-12 20:17:35)    ← When binary was last updated
 
 Processes:
@@ -164,12 +174,12 @@ When running bun run dev:
 When running compiled binary:
 
   shell
-    └── /home/artur/bin/agent-core --print-logs  (PID: 123456)
+    └── /home/artur/.bun/bin/agent-core --print-logs  (PID: 123456)
 
 Daemon (always compiled binary):
 
   nohup
-    └── /home/artur/bin/agent-core daemon       (PID: 234567)
+    └── /home/artur/.bun/bin/agent-core daemon       (PID: 234567)
           └── (gateway subprocess if --gateway)  (PID: 234568)
 ```
 
@@ -181,7 +191,7 @@ When a fix doesn't take effect, check in order:
 
   ```bash
   pgrep -af "bun.*print-logs"      # Dev mode
-  pgrep -af "/bin/agent-core"      # Compiled binary
+  pgrep -af "/.bun/bin/agent-core"      # Compiled binary
   ```
 
 - [ ] **2. What version is the daemon?**
@@ -193,7 +203,8 @@ When a fix doesn't take effect, check in order:
 - [ ] **3. When was the binary built?**
 
   ```bash
-  ls -la ~/bin/agent-core
+  ls -la ~/.bun/bin/agent-core
+  ls -la packages/agent-core/dist/agent-core-linux-x64/bin/agent-core
   ```
 
 - [ ] **4. When was the source file modified?**
@@ -219,7 +230,7 @@ When a fix doesn't take effect, check in order:
 | ----------------- | -------------------------------------------------------------- |
 | Source repository | Project root (or set `AGENT_CORE_SOURCE`)                      |
 | Package source    | `packages/agent-core/src/`                                     |
-| Compiled binary   | `~/bin/agent-core`                                             |
+| Compiled binary   | `~/.bun/bin/agent-core`                                        |
 | Build output      | `packages/agent-core/dist/agent-core-linux-x64/bin/agent-core` |
 | Reload script     | `./scripts/reload.sh`                                          |
 | Config directory  | `~/.config/agent-core/`                                        |
@@ -241,3 +252,13 @@ Version format: `0.0.0-main-YYYYMMDDHHMM`
 - Built from git commit at build time
 - Can identify exactly when binary was built
 - Compare TUI version vs daemon version to spot mismatches
+
+## Daemon Stabilization Plan
+
+- Make daemon lifecycle explicit: `daemon start/stop/status` are the only entry points; TUI never spawns daemons implicitly.
+- Default gateway off; enable messaging only with explicit `--gateway`, and rely on systemd for restarts.
+- Track process groups for daemon + gateway so stop kills the whole tree; detect and report stray daemons when PID files are missing.
+- Add a handshake gate: TUI refuses to attach when daemon version/build ID mismatches.
+- The TUI never spawns daemons; use `agent-core --no-daemon` for local-only behavior. Set `daemon.systemd_only=true` to enforce the systemd-only policy.
+- Use `./scripts/systemd/install.sh --polkit --systemd-only` to allow non-root `systemctl start/stop/restart/enable/disable agent-core` and enforce the systemd-only policy.
+- The systemd unit disables `ProtectHome` so the daemon can read/write projects anywhere under the user's home.

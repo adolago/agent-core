@@ -46,6 +46,19 @@ test("zee agent has correct default properties", async () => {
   })
 })
 
+test("zee agent starts the personas calendar mcp server", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const zee = await Agent.get("zee")
+      const servers = zee?.mcpServers ?? []
+      expect(servers).toContain("personas-calendar")
+      expect(servers).not.toContain("google-calendar")
+    },
+  })
+})
+
 test("stanley agent has correct default properties", async () => {
   await using tmp = await tmpdir()
   await Instance.provide({

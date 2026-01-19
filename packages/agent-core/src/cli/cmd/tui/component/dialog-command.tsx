@@ -12,25 +12,27 @@ import {
 import { useKeyboard } from "@opentui/solid"
 import { useKeybind, type KeybindsConfig } from "@tui/context/keybind"
 
-type Context = ReturnType<typeof init>
+type Context = ReturnType<typeof createCommandDialog>
 const ctx = createContext<Context>()
 
 export type CommandOption = DialogSelectOption & {
   keybind?: keyof KeybindsConfig
 }
 
-function init() {
+export function createCommandDialog() {
   const [registrations, setRegistrations] = createSignal<Accessor<CommandOption[]>[]>([])
   const [suspendCount, setSuspendCount] = createSignal(0)
   const dialog = useDialog()
   const keybind = useKeybind()
-  const options = createMemo(() => {
-    const all = registrations().flatMap((x) => x())
-    return all.map((x) => ({
-      ...x,
-      footer: x.keybind ? keybind.print(x.keybind) : undefined,
-    }))
-  })
+  const options = () => {
+    const all = registrations().flatMap((x) => x() ?? [])
+    return all
+      .filter((item): item is CommandOption => Boolean(item))
+      .map((item) => ({
+        ...item,
+        footer: item.keybind ? keybind.print(item.keybind) : undefined,
+      }))
+  }
   const suspended = () => suspendCount() > 0
 
   useKeyboard((evt) => {
@@ -84,7 +86,7 @@ export function useCommandDialog() {
 }
 
 export function CommandProvider(props: ParentProps) {
-  const value = init()
+  const value = createCommandDialog()
   const dialog = useDialog()
   const keybind = useKeybind()
 

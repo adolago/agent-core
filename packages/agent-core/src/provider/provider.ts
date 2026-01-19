@@ -51,6 +51,18 @@ import { ProviderTransform } from "./transform"
 export namespace Provider {
   const log = Log.create({ service: "provider" })
 
+  function isGpt5OrLater(modelID: string): boolean {
+    const match = /^gpt-(\d+)/.exec(modelID)
+    if (!match) {
+      return false
+    }
+    return Number(match[1]) >= 5
+  }
+
+  function shouldUseCopilotResponsesApi(modelID: string): boolean {
+    return isGpt5OrLater(modelID) && !modelID.startsWith("gpt-5-mini")
+  }
+
   const BUNDLED_PROVIDERS: Record<string, (options: any) => ProviderSDK> = {
     "@ai-sdk/amazon-bedrock": createAmazonBedrock,
     "@ai-sdk/anthropic": createAnthropic,
@@ -131,10 +143,7 @@ export namespace Provider {
       return {
         autoload: false,
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
-          if (modelID.includes("codex")) {
-            return sdk.responses(modelID)
-          }
-          return sdk.chat(modelID)
+          return shouldUseCopilotResponsesApi(modelID) ? sdk.responses(modelID) : sdk.chat(modelID)
         },
         options: {},
       }
@@ -143,10 +152,7 @@ export namespace Provider {
       return {
         autoload: false,
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
-          if (modelID.includes("codex")) {
-            return sdk.responses(modelID)
-          }
-          return sdk.chat(modelID)
+          return shouldUseCopilotResponsesApi(modelID) ? sdk.responses(modelID) : sdk.chat(modelID)
         },
         options: {},
       }
@@ -1296,6 +1302,22 @@ export namespace Provider {
           const combined = signals.length > 1 ? AbortSignal.any(signals) : signals[0]
 
           opts.signal = combined
+        }
+
+        // Strip openai itemId metadata following what codex does
+        // IDs are only re-attached for Azure with store=true
+        if (model.api.npm === "@ai-sdk/openai" && opts.body && opts.method === "POST") {
+          const body = JSON.parse(opts.body as string)
+          const isAzure = model.providerID.includes("azure")
+          const keepIds = isAzure && body.store === true
+          if (!keepIds && Array.isArray(body.input)) {
+            for (const item of body.input) {
+              if ("id" in item) {
+                delete item.id
+              }
+            }
+            opts.body = JSON.stringify(body)
+          }
         }
 
         return fetchFn(input, {

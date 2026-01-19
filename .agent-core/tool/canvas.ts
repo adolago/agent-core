@@ -6,6 +6,313 @@
  */
 
 import { tool } from "@opencode-ai/plugin"
+import { execFile } from "node:child_process"
+import { existsSync } from "node:fs"
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { promisify } from "node:util"
+
+const execFileAsync = promisify(execFile)
+
+type CanvasKind = "text" | "calendar" | "document" | "table" | "diagram" | "graph" | "mindmap"
+
+type CanvasState = {
+  version: 1
+  canvases: Record<
+    string,
+    {
+      paneId: string
+      kind: CanvasKind
+      createdAt: number
+    }
+  >
+}
+
+const DEFAULT_CANVAS_PERCENT = 67
+
+function getStateDir(): string {
+  const xdg = process.env.XDG_STATE_HOME?.trim()
+  if (xdg) return path.join(xdg, "agent-core")
+  return path.join(os.homedir(), ".local", "state", "agent-core")
+}
+
+function getCanvasDir(): string {
+  return path.join(getStateDir(), "canvas")
+}
+
+function getCanvasStatePath(): string {
+  return path.join(getCanvasDir(), "state.json")
+}
+
+async function ensureCanvasDir(): Promise<void> {
+  await mkdir(getCanvasDir(), { recursive: true })
+}
+
+async function loadCanvasState(): Promise<CanvasState> {
+  const statePath = getCanvasStatePath()
+  if (!existsSync(statePath)) {
+    return { version: 1, canvases: {} }
+  }
+  try {
+    const raw = await readFile(statePath, "utf-8")
+    const parsed = JSON.parse(raw) as Partial<CanvasState>
+    if (parsed.version !== 1 || !parsed.canvases) return { version: 1, canvases: {} }
+    return { version: 1, canvases: parsed.canvases }
+  } catch {
+    return { version: 1, canvases: {} }
+  }
+}
+
+async function saveCanvasState(state: CanvasState): Promise<void> {
+  await ensureCanvasDir()
+  await writeFile(getCanvasStatePath(), JSON.stringify(state, null, 2), "utf-8")
+}
+
+function getRuntimeDir(): string | undefined {
+  const configured = process.env.XDG_RUNTIME_DIR?.trim()
+  if (configured) return configured
+  if (typeof process.getuid === "function") return `/run/user/${process.getuid()}`
+  return undefined
+}
+
+async function resolveWeztermUnixSocket(): Promise<string | undefined> {
+  const existing = process.env.WEZTERM_UNIX_SOCKET?.trim()
+  if (existing) return existing
+
+  const runtimeDir = getRuntimeDir()
+  if (!runtimeDir) return undefined
+
+  const weztermDir = path.join(runtimeDir, "wezterm")
+  if (!existsSync(weztermDir)) return undefined
+
+  try {
+    const entries = await readdir(weztermDir, { withFileTypes: true })
+
+    // Prefer the well-known Wayland/X11 socket symlink if present.
+    const wellKnown = entries.find((e) => e.isSymbolicLink() && e.name.endsWith("org.wezfurlong.wezterm"))
+    if (wellKnown) return path.join(weztermDir, wellKnown.name)
+
+    // Fallback to the newest gui-sock-* entry.
+    const guiSockets = entries
+      .filter((e) => e.name.startsWith("gui-sock-"))
+      .map((e) => path.join(weztermDir, e.name))
+
+    let best: { p: string; mtimeMs: number } | undefined
+    for (const p of guiSockets) {
+      try {
+        const s = await stat(p)
+        const mtimeMs = s.mtimeMs ?? 0
+        if (!best || mtimeMs > best.mtimeMs) best = { p, mtimeMs }
+      } catch {
+        // ignore
+      }
+    }
+
+    return best?.p
+  } catch {
+    return undefined
+  }
+}
+
+async function weztermEnv(): Promise<NodeJS.ProcessEnv> {
+  const env = { ...process.env }
+
+  // Prevent `wezterm cli` from spawning an invisible mux server when no GUI socket is discoverable.
+  const socket = await resolveWeztermUnixSocket()
+  if (!socket) {
+    throw new Error("WEZTERM_UNIX_SOCKET not set and no WezTerm GUI socket found")
+  }
+  env.WEZTERM_UNIX_SOCKET = socket
+
+  const runtimeDir = getRuntimeDir()
+  if (runtimeDir && !env.XDG_RUNTIME_DIR) env.XDG_RUNTIME_DIR = runtimeDir
+
+  return env
+}
+
+async function weztermCli(args: string[], options: { timeoutMs?: number } = {}): Promise<{ stdout: string; stderr: string }> {
+  const timeoutMs = options.timeoutMs ?? 5000
+  const { stdout, stderr } = await execFileAsync("wezterm", ["cli", ...args], {
+    timeout: timeoutMs,
+    maxBuffer: 10 * 1024 * 1024,
+    env: await weztermEnv(),
+  })
+  return { stdout: String(stdout ?? ""), stderr: String(stderr ?? "") }
+}
+
+type WeztermListEntry = {
+  pane_id?: number
+  paneId?: number
+  paneID?: number
+  pane?: number
+  is_active?: boolean
+}
+
+async function getWeztermList(): Promise<WeztermListEntry[]> {
+  const { stdout } = await weztermCli(["list", "--format", "json"], { timeoutMs: 2500 })
+  const data = JSON.parse(stdout) as unknown
+  if (!Array.isArray(data)) return []
+  return data as WeztermListEntry[]
+}
+
+async function getWeztermPaneIds(): Promise<Set<string>> {
+  const data = await getWeztermList()
+  const ids = new Set<string>()
+  for (const entry of data) {
+    const paneId = entry?.pane_id ?? entry?.paneId ?? entry?.paneID ?? entry?.pane
+    if (paneId === undefined || paneId === null) continue
+    ids.add(String(paneId))
+  }
+  return ids
+}
+
+function weztermEnabled(): boolean {
+  const raw = process.env.AGENT_CORE_CANVAS_WEZTERM?.trim().toLowerCase()
+  if (!raw) return true
+  return !["0", "false", "off", "no"].includes(raw)
+}
+
+async function weztermAvailable(): Promise<boolean> {
+  if (!weztermEnabled()) return false
+  try {
+    await getWeztermPaneIds()
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function paneExists(paneId: string): Promise<boolean> {
+  try {
+    const ids = await getWeztermPaneIds()
+    return ids.has(paneId)
+  } catch {
+    return false
+  }
+}
+
+async function resolveTargetPaneId(): Promise<string | undefined> {
+  const configured = process.env.AGENT_CORE_CANVAS_PANE_ID?.trim()
+  if (configured) return configured
+  const envPane = process.env.WEZTERM_PANE?.trim()
+  if (envPane) return envPane
+  const list = await getWeztermList()
+  const active = list.find((x) => x.is_active) ?? list[0]
+  const paneId = active?.pane_id ?? active?.paneId ?? active?.paneID ?? active?.pane
+  return paneId === undefined || paneId === null ? undefined : String(paneId)
+}
+
+function safeString(input: unknown): string | undefined {
+  if (typeof input === "string") return input
+  return undefined
+}
+
+function renderTable(headers: string[], rows: string[][]): string {
+  const normalizedRows = rows.map((r) => r.map((cell) => (cell === undefined || cell === null ? "" : String(cell))))
+  const cols = Math.max(headers.length, ...normalizedRows.map((r) => r.length), 0)
+  const tableHeaders = Array.from({ length: cols }, (_, i) => headers[i] ?? "")
+  const tableRows = normalizedRows.map((r) => Array.from({ length: cols }, (_, i) => r[i] ?? ""))
+
+  const widths = Array.from({ length: cols }, (_, i) => {
+    const values = [tableHeaders[i], ...tableRows.map((r) => r[i])]
+    return Math.max(...values.map((v) => String(v).length), 0)
+  })
+
+  const sep = (left: string, mid: string, right: string) =>
+    left + widths.map((w) => "─".repeat(w + 2)).join(mid) + right
+
+  const rowLine = (cells: string[]) =>
+    "│" + cells.map((c, i) => ` ${String(c).padEnd(widths[i])} `).join("│") + "│"
+
+  const lines: string[] = []
+  lines.push(sep("┌", "┬", "┐"))
+  lines.push(rowLine(tableHeaders))
+  lines.push(sep("├", "┼", "┤"))
+  for (const r of tableRows) lines.push(rowLine(r))
+  lines.push(sep("└", "┴", "┘"))
+  return lines.join("\n")
+}
+
+function buildCanvasBody(kind: CanvasKind, id: string, config: Record<string, unknown>): { title: string; body: string } {
+  const title = safeString(config.title) || id
+
+  if (kind === "table") {
+    const headersRaw = config.headers
+    const rowsRaw = config.rows
+    const headers = Array.isArray(headersRaw) ? headersRaw.filter((h) => typeof h === "string") : []
+    const rows = Array.isArray(rowsRaw)
+      ? rowsRaw
+          .filter((r) => Array.isArray(r))
+          .map((r) => (r as unknown[]).map((cell) => (cell === undefined || cell === null ? "" : String(cell))))
+      : []
+    return {
+      title,
+      body: renderTable(headers, rows),
+    }
+  }
+
+  const content = safeString(config.content)
+  if (content) {
+    return { title, body: content }
+  }
+
+  return { title, body: JSON.stringify(config, null, 2) }
+}
+
+function buildPanePayload(title: string, kind: CanvasKind, id: string, body: string): string {
+  const now = new Date()
+  const meta = `${id} • ${kind} • ${now.toLocaleString()}`
+  const header = `${title}\n${"=".repeat(Math.min(80, Math.max(8, title.length)))}\n\n`
+  const footer = `\n\n${meta}\n`
+  const clear = "\x1b[2J\x1b[H"
+  const setTitle = `\x1b]0;Canvas: ${title}\x07`
+  return clear + setTitle + header + body + footer
+}
+
+async function ensureCanvasPane(id: string, kind: CanvasKind): Promise<{ paneId: string; created: boolean }> {
+  const state = await loadCanvasState()
+  const existing = state.canvases[id]
+  if (existing && (await paneExists(existing.paneId))) {
+    return { paneId: existing.paneId, created: false }
+  }
+
+  const percent = (() => {
+    const raw = process.env.AGENT_CORE_CANVAS_PERCENT?.trim()
+    const num = raw ? Number(raw) : NaN
+    if (!Number.isFinite(num) || num <= 0 || num >= 100) return DEFAULT_CANVAS_PERCENT
+    return Math.round(num)
+  })()
+
+  const targetPaneId = await resolveTargetPaneId()
+
+  // Start a "display" pane that doesn't echo input; content is rendered by sending text to stdin.
+  const splitArgs = ["split-pane", "--right", "--percent", String(percent)]
+  if (targetPaneId) splitArgs.push("--pane-id", targetPaneId)
+  splitArgs.push("--", "sh", "-c", "stty -echo 2>/dev/null; cat")
+  const { stdout } = await weztermCli(splitArgs, { timeoutMs: 5000 })
+  const paneId = stdout.trim()
+  if (!paneId) throw new Error("wezterm did not return a pane id")
+
+  state.canvases[id] = { paneId, kind, createdAt: Date.now() }
+  await saveCanvasState(state)
+
+  // Restore focus back to the calling pane if available.
+  if (targetPaneId) {
+    try {
+      await weztermCli(["activate-pane", "--pane-id", targetPaneId], { timeoutMs: 2500 })
+    } catch {
+      // ignore
+    }
+  }
+
+  return { paneId, created: true }
+}
+
+async function renderToPane(paneId: string, payload: string): Promise<void> {
+  // NOTE: send-text sends input to the process attached to the pane; our canvas pane runs `cat`.
+  await weztermCli(["send-text", "--pane-id", paneId, "--no-paste", payload], { timeoutMs: 5000 })
+}
 
 // Canvas spawn tool
 export const canvasSpawn = tool({
@@ -45,18 +352,28 @@ Examples:
       return `Invalid JSON config: ${args.config}`
     }
 
-    // Canvas daemon integration not yet implemented
-    // For now, return the content as formatted text
-    const title = (config.title as string) || args.id
-    const content = (config.content as string) || JSON.stringify(config, null, 2)
+    const kind = args.kind as CanvasKind
+    const { title, body } = buildCanvasBody(kind, args.id, config)
 
-    return `=== ${title} ===
-(Canvas type: ${args.kind})
+    if (!(await weztermAvailable())) {
+      return `=== ${title} ===
+(Canvas type: ${kind})
 
-${content}
+${body}
 
 ---
-Note: WezTerm canvas panes are not yet implemented. Content displayed inline.`
+Note: WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm cli\` not reachable). Content displayed inline.`
+    }
+
+    try {
+      const { paneId, created } = await ensureCanvasPane(args.id, kind)
+      const payload = buildPanePayload(title, kind, args.id, body)
+      await renderToPane(paneId, payload)
+      return `${created ? "Canvas created" : "Canvas updated"}: "${args.id}" (${kind}) in WezTerm pane ${paneId}.`
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      return `Failed to render canvas in WezTerm: ${msg}`
+    }
   },
 })
 
@@ -79,11 +396,28 @@ Examples:
       return `Invalid JSON config: ${args.config}`
     }
 
-    // Canvas daemon integration not yet implemented
-    return `Canvas "${args.id}" update requested (not yet implemented).
+    if (!(await weztermAvailable())) {
+      return `Canvas "${args.id}" update requested.
 
-New content:
-${JSON.stringify(config, null, 2)}`
+WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm cli\` not reachable).`
+    }
+
+    const state = await loadCanvasState()
+    const existing = state.canvases[args.id]
+    if (!existing) {
+      return `Canvas "${args.id}" does not exist yet. Use canvasSpawn first.`
+    }
+
+    if (!(await paneExists(existing.paneId))) {
+      delete state.canvases[args.id]
+      await saveCanvasState(state)
+      return `Canvas "${args.id}" pane is no longer available. Use canvasSpawn to recreate it.`
+    }
+
+    const { title, body } = buildCanvasBody(existing.kind, args.id, config)
+    const payload = buildPanePayload(title, existing.kind, args.id, body)
+    await renderToPane(existing.paneId, payload)
+    return `Canvas "${args.id}" updated in WezTerm pane ${existing.paneId}.`
   },
 })
 
@@ -94,8 +428,25 @@ export const canvasClose = tool({
     id: tool.schema.string().describe("Canvas identifier to close"),
   },
   async execute(args) {
-    // Canvas daemon integration not yet implemented
-    return `Canvas "${args.id}" close requested (not yet implemented).`
+    if (!(await weztermAvailable())) {
+      return `Canvas "${args.id}" close requested.
+
+WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm cli\` not reachable).`
+    }
+
+    const state = await loadCanvasState()
+    const existing = state.canvases[args.id]
+    if (!existing) return `Canvas "${args.id}" is not open.`
+
+    try {
+      await weztermCli(["kill-pane", "--pane-id", existing.paneId], { timeoutMs: 5000 })
+    } catch {
+      // ignore (pane may already be closed)
+    }
+
+    delete state.canvases[args.id]
+    await saveCanvasState(state)
+    return `Canvas "${args.id}" closed.`
   },
 })
 
@@ -104,7 +455,29 @@ export const canvasList = tool({
   description: `List all active canvases.`,
   args: {},
   async execute() {
-    // Canvas daemon integration not yet implemented
-    return `Canvas listing not yet implemented. WezTerm canvas panes are a planned feature.`
+    const state = await loadCanvasState()
+    const ids = Object.keys(state.canvases)
+    if (ids.length === 0) return "No active canvases."
+
+    const live = new Map<string, { paneId: string; kind: CanvasKind; createdAt: number }>()
+    for (const id of ids) {
+      const c = state.canvases[id]
+      if (!c) continue
+      if (await paneExists(c.paneId)) {
+        live.set(id, c)
+      } else {
+        delete state.canvases[id]
+      }
+    }
+    await saveCanvasState(state)
+
+    if (live.size === 0) return "No active canvases."
+
+    const lines = Array.from(live.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([id, c]) => `- ${id} (${c.kind}) in pane ${c.paneId}`)
+      .join("\n")
+
+    return `${live.size} active canvas(es):\n${lines}`
   },
 })

@@ -27,6 +27,11 @@ const FACT_EXTRACTION_CONFIG = {
   useLLM: false, // Start with heuristics, enable LLM later
 };
 
+const CONVERSATION_MEMORY_CONFIG = {
+  minChars: 40,
+  maxChars: 4000,
+};
+
 // Map fact categories to memory categories
 function mapCategory(factCategory: ExtractedFact["category"]): MemoryCategory {
   switch (factCategory) {
@@ -60,11 +65,6 @@ export function initFactExtractionHook(): () => void {
   const unsubscribe = LifecycleHooks.on(
     LifecycleHooks.SessionLifecycle.End,
     async (payload) => {
-      // Skip if session too short or already processed
-      if (payload.duration < FACT_EXTRACTION_CONFIG.minSessionDuration) {
-        return;
-      }
-
       if (processedSessions.has(payload.sessionId)) {
         return;
       }
@@ -76,8 +76,23 @@ export function initFactExtractionHook(): () => void {
         if (oldest) processedSessions.delete(oldest);
       }
 
+      let conversationContent: string | null = null;
       try {
-        await extractAndStoreFacts(payload.sessionId, extractor);
+        conversationContent = await storeSessionConversation(payload.sessionId, payload.persona);
+      } catch (error) {
+        log.error("Failed to store session conversation", {
+          sessionId: payload.sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      // Skip fact extraction if session too short
+      if (payload.duration < FACT_EXTRACTION_CONFIG.minSessionDuration) {
+        return;
+      }
+
+      try {
+        await extractAndStoreFacts(payload.sessionId, extractor, payload.persona, conversationContent);
       } catch (error) {
         log.error("Fact extraction hook failed", {
           sessionId: payload.sessionId,
@@ -97,22 +112,24 @@ export function initFactExtractionHook(): () => void {
  */
 async function extractAndStoreFacts(
   sessionId: string,
-  extractor: ReturnType<typeof createFactExtractor>
+  extractor: ReturnType<typeof createFactExtractor>,
+  persona?: "zee" | "stanley" | "johny",
+  conversationContent?: string | null
 ): Promise<void> {
-  // Get the memory store
-  const store = getMemory();
+  const content = conversationContent ?? (await getSessionContent(sessionId));
+  if (!content) {
+    return;
+  }
 
-  // Try to get conversation content from the session
-  // For now, we'll use a placeholder - in production this would
-  // fetch actual messages from the session
-  const conversationContent = await getSessionContent(sessionId);
-
-  if (!conversationContent || conversationContent.length < 100) {
+  if (content.length < 100) {
     return; // Not enough content to extract facts
   }
 
+  // Get the memory store only when needed for fact persistence
+  const store = getMemory();
+
   // Extract facts
-  const facts = await extractor.extract(conversationContent);
+  const facts = await extractor.extract(content);
 
   // Filter by confidence
   const validFacts = facts.filter(
@@ -150,6 +167,59 @@ async function extractAndStoreFacts(
     factCount: validFacts.length,
     sessionId: sessionId.slice(0, 8),
   });
+}
+
+async function storeSessionConversation(
+  sessionId: string,
+  persona?: "zee" | "stanley" | "johny"
+): Promise<string | null> {
+  const content = await getSessionContent(sessionId);
+  if (!content) return null;
+  const store = getMemory();
+  await storeConversationMemory(store, sessionId, persona, content);
+  return content;
+}
+
+function truncateConversation(content: string): { text: string; truncated: boolean } {
+  if (content.length <= CONVERSATION_MEMORY_CONFIG.maxChars) {
+    return { text: content, truncated: false };
+  }
+  return {
+    text: content.slice(0, CONVERSATION_MEMORY_CONFIG.maxChars),
+    truncated: true,
+  };
+}
+
+async function storeConversationMemory(
+  store: ReturnType<typeof getMemory>,
+  sessionId: string,
+  persona: "zee" | "stanley" | "johny" | undefined,
+  content: string
+): Promise<void> {
+  if (content.length < CONVERSATION_MEMORY_CONFIG.minChars) {
+    return;
+  }
+
+  const { text, truncated } = truncateConversation(content);
+  try {
+    await store.save({
+      category: "conversation",
+      content: text,
+      summary: `Session ${sessionId.slice(0, 8)} conversation`,
+      metadata: {
+        source: "session-transcript",
+        sessionId,
+        persona,
+        truncated,
+        length: content.length,
+      },
+    });
+  } catch (error) {
+    log.error("Failed to store conversation memory", {
+      sessionId: sessionId.slice(0, 8),
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /**

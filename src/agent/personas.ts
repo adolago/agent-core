@@ -256,7 +256,7 @@ When responding:
     "~/.clawd/IDENTITY.md",
     "~/.clawd/SOUL.md",
   ],
-  mcpServers: ["tiara", "google-calendar"],
+  mcpServers: ["tiara", "personas-calendar"],
 };
 
 // =============================================================================

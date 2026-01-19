@@ -30,6 +30,7 @@ import { DialogAlert } from "../../ui/dialog-alert"
 import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
 import { useTextareaKeybindings } from "../textarea-keybindings"
+import { Dictation } from "@tui/util/dictation"
 
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
@@ -75,6 +76,39 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const { theme, syntax } = useTheme()
   const kv = useKV()
+  const dictationConfig = createMemo(() => {
+    const tui = sync.data.config.tui as { dictation?: Dictation.Config } | undefined
+    return Dictation.resolveConfig(tui?.dictation)
+  })
+  const [dictationState, setDictationState] = createSignal<Dictation.State>("idle")
+  let dictationRecording: Dictation.RecordingHandle | undefined
+  const dictationKey = createMemo(() => keybind.print("input_dictation_toggle"))
+  const dictationCommandLabel = createMemo(() => {
+    const state = dictationState()
+    if (state === "listening") return "Stop dictation"
+    if (state === "sending") return "Dictation (sending)"
+    if (state === "receiving") return "Dictation (receiving)"
+    if (state === "transcribing") return "Dictation (processing)"
+    return "Start dictation"
+  })
+  const dictationCommandDisabled = createMemo(() => {
+    const state = dictationState()
+    return state !== "idle" && state !== "listening"
+  })
+  const dictationHintLabel = createMemo(() => {
+    const state = dictationState()
+    if (state === "listening") return "dictate (listening)"
+    if (state === "sending") return "dictate (sending)"
+    if (state === "receiving") return "dictate (receiving)"
+    if (state === "transcribing") return "dictate (processing)"
+    return "dictate"
+  })
+  const dictationHintColor = createMemo(() => {
+    const state = dictationState()
+    if (state === "listening") return theme.warning
+    if (state === "sending" || state === "receiving" || state === "transcribing") return theme.primary
+    return theme.text
+  })
 
   function promptModelWarning() {
     toast.show({
@@ -107,6 +141,120 @@ export function Prompt(props: PromptProps) {
       completed,
       total: todos.length,
       current: inProgress?.content?.slice(0, 30) ?? incomplete[0]?.content?.slice(0, 30),
+    }
+  })
+
+  function insertDictationText(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const prefix = input.plainText.length > 0 && !/\s$/.test(input.plainText) ? " " : ""
+    input.insertText(prefix + trimmed)
+    setTimeout(() => {
+      input.getLayoutNode().markDirty()
+      input.gotoBufferEnd()
+      renderer.requestRender()
+    }, 0)
+  }
+
+  async function startDictation() {
+    if (props.disabled) return
+    if (store.mode !== "normal") {
+      toast.show({ variant: "warning", message: "Dictation is only available in prompt mode" })
+      return
+    }
+    const config = dictationConfig()
+    if (!config) {
+      toast.show({
+        variant: "warning",
+        message: "Dictation is not configured. Set INWORLD_API_KEY and INWORLD_STT_ENDPOINT or tui.dictation.",
+      })
+      return
+    }
+    if (dictationState() !== "idle") return
+
+    const recorder = Dictation.resolveRecorderCommand({
+      sampleRate: config.sampleRate,
+      command: config.recordCommand,
+    })
+    if (!recorder) {
+      toast.show({
+        variant: "warning",
+        message: "No recorder found. Install arecord or set tui.dictation.record_command.",
+      })
+      return
+    }
+    try {
+      dictationRecording = Dictation.startRecording({ command: recorder })
+    } catch (error) {
+      toast.show({
+        variant: "error",
+        message: `Failed to start dictation: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      return
+    }
+    setDictationState("listening")
+    input.focus()
+  }
+
+  async function stopDictation() {
+    if (dictationState() !== "listening") return
+    const config = dictationConfig()
+    const activeRecording = dictationRecording
+    dictationRecording = undefined
+    if (!activeRecording || !config) {
+      setDictationState("idle")
+      return
+    }
+    setDictationState("sending")
+
+    try {
+      const result = await activeRecording.stop()
+      if (result.audio.length === 0) {
+        const message = result.stderr ? `Dictation recorder error: ${result.stderr}` : "No audio captured"
+        toast.show({ variant: "warning", message })
+        setDictationState("idle")
+        return
+      }
+      const transcript = await Dictation.transcribe({
+        config,
+        audio: result.audio,
+        onState: (state) => setDictationState(state),
+      })
+      if (!transcript || transcript.trim().length === 0) {
+        toast.show({ variant: "warning", message: "No transcript returned from dictation" })
+        setDictationState("idle")
+        return
+      }
+      insertDictationText(transcript)
+      setDictationState("idle")
+      if (config.autoSubmit) {
+        setTimeout(() => submit(), 0)
+      }
+    } catch (error) {
+      toast.show({
+        variant: "error",
+        message: `Dictation failed: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      setDictationState("idle")
+    }
+  }
+
+  async function toggleDictation() {
+    if (dictationState() === "idle") {
+      await startDictation()
+      return
+    }
+    if (dictationState() === "listening") {
+      await stopDictation()
+      return
+    }
+    toast.show({ variant: "info", message: "Dictation is still processing" })
+  }
+
+  onCleanup(() => {
+    if (dictationRecording) {
+      dictationRecording.cancel().catch(() => {})
+      dictationRecording = undefined
     }
   })
 
@@ -214,6 +362,17 @@ export function Prompt(props: PromptProps) {
               content: content.data,
             })
           }
+        },
+      },
+      {
+        title: dictationCommandLabel(),
+        value: "prompt.dictation.toggle",
+        keybind: "input_dictation_toggle",
+        category: "Prompt",
+        disabled: dictationCommandDisabled(),
+        onSelect: async (dialog) => {
+          await toggleDictation()
+          dialog.clear()
         },
       },
       {
@@ -909,6 +1068,11 @@ export function Prompt(props: PromptProps) {
                   }
                   // If no image, let the default paste behavior continue
                 }
+                if (keybind.match("input_dictation_toggle", e)) {
+                  e.preventDefault()
+                  await toggleDictation()
+                  return
+                }
                 if (keybind.match("input_clear", e) && store.prompt.input !== "") {
                   input.clear()
                   input.extmarks.clear()
@@ -1106,13 +1270,29 @@ export function Prompt(props: PromptProps) {
           <Show
             when={status().type !== "idle"}
             fallback={
-              <Show when={todoHint()}>
-                {(hint) => (
+              <Switch>
+                <Match when={dictationState() === "listening"}>
                   <text fg={theme.warning}>
-                    ◐ {hint().count} pending · {hint().current}...
+                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
                   </text>
-                )}
-              </Show>
+                </Match>
+                <Match when={dictationState() === "sending"}>
+                  <text fg={theme.primary}>[SEND] sending audio...</text>
+                </Match>
+                <Match when={dictationState() === "receiving"}>
+                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
+                </Match>
+                <Match when={dictationState() === "transcribing"}>
+                  <text fg={theme.textMuted}>dictation processing...</text>
+                </Match>
+                <Match when={todoHint()}>
+                  {(hint) => (
+                    <text fg={theme.warning}>
+                      ◐ {hint().count} pending · {hint().current}...
+                    </text>
+                  )}
+                </Match>
+              </Switch>
             }
           >
             <box
@@ -1206,6 +1386,11 @@ export function Prompt(props: PromptProps) {
                   <text fg={theme.text}>
                     {keybind.print("command_list")} <span style={{ fg: theme.textMuted }}>commands</span>
                   </text>
+                  <Show when={dictationKey() && dictationConfig()}>
+                    <text fg={dictationHintColor()}>
+                      {dictationKey()} <span style={{ fg: theme.textMuted }}>{dictationHintLabel()}</span>
+                    </text>
+                  </Show>
                 </Match>
                 <Match when={store.mode === "shell"}>
                   <text fg={theme.text}>
