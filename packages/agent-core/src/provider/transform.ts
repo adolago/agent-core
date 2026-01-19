@@ -20,6 +20,28 @@ function mimeToModality(mime: string): Modality | undefined {
 }
 
 export namespace ProviderTransform {
+  // Maps npm package to the key the AI SDK expects for providerOptions
+  function sdkKey(npm: string): string | undefined {
+    switch (npm) {
+      case "@ai-sdk/github-copilot":
+      case "@ai-sdk/openai":
+      case "@ai-sdk/azure":
+        return "openai"
+      case "@ai-sdk/amazon-bedrock":
+        return "bedrock"
+      case "@ai-sdk/anthropic":
+        return "anthropic"
+      case "@ai-sdk/google-vertex":
+      case "@ai-sdk/google":
+        return "google"
+      case "@ai-sdk/gateway":
+        return "gateway"
+      case "@openrouter/ai-sdk-provider":
+        return "openrouter"
+    }
+    return undefined
+  }
+
   function normalizeMessages(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
     // Anthropic rejects messages with empty content - filter out empty string messages
     // and remove empty text/reasoning parts from array content
@@ -243,6 +265,34 @@ export namespace ProviderTransform {
       msgs = applyCaching(msgs, model.providerID)
     }
 
+    // Remap providerOptions keys from stored providerID to expected SDK key
+    const key = sdkKey(model.api.npm)
+    if (key && key !== model.providerID && model.api.npm !== "@ai-sdk/azure") {
+      const remap = (opts: Record<string, any> | undefined) => {
+        if (!opts) return opts
+        if (!(model.providerID in opts)) return opts
+        const result = { ...opts }
+        result[key] = result[model.providerID]
+        delete result[model.providerID]
+        return result
+      }
+
+      msgs = msgs.map((msg) => {
+        if (!Array.isArray(msg.content)) return { ...msg, providerOptions: remap(msg.providerOptions) }
+        return {
+          ...msg,
+          providerOptions: remap(msg.providerOptions),
+          content: msg.content.map((part) => {
+            if (!("providerOptions" in part)) return part
+            const providerOptions = remap(
+              (part as { providerOptions?: Record<string, any> }).providerOptions,
+            )
+            return providerOptions ? { ...part, providerOptions } : part
+          }),
+        } as typeof msg
+      })
+    }
+
     return msgs
   }
 
@@ -293,6 +343,20 @@ export namespace ProviderTransform {
     const id = model.id.toLowerCase()
     if (id.includes("deepseek") || id.includes("minimax") || id.includes("glm") || id.includes("mistral")) return {}
 
+    // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
+    if (id.includes("grok") && id.includes("grok-3-mini")) {
+      if (model.api.npm === "@openrouter/ai-sdk-provider") {
+        return {
+          low: { reasoning: { effort: "low" } },
+          high: { reasoning: { effort: "high" } },
+        }
+      }
+      return {
+        low: { reasoningEffort: "low" },
+        high: { reasoningEffort: "high" },
+      }
+    }
+
     switch (model.api.npm) {
       case "@openrouter/ai-sdk-provider":
         if (!model.id.includes("gpt") && !model.id.includes("gemini-3") && !model.id.includes("grok-4")) return {}
@@ -313,6 +377,18 @@ export namespace ProviderTransform {
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/deepinfra
       case "@ai-sdk/openai-compatible":
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+
+      case "@ai-sdk/github-copilot":
+        return Object.fromEntries(
+          WIDELY_SUPPORTED_EFFORTS.map((effort) => [
+            effort,
+            {
+              reasoningEffort: effort,
+              reasoningSummary: "auto",
+              include: ["reasoning.encrypted_content"],
+            },
+          ]),
+        )
 
       case "@ai-sdk/azure":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure
@@ -476,6 +552,11 @@ export namespace ProviderTransform {
     providerOptions?: Record<string, any>,
   ): Record<string, any> {
     const result: Record<string, any> = {}
+
+    // openai and providers using openai package should set store to false by default.
+    if (model.providerID === "openai" || model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/github-copilot") {
+      result["store"] = false
+    }
 
     if (model.api.npm === "@openrouter/ai-sdk-provider") {
       result["usage"] = {
@@ -995,39 +1076,8 @@ export namespace ProviderTransform {
     // Then filter to only include params supported by this provider SDK
     const filtered = filterProviderParams(model.api.npm, sanitized)
 
-    switch (model.api.npm) {
-      case "@ai-sdk/github-copilot":
-      case "@ai-sdk/openai":
-      case "@ai-sdk/azure":
-        return {
-          ["openai" as string]: filtered,
-        }
-      case "@ai-sdk/amazon-bedrock":
-        return {
-          ["bedrock" as string]: filtered,
-        }
-      case "@ai-sdk/anthropic":
-        return {
-          ["anthropic" as string]: filtered,
-        }
-      case "@ai-sdk/google-vertex":
-      case "@ai-sdk/google":
-        return {
-          ["google" as string]: filtered,
-        }
-      case "@ai-sdk/gateway":
-        return {
-          ["gateway" as string]: filtered,
-        }
-      case "@openrouter/ai-sdk-provider":
-        return {
-          ["openrouter" as string]: filtered,
-        }
-      default:
-        return {
-          [model.providerID]: filtered,
-        }
-    }
+    const key = sdkKey(model.api.npm) ?? model.providerID
+    return { [key]: filtered }
   }
 
   export function maxOutputTokens(
