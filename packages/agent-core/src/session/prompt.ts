@@ -1705,6 +1705,6 @@ export namespace SessionPrompt {
 
         const title = cleaned.length > 100 ? cleaned.substring(0, 97) + "..." : cleaned
         draft.title = title
-      })
+      }, { touch: false })
   }
 }
