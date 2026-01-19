@@ -172,9 +172,9 @@ function DialogCommand(props: { options: CommandOption[] }) {
 export const { use: useCommand, provider: CommandProvider } = createSimpleContext({
   name: "Command",
   init: () => {
+    const dialog = useDialog()
     const [registrations, setRegistrations] = createSignal<Accessor<CommandOption[]>[]>([])
     const [suspendCount, setSuspendCount] = createSignal(0)
-    const dialog = useDialog()
 
     const options = createMemo(() => {
       const seen = new Set<string>()
@@ -209,7 +209,7 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (suspended()) return
+      if (suspended() || dialog.active) return
 
       const paletteKeybinds = parseKeybind("mod+shift+p")
       if (matchKeybind(paletteKeybinds, event)) {

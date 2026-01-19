@@ -648,6 +648,9 @@ export namespace ProviderTransform {
       "frequencyPenalty", // -2.0 to 2.0
       "presencePenalty", // -2.0 to 2.0
       "stop", // Stop sequences
+
+      // Codex API (ChatGPT Pro/Plus OAuth)
+      "instructions", // System instructions for Codex models
     ]),
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -2,7 +2,7 @@ import z from "zod"
 import fuzzysort from "fuzzysort"
 import { Config } from "../config/config"
 import { mapValues, mergeDeep, omit, pickBy, sortBy } from "remeda"
-import { NoSuchModelError, type LanguageModel } from "ai"
+import { NoSuchModelError, generateText, type LanguageModel } from "ai"
 
 // Use any for provider factories - there are multiple @ai-sdk/provider versions
 // (2.0.1 and 3.0.3) which causes type incompatibilities between providers
@@ -19,6 +19,7 @@ import { NamedError } from "@opencode-ai/util/error"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { Instance } from "../project/instance"
+import { State } from "../project/state"
 import { Flag } from "../flag/flag"
 import { iife } from "@/util/iife"
 import { THINKING_BUDGETS } from "./constants"
@@ -822,6 +823,10 @@ export namespace Provider {
     for (const [providerID, provider] of Object.entries(await Auth.all())) {
       if (disabled.has(providerID)) continue
       if (provider.type === "api") {
+        const envKeys = database[providerID]?.env ?? []
+        for (const envKey of envKeys) {
+          if (!Env.get(envKey)) Env.set(envKey, provider.key)
+        }
         mergeProvider(providerID, {
           source: "api",
           key: provider.key,
@@ -1244,6 +1249,10 @@ export namespace Provider {
     return state().then((state) => state.providers)
   }
 
+  export async function reload() {
+    await State.dispose(Instance.directory)
+  }
+
   async function getSDK(model: Model) {
     try {
       using _ = log.time("getSDK", {
@@ -1429,6 +1438,16 @@ export namespace Provider {
           if (model.includes(item)) return getModel(providerID, model)
         }
       }
+
+      const models = Object.values(provider.models)
+      const candidates = models.some((m) => m.status !== "deprecated") ? models.filter((m) => m.status !== "deprecated") : models
+      const [fallback] = sortBy(
+        candidates,
+        [(m) => (m.id.includes("latest") ? 1 : 0), "desc"],
+        [(m) => m.release_date, "desc"],
+        [(m) => m.id, "desc"],
+      )
+      if (fallback) return getModel(providerID, fallback.id)
     }
 
     // Check if opencode provider is available before using it
@@ -1489,4 +1508,41 @@ export namespace Provider {
       providerID: z.string(),
     }),
   )
+
+  export async function validateAuth(providerID: string) {
+    const provider = await getProvider(providerID)
+    if (!provider) {
+      throw new Error(`Provider not found: ${providerID}`)
+    }
+
+    let model = await getSmallModel(providerID)
+    if (!model || model.providerID !== providerID) {
+      const models = Object.values(provider.models)
+      const candidates = models.some((m) => m.status !== "deprecated") ? models.filter((m) => m.status !== "deprecated") : models
+      const [fallback] = sortBy(
+        candidates,
+        [(m) => (m.id.includes("latest") ? 1 : 0), "desc"],
+        [(m) => m.release_date, "desc"],
+        [(m) => m.id, "desc"],
+      )
+      model = fallback ? await getModel(providerID, fallback.id) : undefined
+    }
+    if (!model) {
+      throw new Error(`No model available for provider ${providerID}`)
+    }
+
+    const language = await getLanguage(model)
+    const options = ProviderTransform.options(model, "auth-validate", provider.options)
+
+    await generateText({
+      model: language,
+      prompt: "ping",
+      temperature: 0,
+      maxOutputTokens: 1,
+      maxRetries: 0,
+      abortSignal: AbortSignal.timeout(8000),
+      providerOptions: ProviderTransform.providerOptions(model, options),
+      headers: model.headers,
+    })
+  }
 }

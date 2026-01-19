@@ -38,6 +38,7 @@ import { ToolRoute } from "./route/tool"
 import { ProcessRoute } from "./route/process"
 import { MemoryRoute } from "./route/memory"
 import { UsageRoute } from "../usage/route"
+import { GatewayRoute } from "./route/gateway"
 
 // Default API port for the daemon
 const DEFAULT_API_PORT = 3210
@@ -156,6 +157,7 @@ export namespace Server {
         .route("/", ProcessRoute)
         .route("/", MemoryRoute)
         .route("/usage", UsageRoute)
+        .route("/gateway", GatewayRoute)
 
         // API Documentation
         .get(

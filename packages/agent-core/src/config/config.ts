@@ -440,9 +440,7 @@ export namespace Config {
         .int()
         .positive()
         .optional()
-        .describe(
-          "Timeout in ms for fetching tools from the MCP server. Defaults to 5000 (5 seconds) if not specified.",
-        ),
+        .describe("Timeout in ms for MCP server requests."),
     })
     .strict()
     .meta({
@@ -481,9 +479,7 @@ export namespace Config {
         .int()
         .positive()
         .optional()
-        .describe(
-          "Timeout in ms for fetching tools from the MCP server. Defaults to 5000 (5 seconds) if not specified.",
-        ),
+        .describe("Timeout in ms for MCP server requests."),
     })
     .strict()
     .meta({

@@ -228,28 +228,37 @@ export const AuthLoginCommand = cmd({
       async fn() {
         UI.empty()
         prompts.intro("Add credential")
-        if (args.url) {
-          const wellknown = await fetch(`${args.url}/.well-known/opencode`).then((x) => x.json() as any)
-          prompts.log.info(`Running \`${wellknown.auth.command.join(" ")}\``)
-          const proc = Bun.spawn({
-            cmd: wellknown.auth.command,
-            stdout: "pipe",
-          })
-          const exit = await proc.exited
-          if (exit !== 0) {
-            prompts.log.error("Failed")
+        const rawInput = typeof args.url === "string" ? args.url.trim() : ""
+        let providerArg: string | undefined
+        if (rawInput) {
+          try {
+            const url = new URL(rawInput)
+            const wellknown = await fetch(`${url.toString().replace(/\/$/, "")}/.well-known/opencode`).then(
+              (x) => x.json() as any,
+            )
+            prompts.log.info(`Running \`${wellknown.auth.command.join(" ")}\``)
+            const proc = Bun.spawn({
+              cmd: wellknown.auth.command,
+              stdout: "pipe",
+            })
+            const exit = await proc.exited
+            if (exit !== 0) {
+              prompts.log.error("Failed")
+              prompts.outro("Done")
+              return
+            }
+            const token = await new Response(proc.stdout).text()
+            await Auth.set(url.toString(), {
+              type: "wellknown",
+              key: wellknown.auth.env,
+              token: token.trim(),
+            })
+            prompts.log.success("Logged into " + url.toString())
             prompts.outro("Done")
             return
+          } catch {
+            providerArg = rawInput
           }
-          const token = await new Response(proc.stdout).text()
-          await Auth.set(args.url, {
-            type: "wellknown",
-            key: wellknown.auth.env,
-            token: token.trim(),
-          })
-          prompts.log.success("Logged into " + args.url)
-          prompts.outro("Done")
-          return
         }
         await ModelsDev.refresh().catch(() => {})
 
@@ -277,35 +286,51 @@ export const AuthLoginCommand = cmd({
           openrouter: 5,
           vercel: 6,
         }
-        let provider = await prompts.autocomplete({
-          message: "Select provider",
-          maxItems: 8,
-          options: [
-            ...pipe(
-              providers,
-              values(),
-              sortBy(
-                (x) => priority[x.id] ?? 99,
-                (x) => x.name ?? x.id,
+        let provider = providerArg ?? ""
+        if (!provider) {
+          const selected = await prompts.autocomplete({
+            message: "Select provider",
+            maxItems: 8,
+            options: [
+              ...pipe(
+                providers,
+                values(),
+                sortBy(
+                  (x) => priority[x.id] ?? 99,
+                  (x) => x.name ?? x.id,
+                ),
+                map((x) => ({
+                  label: x.name,
+                  value: x.id,
+                  hint: {
+                    opencode: "recommended",
+                    anthropic: "Claude Max or API key",
+                    openai: "ChatGPT Plus/Pro or API key",
+                  }[x.id],
+                })),
               ),
-              map((x) => ({
-                label: x.name,
-                value: x.id,
-                hint: {
-                  opencode: "recommended",
-                  anthropic: "Claude Max or API key",
-                  openai: "ChatGPT Plus/Pro or API key",
-                }[x.id],
-              })),
-            ),
-            {
-              value: "other",
-              label: "Other",
-            },
-          ],
-        })
+              {
+                value: "other",
+                label: "Other",
+              },
+            ],
+          })
+          if (prompts.isCancel(selected)) throw new UI.CancelledError()
+          provider = selected as string
+        }
 
-        if (prompts.isCancel(provider)) throw new UI.CancelledError()
+        const knownProvider = provider in providers
+        if (!knownProvider && provider !== "other") {
+          provider = provider.replace(/^@ai-sdk\//, "")
+          const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
+          if (customPlugin && customPlugin.auth) {
+            const handled = await handlePluginAuth({ auth: customPlugin.auth }, provider)
+            if (handled) return
+          }
+          prompts.log.warn(
+            `This only stores a credential for ${provider} - you will need configure it in agent-core.json, check the docs for examples.`,
+          )
+        }
 
         const plugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
         if (plugin && plugin.auth) {
@@ -314,13 +339,12 @@ export const AuthLoginCommand = cmd({
         }
 
         if (provider === "other") {
-          provider = await prompts.text({
+          const entered = await prompts.text({
             message: "Enter provider id",
             validate: (x) => (x && x.match(/^[0-9a-z-]+$/) ? undefined : "a-z, 0-9 and hyphens only"),
           })
-          if (prompts.isCancel(provider)) throw new UI.CancelledError()
-          provider = provider.replace(/^@ai-sdk\//, "")
-          if (prompts.isCancel(provider)) throw new UI.CancelledError()
+          if (prompts.isCancel(entered)) throw new UI.CancelledError()
+          provider = entered.replace(/^@ai-sdk\//, "")
 
           // Check if a plugin provides auth for this custom provider
           const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))

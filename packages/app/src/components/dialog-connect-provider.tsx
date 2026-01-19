@@ -351,8 +351,13 @@ export function DialogConnectProvider(props: { provider: string }) {
                         method: store.methodIndex,
                       })
                       if (result.error) {
-                        // TODO: show error
                         dialog.close()
+                        showToast({
+                          variant: "error",
+                          icon: "circle-x",
+                          title: "Connection failed",
+                          description: "Failed to connect provider. Please try again.",
+                        })
                         return
                       }
                       await complete()
