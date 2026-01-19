@@ -227,11 +227,7 @@ export const Terminal = (props: TerminalProps) => {
         props.onSubmit?.()
       }
     })
-    // t.onScroll((ydisp) => {
-    // console.log("Scroll position:", ydisp)
-    // })
     socket.addEventListener("open", () => {
-      console.log("WebSocket connected")
       sdk.client.pty
         .update({
           ptyID: local.pty.id,
@@ -249,9 +245,7 @@ export const Terminal = (props: TerminalProps) => {
       console.error("WebSocket error:", error)
       props.onConnectError?.(error)
     })
-    socket.addEventListener("close", () => {
-      console.log("WebSocket disconnected")
-    })
+    socket.addEventListener("close", () => {})
   })
 
   onCleanup(() => {
