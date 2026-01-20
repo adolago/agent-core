@@ -77,9 +77,10 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const { theme, syntax } = useTheme()
   const kv = useKV()
-  const dictationConfig = createMemo(() => {
+  const [dictationConfig, setDictationConfig] = createSignal<Dictation.RuntimeConfig | undefined>(undefined)
+  createEffect(() => {
     const tui = sync.data.config.tui as { dictation?: Dictation.Config } | undefined
-    return Dictation.resolveConfig(tui?.dictation)
+    Dictation.resolveConfig(tui?.dictation).then(setDictationConfig)
   })
   const [dictationState, setDictationState] = createSignal<Dictation.State>("idle")
   let dictationRecording: Dictation.RecordingHandle | undefined
@@ -167,7 +168,7 @@ export function Prompt(props: PromptProps) {
     if (!config) {
       toast.show({
         variant: "warning",
-        message: "Dictation is not configured. Set INWORLD_API_KEY and INWORLD_STT_ENDPOINT or tui.dictation.",
+        message: "Dictation is not configured. Connect Inworld AI in Settings or set INWORLD_API_KEY and INWORLD_STT_ENDPOINT.",
       })
       return
     }

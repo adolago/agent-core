@@ -7,6 +7,7 @@
 export { ClaudeFlowPlugin } from './claude-flow';
 export { AnthropicAuthPlugin } from './anthropic-auth';
 export { CopilotAuthPlugin } from './copilot-auth';
+export { InworldAuthPlugin } from './inworld-auth';
 export { MemoryPersistencePlugin } from './memory-persistence';
 
 // Domain-specific plugins
@@ -16,6 +17,7 @@ export { ZeeMessagingPlugin } from './domains/zee-messaging';
 import { ClaudeFlowPlugin } from './claude-flow';
 import { AnthropicAuthPlugin } from './anthropic-auth';
 import { CopilotAuthPlugin } from './copilot-auth';
+import { InworldAuthPlugin } from './inworld-auth';
 import { MemoryPersistencePlugin } from './memory-persistence';
 import { StanleyFinancePlugin } from './domains/stanley-finance';
 import { ZeeMessagingPlugin } from './domains/zee-messaging';
@@ -28,6 +30,7 @@ export const builtinPlugins: Record<string, PluginFactory> = {
   'tiara': ClaudeFlowPlugin,
   'anthropic-auth': AnthropicAuthPlugin,
   'copilot-auth': CopilotAuthPlugin,
+  'inworld-auth': InworldAuthPlugin,
   'memory-persistence': MemoryPersistencePlugin,
   'stanley-finance': StanleyFinancePlugin,
   'zee-messaging': ZeeMessagingPlugin,

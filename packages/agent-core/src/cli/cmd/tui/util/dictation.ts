@@ -1,4 +1,5 @@
 import { platform } from "os"
+import { Auth } from "@/auth"
 
 export namespace Dictation {
   export type Config = {
@@ -39,12 +40,29 @@ export namespace Dictation {
   const DEFAULT_INPUT_KEY = "audio"
   const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
 
-  export function resolveConfig(input?: Config): RuntimeConfig | undefined {
+  export async function resolveConfig(input?: Config): Promise<RuntimeConfig | undefined> {
     if (input?.enabled === false) return
     const envEndpoint = process.env["INWORLD_STT_ENDPOINT"] ?? process.env["OPENCODE_INWORLD_STT_ENDPOINT"]
     const envApiKey = process.env["INWORLD_API_KEY"] ?? process.env["OPENCODE_INWORLD_API_KEY"]
-    const endpoint = input?.endpoint ?? envEndpoint
-    const apiKey = input?.api_key ?? envApiKey
+
+    let endpoint = input?.endpoint ?? envEndpoint
+    let apiKey = input?.api_key ?? envApiKey
+
+    if (!endpoint || !apiKey) {
+      const storedAuth = await Auth.get("inworld")
+      if (storedAuth?.type === "api" && storedAuth.key) {
+        try {
+          const parsed = JSON.parse(storedAuth.key) as { apiKey?: string; endpoint?: string }
+          if (parsed.apiKey && parsed.endpoint) {
+            endpoint = endpoint ?? parsed.endpoint
+            apiKey = apiKey ?? parsed.apiKey
+          }
+        } catch {
+          // Key is not JSON, ignore
+        }
+      }
+    }
+
     if (!endpoint || !apiKey) return
     return {
       endpoint,

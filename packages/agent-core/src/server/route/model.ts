@@ -12,6 +12,10 @@ import { errors } from "../error"
 
 const log = Log.create({ service: "server:model" })
 
+const SERVICE_PROVIDER_NAMES: Record<string, string> = {
+  inworld: "Inworld AI",
+}
+
 export const ModelRoute = new Hono()
   .get(
     "/config/providers",
@@ -80,7 +84,36 @@ export const ModelRoute = new Hono()
         }
       }
 
+      const serviceProviders = await ProviderAuth.methods()
+      for (const providerID of Object.keys(serviceProviders)) {
+        if (!filteredProviders[providerID]) {
+          filteredProviders[providerID] = {
+            id: providerID,
+            name: SERVICE_PROVIDER_NAMES[providerID] ?? providerID.charAt(0).toUpperCase() + providerID.slice(1),
+            env: [],
+            models: {},
+          }
+        }
+      }
+
       const connected = await Provider.list()
+      const connectedServiceProviders = Object.keys(serviceProviders).filter(
+        (id) => !filteredProviders[id]?.models || Object.keys(filteredProviders[id].models).length === 0,
+      )
+      for (const id of connectedServiceProviders) {
+        const auth = await Auth.get(id)
+        if (auth) {
+          connected[id] = {
+            id,
+            name: SERVICE_PROVIDER_NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1),
+            source: "api",
+            env: [],
+            options: {},
+            models: {},
+          }
+        }
+      }
+
       const providers = Object.assign(
         mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),
         connected,
