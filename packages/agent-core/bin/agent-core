@@ -50,9 +50,27 @@ let arch = archMap[os.arch()]
 if (!arch) {
   arch = os.arch()
 }
+let libc = ""
+if (platform === "linux") {
+  try {
+    const lddVersion = childProcess.execSync("ldd --version 2>&1", { encoding: "utf8" })
+    if (lddVersion.toLowerCase().includes("musl")) {
+      libc = "-musl"
+    }
+  } catch (e) {
+    try {
+      const muslFiles = fs.readdirSync("/lib").filter((f) => f.startsWith("ld-musl-"))
+      if (muslFiles.length > 0) {
+        libc = "-musl"
+      }
+    } catch (e) {
+      // Ignore, default to glibc
+    }
+  }
+}
 // Support both agent-core and opencode package names (for upstream compatibility)
-const agentCoreBase = "agent-core-" + platform + "-" + arch
-const opencodeBase = "opencode-" + platform + "-" + arch
+const agentCoreBase = "agent-core-" + platform + "-" + arch + libc
+const opencodeBase = "opencode-" + platform + "-" + arch + libc
 const agentCoreBinary = platform === "windows" ? "agent-core.exe" : "agent-core"
 const opencodeBinary = platform === "windows" ? "opencode.exe" : "opencode"
 

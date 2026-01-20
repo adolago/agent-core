@@ -5,6 +5,7 @@ import path from "path"
 import os from "os"
 import { fileURLToPath } from "url"
 import { createRequire } from "module"
+import { execSync } from "child_process"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
@@ -44,7 +45,28 @@ function detectPlatformAndArch() {
       break
   }
 
-  return { platform, arch }
+  // Detect musl vs glibc on Linux
+  let libc = ""
+  if (platform === "linux") {
+    try {
+      const lddVersion = execSync("ldd --version 2>&1", { encoding: "utf8" })
+      if (lddVersion.toLowerCase().includes("musl")) {
+        libc = "-musl"
+      }
+    } catch (e) {
+      // ldd failed, try alternative detection
+      try {
+        const muslFiles = fs.readdirSync("/lib").filter((f) => f.startsWith("ld-musl-"))
+        if (muslFiles.length > 0) {
+          libc = "-musl"
+        }
+      } catch (e) {
+        // Ignore, default to glibc
+      }
+    }
+  }
+
+  return { platform, arch, libc }
 }
 
 function resolvePackageScope() {
@@ -59,8 +81,8 @@ function resolvePackageScope() {
 }
 
 function findBinary() {
-  const { platform, arch } = detectPlatformAndArch()
-  const baseName = `agent-core-${platform}-${arch}`
+  const { platform, arch, libc } = detectPlatformAndArch()
+  const baseName = `agent-core-${platform}-${arch}${libc}`
   const scope = resolvePackageScope()
   const packageNames = [scope ? `${scope}/${baseName}` : null, baseName].filter(Boolean)
   const binaryName = platform === "windows" ? "agent-core.exe" : "agent-core"
