@@ -12,8 +12,6 @@ export function ContentCode(props: Props) {
   const [html] = createResource(
     () => [props.code, props.lang],
     async ([code, lang]) => {
-      // TODO: For testing delays
-      // await new Promise((resolve) => setTimeout(resolve, 3000))
       return (await codeToHtml(code || "", {
         lang: lang && lang in bundledLanguages ? lang : "text",
         themes: {
