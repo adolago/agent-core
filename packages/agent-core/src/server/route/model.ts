@@ -16,6 +16,17 @@ const SERVICE_PROVIDER_NAMES: Record<string, string> = {
   inworld: "Inworld AI",
 }
 
+const resolveDefaultModels = (providers: Record<string, Provider.Info>) => {
+  const defaults: Record<string, string> = {}
+  for (const [id, item] of Object.entries(providers)) {
+    const models = Object.values(item.models)
+    if (models.length === 0) continue
+    const [best] = Provider.sort(models)
+    if (best) defaults[id] = best.id
+  }
+  return defaults
+}
+
 export const ModelRoute = new Hono()
   .get(
     "/config/providers",
@@ -44,7 +55,7 @@ export const ModelRoute = new Hono()
       const providers = await Provider.list().then((x) => mapValues(x, (item) => item))
       return c.json({
         providers: Object.values(providers),
-        default: mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id),
+        default: resolveDefaultModels(providers),
       })
     },
   )
@@ -120,7 +131,7 @@ export const ModelRoute = new Hono()
       )
       return c.json({
         all: Object.values(providers),
-        default: mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id),
+        default: resolveDefaultModels(providers),
         connected: Object.keys(connected),
       })
     },
