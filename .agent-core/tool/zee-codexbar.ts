@@ -1,5 +1,17 @@
 import { tool } from "@opencode-ai/plugin"
 
+async function loadCodexbarModule() {
+  try {
+    return await import("../../src/domain/zee/codexbar.js")
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    if (!errorMsg.includes("Cannot find module") && !errorMsg.includes("ERR_MODULE_NOT_FOUND")) {
+      throw error
+    }
+    return await import("../../src/domain/zee/codexbar.ts")
+  }
+}
+
 export default tool({
   description: `Run CodexBar CLI commands to check provider usage and resets.
 
@@ -10,7 +22,7 @@ Requires configuration:
     timeoutMs: tool.schema.number().optional().describe("Override timeout in ms"),
   },
   async execute(args) {
-    const { resolveCodexbarConfig, runCodexbar } = await import("../../src/domain/zee/codexbar.js")
+    const { resolveCodexbarConfig, runCodexbar } = await loadCodexbarModule()
 
     const config = resolveCodexbarConfig()
     if (!config.enabled) {

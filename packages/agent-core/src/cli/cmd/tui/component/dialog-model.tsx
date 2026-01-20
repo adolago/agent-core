@@ -5,7 +5,7 @@ import { map, pipe, flatMap, entries, filter, sortBy, take } from "remeda"
 import { DialogSelect, type DialogSelectRef } from "@tui/ui/dialog-select"
 import { useDialog } from "@tui/ui/dialog"
 import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
-import { Keybind } from "@/util/keybind"
+import { useKeybind } from "../context/keybind"
 import * as fuzzysort from "fuzzysort"
 
 /** Get auth status indicator for a provider (placeholder for future implementation) */
@@ -26,6 +26,7 @@ export function DialogModel(props: { providerID?: string }) {
   const local = useLocal()
   const sync = useSync()
   const dialog = useDialog()
+  const keybind = useKeybind()
   const [ref, setRef] = createSignal<DialogSelectRef<unknown>>()
   const [query, setQuery] = createSignal("")
 
@@ -40,84 +41,41 @@ export function DialogModel(props: { providerID?: string }) {
 
   const options = createMemo(() => {
     const q = query()
-    const needle = q.trim()
-    const showSections = showExtra() && needle.length === 0
-    const favorites = connected() ? local.model.favorite() : []
+    const showSections = showExtra()
     const recents = local.model.recent()
+    const recentList = showSections ? recents : []
 
-    const recentList = showSections
-      ? recents.filter(
-          (item) => !favorites.some((fav) => fav.providerID === item.providerID && fav.modelID === item.modelID),
-        )
-      : []
-
-    const favoriteOptions = showSections
-      ? favorites.flatMap((item) => {
-          const provider = sync.data.provider.find((x) => x.id === item.providerID)
-          if (!provider) return []
-          const model = provider.models[item.modelID]
-          if (!model) return []
-          const authIndicator = getAuthIndicator(provider.id)
-          return [
-            {
-              key: item,
-              value: {
+    const recentOptions = recentList.flatMap((item: { providerID: string; modelID: string }) => {
+      const provider = sync.data.provider.find((x) => x.id === item.providerID)
+      if (!provider) return []
+      const model = provider.models[item.modelID]
+      if (!model) return []
+      const authIndicator = getAuthIndicator(provider.id)
+      return [
+        {
+          key: item,
+          value: {
+            providerID: provider.id,
+            modelID: model.id,
+          },
+          title: model.name ?? item.modelID,
+          description: authIndicator + provider.name,
+          category: "Recent",
+          disabled: provider.id === "opencode" && model.id.includes("-nano"),
+          footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
+          onSelect: () => {
+            dialog.clear()
+            local.model.set(
+              {
                 providerID: provider.id,
                 modelID: model.id,
               },
-              title: model.name ?? item.modelID,
-              description: authIndicator + provider.name,
-              category: "Favorites",
-              disabled: provider.id === "opencode" && model.id.includes("-nano"),
-              footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
-              onSelect: () => {
-                dialog.clear()
-                local.model.set(
-                  {
-                    providerID: provider.id,
-                    modelID: model.id,
-                  },
-                  { recent: true },
-                )
-              },
-            },
-          ]
-        })
-      : []
-
-    const recentOptions = showSections
-      ? recentList.flatMap((item) => {
-          const provider = sync.data.provider.find((x) => x.id === item.providerID)
-          if (!provider) return []
-          const model = provider.models[item.modelID]
-          if (!model) return []
-          const authIndicator = getAuthIndicator(provider.id)
-          return [
-            {
-              key: item,
-              value: {
-                providerID: provider.id,
-                modelID: model.id,
-              },
-              title: model.name ?? item.modelID,
-              description: authIndicator + provider.name,
-              category: "Recent",
-              disabled: provider.id === "opencode" && model.id.includes("-nano"),
-              footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
-              onSelect: () => {
-                dialog.clear()
-                local.model.set(
-                  {
-                    providerID: provider.id,
-                    modelID: model.id,
-                  },
-                  { recent: true },
-                )
-              },
-            },
-          ]
-        })
-      : []
+              { recent: true },
+            )
+          },
+        },
+      ]
+    })
 
     const providerOptions = pipe(
       sync.data.provider,
@@ -186,14 +144,18 @@ export function DialogModel(props: { providerID?: string }) {
         )
       : []
 
-    // Search shows a single merged list (favorites inline)
-    if (needle) {
-      const filteredProviders = fuzzysort.go(needle, providerOptions, { keys: ["title", "category"] }).map((x) => x.obj)
-      const filteredPopular = fuzzysort.go(needle, popularProviders, { keys: ["title"] }).map((x) => x.obj)
-      return [...filteredProviders, ...filteredPopular]
+    // Apply fuzzy filtering to each section separately, maintaining section order
+    if (q) {
+      const filteredRecents = fuzzysort
+        .go(q, recentOptions, { keys: ["title"] })
+        .map((x) => x.obj)
+        .slice(0, 5)
+      const filteredProviders = fuzzysort.go(q, providerOptions, { keys: ["title", "category"] }).map((x) => x.obj)
+      const filteredPopular = fuzzysort.go(q, popularProviders, { keys: ["title"] }).map((x) => x.obj)
+      return [...filteredRecents, ...filteredProviders, ...filteredPopular]
     }
 
-    return [...favoriteOptions, ...recentOptions, ...providerOptions, ...popularProviders]
+    return [...recentOptions, ...providerOptions, ...popularProviders]
   })
 
   const provider = createMemo(() =>
@@ -209,7 +171,7 @@ export function DialogModel(props: { providerID?: string }) {
     <DialogSelect
       keybind={[
         {
-          keybind: Keybind.parse("ctrl+a")[0],
+          keybind: keybind.all.model_provider_list?.[0],
           title: connected() ? "Connect provider" : "View all providers",
           onTrigger() {
             dialog.replace(() => <DialogProvider />)

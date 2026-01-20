@@ -46,6 +46,19 @@ test("zee agent has correct default properties", async () => {
   })
 })
 
+test("zee agent starts the personas calendar mcp server", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const zee = await Agent.get("zee")
+      const servers = zee?.mcpServers ?? []
+      expect(servers).toContain("personas-calendar")
+      expect(servers).not.toContain("google-calendar")
+    },
+  })
+})
+
 test("stanley agent has correct default properties", async () => {
   await using tmp = await tmpdir()
   await Instance.provide({
@@ -428,7 +441,7 @@ test("legacy tools config maps write/edit/patch/multiedit to edit permission", a
   })
 })
 
-test("Truncate.DIR is allowed even when user denies external_directory globally", async () => {
+test("Truncate.DIR is allowed when user denies external_directory globally", async () => {
   const { Truncate } = await import("../../src/tool/truncation")
   await using tmp = await tmpdir({
     config: {
@@ -442,12 +455,13 @@ test("Truncate.DIR is allowed even when user denies external_directory globally"
     fn: async () => {
       const zee = await Agent.get("zee")
       expect(PermissionNext.evaluate("external_directory", Truncate.DIR, zee!.permission).action).toBe("allow")
+      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, zee!.permission).action).toBe("allow")
       expect(PermissionNext.evaluate("external_directory", "/some/other/path", zee!.permission).action).toBe("deny")
     },
   })
 })
 
-test("Truncate.DIR is allowed even when user denies external_directory per-agent", async () => {
+test("Truncate.DIR is allowed when user denies external_directory per-agent", async () => {
   const { Truncate } = await import("../../src/tool/truncation")
   await using tmp = await tmpdir({
     config: {
@@ -465,6 +479,7 @@ test("Truncate.DIR is allowed even when user denies external_directory per-agent
     fn: async () => {
       const zee = await Agent.get("zee")
       expect(PermissionNext.evaluate("external_directory", Truncate.DIR, zee!.permission).action).toBe("allow")
+      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, zee!.permission).action).toBe("allow")
       expect(PermissionNext.evaluate("external_directory", "/some/other/path", zee!.permission).action).toBe("deny")
     },
   })
@@ -487,6 +502,135 @@ test("explicit Truncate.DIR deny is respected", async () => {
     fn: async () => {
       const zee = await Agent.get("zee")
       expect(PermissionNext.evaluate("external_directory", Truncate.DIR, zee!.permission).action).toBe("deny")
+      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, zee!.permission).action).toBe("deny")
+    },
+  })
+})
+
+test("defaultAgent returns stanley when no default_agent config", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const agent = await Agent.defaultAgent()
+      expect(agent).toBe("stanley")
+    },
+  })
+})
+
+test("defaultAgent respects default_agent config set to zee", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      default_agent: "zee",
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const agent = await Agent.defaultAgent()
+      expect(agent).toBe("zee")
+    },
+  })
+})
+
+test("defaultAgent respects default_agent config set to custom agent with mode all", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      default_agent: "my_custom",
+      agent: {
+        my_custom: {
+          description: "My custom agent",
+        },
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const agent = await Agent.defaultAgent()
+      expect(agent).toBe("my_custom")
+    },
+  })
+})
+
+test("defaultAgent throws when default_agent points to subagent", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      default_agent: "helper",
+      agent: {
+        helper: {
+          mode: "subagent",
+        },
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "helper" is a subagent')
+    },
+  })
+})
+
+test("defaultAgent throws when default_agent points to hidden agent", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      default_agent: "compaction",
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "compaction" is hidden')
+    },
+  })
+})
+
+test("defaultAgent throws when default_agent points to non-existent agent", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      default_agent: "does_not_exist",
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "does_not_exist" not found')
+    },
+  })
+})
+
+test("defaultAgent returns zee when stanley is disabled and default_agent not set", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      agent: {
+        stanley: { disable: true },
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const agent = await Agent.defaultAgent()
+      expect(agent).toBe("zee")
+    },
+  })
+})
+
+test("defaultAgent throws when all primary agents are disabled", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      agent: {
+        stanley: { disable: true },
+        zee: { disable: true },
+        johny: { disable: true },
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      await expect(Agent.defaultAgent()).rejects.toThrow("no primary visible agent found")
     },
   })
 })

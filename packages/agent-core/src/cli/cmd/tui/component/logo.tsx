@@ -1,6 +1,5 @@
 import { TextAttributes } from "@opentui/core"
 import { For, createMemo } from "solid-js"
-import { useTheme } from "@tui/context/theme"
 import { useLocal } from "@tui/context/local"
 
 // Persona ASCII art banners
@@ -32,7 +31,6 @@ const PERSONA_ART: Record<string, string[]> = {
 }
 
 export function Logo() {
-  const { theme } = useTheme()
   const local = useLocal()
 
   const agent = createMemo(() => local.agent.current())

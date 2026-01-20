@@ -1,5 +1,17 @@
 import { tool } from "@opencode-ai/plugin"
 
+async function loadSplitwiseModule() {
+  try {
+    return await import("../../src/domain/zee/splitwise.js")
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    if (!errorMsg.includes("Cannot find module") && !errorMsg.includes("ERR_MODULE_NOT_FOUND")) {
+      throw error
+    }
+    return await import("../../src/domain/zee/splitwise.ts")
+  }
+}
+
 const SPLITWISE_ACTIONS = [
   "current-user",
   "groups",
@@ -49,11 +61,7 @@ Token sources (when enabled):
     timeoutMs: tool.schema.number().optional().describe("Override timeout in ms"),
   },
   async execute(args) {
-    const {
-      buildSplitwiseRequest,
-      callSplitwiseApi,
-      resolveSplitwiseConfig,
-    } = await import("../../src/domain/zee/splitwise.js")
+    const { buildSplitwiseRequest, callSplitwiseApi, resolveSplitwiseConfig } = await loadSplitwiseModule()
 
     const config = resolveSplitwiseConfig()
     if (!config.enabled) {

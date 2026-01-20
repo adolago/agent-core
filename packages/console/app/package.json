@@ -1,10 +1,12 @@
 {
   "name": "@opencode-ai/console-app",
-  "version": "1.1.19",
+  "version": "0.1.20260112",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "typecheck": "tsgo --noEmit",
+    "lint": "prettier --check 'src/**/*.{ts,tsx}' 'package.json'",
+    "test": "echo 'No tests configured' && exit 0",
     "dev": "vite dev --host 0.0.0.0",
     "dev:remote": "VITE_AUTH_URL=https://auth.dev.opencode.ai VITE_STRIPE_PUBLISHABLE_KEY=pk_test_51RtuLNE7fOCwHSD4mewwzFejyytjdGoSDK7CAvhbffwaZnPbNb2rwJICw6LTOXCmWO320fSNXvb5NzI08RZVkAxd00syfqrW7t bun sst shell --stage=dev bun dev",
     "build": "./script/generate-sitemap.ts && vite build && ../../opencode/script/schema.ts ./.output/public/config.json",
@@ -20,6 +22,8 @@
     "@opencode-ai/console-mail": "workspace:*",
     "@opencode-ai/console-resource": "workspace:*",
     "@opencode-ai/ui": "workspace:*",
+    "@smithy/eventstream-codec": "4.2.7",
+    "@smithy/util-utf8": "4.2.0",
     "@solidjs/meta": "catalog:",
     "@solidjs/router": "catalog:",
     "@solidjs/start": "catalog:",
@@ -34,6 +38,7 @@
   },
   "devDependencies": {
     "@typescript/native-preview": "catalog:",
+    "@webgpu/types": "0.1.54",
     "typescript": "catalog:",
     "wrangler": "4.50.0"
   },

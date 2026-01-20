@@ -12,31 +12,45 @@ import {
 import { useKeyboard } from "@opentui/solid"
 import { useKeybind, type KeybindsConfig } from "@tui/context/keybind"
 
-type Context = ReturnType<typeof init>
+type Context = ReturnType<typeof createCommandDialog>
 const ctx = createContext<Context>()
 
-export type CommandOption = DialogSelectOption & {
-  keybind?: keyof KeybindsConfig
+export type Slash = {
+  name: string
+  aliases?: string[]
 }
 
-function init() {
+export type CommandOption = DialogSelectOption<string> & {
+  keybind?: keyof KeybindsConfig
+  slash?: Slash
+  hidden?: boolean
+  enabled?: boolean
+}
+
+export function createCommandDialog() {
   const [registrations, setRegistrations] = createSignal<Accessor<CommandOption[]>[]>([])
   const [suspendCount, setSuspendCount] = createSignal(0)
   const dialog = useDialog()
   const keybind = useKeybind()
-  const options = createMemo(() => {
+  const entries = createMemo(() => {
     const all = registrations().flatMap((x) => x())
     return all.map((x) => ({
       ...x,
       footer: x.keybind ? keybind.print(x.keybind) : undefined,
     }))
   })
+
+  const isEnabled = (option: CommandOption) => option.enabled !== false
+  const isVisible = (option: CommandOption) => isEnabled(option) && !option.hidden
+
+  const visibleOptions = createMemo(() => entries().filter((option) => isVisible(option)))
   const suspended = () => suspendCount() > 0
 
   useKeyboard((evt) => {
     if (suspended()) return
     if (dialog.stack.length > 0) return
-    for (const option of options()) {
+    for (const option of entries()) {
+      if (!isEnabled(option)) continue
       if (option.keybind && keybind.match(option.keybind, evt)) {
         evt.preventDefault()
         option.onSelect?.(dialog)
@@ -46,20 +60,33 @@ function init() {
   })
 
   const result = {
-    trigger(name: string, source?: "prompt") {
-      for (const option of options()) {
+    trigger(name: string) {
+      for (const option of entries()) {
         if (option.value === name) {
-          option.onSelect?.(dialog, source)
+          if (!isEnabled(option)) return
+          option.onSelect?.(dialog)
           return
         }
       }
+    },
+    slashes() {
+      return visibleOptions().flatMap((option) => {
+        const slash = option.slash
+        if (!slash) return []
+        return {
+          display: ":" + slash.name,
+          description: option.description ?? option.title,
+          aliases: slash.aliases?.map((alias) => ":" + alias),
+          onSelect: () => result.trigger(option.value),
+        }
+      })
     },
     keybinds(enabled: boolean) {
       setSuspendCount((count) => count + (enabled ? -1 : 1))
     },
     suspended,
     show() {
-      dialog.replace(() => <DialogCommand options={options()} />)
+      dialog.replace(() => <DialogCommand options={visibleOptions()} />)
     },
     register(cb: () => CommandOption[]) {
       const results = createMemo(cb)
@@ -67,9 +94,6 @@ function init() {
       onCleanup(() => {
         setRegistrations((arr) => arr.filter((x) => x !== results))
       })
-    },
-    get options() {
-      return options()
     },
   }
   return result
@@ -84,7 +108,7 @@ export function useCommandDialog() {
 }
 
 export function CommandProvider(props: ParentProps) {
-  const value = init()
+  const value = createCommandDialog()
   const dialog = useDialog()
   const keybind = useKeybind()
 
@@ -94,7 +118,7 @@ export function CommandProvider(props: ParentProps) {
     if (evt.defaultPrevented) return
     if (keybind.match("command_list", evt)) {
       evt.preventDefault()
-      dialog.replace(() => <DialogCommand options={value.options} />)
+      value.show()
       return
     }
   })

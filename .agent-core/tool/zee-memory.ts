@@ -7,6 +7,18 @@
 
 import { tool } from "@opencode-ai/plugin"
 
+async function loadMemoryModule() {
+  try {
+    return await import("../../src/memory/unified.js")
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    if (!errorMsg.includes("Cannot find module") && !errorMsg.includes("ERR_MODULE_NOT_FOUND")) {
+      throw error
+    }
+    return await import("../../src/memory/unified.ts")
+  }
+}
+
 // Memory store tool
 export const memoryStore = tool({
   description: `Store information in long-term memory for future reference.
@@ -38,7 +50,7 @@ Examples:
   },
   async execute(args) {
     // Dynamic import to avoid build-time dependency issues
-    const { getMemory } = await import("../../../src/memory/unified.js")
+    const { getMemory } = await loadMemoryModule()
 
     try {
       const store = getMemory()
@@ -102,7 +114,7 @@ Examples:
       .describe("Minimum similarity threshold"),
   },
   async execute(args) {
-    const { getMemory } = await import("../../../src/memory/unified.js")
+    const { getMemory } = await loadMemoryModule()
 
     try {
       const store = getMemory()

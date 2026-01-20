@@ -23,6 +23,7 @@ import type { FilePart } from "@opencode-ai/sdk/v2"
 import { TuiEvent } from "../../event"
 import { iife } from "@/util/iife"
 import { Locale } from "@/util/locale"
+import { formatDuration } from "@/util/format"
 import { createColors, createFrames } from "../../ui/spinner.ts"
 import { useDialog } from "@tui/ui/dialog"
 import { DialogProvider as DialogProviderConnect } from "../dialog-provider"
@@ -30,6 +31,10 @@ import { DialogAlert } from "../../ui/dialog-alert"
 import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
 import { useTextareaKeybindings } from "../textarea-keybindings"
+import { Dictation } from "@tui/util/dictation"
+
+import { DialogGrammar } from "../dialog-grammar"
+import { Grammar } from "../../util/grammar"
 
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
@@ -75,6 +80,40 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const { theme, syntax } = useTheme()
   const kv = useKV()
+  const [dictationConfig, setDictationConfig] = createSignal<Dictation.RuntimeConfig | undefined>(undefined)
+  createEffect(() => {
+    const tui = sync.data.config.tui as { dictation?: Dictation.Config } | undefined
+    Dictation.resolveConfig(tui?.dictation).then(setDictationConfig)
+  })
+  const [dictationState, setDictationState] = createSignal<Dictation.State>("idle")
+  let dictationRecording: Dictation.RecordingHandle | undefined
+  const dictationKey = createMemo(() => keybind.print("input_dictation_toggle"))
+  const dictationCommandLabel = createMemo(() => {
+    const state = dictationState()
+    if (state === "listening") return "Stop dictation"
+    if (state === "sending") return "Dictation (sending)"
+    if (state === "receiving") return "Dictation (receiving)"
+    if (state === "transcribing") return "Dictation (processing)"
+    return "Start dictation"
+  })
+  const dictationCommandDisabled = createMemo(() => {
+    const state = dictationState()
+    return state !== "idle" && state !== "listening"
+  })
+  const dictationHintLabel = createMemo(() => {
+    const state = dictationState()
+    if (state === "listening") return "dictate (listening)"
+    if (state === "sending") return "dictate (sending)"
+    if (state === "receiving") return "dictate (receiving)"
+    if (state === "transcribing") return "dictate (processing)"
+    return "dictate"
+  })
+  const dictationHintColor = createMemo(() => {
+    const state = dictationState()
+    if (state === "listening") return theme.warning
+    if (state === "sending" || state === "receiving" || state === "transcribing") return theme.primary
+    return theme.text
+  })
 
   function promptModelWarning() {
     toast.show({
@@ -110,6 +149,119 @@ export function Prompt(props: PromptProps) {
     }
   })
 
+  function insertDictationText(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const prefix = input.plainText.length > 0 && !/\s$/.test(input.plainText) ? " " : ""
+    input.insertText(prefix + trimmed)
+    setTimeout(() => {
+      input.getLayoutNode().markDirty()
+      input.gotoBufferEnd()
+      renderer.requestRender()
+    }, 0)
+  }
+
+  async function startDictation() {
+    if (props.disabled) return
+    if (store.mode !== "normal") {
+      toast.show({ variant: "warning", message: "Dictation is only available in prompt mode" })
+      return
+    }
+    const config = dictationConfig()
+    if (!config) {
+      toast.show({
+        variant: "warning",
+        message: "Dictation is not configured. Connect Inworld AI in Settings or set INWORLD_API_KEY and INWORLD_STT_ENDPOINT.",
+      })
+      return
+    }
+    if (dictationState() !== "idle") return
+
+    const recorder = Dictation.resolveRecorderCommand({
+      sampleRate: config.sampleRate,
+      command: config.recordCommand,
+    })
+    if (!recorder) {
+      toast.show({
+        variant: "warning",
+        message: "No recorder found. Install arecord or set tui.dictation.record_command.",
+      })
+      return
+    }
+    try {
+      dictationRecording = Dictation.startRecording({ command: recorder })
+    } catch (error) {
+      toast.show({
+        variant: "error",
+        message: `Failed to start dictation: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      return
+    }
+    setDictationState("listening")
+    input.focus()
+  }
+
+  async function stopDictation() {
+    if (dictationState() !== "listening") return
+    const config = dictationConfig()
+    const activeRecording = dictationRecording
+    dictationRecording = undefined
+    if (!activeRecording || !config) {
+      setDictationState("idle")
+      return
+    }
+    setDictationState("sending")
+
+    try {
+      const result = await activeRecording.stop()
+      if (result.audio.length === 0) {
+        const message = result.stderr ? `Dictation recorder error: ${result.stderr}` : "No audio captured"
+        toast.show({ variant: "warning", message })
+        setDictationState("idle")
+        return
+      }
+      const transcript = await Dictation.transcribe({
+        config,
+        audio: result.audio,
+        onState: (state) => setDictationState(state),
+      })
+      if (!transcript || transcript.trim().length === 0) {
+        toast.show({ variant: "warning", message: "No transcript returned from dictation" })
+        setDictationState("idle")
+        return
+      }
+      insertDictationText(transcript)
+      setDictationState("idle")
+      if (config.autoSubmit) {
+        setTimeout(() => submit(), 0)
+      }
+    } catch (error) {
+      toast.show({
+        variant: "error",
+        message: `Dictation failed: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      setDictationState("idle")
+    }
+  }
+
+  async function toggleDictation() {
+    if (dictationState() === "idle") {
+      await startDictation()
+      return
+    }
+    if (dictationState() === "listening") {
+      await stopDictation()
+      return
+    }
+    toast.show({ variant: "info", message: "Dictation is still processing" })
+  }
+
+  onCleanup(() => {
+    if (dictationRecording) {
+      dictationRecording.cancel().catch(() => {})
+      dictationRecording = undefined
+    }
+  })
   const fileStyleId = syntax().getStyleId("extmark.file")!
   const agentStyleId = syntax().getStyleId("extmark.agent")!
   const pasteStyleId = syntax().getStyleId("extmark.paste")!
@@ -168,9 +320,9 @@ export function Prompt(props: PromptProps) {
       const isPrimaryAgent = local.agent.list().some((x) => x.name === msg.agent)
       if (msg.agent && isPrimaryAgent) {
         local.agent.set(msg.agent)
+        if (msg.model) local.model.set(msg.model)
+        if (msg.variant) local.model.variant.set(msg.variant)
       }
-      if (msg.model) local.model.set(msg.model)
-      if (msg.variant) local.model.variant.set(msg.variant)
     }
   })
 
@@ -180,7 +332,7 @@ export function Prompt(props: PromptProps) {
         title: "Clear prompt",
         value: "prompt.clear",
         category: "Prompt",
-        disabled: true,
+        hidden: true,
         onSelect: (dialog) => {
           input.extmarks.clear()
           input.clear()
@@ -190,9 +342,9 @@ export function Prompt(props: PromptProps) {
       {
         title: "Submit prompt",
         value: "prompt.submit",
-        disabled: true,
         keybind: "input_submit",
         category: "Prompt",
+        hidden: true,
         onSelect: (dialog) => {
           if (!input.focused) return
           submit()
@@ -202,9 +354,9 @@ export function Prompt(props: PromptProps) {
       {
         title: "Paste",
         value: "prompt.paste",
-        disabled: true,
         keybind: "input_paste",
         category: "Prompt",
+        hidden: true,
         onSelect: async () => {
           const content = await Clipboard.read()
           if (content?.mime.startsWith("image/")) {
@@ -217,11 +369,23 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
+        title: dictationCommandLabel(),
+        value: "prompt.dictation.toggle",
+        keybind: "input_dictation_toggle",
+        category: "Prompt",
+        disabled: dictationCommandDisabled(),
+        onSelect: async (dialog) => {
+          await toggleDictation()
+          dialog.clear()
+        },
+      },
+      {
         title: "Interrupt session",
         value: "session.interrupt",
         keybind: "session_interrupt",
-        disabled: status().type === "idle",
         category: "Session",
+        hidden: true,
+        enabled: status().type !== "idle",
         onSelect: (dialog) => {
           if (autocomplete.visible) return
           if (!input.focused) return
@@ -253,7 +417,10 @@ export function Prompt(props: PromptProps) {
         category: "Session",
         keybind: "editor_open",
         value: "prompt.editor",
-        onSelect: async (dialog, trigger) => {
+        slash: {
+          name: "editor",
+        },
+        onSelect: async (dialog) => {
           dialog.clear()
 
           // replace summarized text parts with the actual text
@@ -266,7 +433,7 @@ export function Prompt(props: PromptProps) {
 
           const nonTextParts = store.prompt.parts.filter((p) => p.type !== "text")
 
-          const value = trigger === "prompt" ? "" : text
+          const value = text
           const content = await Editor.open({ value, renderer })
           if (!content) return
 
@@ -546,7 +713,7 @@ export function Prompt(props: PromptProps) {
       title: "Stash prompt",
       value: "prompt.stash",
       category: "Prompt",
-      disabled: !store.prompt.input,
+      enabled: !!store.prompt.input,
       onSelect: (dialog) => {
         if (!store.prompt.input) return
         stash.push({
@@ -564,7 +731,7 @@ export function Prompt(props: PromptProps) {
       title: "Stash pop",
       value: "prompt.stash.pop",
       category: "Prompt",
-      disabled: stash.list().length === 0,
+      enabled: stash.list().length > 0,
       onSelect: (dialog) => {
         const entry = stash.pop()
         if (entry) {
@@ -580,7 +747,7 @@ export function Prompt(props: PromptProps) {
       title: "Stash list",
       value: "prompt.stash.list",
       category: "Prompt",
-      disabled: stash.list().length === 0,
+      enabled: stash.list().length > 0,
       onSelect: (dialog) => {
         dialog.replace(() => (
           <DialogStash
@@ -915,6 +1082,11 @@ export function Prompt(props: PromptProps) {
                   }
                   // If no image, let the default paste behavior continue
                 }
+                if (keybind.match("input_dictation_toggle", e)) {
+                  e.preventDefault()
+                  await toggleDictation()
+                  return
+                }
                 if (keybind.match("input_clear", e) && store.prompt.input !== "") {
                   input.clear()
                   input.extmarks.clear()
@@ -1112,13 +1284,29 @@ export function Prompt(props: PromptProps) {
           <Show
             when={status().type !== "idle"}
             fallback={
-              <Show when={todoHint()}>
-                {(hint) => (
+              <Switch>
+                <Match when={dictationState() === "listening"}>
+                  <text fg={theme.warning}>
+                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
+                  </text>
+                </Match>
+                <Match when={dictationState() === "sending"}>
+                  <text fg={theme.primary}>[SEND] sending audio...</text>
+                </Match>
+                <Match when={dictationState() === "receiving"}>
+                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
+                </Match>
+                <Match when={dictationState() === "transcribing"}>
+                  <text fg={theme.textMuted}>dictation processing...</text>
+                </Match>
+                <Match when={todoHint()}>
+                  {(hint) => (
                   <text fg={theme.warning}>
                     ◐ {hint().count} pending · {hint().current}...
                   </text>
                 )}
-              </Show>
+                </Match>
+              </Switch>
             }
           >
             <box
@@ -1177,7 +1365,8 @@ export function Prompt(props: PromptProps) {
                       if (!r) return ""
                       const baseMessage = message()
                       const truncatedHint = isTruncated() ? " (click to expand)" : ""
-                      const retryInfo = ` [retrying ${seconds() > 0 ? `in ${seconds()}s ` : ""}attempt #${r.attempt}]`
+                      const duration = formatDuration(seconds())
+                      const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
                       return baseMessage + truncatedHint + retryInfo
                     }
 
@@ -1203,15 +1392,22 @@ export function Prompt(props: PromptProps) {
             <box gap={2} flexDirection="row">
               <Switch>
                 <Match when={store.mode === "normal"}>
-                  <text fg={theme.text}>
-                    {keybind.print("variant_cycle")} <span style={{ fg: theme.textMuted }}>variants</span>
-                  </text>
+                  <Show when={local.model.variant.list().length > 0}>
+                    <text fg={theme.text}>
+                      {keybind.print("variant_cycle")} <span style={{ fg: theme.textMuted }}>variants</span>
+                    </text>
+                  </Show>
                   <text fg={theme.text}>
                     {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>agents</span>
                   </text>
                   <text fg={theme.text}>
                     {keybind.print("command_list")} <span style={{ fg: theme.textMuted }}>commands</span>
                   </text>
+                  <Show when={dictationKey() && dictationConfig()}>
+                    <text fg={dictationHintColor()}>
+                      {dictationKey()} <span style={{ fg: theme.textMuted }}>{dictationHintLabel()}</span>
+                    </text>
+                  </Show>
                 </Match>
                 <Match when={store.mode === "shell"}>
                   <text fg={theme.text}>

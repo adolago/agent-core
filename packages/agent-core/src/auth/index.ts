@@ -29,6 +29,7 @@ export namespace Auth {
       refresh: z.string(),
       access: z.string(),
       expires: z.number(),
+      accountId: z.string().optional(),
       enterpriseUrl: z.string().optional(),
     })
     .passthrough() // Allow extra fields like email, projectId for antigravity

@@ -3,6 +3,48 @@ import { exists, realpath } from "fs/promises"
 import { dirname, join, relative } from "path"
 
 export namespace Filesystem {
+  export const exists = (p: string) =>
+    Bun.file(p)
+      .stat()
+      .then(() => true)
+      .catch(() => false)
+
+  export const isDir = (p: string) =>
+    Bun.file(p)
+      .stat()
+      .then((s) => s.isDirectory())
+      .catch(() => false)
+  /**
+   * Check if child path is contained within parent, resolving symlinks.
+   * This prevents symlink escape attacks where a symlink inside the project
+   * points to a location outside the project directory.
+   *
+   * @returns true if the resolved child path is within the resolved parent
+   */
+  export async function containsResolved(parent: string, child: string): Promise<boolean> {
+    try {
+      // Resolve both paths to their real locations (following symlinks)
+      const resolvedParent = await realpath(parent).catch(() => parent)
+      const resolvedChild = await realpath(child).catch(() => child)
+      return !relative(resolvedParent, resolvedChild).startsWith("..")
+    } catch {
+      // If realpath fails (file doesn't exist yet), fall back to lexical check
+      return contains(parent, child)
+    }
+  }
+
+  /**
+   * Synchronous version of containsResolved for cases where async isn't possible.
+   */
+  export function containsResolvedSync(parent: string, child: string): boolean {
+    try {
+      const resolvedParent = realpathSync(parent)
+      const resolvedChild = realpathSync(child)
+      return !relative(resolvedParent, resolvedChild).startsWith("..")
+    } catch {
+      return contains(parent, child)
+    }
+  }
   /**
    * Check if child path is contained within parent, resolving symlinks.
    * This prevents symlink escape attacks where a symlink inside the project
@@ -62,7 +104,7 @@ export namespace Filesystem {
     const result = []
     while (true) {
       const search = join(current, target)
-      if (await exists(search).catch(() => false)) result.push(search)
+      if (await exists(search)) result.push(search)
       if (stop === current) break
       const parent = dirname(current)
       if (parent === current) break
@@ -77,7 +119,7 @@ export namespace Filesystem {
     while (true) {
       for (const target of targets) {
         const search = join(current, target)
-        if (await exists(search).catch(() => false)) yield search
+        if (await exists(search)) yield search
       }
       if (stop === current) break
       const parent = dirname(current)

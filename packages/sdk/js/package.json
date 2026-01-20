@@ -1,11 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@opencode-ai/sdk",
-  "version": "1.1.19",
+  "version": "0.1.20260112",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "typecheck": "tsgo --noEmit",
+    "lint": "prettier --check 'src/**/*.ts' 'package.json'",
+    "test": "echo 'No tests configured' && exit 0",
     "build": "./script/build.ts"
   },
   "exports": {
@@ -20,7 +22,7 @@
     "dist"
   ],
   "devDependencies": {
-    "@hey-api/openapi-ts": "0.88.1",
+    "@hey-api/openapi-ts": "0.90.4",
     "@tsconfig/node22": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:",

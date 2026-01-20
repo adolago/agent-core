@@ -6,6 +6,18 @@
 
 import { tool } from "@opencode-ai/plugin"
 
+async function loadCalendarModule() {
+  try {
+    return await import("../../src/domain/zee/google/calendar.js")
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    if (!errorMsg.includes("Cannot find module") && !errorMsg.includes("ERR_MODULE_NOT_FOUND")) {
+      throw error
+    }
+    return await import("../../src/domain/zee/google/calendar.ts")
+  }
+}
+
 export default tool({
   description: `Google Calendar with smart scheduling.
 
@@ -78,7 +90,7 @@ Examples:
   },
   async execute(args) {
     // Dynamic import to avoid build-time dependency issues
-    const calendar = await import("../../../src/domain/zee/google/calendar.js")
+    const calendar = await loadCalendarModule()
 
     const {
       action,

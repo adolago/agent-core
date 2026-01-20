@@ -1,5 +1,5 @@
 import { Slug } from "@opencode-ai/util/slug"
-import pat from "path"
+import path from "path"
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Decimal } from "decimal.js"
@@ -21,7 +21,6 @@ import { Snapshot } from "@/snapshot"
 
 import type { Provider } from "@/provider/provider"
 import { PermissionNext } from "@/permission/next"
-import path from "path"
 import { Global } from "@/global"
 
 // Re-export Thread for convenience
@@ -403,17 +402,18 @@ export namespace Session {
     MessageV2.Part,
     z.object({
       part: MessageV2.TextPart,
-      delta: z.string(),
+      delta: z.string().optional(),
     }),
     z.object({
       part: MessageV2.ReasoningPart,
-      delta: z.string(),
+      delta: z.string().optional(),
     }),
   ])
 
   export const updatePart = fn(UpdatePartInput, async (input) => {
-    const part = "delta" in input ? input.part : input
-    const delta = "delta" in input ? input.delta : undefined
+    const hasWrapper = "part" in input
+    const part = hasWrapper ? input.part : input
+    const delta = hasWrapper ? input.delta : undefined
     await Storage.write(["part", part.messageID, part.id], part)
     Bus.publish(MessageV2.Event.PartUpdated, {
       part,

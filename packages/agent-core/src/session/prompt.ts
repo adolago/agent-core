@@ -13,6 +13,7 @@ import { type Tool as AITool, tool, jsonSchema, type ToolCallOptions } from "ai"
 import { SessionCompaction } from "./compaction"
 import { Instance } from "../project/instance"
 import { Bus } from "../bus"
+import { LifecycleHooks } from "../hooks/lifecycle"
 import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
 import { Plugin } from "../plugin"
@@ -31,6 +32,7 @@ import { ulid } from "ulid"
 import { spawn } from "child_process"
 import { Command } from "../command"
 import { $, fileURLToPath } from "bun"
+import { Config } from "../config/config"
 import { ConfigMarkdown } from "../config/markdown"
 import { SessionSummary } from "./summary"
 import { Todo } from "./todo"
@@ -44,6 +46,8 @@ import { SessionStatus } from "./status"
 import { LLM } from "./llm"
 import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
+import { Truncate } from "@/tool/truncation"
+import { withTimeout } from "@/util/timeout"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -75,6 +79,113 @@ export namespace SessionPrompt {
       }
     },
   )
+
+  const sessionLifecycleEmitted = new Set<string>()
+
+  function normalizePersona(value?: string): LifecycleHooks.SessionLifecycle.StartPayload["persona"] | null {
+    switch ((value ?? "").toLowerCase()) {
+      case "zee":
+        return "zee"
+      case "stanley":
+        return "stanley"
+      case "johny":
+        return "johny"
+      default:
+        return null
+    }
+  }
+
+  async function resolvePersona(agentName?: string): Promise<LifecycleHooks.SessionLifecycle.StartPayload["persona"]> {
+    const fromInput = normalizePersona(agentName)
+    if (fromInput) return fromInput
+
+    const defaultAgent = await Agent.defaultAgent()
+    return normalizePersona(defaultAgent) ?? "zee"
+  }
+
+  function resolveSessionSource(): LifecycleHooks.SessionLifecycle.StartPayload["source"] {
+    const client = (Flag.OPENCODE_CLIENT ?? "cli").toLowerCase()
+    if (client === "tui") return "tui"
+    if (client === "cli") return "cli"
+    if (client === "daemon") return "daemon"
+    if (client === "telegram") return "telegram"
+    if (client === "whatsapp") return "whatsapp"
+    if (client === "app" || client === "desktop") return "tui"
+    return "daemon"
+  }
+
+  async function emitSessionStartOnce(session: Session.Info, agentName?: string): Promise<void> {
+    if (sessionLifecycleEmitted.has(session.id)) return
+    sessionLifecycleEmitted.add(session.id)
+
+    await LifecycleHooks.emitSessionStart({
+      sessionId: session.id,
+      persona: await resolvePersona(agentName),
+      source: resolveSessionSource(),
+      directory: session.directory,
+    })
+  }
+
+  const MEMORY_REQUIRED_CHECK_TTL_MS = 30_000
+  let memoryRequiredCache: { ok: boolean; error?: string; checkedAt: number } | null = null
+
+  async function checkMemoryAvailability(): Promise<{ ok: boolean; error?: string }> {
+    const now = Date.now()
+    if (memoryRequiredCache && now - memoryRequiredCache.checkedAt < MEMORY_REQUIRED_CHECK_TTL_MS) {
+      return memoryRequiredCache
+    }
+
+    let ok = true
+    let error: string | undefined
+
+    try {
+      const memoryModule = await import("../../../../src/memory/unified.js")
+      const memory = memoryModule.getMemory()
+      await withTimeout(memory.stats(), 5000)
+      if (typeof memory.isAvailable === "function" && !memory.isAvailable()) {
+        ok = false
+        error = "Memory backend unavailable"
+      }
+    } catch (err) {
+      ok = false
+      error = err instanceof Error ? err.message : String(err)
+    }
+
+    memoryRequiredCache = { ok, error, checkedAt: now }
+    return memoryRequiredCache
+  }
+
+  async function ensureRequiredMemory(sessionID: string): Promise<void> {
+    const cfg = await Config.get()
+    if (cfg.memory?.required !== true) return
+
+    const status = await MCP.status()
+    const memoryStatus = status["memory"]
+    if (!memoryStatus || memoryStatus.status !== "connected") {
+      const reason =
+        memoryStatus?.status === "failed"
+          ? memoryStatus.error
+          : memoryStatus?.status ?? "missing"
+      const message = `Memory MCP is required but not connected (${reason}).`
+      const error = new NamedError.Unknown({ message })
+      Bus.publish(Session.Event.Error, {
+        sessionID,
+        error: error.toObject(),
+      })
+      throw error
+    }
+
+    const memoryCheck = await checkMemoryAvailability()
+    if (!memoryCheck.ok) {
+      const message = `Memory backend is required but unavailable${memoryCheck.error ? `: ${memoryCheck.error}` : ""}`
+      const error = new NamedError.Unknown({ message })
+      Bus.publish(Session.Event.Error, {
+        sessionID,
+        error: error.toObject(),
+      })
+      throw error
+    }
+  }
 
   export function assertNotBusy(sessionID: string) {
     const match = state()[sessionID]
@@ -150,7 +261,9 @@ export namespace SessionPrompt {
 
   export const prompt = fn(PromptInput, async (input) => {
     const session = await Session.get(input.sessionID)
+    await emitSessionStartOnce(session, input.agent)
     await SessionRevert.cleanup(session)
+    await ensureRequiredMemory(input.sessionID)
 
     const message = await createUserMessage(input)
     await Session.touch(input.sessionID)
@@ -318,6 +431,7 @@ export namespace SessionPrompt {
       // Currently, tool calls are handled here and in processor.ts
       if (task?.type === "subtask") {
         const taskTool = await TaskTool.init()
+        const taskModel = task.model ? await Provider.getModel(task.model.providerID, task.model.modelID) : model
         const assistantMessage = (await Session.updateMessage({
           id: Identifier.ascending("message"),
           role: "assistant",
@@ -336,8 +450,8 @@ export namespace SessionPrompt {
             reasoning: 0,
             cache: { read: 0, write: 0 },
           },
-          modelID: model.id,
-          providerID: model.providerID,
+          modelID: taskModel.id,
+          providerID: taskModel.providerID,
           time: {
             created: Date.now(),
           },
@@ -689,7 +803,10 @@ export namespace SessionPrompt {
       },
     })
 
-    for (const item of await ToolRegistry.tools(input.model.providerID, input.agent)) {
+    for (const item of await ToolRegistry.tools(
+      { modelID: input.model.api.id, providerID: input.model.providerID },
+      input.agent,
+    )) {
       const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
         // Type assertion needed: AI SDK tool() requires specific string literal types, but our dynamic IDs are string variables
@@ -804,10 +921,17 @@ export namespace SessionPrompt {
           }
         }
 
+        const truncated = await Truncate.output(textParts.join("\n\n"), {}, input.agent)
+        const metadata = {
+          ...(result.metadata ?? {}),
+          truncated: truncated.truncated,
+          ...(truncated.truncated && { outputPath: truncated.outputPath }),
+        }
+
         return {
           title: "",
-          metadata: result.metadata ?? {},
-          output: textParts.join("\n\n"),
+          metadata,
+          output: truncated.content,
           attachments,
           content: result.content, // directly return content to preserve ordering when outputting to model
         }
@@ -1513,6 +1637,8 @@ export namespace SessionPrompt {
     log.info("command", input)
     const command = await Command.get(input.command)
     const agentName = command.agent ?? input.agent ?? (await Agent.defaultAgent())
+    const session = await Session.get(input.sessionID)
+    await emitSessionStartOnce(session, agentName)
 
     const raw = input.arguments.match(argsRegex) ?? []
     const args = raw.map((arg) => arg.replace(quoteTrimRegex, ""))
@@ -1559,7 +1685,7 @@ export namespace SessionPrompt {
     }
     template = template.trim()
 
-    const model = await (async () => {
+    const taskModel = await (async () => {
       if (command.model) {
         return Provider.parseModel(command.model)
       }
@@ -1574,7 +1700,7 @@ export namespace SessionPrompt {
     })()
 
     // Handle both legacy string format ("provider/model") and object format
-    const resolvedModel = typeof model === "string" ? Provider.parseModel(model) : model
+    const resolvedModel = typeof taskModel === "string" ? Provider.parseModel(taskModel) : taskModel
 
     try {
       await Provider.getModel(resolvedModel.providerID, resolvedModel.modelID)
@@ -1602,26 +1728,47 @@ export namespace SessionPrompt {
     }
 
     const templateParts = await resolvePromptParts(template)
-    const parts =
-      (agent.mode === "subagent" && command.subtask !== false) || command.subtask === true
-        ? [
-            {
-              type: "subtask" as const,
-              agent: agent.name,
-              description: command.description ?? "",
-              command: input.command,
-              // LIMITATION: Task tool currently only takes text prompt, not complex parts
-              // This is intentional for simplicity; subagents get minimal context
-              prompt: templateParts.find((y) => y.type === "text")?.text ?? "",
+    const isSubtask = (agent.mode === "subagent" && command.subtask !== false) || command.subtask === true
+    const parts = isSubtask
+      ? [
+          {
+            type: "subtask" as const,
+            agent: agent.name,
+            description: command.description ?? "",
+            command: input.command,
+            model: {
+              providerID: resolvedModel.providerID,
+              modelID: resolvedModel.modelID,
             },
-          ]
-        : [...templateParts, ...(input.parts ?? [])]
+            // LIMITATION: Task tool currently only takes text prompt, not complex parts
+            // This is intentional for simplicity; subagents get minimal context
+            prompt: templateParts.find((y) => y.type === "text")?.text ?? "",
+          },
+        ]
+      : [...templateParts, ...(input.parts ?? [])]
+
+    const userAgent = isSubtask ? (input.agent ?? (await Agent.defaultAgent())) : agentName
+    const userModel = isSubtask
+      ? input.model
+        ? Provider.parseModel(input.model)
+        : await lastModel(input.sessionID)
+      : resolvedModel
+
+    await Plugin.trigger(
+      "command.execute.before",
+      {
+        command: input.command,
+        sessionID: input.sessionID,
+        arguments: input.arguments,
+      },
+      { parts },
+    )
 
     const result = (await prompt({
       sessionID: input.sessionID,
       messageID: input.messageID,
-      model: resolvedModel,
-      agent: agentName,
+      model: userModel,
+      agent: userAgent,
       parts,
       variant: input.variant,
     })) as MessageV2.WithParts

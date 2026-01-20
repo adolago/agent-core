@@ -35,6 +35,7 @@ import tokyonight from "./theme/tokyonight.json" with { type: "json" }
 import vercel from "./theme/vercel.json" with { type: "json" }
 import vesper from "./theme/vesper.json" with { type: "json" }
 import zenburn from "./theme/zenburn.json" with { type: "json" }
+import carbonfox from "./theme/carbonfox.json" with { type: "json" }
 import zee from "./theme/zee.json" with { type: "json" }
 import stanley from "./theme/stanley.json" with { type: "json" }
 import johny from "./theme/johny.json" with { type: "json" }
@@ -173,6 +174,7 @@ export const DEFAULT_THEMES: Record<string, ThemeJson> = {
   vesper,
   vercel,
   zenburn,
+  carbonfox,
   zee,
   stanley,
   johny,
@@ -423,6 +425,13 @@ async function getCustomThemes() {
   return result
 }
 
+export function tint(base: RGBA, overlay: RGBA, alpha: number): RGBA {
+  const r = base.r + (overlay.r - base.r) * alpha
+  const g = base.g + (overlay.g - base.g) * alpha
+  const b = base.b + (overlay.b - base.b) * alpha
+  return RGBA.fromInts(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255))
+}
+
 function generateSystem(colors: TerminalColors, mode: "dark" | "light"): ThemeJson {
   const bg = RGBA.fromHex(colors.defaultBackground ?? colors.palette[0]!)
   const fg = RGBA.fromHex(colors.defaultForeground ?? colors.palette[7]!)
@@ -432,13 +441,6 @@ function generateSystem(colors: TerminalColors, mode: "dark" | "light"): ThemeJs
     const value = colors.palette[i]
     if (value) return RGBA.fromHex(value)
     return ansiToRgba(i)
-  }
-
-  const tint = (base: RGBA, overlay: RGBA, alpha: number) => {
-    const r = base.r + (overlay.r - base.r) * alpha
-    const g = base.g + (overlay.g - base.g) * alpha
-    const b = base.b + (overlay.b - base.b) * alpha
-    return RGBA.fromInts(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255))
   }
 
   // Generate gray scale based on terminal background

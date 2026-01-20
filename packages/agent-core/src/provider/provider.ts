@@ -51,6 +51,18 @@ import { ProviderTransform } from "./transform"
 export namespace Provider {
   const log = Log.create({ service: "provider" })
 
+  function isGpt5OrLater(modelID: string): boolean {
+    const match = /^gpt-(\d+)/.exec(modelID)
+    if (!match) {
+      return false
+    }
+    return Number(match[1]) >= 5
+  }
+
+  function shouldUseCopilotResponsesApi(modelID: string): boolean {
+    return isGpt5OrLater(modelID) && !modelID.startsWith("gpt-5-mini")
+  }
+
   const BUNDLED_PROVIDERS: Record<string, (options: any) => ProviderSDK> = {
     "@ai-sdk/amazon-bedrock": createAmazonBedrock,
     "@ai-sdk/anthropic": createAnthropic,
@@ -131,10 +143,7 @@ export namespace Provider {
       return {
         autoload: false,
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
-          if (modelID.includes("codex")) {
-            return sdk.responses(modelID)
-          }
-          return sdk.chat(modelID)
+          return shouldUseCopilotResponsesApi(modelID) ? sdk.responses(modelID) : sdk.chat(modelID)
         },
         options: {},
       }
@@ -143,10 +152,7 @@ export namespace Provider {
       return {
         autoload: false,
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
-          if (modelID.includes("codex")) {
-            return sdk.responses(modelID)
-          }
-          return sdk.chat(modelID)
+          return shouldUseCopilotResponsesApi(modelID) ? sdk.responses(modelID) : sdk.chat(modelID)
         },
         options: {},
       }
@@ -208,16 +214,23 @@ export namespace Provider {
         return undefined
       })
 
-      if (!profile && !awsAccessKeyId && !awsBearerToken) return { autoload: false }
+      const awsWebIdentityTokenFile = Env.get("AWS_WEB_IDENTITY_TOKEN_FILE")
 
-      const { fromNodeProviderChain } = await import(await BunProc.install("@aws-sdk/credential-providers"))
-
-      // Build credential provider options (only pass profile if specified)
-      const credentialProviderOptions = profile ? { profile } : {}
+      if (!profile && !awsAccessKeyId && !awsBearerToken && !awsWebIdentityTokenFile) return { autoload: false }
 
       const providerOptions: AmazonBedrockProviderSettings = {
         region: defaultRegion,
-        credentialProvider: fromNodeProviderChain(credentialProviderOptions),
+      }
+
+      // Only use credential chain if no bearer token exists
+      // Bearer token takes precedence over credential chain (profiles, access keys, IAM roles, web identity tokens)
+      if (!awsBearerToken) {
+        const { fromNodeProviderChain } = await import(await BunProc.install("@aws-sdk/credential-providers"))
+
+        // Build credential provider options (only pass profile if specified)
+        const credentialProviderOptions = profile ? { profile } : {}
+
+        providerOptions.credentialProvider = fromNodeProviderChain(credentialProviderOptions)
       }
 
       // Add custom endpoint if specified (endpoint takes precedence over baseURL)
@@ -403,7 +416,7 @@ export namespace Provider {
         },
       }
     },
-    async gitlab(input) {
+    gitlab: async (input) => {
       const instanceUrl = Env.get("GITLAB_INSTANCE_URL") || "https://gitlab.com"
 
       const auth = await Auth.get(input.id)
@@ -427,10 +440,8 @@ export namespace Provider {
             ...(providerConfig?.options?.featureFlags || {}),
           },
         },
-        async getModel(sdk: ReturnType<typeof createGitLab>, modelID: string, options?: { anthropicModel?: string }) {
-          const anthropicModel = options?.anthropicModel
+        async getModel(sdk: ReturnType<typeof createGitLab>, modelID: string) {
           return sdk.agenticChat(modelID, {
-            anthropicModel,
             featureFlags: {
               duo_agent_platform_agentic_chat: true,
               duo_agent_platform: true,
@@ -563,6 +574,7 @@ export namespace Provider {
       }),
       limit: z.object({
         context: z.number(),
+        input: z.number().optional(),
         output: z.number(),
       }),
       status: z.enum(["alpha", "beta", "deprecated", "active"]),
@@ -600,7 +612,10 @@ export namespace Provider {
       api: {
         id: model.id,
         url: provider.api!,
-        npm: model.provider?.npm ?? provider.npm ?? "@ai-sdk/openai-compatible",
+        npm: iife(() => {
+          if (provider.id.startsWith("github-copilot")) return "@ai-sdk/github-copilot"
+          return model.provider?.npm ?? provider.npm ?? "@ai-sdk/openai-compatible"
+        }),
       },
       status: model.status ?? "active",
       headers: model.headers ?? {},
@@ -625,6 +640,7 @@ export namespace Provider {
       },
       limit: {
         context: model.limit.context,
+        input: model.limit.input,
         output: model.limit.output,
       },
       capabilities: {
@@ -1089,7 +1105,12 @@ export namespace Provider {
 
     for (const [providerID, fn] of Object.entries(CUSTOM_LOADERS)) {
       if (disabled.has(providerID)) continue
-      const result = await fn(database[providerID])
+      const data = database[providerID]
+      if (!data) {
+        log.error("Provider does not exist in model list " + providerID)
+        continue
+      }
+      const result = await fn(data)
       if (result && (result.autoload || providers[providerID])) {
         if (result.getModel) modelLoaders[providerID] = result.getModel
         mergeProvider(providerID, {
@@ -1112,16 +1133,6 @@ export namespace Provider {
       if (!isProviderAllowed(providerID)) {
         delete providers[providerID]
         continue
-      }
-
-      if (providerID === "github-copilot" || providerID === "github-copilot-enterprise") {
-        provider.models = mapValues(provider.models, (model) => ({
-          ...model,
-          api: {
-            ...model.api,
-            npm: "@ai-sdk/github-copilot",
-          },
-        }))
       }
 
       const configProvider = config.provider?.[providerID]
@@ -1296,6 +1307,22 @@ export namespace Provider {
           const combined = signals.length > 1 ? AbortSignal.any(signals) : signals[0]
 
           opts.signal = combined
+        }
+
+        // Strip openai itemId metadata following what codex does
+        // IDs are only re-attached for Azure with store=true
+        if (model.api.npm === "@ai-sdk/openai" && opts.body && opts.method === "POST") {
+          const body = JSON.parse(opts.body as string)
+          const isAzure = model.providerID.includes("azure")
+          const keepIds = isAzure && body.store === true
+          if (!keepIds && Array.isArray(body.input)) {
+            for (const item of body.input) {
+              if ("id" in item) {
+                delete item.id
+              }
+            }
+            opts.body = JSON.stringify(body)
+          }
         }
 
         return fetchFn(input, {

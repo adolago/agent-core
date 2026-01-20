@@ -44,6 +44,7 @@ export const iconNames = [
   "llama",
   "kimi-for-coding",
   "io-net",
+  "inworld",
   "inference",
   "inception",
   "iflowcn",

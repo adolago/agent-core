@@ -1,3 +1,5 @@
+# This is a template. scripts/systemd/install.sh fills in @USER@/@GROUP@/@HOME@/@ROOT@.
+
 [Unit]
 Description=Agent Core - Always-On Personas Daemon
 Documentation=https://github.com/anthropics/agent-core
@@ -5,40 +7,41 @@ After=network.target
 
 [Service]
 Type=simple
-User=artur
-Group=artur
+User=@USER@
+Group=@GROUP@
 
 # Environment setup
-Environment=HOME=/home/artur
+Environment=HOME=@HOME@
 Environment=AGENT_CORE_HEADLESS=1
-Environment=AGENT_CORE_ROOT=/home/artur/.local/src/agent-core
+Environment=AGENT_CORE_ROOT=@ROOT@
 Environment=NODE_ENV=production
-Environment=PATH=/home/artur/bin:/home/artur/.local/bin:/home/artur/.bun/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=@HOME@/bin:@HOME@/.local/bin:@HOME@/.bun/bin:/usr/local/bin:/usr/bin:/bin
 
 # API keys can be loaded from environment file (create ~/.config/agent-core/daemon.env)
-EnvironmentFile=-/home/artur/.config/agent-core/daemon.env
+EnvironmentFile=-@HOME@/.config/agent-core/daemon.env
 
 # Working directory - use repo root for relative assets
-WorkingDirectory=/home/artur/.local/src/agent-core
+WorkingDirectory=@ROOT@
 
-# Use repo-local binary - starts agent-core daemon with embedded Zee gateway
-ExecStart=/home/artur/.local/src/agent-core/packages/agent-core/bin/agent-core daemon --hostname 127.0.0.1 --port 3210 --directory /home/artur/.local/src/agent-core
+# Use repo-local binary - starts agent-core daemon with Zee gateway enabled
+ExecStart=@HOME@/.bun/bin/agent-core daemon --hostname 127.0.0.1 --port 3210 --directory @ROOT@ --gateway
 
 # Restart policy
 Restart=always
 RestartSec=10
 TimeoutStopSec=30
+KillMode=control-group
 
 # Security hardening
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=read-only
+# ProtectHome is disabled to allow full project access in any directory.
 # Use private /tmp for security while allowing tsx to create pipes
 PrivateTmp=true
 # Agent-core needs write access to config, state, logs, and session data
 # Gateway needs access to zee directory for cache and session data
 # Signal needs access to its data directory
-ReadWritePaths=/home/artur/.config/agent-core /home/artur/.local/state/agent-core /home/artur/.local/share/agent-core /home/artur/.local/share/signal-cli /home/artur/.zee /home/artur/.local/src/agent-core/vendor/personas
+ReadWritePaths=@HOME@/.config/agent-core @HOME@/.local/state/agent-core @HOME@/.local/share/agent-core @HOME@/.local/share/signal-cli @HOME@/.zee @ROOT@/vendor/personas
 
 # Logging
 StandardOutput=journal

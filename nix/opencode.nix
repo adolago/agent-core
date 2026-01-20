@@ -1,61 +1,48 @@
 {
   lib,
   stdenvNoCC,
+  callPackage,
   bun,
-  ripgrep,
+  sysctl,
   makeBinaryWrapper,
+  models-dev,
+  ripgrep,
+  installShellFiles,
+  versionCheckHook,
+  writableTmpDirAsHomeHook,
+  node_modules ? callPackage ./node-modules.nix { },
 }:
-args:
-let
-  inherit (args) scripts;
-  mkModules =
-    attrs:
-    args.mkNodeModules (
-      attrs
-      // {
-        canonicalizeScript = scripts + "/canonicalize-node-modules.ts";
-        normalizeBinsScript = scripts + "/normalize-bun-binaries.ts";
-      }
-    );
-in
 stdenvNoCC.mkDerivation (finalAttrs: {
-  pname = "opencode";
-  inherit (args) version src;
-
-  node_modules = mkModules {
-    inherit (finalAttrs) version src;
-  };
+  pname = "agent-core";
+  inherit (node_modules) version src;
+  inherit node_modules;
 
   nativeBuildInputs = [
     bun
+    installShellFiles
     makeBinaryWrapper
+    models-dev
+    writableTmpDirAsHomeHook
   ];
 
-  env.MODELS_DEV_API_JSON = args.modelsDev;
-  env.OPENCODE_VERSION = args.version;
-  env.OPENCODE_CHANNEL = "stable";
-  dontConfigure = true;
+  configurePhase = ''
+    runHook preConfigure
+
+    cp -R ${finalAttrs.node_modules}/. .
+
+    runHook postConfigure
+  '';
+
+  env.MODELS_DEV_API_JSON = "${models-dev}/dist/_api.json";
+  env.OPENCODE_VERSION = finalAttrs.version;
+  env.OPENCODE_CHANNEL = "local";
 
   buildPhase = ''
     runHook preBuild
 
-    cp -r ${finalAttrs.node_modules}/node_modules .
-    cp -r ${finalAttrs.node_modules}/packages .
-
-    (
-      cd packages/agent-core
-
-      chmod -R u+w ./node_modules
-      mkdir -p ./node_modules/@opencode-ai
-      rm -f ./node_modules/@opencode-ai/{script,sdk,plugin}
-      ln -s $(pwd)/../../packages/script ./node_modules/@opencode-ai/script
-      ln -s $(pwd)/../../packages/sdk/js ./node_modules/@opencode-ai/sdk
-      ln -s $(pwd)/../../packages/plugin ./node_modules/@opencode-ai/plugin
-
-      cp ${./bundle.ts} ./bundle.ts
-      chmod +x ./bundle.ts
-      bun run ./bundle.ts
-    )
+    cd ./packages/agent-core
+    bun --bun ./script/build.ts --single --skip-install
+    bun --bun ./script/schema.ts schema.json
 
     runHook postBuild
   '';
@@ -64,10 +51,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preInstall
 
     cd packages/agent-core
-    if [ ! -d dist ]; then
-      echo "ERROR: dist directory missing after bundle step"
-      exit 1
-    fi
+    install -Dm755 dist/agent-core-*/bin/opencode $out/bin/agent-core
+    install -Dm644 schema.json $out/share/agent-core/schema.json
 
     mkdir -p $out/lib/opencode
     cp -r dist $out/lib/opencode/
@@ -100,32 +85,42 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     makeWrapper ${bun}/bin/bun $out/bin/agent-core \
       --add-flags "run" \
       --add-flags "$out/lib/opencode/dist/src/index.js" \
-      --prefix PATH : ${lib.makeBinPath [ ripgrep ]} \
+      --prefix PATH : ${
+        lib.makeBinPath (
+          [
+            ripgrep
+          ]
+          # bun runs sysctl to detect if dunning on rosetta2
+          ++ lib.optional stdenvNoCC.hostPlatform.isDarwin sysctl
+        )
+      } \
       --argv0 agent-core
 
     runHook postInstall
   '';
 
-  postInstall = ''
-    for pkg in $out/lib/opencode/node_modules/.bun/@opentui+core-* $out/lib/opencode/node_modules/.bun/@opentui+solid-* $out/lib/opencode/node_modules/.bun/@opentui+core@* $out/lib/opencode/node_modules/.bun/@opentui+solid@*; do
-      if [ -d "$pkg" ]; then
-        pkgName=$(basename "$pkg" | sed 's/@opentui+\([^@]*\)@.*/\1/')
-        ln -sf ../.bun/$(basename "$pkg")/node_modules/@opentui/$pkgName \
-          $out/lib/opencode/node_modules/@opentui/$pkgName
-      fi
-    done
+  postInstall = lib.optionalString (stdenvNoCC.buildPlatform.canExecute stdenvNoCC.hostPlatform) ''
+    # trick yargs into also generating zsh completions
+    installShellCompletion --cmd agent-core \
+      --bash <($out/bin/agent-core completion) \
+      --zsh <(SHELL=/bin/zsh $out/bin/agent-core completion)
   '';
 
-  dontFixup = true;
+  nativeInstallCheckInputs = [
+    versionCheckHook
+    writableTmpDirAsHomeHook
+  ];
+  doInstallCheck = true;
+  versionCheckKeepEnvironment = [ "HOME" ];
+  versionCheckProgramArg = "--version";
+
+  passthru = {
+    jsonschema = "${placeholder "out"}/share/agent-core/schema.json";
+  };
 
   meta = {
-    description = "AI coding agent built for the terminal";
-    longDescription = ''
-      OpenCode is a terminal-based agent that can build anything.
-      It combines a TypeScript/JavaScript core with a Go-based TUI
-      to provide an interactive AI coding experience.
-    '';
-    homepage = "https://github.com/anomalyco/opencode";
+    description = "The open source coding agent";
+    homepage = "https://opencode.ai/";
     license = lib.licenses.mit;
     platforms = [
       "aarch64-linux"

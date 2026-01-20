@@ -81,7 +81,78 @@ export namespace SessionProcessor {
           while (true) {
             try {
               let currentText: MessageV2.TextPart | undefined
+              let currentReasoning: MessageV2.ReasoningPart | undefined
               let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
+              const getDelta = (value: { text?: string; textDelta?: string; delta?: string }) => {
+                if (typeof value.text === "string") return value.text
+                if (typeof value.textDelta === "string") return value.textDelta
+                if (typeof value.delta === "string") return value.delta
+                return undefined
+              }
+              const ensureTextPart = (metadata?: Record<string, any>) => {
+                if (!currentText) {
+                  currentText = {
+                    id: Identifier.ascending("part"),
+                    messageID: input.assistantMessage.id,
+                    sessionID: input.assistantMessage.sessionID,
+                    type: "text",
+                    text: "",
+                    time: {
+                      start: Date.now(),
+                    },
+                    metadata,
+                  }
+                }
+                return currentText
+              }
+              const ensureReasoningPart = (metadata?: Record<string, any>) => {
+                if (!currentReasoning) {
+                  currentReasoning = {
+                    id: Identifier.ascending("part"),
+                    messageID: input.assistantMessage.id,
+                    sessionID: input.assistantMessage.sessionID,
+                    type: "reasoning",
+                    text: "",
+                    time: {
+                      start: Date.now(),
+                    },
+                    metadata,
+                  }
+                }
+                return currentReasoning
+              }
+              const finalizeTextPart = async (metadata?: Record<string, any>) => {
+                if (!currentText) return
+                currentText.text = currentText.text.trimEnd()
+                const textOutput = await Plugin.trigger(
+                  "experimental.text.complete",
+                  {
+                    sessionID: input.sessionID,
+                    messageID: input.assistantMessage.id,
+                    partID: currentText.id,
+                  },
+                  { text: currentText.text },
+                )
+                currentText.text = textOutput.text
+                currentText.time = {
+                  start: Date.now(),
+                  end: Date.now(),
+                }
+                if (metadata) currentText.metadata = metadata
+                await Session.updatePart(currentText)
+                currentText = undefined
+              }
+              const finalizeReasoningPart = async (metadata?: Record<string, any>) => {
+                if (!currentReasoning) return
+                currentReasoning.text = currentReasoning.text.trimEnd()
+                currentReasoning.time = {
+                  ...currentReasoning.time,
+                  end: Date.now(),
+                }
+                if (metadata) currentReasoning.metadata = metadata
+                await Session.updatePart(currentReasoning)
+                currentReasoning = undefined
+              }
               const streamStartTimeoutMs =
                 Flag.OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS ?? DEFAULT_LLM_STREAM_START_TIMEOUT_MS
               const streamStartController = new AbortController()
@@ -145,14 +216,17 @@ export namespace SessionProcessor {
                     }
                     break
 
-                  case "reasoning-delta":
+                  case "reasoning-delta": {
                     if (value.id in reasoningMap) {
                       const part = reasoningMap[value.id]
-                      part.text += value.text
+                      const delta = getDelta(value)
+                      if (!delta) break
+                      part.text += delta
                       if (value.providerMetadata) part.metadata = value.providerMetadata
-                      if (part.text) await Session.updatePart({ part, delta: value.text })
+                      if (part.text) await Session.updatePart({ part, delta })
                     }
                     break
+                  }
 
                   case "reasoning-end":
                     if (value.id in reasoningMap) {
@@ -306,12 +380,26 @@ export namespace SessionProcessor {
                     break
 
                   case "finish-step":
+                    await finalizeTextPart(value.providerMetadata)
+                    await finalizeReasoningPart(value.providerMetadata)
+                    const danglingReasoning = Object.values(reasoningMap)
+                    reasoningMap = {}
+                    for (const part of danglingReasoning) {
+                      part.text = part.text.trimEnd()
+                      part.time = {
+                        ...part.time,
+                        end: Date.now(),
+                      }
+                      if (value.providerMetadata) part.metadata = value.providerMetadata
+                      await Session.updatePart(part)
+                    }
                     const usage = Session.getUsage({
                       model: input.model,
                       usage: value.usage,
                       metadata: value.providerMetadata,
                     })
-                    input.assistantMessage.finish = value.finishReason
+                    const finishReason = value.finishReason ?? "unknown"
+                    input.assistantMessage.finish = finishReason
                     input.assistantMessage.cost += usage.cost
                     input.assistantMessage.tokens = usage.tokens
                     await Session.update(input.sessionID, (session) => {
@@ -347,12 +435,12 @@ export namespace SessionProcessor {
                       meta: {
                         tokens: usage.tokens,
                         cost: usage.cost,
-                        finishReason: value.finishReason,
+                        finishReason,
                       },
                     })
                     await Session.updatePart({
                       id: Identifier.ascending("part"),
-                      reason: value.finishReason,
+                      reason: finishReason ?? "unknown",
                       snapshot: await Snapshot.track(),
                       messageID: input.assistantMessage.id,
                       sessionID: input.assistantMessage.sessionID,
@@ -385,55 +473,30 @@ export namespace SessionProcessor {
                     break
 
                   case "text-start":
-                    currentText = {
-                      id: Identifier.ascending("part"),
-                      messageID: input.assistantMessage.id,
-                      sessionID: input.assistantMessage.sessionID,
-                      type: "text",
-                      text: "",
-                      time: {
-                        start: Date.now(),
-                      },
-                      metadata: value.providerMetadata,
-                    }
+                    currentText = ensureTextPart(value.providerMetadata)
                     break
 
-                  case "text-delta":
-                    if (currentText) {
-                      currentText.text += value.text
-                      if (value.providerMetadata) currentText.metadata = value.providerMetadata
-                      if (currentText.text)
-                        await Session.updatePart({
-                          part: currentText,
-                          delta: value.text,
-                        })
-                    }
+                  case "text-delta": {
+                    const delta = getDelta(value)
+                    if (!delta) break
+                    const part = ensureTextPart(value.providerMetadata)
+                    part.text += delta
+                    if (value.providerMetadata) part.metadata = value.providerMetadata
+                    if (part.text)
+                      await Session.updatePart({
+                        part,
+                        delta,
+                      })
                     break
+                  }
 
                   case "text-end":
-                    if (currentText) {
-                      currentText.text = currentText.text.trimEnd()
-                      const textOutput = await Plugin.trigger(
-                        "experimental.text.complete",
-                        {
-                          sessionID: input.sessionID,
-                          messageID: input.assistantMessage.id,
-                          partID: currentText.id,
-                        },
-                        { text: currentText.text },
-                      )
-                      currentText.text = textOutput.text
-                      currentText.time = {
-                        start: Date.now(),
-                        end: Date.now(),
-                      }
-                      if (value.providerMetadata) currentText.metadata = value.providerMetadata
-                      await Session.updatePart(currentText)
-                    }
-                    currentText = undefined
+                    await finalizeTextPart(value.providerMetadata)
                     break
 
                   case "finish":
+                    await finalizeTextPart()
+                    await finalizeReasoningPart()
                     break
 
                   default:

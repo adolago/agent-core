@@ -6,11 +6,7 @@
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      ...
-    }:
+    { self, nixpkgs, ... }:
     let
       systems = [
         "aarch64-linux"
@@ -19,8 +15,9 @@
         "x86_64-darwin"
       ];
       inherit (nixpkgs) lib;
-      forEachSystem = lib.genAttrs systems;
+      forEachSystem = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
       pkgsFor = system: nixpkgs.legacyPackages.${system};
+      rev = self.shortRev or self.dirtyShortRev or "dirty";
       packageJson = builtins.fromJSON (builtins.readFile ./packages/agent-core/package.json);
       bunTarget = {
         "aarch64-linux" = "bun-linux-arm64";
@@ -28,28 +25,11 @@
         "aarch64-darwin" = "bun-darwin-arm64";
         "x86_64-darwin" = "bun-darwin-x64";
       };
-
-      # Parse "bun-{os}-{cpu}" to {os, cpu}
-      parseBunTarget =
-        target:
-        let
-          parts = lib.splitString "-" target;
-        in
-        {
-          os = builtins.elemAt parts 1;
-          cpu = builtins.elemAt parts 2;
-        };
-
+      defaultNodeModules = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       hashesFile = "${./nix}/hashes.json";
       hashesData =
         if builtins.pathExists hashesFile then builtins.fromJSON (builtins.readFile hashesFile) else { };
-      # Lookup hash: supports per-system ({system: hash}) or legacy single hash
-      nodeModulesHashFor =
-        system:
-        if builtins.isAttrs hashesData.nodeModules then
-          hashesData.nodeModules.${system}
-        else
-          hashesData.nodeModules;
+      nodeModulesHash = hashesData.nodeModules or defaultNodeModules;
       modelsDev = forEachSystem (
         system:
         let
@@ -65,8 +45,6 @@
       stockDeps = system:
         let
           pkgs = pkgsFor system;
-          isLinux = builtins.elem system [ "x86_64-linux" "aarch64-linux" ];
-          isDarwin = builtins.elem system [ "x86_64-darwin" "aarch64-darwin" ];
         in
         {
           # Terminal & TUI
@@ -97,7 +75,6 @@
         };
 
       # Python packages that need pip install (not in nixpkgs)
-      # Document these for manual installation
       pythonPipPackages = [
         "openbb"              # OpenBB Platform for Stanley
         "nautilus-trader"     # NautilusTrader for Stanley
@@ -107,10 +84,9 @@
       # ========================================================================
       # Development Shells
       # ========================================================================
-      devShells = forEachSystem (
-        system:
+      devShells = forEachSystem (pkgs:
         let
-          pkgs = pkgsFor system;
+          system = pkgs.system;
           deps = stockDeps system;
         in
         {
@@ -197,43 +173,43 @@
       # ========================================================================
       # Packages
       # ========================================================================
-      packages = forEachSystem (
-        system:
+      packages = forEachSystem (pkgs:
         let
-          pkgs = pkgsFor system;
+          system = pkgs.system;
           deps = stockDeps system;
-          bunPlatform = parseBunTarget bunTarget.${system};
-          mkNodeModules = pkgs.callPackage ./nix/node-modules.nix {
-            hash = nodeModulesHashFor system;
-            bunCpu = bunPlatform.cpu;
-            bunOs = bunPlatform.os;
+          node_modules = pkgs.callPackage ./nix/node_modules.nix {
+            inherit rev;
           };
-          mkOpencode = pkgs.callPackage ./nix/opencode.nix { };
-          mkDesktop = pkgs.callPackage ./nix/desktop.nix { };
-
-          opencodePkg = mkOpencode {
-            inherit (packageJson) version;
-            src = ./.;
-            scripts = ./nix/scripts;
-            target = bunTarget.${system};
-            modelsDev = "${modelsDev.${system}}/dist/_api.json";
-            inherit mkNodeModules;
+          opencode = pkgs.callPackage ./nix/opencode.nix {
+            inherit node_modules;
           };
-
-          desktopPkg = mkDesktop {
-            inherit (packageJson) version;
-            src = ./.;
-            scripts = ./nix/scripts;
-            mkNodeModules = mkNodeModules;
-            opencode = opencodePkg;
+          desktop = pkgs.callPackage ./nix/desktop.nix {
+            inherit opencode;
           };
+          # nixpkgs cpu naming to bun cpu naming
+          cpuMap = { x86_64 = "x64"; aarch64 = "arm64"; };
+          # matrix of node_modules builds - these will always fail due to fakeHash usage
+          # but allow computation of the correct hash from any build machine for any cpu/os
+          # see the update-nix-hashes workflow for usage
+          moduleUpdaters = lib.listToAttrs (
+            lib.concatMap (cpu:
+              map (os: {
+                name = "${cpu}-${os}_node_modules";
+                value = node_modules.override {
+                  bunCpu = cpuMap.${cpu};
+                  bunOs = os;
+                  hash = lib.fakeHash;
+                };
+              }) [ "linux" "darwin" ]
+            ) [ "x86_64" "aarch64" ]
+          );
 
           # Personas bundle: opencode + stock dependencies wrapped together
           # Usage: nix build .#personas
           personasPkg = pkgs.symlinkJoin {
-            name = "agent-core-personas-${packageJson.version}";
+            name = "agent-core-personas";
             paths = [
-              opencodePkg
+              opencode
               deps.wezterm
               deps.yazi
               deps.ripgrep
@@ -258,55 +234,31 @@
                   nix run .#qdrant
               '';
               license = lib.licenses.mit;
-              platforms = [
-                "aarch64-linux"
-                "x86_64-linux"
-                "aarch64-darwin"
-                "x86_64-darwin"
-              ];
+              platforms = systems;
             };
           };
         in
         {
-          default = opencodePkg;
-          opencode = opencodePkg;
-          desktop = desktopPkg;
+          default = opencode;
+          inherit opencode desktop;
           personas = personasPkg;
 
           # Expose individual stock packages for flexibility
           qdrant = deps.qdrant;
           wezterm = deps.wezterm;
           yazi = deps.yazi;
-        }
+        } // moduleUpdaters
       );
 
       # ========================================================================
       # Apps (runnable via `nix run`)
       # ========================================================================
-      apps = forEachSystem (
-        system:
+      apps = forEachSystem (pkgs:
         let
-          pkgs = pkgsFor system;
+          system = pkgs.system;
           deps = stockDeps system;
         in
         {
-          # Development runner
-          opencode-dev = {
-            type = "app";
-            meta = {
-              description = "Nix devshell shell for OpenCode";
-              runtimeInputs = [ pkgs.bun ];
-            };
-            program = "${
-              pkgs.writeShellApplication {
-                name = "opencode-dev";
-                text = ''
-                  exec bun run dev "$@"
-                '';
-              }
-            }/bin/opencode-dev";
-          };
-
           # Run Qdrant server (for Personas memory)
           # Usage: nix run .#qdrant
           qdrant = {

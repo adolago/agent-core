@@ -19,6 +19,7 @@ import { BunProc } from "@/bun"
 import { Installation } from "@/installation"
 import { ConfigMarkdown } from "./markdown"
 import { existsSync } from "fs"
+import { Bus } from "@/bus"
 
 export namespace Config {
   const log = Log.create({ service: "config" })
@@ -97,7 +98,20 @@ export namespace Config {
     result.mode = result.mode || {}
     result.plugin = result.plugin || []
 
-    const directories = [
+    const directories = []
+
+    // Support running from any directory via launcher script that sets AGENT_CORE_ROOT.
+    // Treat packaged config as the lowest-precedence defaults so user/project config can override it.
+    const agentCoreRoot = process.env.AGENT_CORE_ROOT
+    if (agentCoreRoot) {
+      const rootConfigDir = path.join(agentCoreRoot, ".agent-core")
+      if (existsSync(rootConfigDir)) {
+        directories.push(rootConfigDir)
+        log.debug("loading config from AGENT_CORE_ROOT", { path: rootConfigDir })
+      }
+    }
+
+    directories.push(
       Global.Path.config,
       ...(await Array.fromAsync(
         Filesystem.up({
@@ -113,17 +127,7 @@ export namespace Config {
           stop: Global.Path.home,
         }),
       )),
-    ]
-
-    // Support running from any directory via launcher script that sets AGENT_CORE_ROOT
-    const agentCoreRoot = process.env.AGENT_CORE_ROOT
-    if (agentCoreRoot) {
-      const rootConfigDir = path.join(agentCoreRoot, ".agent-core")
-      if (existsSync(rootConfigDir)) {
-        directories.push(rootConfigDir)
-        log.debug("loading config from AGENT_CORE_ROOT", { path: rootConfigDir })
-      }
-    }
+    )
 
     if (Flag.OPENCODE_CONFIG_DIR) {
       directories.push(Flag.OPENCODE_CONFIG_DIR)
@@ -262,17 +266,18 @@ export namespace Config {
       dot: true,
       cwd: dir,
     })) {
-      const md = await ConfigMarkdown.parse(item)
-      if (!md.data) continue
+      const md = await ConfigMarkdown.parse(item).catch(async (err) => {
+        const message = ConfigMarkdown.FrontmatterError.isInstance(err)
+          ? err.data.message
+          : `Failed to parse command ${item}`
+        const { Session } = await import("@/session")
+        Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
+        log.error("failed to load command", { command: item, err })
+        return undefined
+      })
+      if (!md) continue
 
-      const patterns = [
-        "/.agent-core/command/",
-        "/.agent-core/commands/",
-        "/.opencode/command/",
-        "/.opencode/commands/",
-        "/command/",
-        "/commands/",
-      ]
+      const patterns = ["/.agent-core/command/", "/.agent-core/commands/", "/command/", "/commands/"]
       const file = rel(item, patterns) ?? path.basename(item)
       const name = trim(file)
 
@@ -301,17 +306,18 @@ export namespace Config {
       dot: true,
       cwd: dir,
     })) {
-      const md = await ConfigMarkdown.parse(item)
-      if (!md.data) continue
+      const md = await ConfigMarkdown.parse(item).catch(async (err) => {
+        const message = ConfigMarkdown.FrontmatterError.isInstance(err)
+          ? err.data.message
+          : `Failed to parse agent ${item}`
+        const { Session } = await import("@/session")
+        Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
+        log.error("failed to load agent", { agent: item, err })
+        return undefined
+      })
+      if (!md) continue
 
-      const patterns = [
-        "/.agent-core/agent/",
-        "/.agent-core/agents/",
-        "/.opencode/agent/",
-        "/.opencode/agents/",
-        "/agent/",
-        "/agents/",
-      ]
+      const patterns = ["/.agent-core/agent/", "/.agent-core/agents/", "/agent/", "/agents/"]
       const file = rel(item, patterns) ?? path.basename(item)
       const agentName = trim(file)
 
@@ -339,8 +345,16 @@ export namespace Config {
       dot: true,
       cwd: dir,
     })) {
-      const md = await ConfigMarkdown.parse(item)
-      if (!md.data) continue
+      const md = await ConfigMarkdown.parse(item).catch(async (err) => {
+        const message = ConfigMarkdown.FrontmatterError.isInstance(err)
+          ? err.data.message
+          : `Failed to parse mode ${item}`
+        const { Session } = await import("@/session")
+        Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
+        log.error("failed to load mode", { mode: item, err })
+        return undefined
+      })
+      if (!md) continue
 
       const config = {
         name: path.basename(item, ".md"),
@@ -698,14 +712,24 @@ export namespace Config {
       session_list: z.string().optional().default("<leader>l").describe("List all sessions"),
       session_timeline: z.string().optional().default("<leader>g").describe("Show session timeline"),
       session_fork: z.string().optional().default("none").describe("Fork session from message"),
-      session_rename: z.string().optional().default("none").describe("Rename session"),
+      session_rename: z.string().optional().default("ctrl+r").describe("Rename session"),
+      session_delete: z.string().optional().default("ctrl+d").describe("Delete session"),
+      stash_delete: z.string().optional().default("ctrl+d").describe("Delete stash entry"),
+      model_provider_list: z.string().optional().default("ctrl+a").describe("Open provider list from model dialog"),
+      model_favorite_toggle: z.string().optional().default("ctrl+f").describe("Toggle model favorite status"),
       session_share: z.string().optional().default("none").describe("Share current session"),
       session_unshare: z.string().optional().default("none").describe("Unshare current session"),
       session_delegate: z.string().optional().default("<leader>d").describe("Delegate to another persona"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
       session_compact: z.string().optional().default("<leader>c").describe("Compact the session"),
-      messages_page_up: z.string().optional().default("pageup").describe("Scroll messages up by one page"),
-      messages_page_down: z.string().optional().default("pagedown").describe("Scroll messages down by one page"),
+      messages_page_up: z.string().optional().default("pageup,ctrl+alt+b").describe("Scroll messages up by one page"),
+      messages_page_down: z
+        .string()
+        .optional()
+        .default("pagedown,ctrl+alt+f")
+        .describe("Scroll messages down by one page"),
+      messages_line_up: z.string().optional().default("ctrl+alt+y").describe("Scroll messages up by one line"),
+      messages_line_down: z.string().optional().default("ctrl+alt+e").describe("Scroll messages down by one line"),
       messages_half_page_up: z.string().optional().default("ctrl+alt+u").describe("Scroll messages up by half page"),
       messages_half_page_down: z
         .string()
@@ -741,6 +765,7 @@ export namespace Config {
       input_clear: z.string().optional().default("ctrl+c").describe("Clear input field"),
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
       input_submit: z.string().optional().default("return").describe("Submit input"),
+      input_dictation_toggle: z.string().optional().default("f4").describe("Toggle dictation recording"),
       input_newline: z
         .string()
         .optional()
@@ -845,6 +870,22 @@ export namespace Config {
       .enum(["auto", "stacked"])
       .optional()
       .describe("Control diff rendering style: 'auto' adapts to terminal width, 'stacked' always shows single column"),
+    dictation: z
+      .object({
+        enabled: z.boolean().optional().describe("Enable dictation"),
+        endpoint: z.string().optional().describe("Inworld runtime graph endpoint"),
+        api_key: z.string().optional().describe("Inworld base64 runtime API key"),
+        input_key: z.string().optional().default("audio").describe("Graph input key for audio data"),
+        sample_rate: z.number().int().positive().optional().default(16000).describe("Audio sample rate"),
+        auto_submit: z.boolean().optional().default(false).describe("Auto-submit after dictation"),
+        response_path: z.string().optional().describe("Dot path to transcript in response payload"),
+        record_command: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .describe("Override dictation recording command"),
+      })
+      .optional()
+      .describe("Dictation settings"),
   })
 
   export const Server = z
@@ -862,6 +903,11 @@ export namespace Config {
   export const Daemon = z
     .object({
       enabled: z.boolean().optional().default(false).describe("Enable daemon mode"),
+      systemd_only: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Disallow TUI daemon spawn; require systemd-managed daemon or --no-daemon"),
       session: z
         .object({
           persistence: z.boolean().optional().default(true).describe("Enable session persistence"),
@@ -966,6 +1012,10 @@ export namespace Config {
 
   export const Memory = z
     .object({
+      required: z
+        .boolean()
+        .optional()
+        .describe("Require memory backend availability before prompting"),
       backend: z.enum(["file", "redis", "qdrant"]).optional().describe("Memory backend"),
       storagePath: z.string().optional().describe("Storage path for file backend"),
       redisUrl: z.string().optional().describe("Redis connection URL"),
@@ -1147,7 +1197,7 @@ export namespace Config {
         })
         .catchall(Agent)
         .optional()
-        .describe("Agent configuration, see https://opencode.ai/docs/agent"),
+        .describe("Agent configuration, see https://opencode.ai/docs/agents"),
       provider: z
         .record(z.string(), Provider)
         .optional()
@@ -1380,6 +1430,7 @@ export namespace Config {
   }
 
   async function load(text: string, configFilepath: string) {
+    const original = text
     text = text.replace(/\{env:([^}]+)\}/g, (_, varName) => {
       return process.env[varName] || ""
     })
@@ -1449,7 +1500,9 @@ export namespace Config {
     if (parsed.success) {
       if (!parsed.data.$schema) {
         parsed.data.$schema = "https://opencode.ai/config.json"
-        await Bun.write(configFilepath, JSON.stringify(parsed.data, null, 2)).catch((err) => {
+        // Write the $schema to the original text to preserve variables like {env:VAR}
+        const updated = original.replace(/^\s*\{/, '{\n  "$schema": "https://opencode.ai/config.json",')
+        await Bun.write(configFilepath, updated).catch((err) => {
           log.debug("failed to write config schema", { error: String(err), path: configFilepath })
         })
       }

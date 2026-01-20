@@ -173,8 +173,16 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       })
 
       const file = Bun.file(path.join(Global.Path.state, "model.json"))
+      const state = {
+        pending: false,
+      }
 
       function save() {
+        if (!modelStore.ready) {
+          state.pending = true
+          return
+        }
+        state.pending = false
         // Only persist recent, favorite, variant - NOT session model
         Bun.write(
           file,
@@ -196,6 +204,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         .catch(() => {})
         .finally(() => {
           setModelStore("ready", true)
+          if (state.pending) save()
         })
 
       const args = useArgs()

@@ -9,20 +9,22 @@ type TipPart = { text: string; highlight: boolean }
 function parse(tip: string): TipPart[] {
   const parts: TipPart[] = []
   const regex = /\{highlight\}(.*?)\{\/highlight\}/g
-  const matches = Array.from(tip.matchAll(regex))
-  let index = 0
+  const found = Array.from(tip.matchAll(regex))
+  const state = found.reduce(
+    (acc, match) => {
+      const start = match.index ?? 0
+      if (start > acc.index) {
+        acc.parts.push({ text: tip.slice(acc.index, start), highlight: false })
+      }
+      acc.parts.push({ text: match[1], highlight: true })
+      acc.index = start + match[0].length
+      return acc
+    },
+    { parts, index: 0 },
+  )
 
-  for (const match of matches) {
-    const start = match.index ?? 0
-    if (start > index) {
-      parts.push({ text: tip.slice(index, start), highlight: false })
-    }
-    parts.push({ text: match[1], highlight: true })
-    index = start + match[0].length
-  }
-
-  if (index < tip.length) {
-    parts.push({ text: tip.slice(index), highlight: false })
+  if (state.index < tip.length) {
+    parts.push({ text: tip.slice(state.index), highlight: false })
   }
 
   return parts
@@ -46,7 +48,7 @@ export function Tips() {
   )
 }
 
-const TIPS = [
+export const TIPS = [
   "Type {highlight}@{/highlight} followed by a filename to fuzzy search and attach files to your prompt.",
   "Start a message with {highlight}!{/highlight} to run shell commands directly (e.g., {highlight}!ls -la{/highlight}).",
   "Press {highlight}Ctrl+X H{/highlight} to toggle between HOLD (research) and RELEASE (edit) modes.",

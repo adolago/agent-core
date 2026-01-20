@@ -197,7 +197,7 @@ export namespace Daemon {
 }
 
 /**
- * Gateway supervisor - manages zee gateway as a child process with auto-restart
+ * Gateway supervisor - manages zee gateway as a child process
  */
 export namespace GatewaySupervisor {
   const ZEE_GATEWAY_DIR = Zee.repo()
@@ -213,28 +213,9 @@ export namespace GatewaySupervisor {
     "SLACK_BOT_TOKEN",
     "SLACK_APP_TOKEN",
   ]
-  const RESTART_DELAY_MS = 2000
-  const MAX_RESTART_ATTEMPTS = 5
-  const RESTART_WINDOW_MS = 60_000 // Reset restart counter after 1 minute of stability
-  const RETRY_BASE_DELAY_MS = 5000
-  const RETRY_MAX_DELAY_MS = 60_000
-  const RESTART_BACKOFF_MS = 120_000
-  const HEALTH_CHECK_INTERVAL_MS = 15_000
-  const HEALTH_STARTUP_GRACE_MS = 20_000
-  const HEALTH_FAILURES_BEFORE_RESTART = 3
 
   let gatewayProcess: ChildProcess | null = null
   let startInFlight = false
-  let restartAttempts = 0
-  let retryAttempts = 0
-  let retryTimer: NodeJS.Timeout | null = null
-  let healthTimer: NodeJS.Timeout | null = null
-  let healthCheckInFlight = false
-  let healthFailures = 0
-  let lastHealthyAt = 0
-  let healthRestartInFlight = false
-  let healthStartedAt = 0
-  let lastRestartTime = 0
   let isShuttingDown = false
   let gatewayEnabled = false
   let forceStart = false
@@ -242,6 +223,10 @@ export namespace GatewaySupervisor {
   let lastExit: { code?: number | null; signal?: NodeJS.Signals | null } | undefined
   let lastPreflight: GatewayPreflight | null = null
   let gatewayDaemonUrl: string | undefined
+  let retryTimer: NodeJS.Timeout | undefined
+  let retryCount = 0
+  const RETRY_BASE_MS = 1000
+  const RETRY_MAX_MS = 30000
 
   export interface GatewayPreflight {
     ok: boolean
@@ -257,15 +242,12 @@ export namespace GatewaySupervisor {
   export interface GatewayState {
     running: boolean
     pid?: number
-    restarts: number
-    lastRestartAt?: number
     error?: string
     enabled: boolean
     lastExit?: { code?: number | null; signal?: NodeJS.Signals | null }
     configPath?: string
     warnings?: string[]
     daemonUrl?: string
-    lastHealthyAt?: number
   }
 
   let resolvedPnpmPath: string | undefined
@@ -387,6 +369,27 @@ export namespace GatewaySupervisor {
     }
   }
 
+  function clearRetryTimer() {
+    if (!retryTimer) return
+    clearTimeout(retryTimer)
+    retryTimer = undefined
+  }
+
+  function scheduleRetry(reason?: string) {
+    if (isShuttingDown || !gatewayEnabled) return
+    if (retryTimer) return
+
+    const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** retryCount)
+    retryCount += 1
+    log.warn("scheduling zee gateway retry", { delay, reason })
+
+    retryTimer = setTimeout(async () => {
+      retryTimer = undefined
+      if (isShuttingDown || !gatewayEnabled || gatewayProcess) return
+      await start({ force: forceStart, daemonUrl: gatewayDaemonUrl })
+    }, delay)
+  }
+
   export async function preflight(options: { force?: boolean; checkPort?: boolean } = {}): Promise<GatewayPreflight> {
     const result = await runPreflight({
       force: options.force ?? false,
@@ -400,124 +403,22 @@ export namespace GatewaySupervisor {
     return {
       running: gatewayProcess !== null && !gatewayProcess.killed,
       pid: gatewayProcess?.pid,
-      restarts: restartAttempts,
-      lastRestartAt: lastRestartTime || undefined,
       error: lastError,
       enabled: gatewayEnabled,
       lastExit,
       configPath: lastPreflight?.configPath,
       warnings: lastPreflight?.warnings?.length ? lastPreflight.warnings : undefined,
       daemonUrl: gatewayDaemonUrl,
-      lastHealthyAt: lastHealthyAt || undefined,
     }
   }
-
-  function stopHealthProbe() {
-    if (healthTimer) {
-      clearInterval(healthTimer)
-      healthTimer = null
-    }
-    healthCheckInFlight = false
-  }
-
-  async function runHealthProbe() {
-    if (!gatewayEnabled || isShuttingDown || !gatewayProcess) return
-    if (healthCheckInFlight) return
-
-    healthCheckInFlight = true
-    try {
-      const gatewayPort = getGatewayPort()
-      const portOpen = await isPortOpen("127.0.0.1", gatewayPort)
-      if (portOpen) {
-        healthFailures = 0
-        lastHealthyAt = Date.now()
-        return
-      }
-
-      if (Date.now() - healthStartedAt < HEALTH_STARTUP_GRACE_MS) {
-        return
-      }
-
-      healthFailures += 1
-      log.warn("zee gateway health check failed", {
-        port: gatewayPort,
-        failures: healthFailures,
-      })
-
-      if (healthFailures >= HEALTH_FAILURES_BEFORE_RESTART) {
-        restartGateway("health check failures")
-      }
-    } finally {
-      healthCheckInFlight = false
-    }
-  }
-
-  function startHealthProbe() {
-    stopHealthProbe()
-    healthFailures = 0
-    lastHealthyAt = 0
-    healthStartedAt = Date.now()
-    healthTimer = setInterval(() => {
-      runHealthProbe().catch((err) => {
-        log.warn("zee gateway health probe error", { error: String(err) })
-      })
-    }, HEALTH_CHECK_INTERVAL_MS)
-  }
-
-  function restartGateway(reason: string) {
-    if (healthRestartInFlight || isShuttingDown) return
-    if (!gatewayProcess || gatewayProcess.killed) return
-
-    const pid = gatewayProcess.pid
-    healthRestartInFlight = true
-    log.warn("restarting zee gateway", { pid, reason })
-
-    const killTimeout = setTimeout(() => {
-      if (gatewayProcess && !gatewayProcess.killed) {
-        log.warn("zee gateway did not stop after health check, sending SIGKILL", { pid })
-        gatewayProcess.kill("SIGKILL")
-      }
-    }, 5000)
-
-    gatewayProcess.once("exit", () => {
-      clearTimeout(killTimeout)
-      healthRestartInFlight = false
-    })
-
-    try {
-      gatewayProcess.kill("SIGTERM")
-    } catch (error) {
-      clearTimeout(killTimeout)
-      healthRestartInFlight = false
-      log.warn("failed to signal zee gateway for health restart", { pid, error: String(error) })
-    }
-  }
-
-  function scheduleRetry(reason: string, delayOverride?: number): void {
-    if (!gatewayEnabled || isShuttingDown) return
-    if (retryTimer) return
-
-    const delay =
-      delayOverride ??
-      Math.min(RETRY_BASE_DELAY_MS * Math.pow(2, retryAttempts), RETRY_MAX_DELAY_MS)
-    retryAttempts = delayOverride ? 0 : retryAttempts + 1
-
-    log.warn("scheduling zee gateway retry", { delayMs: delay, reason })
-    retryTimer = setTimeout(() => {
-      retryTimer = null
-      start({ force: forceStart, daemonUrl: gatewayDaemonUrl }).catch((err) => {
-        log.error("failed to retry zee gateway start", { error: String(err) })
-      })
-    }, delay)
-  }
-
   export async function start(options: { force?: boolean; daemonUrl?: string } = {}): Promise<boolean> {
     if (isShuttingDown) return false
     if (gatewayProcess) {
-      if (!healthTimer) startHealthProbe()
       return true
     }
     if (startInFlight) return false
+
+    clearRetryTimer()
 
     gatewayEnabled = true
     forceStart = options.force ?? false
@@ -534,16 +435,11 @@ export namespace GatewaySupervisor {
     if (!preflight.ok) {
       lastError = preflight.issues[0] ?? preflight.warnings[0]
       if (lastError) log.warn("zee gateway preflight failed", { reason: lastError })
-      if (lastError) scheduleRetry(lastError)
       return false
     }
 
     if (preflight.warnings.length > 0) {
       log.warn("zee gateway preflight warnings", { warnings: preflight.warnings })
-    }
-
-    if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
-      restartAttempts = 0
     }
 
     log.info("starting zee gateway", { dir: ZEE_GATEWAY_DIR })
@@ -566,14 +462,8 @@ export namespace GatewaySupervisor {
       })
 
       gatewayEnabled = true
-      lastRestartTime = Date.now()
       lastExit = undefined
-      retryAttempts = 0
-      if (retryTimer) {
-        clearTimeout(retryTimer)
-        retryTimer = null
-      }
-      startHealthProbe()
+      retryCount = 0
 
       gatewayProcess.stdout?.on("data", (data: Buffer) => {
         const lines = data.toString().trim().split("\n")
@@ -597,8 +487,6 @@ export namespace GatewaySupervisor {
         const pid = gatewayProcess?.pid
         gatewayProcess = null
         lastExit = { code, signal }
-        stopHealthProbe()
-        healthRestartInFlight = false
 
         if (isShuttingDown) {
           log.info("zee gateway stopped during shutdown", { pid, code, signal })
@@ -607,38 +495,6 @@ export namespace GatewaySupervisor {
 
         log.warn("zee gateway exited", { pid, code, signal })
         lastError = `zee gateway exited (code: ${code ?? "unknown"}, signal: ${signal ?? "unknown"})`
-
-        // Reset restart counter if running stably for RESTART_WINDOW_MS
-        const now = Date.now()
-        if (now - lastRestartTime > RESTART_WINDOW_MS) {
-          restartAttempts = 0
-        }
-
-        // Auto-restart if under limit
-        if (gatewayEnabled && restartAttempts < MAX_RESTART_ATTEMPTS) {
-          restartAttempts++
-          log.info("scheduling zee gateway restart", {
-            attempt: restartAttempts,
-            maxAttempts: MAX_RESTART_ATTEMPTS,
-            delayMs: RESTART_DELAY_MS,
-          })
-          setTimeout(() => {
-            if (!isShuttingDown) {
-              start({ force: forceStart, daemonUrl: gatewayDaemonUrl }).catch((err) => {
-                log.error("failed to restart zee gateway", { error: String(err) })
-              })
-            }
-          }, RESTART_DELAY_MS)
-        } else {
-          log.error("zee gateway restart limit reached; backing off", {
-            attempts: restartAttempts,
-            maxAttempts: MAX_RESTART_ATTEMPTS,
-            backoffMs: RESTART_BACKOFF_MS,
-          })
-          restartAttempts = 0
-          lastError = "zee gateway restart limit reached; backing off before retry"
-          scheduleRetry(lastError, RESTART_BACKOFF_MS)
-        }
       })
 
       gatewayProcess.on("error", (err) => {
@@ -662,12 +518,7 @@ export namespace GatewaySupervisor {
     isShuttingDown = true
     gatewayEnabled = false
     forceStart = false
-    retryAttempts = 0
-    stopHealthProbe()
-    if (retryTimer) {
-      clearTimeout(retryTimer)
-      retryTimer = null
-    }
+    clearRetryTimer()
 
     if (!gatewayProcess) return
 
@@ -740,6 +591,114 @@ function listGatewayProcesses(): Array<{ pid: number; cmd: string }> {
     .filter((entry): entry is { pid: number; cmd: string } => Boolean(entry))
   } catch {
     return []
+  }
+}
+
+function listDaemonProcesses(): Array<{ pid: number; cmd: string }> {
+  try {
+    const output = execSync('pgrep -af "(agent-core|opencode).*daemon([[:space:]]|$)" 2>/dev/null || true', {
+      encoding: "utf-8",
+    })
+    const lines = output.trim().split("\n").filter(Boolean)
+    return lines
+      .map((line) => {
+        const match = line.match(/^(\d+)\s+(.*)$/)
+        if (!match) return null
+        const cmd = match[2]
+        if (cmd.includes("pgrep") || cmd.includes("daemon-stop")) return null
+        return { pid: Number.parseInt(match[1], 10), cmd }
+      })
+      .filter((entry): entry is { pid: number; cmd: string } => Boolean(entry))
+  } catch {
+    return []
+  }
+}
+
+async function stopGatewayProcesses(reason: string): Promise<void> {
+  const processes = listGatewayProcesses()
+  if (processes.length === 0) return
+
+  log.warn("stopping leftover zee gateway processes", {
+    reason,
+    count: processes.length,
+    pids: processes.map((proc) => proc.pid),
+  })
+
+  for (const proc of processes) {
+    try {
+      process.kill(proc.pid, "SIGTERM")
+    } catch {
+      // ignore missing process
+    }
+  }
+
+  const deadline = Date.now() + 4000
+  let remaining = processes.map((proc) => proc.pid)
+  while (remaining.length > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    remaining = remaining.filter((pid) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
+      }
+    })
+  }
+
+  if (remaining.length > 0) {
+    for (const pid of remaining) {
+      try {
+        process.kill(pid, "SIGKILL")
+      } catch {
+        // ignore
+      }
+    }
+    log.warn("force-killed lingering zee gateway processes", { pids: remaining })
+  }
+}
+
+async function stopDaemonProcesses(reason: string): Promise<void> {
+  const processes = listDaemonProcesses()
+  if (processes.length === 0) return
+
+  log.warn("stopping leftover daemon processes", {
+    reason,
+    count: processes.length,
+    pids: processes.map((proc) => proc.pid),
+  })
+
+  for (const proc of processes) {
+    try {
+      process.kill(proc.pid, "SIGTERM")
+    } catch {
+      // ignore missing process
+    }
+  }
+
+  const deadline = Date.now() + 4000
+  let remaining = processes.map((proc) => proc.pid)
+  while (remaining.length > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    remaining = remaining.filter((pid) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
+      }
+    })
+  }
+
+  if (remaining.length > 0) {
+    for (const pid of remaining) {
+      try {
+        process.kill(pid, "SIGKILL")
+      } catch {
+        // ignore
+      }
+    }
+    log.warn("force-killed lingering daemon processes", { pids: remaining })
   }
 }
 
@@ -820,7 +779,7 @@ export const DaemonCommand = cmd({
       .option("gateway", {
         describe: "Start zee messaging gateway (WhatsApp/Telegram/Signal)",
         type: "boolean",
-        default: true,
+        default: false,
       })
       .option("gateway-force", {
         describe: "Start zee gateway even if preflight checks fail",
@@ -993,10 +952,13 @@ export const DaemonCommand = cmd({
     let gatewayStarted = false
     if (args.gateway) {
       const gatewayForce = Boolean(args["gateway-force"])
-      gatewayStarted = await GatewaySupervisor.start({ force: gatewayForce, daemonUrl })
+      gatewayStarted = await GatewaySupervisor.start({
+        force: gatewayForce,
+        daemonUrl,
+      })
       const gatewayState = GatewaySupervisor.getState()
       if (gatewayStarted) {
-        console.log("Gateway:    Messaging gateway started (WhatsApp/Telegram/Signal)")
+        console.log("Gateway:    Messaging gateway started")
       } else {
         const reason = gatewayState.error ?? "Not available"
         console.log(`Gateway:    Disabled (${reason})`)
@@ -1155,11 +1117,20 @@ export const DaemonStatusCommand = cmd({
 export const DaemonStopCommand = cmd({
   command: "daemon-stop",
   describe: "Stop the running daemon",
-  handler: async () => {
+  builder: (yargs) =>
+    yargs.option("keep-gateway", {
+      type: "boolean",
+      default: false,
+      describe: "Do not stop Zee gateway processes after daemon shutdown",
+    }),
+  handler: async (args) => {
+    const keepGateway = Boolean(args["keep-gateway"])
     const state = await Daemon.readPidFile()
 
     if (!state) {
       console.log("No daemon PID file found")
+      await stopDaemonProcesses("daemon-stop (pid missing)")
+      if (!keepGateway) await stopGatewayProcesses("daemon-stop (pid missing)")
       process.exit(1)
     }
 
@@ -1173,6 +1144,8 @@ export const DaemonStopCommand = cmd({
         await new Promise((resolve) => setTimeout(resolve, 500))
         if (!(await Daemon.isRunning())) {
           console.log("Daemon stopped successfully")
+          await stopDaemonProcesses("daemon-stop (cleanup)")
+          if (!keepGateway) await stopGatewayProcesses("daemon-stop (graceful)")
           return
         }
         attempts++
@@ -1183,11 +1156,15 @@ export const DaemonStopCommand = cmd({
       process.kill(state.pid, "SIGKILL")
       await Daemon.removePidFile()
       await Daemon.releaseLock()
+      await stopDaemonProcesses("daemon-stop (forced)")
+      if (!keepGateway) await stopGatewayProcesses("daemon-stop (forced)")
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code === "ESRCH") {
         console.log("Daemon process not found, cleaning up PID file")
         await Daemon.removePidFile()
         await Daemon.releaseLock()
+        await stopDaemonProcesses("daemon-stop (pid missing)")
+        if (!keepGateway) await stopGatewayProcesses("daemon-stop (pid missing)")
       } else {
         throw e
       }
@@ -1212,6 +1189,7 @@ export const GatewayStatusCommand = cmd({
     console.log(`  pnpm:      ${preflight.pnpmAvailable ? "Found" : "Missing"}`)
     console.log(`  Port:      ${port} (${portOpen ? "listening" : "closed"})`)
     console.log(`  Daemon:    ${gatewayState.daemonUrl ?? "unknown"}`)
+    console.log(`  Enabled:   ${gatewayState.enabled ? "yes" : "no"}`)
     console.log(`  Env:       ${preflight.envHints.length ? preflight.envHints.join(", ") : "none"}`)
 
     if (processes.length > 0) {

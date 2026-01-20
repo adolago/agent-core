@@ -61,7 +61,7 @@ await Promise.all([
   fs.mkdir(Global.Path.tmp, { recursive: true }),
 ])
 
-const CACHE_VERSION = "16"
+const CACHE_VERSION = "18"
 
 const version = await Bun.file(path.join(Global.Path.cache, "version"))
   .text()

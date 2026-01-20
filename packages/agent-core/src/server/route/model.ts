@@ -12,6 +12,21 @@ import { errors } from "../error"
 
 const log = Log.create({ service: "server:model" })
 
+const SERVICE_PROVIDER_NAMES: Record<string, string> = {
+  inworld: "Inworld AI",
+}
+
+const resolveDefaultModels = (providers: Record<string, Provider.Info>) => {
+  const defaults: Record<string, string> = {}
+  for (const [id, item] of Object.entries(providers)) {
+    const models = Object.values(item.models)
+    if (models.length === 0) continue
+    const [best] = Provider.sort(models)
+    if (best) defaults[id] = best.id
+  }
+  return defaults
+}
+
 export const ModelRoute = new Hono()
   .get(
     "/config/providers",
@@ -40,7 +55,7 @@ export const ModelRoute = new Hono()
       const providers = await Provider.list().then((x) => mapValues(x, (item) => item))
       return c.json({
         providers: Object.values(providers),
-        default: mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id),
+        default: resolveDefaultModels(providers),
       })
     },
   )
@@ -80,14 +95,43 @@ export const ModelRoute = new Hono()
         }
       }
 
+      const serviceProviders = await ProviderAuth.methods()
+      for (const providerID of Object.keys(serviceProviders)) {
+        if (!filteredProviders[providerID]) {
+          filteredProviders[providerID] = {
+            id: providerID,
+            name: SERVICE_PROVIDER_NAMES[providerID] ?? providerID.charAt(0).toUpperCase() + providerID.slice(1),
+            env: [],
+            models: {},
+          }
+        }
+      }
+
       const connected = await Provider.list()
+      const connectedServiceProviders = Object.keys(serviceProviders).filter(
+        (id) => !filteredProviders[id]?.models || Object.keys(filteredProviders[id].models).length === 0,
+      )
+      for (const id of connectedServiceProviders) {
+        const auth = await Auth.get(id)
+        if (auth) {
+          connected[id] = {
+            id,
+            name: SERVICE_PROVIDER_NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1),
+            source: "api",
+            env: [],
+            options: {},
+            models: {},
+          }
+        }
+      }
+
       const providers = Object.assign(
         mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),
         connected,
       )
       return c.json({
         all: Object.values(providers),
-        default: mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id),
+        default: resolveDefaultModels(providers),
         connected: Object.keys(connected),
       })
     },
