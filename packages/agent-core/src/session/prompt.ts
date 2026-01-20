@@ -1540,7 +1540,7 @@ export namespace SessionPrompt {
     // If command doesn't explicitly handle arguments (no $N or $ARGUMENTS placeholders)
     // but user provided arguments, append them to the template
     if (placeholders.length === 0 && !usesArgumentsPlaceholder && input.arguments.trim()) {
-      template = template + "\n\n" + input.arguments
+      template = template + "\n\n" + input.arguments.trimStart()
     }
 
     const shell = ConfigMarkdown.shell(template)
