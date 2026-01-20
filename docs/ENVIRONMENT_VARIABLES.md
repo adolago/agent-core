@@ -48,10 +48,12 @@ Maturity and ownership for experimental flags are tracked in
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `INWORLD_API_KEY` | - | Base64 runtime API key for Inworld STT |
-| `INWORLD_STT_ENDPOINT` | - | Inworld runtime graph endpoint (`.../graph:start`) |
+| `INWORLD_API_KEY` | - | Base64 runtime API key for Inworld STT/TTS |
+| `INWORLD_STT_ENDPOINT` | - | Inworld runtime graph endpoint for STT (`.../graph:start`) |
+| `INWORLD_TTS_ENDPOINT` | - | Inworld runtime graph endpoint for TTS (`.../graph:start`) |
 | `OPENCODE_INWORLD_API_KEY` | - | Alias for `INWORLD_API_KEY` |
 | `OPENCODE_INWORLD_STT_ENDPOINT` | - | Alias for `INWORLD_STT_ENDPOINT` |
+| `OPENCODE_INWORLD_TTS_ENDPOINT` | - | Alias for `INWORLD_TTS_ENDPOINT` |
 | `OPENCODE_DICTATION_RECORD_COMMAND` | - | Override the recorder command used for dictation |
 
 ### Network & Proxy
