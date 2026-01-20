@@ -44,7 +44,29 @@ let arch = archMap[os.arch()]
 if (!arch) {
   arch = os.arch()
 }
-const base = "opencode-" + platform + "-" + arch
+
+// Detect musl vs glibc on Linux
+let libc = ""
+if (platform === "linux") {
+  try {
+    const lddVersion = childProcess.execSync("ldd --version 2>&1", { encoding: "utf8" })
+    if (lddVersion.toLowerCase().includes("musl")) {
+      libc = "-musl"
+    }
+  } catch (e) {
+    // ldd failed, try alternative detection
+    try {
+      const muslFiles = fs.readdirSync("/lib").filter((f) => f.startsWith("ld-musl-"))
+      if (muslFiles.length > 0) {
+        libc = "-musl"
+      }
+    } catch (e) {
+      // Ignore, default to glibc
+    }
+  }
+}
+
+const base = "opencode-" + platform + "-" + arch + libc
 const binary = platform === "windows" ? "opencode.exe" : "opencode"
 
 function findBinary(startDir) {
