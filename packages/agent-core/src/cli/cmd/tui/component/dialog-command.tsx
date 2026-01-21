@@ -26,18 +26,19 @@ export type CommandOption = DialogSelectOption<string> & {
   hidden?: boolean
   enabled?: boolean
 }
-
 export function createCommandDialog() {
   const [registrations, setRegistrations] = createSignal<Accessor<CommandOption[]>[]>([])
   const [suspendCount, setSuspendCount] = createSignal(0)
   const dialog = useDialog()
   const keybind = useKeybind()
   const entries = createMemo(() => {
-    const all = registrations().flatMap((x) => x())
-    return all.map((x) => ({
-      ...x,
-      footer: x.keybind ? keybind.print(x.keybind) : undefined,
-    }))
+    const all = registrations().flatMap((x) => x() ?? [])
+    return all
+      .filter((item): item is CommandOption => Boolean(item))
+      .map((item) => ({
+        ...item,
+        footer: item.keybind ? keybind.print(item.keybind) : undefined,
+      }))
   })
 
   const isEnabled = (option: CommandOption) => option.enabled !== false

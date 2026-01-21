@@ -62,7 +62,6 @@ export namespace Dictation {
         }
       }
     }
-
     if (!endpoint || !apiKey) return
     return {
       endpoint,

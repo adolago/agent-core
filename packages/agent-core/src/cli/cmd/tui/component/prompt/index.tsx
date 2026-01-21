@@ -32,10 +32,6 @@ import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
 import { useTextareaKeybindings } from "../textarea-keybindings"
 import { Dictation } from "@tui/util/dictation"
-
-import { DialogGrammar } from "../dialog-grammar"
-import { Grammar } from "../../util/grammar"
-
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
 
@@ -1301,10 +1297,10 @@ export function Prompt(props: PromptProps) {
                 </Match>
                 <Match when={todoHint()}>
                   {(hint) => (
-                  <text fg={theme.warning}>
-                    ◐ {hint().count} pending · {hint().current}...
-                  </text>
-                )}
+                    <text fg={theme.warning}>
+                      ◐ {hint().count} pending · {hint().current}...
+                    </text>
+                  )}
                 </Match>
               </Switch>
             }

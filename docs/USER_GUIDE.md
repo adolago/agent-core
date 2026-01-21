@@ -62,6 +62,43 @@ Agent-Core comes with three built-in personas:
 - **Stanley:** Financial research (requires the `stanley` repository).
 - **Johny:** Learning and Knowledge graphs.
 
+### Memory (required mode)
+
+If memory is a hard requirement for your workflow, enforce it in config:
+
+```json
+{
+  "memory": {
+    "required": true
+  }
+}
+```
+
+When enabled, prompts fail fast if the memory backend or memory MCP is unavailable.
+
+### Dictation (TUI)
+
+Configure Inworld STT and a keybind in `agent-core.jsonc`:
+
+```json
+{
+  "keybinds": {
+    "input_dictation_toggle": "f4"
+  },
+  "tui": {
+    "dictation": {
+      "endpoint": "https://api.inworld.ai/cloud/workspaces/<workspace>/graphs/<graph>/v1/graph:start",
+      "api_key": "<BASE64_API_KEY>",
+      "sample_rate": 16000,
+      "auto_submit": false
+    }
+  }
+}
+```
+
+You can also set `INWORLD_API_KEY` and `INWORLD_STT_ENDPOINT` as environment variables instead of storing secrets in config.
+Use `tui.dictation.record_command` to override the recorder command if `arecord` is unavailable.
+
 ## 4. Usage
 
 ### Interactive Mode (TUI)
@@ -70,6 +107,12 @@ Start the Terminal User Interface:
 
 ```bash
 agent-core
+```
+
+The TUI attaches to a running daemon. If you want local-only mode without a daemon, use:
+
+```bash
+agent-core --no-daemon
 ```
 
 Type your request. For example:
@@ -86,10 +129,50 @@ You can route requests to specific personas:
 
 ### Daemon Mode
 
-To run Agent-Core in the background (required for Zee messaging gateway on WhatsApp/Telegram):
+To run Agent-Core in the background (Zee messaging gateway is opt-in). Manual daemon is for development only:
 
 ```bash
 agent-core daemon
+agent-core daemon --gateway
+```
+
+### Always-On Messaging (systemd)
+
+For "PC on, no login" messaging, run the daemon as a systemd service:
+
+```bash
+sudo ./scripts/systemd/install.sh --polkit --systemd-only
+sudo systemctl enable agent-core
+sudo systemctl start agent-core
+```
+
+The install script will prompt for sudo if needed. With `--polkit`, you can run start/stop/restart and enable/disable without sudo:
+
+```bash
+systemctl restart agent-core
+systemctl enable agent-core
+```
+
+The systemd unit disables `ProtectHome` so the daemon can read/write projects in any directory under your home.
+
+The `--systemd-only` flag writes `daemon.systemd_only=true` to enforce a systemd-only policy.
+
+This service starts the gateway; systemd owns restarts and lifecycle. When using the TUI on a machine that already has the daemon running, prefer:
+
+```bash
+agent-core --no-daemon
+```
+
+TUI ergonomics directive: keep the TUI as the shared surface for both operators and agents so they experience the same workflows.
+
+To enforce a systemd-only policy, set:
+
+```json
+{
+  "daemon": {
+    "systemd_only": true
+  }
+}
 ```
 
 ## 5. Troubleshooting

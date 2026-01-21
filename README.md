@@ -120,17 +120,20 @@ Keep Qdrant collection dimensions aligned with your embedding dimensions by sett
 
 ### Running
 
-**Interactive TUI (auto-starts daemon + gateway if needed):**
+**Interactive TUI (attaches to a running daemon):**
 
 ```bash
 agent-core
 agent-core --no-daemon   # run without the daemon (local worker only)
 ```
 
-**Daemon mode (spawns the Zee gateway):**
+Ensure the daemon is running first (systemd service recommended for always-on messaging).
+
+**Daemon mode (gateway is opt-in; development/manual use only):**
 
 ```bash
 agent-core daemon --hostname 127.0.0.1 --port 3210
+agent-core daemon --gateway
 ```
 
 ## Architecture
@@ -159,15 +162,34 @@ agent-core/
 - **Semantic Memory**: Vector-based memory with Qdrant for context persistence
 - **Multi-Persona Routing**: Route messages to specialized personas
 - **Orchestration**: SPARC methodology via tiara for complex tasks
-- **Embedded Gateway**: Zee messaging gateway launched by agent-core
+- **Embedded Gateway**: Optional Zee messaging gateway launched by agent-core
 
 ## Usage with Zee Gateway
 
-The Zee gateway is launched and supervised by agent-core when the daemon starts:
+The Zee gateway is launched and supervised by agent-core only when explicitly enabled:
 
 ```bash
-agent-core daemon
+agent-core daemon --gateway
 ```
+
+For always-on messaging at boot, install the systemd service:
+
+```bash
+sudo ./scripts/systemd/install.sh --polkit --systemd-only
+sudo systemctl enable agent-core
+sudo systemctl start agent-core
+```
+
+The install script will prompt for sudo if needed. With `--polkit`, you can run start/stop/restart and enable/disable without sudo:
+
+```bash
+systemctl restart agent-core
+systemctl enable agent-core
+```
+
+The systemd unit disables `ProtectHome` so the daemon can read/write projects in any directory under your home.
+
+The `--systemd-only` flag writes `daemon.systemd_only=true` to enforce a systemd-only policy.
 
 Messages mentioning `@stanley` or `@johny` are routed to those personas; all others go to Zee.
 
@@ -183,6 +205,18 @@ bun run build
 # Type check
 bun run typecheck
 ```
+
+## Roadmap and Parity (Phase 0)
+
+Phase 0 baselines and checklists:
+
+- `docs/ALPHA_READINESS_ISSUES.md`
+- `docs/architecture/ansible-compat-gap.md`
+- `docs/architecture/terraform-integration.md`
+- `docs/architecture/resource-graph-model.md`
+- `docs/guides/cli-parity.md`
+- `docs/architecture/feature-flag-maturity.md`
+- `docs/ALPHA_LAUNCH_CHECKLIST.md`
 
 ## Wide events
 
