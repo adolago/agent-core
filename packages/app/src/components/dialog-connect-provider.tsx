@@ -107,7 +107,7 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   async function complete() {
-    await globalSDK.client.global.dispose()
+    await globalSDK.client.instance.dispose()
     dialog.close()
     showToast({
       variant: "success",
@@ -213,7 +213,7 @@ export function DialogConnectProvider(props: { provider: string }) {
                   setFormStore("error", undefined)
                   await globalSDK.client.auth.set({
                     providerID: props.provider,
-                    auth: {
+                    body: {
                       type: "api",
                       key: apiKey,
                     },

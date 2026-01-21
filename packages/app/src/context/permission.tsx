@@ -1,12 +1,13 @@
 import { createMemo, onCleanup } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import type { PermissionRequest } from "@opencode-ai/sdk/v2/client"
+import { createOpencodeClient, type PermissionRequest } from "@opencode-ai/sdk/v2/client"
 import { Persist, persisted } from "@/utils/persist"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "./global-sync"
 import { useParams } from "@solidjs/router"
 import { base64Decode, base64Encode } from "@opencode-ai/util/encode"
+import { usePlatform } from "@/context/platform"
 
 type PermissionRespondFn = (input: {
   sessionID: string
@@ -51,6 +52,7 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
     const params = useParams()
     const globalSDK = useGlobalSDK()
     const globalSync = useGlobalSync()
+    const platform = usePlatform()
 
     const permissionsEnabled = createMemo(() => {
       const directory = params.dir ? base64Decode(params.dir) : undefined
@@ -68,10 +70,26 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
 
     const responded = new Set<string>()
 
-    const respond: PermissionRespondFn = (input) => {
-      globalSDK.client.permission.respond(input).catch(() => {
-        responded.delete(input.permissionID)
+    const clientFor = (directory?: string) => {
+      if (!directory) return globalSDK.client
+      return createOpencodeClient({
+        baseUrl: globalSDK.url,
+        fetch: platform.fetch,
+        directory,
+        throwOnError: true,
       })
+    }
+
+    const respond: PermissionRespondFn = (input) => {
+      clientFor(input.directory)
+        .permission.respond({
+          sessionID: input.sessionID,
+          permissionID: input.permissionID,
+          response: input.response,
+        })
+        .catch(() => {
+          responded.delete(input.permissionID)
+        })
     }
 
     function respondOnce(permission: PermissionRequest, directory?: string) {
@@ -116,8 +134,8 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
         }),
       )
 
-      globalSDK.client.permission
-        .list({ directory })
+      clientFor(directory).permission
+        .list()
         .then((x) => {
           for (const perm of x.data ?? []) {
             if (!perm?.id) continue

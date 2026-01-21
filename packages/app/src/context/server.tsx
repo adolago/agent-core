@@ -97,8 +97,8 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
         fetch: platform.fetch,
         signal: AbortSignal.timeout(3000),
       })
-      return sdk.global
-        .health()
+      return sdk.health
+        .check()
         .then((x) => x.data?.healthy === true)
         .catch(() => false)
     }

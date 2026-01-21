@@ -6,6 +6,8 @@ import { getDirectory, getFilename } from "@opencode-ai/util/path"
 import { createMemo } from "solid-js"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
+import { usePlatform } from "@/context/platform"
+import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
 
 interface DialogSelectDirectoryProps {
   title?: string
@@ -17,6 +19,7 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
   const sync = useGlobalSync()
   const sdk = useGlobalSDK()
   const dialog = useDialog()
+  const platform = usePlatform()
 
   const home = createMemo(() => sync.data.path.home)
   const root = createMemo(() => sync.data.path.home || sync.data.path.directory)
@@ -61,8 +64,15 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
     const directory = root()
     if (!directory) return [] as string[]
 
-    const results = await sdk.client.find
-      .files({ directory, query, type: "directory", limit: 50 })
+    const directorySdk = createOpencodeClient({
+      baseUrl: sdk.url,
+      fetch: platform.fetch,
+      directory,
+      throwOnError: true,
+    })
+
+    const results = await directorySdk.find
+      .files({ query, type: "directory", limit: 50 })
       .then((x) => x.data ?? [])
       .catch(() => [])
 

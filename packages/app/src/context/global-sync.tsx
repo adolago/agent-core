@@ -11,7 +11,7 @@ import {
   type SessionStatus,
   type ProviderListResponse,
   type ProviderAuthResponse,
-  type Command,
+  type CommandListResponse,
   type McpStatus,
   type LspStatus,
   type VcsInfo,
@@ -46,7 +46,7 @@ import { Persist, persisted } from "@/utils/persist"
 type State = {
   status: "loading" | "partial" | "complete"
   agent: Agent[]
-  command: Command[]
+  command: CommandItem[]
   project: string
   provider: ProviderListResponse
   config: Config
@@ -81,6 +81,8 @@ type State = {
     [messageID: string]: Part[]
   }
 }
+
+type CommandItem = CommandListResponse[number]
 
 type VcsCache = {
   store: Store<{ value: VcsInfo | undefined }>
@@ -156,12 +158,12 @@ function createGlobalSync() {
     return childStore
   }
 
-  async function loadSessions(directory: string) {
+  async function loadSessions(directory: string, sdk: ReturnType<typeof createOpencodeClient>) {
     const [store, setStore] = child(directory)
     const limit = store.limit
 
-    return globalSDK.client.session
-      .list({ directory, roots: true })
+    return sdk.session
+      .list({ roots: true })
       .then((x) => {
         const nonArchived = (x.data ?? [])
           .filter((s) => !!s?.id)
@@ -238,7 +240,7 @@ function createGlobalSync() {
           sdk.path.get().then((x) => setStore("path", x.data!)),
           sdk.command.list().then((x) => setStore("command", x.data ?? [])),
           sdk.session.status().then((x) => setStore("session_status", x.data!)),
-          loadSessions(directory),
+          loadSessions(directory, sdk),
           sdk.mcp.status().then((x) => setStore("mcp", x.data!)),
           sdk.lsp.status().then((x) => setStore("lsp", x.data!)),
           sdk.vcs.get().then((x) => {
@@ -573,8 +575,8 @@ function createGlobalSync() {
   onCleanup(unsub)
 
   async function bootstrap() {
-    const health = await globalSDK.client.global
-      .health()
+    const health = await globalSDK.client.health
+      .check()
       .then((x) => x.data)
       .catch(() => undefined)
     if (!health?.healthy) {

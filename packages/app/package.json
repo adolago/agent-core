@@ -10,7 +10,6 @@
   "scripts": {
     "typecheck": "tsgo -b",
     "lint": "prettier --check 'src/**/*.{ts,tsx}' 'package.json'",
-    "test": "echo 'No tests configured' && exit 0",
     "start": "vite",
     "dev": "vite",
     "build": "vite build",

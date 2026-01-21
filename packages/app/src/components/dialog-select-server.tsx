@@ -19,8 +19,8 @@ async function checkHealth(url: string, fetch?: typeof globalThis.fetch): Promis
     fetch,
     signal: AbortSignal.timeout(3000),
   })
-  return sdk.global
-    .health()
+  return sdk.health
+    .check()
     .then((x) => ({ healthy: x.data?.healthy === true, version: x.data?.version }))
     .catch(() => ({ healthy: false }))
 }

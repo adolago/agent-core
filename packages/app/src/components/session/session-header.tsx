@@ -9,6 +9,7 @@ import { useCommand } from "@/context/command"
 import { usePlatform } from "@/context/platform"
 import { useSync } from "@/context/sync"
 import { useGlobalSDK } from "@/context/global-sdk"
+import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
 import { getFilename } from "@opencode-ai/util/path"
 import { base64Decode } from "@opencode-ai/util/encode"
 
@@ -67,12 +68,22 @@ export function SessionHeader() {
     if (state.timer) window.clearTimeout(state.timer)
   })
 
+  const clientForDirectory = (directory?: string) => {
+    if (!directory) return globalSDK.client
+    return createOpencodeClient({
+      baseUrl: globalSDK.url,
+      fetch: platform.fetch,
+      directory,
+      throwOnError: true,
+    })
+  }
+
   function shareSession() {
     const session = currentSession()
     if (!session || state.share) return
     setState("share", true)
-    globalSDK.client.session
-      .share({ sessionID: session.id, directory: projectDirectory() })
+    clientForDirectory(projectDirectory())
+      .session.share({ sessionID: session.id })
       .catch((error) => {
         console.error("Failed to share session", error)
       })
@@ -85,8 +96,8 @@ export function SessionHeader() {
     const session = currentSession()
     if (!session || state.unshare) return
     setState("unshare", true)
-    globalSDK.client.session
-      .unshare({ sessionID: session.id, directory: projectDirectory() })
+    clientForDirectory(projectDirectory())
+      .session.unshare({ sessionID: session.id })
       .catch((error) => {
         console.error("Failed to unshare session", error)
       })

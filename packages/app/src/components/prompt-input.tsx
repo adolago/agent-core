@@ -1027,7 +1027,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (isNewSession) {
       if (worktreeSelection === "create") {
         const createdWorktree = await client.worktree
-          .create({ directory: projectDirectory })
+          .create()
           .then((x) => x.data)
           .catch((err) => {
             showToast({

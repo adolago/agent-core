@@ -1,9 +1,14 @@
-import { createOpencodeClient, type Event } from "@opencode-ai/sdk/v2/client"
+import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup } from "solid-js"
 import { usePlatform } from "./platform"
 import { useServer } from "./server"
+
+export type AppEvent = {
+  type: string
+  properties: Record<string, unknown>
+}
 
 export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleContext({
   name: "GlobalSDK",
@@ -17,18 +22,16 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       signal: abort.signal,
       fetch: platform.fetch,
     })
-    const emitter = createGlobalEmitter<{
-      [key: string]: Event
-    }>()
+    const emitter = createGlobalEmitter<Record<string, AppEvent>>()
 
-    type Queued = { directory: string; payload: Event }
+    type Queued = { directory: string; payload: AppEvent }
 
     let queue: Array<Queued | undefined> = []
     const coalesced = new Map<string, number>()
     let timer: ReturnType<typeof setTimeout> | undefined
     let last = 0
 
-    const key = (directory: string, payload: Event) => {
+    const key = (directory: string, payload: AppEvent) => {
       if (payload.type === "session.status") return `session.status:${directory}:${payload.properties.sessionID}`
       if (payload.type === "lsp.updated") return `lsp.updated:${directory}`
       if (payload.type === "message.part.updated") {
@@ -65,12 +68,32 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       flush()
     }
 
+    const resolveEvent = (input: unknown): Queued | undefined => {
+      if (!input || typeof input !== "object") return
+      const raw = input as {
+        directory?: string
+        payload?: AppEvent
+        type?: string
+        properties?: Record<string, unknown>
+      }
+      if (raw.payload && raw.payload.type) {
+        return { directory: raw.directory ?? "global", payload: raw.payload }
+      }
+      if (raw.type) {
+        return {
+          directory: raw.directory ?? "global",
+          payload: { type: raw.type, properties: raw.properties ?? {} },
+        }
+      }
+    }
+
     void (async () => {
-      const events = await eventSdk.global.event()
+      const events = await eventSdk.event.subscribe()
       let yielded = Date.now()
       for await (const event of events.stream) {
-        const directory = event.directory ?? "global"
-        const payload = event.payload
+        const resolved = resolveEvent(event)
+        if (!resolved) continue
+        const { directory, payload } = resolved
         const k = key(directory, payload)
         if (k) {
           const i = coalesced.get(k)
