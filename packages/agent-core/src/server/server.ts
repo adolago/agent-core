@@ -106,11 +106,6 @@ export namespace Server {
               if (input.startsWith("http://localhost:")) return input
               if (input.startsWith("http://127.0.0.1:")) return input
               if (input === "tauri://localhost" || input === "http://tauri.localhost") return input
-
-              // *.opencode.ai (https only, adjust if needed)
-              if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) {
-                return input
-              }
               if (_corsWhitelist.includes(input)) {
                 return input
               }
@@ -185,12 +180,22 @@ export namespace Server {
         
         // Proxy Fallback - MUST BE LAST
         .all("/*", async (c) => {
-          const path = c.req.path
-          const response = await proxy(`https://app.opencode.ai${path}`, {
+          const proxyBase = (process.env["AGENT_CORE_PROXY_BASE_URL"] ?? process.env["OPENCODE_PROXY_BASE_URL"] ?? "")
+            .replace(/\/+$/, "")
+          if (!proxyBase) {
+            return c.text("Not Found", 404)
+          }
+          let proxyUrl: URL
+          try {
+            proxyUrl = new URL(c.req.path, proxyBase)
+          } catch {
+            return c.text("Not Found", 404)
+          }
+          const response = await proxy(proxyUrl.toString(), {
             ...c.req,
             headers: {
               ...c.req.raw.headers,
-              host: "app.opencode.ai",
+              host: proxyUrl.host,
             },
           })
           response.headers.set(
@@ -206,9 +211,9 @@ export namespace Server {
     const result = await generateSpecs(App() as Hono, {
       documentation: {
         info: {
-          title: "opencode",
+          title: "agent-core",
           version: "1.0.0",
-          description: "opencode api",
+          description: "agent-core api",
         },
         openapi: "3.1.1",
       },
@@ -244,7 +249,7 @@ export namespace Server {
       opts.hostname !== "localhost" &&
       opts.hostname !== "::1"
     if (shouldPublishMDNS) {
-      MDNS.publish(server.port!, `agent-core-${server.port!}`)
+      MDNS.publish(server.port!)
     } else if (opts.mdns) {
       log.warn("mDNS enabled but hostname is loopback; skipping mDNS publish")
     }

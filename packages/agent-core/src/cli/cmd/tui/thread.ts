@@ -10,7 +10,6 @@ import { Log } from "@/util/log"
 import { withNetworkOptions, resolveNetworkOptions, type NetworkOptions } from "@/cli/network"
 import { Daemon } from "@/cli/cmd/daemon"
 import { Config } from "@/config/config"
-import type { Event } from "@opencode-ai/sdk/v2"
 import type { EventSource } from "./context/sdk"
 
 declare global {
@@ -18,6 +17,7 @@ declare global {
 }
 
 type RpcClient = ReturnType<typeof Rpc.client<typeof rpc>>
+type AppEvent = { type: string; properties: any }
 
 function createWorkerFetch(client: RpcClient): typeof fetch {
   const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -39,7 +39,7 @@ function createWorkerFetch(client: RpcClient): typeof fetch {
 
 function createEventSource(client: RpcClient): EventSource {
   return {
-    on: (handler) => client.on<Event>("event", handler),
+    on: (handler) => client.on<AppEvent>("event", handler),
   }
 }
 

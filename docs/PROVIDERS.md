@@ -17,12 +17,11 @@ The global config is symlinked to project config so changes in one location refl
 
 ### Google (Antigravity)
 
-Free-tier models via the `opencode-google-auth` plugin (OAuth). Agent-core does not include a built-in Antigravity OAuth flow.
+Free-tier models via an optional OAuth plugin. Agent-core does not include a built-in Antigravity OAuth flow.
 
 Install and authenticate:
 
 ```bash
-agent-core plugin install opencode-google-auth
 agent-core auth login
 ```
 

@@ -1,9 +1,9 @@
 #!/bin/bash
-# check-upstream.sh - Check for upstream OpenCode updates
+# check-upstream.sh - Check for upstream updates
 #
 # Usage: ./scripts/check-upstream.sh [--fetch] [--verbose]
 #
-# This script checks the divergence between agent-core and upstream OpenCode,
+# This script checks the divergence between agent-core and upstream,
 # helping to track when updates are available and what needs to be merged.
 
 set -euo pipefail
@@ -52,7 +52,7 @@ fi
 # Check if upstream remote exists
 if ! git remote get-url "$UPSTREAM_REMOTE" &>/dev/null; then
     echo -e "${RED}Error: Upstream remote '$UPSTREAM_REMOTE' not found.${NC}"
-    echo "Add it with: git remote add upstream https://github.com/sst/opencode.git"
+    echo "Add it with: git remote add upstream <url>"
     exit 1
 fi
 

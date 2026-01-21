@@ -50,7 +50,7 @@ import { useCommandDialog } from "@tui/component/dialog-command"
 import { useKeybind } from "@tui/context/keybind"
 import { Header } from "./header"
 import { parsePatch } from "diff"
-import { useDialog } from "../../ui/dialog"
+import { useDialog, type DialogContext } from "../../ui/dialog"
 import { TodoItem } from "../../component/todo-item"
 import { DialogMessage } from "./dialog-message"
 import type { PromptInfo } from "../../component/prompt/history"
@@ -403,10 +403,10 @@ export function Session() {
           {
             title: "Share session",
             value: "session.share",
-            keybind: "session_share",
+            keybind: "session_share" as const,
             category: "Session",
             enabled: !session()?.share?.url,
-            onSelect: async (dialog) => {
+            onSelect: async (dialog: DialogContext) => {
               await sdk.client.session
                 .share({
                   sessionID: route.sessionID,

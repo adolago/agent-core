@@ -51,6 +51,17 @@ import { ProviderTransform } from "./transform"
 export namespace Provider {
   const log = Log.create({ service: "provider" })
 
+  function clientHeaders(options?: { lower?: boolean }) {
+    const referer = Env.get("AGENT_CORE_HTTP_REFERER") ?? Env.get("OPENCODE_HTTP_REFERER")
+    const title = Env.get("AGENT_CORE_CLIENT_TITLE") ?? "agent-core"
+    const headers: Record<string, string> = {}
+    if (referer) {
+      headers[options?.lower ? "http-referer" : "HTTP-Referer"] = referer
+    }
+    headers[options?.lower ? "x-title" : "X-Title"] = title
+    return headers
+  }
+
   function isGpt5OrLater(modelID: string): boolean {
     const match = /^gpt-(\d+)/.exec(modelID)
     if (!match) {
@@ -332,8 +343,7 @@ export namespace Provider {
         autoload: false,
         options: {
           headers: {
-            "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "opencode",
+            ...clientHeaders(),
           },
         },
       }
@@ -343,8 +353,7 @@ export namespace Provider {
         autoload: false,
         options: {
           headers: {
-            "http-referer": "https://opencode.ai/",
-            "x-title": "opencode",
+            ...clientHeaders({ lower: true }),
           },
         },
       }
@@ -410,8 +419,7 @@ export namespace Provider {
         autoload: false,
         options: {
           headers: {
-            "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "opencode",
+            ...clientHeaders(),
           },
         },
       }
@@ -477,8 +485,7 @@ export namespace Provider {
             // Cloudflare AI Gateway uses cf-aig-authorization for authenticated gateways
             // This enables Unified Billing where Cloudflare handles upstream provider auth
             ...(apiToken ? { "cf-aig-authorization": `Bearer ${apiToken}` } : {}),
-            "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "opencode",
+            ...clientHeaders(),
           },
           // Custom fetch to handle parameter transformation and auth
           fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -510,7 +517,7 @@ export namespace Provider {
         autoload: false,
         options: {
           headers: {
-            "X-Cerebras-3rd-Party-Integration": "opencode",
+            "X-Cerebras-3rd-Party-Integration": "agent-core",
           },
         },
       }
@@ -1559,7 +1566,11 @@ export namespace Provider {
     }
 
     const language = await getLanguage(model)
-    const options = ProviderTransform.options(model, "auth-validate", provider.options)
+    const options = ProviderTransform.options({
+      model,
+      sessionID: "auth-validate",
+      providerOptions: provider.options,
+    })
 
     await generateText({
       model: language,

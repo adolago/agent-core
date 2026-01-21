@@ -11,7 +11,7 @@ import {
   type SessionStatus,
   type ProviderListResponse,
   type ProviderAuthResponse,
-  type Command,
+  type CommandListResponse,
   type McpStatus,
   type LspStatus,
   type VcsInfo,
@@ -46,7 +46,7 @@ import { Persist, persisted } from "@/utils/persist"
 type State = {
   status: "loading" | "partial" | "complete"
   agent: Agent[]
-  command: Command[]
+  command: CommandItem[]
   project: string
   provider: ProviderListResponse
   config: Config
@@ -88,6 +88,8 @@ type VcsCache = {
   ready: Accessor<boolean>
 }
 
+type CommandItem = CommandListResponse extends Array<infer T> ? T : never
+
 function createGlobalSync() {
   const globalSDK = useGlobalSDK()
   const platform = usePlatform()
@@ -110,6 +112,14 @@ function createGlobalSync() {
   })
 
   const children: Record<string, [Store<State>, SetStoreFunction<State>]> = {}
+
+  const clientFor = (directory: string) =>
+    createOpencodeClient({
+      baseUrl: globalSDK.url,
+      fetch: platform.fetch,
+      directory,
+      throwOnError: true,
+    })
 
   function child(directory: string) {
     if (!directory) console.error("No directory provided")
@@ -159,9 +169,9 @@ function createGlobalSync() {
   async function loadSessions(directory: string) {
     const [store, setStore] = child(directory)
     const limit = store.limit
-
-    return globalSDK.client.session
-      .list({ directory, roots: true })
+    const sdk = clientFor(directory)
+    return sdk.session
+      .list()
       .then((x) => {
         const nonArchived = (x.data ?? [])
           .filter((s) => !!s?.id)
@@ -198,12 +208,7 @@ function createGlobalSync() {
     const [store, setStore] = child(directory)
     const cache = vcsCache.get(directory)
     if (!cache) return
-    const sdk = createOpencodeClient({
-      baseUrl: globalSDK.url,
-      fetch: platform.fetch,
-      directory,
-      throwOnError: true,
-    })
+    const sdk = clientFor(directory)
 
     createEffect(() => {
       if (!cache.ready()) return
@@ -559,13 +564,7 @@ function createGlobalSync() {
         break
       }
       case "lsp.updated": {
-        const sdk = createOpencodeClient({
-          baseUrl: globalSDK.url,
-          fetch: platform.fetch,
-          directory,
-          throwOnError: true,
-        })
-        sdk.lsp.status().then((x) => setStore("lsp", x.data ?? []))
+        clientFor(directory).lsp.status().then((x) => setStore("lsp", x.data ?? []))
         break
       }
     }
@@ -573,8 +572,8 @@ function createGlobalSync() {
   onCleanup(unsub)
 
   async function bootstrap() {
-    const health = await globalSDK.client.global
-      .health()
+    const health = await globalSDK.client.health
+      .check()
       .then((x) => x.data)
       .catch(() => undefined)
     if (!health?.healthy) {

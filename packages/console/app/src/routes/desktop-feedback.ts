@@ -1,5 +1,3 @@
-import { redirect } from "@solidjs/router"
-
 export async function GET() {
-  return redirect("https://discord.gg/h5TNnkFVNy")
+  return new Response("Not Found", { status: 404 })
 }

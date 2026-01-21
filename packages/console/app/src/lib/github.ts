@@ -3,6 +3,7 @@ import { config } from "~/config"
 
 export const github = query(async () => {
   "use server"
+  if (!config.github.repoUrl) return undefined
   const headers = {
     "User-Agent":
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",

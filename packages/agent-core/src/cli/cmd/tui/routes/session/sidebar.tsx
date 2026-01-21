@@ -98,31 +98,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     () => parentSession() !== null || childSessions().length > 0 || siblingsSessions().length > 0,
   )
 
-  const { navigate } = useRoute()
-
-  // Branch tree data
-  const parentSession = createMemo(() => {
-    const parent = session()?.parentID
-    if (!parent) return null
-    return sync.data.session.find((s) => s.id === parent) ?? null
-  })
-
-  const childSessions = createMemo(() =>
-    sync.data.session.filter((s) => s.parentID === props.sessionID).sort((a, b) => b.time.created - a.time.created),
-  )
-
-  const siblingsSessions = createMemo(() => {
-    const parent = session()?.parentID
-    if (!parent) return []
-    return sync.data.session
-      .filter((s) => s.parentID === parent && s.id !== props.sessionID)
-      .sort((a, b) => b.time.created - a.time.created)
-  })
-
-  const hasBranches = createMemo(
-    () => parentSession() !== null || childSessions().length > 0 || siblingsSessions().length > 0,
-  )
-
   return (
     <Show when={session()}>
       <box

@@ -259,12 +259,7 @@ function ApiMethod(props: ApiMethodProps) {
         <box gap={1}>
           {props.providerID === "opencode" ? (
             <box gap={1}>
-              <text fg={theme.textMuted}>
-                OpenCode Zen gives you access to all the best coding models at the cheapest prices with a single API key.
-              </text>
-              <text fg={theme.text}>
-                Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> to get a key
-              </text>
+              <text fg={theme.textMuted}>Hosted models are available with a single API key.</text>
             </box>
           ) : null}
           {error() ? <text fg={theme.error}>{error()}</text> : null}
@@ -274,7 +269,7 @@ function ApiMethod(props: ApiMethodProps) {
         if (!value) return
         const result = await sdk.client.auth.set({
           providerID: props.providerID,
-          auth: {
+          body: {
             type: "api",
             key: value,
           },

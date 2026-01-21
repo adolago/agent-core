@@ -11,7 +11,7 @@ import { spawnSync } from "child_process"
 
 // https://astro.build/config
 export default defineConfig({
-  site: config.url,
+  site: config.url || undefined,
   base: "/docs",
   output: "server",
   adapter: cloudflare({
@@ -31,7 +31,7 @@ export default defineConfig({
     configSchema(),
     solidJs(),
     starlight({
-      title: "OpenCode",
+      title: "Agent-Core",
       favicon: "/favicon-v2.svg",
       head: [
         {
@@ -62,13 +62,7 @@ export default defineConfig({
       ],
       lastUpdated: true,
       expressiveCode: { themes: ["github-light", "github-dark"] },
-      social: [
-        { icon: "github", label: "GitHub", href: config.github },
-        { icon: "discord", label: "Discord", href: config.discord },
-      ],
-      editLink: {
-        baseUrl: `${config.github}/edit/dev/packages/web/`,
-      },
+      social: [],
       markdown: {
         headingLinks: false,
       },
@@ -137,7 +131,7 @@ function configSchema() {
     hooks: {
       "astro:build:done": async () => {
         console.log("generating config schema")
-        spawnSync("../opencode/script/schema.ts", ["./dist/config.json"])
+        spawnSync("../agent-core/script/schema.ts", ["./dist/config.json"])
       },
     },
   }

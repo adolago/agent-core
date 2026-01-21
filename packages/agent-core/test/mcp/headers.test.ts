@@ -53,7 +53,7 @@ test("headers are passed to transports when oauth is enabled (default)", async (
       await Bun.write(
         `${dir}/agent-core.json`,
         JSON.stringify({
-          $schema: "https://opencode.ai/config.json",
+          $schema: "agent-core",
           mcp: {
             "test-server": {
               type: "remote",

@@ -1,5 +1,5 @@
 {
-  description = "Agent-Core: OpenCode engine with Personas system";
+  description = "Agent-Core engine with Personas system";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -55,7 +55,7 @@
           qdrant = pkgs.qdrant;             # Semantic memory storage
 
           # Development Tools
-          ripgrep = pkgs.ripgrep;           # Fast search (used by opencode)
+          ripgrep = pkgs.ripgrep;           # Fast search (used by agent-core)
           fd = pkgs.fd;                     # Fast find
           fzf = pkgs.fzf;                   # Fuzzy finder
           jq = pkgs.jq;                     # JSON processing
@@ -90,7 +90,7 @@
           deps = stockDeps system;
         in
         {
-          # Minimal shell for opencode development only
+          # Minimal shell for agent-core development only
           default = pkgs.mkShell {
             packages = with pkgs; [
               bun

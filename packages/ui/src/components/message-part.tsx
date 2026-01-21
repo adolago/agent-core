@@ -10,7 +10,6 @@ import {
   onCleanup,
   type JSX,
 } from "solid-js"
-import stripAnsi from "strip-ansi"
 import { Dynamic } from "solid-js/web"
 import {
   AgentPart,
@@ -23,9 +22,7 @@ import {
   ToolPart,
   UserMessage,
   Todo,
-  QuestionRequest,
-  QuestionAnswer,
-  QuestionInfo,
+  QuestionRequest as SDKQuestionRequest,
 } from "@opencode-ai/sdk/v2"
 import { createStore } from "solid-js/store"
 import { useData } from "../context"
@@ -48,6 +45,10 @@ import { IconButton } from "./icon-button"
 import { createAutoScroll } from "../hooks"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 
+type QuestionAnswer = string[]
+type QuestionInfo = SDKQuestionRequest["questions"][number] & { multiple?: boolean; custom?: boolean }
+type QuestionRequest = Omit<SDKQuestionRequest, "questions"> & { questions: QuestionInfo[] }
+
 interface Diagnostic {
   range: {
     start: { line: number; character: number }
@@ -55,6 +56,10 @@ interface Diagnostic {
   }
   message: string
   severity?: number
+}
+
+function stripAnsi(value: string) {
+  return value.replace(/\x1b\[[0-9;]*m/g, "")
 }
 
 function getDiagnostics(

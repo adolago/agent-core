@@ -1,9 +1,9 @@
 #!/bin/bash
-# sync-upstream.sh - Sync with upstream OpenCode
+# sync-upstream.sh - Sync with upstream
 #
 # Usage: ./scripts/sync-upstream.sh [--preview] [--merge] [--rebase]
 #
-# This script helps merge upstream OpenCode changes into agent-core,
+# This script helps merge upstream changes into agent-core,
 # preserving our customizations while incorporating new features.
 
 set -euo pipefail
@@ -146,9 +146,9 @@ case $MODE in
             git diff --cached --stat
             git merge --abort 2>/dev/null || true
         else
-            MERGE_MSG="Merge upstream OpenCode $(git log -1 --format=%h $UPSTREAM_REMOTE/$UPSTREAM_BRANCH)
+            MERGE_MSG="Merge upstream $(git log -1 --format=%h $UPSTREAM_REMOTE/$UPSTREAM_BRANCH)
 
-Synced with upstream sst/opencode.
+Synced with upstream.
 Merge base: ${MERGE_BASE:0:10}
 Upstream commits: $BEHIND"
 

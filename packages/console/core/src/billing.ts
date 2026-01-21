@@ -10,7 +10,7 @@ import { centsToMicroCents } from "./util/price"
 import { User } from "./user"
 
 export namespace Billing {
-  export const ITEM_CREDIT_NAME = "opencode credits"
+  export const ITEM_CREDIT_NAME = "agent-core credits"
   export const ITEM_FEE_NAME = "processing fee"
   export const RELOAD_AMOUNT = 20
   export const RELOAD_AMOUNT_MIN = 10

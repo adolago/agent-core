@@ -1,29 +1,53 @@
 /**
  * Application-wide constants and configuration
  */
-export const config = {
+type AppConfig = {
+  baseUrl: string
+  downloadBaseUrl: string
+  github: {
+    repoUrl: string
+    starsFormatted: {
+      compact: string
+      full: string
+    }
+  }
+  social: {
+    twitter: string
+    discord: string
+  }
+  stats: {
+    contributors: string
+    commits: string
+    monthlyUsers: string
+  }
+}
+
+export const config: AppConfig = {
   // Base URL
-  baseUrl: "https://opencode.ai",
+  baseUrl: "/",
+
+  // Downloads
+  downloadBaseUrl: "/downloads",
 
   // GitHub
   github: {
-    repoUrl: "https://github.com/anomalyco/opencode",
+    repoUrl: "",
     starsFormatted: {
-      compact: "70K",
-      full: "70,000",
+      compact: "",
+      full: "",
     },
   },
 
   // Social links
   social: {
-    twitter: "https://x.com/opencode",
-    discord: "https://discord.gg/opencode",
+    twitter: "",
+    discord: "",
   },
 
   // Static stats (used on landing page)
   stats: {
-    contributors: "500",
-    commits: "7,000",
-    monthlyUsers: "650,000",
+    contributors: "",
+    commits: "",
+    monthlyUsers: "",
   },
-} as const
+}

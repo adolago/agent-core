@@ -17,4 +17,4 @@ This creates a symlink at `~/.bun/bin/agent-core` → dev build.
 **Do NOT** install agent-core via:
 - `~/bin/agent-core` (manual copy)
 - `~/.local/bin/agent-core` (separate symlink)
-- `curl ... | sh` installer (creates `~/.opencode/bin/`)
+- legacy curl installer

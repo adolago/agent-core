@@ -4,7 +4,6 @@ import { z } from "zod"
 import { TuiEvent } from "../../cli/cmd/tui/event"
 import { Bus } from "@/bus"
 import { Session } from "../../session"
-import { TuiRoute as ControlRoute } from "../tui"
 import { errors } from "../error"
 
 export const TuiRoute = new Hono()
@@ -302,4 +301,3 @@ export const TuiRoute = new Hono()
       return c.json(true)
     },
   )
-  .route("/control", ControlRoute)

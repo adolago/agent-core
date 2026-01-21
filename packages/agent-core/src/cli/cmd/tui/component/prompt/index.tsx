@@ -36,9 +36,6 @@ import { Dictation } from "@tui/util/dictation"
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
 
-import { DialogGrammar } from "../dialog-grammar"
-import { Grammar } from "../../util/grammar"
-
 export type PromptProps = {
   sessionID?: string
   visible?: boolean

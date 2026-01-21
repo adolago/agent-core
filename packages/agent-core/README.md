@@ -35,13 +35,6 @@ Minimal memory configuration:
 }
 ```
 
-Optional: Google Antigravity OAuth (plugin-based):
-
-```bash
-agent-core plugin install opencode-google-auth
-agent-core auth login
-```
-
 ## Run
 
 ```bash
@@ -49,5 +42,3 @@ agent-core
 agent-core --no-daemon
 agent-core daemon --hostname 127.0.0.1 --port 3210
 ```
-
-More docs: `https://github.com/adolago/agent-core`.

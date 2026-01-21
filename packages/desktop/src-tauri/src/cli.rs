@@ -1,8 +1,8 @@
 use tauri::{path::BaseDirectory, AppHandle, Manager};
 use tauri_plugin_shell::{process::Command, ShellExt};
 
-const CLI_INSTALL_DIR: &str = ".opencode/bin";
-const CLI_BINARY_NAME: &str = "opencode";
+const CLI_INSTALL_DIR: &str = ".agent-core/bin";
+const CLI_BINARY_NAME: &str = "agent-core";
 
 #[derive(serde::Deserialize)]
 pub struct ServerConfig {
@@ -19,7 +19,7 @@ pub async fn get_config(app: &AppHandle) -> Option<Config> {
     create_command(app, "debug config")
         .output()
         .await
-        .inspect_err(|e| eprintln!("Failed to read OC config: {e}"))
+        .inspect_err(|e| eprintln!("Failed to read Agent-Core config: {e}"))
         .ok()
         .and_then(|out| String::from_utf8(out.stdout.to_vec()).ok())
         .and_then(|s| serde_json::from_str::<Config>(&s).ok())
@@ -39,7 +39,7 @@ pub fn get_sidecar_path(app: &tauri::AppHandle) -> std::path::PathBuf {
         .expect("Failed to get current binary")
         .parent()
         .expect("Failed to get parent dir")
-        .join("opencode-cli")
+        .join("agent-core-cli")
 }
 
 fn is_cli_installed() -> bool {
@@ -61,7 +61,7 @@ pub fn install_cli(app: tauri::AppHandle) -> Result<String, String> {
         return Err("Sidecar binary not found".to_string());
     }
 
-    let temp_script = std::env::temp_dir().join("opencode-install.sh");
+    let temp_script = std::env::temp_dir().join("agent-core-install.sh");
     std::fs::write(&temp_script, INSTALL_SCRIPT)
         .map_err(|e| format!("Failed to write install script: {}", e))?;
 
@@ -153,7 +153,7 @@ pub fn create_command(app: &tauri::AppHandle, args: &str) -> Command {
     #[cfg(target_os = "windows")]
     return app
         .shell()
-        .sidecar("opencode-cli")
+        .sidecar("agent-core-cli")
         .unwrap()
         .args(args.split_whitespace())
         .env("OPENCODE_EXPERIMENTAL_ICON_DISCOVERY", "true")

@@ -959,7 +959,9 @@ export default function Page() {
   createEffect(() => {
     const sessionID = params.id
     if (!sessionID) return
-    const raw = sessionStorage.getItem("opencode.pendingMessage")
+    const pendingKey = "agent-core.pendingMessage"
+    const legacyPendingKey = "opencode.pendingMessage"
+    const raw = sessionStorage.getItem(pendingKey) ?? sessionStorage.getItem(legacyPendingKey)
     if (!raw) return
     const parts = raw.split("|")
     const pendingSessionID = parts[0]
@@ -967,7 +969,8 @@ export default function Page() {
     if (!pendingSessionID || !messageID) return
     if (pendingSessionID !== sessionID) return
 
-    sessionStorage.removeItem("opencode.pendingMessage")
+    sessionStorage.removeItem(legacyPendingKey)
+    sessionStorage.removeItem(pendingKey)
     setPendingMessage(messageID)
   })
 

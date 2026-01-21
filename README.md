@@ -1,11 +1,9 @@
-> **Fork** — This is a fork of [sst/opencode](https://github.com/sst/opencode) with customizations. All credit goes to the brilliant [SST](https://sst.dev) team and the OpenCode contributors for building such a fantastic experience. Please use the [upstream repository](https://github.com/sst/opencode) for official releases and support. Use this fork at your own risk.
-
 # Agent-Core
 
 [![Version](https://img.shields.io/npm/v/@adolago/agent-core?style=flat-square)](https://www.npmjs.com/package/@adolago/agent-core)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). Built on OpenCode's excellent foundation, it adds persona-based routing, semantic memory, and orchestration capabilities.
+Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, Johny). It adds persona-based routing, semantic memory, and orchestration capabilities.
 
 ## Release
 
@@ -137,7 +135,7 @@ agent-core daemon --hostname 127.0.0.1 --port 3210
 
 ```
 agent-core/
-├── packages/agent-core/    # Main CLI/TUI/daemon (OpenCode fork)
+├── packages/agent-core/    # Main CLI/TUI/daemon
 ├── src/
 │   ├── personas/           # Persona logic and routing
 │   ├── memory/             # Qdrant semantic memory
@@ -195,9 +193,8 @@ agent-core logs wide --where sessionId=session_123
 
 ## Credits
 
-- **OpenCode** by [SST](https://github.com/sst/opencode) - The foundation this project builds on
 - **Claude-Flow** - SPARC orchestration patterns
 
 ## License
 
-Same as upstream OpenCode - see LICENSE file.
+See LICENSE file.

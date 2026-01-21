@@ -11,6 +11,7 @@ import { useSync } from "@/context/sync"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { getFilename } from "@opencode-ai/util/path"
 import { base64Decode } from "@opencode-ai/util/encode"
+import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
 
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -47,6 +48,13 @@ export function SessionHeader() {
   const shareEnabled = createMemo(() => sync.data.config.share !== "disabled")
   const sessionKey = createMemo(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
   const view = createMemo(() => layout.view(sessionKey()))
+  const clientFor = (directory: string) =>
+    createOpencodeClient({
+      baseUrl: globalSDK.url,
+      fetch: platform.fetch,
+      directory,
+      throwOnError: true,
+    })
 
   const [state, setState] = createStore({
     share: false,
@@ -70,9 +78,11 @@ export function SessionHeader() {
   function shareSession() {
     const session = currentSession()
     if (!session || state.share) return
+    const directory = projectDirectory()
+    if (!directory) return
     setState("share", true)
-    globalSDK.client.session
-      .share({ sessionID: session.id, directory: projectDirectory() })
+    clientFor(directory)
+      .session.share({ sessionID: session.id })
       .catch((error) => {
         console.error("Failed to share session", error)
       })
@@ -84,9 +94,11 @@ export function SessionHeader() {
   function unshareSession() {
     const session = currentSession()
     if (!session || state.unshare) return
+    const directory = projectDirectory()
+    if (!directory) return
     setState("unshare", true)
-    globalSDK.client.session
-      .unshare({ sessionID: session.id, directory: projectDirectory() })
+    clientFor(directory)
+      .session.unshare({ sessionID: session.id })
       .catch((error) => {
         console.error("Failed to unshare session", error)
       })

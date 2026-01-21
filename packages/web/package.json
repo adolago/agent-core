@@ -8,7 +8,7 @@
     "lint": "prettier --check .",
     "test": "echo 'No tests configured' && exit 0",
     "dev": "astro dev",
-    "dev:remote": "VITE_API_URL=https://api.opencode.ai astro dev",
+    "dev:remote": "VITE_API_URL=http://localhost:4096 astro dev",
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",

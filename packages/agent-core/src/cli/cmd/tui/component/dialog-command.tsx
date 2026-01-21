@@ -33,10 +33,12 @@ export function createCommandDialog() {
   const dialog = useDialog()
   const keybind = useKeybind()
   const entries = createMemo(() => {
-    const all = registrations().flatMap((x) => x())
-    return all.map((x) => ({
-      ...x,
-      footer: x.keybind ? keybind.print(x.keybind) : undefined,
+    const all = registrations()
+      .flatMap((x) => x())
+      .filter((option): option is CommandOption => Boolean(option))
+    return all.map((option) => ({
+      ...option,
+      footer: option.keybind ? keybind.print(option.keybind) : undefined,
     }))
   })
 
@@ -60,6 +62,9 @@ export function createCommandDialog() {
   })
 
   const result = {
+    get options() {
+      return visibleOptions()
+    },
     trigger(name: string) {
       for (const option of entries()) {
         if (option.value === name) {

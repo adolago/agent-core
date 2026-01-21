@@ -25,7 +25,6 @@ import { Diff as SSRDiff } from "@opencode-ai/ui/diff-ssr"
 import { clientOnly } from "@solidjs/start"
 import { type IconName } from "@opencode-ai/ui/icons/provider"
 import { Meta, Title } from "@solidjs/meta"
-import { Base64 } from "js-base64"
 
 const ClientOnlyDiff = clientOnly(() => import("@opencode-ai/ui/diff").then((m) => ({ default: m.Diff })))
 const ClientOnlyCode = clientOnly(() => import("@opencode-ai/ui/code").then((m) => ({ default: m.Code })))
@@ -184,36 +183,14 @@ export default function () {
           const match = createMemo(() => Binary.search(data().session, data().sessionID, (s) => s.id))
           if (!match().found) throw new Error(`Session ${data().sessionID} not found`)
           const info = createMemo(() => data().session[match().index])
-          const ogImage = createMemo(() => {
-            const models = new Set<string>()
-            const messages = data().message[data().sessionID] ?? []
-            for (const msg of messages) {
-              if (msg.role === "assistant" && msg.modelID) {
-                models.add(msg.modelID)
-              }
-            }
-            const modelIDs = Array.from(models)
-            const encodedTitle = encodeURIComponent(Base64.encode(encodeURIComponent(info().title.substring(0, 700))))
-            let modelParam: string
-            if (modelIDs.length === 1) {
-              modelParam = modelIDs[0]
-            } else if (modelIDs.length === 2) {
-              modelParam = encodeURIComponent(`${modelIDs[0]} & ${modelIDs[1]}`)
-            } else if (modelIDs.length > 2) {
-              modelParam = encodeURIComponent(`${modelIDs[0]} & ${modelIDs.length - 1} others`)
-            } else {
-              modelParam = "unknown"
-            }
-            const version = `v${info().version}`
-            return `https://social-cards.sst.dev/opencode-share/${encodedTitle}.png?model=${modelParam}&version=${version}&id=${data().shareID}`
-          })
+          const ogImage = () => "/social-share.png"
 
           return (
             <>
               <Show when={info().title}>
-                <Title>{info().title} | OpenCode</Title>
+                <Title>{info().title} | Agent-Core</Title>
               </Show>
-              <Meta name="description" content="opencode - The AI coding agent built for the terminal." />
+              <Meta name="description" content="Agent-Core - The AI coding agent built for the terminal." />
               <Meta property="og:image" content={ogImage()} />
               <Meta name="twitter:image" content={ogImage()} />
               <ClientOnlyWorkerPoolProvider>
@@ -320,25 +297,9 @@ export default function () {
                           <div class="relative bg-background-stronger w-screen h-screen overflow-hidden flex flex-col">
                             <header class="h-12 px-6 py-2 flex items-center justify-between self-stretch bg-background-base border-b border-border-weak-base">
                               <div class="">
-                                <a href="https://opencode.ai">
+                                <a href="/">
                                   <Mark />
                                 </a>
-                              </div>
-                              <div class="flex gap-3 items-center">
-                                <IconButton
-                                  as={"a"}
-                                  href="https://github.com/anomalyco/opencode"
-                                  target="_blank"
-                                  icon="github"
-                                  variant="ghost"
-                                />
-                                <IconButton
-                                  as={"a"}
-                                  href="https://opencode.ai/discord"
-                                  target="_blank"
-                                  icon="discord"
-                                  variant="ghost"
-                                />
                               </div>
                             </header>
                             <div class="select-text flex flex-col flex-1 min-h-0">

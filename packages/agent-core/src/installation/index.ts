@@ -182,6 +182,18 @@ export namespace Installation {
         name: "brew" as const,
         command: () => $`brew list --formula`.throws(false).quiet().text(),
       },
+      ...(process.platform === "win32"
+        ? [
+            {
+              name: "choco" as const,
+              command: () => $`choco list --local-only`.throws(false).quiet().text(),
+            },
+            {
+              name: "scoop" as const,
+              command: () => $`scoop list`.throws(false).quiet().text(),
+            },
+          ]
+        : []),
     ]
 
     checks.sort((a, b) => {
@@ -194,11 +206,16 @@ export namespace Installation {
 
     const npmPackages = NPM_PACKAGES
     const brewPackages = ["agent-core", "adolago/tap/agent-core", "opencode"]
+    const winPackages = ["agent-core", "opencode"]
 
     for (const check of checks) {
       const output = await check.command()
       if (check.name === "brew") {
         if (brewPackages.some((pkg) => output.includes(pkg))) return check.name
+        continue
+      }
+      if (check.name === "choco" || check.name === "scoop") {
+        if (winPackages.some((pkg) => output.includes(pkg))) return check.name
         continue
       }
       if (npmPackages.some((pkg) => output.includes(pkg))) return check.name
@@ -248,6 +265,12 @@ export namespace Installation {
         })
         break
       }
+      case "choco":
+        cmd = $`choco upgrade agent-core --version ${target} -y`
+        break
+      case "scoop":
+        cmd = $`scoop update agent-core`
+        break
       default:
         throw new Error(`Unknown method: ${method}`)
     }

@@ -300,40 +300,44 @@ describe("ProviderTransform.message - interleaved reasoning fields", () => {
       },
     ] as any[]
 
-    const result = ProviderTransform.message(msgs, {
-      id: "cerebras/zai-glm-4.7",
-      providerID: "cerebras",
-      api: {
-        id: "zai-glm-4.7",
-        url: "https://api.cerebras.ai",
-        npm: "@ai-sdk/openai-compatible",
-      },
-      name: "Z.AI GLM-4.7",
-      capabilities: {
-        temperature: true,
-        reasoning: true,
-        attachment: false,
-        toolcall: true,
-        input: { text: true, audio: false, image: false, video: false, pdf: false },
-        output: { text: true, audio: false, image: false, video: false, pdf: false },
-        interleaved: {
-          field: "reasoning",
+    const result = ProviderTransform.message(
+      msgs,
+      {
+        id: "cerebras/zai-glm-4.7",
+        providerID: "cerebras",
+        api: {
+          id: "zai-glm-4.7",
+          url: "https://api.cerebras.ai",
+          npm: "@ai-sdk/openai-compatible",
         },
+        name: "Z.AI GLM-4.7",
+        capabilities: {
+          temperature: true,
+          reasoning: true,
+          attachment: false,
+          toolcall: true,
+          input: { text: true, audio: false, image: false, video: false, pdf: false },
+          output: { text: true, audio: false, image: false, video: false, pdf: false },
+          interleaved: {
+            field: "reasoning",
+          },
+        },
+        cost: {
+          input: 0,
+          output: 0,
+          cache: { read: 0, write: 0 },
+        },
+        limit: {
+          context: 131072,
+          output: 40000,
+        },
+        status: "active",
+        options: {},
+        headers: {},
+        release_date: "2026-01-10",
       },
-      cost: {
-        input: 0,
-        output: 0,
-        cache: { read: 0, write: 0 },
-      },
-      limit: {
-        context: 131072,
-        output: 40000,
-      },
-      status: "active",
-      options: {},
-      headers: {},
-      release_date: "2026-01-10",
-    })
+      {},
+    )
 
     expect(result[0].content).toEqual([{ type: "text", text: "Answer" }])
     expect(result[0].providerOptions?.openaiCompatible?.reasoning).toBe("Thinking...")
@@ -861,7 +865,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
       providerID: "opencode",
       api: {
         id: "opencode-test",
-        url: "https://api.opencode.ai",
+        url: "https://api.example.invalid",
         npm: "@ai-sdk/openai-compatible",
       },
     }
@@ -895,7 +899,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
       providerID: "opencode",
       api: {
         id: "opencode-test",
-        url: "https://api.opencode.ai",
+        url: "https://api.example.invalid",
         npm: "@ai-sdk/openai-compatible",
       },
     }
@@ -1659,7 +1663,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
           npm: "@ai-sdk/openai-compatible",
         },
       } as any
-      const result = ProviderTransform.options(model, sessionID, {})
+      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinking).toEqual({
         type: "enabled",
         clear_thinking: false,
@@ -1676,7 +1680,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
           npm: "@ai-sdk/openai-compatible",
         },
       } as any
-      const result = ProviderTransform.options(model, sessionID, {})
+      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinking).toEqual({
         type: "enabled",
         clear_thinking: false,
@@ -1716,7 +1720,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
           npm: "@ai-sdk/google",
         },
       } as any
-      const result = ProviderTransform.options(model, sessionID, {})
+      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
       })
@@ -1732,7 +1736,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
           npm: "@ai-sdk/google",
         },
       } as any
-      const result = ProviderTransform.options(model, sessionID, {})
+      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
         thinkingLevel: "high",
@@ -1751,7 +1755,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
           npm: "@ai-sdk/google",
         },
       } as any
-      const result = ProviderTransform.options(model, sessionID, {})
+      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
         thinkingLevel: "high",
@@ -1768,7 +1772,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
           npm: "@ai-sdk/google",
         },
       } as any
-      const result = ProviderTransform.options(model, sessionID, {})
+      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
         thinkingLevel: "high",

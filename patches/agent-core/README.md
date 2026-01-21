@@ -1,11 +1,11 @@
 # Agent-Core Patches
 
-This directory contains patch files documenting agent-core's divergences from upstream OpenCode. These patches are for **documentation purposes** - they help track what we've changed and assist with merge conflict resolution.
+This directory contains patch files documenting agent-core's divergences from upstream. These patches are for **documentation purposes** - they help track what we've changed and assist with merge conflict resolution.
 
 ## Divergence Categories
 
 ### 1. Naming/Branding (`001-naming.patch`)
-- Rename `opencode` → `agent-core` in CLI, paths, docs
+- Rename the legacy CLI name to `agent-core` in CLI, paths, docs
 - Config paths: `~/.config/agent-core/`, `~/.local/state/agent-core/`
 
 ### 2. Agent System (`002-agents.patch`)
@@ -64,7 +64,7 @@ git apply -3 patches/agent-core/003-providers.patch
 
 ## Version Mapping
 
-| agent-core | OpenCode (upstream) | Notes |
+| agent-core | Upstream Commit | Notes |
 |------------|---------------------|-------|
 | current | 7cba1ff79 | Merge base |
 

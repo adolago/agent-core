@@ -1,20 +1,20 @@
 # Agent-Core - The Engine
 
-This is the **engine** that powers Agent-Core, a fork of OpenCode.
+This is the **engine** that powers Agent-Core.
 
 ## CRITICAL: Naming Convention
 
-**NEVER use "opencode" in new code, documentation, or user-facing text.**
+**NEVER use the legacy name in new code, documentation, or user-facing text.**
 
-This project is `agent-core`, not OpenCode. We are grateful to the OpenCode developers and believe users must be able to run both projects without confusion:
+This project is `agent-core`. Users should be able to run different toolchains without confusion:
 
-- CLI command: `agent-core` (not `opencode`)
+- CLI command: `agent-core`
 - Config directory: `~/.config/agent-core/`
 - State directory: `~/.local/state/agent-core/`
-- Documentation references: "agent-core daemon", not "opencode daemon"
-- Variable names, function names: avoid `opencode` prefix
+- Documentation references: "agent-core daemon"
+- Variable names, function names: avoid legacy prefixes
 
-Existing upstream code may still contain "opencode" references - that's fine. But all NEW code and documentation should use "agent-core" naming.
+Existing upstream code may still contain legacy references - that's fine. But all NEW code and documentation should use agent-core naming.
 
 ## IMPORTANT: First Steps When Working on This Repo
 
@@ -128,7 +128,7 @@ You can always check:
 │                        AGENT-CORE (Engine)                          │
 │               ~/.local/src/agent-core/                              │
 │                                                                     │
-│  packages/agent-core/     ← Fork of OpenCode TUI (built-in agents    │
+│  packages/agent-core/     ← Core TUI (built-in agents                │
 │                           removed, only triad remains)              │
 │  ~/.config/agent-core/  ← Config, auth, plugins                     │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -174,7 +174,7 @@ You can always check:
 
 ### Flow Summary
 
-1. **agent-core** = Fork of OpenCode with built-in agents (build/plan/general/explore) **removed**
+1. **agent-core** = Core engine with built-in agents (build/plan/general/explore) **removed**
 2. **tiara** = Orchestration layer providing SPARC methodology and swarm coordination
 3. **personas** = The Triad (Zee/Stanley/Johny) + shared capabilities
 
@@ -227,7 +227,7 @@ This system has experimental features enabled:
 
 - Knowledge graph with FIRe (Fractional Implicit Repetition)
 - Semantic memory via Qdrant
-- All OpenCode experimental flags active
+- All experimental flags active
 
 ## State Management
 
@@ -387,7 +387,7 @@ pgrep -af agent-core
 Messaging transport remains in Zee, but the gateway is launched by agent-core to:
 
 1. Avoid duplication with zee gateway (ClawdBot fork)
-2. Keep agent-core clean for upstream OpenCode
+2. Keep agent-core clean for upstream sync
 3. Centralize messaging transport in one place
 
 All messaging flows through the Zee gateway at `~/.local/src/agent-core/vendor/personas/zee/`, managed by the daemon.

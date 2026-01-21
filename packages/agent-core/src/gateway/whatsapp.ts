@@ -933,49 +933,6 @@ Commands:
       }
     }
 
-    /**
-     * Send a reaction to a message
-     * @param chatId - Chat JID (e.g., "1234567890@c.us")
-     * @param messageId - Message stanza ID to react to
-     * @param emoji - Emoji character (empty string to remove reaction)
-     */
-    async sendReaction(chatId: string, messageId: string, emoji: string): Promise<boolean> {
-      if (!this.ready || !this.client) {
-        log.warn("WhatsApp client not ready for reaction")
-        return false
-      }
-
-      try {
-        // Get the message to react to
-        const chat = await this.client.getChatById(chatId)
-        if (!chat) {
-          log.error("Chat not found for reaction", { chatId })
-          return false
-        }
-
-        // Find the message by ID
-        const messages = await chat.fetchMessages({ limit: 50 })
-        const targetMessage = messages.find((m: any) => m.id._serialized === messageId || m.id.id === messageId)
-
-        if (!targetMessage) {
-          log.error("Message not found for reaction", { chatId, messageId })
-          return false
-        }
-
-        // Send the reaction (empty emoji removes reaction)
-        await targetMessage.react(emoji)
-        log.info("Reaction sent", { chatId, messageId, emoji: emoji || "(removed)" })
-        return true
-      } catch (error) {
-        log.error("Failed to send WhatsApp reaction", {
-          chatId,
-          messageId,
-          emoji,
-          error: error instanceof Error ? error.message : String(error),
-        })
-        return false
-      }
-    }
   }
 
   // Singleton instance management

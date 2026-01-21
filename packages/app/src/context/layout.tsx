@@ -227,7 +227,6 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         ...project,
         icon: {
           url: metadata?.icon?.url,
-          override: metadata?.icon?.override,
           color: metadata?.icon?.color,
         },
       }

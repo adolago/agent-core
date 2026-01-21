@@ -35,7 +35,7 @@ import { DiffChanges } from "@opencode-ai/ui/diff-changes"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { getFilename } from "@opencode-ai/util/path"
-import { Session, type Message, type TextPart } from "@opencode-ai/sdk/v2/client"
+import { createOpencodeClient, Session, type Message, type TextPart } from "@opencode-ai/sdk/v2/client"
 import { usePlatform } from "@/context/platform"
 import { createStore, produce, reconcile } from "solid-js/store"
 import {
@@ -104,6 +104,13 @@ export default function Layout(props: ParentProps) {
   const dialog = useDialog()
   const command = useCommand()
   const theme = useTheme()
+  const clientFor = (directory: string) =>
+    createOpencodeClient({
+      baseUrl: globalSDK.url,
+      fetch: platform.fetch,
+      directory,
+      throwOnError: true,
+    })
   const initialDir = params.dir
   const availableThemeEntries = createMemo(() => Object.entries(theme.themes()))
   const colorSchemeOrder: ColorScheme[] = ["system", "light", "dark"]
@@ -250,7 +257,7 @@ export default function Layout(props: ParentProps) {
           persistent: true,
           icon: "download",
           title: "Update available",
-          description: `A new version of OpenCode (${version}) is now available to install.`,
+          description: `A new version of Agent-Core (${version}) is now available to install.`,
           actions: [
             {
               label: "Install and restart",
@@ -574,7 +581,7 @@ export default function Layout(props: ParentProps) {
   async function prefetchMessages(directory: string, sessionID: string, token: number) {
     const [, setStore] = globalSync.child(directory)
 
-    return retry(() => globalSDK.client.session.messages({ directory, sessionID, limit: prefetchChunk }))
+    return retry(() => clientFor(directory).session.messages({ sessionID, limit: prefetchChunk }))
       .then((messages) => {
         if (prefetchToken.value !== token) return
 
@@ -720,8 +727,7 @@ export default function Layout(props: ParentProps) {
     const index = sessions.findIndex((s) => s.id === session.id)
     const nextSession = sessions[index + 1] ?? sessions[index - 1]
 
-    await globalSDK.client.session.update({
-      directory: session.directory,
+    await clientFor(session.directory).session.update({
       sessionID: session.id,
       time: { archived: Date.now() },
     })
@@ -878,8 +884,7 @@ export default function Layout(props: ParentProps) {
 
   async function renameSession(session: Session, next: string) {
     if (next === session.title) return
-    await globalSDK.client.session.update({
-      directory: session.directory,
+    await clientFor(session.directory).session.update({
       sessionID: session.id,
       title: next,
     })
@@ -934,91 +939,17 @@ export default function Layout(props: ParentProps) {
     return "Request failed"
   }
 
-  const deleteWorkspace = async (directory: string) => {
-    const current = currentProject()
-    if (!current) return
-    if (directory === current.worktree) return
-
-    const result = await globalSDK.client.worktree
-      .remove({ directory: current.worktree, worktreeRemoveInput: { directory } })
-      .then((x) => x.data)
-      .catch((err) => {
-        showToast({
-          title: "Failed to delete workspace",
-          description: errorMessage(err),
-        })
-        return false
-      })
-
-    if (!result) return
-
-    layout.projects.close(directory)
-    layout.projects.open(current.worktree)
-
-    if (params.dir && base64Decode(params.dir) === directory) {
-      navigateToProject(current.worktree)
-    }
+  const deleteWorkspace = async (_directory: string) => {
+    showToast({
+      title: "Delete workspace unavailable",
+      description: "Worktree removal is not supported in this build.",
+    })
   }
 
-  const resetWorkspace = async (directory: string) => {
-    const current = currentProject()
-    if (!current) return
-    if (directory === current.worktree) return
-
-    const progress = showToast({
-      persistent: true,
-      title: "Resetting workspace",
-      description: "This may take a minute.",
-    })
-    const dismiss = () => toaster.dismiss(progress)
-
-    const sessions = await globalSDK.client.session
-      .list({ directory })
-      .then((x) => x.data ?? [])
-      .catch(() => [])
-
-    const result = await globalSDK.client.worktree
-      .reset({ directory: current.worktree, worktreeResetInput: { directory } })
-      .then((x) => x.data)
-      .catch((err) => {
-        dismiss()
-        showToast({
-          title: "Failed to reset workspace",
-          description: errorMessage(err),
-        })
-        return false
-      })
-
-    if (!result) {
-      dismiss()
-      return
-    }
-
-    const archivedAt = Date.now()
-    await Promise.all(
-      sessions
-        .filter((session) => session.time.archived === undefined)
-        .map((session) =>
-          globalSDK.client.session
-            .update({
-              sessionID: session.id,
-              directory: session.directory,
-              time: { archived: archivedAt },
-            })
-            .catch(() => undefined),
-        ),
-    )
-
-    await globalSDK.client.instance.dispose({ directory }).catch(() => undefined)
-    dismiss()
-
-    const href = `/${base64Encode(directory)}/session`
-    navigate(href)
-    layout.mobileSidebar.hide()
-
+  const resetWorkspace = async (_directory: string) => {
     showToast({
-      title: "Workspace reset",
-      description: "Workspace now matches the default branch.",
+      title: "Reset workspace unavailable",
+      description: "Worktree reset is not supported in this build.",
     })
   }
 
@@ -1036,8 +967,8 @@ export default function Layout(props: ParentProps) {
         return
       }
 
-      globalSDK.client.file
-        .status({ directory: props.directory })
+      clientFor(props.directory).file
+        .status()
         .then((x) => {
           const files = x.data ?? []
           const dirty = files.length > 0
@@ -1089,8 +1020,8 @@ export default function Layout(props: ParentProps) {
     })
 
     const refresh = async () => {
-      const sessions = await globalSDK.client.session
-        .list({ directory: props.directory })
+      const sessions = await clientFor(props.directory).session
+        .list()
         .then((x) => x.data ?? [])
         .catch(() => [])
       const active = sessions.filter((session) => session.time.archived === undefined)
@@ -1104,8 +1035,8 @@ export default function Layout(props: ParentProps) {
         return
       }
 
-      globalSDK.client.file
-        .status({ directory: props.directory })
+      clientFor(props.directory).file
+        .status()
         .then((x) => {
           const files = x.data ?? []
           const dirty = files.length > 0
@@ -1277,14 +1208,13 @@ export default function Layout(props: ParentProps) {
     const hasError = createMemo(() => notifications().some((n) => n.type === "error"))
     const name = createMemo(() => props.project.name || getFilename(props.project.worktree))
     const mask = "radial-gradient(circle 5px at calc(100% - 4px) 4px, transparent 5px, black 5.5px)"
-    const opencode = "4b0ea68d7af9a6031a7ffda7ad66e0cb83315750"
 
     return (
       <div class={`relative size-8 shrink-0 rounded ${props.class ?? ""}`}>
         <div class="size-full rounded overflow-clip">
           <Avatar
             fallback={name()}
-            src={props.project.id === opencode ? "https://opencode.ai/favicon.svg" : props.project.icon?.override}
+            src={props.project.icon?.url}
             {...getAvatarColors(props.project.icon?.color)}
             class="size-full rounded"
             style={
@@ -1429,7 +1359,7 @@ export default function Layout(props: ParentProps) {
                 getLabel={messageLabel}
                 onMessageSelect={(message) => {
                   if (!isActive()) {
-                    sessionStorage.setItem("opencode.pendingMessage", `${props.session.id}|${message.id}`)
+                    sessionStorage.setItem("agent-core.pendingMessage", `${props.session.id}|${message.id}`)
                     navigate(`${props.slug}/session/${props.session.id}`)
                     return
                   }
@@ -1863,8 +1793,8 @@ export default function Layout(props: ParentProps) {
       const current = project()
       if (!current) return
 
-      const created = await globalSDK.client.worktree
-        .create({ directory: current.worktree })
+      const created = await clientFor(current.worktree).worktree
+        .create()
         .then((x) => x.data)
         .catch((err) => {
           showToast({
@@ -1928,7 +1858,7 @@ export default function Layout(props: ParentProps) {
                 icon="help"
                 variant="ghost"
                 size="large"
-                onClick={() => platform.openLink("https://opencode.ai/desktop-feedback")}
+                onClick={() => platform.openLink(`${window.location.origin}/desktop-feedback`)}
               />
             </Tooltip>
           </div>
@@ -2068,7 +1998,7 @@ export default function Layout(props: ParentProps) {
                 <div class="rounded-md bg-background-base shadow-xs-border-base">
                   <div class="p-3 flex flex-col gap-2">
                     <div class="text-12-medium text-text-strong">Getting started</div>
-                    <div class="text-text-base">OpenCode includes free models so you can start immediately.</div>
+                    <div class="text-text-base">Agent-Core includes free models so you can start immediately.</div>
                     <div class="text-text-base">Connect any provider to use models, inc. Claude, GPT, Gemini etc.</div>
                   </div>
                   <Button

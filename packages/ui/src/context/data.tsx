@@ -5,11 +5,14 @@ import type {
   FileDiff,
   SessionStatus,
   PermissionRequest,
-  QuestionRequest,
-  QuestionAnswer,
+  QuestionRequest as SDKQuestionRequest,
 } from "@opencode-ai/sdk/v2"
 import { createSimpleContext } from "./helper"
 import { PreloadMultiFileDiffResult } from "@pierre/diffs/ssr"
+
+type QuestionAnswer = string[]
+type QuestionInfo = SDKQuestionRequest["questions"][number] & { multiple?: boolean; custom?: boolean }
+type QuestionRequest = Omit<SDKQuestionRequest, "questions"> & { questions: QuestionInfo[] }
 
 type Data = {
   session: Session[]

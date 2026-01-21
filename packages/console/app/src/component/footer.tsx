@@ -1,5 +1,5 @@
 import { createAsync } from "@solidjs/router"
-import { createMemo } from "solid-js"
+import { Show, createMemo } from "solid-js"
 import { github } from "~/lib/github"
 import { config } from "~/config"
 
@@ -16,23 +16,29 @@ export function Footer() {
 
   return (
     <footer data-component="footer">
-      <div data-slot="cell">
-        <a href={config.github.repoUrl} target="_blank">
-          GitHub <span>[{starCount()}]</span>
-        </a>
-      </div>
+      <Show when={config.github.repoUrl}>
+        <div data-slot="cell">
+          <a href={config.github.repoUrl} target="_blank">
+            GitHub <span>[{starCount()}]</span>
+          </a>
+        </div>
+      </Show>
       <div data-slot="cell">
         <a href="/docs">Docs</a>
       </div>
       <div data-slot="cell">
         <a href="/changelog">Changelog</a>
       </div>
-      <div data-slot="cell">
-        <a href="/discord">Discord</a>
-      </div>
-      <div data-slot="cell">
-        <a href={config.social.twitter}>X</a>
-      </div>
+      <Show when={config.social.discord}>
+        <div data-slot="cell">
+          <a href={config.social.discord}>Discord</a>
+        </div>
+      </Show>
+      <Show when={config.social.twitter}>
+        <div data-slot="cell">
+          <a href={config.social.twitter}>X</a>
+        </div>
+      </Show>
     </footer>
   )
 }

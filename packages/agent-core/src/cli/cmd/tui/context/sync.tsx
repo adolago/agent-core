@@ -6,7 +6,7 @@ import type {
   Part,
   Config,
   Todo,
-  Command,
+  CommandListResponse,
   PermissionRequest,
   QuestionRequest,
   LspStatus,
@@ -27,12 +27,13 @@ import { useExit } from "./exit"
 import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import { Log } from "@/util/log"
-import type { Path } from "@opencode-ai/sdk"
+import type { Path } from "@opencode-ai/sdk/v2"
 import { useToast } from "../ui/toast"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
   name: "Sync",
   init: () => {
+    type CommandItem = CommandListResponse extends Array<infer T> ? T : never
     const [store, setStore] = createStore<{
       status: "loading" | "partial" | "complete"
       provider: Provider[]
@@ -40,7 +41,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       provider_next: ProviderListResponse
       provider_auth: Record<string, ProviderAuthMethod[]>
       agent: Agent[]
-      command: Command[]
+      command: CommandItem[]
       permission: {
         [sessionID: string]: PermissionRequest[]
       }
@@ -392,18 +393,18 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
       // blocking - include session.list when continuing a session
       const blockingRequests: Promise<unknown>[] = [
-        sdk.client.config.providers({}, { throwOnError: true }).then((x) => {
+        sdk.client.config.providers({ throwOnError: true }).then((x) => {
           batch(() => {
             setStore("provider", reconcile(x.data!.providers))
             setStore("provider_default", reconcile(x.data!.default))
           })
         }),
-        sdk.client.provider.list({}, { throwOnError: true }).then((x) => {
+        sdk.client.provider.list({ throwOnError: true }).then((x) => {
           batch(() => {
             setStore("provider_next", reconcile(x.data!))
           })
         }),
-        sdk.client.app.agents({}, { throwOnError: true }).then((x) => {
+        sdk.client.app.agents({ throwOnError: true }).then((x) => {
           const agents = Array.isArray(x.data) ? x.data : []
           if (!Array.isArray(x.data)) {
             Log.Default.error("agents response invalid", { type: typeof x.data })
@@ -421,7 +422,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           }
           setStore("agent", reconcile(agents))
         }),
-        sdk.client.config.get({}, { throwOnError: true }).then((x) => setStore("config", reconcile(x.data!))),
+        sdk.client.config.get({ throwOnError: true }).then((x) => setStore("config", reconcile(x.data!))),
         ...(args.continue ? [sessionListPromise] : []),
       ]
 

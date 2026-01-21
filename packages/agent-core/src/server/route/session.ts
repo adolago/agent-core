@@ -25,7 +25,7 @@ export const SessionRoute = new Hono()
     "/session",
     describeRoute({
       summary: "List sessions",
-      description: "Get a list of all OpenCode sessions, sorted by most recently updated.",
+      description: "Get a list of all agent-core sessions, sorted by most recently updated.",
       operationId: "session.list",
       responses: {
         200: {
@@ -66,7 +66,7 @@ export const SessionRoute = new Hono()
     "/session",
     describeRoute({
       summary: "Create session",
-      description: "Create a new OpenCode session for interacting with AI assistants and managing conversations.",
+      description: "Create a new agent-core session for interacting with AI assistants and managing conversations.",
       operationId: "session.create",
       responses: {
         ...errors(400),
@@ -161,7 +161,7 @@ export const SessionRoute = new Hono()
     "/session/:sessionID",
     describeRoute({
       summary: "Get session",
-      description: "Retrieve detailed information about a specific OpenCode session.",
+      description: "Retrieve detailed information about a specific agent-core session.",
       tags: ["Session"],
       operationId: "session.get",
       responses: {

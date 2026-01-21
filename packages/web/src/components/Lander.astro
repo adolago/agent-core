@@ -3,8 +3,6 @@ import { Image } from 'astro:assets';
 import config from "virtual:starlight/user-config";
 import type { Props } from '@astrojs/starlight/props';
 
-import CopyIcon from "../assets/lander/copy.svg";
-import CheckIcon from "../assets/lander/check.svg";
 import TuiScreenshot from "../assets/lander/screenshot-splash.png";
 import VscodeScreenshot from "../assets/lander/screenshot-vscode.png";
 import GithubScreenshot from "../assets/lander/screenshot-github.png";
@@ -23,8 +21,8 @@ const github = config.social.filter(s => s.icon === 'github')[0];
 const discord = config.social.filter(s => s.icon === 'discord')[0];
 
 const command = "curl -fsSL"
-const protocol = "https://"
-const url = "opencode.ai/install"
+const protocol = ""
+const url = "INSTALL_URL"
 const bash = "| bash"
 
 let darkImage: ImageMetadata | undefined;
@@ -59,15 +57,11 @@ if (image) {
         <a href="/docs">Get Started</a>
       </div>
       <div class="col2">
-      <button class="command" data-command={`${command} ${protocol}${url} ${bash}`}>
-          <code>
-            <span>{command}&nbsp;</span><span class="protocol">{protocol}</span><span class="highlight">{url}</span>&nbsp;{bash}
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
+        <code class="command">
+          <span>{command}&nbsp;</span>
+          <span class="protocol">{protocol}</span>
+          <span class="highlight">{url}</span>&nbsp;{bash}
+        </code>
       </div>
     </section>
 
@@ -86,62 +80,34 @@ if (image) {
     <section class="alternatives">
       <div class="col1">
         <h3>npm</h3>
-        <button class="command" data-command="npm install -g opencode-ai">
+        <button class="command" data-command="npm install -g agent-core">
           <code>
-            <span>npm install -g</span> <span class="highlight">opencode-ai</span>
+            <span>npm install -g</span> <span class="highlight">agent-core</span>
           </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
         </button>
       </div>
       <div class="col2">
         <h3>Bun</h3>
-        <button class="command" data-command="bun install -g opencode-ai">
+        <button class="command" data-command="bun install -g agent-core">
           <code>
-            <span>bun install -g</span> <span class="highlight">opencode-ai</span>
+            <span>bun install -g</span> <span class="highlight">agent-core</span>
           </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
         </button>
       </div>
       <div class="col3">
         <h3>Homebrew</h3>
-        <button class="command" data-command="brew install opencode">
+        <button class="command" data-command="brew install agent-core">
           <code>
-            <span>brew install</span> <span class="highlight">opencode</span>
+            <span>brew install</span> <span class="highlight">agent-core</span>
           </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
         </button>
       </div>
       <div class="col4">
         <h3>Paru</h3>
-        <button class="command" data-command="paru -S opencode-bin">
+        <button class="command" data-command="paru -S agent-core-bin">
           <code>
-            <span>paru -S</span> <span class="highlight">opencode-bin</span>
+            <span>paru -S</span> <span class="highlight">agent-core-bin</span>
           </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
-        </button>
-      </div>
-      <div class="col4">
-        <h3>Mise</h3>
-        <button class="command" data-command="mise use -g github:anomalyco/opencode">
-          <code>
-            <span>mise use -g</span> <span class="highlight">github:anomalyco/opencode</span>
-          </code>
-          <span class="copy">
-            <CopyIcon />
-            <CheckIcon />
-          </span>
         </button>
       </div>
     </section>
@@ -149,26 +115,26 @@ if (image) {
     <section class="images">
       <div class="left">
         <figure>
-          <figcaption>opencode TUI with the tokyonight theme</figcaption>
+          <figcaption>Agent-Core TUI with the tokyonight theme</figcaption>
           <a href="/docs/cli">
-            <Image src={TuiScreenshot} alt="opencode TUI with the tokyonight theme" />
+            <Image src={TuiScreenshot} alt="Agent-Core TUI with the tokyonight theme" />
           </a>
         </figure>
       </div>
       <div class="right">
         <div class="row1">
           <figure>
-            <figcaption>opencode in VS Code</figcaption>
+            <figcaption>Agent-Core in VS Code</figcaption>
             <a href="/docs/ide">
-              <Image src={VscodeScreenshot} alt="opencode in VS Code" />
+              <Image src={VscodeScreenshot} alt="Agent-Core in VS Code" />
             </a>
           </figure>
         </div>
         <div class="row2">
           <figure>
-            <figcaption>opencode in GitHub</figcaption>
+            <figcaption>Agent-Core in GitHub</figcaption>
             <a href="/docs/github">
-              <Image src={GithubScreenshot} alt="opencode in GitHub" />
+              <Image src={GithubScreenshot} alt="Agent-Core in GitHub" />
             </a>
           </figure>
         </div>
@@ -176,12 +142,16 @@ if (image) {
     </section>
 
     <section class="footer">
-      <div class="col1">
-        <a href={github.href} target="_blank" rel="noopener noreferrer">GitHub</a>
-      </div>
-      <div class="col2">
-        <a href={discord.href} target="_blank" rel="noopener noreferrer">Discord</a>
-      </div>
+      {github && (
+        <div class="col1">
+          <a href={github.href} target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      )}
+      {discord && (
+        <div class="col2">
+          <a href={discord.href} target="_blank" rel="noopener noreferrer">Discord</a>
+        </div>
+      )}
       <div class="col3">
       <span>&copy;2025 <a href="https://anoma.ly" target="_blank" rel="noopener noreferrer">Anomaly Innovations</a></span>
       </div>

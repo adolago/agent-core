@@ -19,8 +19,8 @@ async function checkHealth(url: string, fetch?: typeof globalThis.fetch): Promis
     fetch,
     signal: AbortSignal.timeout(3000),
   })
-  return sdk.global
-    .health()
+  return sdk.health
+    .check()
     .then((x) => ({ healthy: x.data?.healthy === true, version: x.data?.version }))
     .catch(() => ({ healthy: false }))
 }
@@ -122,7 +122,7 @@ export function DialogSelectServer() {
   }
 
   return (
-    <Dialog title="Servers" description="Switch which OpenCode server this app connects to.">
+    <Dialog title="Servers" description="Switch which Agent-Core server this app connects to.">
       <div class="flex flex-col gap-4 pb-4">
         <List
           search={{ placeholder: "Search servers", autofocus: true }}

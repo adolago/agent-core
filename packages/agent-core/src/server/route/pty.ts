@@ -11,7 +11,7 @@ export const PtyRoute = new Hono()
     "/",
     describeRoute({
       summary: "List PTY sessions",
-      description: "Get a list of all active pseudo-terminal (PTY) sessions managed by OpenCode.",
+      description: "Get a list of all active pseudo-terminal (PTY) sessions managed by agent-core.",
       operationId: "pty.list",
       responses: {
         200: {

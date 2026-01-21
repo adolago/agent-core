@@ -506,12 +506,13 @@ export default function Spotlight(props: SpotlightProps) {
         return
       }
 
-      if (!navigator.gpu) {
+      const gpu = (navigator as any).gpu
+      if (!gpu) {
         console.warn("WebGPU is not supported in this browser")
         return
       }
 
-      const adapter = await navigator.gpu.requestAdapter({
+      const adapter = await gpu.requestAdapter({
         powerPreference: "high-performance",
       })
       if (!adapter) {
@@ -532,14 +533,14 @@ export default function Spotlight(props: SpotlightProps) {
       }
       containerRef.appendChild(canvas)
 
-      const context = canvas.getContext("webgpu")
+      const context = canvas.getContext("webgpu") as GPUCanvasContext | null
       if (!context) {
         console.warn("Failed to get WebGPU context")
         return
       }
       contextRef = context
 
-      const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
+      const presentationFormat = gpu.getPreferredCanvasFormat()
       context.configure({
         device,
         format: presentationFormat,

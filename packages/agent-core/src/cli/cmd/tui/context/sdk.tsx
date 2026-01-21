@@ -1,10 +1,16 @@
-import { createOpencodeClient, type Event } from "@opencode-ai/sdk/v2"
+import { createOpencodeClient } from "@opencode-ai/sdk/v2"
+import { createOpencodeClient as createEventClient } from "@opencode-ai/sdk"
 import { createSimpleContext } from "./helper"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup, onMount } from "solid-js"
 
+type AppEvent = {
+  type: string
+  properties: any
+}
+
 export type EventSource = {
-  on: (handler: (event: Event) => void) => () => void
+  on: (handler: (event: AppEvent) => void) => () => void
 }
 
 export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
@@ -17,12 +23,18 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
       directory: props.directory,
       fetch: props.fetch,
     })
+    const eventSdk = createEventClient({
+      baseUrl: props.url,
+      signal: abort.signal,
+      directory: props.directory,
+      fetch: props.fetch,
+    })
 
     const emitter = createGlobalEmitter<{
-      [key in Event["type"]]: Extract<Event, { type: key }>
+      [key: string]: AppEvent
     }>()
 
-    let queue: Event[] = []
+    let queue: AppEvent[] = []
     let timer: Timer | undefined
     let last = 0
 
@@ -40,7 +52,7 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
       })
     }
 
-    const handleEvent = (event: Event) => {
+    const handleEvent = (event: AppEvent) => {
       queue.push(event)
       const elapsed = Date.now() - last
 
@@ -54,6 +66,17 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
       flush()
     }
 
+    const resolveEvent = (input: any): AppEvent | undefined => {
+      if (!input || typeof input !== "object") return
+      if (input.payload && typeof input.payload === "object") {
+        const payload = input.payload as AppEvent
+        if (payload?.type) return payload
+      }
+      if (typeof input.type === "string") {
+        return input as AppEvent
+      }
+    }
+
     onMount(async () => {
       // If an event source is provided, use it instead of SSE
       if (props.events) {
@@ -65,15 +88,15 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
       // Fall back to SSE
       while (true) {
         if (abort.signal.aborted) break
-        const events = await sdk.event.subscribe(
-          {},
-          {
-            signal: abort.signal,
-          },
-        )
+        const events = await eventSdk.event.subscribe({ signal: abort.signal })
 
         for await (const event of events.stream) {
-          handleEvent(event)
+          const resolved = resolveEvent(event)
+          if (!resolved) continue
+          if (props.directory && (event as any)?.directory && (event as any).directory !== props.directory) {
+            continue
+          }
+          handleEvent(resolved)
         }
 
         // Flush any remaining events

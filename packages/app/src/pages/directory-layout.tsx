@@ -7,7 +7,7 @@ import { LocalProvider } from "@/context/local"
 import { base64Decode } from "@opencode-ai/util/encode"
 import { DataProvider } from "@opencode-ai/ui/context"
 import { iife } from "@opencode-ai/util/iife"
-import type { QuestionAnswer } from "@opencode-ai/sdk/v2"
+type QuestionAnswer = string[]
 
 export default function Layout(props: ParentProps) {
   const params = useParams()
@@ -29,7 +29,10 @@ export default function Layout(props: ParentProps) {
             }) => sdk.client.permission.respond(input)
 
             const replyToQuestion = (input: { requestID: string; answers: QuestionAnswer[] }) =>
-              sdk.client.question.reply(input)
+              sdk.client.question.reply({
+                requestID: input.requestID,
+                answers: input.answers,
+              })
 
             const rejectQuestion = (input: { requestID: string }) => sdk.client.question.reject(input)
 

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://opencode.ai/config.json",
+  "$schema": "agent-core",
   "default_agent": "zee",
   "instructions": ["STYLE_GUIDE.md"],
   "mcp": {

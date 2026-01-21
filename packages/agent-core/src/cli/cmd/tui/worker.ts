@@ -7,7 +7,7 @@ import { Rpc } from "@/util/rpc"
 import { upgrade } from "@/cli/upgrade"
 import { Config } from "@/config/config"
 import { GlobalBus } from "@/bus/global"
-import { createOpencodeClient, type Event } from "@opencode-ai/sdk/v2"
+import { createOpencodeClient } from "@opencode-ai/sdk"
 import type { BunWebSocketData } from "hono/bun"
 import { Flag } from "@/flag/flag"
 
@@ -43,6 +43,22 @@ const eventStream = {
   abort: undefined as AbortController | undefined,
 }
 
+type AppEvent = {
+  type: string
+  properties: any
+}
+
+const resolveEvent = (input: any): AppEvent | undefined => {
+  if (!input || typeof input !== "object") return
+  if (input.payload && typeof input.payload === "object") {
+    const payload = input.payload as AppEvent
+    if (payload?.type) return payload
+  }
+  if (typeof input.type === "string") {
+    return input as AppEvent
+  }
+}
+
 const startEventStream = (directory: string) => {
   if (eventStream.abort) eventStream.abort.abort()
   const abort = new AbortController()
@@ -65,14 +81,7 @@ const startEventStream = (directory: string) => {
 
   ;(async () => {
     while (!signal.aborted) {
-      const events = await Promise.resolve(
-        sdk.event.subscribe(
-          {},
-          {
-            signal,
-          },
-        ),
-      ).catch(() => undefined)
+      const events = await Promise.resolve(sdk.event.subscribe({ signal })).catch(() => undefined)
 
       if (!events) {
         await Bun.sleep(250)
@@ -80,7 +89,10 @@ const startEventStream = (directory: string) => {
       }
 
       for await (const event of events.stream) {
-        Rpc.emit("event", event as Event)
+        if ((event as any)?.directory && (event as any).directory !== directory) continue
+        const resolved = resolveEvent(event)
+        if (!resolved) continue
+        Rpc.emit("event", resolved)
       }
 
       if (!signal.aborted) {
@@ -147,6 +159,6 @@ Rpc.listen(rpc)
 function getAuthorizationHeader(): string | undefined {
   const password = Flag.OPENCODE_SERVER_PASSWORD
   if (!password) return undefined
-  const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
+  const username = Flag.OPENCODE_SERVER_USERNAME ?? "agent-core"
   return `Basic ${btoa(`${username}:${password}`)}`
 }

@@ -12,7 +12,7 @@ Complete reference for environment variables across the agent-core ecosystem.
 |----------|---------|-------------|
 | `AGENT_CORE` | Set to `1` | Automatically set when agent-core is running |
 | `AGENT` | Set to `1` | Indicates agent mode is active |
-| `OPENCODE` | Set to `1` | Backwards compatibility flag |
+| `OPENCODE` | Set to `1` | Legacy compatibility flag |
 | `AGENT_CORE_ROOT` | - | Override the agent-core installation root directory |
 | `AGENT_CORE_TEST_HOME` | - | Override home directory for testing |
 | `AGENT_CORE_ORIGINAL_PWD` | - | Original working directory before agent-core started |
@@ -51,10 +51,10 @@ Maturity and ownership for experimental flags are tracked in
 | `INWORLD_API_KEY` | - | Base64 runtime API key for Inworld STT/TTS |
 | `INWORLD_STT_ENDPOINT` | - | Inworld runtime graph endpoint for STT (`.../graph:start`) |
 | `INWORLD_TTS_ENDPOINT` | - | Inworld runtime graph endpoint for TTS (`.../graph:start`) |
-| `OPENCODE_INWORLD_API_KEY` | - | Alias for `INWORLD_API_KEY` |
-| `OPENCODE_INWORLD_STT_ENDPOINT` | - | Alias for `INWORLD_STT_ENDPOINT` |
-| `OPENCODE_INWORLD_TTS_ENDPOINT` | - | Alias for `INWORLD_TTS_ENDPOINT` |
-| `OPENCODE_DICTATION_RECORD_COMMAND` | - | Override the recorder command used for dictation |
+| `OPENCODE_INWORLD_API_KEY` | - | Legacy alias for `INWORLD_API_KEY` |
+| `OPENCODE_INWORLD_STT_ENDPOINT` | - | Legacy alias for `INWORLD_STT_ENDPOINT` |
+| `OPENCODE_INWORLD_TTS_ENDPOINT` | - | Legacy alias for `INWORLD_TTS_ENDPOINT` |
+| `OPENCODE_DICTATION_RECORD_COMMAND` | - | Legacy override for the dictation recorder command |
 
 ### Network & Proxy
 
@@ -390,7 +390,7 @@ The system uses distinct ports for different services:
 ### Constants Organization
 
 - **Centralized constants**: `src/config/constants.ts` - Infrastructure constants for the daemon
-- **Package constants**: `packages/agent-core/src/` - OpenCode fork maintains its own constants
+- **Package constants**: `packages/agent-core/src/` - Engine maintains its own constants
 - **Both read from environment variables** ensuring runtime configurability
 
 ---

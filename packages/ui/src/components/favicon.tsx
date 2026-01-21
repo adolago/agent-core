@@ -7,7 +7,7 @@ export const Favicon = () => {
       <Link rel="shortcut icon" href="/favicon-v2.ico" />
       <Link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v2.png" />
       <Link rel="manifest" href="/site.webmanifest" />
-      <Meta name="apple-mobile-web-app-title" content="OpenCode" />
+      <Meta name="apple-mobile-web-app-title" content="Agent-Core" />
     </>
   )
 }

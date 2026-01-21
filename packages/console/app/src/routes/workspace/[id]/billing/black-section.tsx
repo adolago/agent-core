@@ -92,7 +92,7 @@ export function BlackSection() {
       <div data-slot="section-title">
         <h2>Subscription</h2>
         <div data-slot="title-row">
-          <p>You are subscribed to OpenCode Black for $200 per month.</p>
+          <p>You are subscribed to Agent-Core Black for $200 per month.</p>
           <button
             data-color="primary"
             disabled={sessionSubmission.pending || store.sessionRedirecting}

@@ -15,6 +15,7 @@ export interface ACPSessionState {
 
 export interface ACPConfig {
   sdk: OpencodeClient
+  url: string
   defaultModel?: {
     providerID: string
     modelID: string
