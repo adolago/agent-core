@@ -433,9 +433,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       }))
 
     const custom = sync.data.command.map((cmd) => ({
-      id: `custom.${cmd.name}`,
-      trigger: cmd.name,
-      title: cmd.name,
+      id: `custom.${cmd.id}`,
+      trigger: cmd.id,
+      title: cmd.id,
       description: cmd.description,
       type: "custom" as const,
     }))
@@ -1126,7 +1126,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (text.startsWith("/")) {
       const [cmdName, ...args] = text.split(" ")
       const commandName = cmdName.slice(1)
-      const customCommand = sync.data.command.find((c) => c.name === commandName)
+      const customCommand = sync.data.command.find((c) => c.id === commandName)
       if (customCommand) {
         clearInput()
         client.session

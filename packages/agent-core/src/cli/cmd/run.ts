@@ -7,6 +7,7 @@ import { bootstrap } from "../bootstrap"
 import { Command } from "../../command"
 import { EOL } from "os"
 import { select } from "@clack/prompts"
+import { createOpencodeClient as createEventClient } from "@opencode-ai/sdk"
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk/v2"
 import { Server } from "../../server/server"
 import { Provider } from "../../provider/provider"
@@ -24,6 +25,11 @@ const TOOL: Record<string, [string, string]> = {
   read: ["Read", UI.Style.TEXT_HIGHLIGHT_BOLD],
   write: ["Write", UI.Style.TEXT_SUCCESS_BOLD],
   websearch: ["Search", UI.Style.TEXT_DIM_BOLD],
+}
+
+type AppEvent = {
+  type: string
+  properties: any
 }
 
 export const RunCommand = cmd({
@@ -136,7 +142,12 @@ export const RunCommand = cmd({
       process.exit(1)
     }
 
-    const execute = async (sdk: OpencodeClient, sessionID: string, resolvedAgent: string | undefined) => {
+    const execute = async (
+      sdk: OpencodeClient,
+      eventClient: ReturnType<typeof createEventClient>,
+      sessionID: string,
+      resolvedAgent: string | undefined,
+    ) => {
       const printEvent = (color: string, type: string, title: string) => {
         UI.println(
           color + `|`,
@@ -154,13 +165,25 @@ export const RunCommand = cmd({
         return false
       }
 
-      const events = await sdk.event.subscribe()
+      const events = await eventClient.event.subscribe()
       let errorMsg: string | undefined
+      const resolveEvent = (input: any): AppEvent | undefined => {
+        if (!input || typeof input !== "object") return
+        if (input.payload && typeof input.payload === "object") {
+          const payload = input.payload as AppEvent
+          if (payload?.type) return payload
+        }
+        if (typeof input.type === "string") {
+          return input as AppEvent
+        }
+      }
 
       const eventProcessor = (async () => {
         for await (const event of events.stream) {
-          if (event.type === "message.part.updated") {
-            const part = event.properties.part
+          const resolved = resolveEvent(event)
+          if (!resolved) continue
+          if (resolved.type === "message.part.updated") {
+            const part = resolved.properties.part
             if (part.sessionID !== sessionID) continue
 
             if (part.type === "tool" && part.state.status === "completed") {
@@ -257,6 +280,7 @@ export const RunCommand = cmd({
 
     if (args.attach) {
       const sdk = createOpencodeClient({ baseUrl: args.attach })
+      const eventClient = createEventClient({ baseUrl: args.attach })
 
       const sessionID = await (async () => {
         if (args.continue) {
@@ -316,7 +340,7 @@ export const RunCommand = cmd({
       }
 
       // In attach mode, skip local agent validation - server will validate
-      return await execute(sdk, sessionID, args.agent)
+      return await execute(sdk, eventClient, sessionID, args.agent)
     }
 
     await bootstrap(process.cwd(), async () => {
@@ -325,6 +349,7 @@ export const RunCommand = cmd({
         return Server.App().fetch(request)
       }) as typeof globalThis.fetch
       const sdk = createOpencodeClient({ baseUrl: "http://opencode.internal", fetch: fetchFn })
+      const eventClient = createEventClient({ baseUrl: "http://opencode.internal", fetch: fetchFn })
 
       if (args.command) {
         const exists = await Command.get(args.command)
@@ -393,7 +418,7 @@ export const RunCommand = cmd({
         return args.agent
       })()
 
-      await execute(sdk, sessionID, resolvedAgent)
+      await execute(sdk, eventClient, sessionID, resolvedAgent)
     })
   },
 })

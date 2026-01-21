@@ -491,7 +491,7 @@ export type GrammarConfig = {
 }
 
 /**
- * Server configuration for opencode serve and web commands
+ * Server configuration for agent-core serve and web commands
  */
 export type ServerConfig = {
   /**
@@ -1118,7 +1118,7 @@ export type Config = {
   server?: ServerConfig
   daemon?: DaemonConfig
   /**
-   * Command configuration, see https://opencode.ai/docs/commands
+   * Command configuration
    */
   command?: {
     [key: string]: {
@@ -1179,7 +1179,7 @@ export type Config = {
     [key: string]: AgentConfig | undefined
   }
   /**
-   * Agent configuration, see https://opencode.ai/docs/agents
+   * Agent configuration
    */
   agent?: {
     plan?: AgentConfig
@@ -4789,41 +4789,6 @@ export type TuiSelectSessionResponses = {
 }
 
 export type TuiSelectSessionResponse = TuiSelectSessionResponses[keyof TuiSelectSessionResponses]
-
-export type TuiControlNextData = {
-  body?: never
-  path?: never
-  query?: never
-  url: "/tui/control/next"
-}
-
-export type TuiControlNextResponses = {
-  /**
-   * Next TUI request
-   */
-  200: {
-    path: string
-    body: unknown
-  }
-}
-
-export type TuiControlNextResponse = TuiControlNextResponses[keyof TuiControlNextResponses]
-
-export type TuiControlResponseData = {
-  body?: unknown
-  path?: never
-  query?: never
-  url: "/tui/control/response"
-}
-
-export type TuiControlResponseResponses = {
-  /**
-   * Response submitted successfully
-   */
-  200: boolean
-}
-
-export type TuiControlResponseResponse = TuiControlResponseResponses[keyof TuiControlResponseResponses]
 
 export type AuthRemoveData = {
   body?: never

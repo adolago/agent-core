@@ -25,10 +25,19 @@ export const AppRoute = new Hono()
         const subscriptions: (() => void)[] = []
 
         const handler = async (event: { directory?: string; payload: any }) => {
+          const payload = {
+            type: event.payload.type,
+            properties: event.payload.properties,
+          }
           await stream.writeSSE({
             event: event.payload.type,
-            // Include both type and properties in data for SDK compatibility
-            data: JSON.stringify({ type: event.payload.type, properties: event.payload.properties }),
+            // Include legacy and payload shapes for SDK compatibility.
+            data: JSON.stringify({
+              directory: event.directory,
+              type: payload.type,
+              properties: payload.properties,
+              payload,
+            }),
           })
         }
         GlobalBus.on("event", handler)
@@ -115,7 +124,7 @@ export const AppRoute = new Hono()
     "/agent",
     describeRoute({
       summary: "List agents",
-      description: "Get a list of all available AI agents in the OpenCode system.",
+      description: "Get a list of all available AI agents in the agent-core system.",
       operationId: "app.agents",
       responses: {
         200: {

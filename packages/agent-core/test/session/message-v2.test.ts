@@ -570,7 +570,7 @@ describe("session.message-v2.toModelMessage", () => {
     expect(await MessageV2.toModelMessage(input)).toStrictEqual([])
   })
 
-  test("converts pending/running tool calls to error results to prevent dangling tool_use", () => {
+  test("converts pending/running tool calls to error results to prevent dangling tool_use", async () => {
     const userID = "m-user"
     const assistantID = "m-assistant"
 
@@ -614,7 +614,7 @@ describe("session.message-v2.toModelMessage", () => {
       },
     ]
 
-    const result = MessageV2.toModelMessage(input)
+    const result = await MessageV2.toModelMessage(input)
 
     expect(result).toStrictEqual([
       {

@@ -1,5 +1,16 @@
 #!/usr/bin/env bun
 
+const RELEASE_REPO = process.env.STATS_REPO
+const NPM_PACKAGE = process.env.STATS_NPM_PACKAGE
+
+if (!RELEASE_REPO) {
+  throw new Error("STATS_REPO is required (owner/repo)")
+}
+
+if (!NPM_PACKAGE) {
+  throw new Error("STATS_NPM_PACKAGE is required")
+}
+
 async function sendToPostHog(event: string, properties: Record<string, any>) {
   const key = process.env["POSTHOG_KEY"]
 
@@ -73,7 +84,7 @@ async function fetchReleases(): Promise<Release[]> {
   const per = 100
 
   while (true) {
-    const url = `https://api.github.com/repos/anomalyco/opencode/releases?page=${page}&per_page=${per}`
+    const url = `https://api.github.com/repos/${RELEASE_REPO}/releases?page=${page}&per_page=${per}`
 
     const response = await fetch(url)
     if (!response.ok) {
@@ -188,15 +199,15 @@ async function save(githubTotal: number, npmDownloads: number) {
   )
 }
 
-console.log("Fetching GitHub releases for anomalyco/opencode...\n")
+console.log(`Fetching GitHub releases for ${RELEASE_REPO}...\n`)
 
 const releases = await fetchReleases()
 console.log(`\nFetched ${releases.length} releases total\n`)
 
 const { total: githubTotal, stats } = calculate(releases)
 
-console.log("Fetching npm all-time downloads for opencode-ai...\n")
-const npmDownloads = await fetchNpmDownloads("opencode-ai")
+console.log(`Fetching npm all-time downloads for ${NPM_PACKAGE}...\n`)
+const npmDownloads = await fetchNpmDownloads(NPM_PACKAGE)
 console.log(`Fetched npm all-time downloads: ${npmDownloads.toLocaleString()}\n`)
 
 await save(githubTotal, npmDownloads)

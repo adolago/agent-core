@@ -70,15 +70,15 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
 
     const responded = new Set<string>()
 
-    const clientFor = (directory?: string) => {
-      if (!directory) return globalSDK.client
-      return createOpencodeClient({
-        baseUrl: globalSDK.url,
-        fetch: platform.fetch,
-        directory,
-        throwOnError: true,
-      })
-    }
+    const clientFor = (directory?: string) =>
+      directory
+        ? createOpencodeClient({
+            baseUrl: globalSDK.url,
+            fetch: platform.fetch,
+            directory,
+            throwOnError: true,
+          })
+        : globalSDK.client
 
     const respond: PermissionRespondFn = (input) => {
       clientFor(input.directory)

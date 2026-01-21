@@ -1,10 +1,18 @@
 export const domain = (() => {
-  if ($app.stage === "production") return "opencode.ai"
-  if ($app.stage === "dev") return "dev.opencode.ai"
-  return `${$app.stage}.dev.opencode.ai`
+  const value = process.env.AGENT_CORE_DOMAIN
+  if (!value) {
+    throw new Error("AGENT_CORE_DOMAIN is required")
+  }
+  return value
 })()
 
-export const zoneID = "430ba34c138cfb5360826c4909f99be8"
+export const zoneID = (() => {
+  const value = process.env.AGENT_CORE_ZONE_ID
+  if (!value) {
+    throw new Error("AGENT_CORE_ZONE_ID is required")
+  }
+  return value
+})()
 
 new cloudflare.RegionalHostname("RegionalHostname", {
   hostname: domain,
@@ -13,7 +21,9 @@ new cloudflare.RegionalHostname("RegionalHostname", {
 })
 
 export const shortDomain = (() => {
-  if ($app.stage === "production") return "opncd.ai"
-  if ($app.stage === "dev") return "dev.opncd.ai"
-  return `${$app.stage}.dev.opncd.ai`
+  const value = process.env.AGENT_CORE_SHORT_DOMAIN
+  if (!value) {
+    throw new Error("AGENT_CORE_SHORT_DOMAIN is required")
+  }
+  return value
 })()

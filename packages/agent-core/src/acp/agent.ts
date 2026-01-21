@@ -29,8 +29,23 @@ import { Config } from "@/config/config"
 import { Todo } from "@/session/todo"
 import { z } from "zod"
 import { LoadAPIKeyError } from "ai"
-import type { Event, OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
+import { createOpencodeClient as createEventClient } from "@opencode-ai/sdk"
+import type { OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
 import { applyPatch } from "diff"
+import { HEADER_DIRECTORY } from "@/gateway/constants"
+
+type AppEvent = {
+  type: string
+  properties: any
+}
+
+const withDirectory = (directory: string, options?: { headers?: Record<string, string> }) => ({
+  ...options,
+  headers: {
+    ...options?.headers,
+    [HEADER_DIRECTORY]: directory,
+  },
+})
 
 export namespace ACP {
   const log = Log.create({ service: "acp-agent" })
@@ -47,6 +62,7 @@ export namespace ACP {
     private connection: AgentSideConnection
     private config: ACPConfig
     private sdk: OpencodeClient
+    private eventSdk: ReturnType<typeof createEventClient>
     private sessionManager: ACPSessionManager
     private eventAbort = new AbortController()
     private eventStarted = false
@@ -61,6 +77,7 @@ export namespace ACP {
       this.connection = connection
       this.config = config
       this.sdk = config.sdk
+      this.eventSdk = createEventClient({ baseUrl: config.url })
       this.sessionManager = new ACPSessionManager(this.sdk)
       this.startEventSubscription()
     }
@@ -77,21 +94,21 @@ export namespace ACP {
     private async runEventSubscription() {
       while (true) {
         if (this.eventAbort.signal.aborted) return
-        const events = await this.sdk.global.event({
+        const events = await this.eventSdk.global.event({
           signal: this.eventAbort.signal,
         })
         for await (const event of events.stream) {
           if (this.eventAbort.signal.aborted) return
           const payload = (event as any)?.payload
           if (!payload) continue
-          await this.handleEvent(payload as Event).catch((error) => {
+          await this.handleEvent(payload as AppEvent).catch((error) => {
             log.error("failed to handle event", { error, type: payload.type })
           })
         }
       }
     }
 
-    private async handleEvent(event: Event) {
+    private async handleEvent(event: AppEvent) {
       switch (event.type) {
         case "permission.asked": {
           const permission = event.properties
@@ -122,21 +139,25 @@ export namespace ACP {
                     permissionID: permission.id,
                     sessionID: permission.sessionID,
                   })
-                  await this.sdk.permission.reply({
-                    requestID: permission.id,
-                    reply: "reject",
-                    directory,
-                  })
+                  await this.sdk.permission.reply(
+                    {
+                      requestID: permission.id,
+                      reply: "reject",
+                    },
+                    withDirectory(directory),
+                  )
                   return undefined
                 })
 
               if (!res) return
               if (res.outcome.outcome !== "selected") {
-                await this.sdk.permission.reply({
-                  requestID: permission.id,
-                  reply: "reject",
-                  directory,
-                })
+                await this.sdk.permission.reply(
+                  {
+                    requestID: permission.id,
+                    reply: "reject",
+                  },
+                  withDirectory(directory),
+                )
                 return
               }
 
@@ -157,11 +178,13 @@ export namespace ACP {
                 }
               }
 
-              await this.sdk.permission.reply({
-                requestID: permission.id,
-                reply: res.outcome.optionId as "once" | "always" | "reject",
-                directory,
-              })
+              await this.sdk.permission.reply(
+                {
+                  requestID: permission.id,
+                  reply: res.outcome.optionId as "once" | "always" | "reject",
+                },
+                withDirectory(directory),
+              )
             })
             .catch((error) => {
               log.error("failed to handle permission", { error, permissionID: permission.id })
@@ -189,9 +212,8 @@ export namespace ACP {
               {
                 sessionID: part.sessionID,
                 messageID: part.messageID,
-                directory,
               },
-              { throwOnError: true },
+              withDirectory(directory, { throwOnError: true }),
             )
             .then((x) => x.data)
             .catch((error) => {
@@ -401,8 +423,8 @@ export namespace ACP {
       log.info("initialize", { protocolVersion: params.protocolVersion })
 
       const authMethod: AuthMethod = {
-        description: "Run `opencode auth login` in the terminal",
-        name: "Login with opencode",
+        description: "Run `agent-core auth login` in the terminal",
+        name: "Login with agent-core",
         id: "opencode-login",
       }
 
@@ -410,9 +432,9 @@ export namespace ACP {
       if (params.clientCapabilities?._meta?.["terminal-auth"] === true) {
         authMethod._meta = {
           "terminal-auth": {
-            command: "opencode",
+            command: "agent-core",
             args: ["auth", "login"],
-            label: "OpenCode Login",
+            label: "Agent-Core Login",
           },
         }
       }
@@ -432,7 +454,7 @@ export namespace ACP {
         },
         authMethods: [authMethod],
         agentInfo: {
-          name: "OpenCode",
+          name: "Agent-Core",
           version: Installation.VERSION,
         },
       }
@@ -499,9 +521,8 @@ export namespace ACP {
           .messages(
             {
               sessionID: sessionId,
-              directory,
             },
-            { throwOnError: true },
+            withDirectory(directory, { throwOnError: true }),
           )
           .then((x) => x.data)
           .catch((err) => {
@@ -705,7 +726,7 @@ export namespace ACP {
           }
         } else if (part.type === "file") {
           // Replay file attachments as appropriate ACP content blocks.
-          // OpenCode stores files internally as { type: "file", url, filename, mime }.
+          // agent-core stores files internally as { type: "file", url, filename, mime }.
           // We convert these back to ACP blocks based on the URL scheme and MIME type:
           // - file:// URLs → resource_link
           // - data: URLs with image/* → image block
@@ -806,7 +827,7 @@ export namespace ACP {
       const model = await defaultModel(this.config, directory)
       const sessionId = params.sessionId
 
-      const providers = await this.sdk.config.providers({ directory }).then((x) => x.data!.providers)
+      const providers = await this.sdk.config.providers(withDirectory(directory)).then((x) => x.data!.providers)
       const entries = providers.sort((a, b) => {
         const nameA = a.name.toLowerCase()
         const nameB = b.name.toLowerCase()
@@ -823,25 +844,15 @@ export namespace ACP {
       })
 
       const agents = await this.config.sdk.app
-        .agents(
-          {
-            directory,
-          },
-          { throwOnError: true },
-        )
+        .agents(withDirectory(directory, { throwOnError: true }))
         .then((resp) => resp.data!)
 
       const commands = await this.config.sdk.command
-        .list(
-          {
-            directory,
-          },
-          { throwOnError: true },
-        )
+        .list(withDirectory(directory, { throwOnError: true }))
         .then((resp) => resp.data!)
 
       const availableCommands = commands.map((command) => ({
-        name: command.name,
+        name: command.id,
         description: command.description ?? "",
       }))
       const names = new Set(availableCommands.map((c) => c.name))
@@ -893,11 +904,10 @@ export namespace ACP {
           await this.sdk.mcp
             .add(
               {
-                directory,
                 name: key,
                 config: mcp,
               },
-              { throwOnError: true },
+              withDirectory(directory, { throwOnError: true }),
             )
             .catch((error) => {
               log.error("failed to add mcp server", { name: key, error })
@@ -945,9 +955,9 @@ export namespace ACP {
     }
 
     async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse | void> {
-      this.sessionManager.get(params.sessionId)
+      const session = this.sessionManager.get(params.sessionId)
       await this.config.sdk.app
-        .agents({}, { throwOnError: true })
+        .agents(withDirectory(session.cwd, { throwOnError: true }))
         .then((x) => x.data)
         .then((agent) => {
           if (!agent) throw new Error(`Agent not found: ${params.modeId}`)
@@ -1056,31 +1066,35 @@ export namespace ACP {
       }
 
       if (!cmd) {
-        await this.sdk.session.prompt({
-          sessionID,
-          model: {
-            providerID: model.providerID,
-            modelID: model.modelID,
+        await this.sdk.session.prompt(
+          {
+            sessionID,
+            model: {
+              providerID: model.providerID,
+              modelID: model.modelID,
+            },
+            parts,
+            agent,
           },
-          parts,
-          agent,
-          directory,
-        })
+          withDirectory(directory),
+        )
         return done
       }
 
       const command = await this.config.sdk.command
-        .list({ directory }, { throwOnError: true })
-        .then((x) => x.data!.find((c) => c.name === cmd.name))
+        .list(withDirectory(directory, { throwOnError: true }))
+        .then((x) => x.data!.find((c) => c.id === cmd.name))
       if (command) {
-        await this.sdk.session.command({
-          sessionID,
-          command: command.name,
-          arguments: cmd.args,
-          model: model.providerID + "/" + model.modelID,
-          agent,
-          directory,
-        })
+        await this.sdk.session.command(
+          {
+            sessionID,
+            command: command.id,
+            arguments: cmd.args,
+            model: model.providerID + "/" + model.modelID,
+            agent,
+          },
+          withDirectory(directory),
+        )
         return done
       }
 
@@ -1089,11 +1103,10 @@ export namespace ACP {
           await this.config.sdk.session.summarize(
             {
               sessionID,
-              directory,
               providerID: model.providerID,
               modelID: model.modelID,
             },
-            { throwOnError: true },
+            withDirectory(directory, { throwOnError: true }),
           )
           break
       }
@@ -1106,9 +1119,8 @@ export namespace ACP {
       await this.config.sdk.session.abort(
         {
           sessionID: params.sessionId,
-          directory: session.cwd,
         },
-        { throwOnError: true },
+        withDirectory(session.cwd, { throwOnError: true }),
       )
     }
   }
@@ -1168,7 +1180,7 @@ export namespace ACP {
     const directory = cwd ?? process.cwd()
 
     const specified = await sdk.config
-      .get({ directory }, { throwOnError: true })
+      .get(withDirectory(directory, { throwOnError: true }))
       .then((resp) => {
         const cfg = resp.data
         if (!cfg || !cfg.model) return undefined
@@ -1184,7 +1196,7 @@ export namespace ACP {
       })
 
     const providers = await sdk.config
-      .providers({ directory }, { throwOnError: true })
+      .providers(withDirectory(directory, { throwOnError: true }))
       .then((x) => x.data?.providers ?? [])
       .catch((error) => {
         log.error("failed to list providers for default model", { error })

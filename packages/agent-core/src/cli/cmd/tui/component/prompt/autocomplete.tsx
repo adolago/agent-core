@@ -348,15 +348,15 @@ export function Autocomplete(props: {
       return {
         ...item,
         display,
-        value: item.value ?? display,
+        value: display,
         aliases: item.aliases?.map((alias) => (alias.startsWith("/") ? ":" + alias.slice(1) : alias)),
       }
     })
 
     for (const serverCommand of sync.data?.command ?? []) {
-      const commandName = ":" + serverCommand.name
+      const commandName = ":" + serverCommand.id
       results.push({
-        display: commandName + (serverCommand.mcp ? " (MCP)" : ""),
+        display: commandName,
         value: commandName,
         description: serverCommand.description,
         onSelect: () => {

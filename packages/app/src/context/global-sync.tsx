@@ -82,13 +82,13 @@ type State = {
   }
 }
 
-type CommandItem = CommandListResponse[number]
-
 type VcsCache = {
   store: Store<{ value: VcsInfo | undefined }>
   setStore: SetStoreFunction<{ value: VcsInfo | undefined }>
   ready: Accessor<boolean>
 }
+
+type CommandItem = CommandListResponse extends Array<infer T> ? T : never
 
 function createGlobalSync() {
   const globalSDK = useGlobalSDK()
@@ -112,6 +112,14 @@ function createGlobalSync() {
   })
 
   const children: Record<string, [Store<State>, SetStoreFunction<State>]> = {}
+
+  const clientFor = (directory: string) =>
+    createOpencodeClient({
+      baseUrl: globalSDK.url,
+      fetch: platform.fetch,
+      directory,
+      throwOnError: true,
+    })
 
   function child(directory: string) {
     if (!directory) console.error("No directory provided")
@@ -161,9 +169,7 @@ function createGlobalSync() {
   async function loadSessions(directory: string, sdk: ReturnType<typeof createOpencodeClient>) {
     const [store, setStore] = child(directory)
     const limit = store.limit
-
-    return sdk.session
-      .list({ roots: true })
+    return sdk.session.list()
       .then((x) => {
         const nonArchived = (x.data ?? [])
           .filter((s) => !!s?.id)
@@ -200,12 +206,7 @@ function createGlobalSync() {
     const [store, setStore] = child(directory)
     const cache = vcsCache.get(directory)
     if (!cache) return
-    const sdk = createOpencodeClient({
-      baseUrl: globalSDK.url,
-      fetch: platform.fetch,
-      directory,
-      throwOnError: true,
-    })
+    const sdk = clientFor(directory)
 
     createEffect(() => {
       if (!cache.ready()) return
@@ -561,13 +562,7 @@ function createGlobalSync() {
         break
       }
       case "lsp.updated": {
-        const sdk = createOpencodeClient({
-          baseUrl: globalSDK.url,
-          fetch: platform.fetch,
-          directory,
-          throwOnError: true,
-        })
-        sdk.lsp.status().then((x) => setStore("lsp", x.data ?? []))
+        clientFor(directory).lsp.status().then((x) => setStore("lsp", x.data ?? []))
         break
       }
     }

@@ -269,7 +269,6 @@ const createPlatform = (password: Accessor<string | null>): Platform => ({
       .then(() => {
         const notification = new Notification(title, {
           body: description ?? "",
-          icon: "https://opencode.ai/favicon-96x96-v2.png",
         })
         notification.onclick = () => {
           const win = getCurrentWindow()
@@ -291,7 +290,7 @@ const createPlatform = (password: Accessor<string | null>): Platform => ({
     const pw = password()
 
     const addHeader = (headers: Headers, password: string) => {
-      headers.append("Authorization", `Basic ${btoa(`opencode:${password}`)}`)
+      headers.append("Authorization", `Basic ${btoa(`agent-core:${password}`)}`)
     }
 
     if (input instanceof Request) {
@@ -344,8 +343,8 @@ render(() => {
         <ServerGate>
           {(data) => {
             setServerPassword(data().password)
-            window.__OPENCODE__ ??= {}
-            window.__OPENCODE__.serverPassword = data().password ?? undefined
+            window.__AGENT_CORE__ ??= {}
+            window.__AGENT_CORE__.serverPassword = data().password ?? undefined
 
             return <AppInterface defaultUrl={data().url} />
           }}

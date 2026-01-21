@@ -12,7 +12,7 @@ test("agent color parsed from project config", async () => {
       await Bun.write(
         path.join(dir, "agent-core.json"),
         JSON.stringify({
-          $schema: "https://opencode.ai/config.json",
+          $schema: "agent-core",
           agent: {
             build: { color: "#FFA500" },
           },
@@ -35,7 +35,7 @@ test("Agent.get includes color from config", async () => {
       await Bun.write(
         path.join(dir, "agent-core.json"),
         JSON.stringify({
-          $schema: "https://opencode.ai/config.json",
+          $schema: "agent-core",
           agent: {
             plan: { color: "#A855F7" },
           },

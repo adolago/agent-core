@@ -17,9 +17,9 @@ interface DialogSelectDirectoryProps {
 
 export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
   const sync = useGlobalSync()
-  const sdk = useGlobalSDK()
-  const dialog = useDialog()
+  const globalSDK = useGlobalSDK()
   const platform = usePlatform()
+  const dialog = useDialog()
 
   const home = createMemo(() => sync.data.path.home)
   const root = createMemo(() => sync.data.path.home || sync.data.path.directory)
@@ -64,14 +64,13 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
     const directory = root()
     if (!directory) return [] as string[]
 
-    const directorySdk = createOpencodeClient({
-      baseUrl: sdk.url,
+    const client = createOpencodeClient({
+      baseUrl: globalSDK.url,
       fetch: platform.fetch,
       directory,
       throwOnError: true,
     })
-
-    const results = await directorySdk.find
+    const results = await client.find
       .files({ query, type: "directory", limit: 50 })
       .then((x) => x.data ?? [])
       .catch(() => [])

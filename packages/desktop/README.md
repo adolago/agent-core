@@ -1,6 +1,6 @@
-# OpenCode Desktop
+# Agent-Core Desktop
 
-Native OpenCode desktop app, built with Tauri v2.
+Native Agent-Core desktop app, built with Tauri v2.
 
 ## Development
 

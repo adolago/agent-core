@@ -25,7 +25,7 @@ type TurnCompleteNotification = NotificationBase & {
 
 type ErrorNotification = NotificationBase & {
   type: "error"
-  error?: unknown
+  error: unknown
 }
 
 export type Notification = TurnCompleteNotification | ErrorNotification

@@ -322,7 +322,7 @@ download_and_install() {
         unzip -q "$tmp_dir/$filename" -d "$tmp_dir"
     fi
 
-    # Handle binary name (upstream might still be opencode or renamed agent-core)
+    # Handle legacy binary naming
     if [ -f "$tmp_dir/agent-core" ]; then
         mv "$tmp_dir/agent-core" "$INSTALL_DIR/agent-core"
     elif [ -f "$tmp_dir/opencode" ]; then

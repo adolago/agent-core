@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { ACP } from "../../src/acp/agent"
 import type { AgentSideConnection } from "@agentclientprotocol/sdk"
-import type { Event } from "@opencode-ai/sdk/v2"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 
@@ -9,9 +8,14 @@ type SessionUpdateParams = Parameters<AgentSideConnection["sessionUpdate"]>[0]
 type RequestPermissionParams = Parameters<AgentSideConnection["requestPermission"]>[0]
 type RequestPermissionResult = Awaited<ReturnType<AgentSideConnection["requestPermission"]>>
 
+type AppEvent = {
+  type: string
+  properties: any
+}
+
 type GlobalEventEnvelope = {
   directory?: string
-  payload?: Event
+  payload?: AppEvent
 }
 
 type EventController = {

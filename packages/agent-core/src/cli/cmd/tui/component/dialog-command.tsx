@@ -61,6 +61,9 @@ export function createCommandDialog() {
   })
 
   const result = {
+    get options() {
+      return visibleOptions()
+    },
     trigger(name: string) {
       for (const option of entries()) {
         if (option.value === name) {

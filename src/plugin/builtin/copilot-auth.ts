@@ -5,7 +5,7 @@
  * - GitHub OAuth device flow
  * - GitHub token authentication
  *
- * Compatible with OpenCode's copilot-auth plugin pattern.
+ * Compatible with the legacy copilot-auth plugin pattern.
  */
 
 import type {

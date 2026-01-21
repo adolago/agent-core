@@ -24,8 +24,9 @@ export const AcpCommand = cmd({
       const opts = await resolveNetworkOptions(args)
       const server = Server.listen(opts)
 
+      const baseUrl = `http://${server.hostname}:${server.port}`
       const sdk = createOpencodeClient({
-        baseUrl: `http://${server.hostname}:${server.port}`,
+        baseUrl,
       })
 
       const input = new WritableStream<Uint8Array>({
@@ -55,7 +56,7 @@ export const AcpCommand = cmd({
       const agent = await ACP.init({ sdk })
 
       new AgentSideConnection((conn) => {
-        return agent.create(conn, { sdk })
+        return agent.create(conn, { sdk, url: baseUrl })
       }, stream)
 
       log.info("setup connection")

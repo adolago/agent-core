@@ -227,25 +227,21 @@ export function DialogConnectProvider(props: { provider: string }) {
                       <Match when={provider().id === "opencode"}>
                         <div class="flex flex-col gap-4">
                           <div class="text-14-regular text-text-base">
-                            OpenCode Zen gives you access to a curated set of reliable optimized models for coding
+                            Agent-Core Zen gives you access to a curated set of reliable optimized models for coding
                             agents.
                           </div>
                           <div class="text-14-regular text-text-base">
                             With a single API key you'll get access to models such as Claude, GPT, Gemini, GLM and more.
                           </div>
                           <div class="text-14-regular text-text-base">
-                            Visit{" "}
-                            <Link href="https://opencode.ai/zen" tabIndex={-1}>
-                              opencode.ai/zen
-                            </Link>{" "}
-                            to collect your API key.
+                            Use the Zen dashboard to collect your API key.
                           </div>
                         </div>
                       </Match>
                       <Match when={true}>
                         <div class="text-14-regular text-text-base">
                           Enter your {provider().name} API key to connect your account and use {provider().name} models
-                          in OpenCode.
+                          in Agent-Core.
                         </div>
                       </Match>
                     </Switch>
@@ -313,7 +309,7 @@ export function DialogConnectProvider(props: { provider: string }) {
                       <div class="flex flex-col gap-6">
                         <div class="text-14-regular text-text-base">
                           Visit <Link href={store.authorization!.url}>this link</Link> to collect your authorization
-                          code to connect your account and use {provider().name} models in OpenCode.
+                          code to connect your account and use {provider().name} models in Agent-Core.
                         </div>
                         <form onSubmit={handleSubmit} class="flex flex-col items-start gap-4">
                           <TextField
@@ -367,7 +363,7 @@ export function DialogConnectProvider(props: { provider: string }) {
                       <div class="flex flex-col gap-6">
                         <div class="text-14-regular text-text-base">
                           Visit <Link href={store.authorization!.url}>this link</Link> and enter the code below to
-                          connect your account and use {provider().name} models in OpenCode.
+                          connect your account and use {provider().name} models in Agent-Core.
                         </div>
                         <TextField label="Confirmation code" class="font-mono" value={code()} readOnly copyable />
                         <div class="text-14-regular text-text-base flex items-center gap-4">

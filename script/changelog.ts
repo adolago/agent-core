@@ -4,6 +4,11 @@ import { $ } from "bun"
 import { createOpencode } from "@opencode-ai/sdk"
 import { parseArgs } from "util"
 
+const CHANGELOG_REPO = process.env.CHANGELOG_REPO
+if (!CHANGELOG_REPO) {
+  throw new Error("CHANGELOG_REPO is required (owner/repo)")
+}
+
 export const team = [
   "actions-user",
   "opencode",
@@ -14,11 +19,11 @@ export const team = [
   "fwang",
   "adamdotdevin",
   "iamdavidhill",
-  "opencode-agent[bot]",
+  "agent-core[bot]",
 ]
 
 export async function getLatestRelease() {
-  return fetch("https://api.github.com/repos/anomalyco/opencode/releases/latest")
+  return fetch(`https://api.github.com/repos/${CHANGELOG_REPO}/releases/latest`)
     .then((res) => {
       if (!res.ok) throw new Error(res.statusText)
       return res.json()
@@ -39,7 +44,7 @@ export async function getCommits(from: string, to: string): Promise<Commit[]> {
 
   // Get commit data with GitHub usernames from the API
   const compare =
-    await $`gh api "/repos/anomalyco/opencode/compare/${fromRef}...${toRef}" --jq '.commits[] | {sha: .sha, login: .author.login, message: .commit.message}'`.text()
+    await $`gh api "/repos/${CHANGELOG_REPO}/compare/${fromRef}...${toRef}" --jq '.commits[] | {sha: .sha, login: .author.login, message: .commit.message}'`.text()
 
   const commitData = new Map<string, { login: string | null; message: string }>()
   for (const line of compare.split("\n").filter(Boolean)) {
@@ -195,7 +200,7 @@ export async function getContributors(from: string, to: string) {
   const fromRef = from.startsWith("v") ? from : `v${from}`
   const toRef = to === "HEAD" ? to : to.startsWith("v") ? to : `v${to}`
   const compare =
-    await $`gh api "/repos/anomalyco/opencode/compare/${fromRef}...${toRef}" --jq '.commits[] | {login: .author.login, message: .commit.message}'`.text()
+    await $`gh api "/repos/${CHANGELOG_REPO}/compare/${fromRef}...${toRef}" --jq '.commits[] | {login: .author.login, message: .commit.message}'`.text()
   const contributors = new Map<string, Set<string>>()
 
   for (const line of compare.split("\n").filter(Boolean)) {

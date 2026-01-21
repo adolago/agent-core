@@ -11,7 +11,13 @@ import { createSimpleContext } from "./helper"
 // Extended keybinds type with new keybinds not yet in SDK
 export type KeybindsConfig = SDKKeybindsConfig & {
   model_fallback_toggle?: string
+  model_provider_list?: string
   input_dictation_toggle?: string
+  session_delegate?: string
+  session_delete?: string
+  stash_delete?: string
+  messages_line_up?: string
+  messages_line_down?: string
 }
 
 export const { use: useKeybind, provider: KeybindProvider } = createSimpleContext({

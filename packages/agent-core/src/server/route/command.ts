@@ -7,7 +7,7 @@ export const CommandRoute = new Hono().get(
   "/",
   describeRoute({
     summary: "List commands",
-    description: "Get a list of all available commands in the OpenCode system.",
+    description: "Get a list of all available commands in the agent-core system.",
     operationId: "command.list",
     responses: {
       200: {
@@ -30,6 +30,18 @@ export const CommandRoute = new Hono().get(
     },
   }),
   async (c) => {
-    return c.json(Command.list())
+    const commands = await Command.list()
+    const result = commands.map((cmd) => {
+      const hints = cmd.hints ?? []
+      const usage = `/${cmd.name}${hints.length ? " " + hints.join(" ") : ""}`
+      const examples = hints.length ? hints.map((hint) => `/${cmd.name} ${hint}`) : []
+      return {
+        id: cmd.name,
+        description: cmd.description ?? "",
+        usage,
+        examples,
+      }
+    })
+    return c.json(result)
   },
 )

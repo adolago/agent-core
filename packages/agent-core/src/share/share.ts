@@ -1,5 +1,4 @@
 import { Bus } from "../bus"
-import { Installation } from "../installation"
 import { Session } from "../session"
 import { MessageV2 } from "../session/message-v2"
 import { Log } from "../util/log"
@@ -98,11 +97,10 @@ export namespace Share {
     log.debug("Share module shutdown complete")
   }
 
-  export const URL =
-    process.env["OPENCODE_API"] ??
-    (Installation.isPreview() || Installation.isLocal() ? "https://api.dev.opencode.ai" : "https://api.opencode.ai")
+  export const URL = (process.env["AGENT_CORE_API"] ?? process.env["OPENCODE_API"] ?? "").replace(/\/+$/, "")
 
-  const disabled = process.env["OPENCODE_DISABLE_SHARE"] === "true" || process.env["OPENCODE_DISABLE_SHARE"] === "1"
+  const disabled =
+    !URL || process.env["OPENCODE_DISABLE_SHARE"] === "true" || process.env["OPENCODE_DISABLE_SHARE"] === "1"
 
   export async function create(sessionID: string) {
     if (disabled) return { url: "", secret: "" }

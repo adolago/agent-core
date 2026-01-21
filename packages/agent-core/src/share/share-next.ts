@@ -12,13 +12,19 @@ export namespace ShareNext {
   const log = Log.create({ service: "share-next" })
 
   async function url() {
-    return Config.get().then((x) => x.enterprise?.url ?? "https://opncd.ai")
+    const baseUrl = await Config.get().then((x) => x.enterprise?.url)
+    return baseUrl?.replace(/\/+$/, "")
   }
 
   const disabled = process.env["OPENCODE_DISABLE_SHARE"] === "true" || process.env["OPENCODE_DISABLE_SHARE"] === "1"
 
   export async function init() {
     if (disabled) return
+    const baseUrl = await url()
+    if (!baseUrl) {
+      log.warn("Share URL not configured; share sync disabled")
+      return
+    }
     Bus.subscribe(Session.Event.Updated, async (evt) => {
       await sync(evt.properties.info.id, [
         {
@@ -67,8 +73,13 @@ export namespace ShareNext {
 
   export async function create(sessionID: string) {
     if (disabled) return { id: "", url: "", secret: "" }
+    const baseUrl = await url()
+    if (!baseUrl) {
+      log.warn("Share URL not configured; share create skipped")
+      return { id: "", url: "", secret: "" }
+    }
     log.info("creating share", { sessionID })
-    const result = await fetch(`${await url()}/api/share`, {
+    const result = await fetch(`${baseUrl}/api/share`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -135,7 +146,9 @@ export namespace ShareNext {
       const share = await get(sessionID).catch(() => undefined)
       if (!share) return
 
-      await fetch(`${await url()}/api/share/${share.id}/sync`, {
+      const baseUrl = await url()
+      if (!baseUrl) return
+      await fetch(`${baseUrl}/api/share/${share.id}/sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -154,7 +167,9 @@ export namespace ShareNext {
     log.info("removing share", { sessionID })
     const share = await get(sessionID)
     if (!share) return
-    await fetch(`${await url()}/api/share/${share.id}`, {
+    const baseUrl = await url()
+    if (!baseUrl) return
+    await fetch(`${baseUrl}/api/share/${share.id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

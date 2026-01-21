@@ -8,7 +8,7 @@
  * - Lifecycle: init -> active (hooks called) -> destroy
  *
  * Design Decisions:
- * - Plugin interface inspired by OpenCode but extended for agent use cases
+ * - Plugin interface inspired by legacy patterns but extended for agent use cases
  * - Lifecycle hooks added for proper resource management
  * - Auth providers support multiple authentication strategies
  * - Tool registration allows plugins to extend agent capabilities

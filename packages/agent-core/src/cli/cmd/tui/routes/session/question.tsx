@@ -4,11 +4,15 @@ import { useKeyboard } from "@opentui/solid"
 import type { TextareaRenderable } from "@opentui/core"
 import { useKeybind } from "../../context/keybind"
 import { tint, useTheme } from "../../context/theme"
-import type { QuestionAnswer, QuestionRequest } from "@opencode-ai/sdk/v2"
+import type { QuestionRequest as SDKQuestionRequest } from "@opencode-ai/sdk/v2"
 import { useSDK } from "../../context/sdk"
 import { SplitBorder } from "../../component/border"
 import { useTextareaKeybindings } from "../../component/textarea-keybindings"
 import { useDialog } from "../../ui/dialog"
+
+type QuestionAnswer = string[]
+type QuestionInfo = SDKQuestionRequest["questions"][number] & { multiple?: boolean; custom?: boolean }
+type QuestionRequest = Omit<SDKQuestionRequest, "questions"> & { questions: QuestionInfo[] }
 
 export function QuestionPrompt(props: { request: QuestionRequest }) {
   const sdk = useSDK()

@@ -15,7 +15,10 @@ import {
   buttonText,
 } from "../styles"
 
-const CONSOLE_URL = "https://opencode.ai/"
+const CONSOLE_URL = (process.env.CONSOLE_URL ?? "").replace(/\/$/, "")
+const CONSOLE_BASE_URL = CONSOLE_URL ? `${CONSOLE_URL}/` : ""
+const CONSOLE_ASSETS_URL = CONSOLE_BASE_URL ? `${CONSOLE_BASE_URL}email` : "/email"
+const CONSOLE_ZEN_URL = CONSOLE_BASE_URL ? `${CONSOLE_BASE_URL}zen` : "/zen"
 
 interface InviteEmailProps {
   inviter: string
@@ -27,14 +30,14 @@ export const InviteEmail = ({
   inviter = "test@anoma.ly",
   workspaceID = "wrk_01K6XFY7V53T8XN0A7X8G9BTN3",
   workspaceName = "anomaly",
-  assetsUrl = `${CONSOLE_URL}email`,
+  assetsUrl = CONSOLE_ASSETS_URL,
 }: InviteEmailProps) => {
   const messagePlain = `${inviter} invited you to join the ${workspaceName} workspace.`
-  const url = `${CONSOLE_URL}workspace/${workspaceID}`
+  const url = `${CONSOLE_BASE_URL || "/"}workspace/${workspaceID}`
   return (
     <Html lang="en">
       <Head>
-        <Title>{`OpenCode — ${messagePlain}`}</Title>
+        <Title>{`Agent-Core — ${messagePlain}`}</Title>
       </Head>
       <Fonts assetsUrl={assetsUrl} />
       <Preview>{messagePlain}</Preview>
@@ -43,17 +46,17 @@ export const InviteEmail = ({
           <Section style={frame}>
             <Row>
               <Column>
-                <A href={`${CONSOLE_URL}zen`}>
-                  <Img height="32" alt="OpenCode Logo" src={`${assetsUrl}/logo.png`} />
+                <A href={CONSOLE_ZEN_URL}>
+                  <Img height="32" alt="Agent-Core Logo" src={`${assetsUrl}/logo.png`} />
                 </A>
               </Column>
             </Row>
 
             <Section style={{ padding: `${unit * 2}px 0 0 0` }}>
-              <Text style={headingText}>Join your team's OpenCode workspace</Text>
+              <Text style={headingText}>Join your team's Agent-Core workspace</Text>
               <Text style={contentText}>
                 You have been invited by <Span style={contentHighlightText}>{inviter}</Span> to join the{" "}
-                <Span style={contentHighlightText}>{workspaceName}</Span> workspace on OpenCode.
+                <Span style={contentHighlightText}>{workspaceName}</Span> workspace on Agent-Core.
               </Text>
             </Section>
 

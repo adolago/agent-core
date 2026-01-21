@@ -1,4 +1,5 @@
-import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
+import { createOpencodeClient as createEventClient } from "@opencode-ai/sdk"
+import { createOpencodeClient as createApiClient } from "@opencode-ai/sdk/v2/client"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup } from "solid-js"
@@ -7,7 +8,28 @@ import { useServer } from "./server"
 
 export type AppEvent = {
   type: string
-  properties: Record<string, unknown>
+  properties: any
+}
+
+type ResolvedEvent = {
+  directory?: string
+  payload: AppEvent
+}
+
+const resolveEvent = (data: unknown): ResolvedEvent | undefined => {
+  if (!data || typeof data !== "object") return
+  const record = data as Record<string, any>
+  if (record.payload && typeof record.payload === "object") {
+    const payload = record.payload as Record<string, any>
+    if (typeof payload.type === "string" && "properties" in payload) {
+      const directory = typeof record.directory === "string" ? record.directory : undefined
+      return { directory, payload: { type: payload.type, properties: payload.properties } }
+    }
+  }
+  if (typeof record.type === "string" && "properties" in record) {
+    const directory = typeof record.directory === "string" ? record.directory : undefined
+    return { directory, payload: { type: record.type, properties: record.properties } }
+  }
 }
 
 export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleContext({
@@ -17,12 +39,14 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
     const platform = usePlatform()
     const abort = new AbortController()
 
-    const eventSdk = createOpencodeClient({
+    const eventSdk = createEventClient({
       baseUrl: server.url,
       signal: abort.signal,
       fetch: platform.fetch,
     })
-    const emitter = createGlobalEmitter<Record<string, AppEvent>>()
+    const emitter = createGlobalEmitter<{
+      [key: string]: AppEvent
+    }>()
 
     type Queued = { directory: string; payload: AppEvent }
 
@@ -68,32 +92,19 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       flush()
     }
 
-    const resolveEvent = (input: unknown): Queued | undefined => {
-      if (!input || typeof input !== "object") return
-      const raw = input as {
-        directory?: string
-        payload?: AppEvent
-        type?: string
-        properties?: Record<string, unknown>
-      }
-      if (raw.payload && raw.payload.type) {
-        return { directory: raw.directory ?? "global", payload: raw.payload }
-      }
-      if (raw.type) {
-        return {
-          directory: raw.directory ?? "global",
-          payload: { type: raw.type, properties: raw.properties ?? {} },
-        }
-      }
-    }
-
     void (async () => {
-      const events = await eventSdk.event.subscribe()
+      const events = await eventSdk.event.subscribe({ signal: abort.signal })
       let yielded = Date.now()
       for await (const event of events.stream) {
         const resolved = resolveEvent(event)
         if (!resolved) continue
-        const { directory, payload } = resolved
+        const payload = resolved.payload
+        const props = payload.properties as Record<string, any>
+        const directory =
+          resolved.directory ??
+          (typeof props?.directory === "string" ? props.directory : undefined) ??
+          (typeof props?.info?.directory === "string" ? props.info.directory : undefined) ??
+          "global"
         const k = key(directory, payload)
         if (k) {
           const i = coalesced.get(k)
@@ -118,7 +129,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       stop()
     })
 
-    const sdk = createOpencodeClient({
+    const sdk = createApiClient({
       baseUrl: server.url,
       fetch: platform.fetch,
       throwOnError: true,

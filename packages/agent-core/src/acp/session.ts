@@ -2,8 +2,17 @@ import { RequestError, type McpServer } from "@agentclientprotocol/sdk"
 import type { ACPSessionState } from "./types"
 import { Log } from "@/util/log"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
+import { HEADER_DIRECTORY } from "@/gateway/constants"
 
 const log = Log.create({ service: "acp-session-manager" })
+
+const withDirectory = (directory: string, options?: { headers?: Record<string, string> }) => ({
+  ...options,
+  headers: {
+    ...options?.headers,
+    [HEADER_DIRECTORY]: directory,
+  },
+})
 
 export class ACPSessionManager {
   private sessions = new Map<string, ACPSessionState>()
@@ -22,9 +31,8 @@ export class ACPSessionManager {
       .create(
         {
           title: `ACP Session ${crypto.randomUUID()}`,
-          directory: cwd,
         },
-        { throwOnError: true },
+        withDirectory(cwd, { throwOnError: true }),
       )
       .then((x) => x.data!)
 
@@ -54,9 +62,8 @@ export class ACPSessionManager {
       .get(
         {
           sessionID: sessionId,
-          directory: cwd,
         },
-        { throwOnError: true },
+        withDirectory(cwd, { throwOnError: true }),
       )
       .then((x) => x.data!)
 

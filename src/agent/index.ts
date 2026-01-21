@@ -5,7 +5,7 @@
  * It supports three use cases:
  * - Stanley: Professional financial analysis
  * - Zee: Personal AI assistant
- * - OpenCode: Development agent (inherited patterns)
+ * - Legacy: Development agent (inherited patterns)
  */
 
 // Core agent types and utilities

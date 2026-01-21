@@ -35,7 +35,7 @@ await Bun.file(extensionToml).write(toml)
 
 await $`bun install`
 
-console.log("\n=== opencode ===\n")
+console.log("\n=== agent-core ===\n")
 await import(`../packages/agent-core/script/publish.ts`)
 
 console.log("\n=== sdk ===\n")

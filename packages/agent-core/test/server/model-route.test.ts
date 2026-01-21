@@ -35,7 +35,7 @@ describe("model route", () => {
   test("skips defaults for providers without models", async () => {
     await using tmp = await tmpdir({
       config: {
-        $schema: "https://opencode.ai/config.json",
+        $schema: "agent-core",
       },
     })
     await Instance.provide({

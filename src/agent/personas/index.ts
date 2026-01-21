@@ -2,7 +2,7 @@
  * Built-in Persona Definitions
  *
  * This module exports all built-in persona configurations for:
- * - OpenCode: Development agents (build, plan, general, explore)
+ * - Legacy: Development agents (build, plan, general, explore)
  * - Stanley: Financial analysis agents (analyst, researcher, quant, macro)
  * - Zee: Personal assistant agents (assistant, coder, researcher)
  */
@@ -83,7 +83,7 @@ export const NO_EXECUTION_PERMISSIONS: PermissionConfig = {
 };
 
 // ============================================================================
-// OpenCode Personas
+// Legacy Personas
 // ============================================================================
 
 /**
@@ -430,7 +430,7 @@ and thorough in research tasks.`,
 // ============================================================================
 
 /**
- * All OpenCode personas
+ * All legacy personas
  */
 export const OPENCODE_PERSONAS: Record<string, PersonaDefinition> = {
   build: OPENCODE_BUILD,
@@ -462,7 +462,7 @@ export const ZEE_PERSONAS: Record<string, PersonaDefinition> = {
  * All built-in personas indexed by qualified name (useCase/name)
  */
 export const ALL_PERSONAS: Record<string, PersonaDefinition> = {
-  // OpenCode
+  // Legacy
   "opencode/build": OPENCODE_BUILD,
   "opencode/plan": OPENCODE_PLAN,
   "opencode/general": OPENCODE_GENERAL,

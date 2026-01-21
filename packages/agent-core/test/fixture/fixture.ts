@@ -26,7 +26,7 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
     await Bun.write(
       path.join(dirpath, "agent-core.json"),
       JSON.stringify({
-        $schema: "https://opencode.ai/config.json",
+        $schema: "agent-core",
         ...options.config,
       }),
     )

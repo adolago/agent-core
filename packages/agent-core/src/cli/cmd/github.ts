@@ -131,9 +131,17 @@ type IssueQueryResponse = {
   }
 }
 
-const AGENT_USERNAME = "opencode-agent[bot]"
+const AGENT_USERNAME = process.env["AGENT_CORE_GITHUB_BOT"] ?? "agent-core[bot]"
 const AGENT_REACTION = "eyes"
-const WORKFLOW_FILE = ".github/workflows/opencode.yml"
+const WORKFLOW_FILE = ".github/workflows/agent-core.yml"
+const DEFAULT_MENTIONS = "/agent-core,/ac"
+const DEFAULT_ACTION_REF = process.env["AGENT_CORE_ACTION_REF"] ?? "agent-core/github@latest"
+const GITHUB_APP_URL =
+  process.env["AGENT_CORE_GITHUB_APP_URL"] ??
+  (process.env["AGENT_CORE_GITHUB_APP_SLUG"]
+    ? `https://github.com/apps/${process.env["AGENT_CORE_GITHUB_APP_SLUG"]}`
+    : "")
+const OIDC_AUDIENCE = process.env["OIDC_AUDIENCE"] ?? "agent-core-github-action"
 
 // Event categories for routing
 // USER_EVENTS: triggered by user actions, have actor/issueId, support reactions/comments
@@ -235,9 +243,9 @@ export const GithubInstallCommand = cmd({
                 `    1. Commit the \`${WORKFLOW_FILE}\` file and push`,
                 step2,
                 "",
-                "    3. Go to a GitHub issue and comment `/oc summarize` to see the agent in action",
+                "    3. Go to a GitHub issue and comment `/ac summarize` to see the agent in action",
                 "",
-                "   Learn more about the GitHub agent - https://opencode.ai/docs/github/#usage-examples",
+                "   Learn more about the GitHub agent in the local docs.",
               ].join("\n"),
             )
           }
@@ -261,7 +269,7 @@ export const GithubInstallCommand = cmd({
 
           async function promptProvider() {
             const priority: Record<string, number> = {
-              opencode: 0,
+              "agent-core": 0,
               anthropic: 1,
               openai: 2,
               google: 3,
@@ -319,7 +327,11 @@ export const GithubInstallCommand = cmd({
             if (installation) return s.stop("GitHub app already installed")
 
             // Open browser
-            const url = "https://github.com/apps/opencode-agent"
+            const url = GITHUB_APP_URL
+            if (!url) {
+              s.stop("GitHub app URL not configured")
+              throw new UI.CancelledError()
+            }
             const command =
               process.platform === "darwin"
                 ? `open "${url}"`
@@ -333,33 +345,22 @@ export const GithubInstallCommand = cmd({
               }
             })
 
-            // Wait for installation
-            s.message("Waiting for GitHub app to be installed")
-            const MAX_RETRIES = 120
-            let retries = 0
-            do {
-              const installation = await getInstallation()
-              if (installation) break
-
-              if (retries > MAX_RETRIES) {
-                s.stop(
-                  `Failed to detect GitHub app installation. Make sure to install the app for the \`${app.owner}/${app.repo}\` repository.`,
-                )
-                throw new UI.CancelledError()
-              }
-
-              retries++
-              await Bun.sleep(1000)
-            } while (true)
-
-            s.stop("Installed GitHub app")
+            s.stop("Opened GitHub app install page")
+            const confirmed = await prompts.confirm({
+              message: `Continue after installing the app for ${app.owner}/${app.repo}?`,
+              initialValue: true,
+            })
+            if (prompts.isCancel(confirmed) || !confirmed) {
+              throw new UI.CancelledError()
+            }
 
             async function getInstallation() {
-              return await fetch(
-                `https://api.opencode.ai/get_github_app_installation?owner=${app.owner}&repo=${app.repo}`,
-              )
+              const url = process.env["AGENT_CORE_GITHUB_APP_INSTALLATION_URL"]
+              if (!url) return undefined
+              return fetch(`${url}?owner=${app.owner}&repo=${app.repo}`)
                 .then((res) => res.json())
                 .then((data) => data.installation)
+                .catch(() => undefined)
             }
           }
 
@@ -371,7 +372,7 @@ export const GithubInstallCommand = cmd({
 
             await Bun.write(
               path.join(app.root, WORKFLOW_FILE),
-              `name: opencode
+              `name: agent-core
 
 on:
   issue_comment:
@@ -380,12 +381,12 @@ on:
     types: [created]
 
 jobs:
-  opencode:
+  agent-core:
     if: |
-      contains(github.event.comment.body, ' /oc') ||
-      startsWith(github.event.comment.body, '/oc') ||
-      contains(github.event.comment.body, ' /opencode') ||
-      startsWith(github.event.comment.body, '/opencode')
+      contains(github.event.comment.body, ' /ac') ||
+      startsWith(github.event.comment.body, '/ac') ||
+      contains(github.event.comment.body, ' /agent-core') ||
+      startsWith(github.event.comment.body, '/agent-core')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -398,8 +399,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run opencode
-        uses: anomalyco/opencode/github@latest${envStr}
+      - name: Run agent-core
+        uses: ${DEFAULT_ACTION_REF}${envStr}
         with:
           model: ${provider}/${model}`,
             )
@@ -448,7 +449,9 @@ export const GithubRunCommand = cmd({
       const { providerID, modelID } = normalizeModel()
       const runId = normalizeRunId()
       const share = normalizeShare()
-      const oidcBaseUrl = normalizeOidcBaseUrl()
+      const shareBaseUrl = normalizeShareBaseUrl()
+      const useGithubToken = normalizeUseGithubToken()
+      const oidcBaseUrl = useGithubToken ? undefined : normalizeOidcBaseUrl()
       const { owner, repo } = context.repo
       // For repo events (schedule, workflow_dispatch), payload has no issue/comment data
       const payload = context.payload as
@@ -468,7 +471,6 @@ export const GithubRunCommand = cmd({
           ? (payload as IssueCommentEvent | IssuesEvent).issue.number
           : (payload as PullRequestEvent | PullRequestReviewCommentEvent).pull_request.number
       const runUrl = `/${owner}/${repo}/actions/runs/${runId}`
-      const shareBaseUrl = isMock ? "https://dev.opencode.ai" : "https://opencode.ai"
 
       let appToken: string
       let octoRest: Octokit
@@ -481,7 +483,6 @@ export const GithubRunCommand = cmd({
       const triggerCommentId = isCommentEvent
         ? (payload as IssueCommentEvent | PullRequestReviewCommentEvent).comment.id
         : undefined
-      const useGithubToken = normalizeUseGithubToken()
       const commentType = isCommentEvent
         ? context.eventName === "pull_request_review_comment"
           ? "pr_review"
@@ -516,7 +517,7 @@ export const GithubRunCommand = cmd({
           await addReaction(commentType)
         }
 
-        // Setup opencode session
+        // Setup agent-core session
         const repoData = await fetchRepo()
         session = await Session.create({
           permission: [
@@ -528,13 +529,17 @@ export const GithubRunCommand = cmd({
           ],
         })
         subscribeSessionEvents()
+        if (share === true && !shareBaseUrl) {
+          console.log("Share enabled but SHARE_BASE_URL is not set; skipping share links.")
+        }
         shareId = await (async () => {
+          if (!shareBaseUrl) return
           if (share === false) return
           if (!share && repoData.data.private) return
           await Session.share(session.id)
           return session.id.slice(-8)
         })()
-        console.log("opencode session", session.id)
+        console.log("agent-core session", session.id)
 
         // Handle event types:
         // REPO_EVENTS (schedule, workflow_dispatch): no issue/PR context, output to logs/PR only
@@ -581,7 +586,10 @@ export const GithubRunCommand = cmd({
               const summary = await summarize(response)
               await pushToLocalBranch(summary, uncommittedChanges)
             }
-            const hasShared = prData.comments.nodes.some((c) => c.body.includes(`${shareBaseUrl}/s/${shareId}`))
+            const hasShared =
+              shareId && shareBaseUrl
+                ? prData.comments.nodes.some((c) => c.body.includes(`${shareBaseUrl}/s/${shareId}`))
+                : false
             await createComment(`${response}${footer({ image: !hasShared })}`)
             await removeReaction(commentType)
           }
@@ -596,7 +604,10 @@ export const GithubRunCommand = cmd({
               const summary = await summarize(response)
               await pushToForkBranch(summary, prData, uncommittedChanges)
             }
-            const hasShared = prData.comments.nodes.some((c) => c.body.includes(`${shareBaseUrl}/s/${shareId}`))
+            const hasShared =
+              shareId && shareBaseUrl
+                ? prData.comments.nodes.some((c) => c.body.includes(`${shareBaseUrl}/s/${shareId}`))
+                : false
             await createComment(`${response}${footer({ image: !hasShared })}`)
             await removeReaction(commentType)
           }
@@ -684,7 +695,15 @@ export const GithubRunCommand = cmd({
 
       function normalizeOidcBaseUrl(): string {
         const value = process.env["OIDC_BASE_URL"]
-        if (!value) return "https://api.opencode.ai"
+        if (!value) {
+          throw new Error(`OIDC_BASE_URL is required when use_github_token is false.`)
+        }
+        return value.replace(/\/+$/, "")
+      }
+
+      function normalizeShareBaseUrl(): string | undefined {
+        const value = process.env["SHARE_BASE_URL"] ?? process.env["AGENT_CORE_SHARE_BASE_URL"]
+        if (!value) return undefined
         return value.replace(/\/+$/, "")
       }
 
@@ -733,7 +752,7 @@ export const GithubRunCommand = cmd({
         }
 
         const reviewContext = getReviewCommentContext()
-        const mentions = (process.env["MENTIONS"] || "/opencode,/oc")
+        const mentions = (process.env["MENTIONS"] || DEFAULT_MENTIONS)
           .split(",")
           .map((m) => m.trim().toLowerCase())
           .filter(Boolean)
@@ -879,7 +898,7 @@ export const GithubRunCommand = cmd({
       }
 
       async function chat(message: string, files: PromptFiles = []) {
-        console.log("Sending message to opencode...")
+        console.log("Sending message to agent-core...")
 
         const result = await SessionPrompt.prompt({
           sessionID: session.id,
@@ -963,7 +982,7 @@ export const GithubRunCommand = cmd({
 
       async function getOidcToken() {
         try {
-          return await core.getIDToken("opencode-github-action")
+          return await core.getIDToken(OIDC_AUDIENCE)
         } catch (error) {
           console.error("Failed to get OIDC token:", error instanceof Error ? error.message : error)
           throw new Error(
@@ -973,6 +992,9 @@ export const GithubRunCommand = cmd({
       }
 
       async function exchangeForAppToken(token: string) {
+        if (!oidcBaseUrl) {
+          throw new Error("OIDC_BASE_URL is required when use_github_token is false.")
+        }
         const response = token.startsWith("github_pat_")
           ? await fetch(`${oidcBaseUrl}/exchange_github_app_token_with_pat`, {
               method: "POST",
@@ -1064,9 +1086,9 @@ export const GithubRunCommand = cmd({
           .join("")
         if (type === "schedule" || type === "dispatch") {
           const hex = crypto.randomUUID().slice(0, 6)
-          return `opencode/${type}-${hex}-${timestamp}`
+          return `agent-core/${type}-${hex}-${timestamp}`
         }
-        return `opencode/${type}${issueId}-${timestamp}`
+        return `agent-core/${type}${issueId}-${timestamp}`
       }
 
       async function pushToNewBranch(summary: string, branch: string, commit: boolean, isSchedule: boolean) {
@@ -1297,18 +1319,10 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
         }
       }
 
-      function footer(opts?: { image?: boolean }) {
-        const image = (() => {
-          if (!shareId) return ""
-          if (!opts?.image) return ""
-
-          const titleAlt = encodeURIComponent(session.title.substring(0, 50))
-          const title64 = Buffer.from(session.title.substring(0, 700), "utf8").toString("base64")
-
-          return `<a href="${shareBaseUrl}/s/${shareId}"><img width="200" alt="${titleAlt}" src="https://social-cards.sst.dev/opencode-share/${title64}.png?model=${providerID}/${modelID}&version=${session.version}&id=${shareId}" /></a>\n`
-        })()
-        const shareUrl = shareId ? `[opencode session](${shareBaseUrl}/s/${shareId})&nbsp;&nbsp;|&nbsp;&nbsp;` : ""
-        return `\n\n${image}${shareUrl}[github run](${runUrl})`
+      function footer(_opts?: { image?: boolean }) {
+        const shareUrl =
+          shareId && shareBaseUrl ? `[agent-core session](${shareBaseUrl}/s/${shareId})&nbsp;&nbsp;|&nbsp;&nbsp;` : ""
+        return `\n\n${shareUrl}[github run](${runUrl})`
       }
 
       async function fetchRepo() {
@@ -1368,7 +1382,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
         return [
           "<github_action_context>",
           "You are running as a GitHub Action. Important:",
-          "- Git push and PR creation are handled AUTOMATICALLY by the opencode infrastructure after your response",
+          "- Git push and PR creation are handled AUTOMATICALLY by the agent-core infrastructure after your response",
           "- Do NOT include warnings or disclaimers about GitHub tokens, workflow permissions, or PR creation capabilities",
           "- Do NOT suggest manual steps for creating PRs or pushing code - this happens automatically",
           "- Focus only on the code changes and your analysis/response",
@@ -1506,7 +1520,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
         return [
           "<github_action_context>",
           "You are running as a GitHub Action. Important:",
-          "- Git push and PR creation are handled AUTOMATICALLY by the opencode infrastructure after your response",
+          "- Git push and PR creation are handled AUTOMATICALLY by the agent-core infrastructure after your response",
           "- Do NOT include warnings or disclaimers about GitHub tokens, workflow permissions, or PR creation capabilities",
           "- Do NOT suggest manual steps for creating PRs or pushing code - this happens automatically",
           "- Focus only on the code changes and your analysis/response",

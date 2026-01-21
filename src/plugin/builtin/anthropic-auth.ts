@@ -5,7 +5,7 @@
  * - API key authentication
  * - OAuth authentication (for Anthropic Console)
  *
- * Compatible with OpenCode's anthropic-auth plugin pattern.
+ * Compatible with the legacy anthropic-auth plugin pattern.
  */
 
 import type {

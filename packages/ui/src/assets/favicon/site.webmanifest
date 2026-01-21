@@ -1,6 +1,6 @@
 {
-  "name": "OpenCode",
-  "short_name": "OpenCode",
+  "name": "Agent-Core",
+  "short_name": "Agent-Core",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

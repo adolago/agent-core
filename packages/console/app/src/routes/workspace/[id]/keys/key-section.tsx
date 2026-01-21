@@ -75,7 +75,7 @@ export function KeySection() {
       <div data-slot="section-title">
         <h2>API Keys</h2>
         <div data-slot="title-row">
-          <p>Manage your API keys for accessing opencode services.</p>
+          <p>Manage your API keys for accessing Agent-Core services.</p>
           <button data-color="primary" onClick={() => show()}>
             Create API Key
           </button>
@@ -111,7 +111,7 @@ export function KeySection() {
           when={keys()?.length}
           fallback={
             <div data-component="empty-state">
-              <p>Create an opencode Gateway API key</p>
+              <p>Create an Agent-Core Gateway API key</p>
             </div>
           }
         >

@@ -121,9 +121,18 @@ export const GlobalRoute = new Hono()
 
         // Pass through all events from the bus
         const handler = async (event: { directory?: string; payload: any }) => {
+          const payload = {
+            type: event.payload.type,
+            properties: event.payload.properties,
+          }
           await stream.writeSSE({
             event: event.payload.type,
-            data: JSON.stringify(event.payload.properties),
+            data: JSON.stringify({
+              directory: event.directory,
+              type: payload.type,
+              properties: payload.properties,
+              payload,
+            }),
           })
         }
         GlobalBus.on("event", handler)
@@ -160,7 +169,7 @@ export const GlobalRoute = new Hono()
     "/dispose",
     describeRoute({
       summary: "Dispose instance",
-      description: "Clean up and dispose the current OpenCode instance, releasing all resources.",
+      description: "Clean up and dispose the current agent-core instance, releasing all resources.",
       operationId: "instance.dispose",
       responses: {
         200: {

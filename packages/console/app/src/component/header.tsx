@@ -6,13 +6,6 @@ import copyWordmarkLight from "../asset/lander/wordmark-light.svg"
 import copyWordmarkDark from "../asset/lander/wordmark-dark.svg"
 import copyBrandAssetsLight from "../asset/lander/brand-assets-light.svg"
 import copyBrandAssetsDark from "../asset/lander/brand-assets-dark.svg"
-
-// SVG files for copying (separate from button icons)
-// Replace these with your actual SVG files for copying
-import copyLogoSvgLight from "../asset/lander/opencode-logo-light.svg"
-import copyLogoSvgDark from "../asset/lander/opencode-logo-dark.svg"
-import copyWordmarkSvgLight from "../asset/lander/opencode-wordmark-light.svg"
-import copyWordmarkSvgDark from "../asset/lander/opencode-wordmark-dark.svg"
 import { A, createAsync, useNavigate } from "@solidjs/router"
 import { createMemo, Match, Show, Switch } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -96,7 +89,7 @@ export function Header(props: { zen?: boolean; hideGetStarted?: boolean }) {
   const copyWordmarkToClipboard = async () => {
     try {
       const isDark = isDarkMode()
-      const wordmarkSvgPath = isDark ? copyWordmarkSvgDark : copyWordmarkSvgLight
+      const wordmarkSvgPath = isDark ? copyWordmarkDark : copyWordmarkLight
       const wordmarkSvg = await fetchSvgContent(wordmarkSvgPath)
       await navigator.clipboard.writeText(wordmarkSvg)
     } catch (err) {
@@ -107,7 +100,7 @@ export function Header(props: { zen?: boolean; hideGetStarted?: boolean }) {
   const copyLogoToClipboard = async () => {
     try {
       const isDark = isDarkMode()
-      const logoSvgPath = isDark ? copyLogoSvgDark : copyLogoSvgLight
+      const logoSvgPath = isDark ? copyLogoDark : copyLogoLight
       const logoSvg = await fetchSvgContent(logoSvgPath)
       await navigator.clipboard.writeText(logoSvg)
     } catch (err) {
@@ -119,8 +112,8 @@ export function Header(props: { zen?: boolean; hideGetStarted?: boolean }) {
     <section data-component="top">
       <div onContextMenu={handleLogoContextMenu}>
         <A href="/">
-          <img data-slot="logo light" src={logoLight} alt="opencode logo light" width="189" height="34" />
-          <img data-slot="logo dark" src={logoDark} alt="opencode logo dark" width="189" height="34" />
+          <img data-slot="logo light" src={logoLight} alt="Agent-Core logo light" width="189" height="34" />
+          <img data-slot="logo dark" src={logoDark} alt="Agent-Core logo dark" width="189" height="34" />
         </A>
       </div>
 
@@ -148,11 +141,13 @@ export function Header(props: { zen?: boolean; hideGetStarted?: boolean }) {
       </Show>
       <nav data-component="nav-desktop">
         <ul>
-          <li>
-            <a href={config.github.repoUrl} target="_blank">
-              GitHub <span>[{starCount()}]</span>
-            </a>
-          </li>
+          <Show when={config.github.repoUrl}>
+            <li>
+              <a href={config.github.repoUrl} target="_blank">
+                GitHub <span>[{starCount()}]</span>
+              </a>
+            </li>
+          </Show>
           <li>
             <a href="/docs">Docs</a>
           </li>
@@ -241,11 +236,13 @@ export function Header(props: { zen?: boolean; hideGetStarted?: boolean }) {
                 <li>
                   <A href="/">Home</A>
                 </li>
-                <li>
-                  <a href={config.github.repoUrl} target="_blank">
-                    GitHub <span>[{starCount()}]</span>
-                  </a>
-                </li>
+                <Show when={config.github.repoUrl}>
+                  <li>
+                    <a href={config.github.repoUrl} target="_blank">
+                      GitHub <span>[{starCount()}]</span>
+                    </a>
+                  </li>
+                </Show>
                 <li>
                   <a href="/docs">Docs</a>
                 </li>

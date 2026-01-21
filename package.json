@@ -76,10 +76,6 @@
     "@opencode-ai/sdk": "workspace:*",
     "typescript": "catalog:"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/anomalyco/opencode"
-  },
   "license": "MIT",
   "prettier": {
     "semi": false,

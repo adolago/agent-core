@@ -31,15 +31,24 @@ export const ImportCommand = cmd({
       const isUrl = args.file.startsWith("http://") || args.file.startsWith("https://")
 
       if (isUrl) {
-        const urlMatch = args.file.match(/https?:\/\/opncd\.ai\/share\/([a-zA-Z0-9_-]+)/)
-        if (!urlMatch) {
-          process.stdout.write(`Invalid URL format. Expected: https://opncd.ai/share/<slug>`)
+        let parsed: URL
+        try {
+          parsed = new URL(args.file)
+        } catch {
+          process.stdout.write(`Invalid URL format. Expected: <share-base>/share/<slug> or <share-base>/s/<slug>`)
           process.stdout.write(EOL)
           return
         }
 
-        const slug = urlMatch[1]
-        const response = await fetch(`https://opncd.ai/api/share/${slug}`)
+        const slugMatch = parsed.pathname.match(/\/(?:share|s)\/([a-zA-Z0-9_-]+)/)
+        if (!slugMatch) {
+          process.stdout.write(`Invalid URL format. Expected: <share-base>/share/<slug> or <share-base>/s/<slug>`)
+          process.stdout.write(EOL)
+          return
+        }
+
+        const slug = slugMatch[1]
+        const response = await fetch(`${parsed.origin}/api/share/${slug}`)
 
         if (!response.ok) {
           process.stdout.write(`Failed to fetch share data: ${response.statusText}`)
