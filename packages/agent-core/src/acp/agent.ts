@@ -39,6 +39,12 @@ type AppEvent = {
   properties: any
 }
 
+type EventClient = {
+  global: {
+    event: (opts?: { signal?: AbortSignal }) => Promise<{ stream: AsyncIterable<unknown> }>
+  }
+}
+
 const withDirectory = (
   directory: string,
   options?: { headers?: Record<string, string>; throwOnError?: boolean },
@@ -64,7 +70,7 @@ export namespace ACP {
     private connection: AgentSideConnection
     private config: ACPConfig
     private sdk: OpencodeClient
-    private eventSdk: ReturnType<typeof createEventClient>
+    private eventSdk: EventClient
     private sessionManager: ACPSessionManager
     private eventAbort = new AbortController()
     private eventStarted = false
@@ -79,8 +85,10 @@ export namespace ACP {
       this.connection = connection
       this.config = config
       this.sdk = config.sdk
-      const sdkHasEvents = Boolean((config.sdk as any)?.global?.event)
-      this.eventSdk = sdkHasEvents ? (config.sdk as typeof this.eventSdk) : createEventClient({ baseUrl: config.url })
+      const sdkHasEvents = typeof (config.sdk as any)?.global?.event === "function"
+      this.eventSdk = sdkHasEvents
+        ? (config.sdk as unknown as EventClient)
+        : (createEventClient({ baseUrl: config.url }) as unknown as EventClient)
       this.sessionManager = new ACPSessionManager(this.sdk)
       this.startEventSubscription()
     }
