@@ -1,24 +1,21 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test"
-
-// Mock the Auth module before importing Dictation
-const mockAuth = {
-  get: mock(async (_providerID: string) => undefined as unknown),
-}
-
-mock.module("@/auth", () => ({
-  Auth: mockAuth,
-}))
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test"
+import { Auth } from "../src/auth"
 
 const { Dictation } = await import("../src/cli/cmd/tui/util/dictation")
 
 describe("Dictation.resolveConfig", () => {
+  let authGetSpy: ReturnType<typeof spyOn>
+
   beforeEach(() => {
     delete process.env.INWORLD_API_KEY
     delete process.env.INWORLD_STT_ENDPOINT
     delete process.env.OPENCODE_INWORLD_API_KEY
     delete process.env.OPENCODE_INWORLD_STT_ENDPOINT
-    mockAuth.get.mockReset()
-    mockAuth.get.mockImplementation(async () => undefined)
+    authGetSpy = spyOn(Auth, "get").mockImplementation(async () => undefined)
+  })
+
+  afterEach(() => {
+    authGetSpy.mockRestore()
   })
 
   it("should return undefined when disabled", async () => {
@@ -62,7 +59,7 @@ describe("Dictation.resolveConfig", () => {
   })
 
   it("should read from stored auth when env/config not available", async () => {
-    mockAuth.get.mockImplementation(async (providerID: string) => {
+    authGetSpy.mockImplementation(async (providerID: string) => {
       if (providerID === "inworld") {
         return {
           type: "api",
@@ -82,7 +79,7 @@ describe("Dictation.resolveConfig", () => {
   })
 
   it("should prefer config over stored auth", async () => {
-    mockAuth.get.mockImplementation(async (providerID: string) => {
+    authGetSpy.mockImplementation(async (providerID: string) => {
       if (providerID === "inworld") {
         return {
           type: "api",
