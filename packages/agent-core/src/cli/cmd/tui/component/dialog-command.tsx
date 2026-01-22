@@ -31,7 +31,8 @@ export function createCommandDialog() {
   const [suspendCount, setSuspendCount] = createSignal(0)
   const dialog = useDialog()
   const keybind = useKeybind()
-  const entries = createMemo(() => {
+
+  const entries = () => {
     const all = registrations().flatMap((x) => x() ?? [])
     return all
       .filter((item): item is CommandOption => Boolean(item))
@@ -39,12 +40,12 @@ export function createCommandDialog() {
         ...item,
         footer: item.keybind ? keybind.print(item.keybind) : undefined,
       }))
-  })
+  }
 
   const isEnabled = (option: CommandOption) => option.enabled !== false
   const isVisible = (option: CommandOption) => isEnabled(option) && !option.hidden
 
-  const visibleOptions = createMemo(() => entries().filter((option) => isVisible(option)))
+  const visibleOptions = () => entries().filter((option) => isVisible(option))
   const suspended = () => suspendCount() > 0
 
   useKeyboard((evt) => {

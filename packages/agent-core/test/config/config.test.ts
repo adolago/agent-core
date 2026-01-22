@@ -136,7 +136,7 @@ test("preserves env variables when adding $schema to config", async () => {
       init: async (dir) => {
         // Config without $schema - should trigger auto-add
         await Bun.write(
-          path.join(dir, "opencode.json"),
+          path.join(dir, "agent-core.json"),
           JSON.stringify({
             theme: "{env:PRESERVE_VAR}",
           }),
@@ -150,7 +150,7 @@ test("preserves env variables when adding $schema to config", async () => {
         expect(config.theme).toBe("secret_value")
 
         // Read the file to verify the env variable was preserved
-        const content = await Bun.file(path.join(tmp.path, "opencode.json")).text()
+        const content = await Bun.file(path.join(tmp.path, "agent-core.json")).text()
         expect(content).toContain("{env:PRESERVE_VAR}")
         expect(content).not.toContain("secret_value")
         expect(content).toContain("$schema")

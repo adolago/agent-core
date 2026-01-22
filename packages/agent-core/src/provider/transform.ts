@@ -134,7 +134,7 @@ export namespace ProviderTransform {
         ? model.capabilities.interleaved.field
         : null
 
-    if (interleavedField === "reasoning_content" || interleavedField === "reasoning_details") {
+    if (interleavedField === "reasoning" || interleavedField === "reasoning_content" || interleavedField === "reasoning_details") {
       return msgs.map((msg) => {
         if (msg.role === "assistant" && Array.isArray(msg.content)) {
           const reasoningParts = msg.content.filter((part: any) => part.type === "reasoning")

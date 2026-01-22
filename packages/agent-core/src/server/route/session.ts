@@ -46,6 +46,7 @@ export const SessionRoute = new Hono()
           .optional()
           .meta({ description: "Filter sessions updated on or after this timestamp (milliseconds since epoch)" }),
         search: z.string().optional().meta({ description: "Filter sessions by title (case-insensitive)" }),
+        directory: z.string().optional().meta({ description: "Filter sessions by directory path" }),
         limit: z.coerce.number().optional().meta({ description: "Maximum number of sessions to return" }),
       }),
     ),
@@ -55,6 +56,7 @@ export const SessionRoute = new Hono()
       const sessions: Session.Info[] = []
       for await (const session of Session.list()) {
         if (query.start !== undefined && session.time.updated < query.start) continue
+        if (query.directory !== undefined && session.directory !== query.directory) continue
         if (term !== undefined && !session.title.toLowerCase().includes(term)) continue
         sessions.push(session)
         if (query.limit !== undefined && sessions.length >= query.limit) break

@@ -79,7 +79,8 @@ export namespace ACP {
       this.connection = connection
       this.config = config
       this.sdk = config.sdk
-      this.eventSdk = createEventClient({ baseUrl: config.url })
+      const sdkHasEvents = Boolean((config.sdk as any)?.global?.event)
+      this.eventSdk = sdkHasEvents ? (config.sdk as typeof this.eventSdk) : createEventClient({ baseUrl: config.url })
       this.sessionManager = new ACPSessionManager(this.sdk)
       this.startEventSubscription()
     }

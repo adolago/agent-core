@@ -125,18 +125,20 @@ describe("tool.read external_directory permission", () => {
 })
 
 describe("tool.read env file permissions", () => {
-  const cases: [string, boolean][] = [
-    [".env", true],
-    [".env.local", true],
-    [".env.production", true],
-    [".env.development.local", true],
-    [".env.example", false],
-    [".envrc", false],
-    ["environment.ts", false],
+  const cases: Array<{ filename: string; expected: "deny" | "allow" }> = [
+    { filename: ".env", expected: "deny" },
+    { filename: ".env.local", expected: "deny" },
+    { filename: ".env.production", expected: "deny" },
+    { filename: ".env.development.local", expected: "deny" },
+    { filename: "config.env", expected: "deny" },
+    { filename: "config.env.local", expected: "deny" },
+    { filename: ".env.example", expected: "allow" },
+    { filename: ".envrc", expected: "allow" },
+    { filename: "environment.ts", expected: "allow" },
   ]
 
   describe.each(["zee", "johny"])("agent=%s", (agentName) => {
-    test.each(cases)("%s asks=%s", async (filename, shouldAsk) => {
+    test.each(cases)("$filename $expected", async ({ filename, expected }) => {
       await using tmp = await tmpdir({
         init: (dir) => Bun.write(path.join(dir, filename), "content"),
       })
@@ -160,8 +162,14 @@ describe("tool.read env file permissions", () => {
             },
           }
           const read = await ReadTool.init()
-          await read.execute({ filePath: path.join(tmp.path, filename) }, ctxWithPermissions)
-          expect(askedForEnv).toBe(shouldAsk)
+          const action = read.execute({ filePath: path.join(tmp.path, filename) }, ctxWithPermissions)
+          if (expected === "deny") {
+            await expect(action).rejects.toBeInstanceOf(PermissionNext.DeniedError)
+            expect(askedForEnv).toBe(false)
+            return
+          }
+          await action
+          expect(askedForEnv).toBe(false)
         },
       })
     })
