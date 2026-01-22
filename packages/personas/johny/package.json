@@ -1,0 +1,8 @@
+{
+  "name": "@agent-core/johny",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "typecheck": "echo 'Johny is a Python project'"
+  }
+}

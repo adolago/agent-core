@@ -1,0 +1,142 @@
+---
+summary: "Updating Zee safely (npm or source), plus rollback strategy"
+read_when:
+  - Updating Zee
+  - Something breaks after an update
+---
+
+# Updating
+
+Zee is moving fast (pre “1.0”). Treat updates like shipping infra: update → run checks → restart → verify.
+
+## Before you update
+
+- Know how you installed: **npm** (global) vs **from source** (git clone).
+- Know how your Gateway is running: **foreground terminal** vs **supervised service** (launchd/systemd).
+- Snapshot your tailoring:
+  - Config: `~/.zee/zee.json`
+  - Credentials: `~/.zee/credentials/`
+  - Workspace: `~/clawd`
+
+## Update (npm install)
+
+Global install (pick one):
+
+```bash
+npm i -g zee@latest
+```
+
+```bash
+pnpm add -g zee@latest
+```
+
+Then:
+
+```bash
+zee doctor
+zee daemon restart
+zee health
+```
+
+Notes:
+- If your Gateway runs as a service, `zee daemon restart` is preferred over killing PIDs.
+- If you’re pinned to a specific version, see “Rollback / pinning” below.
+
+## Update (Control UI / RPC)
+
+The Control UI has **Update & Restart** (RPC: `update.run`). It:
+1) Runs a git update (clean rebase) or package manager update.
+2) Writes a restart sentinel with a structured report (stdout/stderr tail).
+3) Restarts the gateway and pings the last active session with the report.
+
+If the rebase fails, the gateway aborts and restarts without applying the update.
+
+## Update (from source)
+
+From the repo checkout:
+
+```bash
+git pull
+pnpm install
+pnpm build
+pnpm ui:install
+pnpm ui:build
+pnpm zee doctor
+pnpm zee health
+```
+
+Notes:
+- `pnpm build` matters when you run the packaged `zee` binary ([`dist/entry.js`](https://github.com/zee/zee/blob/main/dist/entry.js)) or use Node to run `dist/`.
+- If you run directly from TypeScript (`pnpm zee ...` / `bun run zee ...`), a rebuild is usually unnecessary, but **config migrations still apply** → run doctor.
+
+## Always run: `zee doctor`
+
+Doctor is the “safe update” command. It’s intentionally boring: repair + migrate + warn.
+
+Typical things it does:
+- Migrate deprecated config keys / legacy config file locations.
+- Audit DM policies and warn on risky “open” settings.
+- Check Gateway health and can offer to restart.
+- Detect and migrate older gateway services (launchd/systemd; legacy schtasks) to current Zee services.
+- On Linux, ensure systemd user lingering (so the Gateway survives logout).
+
+Details: use `agent-core daemon-status` and `agent-core gateway-status` for health checks.
+
+## Start / stop / restart the Gateway
+
+In agent-core, the Zee gateway is supervised by the agent-core daemon.
+
+```bash
+agent-core daemon-status
+agent-core daemon-stop
+systemctl restart agent-core.service
+```
+
+Runbook: `docs/OPS.md` (agent-core)
+
+## Rollback / pinning (when something breaks)
+
+### Pin (npm)
+
+Install a known-good version:
+
+```bash
+npm i -g zee@2026.1.8
+```
+
+Then restart + re-run doctor:
+
+```bash
+zee doctor
+zee daemon restart
+```
+
+### Pin (source) by date
+
+Pick a commit from a date (example: “state of main as of 2026-01-01”):
+
+```bash
+git fetch origin
+git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
+```
+
+Then reinstall deps + restart:
+
+```bash
+pnpm install
+pnpm build
+zee daemon restart
+```
+
+If you want to go back to latest later:
+
+```bash
+git checkout main
+git pull
+```
+
+## If you’re stuck
+
+- Run `zee doctor` again and read the output carefully (it often tells you the fix).
+- Check: [Troubleshooting](/gateway/troubleshooting)
+- Ask in Discord: https://discord.gg/clawd

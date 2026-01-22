@@ -38,7 +38,7 @@ log "# Config & repo checks"
 log "config.json: $HOME/.config/agent-core/config.json"
 log "agent-core.jsonc: $HOME/.config/agent-core/agent-core.jsonc"
 log "skills root: $HOME/.config/agent-core/skills -> $(readlink -f "$HOME/.config/agent-core/skills")"
-log "personas root: $HOME/.local/src/agent-core/vendor/personas"
+log "personas root: $HOME/.local/src/agent-core/packages/personas"
 log ""
 
 log "# Diagnostic check (runtime + config only)"

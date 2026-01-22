@@ -21,13 +21,13 @@
   "exclude": [
     "node_modules",
     "**/node_modules",
-    "vendor/tiara/dist",
-    "vendor/tiara/dist-cjs",
-    "vendor/tiara/examples",
-    "vendor/tiara/tests",
-    "vendor/tiara/bin",
-    "vendor/tiara/**/*.test.ts",
-    "vendor/tiara/**/*.spec.ts",
+    "packages/tiara/dist",
+    "packages/tiara/dist-cjs",
+    "packages/tiara/examples",
+    "packages/tiara/tests",
+    "packages/tiara/bin",
+    "packages/tiara/**/*.test.ts",
+    "packages/tiara/**/*.spec.ts",
     "**/*.d.ts"
   ]
 }

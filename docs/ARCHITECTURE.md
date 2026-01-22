@@ -6,7 +6,7 @@ Agent Core is a unified foundation for AI agent applications, designed to power 
 
 - **Stanley**: Native GUI application built with GPUI (Rust-based)
 - **Zee**: Messaging assistant for WhatsApp, Telegram, Discord, and more
-- **OpenCode**: CLI/TUI development environment
+- **Agent-Core**: CLI/TUI development environment
 
 ## Design Principles
 
@@ -20,7 +20,7 @@ Agent Core is a unified foundation for AI agent applications, designed to power 
 
 ```
 +-------------------+     +-------------------+     +-------------------+
-|     Stanley       |     |       Zee         |     |     OpenCode      |
+|     Stanley       |     |       Zee         |     |    Agent-Core     |
 |   (GUI/GPUI)      |     | (WhatsApp/etc)    |     |    (CLI/TUI)      |
 +--------+----------+     +---------+---------+     +---------+---------+
          |                          |                         |
@@ -86,18 +86,17 @@ Multi-provider LLM support with subscription-based authentication.
 Configurable agent personas with permission management.
 
 **Key Features:**
-- Named agents with distinct personas (Zee, Stanley)
+- Named agents with distinct personas (Zee, Stanley, Johny)
 - Permission levels: allow, ask, deny
 - Mode switching: primary, subagent
 - Per-agent model selection
 - Custom system prompts
 - Tool enablement configuration
 
-**Built-in Agents:**
-- `build`: Default development agent
-- `plan`: Read-only planning agent
-- `explore`: Fast codebase exploration
-- `general`: Multi-purpose subagent
+**Personas:**
+- `zee`: Personal assistant and messaging
+- `stanley`: Investing and markets
+- `johny`: Learning and knowledge
 
 ### 3. Tool System (`/src/tool`)
 
@@ -318,10 +317,10 @@ Cross-Surface Access
 - Group message handling
 - Voice message transcription
 
-### OpenCode (CLI/TUI)
+### Agent-Core (CLI/TUI)
 
 - Native CLI with yargs
-- TUI with ink
+- TUI with OpenTUI
 - Git integration
 - File watching
 - Session sharing

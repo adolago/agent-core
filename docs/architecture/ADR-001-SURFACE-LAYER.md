@@ -6,7 +6,7 @@ ACCEPTED (Design Phase)
 ## Context
 
 The agent-core needs to support multiple UI surfaces:
-1. **CLI/TUI** (OpenCode native) - Terminal-based interaction
+1. **CLI/TUI** (agent-core native) - Terminal-based interaction
 2. **GUI** (Stanley) - GPUI-based desktop application
 3. **Messaging** (Zee) - WhatsApp, Telegram, Discord platforms
 
@@ -244,7 +244,6 @@ interface MessagingPlatformHandler {
 
 ## References
 
-- OpenCode: https://github.com/opencode
 - Stanley: GPUI-based desktop client
 - Clawdis: Existing messaging patterns (`/src/discord/monitor.ts`, `/src/telegram/monitor.ts`)
 

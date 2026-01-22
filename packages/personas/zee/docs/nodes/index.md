@@ -1,0 +1,155 @@
+---
+summary: "Nodes: pairing, capabilities, permissions, and CLI helpers for canvas/camera/screen/system"
+read_when:
+  - Connecting iOS/Android nodes to a gateway
+  - Using node canvas/camera for agent context
+  - Adding new node commands or CLI helpers
+---
+
+# Nodes
+
+A **node** is a companion device (iOS/Android today) that connects to the Gateway and exposes a command surface (e.g. `canvas.*`, `camera.*`, `system.*`) via `node.invoke`.
+
+Connection paths:
+- **iOS node**: connects directly to the Gateway WebSocket with token/password auth.
+- **Android node**: connects via the Gateway bridge and pairing.
+- **macOS node mode**: the menubar app connects to the Gateway bridge and exposes its local canvas/camera commands as a node (so `zee nodes …` works against this Mac).
+
+## Access + status
+
+Bridge pairing is gateway-owned and approval-based. See [Gateway pairing](/gateway/pairing) for the full flow.
+For iOS nodes, configure gateway auth in Settings and connect directly.
+
+Quick CLI:
+
+```bash
+zee nodes pending
+zee nodes approve <requestId>
+zee nodes reject <requestId>
+zee nodes status
+zee nodes describe --node <idOrNameOrIp>
+zee nodes rename --node <idOrNameOrIp> --name "Kitchen iPad"
+```
+
+Notes:
+- `nodes rename` stores a display name override in the gateway pairing store (bridge nodes only).
+- `nodes pending/approve/reject` apply to bridge nodes (Android/macOS node mode), not iOS.
+
+## Invoking commands
+
+Low-level (raw RPC):
+
+```bash
+zee nodes invoke --node <idOrNameOrIp> --command canvas.eval --params '{"javaScript":"location.href"}'
+```
+
+Higher-level helpers exist for the common “give the agent a MEDIA attachment” workflows.
+
+## Screenshots (canvas snapshots)
+
+If the node is showing the Canvas (WebView), `canvas.snapshot` returns `{ format, base64 }`.
+
+CLI helper (writes to a temp file and prints `MEDIA:<path>`):
+
+```bash
+zee nodes canvas snapshot --node <idOrNameOrIp> --format png
+zee nodes canvas snapshot --node <idOrNameOrIp> --format jpg --max-width 1200 --quality 0.9
+```
+
+## Photos + videos (node camera)
+
+Photos (`jpg`):
+
+```bash
+zee nodes camera snap --node <idOrNameOrIp>            # default: both facings (2 MEDIA lines)
+zee nodes camera snap --node <idOrNameOrIp> --facing front
+```
+
+Video clips (`mp4`):
+
+```bash
+zee nodes camera clip --node <idOrNameOrIp> --duration 10s
+zee nodes camera clip --node <idOrNameOrIp> --duration 3000 --no-audio
+```
+
+Notes:
+- The node must be **foregrounded** for `canvas.*` and `camera.*` (background calls return `NODE_BACKGROUND_UNAVAILABLE`).
+- Clip duration is clamped (currently `<= 60s`) to avoid oversized base64 payloads.
+- Android will prompt for `CAMERA`/`RECORD_AUDIO` permissions when possible; denied permissions fail with `*_PERMISSION_REQUIRED`.
+
+## Screen recordings (nodes)
+
+Nodes expose `screen.record` (mp4). Example:
+
+```bash
+zee nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10
+zee nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10 --no-audio
+```
+
+Notes:
+- `screen.record` requires the node app to be foregrounded.
+- Android will show the system screen-capture prompt before recording.
+- Screen recordings are clamped to `<= 60s`.
+- `--no-audio` disables microphone capture (supported on iOS/Android; macOS uses system capture audio).
+
+## Location (nodes)
+
+Nodes expose `location.get` when Location is enabled in settings.
+
+CLI helper:
+
+```bash
+zee nodes location get --node <idOrNameOrIp>
+zee nodes location get --node <idOrNameOrIp> --accuracy precise --max-age 15000 --location-timeout 10000
+```
+
+Notes:
+- Location is **off by default**.
+- “Always” requires system permission; background fetch is best-effort.
+- The response includes lat/lon, accuracy (meters), and timestamp.
+
+## SMS (Android nodes)
+
+Android nodes can expose `sms.send` when the user grants **SMS** permission and the device supports telephony.
+
+Low-level invoke:
+
+```bash
+zee nodes invoke --node <idOrNameOrIp> --command sms.send --params '{"to":"+15555550123","message":"Hello from Zee"}'
+```
+
+Notes:
+- The permission prompt must be accepted on the Android device before the capability is advertised.
+- Wi-Fi-only devices without telephony will not advertise `sms.send`.
+
+## System commands (mac node)
+
+The macOS node exposes `system.run` and `system.notify`.
+
+Examples:
+
+```bash
+zee nodes run --node <idOrNameOrIp> -- echo "Hello from mac node"
+zee nodes notify --node <idOrNameOrIp> --title "Ping" --body "Gateway ready"
+```
+
+Notes:
+- `system.run` returns stdout/stderr/exit code in the payload.
+- `system.notify` respects notification permission state on the macOS app.
+
+## Permissions map
+
+Nodes may include a `permissions` map in `node.list` / `node.describe`, keyed by permission name (e.g. `screenRecording`, `accessibility`) with boolean values (`true` = granted).
+
+## Mac node mode
+
+- The macOS menubar app connects to the Gateway bridge as a node (so `zee nodes …` works against this Mac).
+- In remote mode, the app opens an SSH tunnel for the bridge port and connects to `localhost`.
+
+## Where to look in code
+
+- CLI wiring: [`src/cli/nodes-cli.ts`](https://github.com/zee/zee/blob/main/src/cli/nodes-cli.ts)
+- Canvas snapshot decoding/temp paths: [`src/cli/nodes-canvas.ts`](https://github.com/zee/zee/blob/main/src/cli/nodes-canvas.ts)
+- Duration parsing for CLI: [`src/cli/parse-duration.ts`](https://github.com/zee/zee/blob/main/src/cli/parse-duration.ts)
+- iOS node commands: [`apps/ios/Sources/Model/NodeAppModel.swift`](https://github.com/zee/zee/blob/main/apps/ios/Sources/Model/NodeAppModel.swift)
+- Android node commands: `apps/android/app/src/main/java/com/zee/android/node/*`

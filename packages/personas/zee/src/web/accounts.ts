@@ -1,0 +1,153 @@
+import fs from "node:fs";
+import path from "node:path";
+
+import type { ZeeConfig } from "../config/config.js";
+import { resolveOAuthDir } from "../config/paths.js";
+import type {
+  DmPolicy,
+  GroupPolicy,
+  WhatsAppAccountConfig,
+} from "../config/types.js";
+import {
+  DEFAULT_ACCOUNT_ID,
+  normalizeAccountId,
+} from "../routing/session-key.js";
+import { resolveUserPath } from "../utils.js";
+
+export type ResolvedWhatsAppAccount = {
+  accountId: string;
+  name?: string;
+  enabled: boolean;
+  authDir: string;
+  isLegacyAuthDir: boolean;
+  selfChatMode?: boolean;
+  allowFrom?: string[];
+  groupAllowFrom?: string[];
+  groupPolicy?: GroupPolicy;
+  dmPolicy?: DmPolicy;
+  textChunkLimit?: number;
+  groups?: WhatsAppAccountConfig["groups"];
+};
+
+function listConfiguredAccountIds(cfg: ZeeConfig): string[] {
+  const accounts = cfg.whatsapp?.accounts;
+  if (!accounts || typeof accounts !== "object") return [];
+  return Object.keys(accounts).filter(Boolean);
+}
+
+export function listWhatsAppAccountIds(cfg: ZeeConfig): string[] {
+  const ids = listConfiguredAccountIds(cfg);
+  if (ids.length === 0) return [DEFAULT_ACCOUNT_ID];
+  return ids.sort((a, b) => a.localeCompare(b));
+}
+
+export function resolveDefaultWhatsAppAccountId(cfg: ZeeConfig): string {
+  const ids = listWhatsAppAccountIds(cfg);
+  if (ids.includes(DEFAULT_ACCOUNT_ID)) return DEFAULT_ACCOUNT_ID;
+  return ids[0] ?? DEFAULT_ACCOUNT_ID;
+}
+
+function resolveAccountConfig(
+  cfg: ZeeConfig,
+  accountId: string,
+): WhatsAppAccountConfig | undefined {
+  const accounts = cfg.whatsapp?.accounts;
+  if (!accounts || typeof accounts !== "object") return undefined;
+  const entry = accounts[accountId] as WhatsAppAccountConfig | undefined;
+  return entry;
+}
+
+function sanitizeAccountIdForPath(accountId: string): string {
+  const trimmed = accountId.trim();
+  if (!trimmed) return DEFAULT_ACCOUNT_ID;
+  if (
+    !/[\\/]/.test(trimmed) &&
+    !trimmed.includes("..") &&
+    !trimmed.includes("\0")
+  ) {
+    return trimmed;
+  }
+  return normalizeAccountId(trimmed);
+}
+
+function resolveDefaultAuthDir(accountId: string): string {
+  return path.join(
+    resolveOAuthDir(),
+    "whatsapp",
+    sanitizeAccountIdForPath(accountId),
+  );
+}
+
+function resolveLegacyAuthDir(): string {
+  // Legacy Baileys creds lived in the same directory as OAuth tokens.
+  return resolveOAuthDir();
+}
+
+function legacyAuthExists(authDir: string): boolean {
+  try {
+    return fs.existsSync(path.join(authDir, "creds.json"));
+  } catch {
+    return false;
+  }
+}
+
+export function resolveWhatsAppAuthDir(params: {
+  cfg: ZeeConfig;
+  accountId: string;
+}): { authDir: string; isLegacy: boolean } {
+  const accountIdRaw = params.accountId.trim() || DEFAULT_ACCOUNT_ID;
+  const accountIdForPath = sanitizeAccountIdForPath(accountIdRaw);
+  const account = resolveAccountConfig(params.cfg, accountIdRaw);
+  const configured = account?.authDir?.trim();
+  if (configured) {
+    return { authDir: resolveUserPath(configured), isLegacy: false };
+  }
+
+  const defaultDir = resolveDefaultAuthDir(accountIdForPath);
+  if (accountIdForPath === DEFAULT_ACCOUNT_ID) {
+    const legacyDir = resolveLegacyAuthDir();
+    if (legacyAuthExists(legacyDir) && !legacyAuthExists(defaultDir)) {
+      return { authDir: legacyDir, isLegacy: true };
+    }
+  }
+
+  return { authDir: defaultDir, isLegacy: false };
+}
+
+export function resolveWhatsAppAccount(params: {
+  cfg: ZeeConfig;
+  accountId?: string | null;
+}): ResolvedWhatsAppAccount {
+  const accountId =
+    params.accountId?.trim() || resolveDefaultWhatsAppAccountId(params.cfg);
+  const accountCfg = resolveAccountConfig(params.cfg, accountId);
+  const enabled = accountCfg?.enabled !== false;
+  const { authDir, isLegacy } = resolveWhatsAppAuthDir({
+    cfg: params.cfg,
+    accountId,
+  });
+  return {
+    accountId,
+    name: accountCfg?.name?.trim() || undefined,
+    enabled,
+    authDir,
+    isLegacyAuthDir: isLegacy,
+    selfChatMode: accountCfg?.selfChatMode ?? params.cfg.whatsapp?.selfChatMode,
+    dmPolicy: accountCfg?.dmPolicy ?? params.cfg.whatsapp?.dmPolicy,
+    allowFrom: accountCfg?.allowFrom ?? params.cfg.whatsapp?.allowFrom,
+    groupAllowFrom:
+      accountCfg?.groupAllowFrom ?? params.cfg.whatsapp?.groupAllowFrom,
+    groupPolicy: accountCfg?.groupPolicy ?? params.cfg.whatsapp?.groupPolicy,
+    textChunkLimit:
+      accountCfg?.textChunkLimit ?? params.cfg.whatsapp?.textChunkLimit,
+    groups: accountCfg?.groups ?? params.cfg.whatsapp?.groups,
+  };
+}
+
+export function listEnabledWhatsAppAccounts(
+  cfg: ZeeConfig,
+): ResolvedWhatsAppAccount[] {
+  return listWhatsAppAccountIds(cfg)
+    .map((accountId) => resolveWhatsAppAccount({ cfg, accountId }))
+    .filter((account) => account.enabled);
+}

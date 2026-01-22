@@ -24,11 +24,11 @@ export function getAgentCoreRoot(): string {
 }
 
 /**
- * Persona paths - resolved from AGENT_CORE_ROOT/vendor/personas/
+ * Persona paths - resolved from AGENT_CORE_ROOT/packages/personas/
  */
 export const Personas = {
   root(): string {
-    return path.join(getAgentCoreRoot(), "vendor", "personas")
+    return path.join(getAgentCoreRoot(), "packages", "personas")
   },
 
   zee(): string {
@@ -140,10 +140,7 @@ export const Zee = {
  */
 export const Tiara = {
   root(): string {
-    const agentCoreRoot = getAgentCoreRoot()
-    const distPath = path.join(agentCoreRoot, "vendor", "tiara")
-    if (fs.existsSync(distPath)) return distPath
-    return path.join(agentCoreRoot, "vendor", "tiara")
+    return path.join(getAgentCoreRoot(), "packages", "tiara")
   },
 
   exists(): boolean {

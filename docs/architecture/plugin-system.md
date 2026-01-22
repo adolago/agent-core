@@ -2,7 +2,7 @@
 
 ## Overview
 
-The plugin system provides the extensibility layer for agent-core, enabling plugins to extend agent functionality through hooks, tools, and authentication providers. The design is inspired by OpenCode's plugin architecture but extended to support agent-specific use cases.
+The plugin system provides the extensibility layer for agent-core, enabling plugins to extend agent functionality through hooks, tools, and authentication providers. The design supports agent-specific use cases.
 
 ## Architecture Diagram
 

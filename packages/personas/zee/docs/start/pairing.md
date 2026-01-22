@@ -1,0 +1,91 @@
+---
+summary: "Pairing overview: approve who can DM you + which nodes can join"
+read_when:
+  - Setting up DM access control
+  - Pairing a new Android/bridge node
+  - Reviewing Zee security posture
+---
+
+# Pairing
+
+“Pairing” is Zee’s explicit **owner approval** step.
+It is used in two places:
+
+1) **DM pairing** (who is allowed to talk to the bot)
+2) **Node pairing** (which devices/nodes are allowed to join the gateway network)
+
+Security context: [Security](/gateway/security)
+
+## 1) DM pairing (inbound chat access)
+
+When a provider is configured with DM policy `pairing`, unknown senders get a short code and their message is **not processed** until you approve.
+
+Default DM policies are documented in: [Security](/gateway/security)
+
+Pairing codes:
+- 8 characters, uppercase, no ambiguous chars (`0O1I`).
+- **Expire after 1 hour**. The bot only sends the pairing message when a new request is created (roughly once per hour per sender).
+
+### Approve a sender
+
+```bash
+zee pairing list --provider telegram
+zee pairing approve --provider telegram <CODE>
+```
+
+Supported providers: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, `slack`.
+
+### Where the state lives
+
+Stored under `~/.zee/credentials/`:
+- Pending requests: `<provider>-pairing.json`
+- Approved allowlist store: `<provider>-allowFrom.json`
+
+Treat these as sensitive (they gate access to your assistant).
+
+### Source of truth (code)
+
+- DM pairing storage + code generation: [`src/pairing/pairing-store.ts`](https://github.com/zee/zee/blob/main/src/pairing/pairing-store.ts)
+- CLI commands: [`src/cli/pairing-cli.ts`](https://github.com/zee/zee/blob/main/src/cli/pairing-cli.ts)
+
+## 2) Node pairing (bridge nodes)
+
+Nodes that use the **bridge transport** (Android, macOS node mode, future hardware) connect to the Gateway and request to join.
+The Gateway keeps an authoritative allowlist; new nodes require explicit approve/reject.
+
+Note: iOS nodes connect directly to the Gateway WebSocket with token/password auth and do **not** use node pairing. See [iOS app](/platforms/ios).
+
+### Approve a node
+
+```bash
+zee nodes pending
+zee nodes approve <requestId>
+```
+
+### Where the state lives
+
+Stored under `~/.zee/nodes/`:
+- `pending.json` (short-lived; pending requests expire)
+- `paired.json` (paired nodes + tokens)
+
+### Details
+
+Full protocol + design notes: [Gateway pairing](/gateway/pairing)
+
+### Source of truth (code)
+
+- Node pairing store (pending/paired + token issuance): [`src/infra/node-pairing.ts`](https://github.com/zee/zee/blob/main/src/infra/node-pairing.ts)
+- Gateway methods/events (`node.pair.*`): [`src/gateway/server-methods/nodes.ts`](https://github.com/zee/zee/blob/main/src/gateway/server-methods/nodes.ts)
+- CLI: [`src/cli/nodes-cli.ts`](https://github.com/zee/zee/blob/main/src/cli/nodes-cli.ts)
+
+## Related docs
+
+- Security model + prompt injection: [Security](/gateway/security)
+- Updating safely (run doctor): [Updating](/install/updating)
+- Provider configs:
+  - Telegram: [Telegram](/providers/telegram)
+  - WhatsApp: [WhatsApp](/providers/whatsapp)
+  - Signal: [Signal](/providers/signal)
+  - iMessage: [iMessage](/providers/imessage)
+  - Discord: [Discord](/providers/discord)
+  - Slack: [Slack](/providers/slack)

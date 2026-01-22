@@ -6,12 +6,15 @@
     "apiKey": "pit-oqFnllGFX5eB"
   },
   "plugin": [
-    "file:///home/artur/.local/src/agent-core/packages/opencode-anthropic-auth/index.mjs"
+    "file:///home/artur/.local/src/agent-core/packages/anthropic-auth/index.mjs"
   ],
+  "model": "nebius/zai-org/GLM-4.5-Air",
+  "small_model": "nebius/Qwen/Qwen3-30B-A3B-Instruct-2507",
   "memory": {
     "embedding": {
       "profile": "nebius/qwen3-embedding-8b",
-      "baseUrl": "https://api.studio.nebius.ai/v1",
+      "dimensions": 4096,
+      "baseUrl": "https://api.tokenfactory.nebius.com/v1",
       "apiKey": "{env:NEBIUS_API_KEY}"
     }
   }

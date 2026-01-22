@@ -133,9 +133,9 @@ Provide factory functions for specialized strategies:
 
 ## Implementation Notes
 
-### Migration from OpenCode
+### Migration from upstream base
 
-Key adaptations from the OpenCode codebase:
+Key adaptations from the upstream base:
 - Simplified namespace usage to standard exports
 - Added Zod schemas for all types
 - Made storage backend pluggable
@@ -152,6 +152,5 @@ Key adaptations from the OpenCode codebase:
 
 ## References
 
-- OpenCode session implementation: `/home/artur/Repositories/opencode/packages/opencode/src/session/`
 - Vercel AI SDK streaming: https://sdk.vercel.ai/docs/ai-sdk-core/streaming
 - Zod documentation: https://zod.dev/

@@ -1,0 +1,140 @@
+import { describe, expect, it } from "vitest";
+import type { ZeeConfig } from "../config/config.js";
+import { resolveAgentConfig } from "./agent-scope.js";
+
+describe("resolveAgentConfig", () => {
+  it("should return undefined when no agents config exists", () => {
+    const cfg: ZeeConfig = {};
+    const result = resolveAgentConfig(cfg, "main");
+    expect(result).toBeUndefined();
+  });
+
+  it("should return undefined when agent id does not exist", () => {
+    const cfg: ZeeConfig = {
+      routing: {
+        agents: {
+          main: { workspace: "~/zee" },
+        },
+      },
+    };
+    const result = resolveAgentConfig(cfg, "nonexistent");
+    expect(result).toBeUndefined();
+  });
+
+  it("should return basic agent config", () => {
+    const cfg: ZeeConfig = {
+      routing: {
+        agents: {
+          main: {
+            name: "Main Agent",
+            workspace: "~/zee",
+            agentDir: "~/.zee/agents/main",
+            model: "anthropic/claude-opus-4",
+          },
+        },
+      },
+    };
+    const result = resolveAgentConfig(cfg, "main");
+    expect(result).toEqual({
+      name: "Main Agent",
+      workspace: "~/zee",
+      agentDir: "~/.zee/agents/main",
+      model: "anthropic/claude-opus-4",
+      sandbox: undefined,
+      tools: undefined,
+    });
+  });
+
+  it("should return agent-specific sandbox config", () => {
+    const cfg: ZeeConfig = {
+      routing: {
+        agents: {
+          work: {
+            workspace: "~/zee-work",
+            sandbox: {
+              mode: "all",
+              scope: "agent",
+              perSession: false,
+              workspaceAccess: "ro",
+              workspaceRoot: "~/sandboxes",
+              tools: {
+                allow: ["read"],
+                deny: ["bash"],
+              },
+            },
+          },
+        },
+      },
+    };
+    const result = resolveAgentConfig(cfg, "work");
+    expect(result?.sandbox).toEqual({
+      mode: "all",
+      scope: "agent",
+      perSession: false,
+      workspaceAccess: "ro",
+      workspaceRoot: "~/sandboxes",
+      tools: {
+        allow: ["read"],
+        deny: ["bash"],
+      },
+    });
+  });
+
+  it("should return agent-specific tools config", () => {
+    const cfg: ZeeConfig = {
+      routing: {
+        agents: {
+          restricted: {
+            workspace: "~/zee-restricted",
+            tools: {
+              allow: ["read"],
+              deny: ["bash", "write", "edit"],
+            },
+          },
+        },
+      },
+    };
+    const result = resolveAgentConfig(cfg, "restricted");
+    expect(result?.tools).toEqual({
+      allow: ["read"],
+      deny: ["bash", "write", "edit"],
+    });
+  });
+
+  it("should return both sandbox and tools config", () => {
+    const cfg: ZeeConfig = {
+      routing: {
+        agents: {
+          family: {
+            workspace: "~/zee-family",
+            sandbox: {
+              mode: "all",
+              scope: "agent",
+            },
+            tools: {
+              allow: ["read"],
+              deny: ["bash"],
+            },
+          },
+        },
+      },
+    };
+    const result = resolveAgentConfig(cfg, "family");
+    expect(result?.sandbox?.mode).toBe("all");
+    expect(result?.tools?.allow).toEqual(["read"]);
+  });
+
+  it("should normalize agent id", () => {
+    const cfg: ZeeConfig = {
+      routing: {
+        agents: {
+          main: { workspace: "~/zee" },
+        },
+      },
+    };
+    // Should normalize to "main" (default)
+    const result = resolveAgentConfig(cfg, "");
+    expect(result).toBeDefined();
+    expect(result?.workspace).toBe("~/zee");
+  });
+});

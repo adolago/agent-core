@@ -20,9 +20,9 @@ Existing upstream code may still contain legacy references - that's fine. But al
 
 **ALWAYS read these before making changes:**
 
-1. **Tiara** (`vendor/tiara/`) - The orchestration submodule
-   - `vendor/tiara/CLAUDE.md` - SPARC methodology, concurrent execution rules
-   - `vendor/tiara/docs/` - Architecture, integrations, roadmaps
+1. **Tiara** (`packages/tiara/`) - The orchestration submodule
+   - `packages/tiara/CLAUDE.md` - SPARC methodology, concurrent execution rules
+   - `packages/tiara/docs/` - Architecture, integrations, roadmaps
 
 2. **The Triad** (`.claude/skills/`) - The three personas:
    - `.claude/skills/zee/SKILL.md` - Personal assistant (memory, messaging, calendar, and more)
@@ -136,7 +136,7 @@ You can always check:
 │                              ▼                                      │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │                    TIARA (Orchestration)                       │  │
-│  │                    vendor/tiara/                               │  │
+│  │                    packages/tiara/                               │  │
 │  │                                                               │  │
 │  │  • SPARC methodology (Specification→Pseudocode→Architecture   │  │
 │  │    →Refinement→Completion)                                    │  │
@@ -319,7 +319,7 @@ pgrep -af agent-core
 **Related but separate (don't kill):**
 | Process | Location | Description |
 |---------|----------|-------------|
-| Zee Gateway | `~/.local/src/agent-core/vendor/personas/zee/` | Node.js messaging gateway (WhatsApp, Telegram, Signal) |
+| Zee Gateway | `~/.local/src/agent-core/packages/personas/zee/` | Node.js messaging gateway (WhatsApp, Telegram, Signal) |
 
 ### Gateway Architecture
 
@@ -329,7 +329,7 @@ pgrep -af agent-core
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────────┐
 │  │                   Zee Gateway (Transport)                        │
-│  │                 ~/.local/src/agent-core/vendor/personas/zee/                             │
+│  │                 ~/.local/src/agent-core/packages/personas/zee/                             │
 │  │                                                                 │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
 │  │  │ WhatsApp │  │ Telegram │  │  Signal  │  │ Discord  │        │
@@ -390,4 +390,4 @@ Messaging transport remains in Zee, but the gateway is launched by agent-core to
 2. Keep agent-core clean for upstream sync
 3. Centralize messaging transport in one place
 
-All messaging flows through the Zee gateway at `~/.local/src/agent-core/vendor/personas/zee/`, managed by the daemon.
+All messaging flows through the Zee gateway at `~/.local/src/agent-core/packages/personas/zee/`, managed by the daemon.

@@ -31,7 +31,7 @@ These are additions that don't conflict with upstream:
 |------|-------------|-------|
 | Persona Skills | Zee, Stanley, Johny skills | `.claude/skills/` |
 | Custom Themes | Persona-specific TUI themes | `context/theme/*.json` |
-| Tiara Submodule | Orchestration layer | `vendor/tiara/` |
+| Tiara Package | Orchestration layer | `packages/tiara/` |
 | Memory Types | Qdrant integration types | `src/memory/` |
 
 ### Medium Complexity (Modifications)

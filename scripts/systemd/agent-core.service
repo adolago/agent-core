@@ -41,7 +41,7 @@ PrivateTmp=true
 # Agent-core needs write access to config, state, logs, and session data
 # Gateway needs access to zee directory for cache and session data
 # Signal needs access to its data directory
-ReadWritePaths=@HOME@/.config/agent-core @HOME@/.local/state/agent-core @HOME@/.local/share/agent-core @HOME@/.local/share/signal-cli @HOME@/.zee @ROOT@/vendor/personas
+ReadWritePaths=@HOME@/.config/agent-core @HOME@/.local/state/agent-core @HOME@/.local/share/agent-core @HOME@/.local/share/signal-cli @HOME@/.zee @ROOT@/packages/personas
 
 # Logging
 StandardOutput=journal

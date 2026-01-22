@@ -17,7 +17,7 @@ cat > "$XDG_CONFIG_HOME/agent-core/config.json" << EOF
 {
   "plugin": [
     "opencode-antigravity-auth@1.2.8",
-    "file://$ROOT/packages/opencode-anthropic-auth/index.mjs"
+    "file://$ROOT/packages/anthropic-auth/index.mjs"
   ]
 }
 EOF

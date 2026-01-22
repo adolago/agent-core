@@ -1,0 +1,61 @@
+import type { ZeeConfig } from "../../config/config.js";
+import type { AgentToolResult } from "../types.js";
+import { createActionGate, readStringParam } from "./common.js";
+import { handleDiscordGuildAction } from "./discord-actions-guild.js";
+import { handleDiscordMessagingAction } from "./discord-actions-messaging.js";
+import { handleDiscordModerationAction } from "./discord-actions-moderation.js";
+
+const messagingActions = new Set([
+  "react",
+  "reactions",
+  "sticker",
+  "poll",
+  "permissions",
+  "readMessages",
+  "sendMessage",
+  "editMessage",
+  "deleteMessage",
+  "threadCreate",
+  "threadList",
+  "threadReply",
+  "pinMessage",
+  "unpinMessage",
+  "listPins",
+  "searchMessages",
+]);
+
+const guildActions = new Set([
+  "memberInfo",
+  "roleInfo",
+  "emojiList",
+  "emojiUpload",
+  "stickerUpload",
+  "roleAdd",
+  "roleRemove",
+  "channelInfo",
+  "channelList",
+  "voiceStatus",
+  "eventList",
+  "eventCreate",
+]);
+
+const moderationActions = new Set(["timeout", "kick", "ban"]);
+
+export async function handleDiscordAction(
+  params: Record<string, unknown>,
+  cfg: ZeeConfig,
+): Promise<AgentToolResult<unknown>> {
+  const action = readStringParam(params, "action", { required: true });
+  const isActionEnabled = createActionGate(cfg.discord?.actions);
+
+  if (messagingActions.has(action)) {
+    return await handleDiscordMessagingAction(action, params, isActionEnabled);
+  }
+  if (guildActions.has(action)) {
+    return await handleDiscordGuildAction(action, params, isActionEnabled);
+  }
+  if (moderationActions.has(action)) {
+    return await handleDiscordModerationAction(action, params, isActionEnabled);
+  }
+  throw new Error(`Unknown action: ${action}`);
+}

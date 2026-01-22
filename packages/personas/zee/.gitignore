@@ -1,0 +1,62 @@
+node_modules
+.env
+dist
+*.bun-build
+pnpm-lock.yaml
+bun.lock
+bun.lockb
+coverage
+.pnpm-store
+.worktrees/
+.DS_Store
+**/.DS_Store
+ui/src/ui/__screenshots__/
+ui/playwright-report/
+ui/test-results/
+
+# Bun build artifacts
+*.bun-build
+apps/shared/ZeeKit/.build/
+**/ModuleCache/
+bin/
+bin/docs-list
+apps/shared/ZeeKit/.swiftpm/
+Core/
+apps/ios/*.xcodeproj/
+apps/ios/*.xcworkspace/
+apps/ios/.swiftpm/
+vendor/
+
+# Vendor build artifacts
+vendor/a2ui/renderers/lit/dist/
+.bundle.hash
+
+# fastlane (iOS)
+apps/ios/fastlane/README.md
+apps/ios/fastlane/report.xml
+apps/ios/fastlane/Preview.html
+apps/ios/fastlane/screenshots/
+apps/ios/fastlane/test_output/
+apps/ios/fastlane/logs/
+
+# fastlane build artifacts (local)
+apps/ios/*.ipa
+apps/ios/*.dSYM.zip
+
+# provisioning profiles (local)
+apps/ios/*.mobileprovision
+.env
+.swarm/
+
+# Local untracked files
+.local/
+
+# Legacy systemd units (avoid accidental upstream diffs)
+**/clawdis-gateway.service
+**/zee.service
+
+# Ignore the entire iOS app directory (local user preference)
+apps/ios/
+Peekaboo/
+Swabble/
+.agent-core/

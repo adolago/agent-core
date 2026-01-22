@@ -16,6 +16,7 @@
   "workspaces": {
     "packages": [
       "packages/*",
+      "packages/personas/*",
       "packages/console/*",
       "packages/sdk/js",
       "packages/slack"

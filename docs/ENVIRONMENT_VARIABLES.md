@@ -221,7 +221,7 @@ Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `STANLEY_PORTFOLIO_FILE` | `~/.zee/stanley/portfolio.json` | Portfolio file path |
-| `STANLEY_REPO` | `~/.local/src/agent-core/vendor/personas/stanley` | Stanley repo path |
+| `STANLEY_REPO` | `~/.local/src/agent-core/packages/personas/stanley` | Stanley repo path |
 | `STANLEY_CLI` | `$STANLEY_REPO/scripts/stanley_cli.py` | CLI script path |
 | `STANLEY_PYTHON` | Auto-detect venv or `python3` | Python interpreter |
 
@@ -233,13 +233,13 @@ Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JOHNY_REPO` | `~/.local/src/agent-core/vendor/personas/johny` | Johny repo path |
+| `JOHNY_REPO` | `~/.local/src/agent-core/packages/personas/johny` | Johny repo path |
 | `JOHNY_CLI` | `$JOHNY_REPO/scripts/johny_cli.py` | CLI script path |
 | `JOHNY_PYTHON` | Auto-detect venv or `python3` | Python interpreter |
 
 ---
 
-## Tiara (Orchestration - vendor/tiara)
+## Tiara (Orchestration - packages/tiara)
 
 ### Debug & Logging
 

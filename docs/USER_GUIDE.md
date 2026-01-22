@@ -202,7 +202,7 @@ The system keeps the last 5 sessions automatically.
 
 To unlock the full power of the Investment Persona:
 
-1. Clone the Stanley repo to `~/.local/src/agent-core/vendor/personas/stanley`.
+1. Clone the Stanley repo to `~/.local/src/agent-core/packages/personas/stanley`.
 2. Set up the Python environment there (`pip install -r requirements.txt`).
 3. Agent-Core will automatically detect the CLI.
 
