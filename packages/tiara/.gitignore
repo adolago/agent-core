@@ -78,6 +78,12 @@ coordination/
 *.sqlite-journal
 *.sqlite-wal
 
+# Keep source modules under src/
+!src/memory/
+!src/memory/**
+!src/coordination/
+!src/coordination/**
+
 # MCP
 mcp-server.log
 swarm-runs/
