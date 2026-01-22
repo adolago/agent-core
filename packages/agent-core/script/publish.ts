@@ -63,7 +63,7 @@ async function updateVersionAcrossRepos(version: string) {
   }
 
   // Update Tiara version if exists
-  const tiaraPkgPath = path.join(repoRoot, "vendor", "tiara", "package.json")
+  const tiaraPkgPath = path.join(repoRoot, "packages", "tiara", "package.json")
   if (fs.existsSync(tiaraPkgPath)) {
     const tiaraPkg = JSON.parse(fs.readFileSync(tiaraPkgPath, "utf-8"))
     tiaraPkg.version = version
@@ -91,8 +91,8 @@ async function gitTagAndPush(version: string) {
   console.log(`  ✓ Tagged and pushed v${version}`)
 
   // Also tag Tiara submodule
-  const tiaraPath = path.join(repoRoot, "vendor", "tiara")
-  if (fs.existsSync(tiaraPath)) {
+  const tiaraPath = path.join(repoRoot, "packages", "tiara")
+  if (fs.existsSync(path.join(tiaraPath, ".git"))) {
     await $`git tag -a v${version} -m "Release v${version}"`.cwd(tiaraPath).quiet().nothrow()
     await $`git push origin v${version}`.cwd(tiaraPath).quiet().nothrow()
     console.log(`  ✓ Tagged Tiara submodule v${version}`)

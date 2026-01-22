@@ -97,5 +97,5 @@
     "ghostty-web@0.3.0": "patches/ghostty-web@0.3.0.patch",
     "qrcode-terminal": "patches/qrcode-terminal.patch"
   },
-  "version": "0.1.0-alpha.1"
+  "version": "0.1.0-alpha.2"
 }

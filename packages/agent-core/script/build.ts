@@ -16,10 +16,10 @@ process.chdir(dir)
 import pkg from "../package.json"
 import { Script } from "@opencode-ai/script"
 
-const personasRoot = path.resolve(repoRoot, "vendor", "personas")
+const personasRoot = path.resolve(repoRoot, "packages", "personas")
 const zeeRoot = path.join(personasRoot, "zee")
 const stanleyRoot = path.join(personasRoot, "stanley")
-const tiaraRoot = path.resolve(repoRoot, "vendor", "tiara")
+const tiaraRoot = path.resolve(repoRoot, "packages", "tiara")
 const agentCoreAssetsRoot = path.join(repoRoot, ".agent-core")
 const claudeSkillsRoot = path.join(repoRoot, ".claude", "skills")
 
@@ -167,7 +167,7 @@ async function ensureStanleyDependencies() {
 
 function bundlePersonas(distRoot: string) {
   if (!fs.existsSync(personasRoot)) return
-  const destRoot = path.join(distRoot, "vendor", "personas")
+  const destRoot = path.join(distRoot, "packages", "personas")
   fs.mkdirSync(destRoot, { recursive: true })
   for (const entry of fs.readdirSync(personasRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
@@ -192,7 +192,7 @@ function bundlePersonas(distRoot: string) {
 
 function bundleTiara(distRoot: string) {
   if (!fs.existsSync(tiaraRoot)) return
-  const destRoot = path.join(distRoot, "vendor", "tiara")
+  const destRoot = path.join(distRoot, "packages", "tiara")
   fs.mkdirSync(destRoot, { recursive: true })
   fs.cpSync(tiaraRoot, destRoot, {
     recursive: true,

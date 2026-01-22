@@ -582,6 +582,7 @@ export namespace Config {
   export const Agent = z
     .object({
       model: z.string().optional(),
+      fallback: z.string().optional(),
       temperature: z.number().optional(),
       top_p: z.number().optional(),
       top_k: z.number().optional(),
@@ -636,6 +637,7 @@ export namespace Config {
       const knownKeys = new Set([
         "name",
         "model",
+        "fallback",
         "prompt",
         "description",
         "temperature",
