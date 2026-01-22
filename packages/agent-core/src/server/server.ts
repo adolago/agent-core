@@ -3,6 +3,8 @@ import { Log } from "../util/log"
 import { describeRoute, generateSpecs, resolver } from "hono-openapi"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
+import { basicAuth } from "hono/basic-auth"
+import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
 import { proxy } from "hono/proxy"
 import z from "zod"
@@ -65,6 +67,9 @@ export namespace Server {
     () =>
       app
         .onError((err, c) => {
+          if (err instanceof HTTPException) {
+            return c.json({ error: err.message }, err.status)
+          }
           log.error("failed", {
             error: err,
           })
@@ -114,6 +119,19 @@ export namespace Server {
             },
           }),
         )
+        // Basic Auth
+        .use(async (c, next) => {
+          const password = process.env.OPENCODE_SERVER_PASSWORD
+          if (!password) {
+            await next()
+            return
+          }
+          const auth = basicAuth({
+            username: process.env.OPENCODE_SERVER_USERNAME || "opencode",
+            password,
+          })
+          await auth(c, next)
+        })
         // Middleware to provide instance context
         .use(async (c, next) => {
           let directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()
