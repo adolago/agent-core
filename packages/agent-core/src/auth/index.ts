@@ -55,7 +55,7 @@ export namespace Auth {
 
   const filepath = path.join(Global.Path.data, "auth.json")
 
-  export async function get(providerID: string) {
+  export async function get(providerID: string): Promise<Info | undefined> {
     const auth = await all()
     return auth[providerID]
   }
