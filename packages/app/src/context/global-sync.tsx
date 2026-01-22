@@ -166,7 +166,10 @@ function createGlobalSync() {
     return childStore
   }
 
-  async function loadSessions(directory: string, sdk: ReturnType<typeof createOpencodeClient>) {
+  async function loadSessions(
+    directory: string,
+    sdk: ReturnType<typeof createOpencodeClient> = clientFor(directory),
+  ) {
     const [store, setStore] = child(directory)
     const limit = store.limit
     return sdk.session.list()

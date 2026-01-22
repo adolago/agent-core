@@ -216,8 +216,8 @@ export const RunCommand = cmd({
             }
           }
 
-          if (event.type === "session.error") {
-            const props = event.properties
+          if (resolved.type === "session.error") {
+            const props = resolved.properties
             if (props.sessionID !== sessionID || !props.error) continue
             let err = String(props.error.name)
             if ("data" in props.error && props.error.data && "message" in props.error.data) {
@@ -228,12 +228,12 @@ export const RunCommand = cmd({
             UI.error(err)
           }
 
-          if (event.type === "session.idle" && event.properties.sessionID === sessionID) {
+          if (resolved.type === "session.idle" && resolved.properties.sessionID === sessionID) {
             break
           }
 
-          if (event.type === "permission.asked") {
-            const permission = event.properties
+          if (resolved.type === "permission.asked") {
+            const permission = resolved.properties
             if (permission.sessionID !== sessionID) continue
             const result = await select({
               message: `Permission required: ${permission.permission} (${permission.patterns.join(", ")})`,

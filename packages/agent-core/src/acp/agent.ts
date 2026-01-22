@@ -39,8 +39,10 @@ type AppEvent = {
   properties: any
 }
 
-const withDirectory = (directory: string, options?: { headers?: Record<string, string> }) => ({
-  ...options,
+const withDirectory = (
+  directory: string,
+  options?: { headers?: Record<string, string>; throwOnError?: boolean },
+) => ({
   headers: {
     ...options?.headers,
     [HEADER_DIRECTORY]: directory,

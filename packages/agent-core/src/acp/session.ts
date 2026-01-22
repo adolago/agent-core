@@ -6,8 +6,10 @@ import { HEADER_DIRECTORY } from "@/gateway/constants"
 
 const log = Log.create({ service: "acp-session-manager" })
 
-const withDirectory = (directory: string, options?: { headers?: Record<string, string> }) => ({
-  ...options,
+const withDirectory = (
+  directory: string,
+  options?: { headers?: Record<string, string>; throwOnError?: boolean },
+) => ({
   headers: {
     ...options?.headers,
     [HEADER_DIRECTORY]: directory,
