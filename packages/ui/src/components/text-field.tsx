@@ -93,6 +93,7 @@ export function TextField(props: TextFieldProps) {
           <Tooltip value={copied() ? "Copied" : "Copy to clipboard"} placement="top" gutter={8}>
             <IconButton
               type="button"
+              aria-label="Copy to clipboard"
               icon={copied() ? "check" : "copy"}
               variant="ghost"
               onClick={handleCopy}
