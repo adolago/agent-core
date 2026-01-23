@@ -209,7 +209,8 @@ function predictTemporal(
   sequence: number[],
   horizon: number
 ): TemporalPrediction {
-  if (sequence.length < 2) {
+  const denominator = sequence.length - 1;
+  if (denominator <= 0) {
     return {
       success: false,
       predictions: [],
@@ -223,12 +224,12 @@ function predictTemporal(
   const predictions: number[] = [];
   const confidence: number[] = [];
 
-  const trend = (sequence[sequence.length - 1] - sequence[0]) / (sequence.length - 1);
+  const trend = (sequence[sequence.length - 1] - sequence[0]) / denominator;
   const variance =
     sequence.reduce((a, b, i, arr) => {
       if (i === 0) return 0;
       return a + Math.pow(b - arr[i - 1] - trend, 2);
-    }, 0) / (sequence.length - 1);
+    }, 0) / denominator;
 
   const lastValue = sequence[sequence.length - 1];
 
