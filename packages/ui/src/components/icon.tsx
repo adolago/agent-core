@@ -68,13 +68,73 @@ const icons = {
   trash: `<path d="M4.58342 17.9134L4.58369 17.4134L4.22787 17.5384L4.22766 18.0384H4.58342V17.9134ZM15.4167 17.9134V18.0384H15.7725L15.7723 17.5384L15.4167 17.9134ZM2.08342 3.95508V3.45508H1.58342V3.95508H2.08342V4.45508V3.95508ZM17.9167 4.45508V4.95508H18.4167V4.45508H17.9167V3.95508V4.45508ZM4.16677 4.58008L3.66701 4.5996L4.22816 17.5379L4.72792 17.4934L5.22767 17.4489L4.66652 4.54055L4.16677 4.58008ZM4.58342 18.0384V17.9134H15.4167V18.0384V18.5384H4.58342V18.0384ZM15.4167 17.9134L15.8332 17.5379L16.2498 4.5996L15.7501 4.58008L15.2503 4.56055L14.8337 17.4989L15.4167 17.9134ZM15.8334 4.58008V4.08008H4.16677V4.58008V5.08008H15.8334V4.58008ZM2.08342 4.45508V4.95508H4.16677V4.58008V4.08008H2.08342V4.45508ZM15.8334 4.58008V5.08008H17.9167V4.45508V3.95508H15.8334V4.58008ZM6.83951 4.35149L7.432 4.55047C7.79251 3.47701 8.80699 2.70508 10.0001 2.70508V2.20508V1.70508C8.25392 1.70508 6.77335 2.83539 6.24702 4.15251L6.83951 4.35149ZM10.0001 2.20508V2.70508C11.1932 2.70508 12.2077 3.47701 12.5682 4.55047L13.1607 4.35149L13.7532 4.15251C13.2269 2.83539 11.7463 1.70508 10.0001 1.70508V2.20508Z" fill="currentColor"/>`,
 }
 
+type IconName = keyof typeof icons
+
+const ALLOWED_ICON_TAGS = new Set(["path", "rect", "circle", "g"])
+const ALLOWED_ICON_ATTRS = new Set([
+  "d",
+  "fill",
+  "stroke",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-width",
+  "fill-rule",
+  "clip-rule",
+  "fill-opacity",
+  "x",
+  "y",
+  "width",
+  "height",
+  "cx",
+  "cy",
+  "r",
+])
+
+function isSafeIconMarkup(markup: string): boolean {
+  if (!markup || /<\s*script/i.test(markup)) return false
+  const tagRegex = /<\s*(?!\/)([a-zA-Z][a-zA-Z0-9-]*)\b([^>]*)>/g
+  let match: RegExpExecArray | null
+  while ((match = tagRegex.exec(markup))) {
+    const tag = match[1]
+    if (!ALLOWED_ICON_TAGS.has(tag)) return false
+    const attrs = match[2] ?? ""
+    if (/on[a-z]+\s*=/.test(attrs)) return false
+    const attrRegex = /([a-zA-Z:-]+)=["'][^"']*["']/g
+    let attrMatch: RegExpExecArray | null
+    while ((attrMatch = attrRegex.exec(attrs))) {
+      const attr = attrMatch[1]
+      if (!ALLOWED_ICON_ATTRS.has(attr)) return false
+      if (attr.toLowerCase().startsWith("on")) return false
+      if (attrMatch[0].toLowerCase().includes("javascript:")) return false
+    }
+  }
+  return true
+}
+
+// SECURITY: icon markup is trusted static SVG; validate to prevent future injection regressions.
+const SAFE_ICONS: Partial<Record<IconName, string>> = Object.keys(icons).reduce(
+  (acc, name) => {
+    const iconName = name as IconName
+    const markup = icons[iconName]
+    if (isSafeIconMarkup(markup)) {
+      acc[iconName] = markup
+    } else if (typeof console !== "undefined") {
+      console.warn(`[ui] rejected icon markup: ${iconName}`)
+    }
+    return acc
+  },
+  {} as Partial<Record<IconName, string>>,
+)
+
 export interface IconProps extends ComponentProps<"svg"> {
-  name: keyof typeof icons
+  name: IconName
   size?: "small" | "normal" | "large"
 }
 
 export function Icon(props: IconProps) {
   const [local, others] = splitProps(props, ["name", "size", "class", "classList"])
+  const iconMarkup = SAFE_ICONS[local.name]
+  if (!iconMarkup) return null
   return (
     <div data-component="icon" data-size={local.size || "normal"}>
       <svg
@@ -85,7 +145,7 @@ export function Icon(props: IconProps) {
         }}
         fill="none"
         viewBox="0 0 20 20"
-        innerHTML={icons[local.name as keyof typeof icons]}
+        innerHTML={iconMarkup}
         aria-hidden="true"
         {...others}
       />
