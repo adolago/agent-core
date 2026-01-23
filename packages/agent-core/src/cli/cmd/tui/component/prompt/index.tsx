@@ -817,8 +817,9 @@ export function Prompt(props: PromptProps) {
       })
       setStore("mode", "normal")
     } else if (
-      inputText.startsWith(":") &&
       iife(() => {
+        const prefix = inputText.startsWith(":") ? ":" : inputText.startsWith("/") ? "/" : undefined
+        if (!prefix) return false
         const firstLine = inputText.split("\n")[0]
         const command = firstLine.split(" ")[0].slice(1)
         return sync.data?.command?.some((x) => x.id === command)
