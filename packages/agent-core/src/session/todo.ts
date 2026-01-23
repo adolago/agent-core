@@ -2,8 +2,10 @@ import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import z from "zod"
 import { Storage } from "../storage/storage"
+import { Log } from "@/util/log"
 
 export namespace Todo {
+  const log = Log.create({ service: "session:todo" })
   export const Info = z
     .object({
       content: z.string().describe("Brief description of the task"),
@@ -32,6 +34,12 @@ export namespace Todo {
   export async function get(sessionID: string) {
     return Storage.read<Info[]>(["todo", sessionID])
       .then((x) => x || [])
-      .catch(() => [])
+      .catch((error) => {
+        log.debug("Failed to read todos", {
+          sessionID,
+          error: error instanceof Error ? error.message : String(error),
+        })
+        return []
+      })
   }
 }

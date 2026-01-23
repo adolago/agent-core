@@ -327,13 +327,9 @@ export const SessionRoute = new Hono()
 
       const todosPerSession: Array<{ sessionID: string; todos: Todo.Info[] }> = []
       for (const session of sessions) {
-        try {
-          const todos = await Todo.get(session.id)
-          if (todos.length > 0) {
-            todosPerSession.push({ sessionID: session.id, todos })
-          }
-        } catch {
-          // Session may not have todos
+        const todos = await Todo.get(session.id)
+        if (todos.length > 0) {
+          todosPerSession.push({ sessionID: session.id, todos })
         }
       }
 

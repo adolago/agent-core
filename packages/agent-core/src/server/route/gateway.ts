@@ -139,8 +139,8 @@ async function callGateway<T = unknown>(
       settled = true
       try {
         ws.close()
-      } catch {
-        // ignore
+      } catch (error) {
+        log.debug("Gateway websocket close failed", { error, stage: "timeout" })
       }
       reject(new Error(`Gateway timeout after ${timeoutMs}ms (${url})`))
     }, timeoutMs)
@@ -151,8 +151,8 @@ async function callGateway<T = unknown>(
       clearTimeout(timer)
       try {
         ws.close()
-      } catch {
-        // ignore
+      } catch (error) {
+        log.debug("Gateway websocket close failed", { error, stage: "cleanup" })
       }
       if (err) reject(err)
       else resolve(value as T)
@@ -180,7 +180,11 @@ async function callGateway<T = unknown>(
       let parsed: unknown
       try {
         parsed = JSON.parse(rawText)
-      } catch {
+      } catch (error) {
+        log.debug("Failed to parse gateway response", {
+          error: error instanceof Error ? error.message : String(error),
+          size: rawText.length,
+        })
         return
       }
 

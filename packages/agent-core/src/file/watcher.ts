@@ -89,7 +89,13 @@ export namespace FileWatcher {
         .then((x) => path.resolve(Instance.worktree, x.trim()))
         .catch(() => undefined)
       if (vcsDir && !cfgIgnores.includes(".git") && !cfgIgnores.includes(vcsDir)) {
-        const gitDirContents = await readdir(vcsDir).catch(() => [])
+        const gitDirContents = await readdir(vcsDir).catch((error) => {
+          log.debug("failed to read VCS dir contents", {
+            vcsDir,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          return []
+        })
         const ignoreList = gitDirContents.filter((entry) => entry !== "HEAD")
         const pending = watcher().subscribe(vcsDir, subscribe, {
           ignore: ignoreList,

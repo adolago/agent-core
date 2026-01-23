@@ -11,8 +11,10 @@ import { ProviderTransform } from "@/provider/transform"
 import { STATUS_CODES } from "http"
 import { iife } from "@/util/iife"
 import { type SystemError } from "bun"
+import { Log } from "@/util/log"
 
 export namespace MessageV2 {
+  const log = Log.create({ service: "message-v2" })
   export const OutputLengthError = NamedError.create("MessageOutputLengthError", z.object({}))
   export const AbortedError = NamedError.create("MessageAbortedError", z.object({ message: z.string() }))
   export const AuthError = NamedError.create(
@@ -677,7 +679,13 @@ export namespace MessageV2 {
             if (errMsg && typeof errMsg === "string") {
               return `${msg}: ${errMsg}`
             }
-          } catch {}
+          } catch (error) {
+            log.debug("Failed to parse API error response body", {
+              providerID: ctx.providerID,
+              error: error instanceof Error ? error.message : String(error),
+              responseBodyLength: e.responseBody?.length ?? 0,
+            })
+          }
 
           return `${msg}: ${e.responseBody}`
         }).trim()
