@@ -1,5 +1,5 @@
 import { type FileContents, File, FileOptions, LineAnnotation, type SelectedLineRange } from "@pierre/diffs"
-import { ComponentProps, createEffect, createMemo, onCleanup, splitProps } from "solid-js"
+import { ComponentProps, createEffect, createMemo, onCleanup, splitProps, ErrorBoundary } from "solid-js"
 import { createDefaultOptions, styleVariables } from "../pierre"
 import { getWorkerPool } from "../pierre/worker"
 
@@ -43,7 +43,7 @@ function findSide(node: Node | null): SelectionSide | undefined {
   return "additions"
 }
 
-export function Code<T>(props: CodeProps<T>) {
+function CodeInner<T>(props: CodeProps<T>) {
   let container!: HTMLDivElement
 
   const [local, others] = splitProps(props, ["file", "class", "classList", "annotations", "selectedLines"])
@@ -143,5 +143,28 @@ export function Code<T>(props: CodeProps<T>) {
       }}
       ref={container}
     />
+  )
+}
+
+export function Code<T>(props: CodeProps<T>) {
+  return (
+    <ErrorBoundary
+      fallback={(err) => (
+        <div
+          data-component="code"
+          role="alert"
+          style={styleVariables}
+          classList={{
+            ...(props.classList || {}),
+            [props.class ?? ""]: !!props.class,
+          }}
+        >
+          <div data-slot="code-error-message">Failed to render code view.</div>
+          <pre data-slot="code-error-details">{err instanceof Error ? err.message : String(err)}</pre>
+        </div>
+      )}
+    >
+      <CodeInner {...props} />
+    </ErrorBoundary>
   )
 }

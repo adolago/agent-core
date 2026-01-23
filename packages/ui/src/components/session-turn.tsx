@@ -12,7 +12,19 @@ import { useDiffComponent } from "../context/diff"
 import { getDirectory, getFilename } from "@opencode-ai/util/path"
 
 import { Binary } from "@opencode-ai/util/binary"
-import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, ParentProps, Show, Switch } from "solid-js"
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  ErrorBoundary,
+  For,
+  Match,
+  on,
+  onCleanup,
+  ParentProps,
+  Show,
+  Switch,
+} from "solid-js"
 import { DiffChanges } from "./diff-changes"
 import { Message, Part } from "./message-part"
 import { Markdown } from "./markdown"
@@ -80,6 +92,21 @@ function isAttachment(part: PartType | undefined) {
   return mime.startsWith("image/") || mime === "application/pdf"
 }
 
+type SessionTurnProps = ParentProps<{
+  sessionID: string
+  sessionTitle?: string
+  messageID: string
+  lastUserMessageID?: string
+  stepsExpanded?: boolean
+  onStepsExpandedToggle?: () => void
+  onUserInteracted?: () => void
+  classes?: {
+    root?: string
+    content?: string
+    container?: string
+  }
+}>
+
 function AssistantMessageItem(props: {
   message: AssistantMessage
   responsePartId: string | undefined
@@ -117,22 +144,7 @@ function AssistantMessageItem(props: {
   return <Message message={props.message} parts={filteredParts()} />
 }
 
-export function SessionTurn(
-  props: ParentProps<{
-    sessionID: string
-    sessionTitle?: string
-    messageID: string
-    lastUserMessageID?: string
-    stepsExpanded?: boolean
-    onStepsExpandedToggle?: () => void
-    onUserInteracted?: () => void
-    classes?: {
-      root?: string
-      content?: string
-      container?: string
-    }
-  }>,
-) {
+function SessionTurnBody(props: SessionTurnProps) {
   const data = useData()
   const diffComponent = useDiffComponent()
 
@@ -676,5 +688,32 @@ export function SessionTurn(
         </div>
       </div>
     </div>
+  )
+}
+
+export function SessionTurn(props: SessionTurnProps) {
+  return (
+    <ErrorBoundary
+      fallback={(err, reset) => (
+        <div data-component="session-turn" class={props.classes?.root}>
+          <div data-slot="session-turn-content" class={props.classes?.content}>
+            <div data-slot="session-turn-message-container" class={props.classes?.container}>
+              <Card variant="error" class="error-card" role="alert">
+                <div data-slot="session-turn-error-message">Failed to render message.</div>
+                <div data-slot="session-turn-error-id">Message: {props.messageID}</div>
+                <pre data-slot="session-turn-error-details">
+                  {err instanceof Error ? err.message : String(err)}
+                </pre>
+                <Button variant="ghost" size="small" onClick={reset}>
+                  Retry
+                </Button>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
+    >
+      <SessionTurnBody {...props} />
+    </ErrorBoundary>
   )
 }

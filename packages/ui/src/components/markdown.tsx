@@ -1,12 +1,19 @@
 import { useMarked } from "../context/marked"
 import DOMPurify from "dompurify"
 import { checksum } from "@opencode-ai/util/encode"
-import { ComponentProps, createResource, splitProps } from "solid-js"
+import { ComponentProps, createResource, splitProps, ErrorBoundary } from "solid-js"
 import { isServer } from "solid-js/web"
 
 type Entry = {
   hash: string
   html: string
+}
+
+type MarkdownProps = ComponentProps<"div"> & {
+  text: string
+  cacheKey?: string
+  class?: string
+  classList?: Record<string, boolean>
 }
 
 const max = 200
@@ -48,14 +55,7 @@ function touch(key: string, value: Entry) {
   cache.delete(first)
 }
 
-export function Markdown(
-  props: ComponentProps<"div"> & {
-    text: string
-    cacheKey?: string
-    class?: string
-    classList?: Record<string, boolean>
-  },
-) {
+function MarkdownInner(props: MarkdownProps) {
   const [local, others] = splitProps(props, ["text", "cacheKey", "class", "classList"])
   const marked = useMarked()
   const [html] = createResource(
@@ -91,5 +91,27 @@ export function Markdown(
       innerHTML={html.latest}
       {...others}
     />
+  )
+}
+
+export function Markdown(props: MarkdownProps) {
+  return (
+    <ErrorBoundary
+      fallback={() => (
+        <div
+          data-component="markdown-error"
+          role="alert"
+          classList={{
+            ...(props.classList ?? {}),
+            [props.class ?? ""]: !!props.class,
+          }}
+        >
+          <div data-slot="markdown-error-message">Failed to render markdown.</div>
+          <pre data-slot="markdown-error-text">{props.text}</pre>
+        </div>
+      )}
+    >
+      <MarkdownInner {...props} />
+    </ErrorBoundary>
   )
 }
