@@ -414,6 +414,7 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
           <div data-slot="user-message-copy-wrapper">
             <Tooltip value={copied() ? "Copied!" : "Copy"} placement="top" gutter={8}>
               <IconButton
+                aria-label="Copy message"
                 icon={copied() ? "check" : "copy"}
                 variant="secondary"
                 onClick={(event) => {
