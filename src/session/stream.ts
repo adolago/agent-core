@@ -176,7 +176,10 @@ export class StreamHandler implements IStreamHandler {
   private async next(): Promise<IteratorResult<StreamEvent>> {
     // Return buffered event if available
     if (this.buffer.length > 0) {
-      return { done: false, value: this.buffer.shift()! };
+      const buffered = this.buffer.shift();
+      if (buffered) {
+        return { done: false, value: buffered };
+      }
     }
 
     // Check if stream is closed
@@ -206,8 +209,15 @@ export class StreamHandler implements IStreamHandler {
 
         // Resolve pending iterator or buffer
         if (this.resolvers.length > 0) {
-          const resolver = this.resolvers.shift()!;
-          resolver.resolve({ done: false, value: event });
+          const resolver = this.resolvers.shift();
+          if (resolver) {
+            resolver.resolve({ done: false, value: event });
+          } else if (this.buffer.length < this.config.bufferSize) {
+            this.buffer.push(event);
+          } else {
+            // Buffer full - apply backpressure
+            this.emitter.emit('backpressure', { size: this.buffer.length });
+          }
         } else if (this.buffer.length < this.config.bufferSize) {
           this.buffer.push(event);
         } else {

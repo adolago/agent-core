@@ -96,7 +96,15 @@ export namespace SessionCompaction {
     abort: AbortSignal
     auto: boolean
   }) {
-    const userMessage = input.messages.findLast((m) => m.info.id === input.parentID)!.info as MessageV2.User
+    const userMessageEntry = input.messages.findLast((m) => m.info.id === input.parentID)
+    if (!userMessageEntry) {
+      log.error("compaction parent message missing", {
+        sessionID: input.sessionID,
+        parentID: input.parentID,
+      })
+      return "stop"
+    }
+    const userMessage = userMessageEntry.info as MessageV2.User
     const agent = await Agent.get("compaction")
     const model = agent.model
       ? await Provider.getModel(agent.model.providerID, agent.model.modelID)

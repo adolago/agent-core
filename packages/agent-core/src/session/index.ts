@@ -344,7 +344,9 @@ export namespace Session {
       }
       await unshare(sessionID).catch(() => {})
       for (const msg of await Storage.list(["message", sessionID])) {
-        for (const part of await Storage.list(["part", msg.at(-1)!])) {
+        const messageID = msg.at(-1)
+        if (!messageID) continue
+        for (const part of await Storage.list(["part", messageID])) {
           await Storage.remove(part)
         }
         await Storage.remove(msg)

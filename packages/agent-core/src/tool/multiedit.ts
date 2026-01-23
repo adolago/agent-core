@@ -35,12 +35,13 @@ export const MultiEditTool = Tool.define("multiedit", {
       )
       results.push(result)
     }
+    const lastResult = results.at(-1)
     return {
       title: path.relative(Instance.worktree, params.filePath),
       metadata: {
         results: results.map((r) => r.metadata),
       },
-      output: results.at(-1)!.output,
+      output: lastResult?.output ?? "",
     }
   },
 })

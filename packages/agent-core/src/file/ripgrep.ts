@@ -303,7 +303,9 @@ export namespace Ripgrep {
       node.children.sort((a, b) => {
         if (!a.children.length && b.children.length) return 1
         if (!b.children.length && a.children.length) return -1
-        return a.path.at(-1)!.localeCompare(b.path.at(-1)!)
+        const aKey = a.path.at(-1) ?? ""
+        const bKey = b.path.at(-1) ?? ""
+        return aKey.localeCompare(bKey)
       })
       for (const child of node.children) {
         sort(child)
