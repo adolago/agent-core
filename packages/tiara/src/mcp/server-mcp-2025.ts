@@ -9,8 +9,7 @@
  * - Dual-mode operation (2025-11 + legacy)
  */
 
-import type { ILogger } from '../interfaces/logger.js';
-import type { IEventBus } from '../interfaces/event-bus.js';
+import type { ILogger, IEventBus } from '../utils/types.js';
 import { VersionNegotiator, BackwardCompatibilityAdapter, type MCPHandshake, type MCPVersion, type MCPCapability } from './protocol/version-negotiation.js';
 import { MCPAsyncJobManager, type MCPToolRequest, type MCPJobHandle, type MCPJobResult } from './async/job-manager-mcp25.js';
 import { MCPRegistryClient, type RegistryConfig } from './registry/mcp-registry-client-2025.js';
@@ -77,6 +76,7 @@ export class MCP2025Server {
   private readonly MAX_SESSIONS = 10000;
   private readonly SESSION_TTL = 3600000; // 1 hour
   private sessionCleanupInterval?: NodeJS.Timeout;
+  private initialized = false;
 
   constructor(
     private config: MCP2025ServerConfig,
@@ -110,6 +110,9 @@ export class MCP2025Server {
    * Initialize server
    */
   async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
     this.logger.info('Initializing MCP 2025-11 server');
 
     // Initialize tool registry
@@ -140,7 +143,7 @@ export class MCP2025Server {
       this.registryClient = new MCPRegistryClient(
         this.config.registry,
         this.logger,
-        () => this.toolRegistry.getToolNames(),
+        async () => this.toolRegistry.getToolNames(),
         () => this.versionNegotiator.getServerCapabilities(),
         async () => this.getHealthStatus()
       );
@@ -154,7 +157,29 @@ export class MCP2025Server {
       }
     }
 
+    this.initialized = true;
     this.logger.info('MCP 2025-11 server initialized successfully');
+  }
+
+  async start(): Promise<void> {
+    await this.initialize();
+  }
+
+  async stop(): Promise<void> {
+    if (this.sessionCleanupInterval) {
+      clearInterval(this.sessionCleanupInterval);
+      this.sessionCleanupInterval = undefined;
+    }
+
+    if (this.registryClient) {
+      try {
+        await this.registryClient.unregister();
+      } catch (error) {
+        this.logger.warn('Failed to unregister MCP registry client', { error });
+      }
+    }
+
+    this.initialized = false;
   }
 
   /**
@@ -293,6 +318,7 @@ export class MCP2025Server {
           return await tool.handler(args, {
             orchestrator: this.config.orchestratorContext,
             sessionId,
+            logger: this.logger,
           });
         }
       );
@@ -307,6 +333,7 @@ export class MCP2025Server {
       const result = await tool.handler(mcpRequest.arguments, {
         orchestrator: this.config.orchestratorContext,
         sessionId,
+        logger: this.logger,
       });
 
       // Validate output if validation enabled
@@ -357,6 +384,7 @@ export class MCP2025Server {
     const result = await tool.handler(args, {
       orchestrator: this.config.orchestratorContext,
       sessionId,
+      logger: this.logger,
     });
 
     // Return in legacy format

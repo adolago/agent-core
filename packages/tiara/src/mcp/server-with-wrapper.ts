@@ -4,6 +4,9 @@
  */
 
 import { ClaudeCodeMCPWrapper } from './claude-code-wrapper.js';
+import { MCPServer } from './server.js';
+import { EventBus } from '../core/event-bus.js';
+import { logger } from '../core/logger.js';
 
 // Check if we should use the legacy server
 const useLegacy =
@@ -12,16 +15,8 @@ const useLegacy =
 async function main() {
   if (useLegacy) {
     console.error('Starting Claude-Flow MCP in legacy mode...');
-    // Dynamically import the old server to avoid circular dependencies
-    const module = await import('./server.js');
-    if (module.runMCPServer) {
-      await module.runMCPServer();
-    } else if (module.default) {
-      await module.default();
-    } else {
-      console.error('Could not find runMCPServer function in legacy server');
-      process.exit(1);
-    }
+    const server = new MCPServer({ transport: 'stdio' }, EventBus.getInstance(), logger);
+    await server.start();
   } else {
     console.error('Starting Claude-Flow MCP with Claude Code wrapper...');
     const wrapper = new ClaudeCodeMCPWrapper();

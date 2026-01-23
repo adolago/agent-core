@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.fn();
-const ensureZeeModelsJson = vi.fn().mockResolvedValue(undefined);
 const resolveZeeAgentDir = vi.fn().mockReturnValue("/tmp/zee-agent");
 const ensureAuthProfileStore = vi
   .fn()
@@ -17,14 +16,11 @@ const resolveEnvApiKey = vi.fn().mockReturnValue(undefined);
 const getCustomProviderApiKey = vi.fn().mockReturnValue(undefined);
 const discoverAuthStorage = vi.fn().mockReturnValue({});
 const discoverModels = vi.fn();
+const loadModelCatalog = vi.fn().mockResolvedValue([]);
 
 vi.mock("../config/config.js", () => ({
   CONFIG_PATH_ZEE: "/tmp/zee.json",
   loadConfig,
-}));
-
-vi.mock("../agents/models-config.js", () => ({
-  ensureZeeModelsJson,
 }));
 
 vi.mock("../agents/agent-paths.js", () => ({
@@ -46,6 +42,7 @@ vi.mock("../agents/model-auth.js", () => ({
 vi.mock("../agents/llm-types.js", () => ({
   discoverAuthStorage,
   discoverModels,
+  loadModelCatalog,
 }));
 
 function makeRuntime() {

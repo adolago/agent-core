@@ -63,8 +63,12 @@ async function main() {
     "../infra/unhandled-rejections.js"
   );
 
+  const { isAgentCoreReachable } = await import(
+    "../cli/agent-core-availability.js"
+  );
   const { buildProgram } = await import("../cli/program.js");
-  const program = buildProgram();
+  const enableModelsCli = await isAgentCoreReachable();
+  const program = buildProgram({ enableModelsCli });
 
   installUnhandledRejectionHandler();
 

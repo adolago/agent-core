@@ -5,9 +5,8 @@
  * in-process MCP server for 10-100x performance improvement.
  */
 
-import { query, type Query, type Options } from '@anthropic-ai/claude-code/sdk';
+import { query, type Query, type Options, type McpSdkServerConfigWithInstance } from '@anthropic-ai/claude-code/sdk';
 import { createClaudeFlowSdkServer, ClaudeFlowToolRegistry } from './tool-registry.js';
-import type { McpSdkServerConfigWithInstance } from '@anthropic-ai/claude-code/sdk.d.ts';
 import { logger } from '../core/logger.js';
 
 export interface SDKIntegrationConfig {
@@ -55,7 +54,7 @@ export class SDKIntegration {
       this.sdkServer = await createClaudeFlowSdkServer(this.config.orchestratorContext);
 
       logger.info('In-process MCP server initialized successfully', {
-        serverName: this.sdkServer.name,
+        serverName: this.sdkServer!.name,
         transport: 'in-process',
       });
     } catch (error) {

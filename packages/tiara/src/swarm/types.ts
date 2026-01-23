@@ -681,7 +681,13 @@ export type LoadBalancingStrategy =
   | 'centralized' // Central dispatcher
   | 'distributed' // Distributed load balancing
   | 'predictive' // Predict and prevent overload
-  | 'reactive'; // React to overload conditions
+  | 'reactive' // React to overload conditions
+  | 'load-based' // Balance based on current load
+  | 'performance-based' // Balance based on performance metrics
+  | 'capability-based' // Balance based on agent capabilities
+  | 'affinity-based' // Balance based on task affinity
+  | 'cost-based' // Balance based on cost metrics
+  | 'hybrid'; // Hybrid scoring strategy
 
 export type FaultToleranceStrategy =
   | 'retry' // Retry failed tasks

@@ -28,7 +28,7 @@ export class MCPIntegration {
         args: ['-y', '@anthropic/claude-code', 'mcp'],
       });
 
-      this.claudeCodeClient = new Client(
+      const client = new (Client as any)(
         {
           name: 'claude-flow-wrapper-client',
           version: '1.0.0',
@@ -38,7 +38,8 @@ export class MCPIntegration {
         },
       );
 
-      await this.claudeCodeClient.connect(transport);
+      this.claudeCodeClient = client;
+      await client.connect(transport);
 
       // Inject the client into the wrapper
       (this.wrapper as any).claudeCodeMCP = this.claudeCodeClient;
@@ -64,7 +65,7 @@ export function injectClaudeCodeClient(wrapper: ClaudeCodeMCPWrapper, client: Cl
   // Override the forwardToClaudeCode method
   (wrapper as any).forwardToClaudeCode = async function (toolName: string, args: any) {
     try {
-      const result = await client.callTool(toolName, args);
+      const result = await (client as any).callTool(toolName, args);
       return result;
     } catch (error) {
       return {

@@ -7,11 +7,12 @@ import { EventBus } from '../core/event-bus.js';
 import { Logger } from '../core/logger.js';
 import type { ConfigManager } from '../config/config-manager.js';
 import { MemoryManager } from '../memory/manager.js';
-import type { MemoryConfig } from '../utils/types.js';
+import { DistributedMemorySystem } from '../memory/distributed-memory.js';
+import type { MemoryConfig, MCPConfig } from '../utils/types.js';
 import { AgentManager } from '../agents/agent-manager.js';
 import { TaskEngine } from '../task/engine.js';
 import { RealTimeMonitor } from '../monitoring/real-time-monitor.js';
-import { McpServer } from '../mcp/server.js';
+import { MCPServer } from '../mcp/server.js';
 import { getErrorMessage } from '../utils/error-handler.js';
 import type { IntegrationConfig, SystemHealth, ComponentStatus } from './types.js';
 
@@ -22,6 +23,7 @@ export class SystemIntegration {
   private orchestrator: any | null = null;
   private configManager: any | null = null;
   private memoryManager: any | null = null;
+  private distributedMemory: DistributedMemorySystem | null = null;
   private agentManager: any | null = null;
   private swarmCoordinator: any | null = null;
   private taskEngine: any | null = null;
@@ -80,7 +82,7 @@ export class SystemIntegration {
       await this.initializeTaskManagement();
 
       // Phase 5: Monitoring and MCP
-      await this.initializeMonitoringAndMcp();
+      await this.initializeMonitoringAndMcp(config);
 
       // Phase 6: Cross-component wiring
       await this.wireComponents();
@@ -177,6 +179,15 @@ export class SystemIntegration {
         this.updateComponentStatus('memory', 'warning', 'Memory manager not available');
       }
 
+      if (!this.distributedMemory) {
+        try {
+          this.distributedMemory = new DistributedMemorySystem({}, this.logger, this.eventBus);
+          await this.distributedMemory.initialize();
+        } catch (error) {
+          this.logger.warn('Distributed memory initialization failed:', getErrorMessage(error));
+        }
+      }
+
       this.logger.info('✅ Memory and Configuration Ready');
     } catch (error) {
       this.logger.error('Memory initialization failed:', getErrorMessage(error));
@@ -191,10 +202,17 @@ export class SystemIntegration {
     this.logger.info('🤖 Phase 3: Initializing Agents and Coordination');
 
     try {
+      const distributedMemory =
+        this.distributedMemory ?? new DistributedMemorySystem({}, this.logger, this.eventBus);
+      if (!this.distributedMemory) {
+        await distributedMemory.initialize();
+        this.distributedMemory = distributedMemory;
+      }
+
       // Initialize agent manager
       try {
         const { AgentManager } = await import('../agents/agent-manager.js');
-        this.agentManager = new AgentManager(this.eventBus, this.logger);
+        this.agentManager = new AgentManager({}, this.logger, this.eventBus, distributedMemory);
         if (typeof this.agentManager.initialize === 'function') {
           await this.agentManager.initialize();
         }
@@ -210,11 +228,7 @@ export class SystemIntegration {
       // Initialize swarm coordinator
       try {
         const { SwarmCoordinator } = await import('../coordination/swarm-coordinator.js');
-        this.swarmCoordinator = new SwarmCoordinator(
-          this.eventBus,
-          this.logger,
-          this.memoryManager!,
-        );
+        this.swarmCoordinator = new SwarmCoordinator({});
         if (typeof this.swarmCoordinator.initialize === 'function') {
           await this.swarmCoordinator.initialize();
         }
@@ -225,7 +239,7 @@ export class SystemIntegration {
         this.swarmCoordinator = new MockSwarmCoordinator(
           this.eventBus,
           this.logger,
-          this.memoryManager!,
+          this.memoryManager as any,
         );
         await this.swarmCoordinator.initialize();
         this.updateComponentStatus('swarm', 'warning', 'Using mock swarm coordinator');
@@ -248,7 +262,7 @@ export class SystemIntegration {
       // Initialize task engine
       try {
         const { TaskEngine } = await import('../task/engine.js');
-        this.taskEngine = new TaskEngine(this.eventBus, this.logger, this.memoryManager!);
+        this.taskEngine = new TaskEngine(10, this.memoryManager ?? undefined);
         if (typeof this.taskEngine.initialize === 'function') {
           await this.taskEngine.initialize();
         }
@@ -256,7 +270,7 @@ export class SystemIntegration {
       } catch (error) {
         this.logger.warn('Task engine not available, using mock:', getErrorMessage(error));
         const { MockTaskEngine } = await import('./mock-components.js');
-        this.taskEngine = new MockTaskEngine(this.eventBus, this.logger, this.memoryManager!);
+        this.taskEngine = new MockTaskEngine(this.eventBus, this.logger, this.memoryManager as any);
         await this.taskEngine.initialize();
         this.updateComponentStatus('tasks', 'warning', 'Using mock task engine');
       }
@@ -271,14 +285,21 @@ export class SystemIntegration {
   /**
    * Initialize monitoring and MCP systems
    */
-  private async initializeMonitoringAndMcp(): Promise<void> {
+  private async initializeMonitoringAndMcp(config?: IntegrationConfig): Promise<void> {
     this.logger.info('📊 Phase 5: Initializing Monitoring and MCP');
 
     try {
       // Initialize real-time monitor
       try {
         const { RealTimeMonitor } = await import('../monitoring/real-time-monitor.js');
-        this.monitor = new RealTimeMonitor(this.eventBus, this.logger);
+        const distributedMemory =
+          this.distributedMemory ?? new DistributedMemorySystem({}, this.logger, this.eventBus);
+        if (!this.distributedMemory) {
+          await distributedMemory.initialize();
+          this.distributedMemory = distributedMemory;
+        }
+
+        this.monitor = new RealTimeMonitor({}, this.logger, this.eventBus, distributedMemory);
         if (typeof this.monitor.initialize === 'function') {
           await this.monitor.initialize();
         }
@@ -293,8 +314,27 @@ export class SystemIntegration {
 
       // Initialize MCP server
       try {
-        const { McpServer } = await import('../mcp/server.js');
-        this.mcpServer = new McpServer(this.eventBus, this.logger);
+        const { MCPServer } = await import('../mcp/server.js');
+        const mcpConfig: MCPConfig = {
+          transport: 'http',
+          host: config?.mcp?.host ?? '127.0.0.1',
+          port: config?.mcp?.port ?? 3333,
+          auth: {
+            enabled: config?.mcp?.enableAuth ?? false,
+            method: 'token',
+          },
+        };
+        this.mcpServer = new MCPServer(
+          mcpConfig,
+          this.eventBus,
+          this.logger,
+          this.orchestrator,
+          this.swarmCoordinator,
+          this.agentManager,
+          undefined,
+          undefined,
+          this.monitor,
+        );
         if (typeof this.mcpServer.initialize === 'function') {
           await this.mcpServer.initialize();
         }
@@ -358,18 +398,18 @@ export class SystemIntegration {
    */
   private setupEventHandlers(): void {
     // System health monitoring
-    this.eventBus.on('component:status', (event) => {
+    this.eventBus.on('component:status', (event: any) => {
       this.updateComponentStatus(event.component, event.status, event.message);
     });
 
     // Error handling
-    this.eventBus.on('system:error', (event) => {
+    this.eventBus.on('system:error', (event: any) => {
       this.logger.error(`System Error in ${event.component}:`, event.error);
       this.updateComponentStatus(event.component, 'unhealthy', event.error.message);
     });
 
     // Performance monitoring
-    this.eventBus.on('performance:metric', (event) => {
+    this.eventBus.on('performance:metric', (event: any) => {
       this.logger.debug(`Performance Metric: ${event.metric} = ${event.value}`);
     });
   }

@@ -4,7 +4,7 @@
  * Uses SDK checkpoint manager for Git-like checkpointing
  */
 
-import { Command } from './commander-fix.js';
+import { Command } from '../commander-fix.js';
 import chalk from 'chalk';
 import { checkpointManager } from '../../sdk/checkpoint-manager.js';
 import Table from 'cli-table3';

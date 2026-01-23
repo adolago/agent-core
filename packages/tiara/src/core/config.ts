@@ -7,7 +7,14 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
-import type { Config } from '../utils/types.js';
+import type {
+  Config,
+  LoggingConfig,
+  MCPConfig,
+  MemoryConfig,
+  OrchestratorConfig,
+  TerminalConfig,
+} from '../utils/types.js';
 import { deepClone, deepMerge, safeParseJSON } from '../utils/helpers.js';
 import { ConfigError, ValidationError } from '../utils/errors.js';
 
@@ -315,7 +322,8 @@ export class ConfigManager {
       min: 1,
       max: 100,
       validator: (value, config) => {
-        if (value > config.terminal?.poolSize * 2) {
+        const poolSize = config.terminal?.poolSize ?? DEFAULT_CONFIG.terminal.poolSize;
+        if (value > poolSize * 2) {
           return 'maxConcurrentAgents should not exceed 2x terminal pool size';
         }
         return null;
@@ -968,7 +976,7 @@ export class ConfigManager {
         ...DEFAULT_CONFIG.orchestrator,
         ...config.orchestrator,
         maxConcurrentAgents: parseInt(maxAgents, 10),
-      };
+      } as OrchestratorConfig;
     }
 
     // Terminal settings
@@ -978,7 +986,7 @@ export class ConfigManager {
         ...DEFAULT_CONFIG.terminal,
         ...config.terminal,
         type: terminalType,
-      };
+      } as TerminalConfig;
     }
 
     // Memory settings
@@ -988,7 +996,7 @@ export class ConfigManager {
         ...DEFAULT_CONFIG.memory,
         ...config.memory,
         backend: memoryBackend,
-      };
+      } as MemoryConfig;
     }
 
     const memoryUrl = process.env.MEMORY_QDRANT_URL || process.env.QDRANT_URL;
@@ -1007,7 +1015,7 @@ export class ConfigManager {
         ...(memoryCollection ? { collection: memoryCollection } : {}),
         ...(persistenceCollection ? { persistenceCollection } : {}),
         ...(memoryApiKey ? { apiKey: memoryApiKey } : {}),
-      };
+      } as MemoryConfig;
     }
 
     // MCP settings
@@ -1017,7 +1025,7 @@ export class ConfigManager {
         ...DEFAULT_CONFIG.mcp,
         ...config.mcp,
         transport: mcpTransport,
-      };
+      } as MCPConfig;
     }
 
     const mcpPort = process.env.CLAUDE_FLOW_MCP_PORT;
@@ -1026,7 +1034,7 @@ export class ConfigManager {
         ...DEFAULT_CONFIG.mcp,
         ...config.mcp,
         port: parseInt(mcpPort, 10),
-      };
+      } as MCPConfig;
     }
 
     // Logging settings
@@ -1041,7 +1049,7 @@ export class ConfigManager {
         ...DEFAULT_CONFIG.logging,
         ...config.logging,
         level: logLevel,
-      };
+      } as LoggingConfig;
     }
 
     return config;
@@ -1066,11 +1074,16 @@ export class ConfigManager {
     }
 
     // Additional cross-field validations
-    if (config.orchestrator.maxConcurrentAgents > config.terminal.poolSize * 3) {
+    const maxConcurrentAgents =
+      config.orchestrator?.maxConcurrentAgents ?? DEFAULT_CONFIG.orchestrator.maxConcurrentAgents;
+    const poolSize = config.terminal?.poolSize ?? DEFAULT_CONFIG.terminal.poolSize;
+    if (maxConcurrentAgents > poolSize * 3) {
       warnings.push('High agent-to-terminal ratio may cause resource contention');
     }
 
-    if (config.mcp.transport === 'http' && !config.mcp.tlsEnabled) {
+    const transport = config.mcp?.transport ?? DEFAULT_CONFIG.mcp.transport;
+    const tlsEnabled = config.mcp?.tlsEnabled ?? DEFAULT_CONFIG.mcp.tlsEnabled;
+    if (transport === 'http' && !tlsEnabled) {
       warnings.push('HTTP transport without TLS is not recommended for production');
     }
 

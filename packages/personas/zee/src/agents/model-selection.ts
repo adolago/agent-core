@@ -122,6 +122,37 @@ export function resolveConfiguredModelRef(params: {
   return { provider: params.defaultProvider, model: params.defaultModel };
 }
 
+export function resolveExplicitModelRef(params: {
+  cfg: ZeeConfig;
+  defaultProvider: string;
+  aliasIndex?: ModelAliasIndex;
+}): ModelRef | null {
+  const rawModel = (() => {
+    const raw = params.cfg.agent?.model as
+      | { primary?: string }
+      | string
+      | undefined;
+    if (typeof raw === "string") return raw.trim();
+    return raw?.primary?.trim() ?? "";
+  })();
+  if (!rawModel) return null;
+
+  const aliasIndex =
+    params.aliasIndex ??
+    buildModelAliasIndex({
+      cfg: params.cfg,
+      defaultProvider: params.defaultProvider,
+    });
+  const resolved = resolveModelRefFromString({
+    raw: rawModel,
+    defaultProvider: params.defaultProvider,
+    aliasIndex,
+  });
+  if (resolved) return resolved.ref;
+  // Legacy fallback: assume Anthropic when no provider is specified.
+  return { provider: "anthropic", model: rawModel.trim() };
+}
+
 export function buildAllowedModelSet(params: {
   cfg: ZeeConfig;
   catalog: ModelCatalogEntry[];

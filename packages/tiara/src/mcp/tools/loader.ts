@@ -11,8 +11,7 @@
 import { promises as fs } from 'fs';
 import { join, dirname, extname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import type { MCPTool } from '../types.js';
-import type { ILogger } from '../../interfaces/logger.js';
+import type { MCPTool, ILogger } from '../../utils/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

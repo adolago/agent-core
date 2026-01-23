@@ -168,6 +168,7 @@ export function resolveModelDirectiveSelection(params: {
   defaultModel: string;
   aliasIndex: ModelAliasIndex;
   allowedModelKeys: Set<string>;
+  hasDefaultModel?: boolean;
 }): { selection?: ModelDirectiveSelection; error?: string } {
   const { raw, defaultProvider, defaultModel, aliasIndex, allowedModelKeys } =
     params;
@@ -188,6 +189,7 @@ export function resolveModelDirectiveSelection(params: {
     };
   }
   const isDefault =
+    (params.hasDefaultModel ?? true) &&
     resolved.ref.provider === defaultProvider &&
     resolved.ref.model === defaultModel;
   return {

@@ -92,8 +92,12 @@ export class QdrantPersistenceManager {
       return entries.map((entry: any) => entry.value as T);
     }
 
-    const entries = await this.store.list({ namespace, limit: 1000 });
-    return entries.map((entry: any) => entry.value as T);
+    if (this.store.list) {
+      const entries = await this.store.list({ namespace, limit: 1000 });
+      return entries.map((entry: any) => entry.value as T);
+    }
+
+    return [];
   }
 
   // Agent operations

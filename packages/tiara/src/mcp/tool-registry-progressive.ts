@@ -167,6 +167,7 @@ export class ProgressiveToolRegistry {
       this.inProcessServer.setContext({
         orchestrator: this.config.orchestratorContext,
         sessionId: 'progressive-session',
+        logger,
       });
     }
 
@@ -257,6 +258,7 @@ export class ProgressiveToolRegistry {
         const result = await mcpTool.handler(args, {
           orchestrator: this.config.orchestratorContext,
           sessionId: 'sdk-session',
+          logger,
         });
 
         return {

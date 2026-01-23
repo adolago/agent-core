@@ -31,6 +31,32 @@ export interface TokenValidation {
   error?: string;
 }
 
+export interface AuthContext {
+  user?: string;
+  permissions?: string[];
+  token?: string;
+}
+
+export interface TokenInfo {
+  token: string;
+  user: string;
+  permissions: string[];
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+export interface TokenGenerationOptions {
+  expiresInMs?: number;
+}
+
+export interface AuthSession {
+  sessionId: string;
+  user: string;
+  permissions: string[];
+  createdAt: Date;
+  expiresAt?: Date;
+}
+
 /**
  * Authentication manager implementation
  */

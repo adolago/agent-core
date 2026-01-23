@@ -445,6 +445,7 @@ function getConfigFromEnv(): StorageConfig {
 export {
   QdrantStorageBackend,
   QdrantCoordinationAdapter,
-  QdrantConfig,
   DEFAULT_QDRANT_CONFIG,
 };
+
+export type { QdrantConfig };

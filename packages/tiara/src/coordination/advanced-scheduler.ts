@@ -62,8 +62,8 @@ export class CapabilitySchedulingStrategy implements SchedulingStrategy {
         return loadA - loadB;
       }
 
-      const priorityA = context.agentPriorities.get(a.id) || a.priority;
-      const priorityB = context.agentPriorities.get(b.id) || b.priority;
+      const priorityA = context.agentPriorities.get(a.id) ?? a.priority ?? 0;
+      const priorityB = context.agentPriorities.get(b.id) ?? b.priority ?? 0;
 
       return priorityB - priorityA;
     });
@@ -290,7 +290,7 @@ export class AdvancedTaskScheduler extends TaskScheduler {
       const taskCount = await this.getAgentTaskCount(agent.id);
       context.taskLoads.set(agent.id, taskCount);
       context.agentCapabilities.set(agent.id, agent.capabilities);
-      context.agentPriorities.set(agent.id, agent.priority);
+      context.agentPriorities.set(agent.id, agent.priority ?? 0);
     }
 
     // Try work stealing first

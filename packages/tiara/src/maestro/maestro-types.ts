@@ -3,10 +3,10 @@ export interface MaestroSpec {
   description: string;
   version: string;
   goals: string[];
-  workflow: WorkflowPhase[];
+  workflow: WorkflowStep[];
 }
 
-export interface WorkflowPhase {
+export interface WorkflowStep {
   step: string;
   agent: string; // Name of the sub-agent
   input?: string;
@@ -170,7 +170,7 @@ export interface SpecMetadata {
 
 // ===== ENHANCED WORKFLOW TYPES =====
 
-export interface EnhancedWorkflowPhase extends WorkflowPhase {
+export interface EnhancedWorkflowPhase extends WorkflowStep {
   hooks: AgentHookConfig[];
   consensusRequired: boolean;
   livingDocSync: boolean;

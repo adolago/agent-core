@@ -176,6 +176,24 @@ export function hasAgentTask(value: unknown): value is { agentId: { id: string }
 }
 
 /**
+ * Type guard for agent performance update event data
+ */
+export function hasAgentPerformance(value: unknown): value is {
+  agentId: { id: string };
+  metrics: Record<string, number>;
+} {
+  return (
+    isObject(value) &&
+    'agentId' in value &&
+    isObject(value.agentId) &&
+    'id' in value.agentId &&
+    typeof value.agentId.id === 'string' &&
+    'metrics' in value &&
+    isObject(value.metrics)
+  );
+}
+
+/**
  * Type guard for work stealing event data
  */
 export function hasWorkStealingData(value: unknown): value is {

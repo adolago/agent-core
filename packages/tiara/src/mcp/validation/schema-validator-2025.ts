@@ -5,10 +5,10 @@
  * using JSON Schema Draft 2020-12
  */
 
-import Ajv, { type ErrorObject } from 'ajv';
+import { Ajv, type ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import addErrors from 'ajv-errors';
-import type { ILogger } from '../../interfaces/logger.js';
+import type { ILogger } from '../../utils/types.js';
 
 /**
  * Validation result
@@ -54,14 +54,14 @@ export class SchemaValidator {
       validateFormats: true,
       allowUnionTypes: true,
       // Support JSON Schema Draft 2020-12
-      schemaId: 'auto',
+      schemaId: '$id',
     });
 
     // Add format validators (email, uri, date-time, etc.)
-    addFormats(this.ajv);
+    (addFormats as unknown as (ajv: Ajv) => void)(this.ajv);
 
     // Add custom error messages support
-    addErrors(this.ajv);
+    (addErrors as unknown as (ajv: Ajv) => void)(this.ajv);
 
     this.logger.info('Schema validator initialized', {
       draft: '2020-12',

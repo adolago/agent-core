@@ -38,8 +38,7 @@ import { registerGatewayCli } from "./gateway-cli.js";
 import { addGatewayClientOptions } from "./gateway-rpc.js";
 import { registerHooksCli } from "./hooks-cli.js";
 import { registerLogsCli } from "./logs-cli.js";
-// Models CLI disabled during pi-ai migration
-// import { registerModelsCli } from "./models-cli.js";
+import { registerModelsCli } from "./models-cli.js";
 import { registerNodesCli } from "./nodes-cli.js";
 import { registerPairingCli } from "./pairing-cli.js";
 import { forceFreePort } from "./ports.js";
@@ -60,7 +59,7 @@ function collectOption(value: string, previous: string[] = []): string[] {
   return [...previous, value];
 }
 
-export function buildProgram() {
+export function buildProgram(options?: { enableModelsCli?: boolean }) {
   const program = new Command();
   const PROGRAM_VERSION = VERSION;
 
@@ -665,7 +664,9 @@ Examples:
   registerGatewayCli(program);
   registerLogsCli(program);
   // Models CLI disabled during pi-ai migration
-  // registerModelsCli(program);
+  if (options?.enableModelsCli ?? true) {
+    registerModelsCli(program);
+  }
   registerNodesCli(program);
   // TUI disabled during pi-ai migration
   // registerTuiCli(program);

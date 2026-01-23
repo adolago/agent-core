@@ -33,9 +33,10 @@ export class MCPClient extends EventEmitter {
 
     // Initialize recovery manager if enabled
     if (config.enableRecovery) {
+      const mcpConfig: MCPConfig = config.mcpConfig ?? { transport: 'http' };
       this.recoveryManager = new RecoveryManager(
         this,
-        config.mcpConfig || {},
+        mcpConfig,
         logger,
         config.recoveryConfig,
       );
@@ -90,6 +91,7 @@ export class MCPClient extends EventEmitter {
       params,
       id: Math.random().toString(36).slice(2),
     };
+    const requestId = String(request.id);
 
     // If recovery manager is enabled, let it handle the request
     if (this.recoveryManager && !this.connected) {
@@ -103,34 +105,34 @@ export class MCPClient extends EventEmitter {
     // Create promise for tracking the request
     const requestPromise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingRequests.delete(request.id!);
+        this.pendingRequests.delete(requestId);
         reject(new Error(`Request timeout: ${method}`));
       }, this.timeout);
 
-      this.pendingRequests.set(request.id!, { resolve, reject, timer });
+      this.pendingRequests.set(requestId, { resolve, reject, timer });
     });
 
     try {
       const response = await this.transport.sendRequest(request);
 
       // Clear pending request
-      const pending = this.pendingRequests.get(request.id!);
+      const pending = this.pendingRequests.get(requestId);
       if (pending) {
         clearTimeout(pending.timer);
-        this.pendingRequests.delete(request.id!);
+        this.pendingRequests.delete(requestId);
       }
 
       if ('error' in response) {
-        throw new Error(response.error);
+        throw new Error(response.error?.message ?? 'MCP request error');
       }
 
       return response.result;
     } catch (error) {
       // Clear pending request on error
-      const pending = this.pendingRequests.get(request.id!);
+      const pending = this.pendingRequests.get(requestId);
       if (pending) {
         clearTimeout(pending.timer);
-        this.pendingRequests.delete(request.id!);
+        this.pendingRequests.delete(requestId);
       }
 
       throw error;

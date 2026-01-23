@@ -43,9 +43,8 @@ enableConsoleCapture();
 // Enforce the minimum supported runtime before doing any work.
 assertSupportedRuntime();
 
+import { isAgentCoreReachable } from "./cli/agent-core-availability.js";
 import { buildProgram } from "./cli/program.js";
-
-const program = buildProgram();
 
 export {
   assertProvider,
@@ -76,7 +75,7 @@ const isMain = isMainModule({
   currentFile: fileURLToPath(import.meta.url),
 });
 
-if (isMain) {
+async function runCliMain(): Promise<void> {
   // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
   // These log the error and exit gracefully instead of crashing without trace.
   installUnhandledRejectionHandler();
@@ -86,7 +85,14 @@ if (isMain) {
     process.exit(1);
   });
 
-  void program.parseAsync(process.argv).catch((err) => {
+  const enableModelsCli = await isAgentCoreReachable();
+  const program = buildProgram({ enableModelsCli });
+
+  await program.parseAsync(process.argv);
+}
+
+if (isMain) {
+  void runCliMain().catch((err) => {
     console.error(
       "[zee] CLI failed:",
       err instanceof Error ? (err.stack ?? err.message) : err,

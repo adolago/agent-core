@@ -5,7 +5,7 @@
  * Resume paused swarm sessions
  */
 
-import { Command } from '../commander-fix.js';
+import { Command } from '../../commander-fix.js';
 import chalk from 'chalk';
 import { HiveMindSessionManager } from '../../simple-commands/hive-mind/session-manager.js';
 import inquirer from 'inquirer';
@@ -27,7 +27,8 @@ export const resumeCommand = new Command('resume')
         console.log(chalk.green(`✓ Session ${sessionId} resumed successfully`));
         console.log(chalk.gray(`Swarm: ${(session as any).swarm_name || 'N/A'}`));
         console.log(chalk.gray(`Objective: ${(session as any).objective || 'N/A'}`));
-        console.log(chalk.gray(`Progress: ${session.statistics.completionPercentage}%`));
+        const progress = session.statistics?.completionPercentage ?? session.completion_percentage ?? 0;
+        console.log(chalk.gray(`Progress: ${progress}%`));
       } else {
         // Interactive selection
         const sessions = await sessionManager.getActiveSessions();
@@ -56,7 +57,8 @@ export const resumeCommand = new Command('resume')
         console.log(chalk.green(`✓ Session resumed successfully`));
         console.log(chalk.gray(`Swarm: ${(session as any).swarm_name || 'N/A'}`));
         console.log(chalk.gray(`Objective: ${(session as any).objective || 'N/A'}`));
-        console.log(chalk.gray(`Progress: ${session.statistics.completionPercentage}%`));
+        const progress = session.statistics?.completionPercentage ?? session.completion_percentage ?? 0;
+        console.log(chalk.gray(`Progress: ${progress}%`));
       }
     } catch (error) {
       console.error(chalk.red('Error resuming session:'), (error as Error).message);

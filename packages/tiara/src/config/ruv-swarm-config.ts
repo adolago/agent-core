@@ -161,7 +161,10 @@ export class RuvSwarmConfigManager {
         const userConfig = JSON.parse(configData) as Partial<RuvSwarmConfig>;
 
         // Merge with defaults
-        const mergedConfig = deepMerge(defaultRuvSwarmConfig, userConfig);
+        const mergedConfig = deepMerge(
+          defaultRuvSwarmConfig as unknown as Record<string, unknown>,
+          userConfig as unknown as Record<string, unknown>,
+        ) as unknown as RuvSwarmConfig;
 
         this.logger.debug('Loaded ruv-swarm config from file', {
           path: this.configPath,
@@ -216,7 +219,10 @@ export class RuvSwarmConfigManager {
    * Update configuration
    */
   updateConfig(updates: Partial<RuvSwarmConfig>): void {
-    this.config = deepMerge(this.config, updates);
+    this.config = deepMerge(
+      this.config as unknown as Record<string, unknown>,
+      updates as unknown as Record<string, unknown>,
+    ) as unknown as RuvSwarmConfig;
     this.saveConfig();
 
     this.logger.info('Updated ruv-swarm config', { updates });

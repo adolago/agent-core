@@ -16,12 +16,29 @@ import {
   ExecutionPlan,
   OrchestrationResult,
   TaskAssignment,
+  AgentCapability,
 } from '../types.js';
+
+type TaskAnalysis = {
+  complexity: string;
+  estimatedDuration: number;
+  resourceRequirements: {
+    minAgents: number;
+    maxAgents: number;
+    capabilities: AgentCapability[];
+  };
+};
+
+type StrategyImplementation = {
+  determinePhases: (task: Task, analysis: TaskAnalysis) => string[];
+  isParallelizable: (task: Task) => boolean;
+  maxConcurrency: number;
+};
 
 export class SwarmOrchestrator extends EventEmitter {
   private hiveMind: HiveMind;
-  private store: QdrantStore;
-  private mcpWrapper: MCPToolWrapper;
+  private store!: QdrantStore;
+  private mcpWrapper!: MCPToolWrapper;
   private executionPlans: Map<string, ExecutionPlan>;
   private taskAssignments: Map<string, TaskAssignment[]>;
   private activeExecutions: Map<string, any>;
@@ -110,7 +127,15 @@ export class SwarmOrchestrator extends EventEmitter {
    * Execute task according to plan
    */
   private async executeTask(task: Task, plan: ExecutionPlan): Promise<void> {
-    const execution = {
+    const execution: {
+      taskId: string;
+      plan: ExecutionPlan;
+      startTime: number;
+      currentPhase: number;
+      phaseResults: any[];
+      status: string;
+      error?: unknown;
+    } = {
       taskId: task.id,
       plan,
       startTime: Date.now(),
@@ -309,8 +334,20 @@ export class SwarmOrchestrator extends EventEmitter {
       tasks: loadDistribution.unassignedTasks,
     });
 
-    if (balanceResult.success && balanceResult.data.reassignments) {
-      await this.applyReassignments(balanceResult.data.reassignments);
+    const reassignments = (
+      balanceResult.data as {
+        reassignments?: Array<{
+          taskId: string;
+          from?: string;
+          to?: string;
+          fromAgent?: string;
+          toAgent?: string;
+        }>;
+      }
+    )?.reassignments;
+
+    if (balanceResult.success && Array.isArray(reassignments)) {
+      await this.applyReassignments(reassignments);
     }
 
     this.emit('rebalanced', { loadDistribution });
@@ -319,20 +356,30 @@ export class SwarmOrchestrator extends EventEmitter {
   /**
    * Strategy implementations
    */
-  private getStrategyImplementation(strategy: TaskStrategy): any {
-    const strategies = {
+  private getStrategyImplementation(strategy: TaskStrategy): StrategyImplementation {
+    const strategies: Record<TaskStrategy, StrategyImplementation> = {
+      single: {
+        determinePhases: () => ['analysis', 'execution', 'validation'],
+        isParallelizable: () => false,
+        maxConcurrency: 1,
+      },
       parallel: {
-        determinePhases: (task: Task) => ['preparation', 'parallel-execution', 'aggregation'],
+        determinePhases: () => ['preparation', 'parallel-execution', 'aggregation'],
         isParallelizable: () => true,
         maxConcurrency: 5,
       },
       sequential: {
-        determinePhases: (task: Task) => ['analysis', 'planning', 'execution', 'validation'],
+        determinePhases: () => ['analysis', 'planning', 'execution', 'validation'],
         isParallelizable: () => false,
         maxConcurrency: 1,
       },
+      competitive: {
+        determinePhases: () => ['analysis', 'competition', 'selection', 'execution'],
+        isParallelizable: () => true,
+        maxConcurrency: 4,
+      },
       adaptive: {
-        determinePhases: (task: Task, analysis: any) => {
+        determinePhases: (_task: Task, analysis: TaskAnalysis) => {
           if (analysis.complexity === 'high') {
             return ['deep-analysis', 'planning', 'phased-execution', 'integration', 'validation'];
           }
@@ -348,13 +395,13 @@ export class SwarmOrchestrator extends EventEmitter {
       },
     };
 
-    return strategies[strategy] || strategies.adaptive;
+    return strategies[strategy] ?? strategies.adaptive;
   }
 
   /**
    * Analyze task complexity
    */
-  private async analyzeTaskComplexity(task: Task): Promise<any> {
+  private async analyzeTaskComplexity(task: Task): Promise<TaskAnalysis> {
     const analysis = await this.mcpWrapper.analyzePattern({
       action: 'analyze',
       operation: 'task_complexity',
@@ -366,13 +413,23 @@ export class SwarmOrchestrator extends EventEmitter {
       },
     });
 
+    const analysisData = analysis.data as {
+      complexity?: string;
+      estimatedDuration?: number;
+      resourceRequirements?: {
+        minAgents?: number;
+        maxAgents?: number;
+        capabilities?: AgentCapability[];
+      };
+    };
+
     return {
-      complexity: analysis.data?.complexity || 'medium',
-      estimatedDuration: analysis.data?.estimatedDuration || 3600000,
-      resourceRequirements: analysis.data?.resourceRequirements || {
-        minAgents: 1,
-        maxAgents: task.maxAgents,
-        capabilities: task.requiredCapabilities,
+      complexity: analysisData?.complexity || 'medium',
+      estimatedDuration: analysisData?.estimatedDuration || 3600000,
+      resourceRequirements: {
+        minAgents: analysisData?.resourceRequirements?.minAgents ?? 1,
+        maxAgents: analysisData?.resourceRequirements?.maxAgents ?? task.maxAgents,
+        capabilities: analysisData?.resourceRequirements?.capabilities ?? task.requiredCapabilities,
       },
     };
   }
@@ -383,7 +440,7 @@ export class SwarmOrchestrator extends EventEmitter {
   private async createPhaseAssignments(
     task: Task,
     phase: string,
-    analysis: any,
+    analysis: TaskAnalysis,
   ): Promise<TaskAssignment[]> {
     const assignments: TaskAssignment[] = [];
 
@@ -497,7 +554,7 @@ export class SwarmOrchestrator extends EventEmitter {
   /**
    * Find suitable agent for capabilities
    */
-  private async findSuitableAgent(requiredCapabilities: string[]): Promise<Agent | null> {
+  private async findSuitableAgent(requiredCapabilities: AgentCapability[]): Promise<Agent | null> {
     const agents = await this.hiveMind.getAgents();
 
     // Filter available agents with required capabilities
@@ -518,7 +575,7 @@ export class SwarmOrchestrator extends EventEmitter {
   /**
    * Select best agent from candidates
    */
-  private async selectBestAgent(agents: Agent[], capabilities: string[]): Promise<Agent> {
+  private async selectBestAgent(agents: Agent[], capabilities: AgentCapability[]): Promise<Agent> {
     // Simple selection - in production would use performance metrics
     const scores = await Promise.all(
       agents.map(async (agent) => {
@@ -586,7 +643,9 @@ export class SwarmOrchestrator extends EventEmitter {
     return {
       successRate: total > 0 ? successful / total : 0,
       totalExecutions: total,
-      aggregatedData: results.map((r) => r.data).filter(Boolean),
+      aggregatedData: results
+        .map((r: { data?: unknown }) => r.data)
+        .filter(Boolean),
     };
   }
 
@@ -672,7 +731,7 @@ export class SwarmOrchestrator extends EventEmitter {
   private createExecutionSummary(execution: any): any {
     const phaseCount = execution.phaseResults.length;
     const successfulPhases = execution.phaseResults.filter(
-      (r) => r.summary?.successRate > 0.5,
+      (r: { summary?: { successRate?: number } }) => (r.summary?.successRate ?? 0) > 0.5,
     ).length;
 
     return {
@@ -691,7 +750,7 @@ export class SwarmOrchestrator extends EventEmitter {
     await this.store.createCommunication({
       fromAgentId: 'orchestrator',
       toAgentId: agentId,
-      swarmId: this.hiveMind.id,
+      swarmId: this.hiveMind.getId(),
       messageType: 'coordination',
       content: JSON.stringify({ taskId, reason: 'User cancelled' }),
       priority: 'urgent',
@@ -704,7 +763,7 @@ export class SwarmOrchestrator extends EventEmitter {
    */
   private async analyzeLoadDistribution(): Promise<any> {
     const agents = await this.hiveMind.getAgents();
-    const tasks = await this.store.getActiveTasks(this.hiveMind.id);
+    const tasks = await this.store.getActiveTasks(this.hiveMind.getId());
 
     const busyAgents = agents.filter((a) => a.status === 'busy');
     const idleAgents = agents.filter((a) => a.status === 'idle');
@@ -720,7 +779,7 @@ export class SwarmOrchestrator extends EventEmitter {
       unassignedTasks: unassignedTasks.map((t) => ({
         id: t.id,
         priority: t.priority,
-        requiredCapabilities: t.requiredCapabilities || [],
+        requiredCapabilities: (t.requiredCapabilities || []) as AgentCapability[],
       })),
       loadFactor: agents.length > 0 ? busyAgents.length / agents.length : 0,
     };
@@ -731,7 +790,11 @@ export class SwarmOrchestrator extends EventEmitter {
    */
   private async applyReassignments(reassignments: any[]): Promise<void> {
     for (const reassignment of reassignments) {
-      await this.reassignTask(reassignment.taskId, reassignment.fromAgent, reassignment.toAgent);
+      const fromAgentId = reassignment.fromAgent ?? reassignment.from;
+      const toAgentId = reassignment.toAgent ?? reassignment.to;
+      if (fromAgentId && toAgentId) {
+        await this.reassignTask(reassignment.taskId, fromAgentId, toAgentId);
+      }
     }
   }
 
@@ -773,7 +836,7 @@ export class SwarmOrchestrator extends EventEmitter {
     await this.store.createCommunication({
       fromAgentId: 'orchestrator',
       toAgentId: fromAgentId,
-      swarmId: this.hiveMind.id,
+      swarmId: this.hiveMind.getId(),
       messageType: 'coordination',
       content: JSON.stringify({ taskId, reassignedTo: toAgentId }),
       priority: 'high',
@@ -787,7 +850,7 @@ export class SwarmOrchestrator extends EventEmitter {
     await this.store.createCommunication({
       fromAgentId: 'orchestrator',
       toAgentId: toAgentId,
-      swarmId: this.hiveMind.id,
+      swarmId: this.hiveMind.getId(),
       messageType: 'task_assignment',
       content: JSON.stringify({
         taskId,

@@ -4,6 +4,7 @@
  * LLM operations are handled by agent-core via Vercel AI SDK.
  */
 
+import { createOpencodeClient } from "@opencode-ai/sdk";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -249,6 +250,115 @@ export type ModelRegistry = {
   find: (provider: string, id: string) => Model | null;
 };
 
+type ProviderListModel = {
+  id: string;
+  name: string;
+  limit?: {
+    context: number;
+    output: number;
+  };
+  modalities?: {
+    input: Array<"text" | "audio" | "image" | "video" | "pdf">;
+  };
+  reasoning?: boolean;
+};
+
+type ProviderListProvider = {
+  id: string;
+  name: string;
+  api?: string;
+  models?: Record<string, ProviderListModel>;
+};
+
+type ProviderListPayload = {
+  all: ProviderListProvider[];
+  default?: Record<string, string>;
+  connected?: string[];
+};
+
+const AGENT_CORE_DAEMON_URL = "http://127.0.0.1:3210";
+
+let modelCatalogCache: ModelCatalogEntry[] | null = null;
+let modelRegistryCache: Model[] | null = null;
+let connectedProvidersCache: Set<string> | null = null;
+let loadCatalogPromise: Promise<ModelCatalogEntry[]> | null = null;
+
+function resolveAgentCoreUrl(): string {
+  const envUrl = process.env.AGENT_CORE_URL?.trim();
+  return envUrl || AGENT_CORE_DAEMON_URL;
+}
+
+function cacheProviderList(payload: ProviderListPayload): ModelCatalogEntry[] {
+  const catalog: ModelCatalogEntry[] = [];
+  const registry: Model[] = [];
+
+  for (const provider of payload.all ?? []) {
+    const providerId = provider.id?.trim();
+    if (!providerId) continue;
+    const baseUrl = provider.api?.trim() || undefined;
+    const models = provider.models ?? {};
+    for (const [modelKey, model] of Object.entries(models)) {
+      const modelId = (model.id || modelKey || "").trim();
+      if (!modelId) continue;
+      const contextWindow =
+        typeof model.limit?.context === "number" && model.limit.context > 0
+          ? model.limit.context
+          : undefined;
+      const maxTokens =
+        typeof model.limit?.output === "number" && model.limit.output > 0
+          ? model.limit.output
+          : undefined;
+      const input =
+        Array.isArray(model.modalities?.input) &&
+        model.modalities?.input.length > 0
+          ? [...model.modalities.input]
+          : ["text"];
+      const reasoning = Boolean(model.reasoning);
+      const name = model.name?.trim() || modelId;
+
+      catalog.push({
+        id: modelId,
+        name,
+        provider: providerId,
+        contextWindow,
+        reasoning,
+      });
+
+      registry.push({
+        provider: providerId,
+        id: modelId,
+        name,
+        contextWindow,
+        maxTokens,
+        input,
+        baseUrl,
+        reasoning,
+      });
+    }
+  }
+
+  modelCatalogCache = catalog;
+  modelRegistryCache = registry;
+  const connected = (payload.connected ?? [])
+    .map((providerId) => providerId.trim())
+    .filter(Boolean);
+  connectedProvidersCache = new Set(connected);
+  return catalog;
+}
+
+async function fetchProviderCatalog(): Promise<ModelCatalogEntry[]> {
+  const client = createOpencodeClient({ baseUrl: resolveAgentCoreUrl() });
+  const response = await client.provider.list({ throwOnError: true });
+  const payload = response.data as ProviderListPayload | undefined;
+  if (!payload || !Array.isArray(payload.all)) {
+    modelCatalogCache = [];
+    modelRegistryCache = [];
+    connectedProvidersCache = new Set();
+    return [];
+  }
+  return cacheProviderList(payload);
+}
+
 /**
  * Stub for OAuth API key retrieval/refresh.
  * Returns null - agent-core plugins handle OAuth.
@@ -318,34 +428,54 @@ export function discoverAuthStorage(_agentDir?: string): AuthStorage {
 }
 
 /**
- * Model discovery stub.
- * Returns empty registry - agent-core provides model catalog.
+ * Model discovery.
+ * Returns registry backed by the agent-core provider catalog.
  */
 export function discoverModels(
   _authStorage?: AuthStorage,
   _agentDir?: string,
 ): ModelRegistry {
+  void loadModelCatalog({ useCache: true });
   return {
-    getAll: () => [],
-    getAvailable: () => [],
-    find: () => null,
+    getAll: () => modelRegistryCache ?? [],
+    getAvailable: () => {
+      if (!modelRegistryCache || !connectedProvidersCache) return [];
+      return modelRegistryCache.filter((model) =>
+        connectedProvidersCache?.has(model.provider),
+      );
+    },
+    find: (provider, id) =>
+      modelRegistryCache?.find(
+        (model) => model.provider === provider && model.id === id,
+      ) ?? null,
   };
 }
 
 /**
- * Load model catalog stub.
- * Returns empty array - agent-core provides model catalog via models.dev.
+ * Load model catalog from the agent-core daemon.
  */
-export async function loadModelCatalog(_params?: {
+export async function loadModelCatalog(params?: {
   config?: unknown;
   useCache?: boolean;
 }): Promise<ModelCatalogEntry[]> {
-  return [];
+  const useCache = params?.useCache ?? true;
+  if (useCache && modelCatalogCache) return modelCatalogCache;
+  if (!loadCatalogPromise) {
+    loadCatalogPromise = fetchProviderCatalog()
+      .catch(() => modelCatalogCache ?? [])
+      .finally(() => {
+        loadCatalogPromise = null;
+      });
+  }
+  return loadCatalogPromise;
 }
 
 /**
- * Reset model catalog cache (no-op stub for tests).
+ * Reset model catalog cache (for tests).
  */
 export function resetModelCatalogCacheForTest(): void {
-  // No-op - no cache to reset
+  modelCatalogCache = null;
+  modelRegistryCache = null;
+  connectedProvidersCache = null;
+  loadCatalogPromise = null;
 }

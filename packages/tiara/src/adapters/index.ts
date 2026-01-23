@@ -17,7 +17,7 @@
 export {
   // Qdrant adapter
   QdrantCoordinationAdapter,
-  QdrantConfig,
+  type QdrantConfig,
   DEFAULT_QDRANT_CONFIG,
   type MemoryEntry,
   type PatternEntry,

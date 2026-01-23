@@ -165,9 +165,9 @@ function resolveFallbackCandidates(params: {
 
 export async function runWithModelFallback<T>(params: {
   cfg: ZeeConfig | undefined;
-  provider: string;
-  model: string;
-  run: (provider: string, model: string) => Promise<T>;
+  provider?: string;
+  model?: string;
+  run: (provider?: string, model?: string) => Promise<T>;
   onError?: (attempt: {
     provider: string;
     model: string;
@@ -177,11 +177,37 @@ export async function runWithModelFallback<T>(params: {
   }) => void | Promise<void>;
 }): Promise<{
   result: T;
-  provider: string;
-  model: string;
+  provider?: string;
+  model?: string;
   attempts: FallbackAttempt[];
 }> {
-  const candidates = resolveFallbackCandidates(params);
+  let provider = params.provider?.trim() || "";
+  let model = params.model?.trim() || "";
+  if (!provider && model.includes("/")) {
+    const [providerFromModel, modelFromModel] = model.split("/", 2);
+    if (providerFromModel && modelFromModel) {
+      provider = providerFromModel;
+      model = modelFromModel;
+    }
+  }
+  if (!provider || !model) {
+    const result = await params.run(
+      provider ? provider : undefined,
+      model ? model : undefined,
+    );
+    return {
+      result,
+      provider: provider || undefined,
+      model: model || undefined,
+      attempts: [],
+    };
+  }
+
+  const candidates = resolveFallbackCandidates({
+    cfg: params.cfg,
+    provider,
+    model,
+  });
   const attempts: FallbackAttempt[] = [];
   let lastError: unknown;
 

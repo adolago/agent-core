@@ -5,7 +5,7 @@
  * Stop active swarm sessions and terminate child processes
  */
 
-import { Command } from '../commander-fix.js';
+import { Command } from '../../commander-fix.js';
 import chalk from 'chalk';
 import { HiveMindSessionManager } from '../../simple-commands/hive-mind/session-manager.js';
 import inquirer from 'inquirer';
@@ -126,7 +126,7 @@ export const stopCommand = new Command('stop')
       }
 
       // Clean up orphaned processes
-      const cleanedCount = sessionManager.cleanupOrphanedProcesses();
+      const cleanedCount = await sessionManager.cleanupOrphanedProcesses();
       if (cleanedCount > 0) {
         console.log(chalk.blue(`\nCleaned up ${cleanedCount} orphaned session(s)`));
       }

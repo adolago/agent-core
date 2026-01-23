@@ -5,7 +5,7 @@
  * Show active sessions and their processes
  */
 
-import { Command } from '../commander-fix.js';
+import { Command } from '../../commander-fix.js';
 import chalk from 'chalk';
 import { HiveMindSessionManager } from '../../simple-commands/hive-mind/session-manager.js';
 import Table from 'cli-table3';
@@ -19,10 +19,10 @@ export const psCommand = new Command('ps')
 
     try {
       const sessions = options.all
-        ? sessionManager.getActiveSessionsWithProcessInfo()
-        : sessionManager
-            .getActiveSessionsWithProcessInfo()
-            .filter((s: any) => s.status === 'active' || s.status === 'paused');
+        ? await sessionManager.getActiveSessionsWithProcessInfo()
+        : (await sessionManager.getActiveSessionsWithProcessInfo()).filter(
+            (s: any) => s.status === 'active' || s.status === 'paused',
+          );
 
       if (sessions.length === 0) {
         console.log(chalk.yellow('No sessions found'));
@@ -30,7 +30,7 @@ export const psCommand = new Command('ps')
       }
 
       // Clean up orphaned processes first
-      const cleanedCount = sessionManager.cleanupOrphanedProcesses();
+      const cleanedCount = await sessionManager.cleanupOrphanedProcesses();
       if (cleanedCount > 0) {
         console.log(chalk.blue(`Cleaned up ${cleanedCount} orphaned session(s)\n`));
       }
@@ -53,6 +53,7 @@ export const psCommand = new Command('ps')
       });
 
       for (const session of sessions) {
+        const childPids = session.child_pids ?? [];
         const duration = new Date().getTime() - new Date(session.created_at).getTime();
         const durationStr = formatDuration(duration);
 
@@ -70,7 +71,7 @@ export const psCommand = new Command('ps')
           session.swarm_name,
           statusColor(session.status),
           session.parent_pid || '-',
-          session.child_pids.length > 0 ? session.child_pids.join(', ') : '-',
+          childPids.length > 0 ? childPids.join(', ') : '-',
           `${session.completion_percentage}%`,
           durationStr,
         ]);
@@ -98,9 +99,10 @@ export const psCommand = new Command('ps')
             ),
           );
 
-          if (session.child_pids.length > 0) {
+          const childPids = session.child_pids ?? [];
+          if (childPids.length > 0) {
             console.log(chalk.gray(`  Active Processes:`));
-            for (const pid of session.child_pids) {
+            for (const pid of childPids) {
               console.log(chalk.gray(`    - PID ${pid}`));
             }
           }
@@ -110,7 +112,7 @@ export const psCommand = new Command('ps')
       // Summary
       const activeSessions = sessions.filter((s: any) => s.status === 'active').length;
       const pausedSessions = sessions.filter((s: any) => s.status === 'paused').length;
-      const totalProcesses = sessions.reduce((sum: any, s: any) => sum + s.total_processes, 0);
+      const totalProcesses = sessions.reduce((sum: any, s: any) => sum + (s.total_processes ?? 0), 0);
 
       console.log('\n' + chalk.bold('Summary:'));
       console.log(chalk.gray(`  Active sessions: ${activeSessions}`));

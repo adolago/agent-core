@@ -9,7 +9,7 @@ import { createInProcessServer, InProcessMCPServer } from './in-process-server.j
 import { createClaudeFlowTools } from './claude-flow-tools.js';
 import { logger } from '../core/logger.js';
 import type { MCPTool } from '../utils/types.js';
-import type { McpSdkServerConfigWithInstance } from '@anthropic-ai/claude-code/sdk.d.ts';
+import type { McpSdkServerConfigWithInstance } from '@anthropic-ai/claude-code/sdk';
 
 // Import SDK tool creation function
 import { tool, createSdkMcpServer } from '@anthropic-ai/claude-code/sdk';
@@ -87,6 +87,7 @@ export class ClaudeFlowToolRegistry {
       this.inProcessServer.setContext({
         orchestrator: this.config.orchestratorContext,
         sessionId: 'in-process-session',
+        logger,
       });
     }
 
@@ -143,6 +144,7 @@ export class ClaudeFlowToolRegistry {
         const result = await mcpTool.handler(args, {
           orchestrator: this.config.orchestratorContext,
           sessionId: 'sdk-session',
+          logger,
         });
 
         return {

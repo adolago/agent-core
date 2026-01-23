@@ -3,6 +3,13 @@
  * Export all MCP components for easy integration
  */
 
+import type { MCPOrchestrationConfig, OrchestrationComponents } from './orchestration-integration.js';
+import { MCPOrchestrationIntegration } from './orchestration-integration.js';
+import { MCPServer } from './server.js';
+import { MCPLifecycleManager } from './lifecycle-manager.js';
+import { MCPPerformanceMonitor } from './performance-monitor.js';
+import { MCPProtocolManager } from './protocol-manager.js';
+
 // Phase 6: In-Process MCP Server (10-100x performance improvement)
 export { InProcessMCPServer, createInProcessServer } from './in-process-server.js';
 export type { InProcessServerConfig, ToolCallMetrics } from './in-process-server.js';

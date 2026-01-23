@@ -47,6 +47,9 @@ export type AgentType =
 export type AgentStatus = 'idle' | 'busy' | 'active' | 'error' | 'offline';
 
 export type AgentCapability =
+  | 'strategic_planning'
+  | 'task_allocation'
+  | 'consensus_coordination'
   | 'task_management'
   | 'resource_allocation'
   | 'consensus_building'
@@ -54,6 +57,7 @@ export type AgentCapability =
   | 'pattern_recognition'
   | 'knowledge_synthesis'
   | 'code_generation'
+  | 'implementation'
   | 'refactoring'
   | 'debugging'
   | 'data_analysis'
@@ -63,9 +67,16 @@ export type AgentCapability =
   | 'architecture'
   | 'architecture_patterns'
   | 'integration_planning'
+  | 'requirements_analysis'
+  | 'user_story_creation'
+  | 'acceptance_criteria'
+  | 'specs_driven_design'
+  | 'workflow_orchestration'
+  | 'project_management'
   | 'technical_writing'
   | 'test_generation'
   | 'quality_assurance'
+  | 'testing'
   | 'edge_case_detection'
   | 'code_review'
   | 'standards_enforcement'
@@ -82,12 +93,7 @@ export type AgentCapability =
   | 'domain_expertise'
   | 'custom_capabilities'
   | 'problem_solving'
-  // Maestro specs-driven capabilities
-  | 'requirements_analysis'
-  | 'user_story_creation'
-  | 'acceptance_criteria'
-  | 'specs_driven_design'
-  | 'workflow_orchestration'
+  | 'swarm_governance'
   | 'governance';
 
 export interface AgentConfig {
@@ -119,7 +125,13 @@ export interface AgentEnvironment {
 
 // Task types
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TaskStrategy = 'parallel' | 'sequential' | 'adaptive' | 'consensus';
+export type TaskStrategy =
+  | 'single'
+  | 'parallel'
+  | 'sequential'
+  | 'consensus'
+  | 'competitive'
+  | 'adaptive';
 export type TaskStatus =
   | 'pending'
   | 'assigned'
@@ -181,6 +193,7 @@ export type MessageType =
   | 'response'
   | 'notification'
   | 'task_assignment'
+  | 'task_failed'
   | 'progress_update'
   | 'coordination'
   | 'channel';

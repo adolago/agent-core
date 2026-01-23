@@ -1385,10 +1385,14 @@ function createSpawnParallelAgentsTool(logger: ILogger): MCPTool {
 
       const elapsedTime = Date.now() - startTime;
 
+      const sessionEntries = Array.from(sessions.entries()) as Array<
+        [string, { sessionId: string; status: string }]
+      >;
+
       return {
         success: true,
         agentsSpawned: sessions.size,
-        sessions: Array.from(sessions.entries()).map(([id, session]) => ({
+        sessions: sessionEntries.map(([id, session]) => ({
           agentId: id,
           sessionId: session.sessionId,
           status: session.status,
@@ -1533,9 +1537,13 @@ function createListQueriesTool(logger: ILogger): MCPTool {
 
       const queries = controller.getAllQueries();
 
+      const queryEntries = Array.from(queries.entries()) as Array<
+        [string, Record<string, unknown>]
+      >;
+
       return {
         success: true,
-        queries: Array.from(queries.entries()).map(([id, status]) => ({
+        queries: queryEntries.map(([id, status]) => ({
           queryId: id,
           ...status,
         })),

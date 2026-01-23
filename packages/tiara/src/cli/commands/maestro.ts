@@ -213,7 +213,7 @@ maestroCommand.command('status')
       
       if (options.detailed && state.history.length > 0) {
         console.log(chalk.cyan('\n📜 History:'));
-        state.history.forEach((entry, index) => {
+        state.history.forEach((entry: any, index: number) => {
           const status = entry.status === 'completed' ? '✅' : '❌';
           console.log(`  ${index + 1}. ${status} ${entry.phase} (${entry.timestamp.toLocaleString()})`);
         });

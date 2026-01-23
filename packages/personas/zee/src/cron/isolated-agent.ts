@@ -3,7 +3,6 @@ import { runEmbeddedPiAgent } from "../agents/agent-core-embedded.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
-  DEFAULT_MODEL,
   DEFAULT_PROVIDER,
 } from "../agents/defaults.js";
 import { loadModelCatalog } from "../agents/llm-types.js";
@@ -12,7 +11,7 @@ import {
   buildAllowedModelSet,
   buildModelAliasIndex,
   modelKey,
-  resolveConfiguredModelRef,
+  resolveExplicitModelRef,
   resolveModelRefFromString,
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
@@ -246,13 +245,13 @@ export async function runCronIsolatedAgentTurn(params: {
   });
   const workspaceDir = workspace.dir;
 
-  const resolvedDefault = resolveConfiguredModelRef({
+  const defaultProvider = DEFAULT_PROVIDER;
+  const resolvedDefault = resolveExplicitModelRef({
     cfg: params.cfg,
-    defaultProvider: DEFAULT_PROVIDER,
-    defaultModel: DEFAULT_MODEL,
+    defaultProvider,
   });
-  let provider = resolvedDefault.provider;
-  let model = resolvedDefault.model;
+  let provider = resolvedDefault?.provider;
+  let model = resolvedDefault?.model;
   let catalog: Awaited<ReturnType<typeof loadModelCatalog>> | undefined;
   const loadCatalog = async () => {
     if (!catalog) {
@@ -274,11 +273,11 @@ export async function runCronIsolatedAgentTurn(params: {
     }
     const aliasIndex = buildModelAliasIndex({
       cfg: params.cfg,
-      defaultProvider: resolvedDefault.provider,
+      defaultProvider,
     });
     const resolvedOverride = resolveModelRefFromString({
       raw: trimmed,
-      defaultProvider: resolvedDefault.provider,
+      defaultProvider,
       aliasIndex,
     });
     if (!resolvedOverride) {
@@ -287,7 +286,7 @@ export async function runCronIsolatedAgentTurn(params: {
     const allowed = buildAllowedModelSet({
       cfg: params.cfg,
       catalog: await loadCatalog(),
-      defaultProvider: resolvedDefault.provider,
+      defaultProvider,
     });
     const key = modelKey(
       resolvedOverride.ref.provider,
@@ -315,7 +314,7 @@ export async function runCronIsolatedAgentTurn(params: {
       : undefined) ?? undefined,
   );
   let thinkLevel = jobThink ?? thinkOverride;
-  if (!thinkLevel) {
+  if (!thinkLevel && provider && model) {
     thinkLevel = resolveThinkingDefault({
       cfg: params.cfg,
       provider,
@@ -356,6 +355,7 @@ export async function runCronIsolatedAgentTurn(params: {
 
   const commandBody = base;
 
+  const shouldUseModel = Boolean(provider && model);
   const needsSkillsSnapshot =
     cronSession.isNewSession || !cronSession.sessionEntry.skillsSnapshot;
   const skillsSnapshot = needsSkillsSnapshot
@@ -394,8 +394,8 @@ export async function runCronIsolatedAgentTurn(params: {
     const messageProvider = resolvedDelivery.provider;
     const fallbackResult = await runWithModelFallback({
       cfg: params.cfg,
-      provider,
-      model,
+      provider: shouldUseModel ? provider : undefined,
+      model: shouldUseModel ? model : undefined,
       run: (providerOverride, modelOverride) =>
         runEmbeddedPiAgent({
           sessionId: cronSession.sessionEntry.sessionId,

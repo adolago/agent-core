@@ -158,7 +158,7 @@ export function createAgentTable(agents: AgentProfile[]): any {
       agent.id,
       agent.name,
       agent.type,
-      agent.priority.toString(),
+      (agent.priority ?? 0).toString(),
       agent.maxConcurrentTasks.toString(),
     ]);
   }

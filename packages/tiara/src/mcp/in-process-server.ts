@@ -131,9 +131,11 @@ export class InProcessMCPServer extends EventEmitter {
       logger.debug('Executing tool in-process', { name, args });
 
       // Merge context
+      const baseContext: MCPContext = this.context ?? { sessionId: 'local', logger };
       const execContext: MCPContext = {
-        ...this.context,
+        ...baseContext,
         ...context,
+        sessionId: context?.sessionId ?? baseContext.sessionId,
       };
 
       // Execute tool handler directly (in-process, no IPC!)

@@ -8,6 +8,15 @@ import type { IEventBus } from '../core/event-bus.js';
 import type { SwarmEvent, EventType, AgentId, CommunicationStrategy } from '../swarm/types.js';
 import { generateId } from '../utils/helpers.js';
 
+function hasAgentId(data: unknown): data is { agentId: AgentId } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'agentId' in data &&
+    typeof (data as { agentId?: unknown }).agentId === 'string'
+  );
+}
+
 export interface MessageBusConfig {
   strategy: CommunicationStrategy;
   enablePersistence: boolean;

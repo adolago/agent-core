@@ -46,6 +46,7 @@ export const mcpCommand = new Command()
       .action(async (options: any) => {
         try {
           const config = await configManager.load();
+          const baseMcpConfig = (config.mcp ?? {}) as Partial<ExtendedMCPConfig>;
 
           // Check if MCP 2025-11 dependencies are available
           const mcp2025Available = isMCP2025Available();
@@ -62,7 +63,7 @@ export const mcpCommand = new Command()
 
           // Build extended configuration
           const mcpConfig: ExtendedMCPConfig = {
-            ...config.mcp,
+            ...baseMcpConfig,
             port: options.port,
             host: options.host,
             transport: options.transport,
@@ -154,15 +155,19 @@ export const mcpCommand = new Command()
     new Command().description('Show MCP server status').action(async () => {
       try {
         const config = await configManager.load();
+        const mcpConfig = (config.mcp ?? {}) as ExtendedMCPConfig;
         const isRunning = mcpServer !== null;
 
         console.log(chalk.cyan('MCP Server Status:'));
         console.log(`🌐 Status: ${isRunning ? chalk.green('Running') : chalk.red('Stopped')}`);
 
         if (isRunning) {
-          console.log(`📍 Address: ${config.mcp.host}:${config.mcp.port}`);
+          const host = mcpConfig.host ?? 'localhost';
+          const port = mcpConfig.port ?? 3000;
+          const authEnabled = Boolean(mcpConfig.auth);
+          console.log(`📍 Address: ${host}:${port}`);
           console.log(
-            `🔐 Authentication: ${config.mcp.auth ? chalk.green('Enabled') : chalk.yellow('Disabled')}`,
+            `🔐 Authentication: ${authEnabled ? chalk.green('Enabled') : chalk.yellow('Disabled')}`,
           );
           console.log(`🔧 Tools: ${chalk.green('Available')}`);
           console.log(`📊 Metrics: ${chalk.green('Collecting')}`);
@@ -205,6 +210,7 @@ export const mcpCommand = new Command()
     new Command().description('Show MCP configuration').action(async () => {
       try {
         const config = await configManager.load();
+        const mcpConfig = (config.mcp ?? {}) as ExtendedMCPConfig;
 
         console.log(chalk.cyan('MCP Configuration:'));
         console.log(JSON.stringify(config.mcp, null, 2));
@@ -224,16 +230,17 @@ export const mcpCommand = new Command()
 
         console.log(chalk.yellow('🔄 Starting MCP server...'));
         const config = await configManager.load();
+        const mcpConfig = (config.mcp ?? {}) as ExtendedMCPConfig;
 
         // Use factory to create server with same capabilities as before
-        mcpServer = await createMCPServer(config.mcp, eventBus, logger, {
+        mcpServer = await createMCPServer(mcpConfig, eventBus, logger, {
           autoDetectFeatures: true, // Auto-detect on restart
         });
         await mcpServer.start();
 
-        console.log(
-          chalk.green(`✅ MCP server restarted on ${config.mcp.host}:${config.mcp.port}`),
-        );
+        const host = mcpConfig.host ?? 'localhost';
+        const port = mcpConfig.port ?? 3000;
+        console.log(chalk.green(`✅ MCP server restarted on ${host}:${port}`));
       } catch (error) {
         console.error(chalk.red(`❌ Failed to restart MCP server: ${(error as Error).message}`));
         process.exit(1);

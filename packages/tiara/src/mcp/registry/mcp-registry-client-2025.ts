@@ -5,7 +5,7 @@
  * per MCP 2025-11 specification
  */
 
-import type { ILogger } from '../../interfaces/logger.js';
+import type { ILogger } from '../../utils/types.js';
 import type { MCPVersion, MCPCapability } from '../protocol/version-negotiation.js';
 
 /**
@@ -33,6 +33,8 @@ export interface MCPRegistryEntry {
   };
 }
 
+export type ServerRegistryEntry = MCPRegistryEntry;
+
 /**
  * Registry search query
  */
@@ -55,6 +57,7 @@ export interface RegistryConfig {
   authMethod: 'bearer' | 'mutual_tls' | 'none';
   metadata: MCPRegistryEntry['metadata'];
   healthCheckInterval?: number; // milliseconds
+  retryAttempts?: number;
 }
 
 /**
@@ -108,7 +111,7 @@ export class MCPRegistryClient {
         throw new Error(`Registration failed: ${response.status} - ${error}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as Partial<MCPRegistryEntry>;
       this.logger.info('Server registered successfully', {
         server_id: result.server_id,
       });
@@ -230,7 +233,7 @@ export class MCPRegistryClient {
         throw new Error(`Search failed: ${response.status}`);
       }
 
-      const results = await response.json();
+      const results = (await response.json()) as { servers?: MCPRegistryEntry[] };
       return results.servers || [];
     } catch (error) {
       this.logger.error('Failed to search servers', {

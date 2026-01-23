@@ -56,8 +56,8 @@ export type FollowupRun = {
     workspaceDir: string;
     config: ZeeConfig;
     skillsSnapshot?: SkillSnapshot;
-    provider: string;
-    model: string;
+    provider?: string;
+    model?: string;
     /** Persona to route the message to (zee, stanley, johny). */
     persona?: PersonaId;
     authProfileId?: string;

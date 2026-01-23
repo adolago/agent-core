@@ -18,7 +18,7 @@ import {
 
 export class Communication extends EventEmitter {
   private swarmId: string;
-  private store: QdrantStore;
+  private store!: QdrantStore;
   private agents: Map<string, Agent>;
   private channels: Map<string, CommunicationChannel>;
   private messageQueue: Map<MessagePriority, Message[]>;
@@ -37,11 +37,25 @@ export class Communication extends EventEmitter {
       ['low', []],
     ]);
 
+    const emptyCounts: Record<MessageType, number> = {
+      direct: 0,
+      broadcast: 0,
+      consensus: 0,
+      query: 0,
+      response: 0,
+      notification: 0,
+      task_assignment: 0,
+      task_failed: 0,
+      progress_update: 0,
+      coordination: 0,
+      channel: 0,
+    };
+
     this.stats = {
       totalMessages: 0,
       avgLatency: 0,
       activeChannels: 0,
-      messagesByType: {},
+      messagesByType: emptyCounts,
       throughput: 0,
     };
   }

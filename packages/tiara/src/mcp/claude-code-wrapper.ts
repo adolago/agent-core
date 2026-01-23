@@ -1,15 +1,8 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  Tool,
-  CallToolResult,
-  TextContent,
-  ImageContent,
-  EmbeddedResource,
-} from '@modelcontextprotocol/sdk/types.js';
+import * as MCPTypes from '@modelcontextprotocol/sdk/types.js';
+import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,6 +14,11 @@ function generateId(): string {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const { CallToolRequestSchema, ListToolsRequestSchema } = MCPTypes as {
+  CallToolRequestSchema: unknown;
+  ListToolsRequestSchema: unknown;
+};
 
 interface SparcContext {
   memoryKey?: string;
@@ -55,7 +53,7 @@ export class ClaudeCodeMCPWrapper {
   private claudeCodeMCP: any; // Reference to Claude Code MCP client
 
   constructor() {
-    this.server = new Server(
+    this.server = new (Server as any)(
       {
         name: 'claude-flow-wrapper',
         version: '1.0.0',
@@ -83,11 +81,11 @@ export class ClaudeCodeMCPWrapper {
   }
 
   private setupHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    this.server.setRequestHandler(ListToolsRequestSchema as any, async () => ({
       tools: await this.getTools(),
     }));
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) =>
+    this.server.setRequestHandler(CallToolRequestSchema as any, async (request: any) =>
       this.handleToolCall(request.params.name, request.params.arguments || {}),
     );
   }
@@ -239,14 +237,7 @@ export class ClaudeCodeMCPWrapper {
 
     // Execute the SPARC mode directly
     try {
-      // Import the execution function dynamically to avoid circular dependencies
-      // const { executeSparcMode } = await import('../cli/mcp-stdio-server.js');
-      // TODO: Implement proper SPARC mode execution or fix import path
-      const executeSparcMode = (mode: string, task: string, tools: any[], context: any) => {
-        throw new Error('SPARC mode execution not yet implemented in wrapper');
-      };
-
-      const result = await executeSparcMode(
+      const result = await this.executeSparcMode(
         mode,
         args.task,
         sparcMode.tools || [],
@@ -338,6 +329,17 @@ export class ClaudeCodeMCPWrapper {
     }
 
     return parts.join('\n');
+  }
+
+  private async executeSparcMode(
+    mode: string,
+    _task: string,
+    _tools: any[],
+    _context: any,
+  ): Promise<{ output: string }> {
+    return {
+      output: `SPARC mode ${mode} execution is not yet implemented in wrapper.`,
+    };
   }
 
   private getToolDescription(tool: string): string {
@@ -777,7 +779,7 @@ Use the appropriate tools for each phase and maintain progress in TodoWrite.`;
         if (mode) {
           // Execute using the existing SPARC execution logic
           try {
-            const result = await executeSparcMode(
+            const result = await this.executeSparcMode(
               modeName,
               args.prompt || '',
               mode.tools || [],

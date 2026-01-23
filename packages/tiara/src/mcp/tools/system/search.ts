@@ -9,8 +9,8 @@
  * This is the key to achieving 98.7% token reduction.
  */
 
-import type { MCPTool, ClaudeFlowToolContext } from '../../types.js';
-import type { ILogger } from '../../../interfaces/logger.js';
+import type { MCPTool, ILogger } from '../../../utils/types.js';
+import type { ClaudeFlowToolContext } from '../../claude-flow-tools.js';
 import type { DynamicToolLoader, ToolMetadata } from '../loader.js';
 
 interface SearchToolsInput {
@@ -215,13 +215,15 @@ export function createSearchToolsTool(
             // Full: Load complete tool definition including schema
             const tool = await loader.loadTool(meta.name, logger);
             if (tool) {
+              const rawExamples = tool.metadata?.examples;
+              const examples = Array.isArray(rawExamples) ? rawExamples : [];
               results.push({
                 name: tool.name,
                 description: tool.description,
                 category: meta.category,
                 tags: meta.tags,
                 inputSchema: tool.inputSchema,
-                examples: tool.metadata?.examples || [],
+                examples,
               });
             }
           }

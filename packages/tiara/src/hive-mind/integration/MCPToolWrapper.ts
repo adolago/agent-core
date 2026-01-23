@@ -123,9 +123,11 @@ function extractMcpText(result: any): string {
   if (!result || typeof result !== 'object') return '';
   const content = Array.isArray(result.content) ? result.content : [];
   return content
-    .map((item) =>
-      item && item.type === 'text' && typeof item.text === 'string' ? item.text : '',
-    )
+    .map((item: unknown) => {
+      if (!item || typeof item !== 'object') return '';
+      const typed = item as { type?: string; text?: unknown };
+      return typed.type === 'text' && typeof typed.text === 'string' ? typed.text : '';
+    })
     .filter(Boolean)
     .join('\n')
     .trim();
@@ -221,7 +223,7 @@ export class MCPToolWrapper extends EventEmitter {
     await this.initialize();
     const raw = await this.client.callMcpTool(this.memoryServer, tool, args);
     const parsed = parseMcpResult(raw);
-    if (raw && typeof raw === 'object' && raw.isError) {
+    if (raw && typeof raw === 'object' && 'isError' in raw && (raw as { isError?: boolean }).isError) {
       const message = parsed?.error ?? 'MCP tool error';
       throw new Error(message);
     }

@@ -42,7 +42,7 @@ export class DatabaseManager extends EventEmitter {
   private static instance: DatabaseManager;
   private db: any; // Database instance or in-memory fallback
   private statements: Map<string, any>;
-  private dbPath: string;
+  private dbPath!: string;
   private isInMemory: boolean = false;
   private memoryStore: any = null;
 
@@ -354,8 +354,9 @@ Note: Hive Mind data will not persist between runs on Windows without SQLite.
     const values: any[] = [];
 
     for (const [key, value] of Object.entries(updates)) {
-      if (value && typeof value === 'object' && value._raw) {
-        setClauses.push(`${key} = ${value._raw}`);
+      const rawValue = value as { _raw?: string } | null;
+      if (rawValue && typeof rawValue === 'object' && rawValue._raw) {
+        setClauses.push(`${key} = ${rawValue._raw}`);
       } else {
         setClauses.push(`${key} = ?`);
         values.push(value);

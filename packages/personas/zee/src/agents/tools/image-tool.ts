@@ -10,10 +10,10 @@ import {
   discoverAuthStorage,
   discoverModels,
   type Model,
+  loadModelCatalog,
 } from "../llm-types.js";
 import { getApiKeyForModel } from "../model-auth.js";
 import { runWithImageModelFallback } from "../model-fallback.js";
-import { ensureZeeModelsJson } from "../models-config.js";
 import type { AnyAgentTool } from "./common.js";
 import { extractAssistantText } from "./sessions-helpers.js";
 
@@ -80,7 +80,7 @@ async function runImagePrompt(params: {
   base64: string;
   mimeType: string;
 }): Promise<{ text: string; provider: string; model: string }> {
-  await ensureZeeModelsJson(params.cfg, params.agentDir);
+  await loadModelCatalog({ useCache: true, config: params.cfg });
   const authStorage = discoverAuthStorage(params.agentDir);
   const modelRegistry = discoverModels(authStorage, params.agentDir);
 

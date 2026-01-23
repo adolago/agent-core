@@ -20,7 +20,7 @@ import {
   buildModelAliasIndex,
   type ModelAliasIndex,
   modelKey,
-  resolveConfiguredModelRef,
+  resolveExplicitModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
 import type { ZeeConfig } from "../../config/config.js";
@@ -54,6 +54,7 @@ import {
 } from "./queue.js";
 
 const SYSTEM_MARK = "⚙️";
+const DEFAULT_MODEL_LABEL = "agent-core default";
 
 const maskApiKey = (value: string): string => {
   const trimmed = value.trim();
@@ -129,6 +130,20 @@ const formatAuthLabel = (auth: { label: string; source: string }) => {
     return auth.label;
   }
   return `${auth.label} (${auth.source})`;
+};
+
+const formatDefaultModelLabel = (params: {
+  hasDefaultModel: boolean;
+  defaultProvider: string;
+  defaultModel: string;
+}) =>
+  params.hasDefaultModel
+    ? `${params.defaultProvider}/${params.defaultModel}`
+    : DEFAULT_MODEL_LABEL;
+
+const isDefaultModelDirective = (raw?: string) => {
+  const trimmed = raw?.trim().toLowerCase();
+  return trimmed === "default" || trimmed === "reset" || trimmed === "clear";
 };
 
 const resolveProfileOverride = (params: {
@@ -300,6 +315,7 @@ export async function handleDirectiveOnly(params: {
   elevatedAllowed: boolean;
   defaultProvider: string;
   defaultModel: string;
+  hasDefaultModel: boolean;
   aliasIndex: ModelAliasIndex;
   allowedModelKeys: Set<string>;
   allowedModelCatalog: Awaited<
@@ -325,11 +341,13 @@ export async function handleDirectiveOnly(params: {
     elevatedAllowed,
     defaultProvider,
     defaultModel,
+    hasDefaultModel,
     aliasIndex,
     allowedModelKeys,
     allowedModelCatalog,
     resetModelOverride,
     provider,
+    model,
     initialModelLabel,
     formatModelSwitchEvent,
     currentThinkLevel,
@@ -337,6 +355,19 @@ export async function handleDirectiveOnly(params: {
     currentReasoningLevel,
     currentElevatedLevel,
   } = params;
+
+  const defaultLabel = formatDefaultModelLabel({
+    hasDefaultModel,
+    defaultProvider,
+    defaultModel,
+  });
+  const hasModelOverride = Boolean(
+    sessionEntry?.modelOverride || sessionEntry?.providerOverride,
+  );
+  const currentLabel =
+    hasModelOverride || hasDefaultModel
+      ? `${provider}/${model}`
+      : defaultLabel;
 
   if (directives.hasModelDirective) {
     const modelDirective = directives.rawModelDirective?.trim().toLowerCase();
@@ -359,10 +390,8 @@ export async function handleDirectiveOnly(params: {
         );
         authByProvider.set(entry.provider, formatAuthLabel(auth));
       }
-      const current = `${params.provider}/${params.model}`;
-      const defaultLabel = `${defaultProvider}/${defaultModel}`;
       const lines = [
-        `Current: ${current}`,
+        `Current: ${currentLabel}`,
         `Default: ${defaultLabel}`,
         `Auth file: ${formatPath(resolveAuthStorePathForDisplay())}`,
       ];
@@ -527,17 +556,32 @@ export async function handleDirectiveOnly(params: {
   let modelSelection: ModelDirectiveSelection | undefined;
   let profileOverride: string | undefined;
   if (directives.hasModelDirective && directives.rawModelDirective) {
-    const resolved = resolveModelDirectiveSelection({
-      raw: directives.rawModelDirective,
-      defaultProvider,
-      defaultModel,
-      aliasIndex,
-      allowedModelKeys,
-    });
-    if (resolved.error) {
-      return { text: resolved.error };
+    const isDefaultDirective = isDefaultModelDirective(
+      directives.rawModelDirective,
+    );
+    if (isDefaultDirective) {
+      if (directives.rawModelProfile) {
+        return { text: "Auth profile override requires a model selection." };
+      }
+      modelSelection = {
+        provider: defaultProvider,
+        model: defaultModel,
+        isDefault: true,
+      };
+    } else {
+      const resolved = resolveModelDirectiveSelection({
+        raw: directives.rawModelDirective,
+        defaultProvider,
+        defaultModel,
+        aliasIndex,
+        allowedModelKeys,
+        hasDefaultModel,
+      });
+      if (resolved.error) {
+        return { text: resolved.error };
+      }
+      modelSelection = resolved.selection;
     }
-    modelSelection = resolved.selection;
     if (modelSelection) {
       if (directives.rawModelProfile) {
         const profileResolved = resolveProfileOverride({
@@ -550,7 +594,10 @@ export async function handleDirectiveOnly(params: {
         }
         profileOverride = profileResolved.profileId;
       }
-      const nextLabel = `${modelSelection.provider}/${modelSelection.model}`;
+      const nextLabel =
+        modelSelection.isDefault && !hasDefaultModel
+          ? defaultLabel
+          : `${modelSelection.provider}/${modelSelection.model}`;
       if (nextLabel !== initialModelLabel) {
         enqueueSystemEvent(
           formatModelSwitchEvent(nextLabel, modelSelection.alias),
@@ -653,10 +700,14 @@ export async function handleDirectiveOnly(params: {
     );
   }
   if (modelSelection) {
-    const label = `${modelSelection.provider}/${modelSelection.model}`;
-    const labelWithAlias = modelSelection.alias
-      ? `${modelSelection.alias} (${label})`
-      : label;
+    const label =
+      modelSelection.isDefault && !hasDefaultModel
+        ? defaultLabel
+        : `${modelSelection.provider}/${modelSelection.model}`;
+    const labelWithAlias =
+      modelSelection.alias && !modelSelection.isDefault
+        ? `${modelSelection.alias} (${label})`
+        : label;
     parts.push(
       modelSelection.isDefault
         ? `Model reset to default (${labelWithAlias}).`
@@ -701,6 +752,7 @@ export async function persistInlineDirectives(params: {
   elevatedAllowed: boolean;
   defaultProvider: string;
   defaultModel: string;
+  hasDefaultModel: boolean;
   aliasIndex: ModelAliasIndex;
   allowedModelKeys: Set<string>;
   provider: string;
@@ -720,6 +772,7 @@ export async function persistInlineDirectives(params: {
     elevatedAllowed,
     defaultProvider,
     defaultModel,
+    hasDefaultModel,
     aliasIndex,
     allowedModelKeys,
     initialModelLabel,
@@ -727,6 +780,11 @@ export async function persistInlineDirectives(params: {
     agentCfg,
   } = params;
   let { provider, model } = params;
+  const defaultLabel = formatDefaultModelLabel({
+    hasDefaultModel,
+    defaultProvider,
+    defaultModel,
+  });
 
   if (sessionEntry && sessionStore && sessionKey) {
     let updated = false;
@@ -772,53 +830,74 @@ export async function persistInlineDirectives(params: {
         ? params.effectiveModelDirective
         : undefined;
     if (modelDirective) {
-      const resolved = resolveModelRefFromString({
-        raw: modelDirective,
-        defaultProvider,
-        aliasIndex,
-      });
-      if (resolved) {
-        const key = modelKey(resolved.ref.provider, resolved.ref.model);
-        if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
-          let profileOverride: string | undefined;
-          if (directives.rawModelProfile) {
-            const profileResolved = resolveProfileOverride({
-              rawProfile: directives.rawModelProfile,
-              provider: resolved.ref.provider,
-              cfg,
-            });
-            if (profileResolved.error) {
-              throw new Error(profileResolved.error);
+      const isDefaultDirective = isDefaultModelDirective(modelDirective);
+      if (isDefaultDirective) {
+        if (directives.rawModelProfile) {
+          throw new Error("Auth profile override requires a model selection.");
+        }
+        delete sessionEntry.providerOverride;
+        delete sessionEntry.modelOverride;
+        delete sessionEntry.authProfileOverride;
+        provider = defaultProvider;
+        model = defaultModel;
+        if (defaultLabel !== initialModelLabel) {
+          enqueueSystemEvent(formatModelSwitchEvent(defaultLabel), {
+            contextKey: `model:${defaultLabel}`,
+          });
+        }
+        updated = true;
+      } else {
+        const resolved = resolveModelRefFromString({
+          raw: modelDirective,
+          defaultProvider,
+          aliasIndex,
+        });
+        if (resolved) {
+          const key = modelKey(resolved.ref.provider, resolved.ref.model);
+          if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
+            let profileOverride: string | undefined;
+            if (directives.rawModelProfile) {
+              const profileResolved = resolveProfileOverride({
+                rawProfile: directives.rawModelProfile,
+                provider: resolved.ref.provider,
+                cfg,
+              });
+              if (profileResolved.error) {
+                throw new Error(profileResolved.error);
+              }
+              profileOverride = profileResolved.profileId;
             }
-            profileOverride = profileResolved.profileId;
+            const isDefault =
+              hasDefaultModel &&
+              resolved.ref.provider === defaultProvider &&
+              resolved.ref.model === defaultModel;
+            if (isDefault) {
+              delete sessionEntry.providerOverride;
+              delete sessionEntry.modelOverride;
+            } else {
+              sessionEntry.providerOverride = resolved.ref.provider;
+              sessionEntry.modelOverride = resolved.ref.model;
+            }
+            if (profileOverride) {
+              sessionEntry.authProfileOverride = profileOverride;
+            } else if (directives.hasModelDirective) {
+              delete sessionEntry.authProfileOverride;
+            }
+            provider = resolved.ref.provider;
+            model = resolved.ref.model;
+            const nextLabel = isDefault
+              ? defaultLabel
+              : `${provider}/${model}`;
+            if (nextLabel !== initialModelLabel) {
+              enqueueSystemEvent(
+                formatModelSwitchEvent(nextLabel, resolved.alias),
+                {
+                  contextKey: `model:${nextLabel}`,
+                },
+              );
+            }
+            updated = true;
           }
-          const isDefault =
-            resolved.ref.provider === defaultProvider &&
-            resolved.ref.model === defaultModel;
-          if (isDefault) {
-            delete sessionEntry.providerOverride;
-            delete sessionEntry.modelOverride;
-          } else {
-            sessionEntry.providerOverride = resolved.ref.provider;
-            sessionEntry.modelOverride = resolved.ref.model;
-          }
-          if (profileOverride) {
-            sessionEntry.authProfileOverride = profileOverride;
-          } else if (directives.hasModelDirective) {
-            delete sessionEntry.authProfileOverride;
-          }
-          provider = resolved.ref.provider;
-          model = resolved.ref.model;
-          const nextLabel = `${provider}/${model}`;
-          if (nextLabel !== initialModelLabel) {
-            enqueueSystemEvent(
-              formatModelSwitchEvent(nextLabel, resolved.alias),
-              {
-                contextKey: `model:${nextLabel}`,
-              },
-            );
-          }
-          updated = true;
         }
       }
     }
@@ -855,6 +934,7 @@ export function resolveDefaultModel(params: {
   defaultProvider: string;
   defaultModel: string;
   aliasIndex: ModelAliasIndex;
+  hasDefaultModel: boolean;
 } {
   const agentModelOverride = params.agentId
     ? resolveAgentConfig(params.cfg, params.agentId)?.model?.trim()
@@ -874,16 +954,16 @@ export function resolveDefaultModel(params: {
           },
         }
       : params.cfg;
-  const mainModel = resolveConfiguredModelRef({
+  const explicitModel = resolveExplicitModelRef({
     cfg,
     defaultProvider: DEFAULT_PROVIDER,
-    defaultModel: DEFAULT_MODEL,
   });
-  const defaultProvider = mainModel.provider;
-  const defaultModel = mainModel.model;
+  const hasDefaultModel = Boolean(explicitModel);
+  const defaultProvider = explicitModel?.provider ?? DEFAULT_PROVIDER;
+  const defaultModel = explicitModel?.model ?? DEFAULT_MODEL;
   const aliasIndex = buildModelAliasIndex({
     cfg,
     defaultProvider,
   });
-  return { defaultProvider, defaultModel, aliasIndex };
+  return { defaultProvider, defaultModel, aliasIndex, hasDefaultModel };
 }

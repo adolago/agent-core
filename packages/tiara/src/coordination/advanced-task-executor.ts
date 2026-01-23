@@ -400,7 +400,7 @@ export class AdvancedTaskExecutor extends EventEmitter {
           completeness: output.completeness || 1.0,
           accuracy: output.accuracy || 0.9,
           executionTime,
-          resourcesUsed: context.resources,
+          resourcesUsed: this.toResourceMap(context.resources),
           validated: false,
         };
       } catch (error) {
@@ -412,7 +412,7 @@ export class AdvancedTaskExecutor extends EventEmitter {
           completeness: 1.0,
           accuracy: 0.7,
           executionTime,
-          resourcesUsed: context.resources,
+          resourcesUsed: this.toResourceMap(context.resources),
           validated: false,
         };
       }
@@ -617,7 +617,7 @@ export class AdvancedTaskExecutor extends EventEmitter {
     queuedTasks: number;
     maxConcurrentTasks: number;
     totalCapacity: number;
-    resourceLimits: typeof this.config.resourceLimits;
+    resourceLimits: TaskExecutorConfig['resourceLimits'];
     circuitBreakers: Record<string, any>;
   } {
     return {
@@ -637,5 +637,14 @@ export class AdvancedTaskExecutor extends EventEmitter {
   updateConfig(newConfig: Partial<TaskExecutorConfig>): void {
     this.config = { ...this.config, ...newConfig };
     this.logger.info('Task executor configuration updated', { newConfig });
+  }
+
+  private toResourceMap(resources: ResourceUsage): Record<string, number> {
+    return {
+      memory: resources.memory,
+      cpu: resources.cpu,
+      disk: resources.disk,
+      network: resources.network,
+    };
   }
 }

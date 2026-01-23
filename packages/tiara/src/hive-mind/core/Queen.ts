@@ -14,6 +14,7 @@ import {
   SwarmTopology,
   Task,
   AgentType,
+  AgentCapability,
   QueenMode,
   ConsensusProposal,
   QueenDecision,
@@ -37,9 +38,9 @@ export class Queen extends EventEmitter {
   private agents: Map<string, Agent>;
   private taskQueue: Map<string, Task>;
   private strategies: Map<string, CoordinationStrategy>;
-  private store: QdrantStore;
-  private mcpWrapper: MCPToolWrapper;
-  private agentCore: AgentCoreClient;
+  private store!: QdrantStore;
+  private mcpWrapper!: MCPToolWrapper;
+  private agentCore!: AgentCoreClient;
   private isActive: boolean = false;
 
   constructor(config: QueenConfig) {
@@ -241,7 +242,7 @@ export class Queen extends EventEmitter {
    */
   private async selectAgentsForTask(task: Task, strategy: CoordinationStrategy): Promise<Agent[]> {
     const availableAgents = this.getAvailableAgents();
-    const requiredCapabilities = task.requiredCapabilities || [];
+    const requiredCapabilities: AgentCapability[] = task.requiredCapabilities || [];
 
     // Score agents based on capabilities and current load
     const scoredAgents = await Promise.all(
@@ -264,7 +265,7 @@ export class Queen extends EventEmitter {
   private async scoreAgentForTask(
     agent: Agent,
     task: Task,
-    requiredCapabilities: string[],
+    requiredCapabilities: AgentCapability[],
   ): Promise<number> {
     let score = 0;
 
@@ -313,6 +314,12 @@ export class Queen extends EventEmitter {
         optimizer: 4,
         documenter: 6,
         monitor: 3,
+        requirements_analyst: 9,
+        design_architect: 7,
+        task_planner: 6,
+        implementation_coder: 4,
+        quality_reviewer: 5,
+        steering_documenter: 6,
       },
       development: {
         coder: 10,
@@ -326,6 +333,12 @@ export class Queen extends EventEmitter {
         optimizer: 5,
         documenter: 4,
         monitor: 3,
+        requirements_analyst: 5,
+        design_architect: 8,
+        task_planner: 6,
+        implementation_coder: 10,
+        quality_reviewer: 7,
+        steering_documenter: 5,
       },
       analysis: {
         analyst: 10,
@@ -339,6 +352,12 @@ export class Queen extends EventEmitter {
         optimizer: 5,
         documenter: 4,
         monitor: 4,
+        requirements_analyst: 9,
+        design_architect: 6,
+        task_planner: 7,
+        implementation_coder: 4,
+        quality_reviewer: 6,
+        steering_documenter: 5,
       },
       testing: {
         tester: 10,
@@ -352,6 +371,12 @@ export class Queen extends EventEmitter {
         optimizer: 4,
         documenter: 3,
         monitor: 4,
+        requirements_analyst: 5,
+        design_architect: 6,
+        task_planner: 5,
+        implementation_coder: 6,
+        quality_reviewer: 9,
+        steering_documenter: 4,
       },
       optimization: {
         optimizer: 10,
@@ -365,6 +390,12 @@ export class Queen extends EventEmitter {
         reviewer: 5,
         documenter: 3,
         monitor: 4,
+        requirements_analyst: 6,
+        design_architect: 6,
+        task_planner: 5,
+        implementation_coder: 6,
+        quality_reviewer: 6,
+        steering_documenter: 4,
       },
     };
 
@@ -437,7 +468,13 @@ export class Queen extends EventEmitter {
       deadline: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
     };
 
-    await this.store.createConsensusProposal(proposal);
+    await this.store.createConsensusProposal({
+      swarmId: proposal.swarmId,
+      taskId: proposal.taskId,
+      proposal: proposal.proposal as Record<string, unknown>,
+      requiredThreshold: proposal.requiredThreshold,
+      deadline: proposal.deadline ? proposal.deadline.getTime() : Date.now(),
+    });
 
     // Notify all agents to vote
     await this.broadcastConsensusRequest(proposal);
@@ -662,6 +699,12 @@ export class Queen extends EventEmitter {
       documenter: 'recorder',
       monitor: 'observer',
       specialist: 'expert',
+      requirements_analyst: 'requirements',
+      design_architect: 'design_lead',
+      task_planner: 'planner',
+      implementation_coder: 'implementer',
+      quality_reviewer: 'qa_reviewer',
+      steering_documenter: 'governance_writer',
     };
 
     return roleMap[agent.type] || 'contributor';
@@ -681,6 +724,12 @@ export class Queen extends EventEmitter {
       documenter: ['create documentation', 'update guides', 'maintain clarity'],
       monitor: ['track metrics', 'alert on issues', 'ensure health'],
       specialist: ['provide expertise', 'solve complex problems', 'guide implementation'],
+      requirements_analyst: ['gather requirements', 'define acceptance criteria', 'align scope'],
+      design_architect: ['design architecture', 'clarify interfaces', 'ensure consistency'],
+      task_planner: ['decompose tasks', 'sequence work', 'track dependencies'],
+      implementation_coder: ['implement solution', 'write tests', 'debug issues'],
+      quality_reviewer: ['review output', 'validate quality', 'flag defects'],
+      steering_documenter: ['document decisions', 'capture governance', 'summarize outcomes'],
     };
 
     return responsibilityMap[agent.type] || ['contribute to task'];
@@ -743,8 +792,9 @@ export class Queen extends EventEmitter {
       },
     });
 
-    if (patterns.recommendations) {
-      await this.applyPerformanceRecommendations(patterns.recommendations);
+    const recommendations = (patterns as { recommendations?: unknown }).recommendations;
+    if (Array.isArray(recommendations)) {
+      await this.applyPerformanceRecommendations(recommendations);
     }
   }
 

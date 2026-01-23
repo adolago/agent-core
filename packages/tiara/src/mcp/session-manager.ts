@@ -39,7 +39,7 @@ export class SessionManager implements ISessionManager {
   private authConfig: MCPAuthConfig;
   private sessionTimeout: number;
   private maxSessions: number;
-  private cleanupInterval?: number;
+  private cleanupInterval?: ReturnType<typeof setInterval>;
 
   constructor(
     private config: MCPConfig,

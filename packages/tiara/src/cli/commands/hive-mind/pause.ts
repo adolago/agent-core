@@ -5,7 +5,7 @@
  * Pause active swarm sessions
  */
 
-import { Command } from '../commander-fix.js';
+import { Command } from '../../commander-fix.js';
 import chalk from 'chalk';
 import { HiveMindSessionManager } from '../../simple-commands/hive-mind/session-manager.js';
 import inquirer from 'inquirer';

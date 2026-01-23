@@ -18,8 +18,8 @@ import {
 
 export class ConsensusEngine extends EventEmitter {
   private threshold: number;
-  private store: QdrantStore;
-  private mcpWrapper: MCPToolWrapper;
+  private store!: QdrantStore;
+  private mcpWrapper!: MCPToolWrapper;
   private activeProposals: Map<string, ConsensusProposal>;
   private votingStrategies: Map<string, VotingStrategy>;
   private metrics: ConsensusMetrics;

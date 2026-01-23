@@ -38,7 +38,7 @@ export async function registerNeuralGoalCommands(program) {
     });
 }
 
-async function initNeuralModule(options) {
+export async function initNeuralModule(options) {
   const targetDir = path.resolve(process.cwd(), options.target || '.claude/agents/neural');
   
   console.log(chalk.cyan('🧠 Initializing Claude Flow Neural Module...'));
@@ -105,7 +105,7 @@ mcp__claude-flow__neural_train {
   }
 }
 
-async function initGoalModule(options) {
+export async function initGoalModule(options) {
   const targetDir = path.resolve(process.cwd(), options.target || '.claude/agents/goal');
   
   console.log(chalk.magenta('🎯 Initializing Claude Flow Goal Module...'));

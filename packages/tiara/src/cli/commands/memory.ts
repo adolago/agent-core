@@ -67,7 +67,7 @@ function normalizeEntry(entry: any): MemoryEntry {
  * Unified Memory Manager - Qdrant only
  */
 export class UnifiedMemoryManager {
-  private store: QdrantMemoryStore | null = null;
+  private memoryStore: QdrantMemoryStore | null = null;
   private storeConfig: {
     url?: string;
     apiKey?: string;
@@ -76,20 +76,21 @@ export class UnifiedMemoryManager {
   } | null = null;
 
   private async getStore(): Promise<QdrantMemoryStore> {
-    if (!this.store) {
+    if (!this.memoryStore) {
       if (!this.storeConfig) {
         this.storeConfig = await loadMemoryConfig();
       }
-      this.store = new QdrantMemoryStore(this.storeConfig);
-      await this.store.initialize();
+      this.memoryStore = new QdrantMemoryStore(this.storeConfig);
+      await this.memoryStore.initialize();
     }
-    return this.store;
+    return this.memoryStore;
   }
 
   async store(key: string, value: string, namespace: string = 'default') {
     const store = await this.getStore();
     const result = await store.store(key, value, { namespace, metadata: { source: 'cli' } });
-    return { backend: 'qdrant' as MemoryBackend, id: result?.id };
+    const storedId = (result as { id?: string } | null | undefined)?.id;
+    return { backend: 'qdrant' as MemoryBackend, id: storedId };
   }
 
   async query(search: string, namespace?: string, limit: number = 10) {
@@ -100,13 +101,13 @@ export class UnifiedMemoryManager {
 
   async list(namespace?: string, limit: number = 10) {
     const store = await this.getStore();
-    const entries = await store.listAll({ namespace: namespace ?? null });
+    const entries = namespace ? await store.listAll({ namespace }) : await store.listAll();
     return entries.slice(0, limit).map(normalizeEntry);
   }
 
   async getStats() {
     const store = await this.getStore();
-    const entries = await store.listAll({ namespace: null });
+    const entries = await store.listAll();
     const namespaceStats: Record<string, number> = {};
 
     for (const entry of entries) {
@@ -129,7 +130,7 @@ export class UnifiedMemoryManager {
 
   async exportData(filePath: string) {
     const store = await this.getStore();
-    const entries = await store.listAll({ namespace: null });
+    const entries = await store.listAll();
     const exportData: Record<string, any[]> = {};
 
     for (const entry of entries) {
@@ -167,7 +168,7 @@ export class UnifiedMemoryManager {
   async cleanup(daysOld: number = 30) {
     const store = await this.getStore();
     const cutoffTime = Date.now() - daysOld * 24 * 60 * 60 * 1000;
-    const entries = await store.listAll({ namespace: null });
+    const entries = await store.listAll();
     let removedCount = 0;
 
     for (const entry of entries) {
@@ -443,14 +444,16 @@ memoryCommand
 
       if (summary.deleted.length > 0) {
         console.log('🧹 Deleted legacy sources:');
-        summary.deleted.forEach((item) => console.log(`   - ${item}`));
+        summary.deleted.forEach((item: string) => console.log(`   - ${item}`));
       } else if (options.delete === false) {
         console.log(chalk.gray('Legacy sources retained (--no-delete).'));
       }
 
       if (summary.errors.length > 0) {
         console.log(chalk.yellow('⚠️  Some sources could not be migrated:'));
-        summary.errors.forEach((err) => console.log(`   - ${err.source}: ${err.error}`));
+        summary.errors.forEach((err: { source: string; error: string }) =>
+          console.log(`   - ${err.source}: ${err.error}`),
+        );
       }
     } catch (error) {
       console.error(chalk.red('❌ Failed to migrate:'), (error as Error).message);

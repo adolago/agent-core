@@ -5,11 +5,10 @@
  * Provides seamless transition from legacy MCP to MCP 2025-11 with feature flags.
  */
 
-import type { IEventBus } from '../interfaces/event-bus.js';
-import type { ILogger } from '../interfaces/logger.js';
-import type { MCPConfig } from '../utils/types.js';
+import type { IEventBus, ILogger, MCPConfig } from '../utils/types.js';
 import { MCPServer, type IMCPServer } from './server.js';
 import { MCP2025Server, type MCP2025ServerConfig } from './server-mcp-2025.js';
+import type { RegistryConfig } from './registry/mcp-registry-client-2025.js';
 import { ProgressiveToolRegistry } from './tool-registry-progressive.js';
 
 /**
@@ -58,6 +57,9 @@ export interface ExtendedMCPConfig extends MCPConfig {
       apiKey?: string;
       updateInterval?: number;
       retryAttempts?: number;
+      serverEndpoint?: string;
+      authMethod?: RegistryConfig['authMethod'];
+      metadata?: RegistryConfig['metadata'];
     };
 
     // Validation configuration
@@ -133,11 +135,32 @@ export class MCPServerFactory {
   ): Promise<MCP2025Server> {
     const features = config.features || {};
     const mcp2025Config = config.mcp2025 || {};
+    const serverId = mcp2025Config.serverId || `claude-flow-${Date.now()}`;
+    const transport = config.transport === 'websocket' ? 'ws' : config.transport;
+    const host = config.host || 'localhost';
+    const port = config.port || 3000;
+    const tlsEnabled = config.tlsEnabled === true;
+    const serverEndpoint = mcp2025Config.registry?.serverEndpoint
+      ? mcp2025Config.registry.serverEndpoint
+      : transport === 'http'
+        ? `${tlsEnabled ? 'https' : 'http'}://${host}:${port}`
+        : transport === 'ws'
+          ? `${tlsEnabled ? 'wss' : 'ws'}://${host}:${port}`
+          : 'stdio://local';
+    const authMethod: RegistryConfig['authMethod'] =
+      mcp2025Config.registry?.authMethod ||
+      (config.auth?.enabled ? 'bearer' : 'none');
+    const metadata: RegistryConfig['metadata'] =
+      mcp2025Config.registry?.metadata || {
+        name: 'tiara',
+        description: 'Enterprise AI orchestration with MCP 2025-11 support',
+        author: 'rUv',
+      };
 
     // Build MCP 2025-11 server configuration
     const serverConfig: MCP2025ServerConfig = {
-      serverId: mcp2025Config.serverId || `claude-flow-${Date.now()}`,
-      transport: config.transport || 'stdio',
+      serverId,
+      transport: transport || 'stdio',
 
       // Feature flags
       enableMCP2025: true,
@@ -154,9 +177,13 @@ export class MCPServerFactory {
       // Registry integration
       registry: {
         enabled: features.enableRegistryIntegration === true,
-        url: mcp2025Config.registry?.url || 'https://registry.mcp.run',
+        registryUrl: mcp2025Config.registry?.url || 'https://registry.mcp.run',
         apiKey: mcp2025Config.registry?.apiKey,
-        updateInterval: mcp2025Config.registry?.updateInterval || 60000,
+        serverId,
+        serverEndpoint,
+        authMethod,
+        metadata,
+        healthCheckInterval: mcp2025Config.registry?.updateInterval || 60000,
         retryAttempts: mcp2025Config.registry?.retryAttempts || 3,
       },
 

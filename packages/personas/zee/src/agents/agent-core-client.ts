@@ -47,8 +47,8 @@ export type EmbeddedPiAgentMeta = {
   sessionId: string;
   sessionFile: string;
   lane: "main" | "compact";
-  model: string;
-  provider: string;
+  model?: string;
+  provider?: string;
   usage?: UsageInfo;
   run: {
     startTime: number;
@@ -70,8 +70,8 @@ export type EmbeddedPiRunMeta = {
   sessionId: string;
   sessionFile: string;
   lane: "main" | "compact";
-  model: string;
-  provider: string;
+  model?: string;
+  provider?: string;
   aborted?: boolean;
   agentMeta?: {
     usage?: UsageInfo;
@@ -238,8 +238,8 @@ export interface EmbeddedPiAgentOptions {
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;
-  provider: string;
-  model: string;
+  provider?: string;
+  model?: string;
   /** Persona to route the message to (zee, stanley, johny). Defaults to "zee". */
   persona?: PersonaId;
   authProfileId?: string;
@@ -307,14 +307,24 @@ export async function runEmbeddedPiAgent(
   const messagingToolSentTargets: MessagingToolSend[] = [];
   const toolCalls: Array<{ name: string; result?: string }> = [];
   let usage: UsageInfo = {};
+  let resolvedProvider = provider;
+  let resolvedModel = model;
 
   try {
     const { client } = await getAgentCoreClient();
 
-    // Parse provider/model
-    const [providerID, modelID] = model.includes("/")
-      ? model.split("/", 2)
-      : [provider, model];
+    const resolvedModel = (() => {
+      const modelRaw = model?.trim() ?? "";
+      if (!modelRaw) return null;
+      if (modelRaw.includes("/")) {
+        const [providerID, modelID] = modelRaw.split("/", 2);
+        if (!providerID || !modelID) return null;
+        return { providerID, modelID };
+      }
+      const providerID = provider?.trim() ?? "";
+      if (!providerID) return null;
+      return { providerID, modelID: modelRaw };
+    })();
 
     // Get or create session
     const session = activeSessions.get(sessionKey);
@@ -338,7 +348,7 @@ export async function runEmbeddedPiAgent(
       path: { id: ocSessionId },
       body: {
         parts: [{ type: "text", text: prompt }],
-        model: { providerID, modelID },
+        ...(resolvedModel ? { model: resolvedModel } : {}),
         system: extraSystemPrompt,
         agent: persona, // Route to specific persona (zee, stanley, johny)
       },
@@ -350,6 +360,8 @@ export async function runEmbeddedPiAgent(
 
     const assistantMsg = response.data;
     if (assistantMsg) {
+      resolvedProvider = assistantMsg.info?.providerID ?? resolvedProvider;
+      resolvedModel = assistantMsg.info?.modelID ?? resolvedModel;
       usage = {
         input: assistantMsg.info.tokens?.input ?? 0,
         output: assistantMsg.info.tokens?.output ?? 0,
@@ -433,9 +445,9 @@ export async function runEmbeddedPiAgent(
         sessionId,
         sessionFile,
         lane: "main",
-        model,
-        provider,
-        agentMeta: { usage, model, provider },
+        model: resolvedModel,
+        provider: resolvedProvider,
+        agentMeta: { usage, model: resolvedModel, provider: resolvedProvider },
       };
 
       return {
@@ -462,9 +474,9 @@ export async function runEmbeddedPiAgent(
     sessionId,
     sessionFile,
     lane: "main",
-    model,
-    provider,
-    agentMeta: { usage, model, provider },
+    model: resolvedModel,
+    provider: resolvedProvider,
+    agentMeta: { usage, model: resolvedModel, provider: resolvedProvider },
   };
 
   return {

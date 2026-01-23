@@ -12,8 +12,16 @@ import { SwarmCoordinator } from '../swarm/coordinator.js';
 import { AgentManager } from '../agents/agent-manager.js';
 import { ResourceManager } from '../resources/resource-manager.js';
 import { AuthService } from './auth-service.js';
-import { SwarmConfig } from '../utils/types.js';
-import { ValidationError, SwarmError, AuthenticationError } from '../utils/errors.js';
+import type {
+  AgentCapabilities,
+  AgentType,
+  SwarmConfig,
+  SwarmMode,
+  SwarmStrategy,
+  TaskPriority,
+  TaskType,
+} from '../swarm/types.js';
+import { ValidationError, SwarmError } from '../utils/errors.js';
 import { nanoid } from 'nanoid';
 
 export interface SwarmApiConfig {
@@ -73,12 +81,137 @@ export interface SwarmMetrics {
   healthScore: number;
 }
 
+interface SwarmRecord {
+  coordinator: SwarmCoordinator;
+  metadata: {
+    name: string;
+    topology: SwarmCreateRequest['topology'];
+    strategy: SwarmCreateRequest['strategy'];
+    maxAgents: number;
+    createdAt: string;
+    config: Partial<SwarmConfig>;
+  };
+}
+
+const DEFAULT_MAX_AGENTS = 8;
+const AGENT_TYPES = new Set<AgentType>([
+  'coordinator',
+  'researcher',
+  'coder',
+  'analyst',
+  'architect',
+  'tester',
+  'reviewer',
+  'optimizer',
+  'documenter',
+  'monitor',
+  'specialist',
+  'design-architect',
+  'system-architect',
+  'task-planner',
+  'developer',
+  'requirements-engineer',
+  'steering-author',
+]);
+
+const mapSwarmMode = (topology: SwarmCreateRequest['topology']): SwarmMode => {
+  switch (topology) {
+    case 'hierarchical':
+      return 'hierarchical';
+    case 'mesh':
+      return 'mesh';
+    case 'ring':
+      return 'mesh';
+    case 'star':
+    default:
+      return 'centralized';
+  }
+};
+
+const mapSwarmStrategy = (strategy?: SwarmCreateRequest['strategy']): SwarmStrategy => {
+  switch (strategy) {
+    case 'specialized':
+      return 'custom';
+    case 'adaptive':
+    case 'balanced':
+    default:
+      return 'auto';
+  }
+};
+
+const mapTaskPriority = (priority?: TaskOrchestrationRequest['priority']): TaskPriority => {
+  switch (priority) {
+    case 'low':
+      return 'low';
+    case 'high':
+      return 'high';
+    case 'critical':
+      return 'critical';
+    case 'medium':
+    default:
+      return 'normal';
+  }
+};
+
+const resolveTaskType = (request: TaskOrchestrationRequest): TaskType => {
+  if (request.strategy === 'parallel' || (request.maxAgents && request.maxAgents > 1)) {
+    return 'coordination';
+  }
+  return 'custom';
+};
+
+const resolveAgentType = (type: string): AgentType =>
+  AGENT_TYPES.has(type as AgentType) ? (type as AgentType) : 'specialist';
+
+const buildAgentCapabilities = (capabilities?: string[]): Partial<AgentCapabilities> => {
+  if (!capabilities?.length) {
+    return {};
+  }
+
+  const overrides: Partial<AgentCapabilities> = {};
+  const tools: string[] = [];
+
+  for (const capability of capabilities) {
+    switch (capability) {
+      case 'codeGeneration':
+      case 'codeReview':
+      case 'testing':
+      case 'documentation':
+      case 'research':
+      case 'analysis':
+      case 'webSearch':
+      case 'apiIntegration':
+      case 'fileSystem':
+      case 'terminalAccess':
+        (overrides as Record<string, boolean>)[capability] = true;
+        break;
+      default:
+        tools.push(capability);
+        break;
+    }
+  }
+
+  if (tools.length) {
+    overrides.tools = tools;
+  }
+
+  return overrides;
+};
+
+const buildTaskName = (description: string): string => {
+  const firstLine = description.split('\n')[0]?.trim();
+  if (!firstLine) {
+    return 'user-task';
+  }
+  return firstLine.length > 80 ? `${firstLine.slice(0, 77)}...` : firstLine;
+};
+
 /**
  * Swarm API implementation
  */
 export class SwarmApi {
   private router: Router;
-  private swarms = new Map<string, SwarmCoordinator>();
+  private swarms = new Map<string, SwarmRecord>();
 
   constructor(
     private config: SwarmApiConfig,
@@ -122,13 +255,14 @@ export class SwarmApi {
     this.router.use((req, res, next) => {
       if (req.method === 'POST' || req.method === 'PUT') {
         if (!req.body) {
-          return res.status(400).json({
+          res.status(400).json({
             error: 'Request body is required',
             code: 'MISSING_BODY',
           });
+          return;
         }
       }
-      next();
+      return next();
     });
   }
 
@@ -269,35 +403,40 @@ export class SwarmApi {
         });
       }
 
+      const apiStrategy = request.strategy ?? 'balanced';
+      const maxAgents = request.maxAgents ?? request.config?.maxAgents ?? DEFAULT_MAX_AGENTS;
+
       // Create swarm configuration
-      const swarmConfig: SwarmConfig = {
-        name: request.name,
-        topology: request.topology,
-        maxAgents: request.maxAgents || 8,
-        strategy: request.strategy || 'balanced',
+      const swarmConfig: Partial<SwarmConfig> = {
         ...request.config,
+        name: request.name,
+        mode: request.config?.mode ?? mapSwarmMode(request.topology),
+        strategy: request.config?.strategy ?? mapSwarmStrategy(request.strategy),
+        maxAgents,
       };
 
-      // Generate swarm ID
-      const swarmId = `swarm_${Date.now()}_${nanoid(10)}`;
-
       // Create swarm coordinator
-      const swarm = new SwarmCoordinator(
-        swarmId,
-        swarmConfig,
-        this.logger,
-        this.claudeClient,
-        this.configManager,
-        this.coordinationManager,
-        this.agentManager,
-        this.resourceManager,
-      );
+      const swarm = new SwarmCoordinator(swarmConfig);
 
       // Initialize swarm
       await swarm.initialize();
 
+      // Generate swarm ID
+      const swarmId = swarm.getSwarmId().id;
+      const createdAt = new Date().toISOString();
+
       // Store swarm
-      this.swarms.set(swarmId, swarm);
+      this.swarms.set(swarmId, {
+        coordinator: swarm,
+        metadata: {
+          name: request.name,
+          topology: request.topology,
+          strategy: apiStrategy,
+          maxAgents,
+          createdAt,
+          config: swarmConfig,
+        },
+      });
 
       this.logger.info('Swarm created', {
         swarmId,
@@ -309,10 +448,10 @@ export class SwarmApi {
         swarmId,
         name: request.name,
         topology: request.topology,
-        maxAgents: swarmConfig.maxAgents,
-        strategy: swarmConfig.strategy,
+        maxAgents,
+        strategy: apiStrategy,
         status: 'active',
-        createdAt: new Date().toISOString(),
+        createdAt,
       });
     } catch (error) {
       throw error;
@@ -321,13 +460,13 @@ export class SwarmApi {
 
   private async listSwarms(req: any, res: any): Promise<void> {
     try {
-      const swarmList = Array.from(this.swarms.entries()).map(([swarmId, swarm]) => ({
+      const swarmList = Array.from(this.swarms.entries()).map(([swarmId, record]) => ({
         swarmId,
-        name: swarm.getConfig().name,
-        topology: swarm.getConfig().topology,
-        agentCount: swarm.getAgentCount(),
-        status: swarm.getStatus(),
-        createdAt: swarm.getCreatedAt(),
+        name: record.metadata.name,
+        topology: record.metadata.topology,
+        agentCount: record.coordinator.getAgents().length,
+        status: record.coordinator.getStatus(),
+        createdAt: record.metadata.createdAt,
       }));
 
       res.json({
@@ -342,33 +481,33 @@ export class SwarmApi {
   private async getSwarm(req: any, res: any): Promise<void> {
     try {
       const { swarmId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const config = swarm.getConfig();
-      const status = swarm.getStatus();
-      const agents = await swarm.getAgents();
-      const metrics = await swarm.getMetrics();
+      const config = record.metadata.config;
+      const status = record.coordinator.getStatus();
+      const agents = record.coordinator.getAgents();
+      const metrics = record.coordinator.getMetrics();
 
       res.json({
         swarmId,
         config,
         status,
         agents: agents.map((agent) => ({
-          id: agent.id,
+          id: agent.id.id,
           type: agent.type,
           name: agent.name,
           status: agent.status,
           capabilities: agent.capabilities,
         })),
         metrics,
-        createdAt: swarm.getCreatedAt(),
+        createdAt: record.metadata.createdAt,
       });
     } catch (error) {
       throw error;
@@ -378,16 +517,16 @@ export class SwarmApi {
   private async destroySwarm(req: any, res: any): Promise<void> {
     try {
       const { swarmId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      await swarm.destroy();
+      await record.coordinator.shutdown();
       this.swarms.delete(swarmId);
 
       this.logger.info('Swarm destroyed', { swarmId });
@@ -413,20 +552,39 @@ export class SwarmApi {
         });
       }
 
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) {
+      const record = this.swarms.get(swarmId);
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      await swarm.scale(targetSize);
+      const swarm = record.coordinator;
+      const agents = swarm.getAgents();
+      const currentSize = agents.length;
+
+      if (targetSize > currentSize) {
+        const toCreate = targetSize - currentSize;
+        for (let index = 0; index < toCreate; index += 1) {
+          await swarm.registerAgent(`agent-${nanoid(6)}`, 'specialist');
+        }
+      } else if (targetSize < currentSize) {
+        const toRemove = currentSize - targetSize;
+        const candidates = [
+          ...agents.filter((agent) => agent.status === 'idle'),
+          ...agents.filter((agent) => agent.status !== 'idle'),
+        ].slice(0, toRemove);
+
+        for (const agent of candidates) {
+          await swarm.unregisterAgent(agent.id.id);
+        }
+      }
 
       res.json({
         message: 'Swarm scaled successfully',
         swarmId,
-        newSize: targetSize,
+        newSize: swarm.getAgents().length,
       });
     } catch (error) {
       throw error;
@@ -445,24 +603,36 @@ export class SwarmApi {
         });
       }
 
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) {
+      const record = this.swarms.get(swarmId);
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const agent = await swarm.spawnAgent({
-        type: request.type,
-        name: request.name,
-        capabilities: request.capabilities || [],
-        config: request.config,
-      });
+      const agentType = resolveAgentType(request.type);
+      if (agentType !== request.type) {
+        this.logger.warn('Unknown agent type, defaulting to specialist', {
+          swarmId,
+          requestedType: request.type,
+        });
+      }
+
+      const agentId = await record.coordinator.registerAgent(
+        request.name || `agent-${nanoid(6)}`,
+        agentType,
+        buildAgentCapabilities(request.capabilities),
+      );
+
+      const agent = record.coordinator.getAgent(agentId);
+      if (!agent) {
+        throw new Error(`Agent registration failed for ${agentId}`);
+      }
 
       res.status(201).json({
         agent: {
-          id: agent.id,
+          id: agent.id.id,
           type: agent.type,
           name: agent.name,
           status: agent.status,
@@ -487,30 +657,45 @@ export class SwarmApi {
         });
       }
 
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) {
+      const record = this.swarms.get(swarmId);
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const task = await swarm.orchestrateTask({
-        description: request.task,
-        priority: request.priority || 'medium',
-        strategy: request.strategy || 'adaptive',
-        maxAgents: request.maxAgents,
-        requirements: request.requirements,
-        metadata: request.metadata,
-      });
+      const swarm = record.coordinator;
+      const taskId = await swarm.createTask(
+        resolveTaskType(request),
+        buildTaskName(request.task),
+        request.task,
+        request.task,
+        {
+          priority: mapTaskPriority(request.priority),
+          context: {
+            strategy: request.strategy ?? 'adaptive',
+            maxAgents: request.maxAgents,
+            requirements: request.requirements,
+            metadata: request.metadata,
+          },
+          input: request.metadata ?? {},
+        },
+      );
+
+      await swarm.assignTask(taskId);
+      const task = swarm.getTask(taskId);
+      if (!task) {
+        throw new Error(`Task creation failed for ${taskId}`);
+      }
 
       res.status(201).json({
         task: {
-          id: task.id,
+          id: task.id.id,
           description: task.description,
           status: task.status,
           priority: task.priority,
-          strategy: task.strategy,
+          strategy: request.strategy || 'adaptive',
         },
         swarmId,
       });
@@ -522,16 +707,16 @@ export class SwarmApi {
   private async getSwarmMetrics(req: any, res: any): Promise<void> {
     try {
       const { swarmId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const metrics = await swarm.getMetrics();
+      const metrics = record.coordinator.getMetrics();
       res.json(metrics);
     } catch (error) {
       throw error;
@@ -541,16 +726,16 @@ export class SwarmApi {
   private async getSwarmStatus(req: any, res: any): Promise<void> {
     try {
       const { swarmId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const status = await swarm.getDetailedStatus();
+      const status = record.coordinator.getSwarmStatus();
       res.json(status);
     } catch (error) {
       throw error;
@@ -582,18 +767,24 @@ export class SwarmApi {
     allHealthy = allHealthy && services.coordination.healthy;
 
     // Check agent manager health
-    const agentHealth = await this.agentManager.getHealthStatus();
+    const agentStats = this.agentManager.getSystemStats();
+    const agentHealthy = agentStats.totalAgents === 0 ? true : agentStats.averageHealth >= 0.7;
     services.agents = {
-      healthy: agentHealth.healthy,
-      error: agentHealth.error,
+      healthy: agentHealthy,
     };
     allHealthy = allHealthy && services.agents.healthy;
 
     // Collect metrics
     const metrics = {
       totalSwarms: this.swarms.size,
-      ...coordHealth.metrics,
-      ...agentHealth.metrics,
+      ...(coordHealth.metrics ?? {}),
+      totalAgents: agentStats.totalAgents,
+      activeAgents: agentStats.activeAgents,
+      healthyAgents: agentStats.healthyAgents,
+      averageAgentHealth: agentStats.averageHealth,
+      agentCpu: agentStats.resourceUtilization.cpu,
+      agentMemory: agentStats.resourceUtilization.memory,
+      agentDisk: agentStats.resourceUtilization.disk,
     };
 
     return {
@@ -607,10 +798,10 @@ export class SwarmApi {
     try {
       const systemMetrics = await this.getSystemHealth();
       const swarmMetrics = await Promise.all(
-        Array.from(this.swarms.values()).map(async (swarm) => {
-          const metrics = await swarm.getMetrics();
+        Array.from(this.swarms.values()).map(async (record) => {
+          const metrics = record.coordinator.getMetrics();
           return {
-            swarmId: swarm.getId(),
+            swarmId: record.coordinator.getSwarmId().id,
             ...metrics,
           };
         }),
@@ -630,24 +821,24 @@ export class SwarmApi {
   private async listAgents(req: any, res: any): Promise<void> {
     try {
       const { swarmId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const agents = await swarm.getAgents();
+      const agents = record.coordinator.getAgents();
       res.json({
         agents: agents.map((agent) => ({
-          id: agent.id,
+          id: agent.id.id,
           type: agent.type,
           name: agent.name,
           status: agent.status,
           capabilities: agent.capabilities,
-          createdAt: agent.createdAt,
+          createdAt: agent.lastHeartbeat,
         })),
         total: agents.length,
       });
@@ -659,16 +850,16 @@ export class SwarmApi {
   private async getAgent(req: any, res: any): Promise<void> {
     try {
       const { swarmId, agentId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const agent = await swarm.getAgent(agentId);
+      const agent = record.coordinator.getAgent(agentId);
       if (!agent) {
         return res.status(404).json({
           error: 'Agent not found',
@@ -685,16 +876,16 @@ export class SwarmApi {
   private async terminateAgent(req: any, res: any): Promise<void> {
     try {
       const { swarmId, agentId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      await swarm.terminateAgent(agentId);
+      await record.coordinator.unregisterAgent(agentId);
       res.json({
         message: 'Agent terminated successfully',
         agentId,
@@ -708,23 +899,23 @@ export class SwarmApi {
   private async listTasks(req: any, res: any): Promise<void> {
     try {
       const { swarmId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const tasks = await swarm.getTasks();
+      const tasks = record.coordinator.getTasks();
       res.json({
         tasks: tasks.map((task) => ({
-          id: task.id,
+          id: task.id.id,
           description: task.description,
           status: task.status,
           priority: task.priority,
-          assignedTo: task.assignedTo,
+          assignedTo: task.assignedTo?.id,
           createdAt: task.createdAt,
           completedAt: task.completedAt,
         })),
@@ -738,16 +929,16 @@ export class SwarmApi {
   private async getTask(req: any, res: any): Promise<void> {
     try {
       const { swarmId, taskId } = req.params;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      const task = await swarm.getTask(taskId);
+      const task = record.coordinator.getTask(taskId);
       if (!task) {
         return res.status(404).json({
           error: 'Task not found',
@@ -765,16 +956,16 @@ export class SwarmApi {
     try {
       const { swarmId, taskId } = req.params;
       const { reason } = req.body;
-      const swarm = this.swarms.get(swarmId);
+      const record = this.swarms.get(swarmId);
 
-      if (!swarm) {
+      if (!record) {
         return res.status(404).json({
           error: 'Swarm not found',
           code: 'SWARM_NOT_FOUND',
         });
       }
 
-      await swarm.cancelTask(taskId, reason || 'User requested cancellation');
+      await record.coordinator.cancelTask(taskId, reason || 'User requested cancellation');
       res.json({
         message: 'Task cancelled successfully',
         taskId,
@@ -792,9 +983,9 @@ export class SwarmApi {
     this.logger.info('Destroying Swarm API');
 
     // Destroy all swarms
-    for (const [swarmId, swarm] of this.swarms) {
+    for (const [swarmId, record] of this.swarms) {
       try {
-        await swarm.destroy();
+        await record.coordinator.shutdown();
       } catch (error) {
         this.logger.error('Error destroying swarm', { swarmId, error });
       }

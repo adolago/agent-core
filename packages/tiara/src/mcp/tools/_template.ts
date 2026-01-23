@@ -11,8 +11,8 @@
  * 4. Implement handler logic
  */
 
-import type { MCPTool, ClaudeFlowToolContext } from '../types.js';
-import type { ILogger } from '../../interfaces/logger.js';
+import type { MCPTool, ILogger } from '../../utils/types.js';
+import type { ClaudeFlowToolContext } from '../claude-flow-tools.js';
 
 /**
  * Input interface for this tool

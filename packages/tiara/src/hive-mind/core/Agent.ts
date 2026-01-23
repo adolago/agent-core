@@ -36,9 +36,9 @@ export class Agent extends EventEmitter {
   public currentTask: string | null = null;
   public messageCount: number = 0;
 
-  private store: QdrantStore;
-  private mcpWrapper: MCPToolWrapper;
-  private agentCore: AgentCoreClient;
+  private store!: QdrantStore;
+  private mcpWrapper!: MCPToolWrapper;
+  private agentCore!: AgentCoreClient;
   private memory: Map<string, any>;
   private communicationBuffer: Message[];
   private lastHeartbeat: number;
@@ -226,15 +226,20 @@ export class Agent extends EventEmitter {
         capabilities: this.capabilities,
       },
     });
+    const analysisResult = analysis as {
+      complexity?: string;
+      estimatedTime?: number;
+      requirements?: unknown[];
+    };
 
     // Store analysis in memory
     await this.storeInMemory('task_analysis', analysis);
 
     return {
       phase: 'analysis',
-      complexity: analysis.complexity || 'medium',
-      estimatedTime: analysis.estimatedTime || 3600000,
-      requirements: analysis.requirements || [],
+      complexity: analysisResult.complexity || 'medium',
+      estimatedTime: analysisResult.estimatedTime || 3600000,
+      requirements: analysisResult.requirements || [],
     };
   }
 
@@ -264,21 +269,18 @@ export class Agent extends EventEmitter {
    */
   protected async performValidation(task: any): Promise<any> {
     // Validate execution results
-    const validation = {
-      phase: 'validation',
-      checks: [],
-      passed: true,
-    };
-
     // Basic validation checks
-    const checks = [
+    const checks: Array<{ name: string; passed: boolean }> = [
       { name: 'completeness', passed: true },
       { name: 'quality', passed: true },
       { name: 'performance', passed: true },
     ];
 
-    validation.checks = checks;
-    validation.passed = checks.every((c) => c.passed);
+    const validation = {
+      phase: 'validation',
+      checks,
+      passed: checks.every((c) => c.passed),
+    };
 
     return validation;
   }
@@ -298,7 +300,11 @@ export class Agent extends EventEmitter {
   /**
    * Send a message to another agent or broadcast
    */
-  async sendMessage(toAgentId: string | null, messageType: string, content: any): Promise<void> {
+  async sendMessage(
+    toAgentId: string | null,
+    messageType: Message['type'],
+    content: any,
+  ): Promise<void> {
     const message: Message = {
       id: uuidv4(),
       fromAgentId: this.id,
@@ -420,7 +426,6 @@ export class Agent extends EventEmitter {
         `Agent ${this.name} (${this.type}): ${result.success ? 'successful' : 'failed'} execution of ${task.description.slice(0, 100)}`,
         {
           agentId: this.id,
-          agentType: this.type,
           taskId: task.id,
           ...learningData,
         },
@@ -648,8 +653,9 @@ export class Agent extends EventEmitter {
   private async updateCapabilities(patterns: any): Promise<void> {
     if (patterns.suggestedCapabilities) {
       // Update capabilities based on learning
-      const newCapabilities = patterns.suggestedCapabilities.filter(
-        (cap: string) => !this.capabilities.includes(cap),
+      const suggested = patterns.suggestedCapabilities as AgentCapability[];
+      const newCapabilities = suggested.filter(
+        (cap) => !this.capabilities.includes(cap),
       );
 
       if (newCapabilities.length > 0) {

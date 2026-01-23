@@ -1,34 +1,21 @@
-// Lazy-load pi-coding-agent model metadata so we can infer context windows when
-// the agent reports a model id. This includes custom models.json entries.
+// Lazy-load agent-core model metadata so we can infer context windows when
+// the agent reports a model id.
 
-import { loadConfig } from "../config/config.js";
-import { resolveZeeAgentDir } from "./agent-paths.js";
-import { ensureZeeModelsJson } from "./models-config.js";
-
-type ModelEntry = { id: string; contextWindow?: number };
+import { loadModelCatalog } from "./llm-types.js";
 
 const MODEL_CACHE = new Map<string, number>();
 const loadPromise = (async () => {
   try {
-    // Use variable to bypass TypeScript module resolution (module may not exist)
-    const piCodingAgent = "@mariozechner/pi-coding-agent";
-    const { discoverAuthStorage, discoverModels } = await import(
-      /* webpackIgnore: true */ piCodingAgent
-    );
-    const cfg = loadConfig();
-    await ensureZeeModelsJson(cfg);
-    const agentDir = resolveZeeAgentDir();
-    const authStorage = discoverAuthStorage(agentDir);
-    const modelRegistry = discoverModels(authStorage, agentDir);
-    const models = modelRegistry.getAll() as ModelEntry[];
-    for (const m of models) {
-      if (!m?.id) continue;
-      if (typeof m.contextWindow === "number" && m.contextWindow > 0) {
-        MODEL_CACHE.set(m.id, m.contextWindow);
+    const catalog = await loadModelCatalog({ useCache: true });
+    for (const entry of catalog) {
+      if (!entry?.id) continue;
+      if (typeof entry.contextWindow === "number" && entry.contextWindow > 0) {
+        MODEL_CACHE.set(entry.id, entry.contextWindow);
+        MODEL_CACHE.set(`${entry.provider}/${entry.id}`, entry.contextWindow);
       }
     }
   } catch {
-    // If pi-ai isn't available, leave cache empty; lookup will fall back.
+    // If agent-core isn't available, leave cache empty; lookup will fall back.
   }
 })();
 
@@ -36,5 +23,9 @@ export function lookupContextTokens(modelId?: string): number | undefined {
   if (!modelId) return undefined;
   // Best-effort: kick off loading, but don't block.
   void loadPromise;
-  return MODEL_CACHE.get(modelId);
+  const direct = MODEL_CACHE.get(modelId);
+  if (direct !== undefined) return direct;
+  const slash = modelId.indexOf("/");
+  if (slash === -1) return undefined;
+  return MODEL_CACHE.get(modelId.slice(slash + 1));
 }

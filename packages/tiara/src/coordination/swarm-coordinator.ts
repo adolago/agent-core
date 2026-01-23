@@ -5,6 +5,7 @@ import { generateId } from '../utils/helpers.js';
 import { SwarmMonitor } from './swarm-monitor.js';
 import type { AdvancedTaskScheduler } from './advanced-scheduler.js';
 import { MemoryManager } from '../memory/manager.js';
+import type { Message } from '../communication/message-bus.js';
 
 export interface SwarmAgent {
   id: string;
@@ -82,7 +83,10 @@ export class SwarmCoordinator extends EventEmitter {
 
   constructor(config: Partial<SwarmConfig> = {}) {
     super();
-    this.logger = new Logger('SwarmCoordinator');
+    this.logger = new Logger(
+      { level: 'info', format: 'text', destination: 'console' },
+      { prefix: 'SwarmCoordinator' },
+    );
     this.config = {
       maxAgents: 10,
       maxConcurrentTasks: 5,
@@ -108,12 +112,12 @@ export class SwarmCoordinator extends EventEmitter {
     const eventBus = EventBus.getInstance();
     this.memoryManager = new MemoryManager(
       {
-        backend: 'sqlite',
+        backend: 'qdrant',
         namespace: this.config.memoryNamespace,
         cacheSizeMB: 50,
-        syncOnExit: true,
-        maxEntries: 10000,
-        ttlMinutes: 60,
+        syncInterval: 60000,
+        conflictResolution: 'last-write',
+        retentionDays: 7,
       },
       eventBus,
       this.logger,
@@ -261,10 +265,13 @@ export class SwarmCoordinator extends EventEmitter {
     await this.memoryManager.store({
       id: `objective:${objectiveId}`,
       agentId: 'swarm-coordinator',
+      sessionId: objectiveId,
       type: 'objective',
       content: JSON.stringify(objective),
-      namespace: this.config.memoryNamespace,
+      context: { objectiveId, strategy },
       timestamp: new Date(),
+      tags: ['objective', strategy],
+      version: 1,
       metadata: {
         type: 'objective',
         strategy,
@@ -484,10 +491,13 @@ export class SwarmCoordinator extends EventEmitter {
     await this.memoryManager.store({
       id: `task:${taskId}:result`,
       agentId: agent?.id || 'unknown',
+      sessionId: taskId,
       type: 'task-result',
       content: JSON.stringify(result),
-      namespace: this.config.memoryNamespace,
+      context: { taskId, taskType: task.type },
       timestamp: new Date(),
+      tags: ['task-result', task.type],
+      version: 1,
       metadata: {
         type: 'task-result',
         taskType: task.type,
@@ -691,10 +701,17 @@ export class SwarmCoordinator extends EventEmitter {
       await this.memoryManager.store({
         id: 'swarm:state',
         agentId: 'swarm-coordinator',
+        sessionId: 'swarm-state',
         type: 'swarm-state',
         content: JSON.stringify(state),
-        namespace: this.config.memoryNamespace,
+        context: {
+          objectiveCount: state.objectives.length,
+          taskCount: state.tasks.length,
+          agentCount: state.agents.length,
+        },
         timestamp: new Date(),
+        tags: ['swarm-state'],
+        version: 1,
         metadata: {
           type: 'swarm-state',
           objectiveCount: state.objectives.length,
@@ -713,7 +730,7 @@ export class SwarmCoordinator extends EventEmitter {
   }
 
   private handleAgentMessage(message: Message): void {
-    this.logger.debug(`Agent message: ${message.type} from ${message.from}`);
+    this.logger.debug(`Agent message: ${message.type} from ${message.sender}`);
     this.emit('agent:message', message);
   }
 

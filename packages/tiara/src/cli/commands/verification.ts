@@ -6,12 +6,11 @@
  */
 
 import { Logger } from '../../core/logger.js';
-import { 
-  verificationHookManager,
+import {
   VerificationCLICommands,
   createVerificationCommand,
-  executeVerificationFromCLI
-} from '../../verification/index.js';
+  executeVerificationFromCLI,
+} from '../../verification/cli-integration.js';
 
 const logger = new Logger({
   level: 'info',

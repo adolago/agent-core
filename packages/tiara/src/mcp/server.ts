@@ -595,13 +595,14 @@ export class MCPServer implements IMCPServer {
       for (const tool of ruvSwarmTools) {
         // Wrap the handler to inject ruv-swarm context
         const originalHandler = tool.handler;
-        tool.handler = async (input: unknown, context?: MCPContext) => {
-          const ruvSwarmContext: RuvSwarmToolContext = {
-            ...context,
-            workingDirectory,
-            sessionId: `mcp-session-${Date.now()}`,
-            swarmId: process.env.CLAUDE_SWARM_ID || `mcp-swarm-${Date.now()}`,
-          };
+          tool.handler = async (input: unknown, context?: MCPContext) => {
+            const ruvSwarmContext: RuvSwarmToolContext = {
+              ...context,
+              workingDirectory,
+              sessionId: `mcp-session-${Date.now()}`,
+              swarmId: process.env.CLAUDE_SWARM_ID || `mcp-swarm-${Date.now()}`,
+              logger: this.logger,
+            };
 
           return await originalHandler(input, ruvSwarmContext);
         };
@@ -618,7 +619,7 @@ export class MCPServer implements IMCPServer {
     }
   }
 
-  private errorToMCPError(error): MCPError {
+  private errorToMCPError(error: unknown): MCPError {
     if (error instanceof MCPMethodNotFoundError) {
       return {
         code: -32601,

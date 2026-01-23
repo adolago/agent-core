@@ -214,12 +214,17 @@ export async function getReplyFromConfig(
   const agentId = resolveAgentIdFromSessionKey(ctx.SessionKey);
   const agentCfg = cfg.agent;
   const sessionCfg = cfg.session;
-  const { defaultProvider, defaultModel, aliasIndex } = resolveDefaultModel({
-    cfg,
-    agentId,
-  });
+  const { defaultProvider, defaultModel, aliasIndex, hasDefaultModel } =
+    resolveDefaultModel({
+      cfg,
+      agentId,
+    });
   let provider = defaultProvider;
   let model = defaultModel;
+  const defaultLabel = hasDefaultModel
+    ? `${defaultProvider}/${defaultModel}`
+    : "agent-core default";
+  let hasHeartbeatOverride = false;
   if (opts?.isHeartbeat) {
     const heartbeatRaw = agentCfg?.heartbeat?.model?.trim() ?? "";
     const heartbeatRef = heartbeatRaw
@@ -232,6 +237,7 @@ export async function getReplyFromConfig(
     if (heartbeatRef) {
       provider = heartbeatRef.ref.provider;
       model = heartbeatRef.ref.model;
+      hasHeartbeatOverride = true;
     }
   }
 
@@ -455,7 +461,13 @@ export async function getReplyFromConfig(
     model,
   });
 
-  const initialModelLabel = `${provider}/${model}`;
+  const hasModelOverride = Boolean(
+    sessionEntry?.modelOverride || sessionEntry?.providerOverride,
+  );
+  const initialModelLabel =
+    hasModelOverride || hasDefaultModel
+      ? `${provider}/${model}`
+      : defaultLabel;
   const formatModelSwitchEvent = (label: string, alias?: string) =>
     alias
       ? `Model switched to ${alias} (${label}).`
@@ -500,6 +512,7 @@ export async function getReplyFromConfig(
       elevatedAllowed,
       defaultProvider,
       defaultModel,
+      hasDefaultModel,
       aliasIndex,
       allowedModelKeys: modelState.allowedModelKeys,
       allowedModelCatalog: modelState.allowedModelCatalog,
@@ -529,6 +542,7 @@ export async function getReplyFromConfig(
     elevatedAllowed,
     defaultProvider,
     defaultModel,
+    hasDefaultModel,
     aliasIndex,
     allowedModelKeys: modelState.allowedModelKeys,
     provider,
@@ -787,6 +801,13 @@ export async function getReplyFromConfig(
     resolvedQueue.mode === "collect" ||
     resolvedQueue.mode === "steer-backlog";
   const authProfileId = sessionEntry?.authProfileOverride;
+  const hasStoredModelOverride = Boolean(
+    sessionEntry?.modelOverride || sessionEntry?.providerOverride,
+  );
+  const shouldUseModel =
+    hasStoredModelOverride || hasDefaultModel || hasHeartbeatOverride;
+  const runProvider = shouldUseModel ? provider : undefined;
+  const runModel = shouldUseModel ? model : undefined;
   const followupRun = {
     prompt: queuedBody,
     summaryLine: baseBodyTrimmedRaw,
@@ -807,8 +828,8 @@ export async function getReplyFromConfig(
       workspaceDir,
       config: cfg,
       skillsSnapshot,
-      provider,
-      model,
+      provider: runProvider,
+      model: runModel,
       persona: detectedPersona,
       authProfileId,
       thinkLevel: resolvedThinkLevel,
@@ -825,7 +846,7 @@ export async function getReplyFromConfig(
       ownerNumbers:
         command.ownerList.length > 0 ? command.ownerList : undefined,
       extraSystemPrompt: extraSystemPrompt || undefined,
-      ...(provider === "ollama" ? { enforceFinalTag: true } : {}),
+      ...(runProvider === "ollama" ? { enforceFinalTag: true } : {}),
     },
   };
 
@@ -848,7 +869,7 @@ export async function getReplyFromConfig(
     sessionStore,
     sessionKey,
     storePath,
-    defaultModel,
+    defaultModel: hasDefaultModel ? defaultModel : undefined,
     agentCfgContextTokens: agentCfg?.contextTokens,
     resolvedVerboseLevel: resolvedVerboseLevel ?? "off",
     isNewSession,

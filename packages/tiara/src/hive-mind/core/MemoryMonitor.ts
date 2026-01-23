@@ -146,9 +146,15 @@ export class MemoryMonitor extends EventEmitter {
       const dbAnalytics = this.store.getDatabaseAnalytics();
 
       // Extract key metrics
+      const dbPerformance = (
+        dbAnalytics as {
+          performance?: { query_execution?: { avg?: number } };
+        }
+      ).performance;
+
       const metrics = {
         cacheHitRate: memoryAnalytics.cache.hitRate || 0,
-        avgQueryTime: dbAnalytics.performance.query_execution?.avg || 0,
+        avgQueryTime: dbPerformance?.query_execution?.avg || 0,
         memoryUtilization: memoryAnalytics.cache.utilizationPercent || 0,
         poolEfficiency: this.calculatePoolEfficiency(memoryAnalytics.pools),
         dbFragmentation: dbAnalytics.fragmentation || 0,

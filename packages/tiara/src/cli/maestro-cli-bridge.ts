@@ -242,7 +242,53 @@ export class MaestroCLIBridge {
     const config: Config = {
       env: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
       logLevel: this.bridgeConfig.logLevel || 'info',
-      enableMetrics: this.bridgeConfig.enablePerformanceMonitoring || true
+      enableMetrics: this.bridgeConfig.enablePerformanceMonitoring || true,
+      orchestrator: {
+        maxConcurrentAgents: 10,
+        taskQueueSize: 100,
+        healthCheckInterval: 30000,
+        shutdownTimeout: 30000,
+      },
+      terminal: {
+        type: 'auto',
+        poolSize: 5,
+        recycleAfter: 10,
+        healthCheckInterval: 60000,
+        commandTimeout: 300000,
+      },
+      memory: {
+        backend: 'qdrant',
+        cacheSizeMB: 100,
+        syncInterval: 5000,
+        conflictResolution: 'crdt',
+        retentionDays: 30,
+        url: 'http://localhost:6333',
+        collection: 'agent_memory',
+        persistenceCollection: 'agent_persistence',
+      },
+      coordination: {
+        maxRetries: 3,
+        retryDelay: 1000,
+        deadlockDetection: true,
+        resourceTimeout: 60000,
+        messageTimeout: 30000,
+      },
+      mcp: {
+        transport: 'stdio',
+        port: 3000,
+        tlsEnabled: false,
+      },
+      logging: {
+        level: this.bridgeConfig.logLevel || 'info',
+        format: 'text',
+        destination: 'console',
+      },
+      security: {
+        encryptionEnabled: true,
+        auditLogging: true,
+        maskSensitiveValues: true,
+        allowEnvironmentOverrides: true,
+      },
     };
 
     if (this.bridgeConfig.cacheEnabled) {

@@ -5,6 +5,8 @@
  * for agent truth verification with enterprise-grade security features.
  */
 
+import { verificationHookManager } from './hooks.js';
+
 // Main security system
 export { 
   SecurityEnforcementSystem as default,
@@ -45,6 +47,21 @@ export {
   CryptographicError,
   RateLimitError
 } from './types';
+
+// Verification hooks system
+export { verificationHookManager };
+
+export async function initializeVerificationSystem() {
+  return verificationHookManager;
+}
+
+export function getVerificationSystemStatus() {
+  return verificationHookManager.getMetrics();
+}
+
+export async function shutdownVerificationSystem() {
+  verificationHookManager.cleanup();
+}
 
 /**
  * Factory function to create a configured security system

@@ -6,6 +6,9 @@
  */
 
 import { ClaudeCodeMCPWrapper } from './claude-code-wrapper.js';
+import { MCPServer } from './server.js';
+import { EventBus } from '../core/event-bus.js';
+import { logger } from '../core/logger.js';
 
 // Check if running as wrapper mode
 const isWrapperMode =
@@ -19,8 +22,8 @@ async function main() {
   } else {
     // Fall back to original server
     console.error('Starting Claude-Flow MCP in direct mode...');
-    const { runMCPServer } = await import('./server.js');
-    await runMCPServer();
+    const server = new MCPServer({ transport: 'stdio' }, EventBus.getInstance(), logger);
+    await server.start();
   }
 }
 

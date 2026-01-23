@@ -48,7 +48,10 @@ export class BackgroundExecutor extends EventEmitter {
 
   constructor(config: Partial<BackgroundExecutorConfig> = {}) {
     super();
-    this.logger = new Logger('BackgroundExecutor');
+    this.logger = new Logger(
+      { level: 'info', format: 'text', destination: 'console' },
+      { prefix: 'BackgroundExecutor' },
+    );
     this.config = {
       maxConcurrentTasks: 5,
       defaultTimeout: 300000, // 5 minutes
@@ -108,9 +111,9 @@ export class BackgroundExecutor extends EventEmitter {
     }
 
     // Kill all running processes
-    for (const [taskId, process] of this.processes) {
+    for (const [taskId, childProcess] of this.processes) {
       this.logger.warn(`Killing process for task ${taskId}`);
-      process.kill('SIGTERM');
+      childProcess.kill('SIGTERM');
     }
 
     this.emit('executor:stopped');
@@ -223,32 +226,32 @@ export class BackgroundExecutor extends EventEmitter {
       }
 
       // Spawn process
-      const process = spawn(task.command, task.args, {
+      const childProcess = spawn(task.command, task.args, {
         cwd: task.options?.cwd,
         env: { ...process.env, ...task.options?.env },
         detached: task.options?.detached,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
-      task.pid = process.pid;
-      this.processes.set(task.id, process);
+      task.pid = childProcess.pid;
+      this.processes.set(task.id, childProcess);
 
       // Collect output
       let stdout = '';
       let stderr = '';
 
-      process.stdout?.on('data', (data) => {
+      childProcess.stdout?.on('data', (data: Buffer) => {
         stdout += data.toString();
         this.emit('task:output', { taskId: task.id, data: data.toString() });
       });
 
-      process.stderr?.on('data', (data) => {
+      childProcess.stderr?.on('data', (data: Buffer) => {
         stderr += data.toString();
         this.emit('task:error', { taskId: task.id, data: data.toString() });
       });
 
       // Handle process completion
-      process.on('close', async (code) => {
+      childProcess.on('close', async (code: number | null) => {
         task.endTime = new Date();
         task.output = stdout;
         task.error = stderr;
@@ -287,14 +290,14 @@ export class BackgroundExecutor extends EventEmitter {
         setTimeout(() => {
           if (this.processes.has(task.id)) {
             this.logger.warn(`Task ${task.id} timed out after ${task.options?.timeout}ms`);
-            process.kill('SIGTERM');
+            childProcess.kill('SIGTERM');
           }
         }, task.options.timeout);
       }
 
       // For detached processes, unref to allow main process to exit
       if (task.options?.detached) {
-        process.unref();
+        childProcess.unref();
       }
 
       this.emit('task:started', task);

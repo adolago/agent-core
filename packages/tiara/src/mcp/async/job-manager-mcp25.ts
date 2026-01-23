@@ -10,7 +10,7 @@
 
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
-import type { ILogger } from '../../interfaces/logger.js';
+import type { ILogger } from '../../utils/types.js';
 
 /**
  * MCP tool request (2025-11 format)
@@ -68,7 +68,7 @@ export interface MCPJobResult {
 /**
  * Internal job state
  */
-interface AsyncJob {
+export interface AsyncJob {
   request_id: string;
   job_id: string;
   tool_id: string;
@@ -86,6 +86,8 @@ interface AsyncJob {
   tokens_used?: number;
   abortController?: AbortController;
 }
+
+export type JobStatus = AsyncJob['status'];
 
 /**
  * Job persistence interface

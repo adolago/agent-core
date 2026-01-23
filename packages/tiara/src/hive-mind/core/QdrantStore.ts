@@ -21,7 +21,7 @@ import {
   type AgentCoreClientConfig,
   type MemoryEntry,
   type MemorySearchResult,
-} from "../integration/AgentCoreClient";
+} from "../integration/AgentCoreClient.js";
 
 // =============================================================================
 // Tiara Namespace Constants
@@ -52,13 +52,40 @@ export type TiaraNamespace = (typeof TiaraNamespaces)[keyof typeof TiaraNamespac
 // Type Definitions
 // =============================================================================
 
-export type SwarmTopology = "mesh" | "hierarchical" | "ring" | "star" | "hybrid";
+export type SwarmTopology =
+  | "mesh"
+  | "hierarchical"
+  | "ring"
+  | "star"
+  | "hybrid"
+  | "specs-driven";
 export type AgentStatusType = "idle" | "busy" | "error" | "offline" | "starting";
 export type TaskPriority = "critical" | "high" | "medium" | "low";
 export type TaskStatus = "pending" | "assigned" | "in_progress" | "completed" | "failed" | "cancelled";
-export type TaskStrategy = "single" | "parallel" | "sequential" | "consensus" | "competitive";
+export type TaskStrategy =
+  | "single"
+  | "parallel"
+  | "sequential"
+  | "consensus"
+  | "competitive"
+  | "adaptive";
 export type MessagePriority = "urgent" | "high" | "normal" | "low";
-export type MessageType = "task_assignment" | "status_update" | "data_sharing" | "coordination" | "error_report" | "consensus_vote" | "heartbeat" | "broadcast";
+export type MessageType =
+  | "task_assignment"
+  | "status_update"
+  | "data_sharing"
+  | "coordination"
+  | "error_report"
+  | "consensus_vote"
+  | "heartbeat"
+  | "broadcast"
+  | "direct"
+  | "query"
+  | "response"
+  | "notification"
+  | "progress_update"
+  | "channel"
+  | "task_failed";
 export type ConsensusStatus = "pending" | "achieved" | "rejected" | "expired" | "cancelled";
 
 export interface SwarmData {
@@ -612,7 +639,7 @@ export class QdrantStore extends EventEmitter {
       limit: options.limit ?? 10,
     });
 
-    return results.map((r) => {
+    return results.map((r: MemorySearchResult) => {
       const extra = r.entry.metadata?.extra as Record<string, unknown>;
       return {
         key: (extra?.key as string) ?? r.entry.id,
@@ -642,7 +669,7 @@ export class QdrantStore extends EventEmitter {
   async listMemory(namespace: string, limit: number): Promise<MemoryData[]> {
     const entries = await this.client.listMemoriesByNamespace(namespace, { limit });
 
-    return entries.map((entry) => {
+    return entries.map((entry: MemoryEntry) => {
       const extra = entry.metadata?.extra as Record<string, unknown>;
       return {
         key: (extra?.key as string) ?? entry.id,
@@ -1010,7 +1037,7 @@ export async function getQdrantStore(config?: AgentCoreClientConfig): Promise<Qd
     if (!_mockStoreInstance) {
       try {
         // Dynamic import to avoid circular dependencies
-        const { getMockQdrantStore } = await import("../../test/MockQdrantStore");
+        const { getMockQdrantStore } = await import("../../test/MockQdrantStore.js");
         _mockStoreInstance = await getMockQdrantStore();
         if (process.env.TIARA_DEBUG === "true") {
           console.log("[DEBUG] [QdrantStore] Using MockQdrantStore in test mode");

@@ -213,10 +213,12 @@ export class ClaudeClientV25 extends EventEmitter {
       id: sdkResponse.id,
       type: 'message',
       role: 'assistant',
-      content: sdkResponse.content.map((block) => ({
-        type: block.type,
-        text: block.type === 'text' ? block.text : ''
-      })),
+      content: sdkResponse.content
+        .filter((block) => block.type === 'text')
+        .map((block) => ({
+          type: 'text',
+          text: block.text,
+        })),
       model: sdkResponse.model as ClaudeModel,
       stop_reason: (sdkResponse.stop_reason || 'end_turn') as 'end_turn' | 'max_tokens' | 'stop_sequence',
       stop_sequence: sdkResponse.stop_sequence || undefined,
@@ -246,15 +248,13 @@ export class ClaudeClientV25 extends EventEmitter {
         mappedError = new ClaudeAPIError(error.message, error.status || 500);
       }
     } else {
-      mappedError = new ClaudeAPIError(
-        error.message || 'Unknown error',
-        500
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      mappedError = new ClaudeAPIError(message || 'Unknown error', 500);
     }
 
     this.logger?.error('SDK request failed', {
       error: mappedError.message,
-      status: mappedError.status
+      status: mappedError.statusCode
     });
 
     throw mappedError;
@@ -279,7 +279,7 @@ export class ClaudeClientV25 extends EventEmitter {
    */
   getSwarmMetadata(messageId: string): Record<string, unknown> | null {
     if (this.config.enableSwarmMode) {
-      return this.adapter.getSwarmMetadata(messageId);
+      return this.adapter.getSwarmMetadata(messageId) ?? null;
     }
     return null;
   }

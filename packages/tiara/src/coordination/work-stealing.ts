@@ -154,7 +154,7 @@ export class WorkStealingCoordinator {
       score -= workload.memoryUsage * 0.3;
 
       // Factor 4: Agent priority (higher is better)
-      score += agent.priority * 5;
+      score += (agent.priority ?? 0) * 5;
 
       // Factor 5: Capability match
       const taskType = task.type;

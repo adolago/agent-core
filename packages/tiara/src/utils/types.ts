@@ -4,40 +4,34 @@
 
 // Configuration interface
 export interface Config {
-  env: 'development' | 'production' | 'test';
-  logLevel: 'debug' | 'info' | 'warn' | 'error';
+  env?: 'development' | 'production' | 'test';
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';
   enableMetrics?: boolean;
-  orchestrator?: {
-    dataDir?: string;
-    maxAgents?: number;
-    taskTimeout?: number;
-    persistSessions?: boolean;
-    shutdownTimeout?: number;
-    maxConcurrentAgents?: number;
-  };
-  logging?: LoggingConfig;
-  terminal?: {
-    shell?: string;
-    timeout?: number;
-    maxSessions?: number;
-  };
-  memory?: {
-    backend?: 'sqlite' | 'memory' | 'markdown' | 'hybrid' | 'qdrant';
-    ttl?: number;
-    maxEntries?: number;
-    url?: string;
-    collection?: string;
-    persistenceCollection?: string;
+  orchestrator: OrchestratorConfig;
+  logging: LoggingConfig;
+  terminal: TerminalConfig;
+  memory: MemoryConfig;
+  coordination: CoordinationConfig;
+  mcp: MCPConfig;
+  credentials?: CredentialsConfig;
+  security?: SecurityConfig;
+  claude?: {
     apiKey?: string;
-    namespace?: string;
-  };
-  coordination?: {
-    enabled?: boolean;
-    maxConnections?: number;
-  };
-  mcp?: {
-    enabled?: boolean;
-    port?: number;
+    model?:
+      | 'claude-3-opus-20240229'
+      | 'claude-3-sonnet-20240229'
+      | 'claude-3-haiku-20240307'
+      | 'claude-2.1'
+      | 'claude-2.0'
+      | 'claude-instant-1.2';
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    topK?: number;
+    systemPrompt?: string;
+    timeout?: number;
+    retryAttempts?: number;
+    retryDelay?: number;
   };
   database?: {
     url: string;
@@ -59,10 +53,6 @@ export interface Config {
     maxConcurrent: number;
     timeout: number;
   };
-  security?: {
-    jwtSecret: string;
-    encryptionKey: string;
-  };
 }
 
 // Logging configuration interface
@@ -70,11 +60,9 @@ export interface LoggingConfig {
   level: 'debug' | 'info' | 'warn' | 'error';
   format: 'text' | 'json';
   destination: 'console' | 'file' | 'both';
-  file?: {
-    path: string;
-    maxSize: number;
-    maxFiles: number;
-  };
+  filePath?: string;
+  maxFileSize?: number;
+  maxFiles?: number;
   enableTimestamps?: boolean;
   enableContext?: boolean;
 }
@@ -161,7 +149,15 @@ export interface MemoryEntry {
   id: string;
   agentId: string;
   sessionId: string;
-  type: 'observation' | 'insight' | 'decision' | 'artifact' | 'error';
+  type:
+    | 'observation'
+    | 'insight'
+    | 'decision'
+    | 'artifact'
+    | 'error'
+    | 'objective'
+    | 'task-result'
+    | 'swarm-state';
   content: string;
   context: Record<string, unknown>;
   timestamp: Date;
@@ -418,6 +414,10 @@ export interface MCPTool {
   description: string;
   inputSchema: Record<string, unknown>;
   handler: (input: unknown, context?: MCPContext) => Promise<unknown>;
+  metadata?: {
+    outputSchema?: unknown;
+    [key: string]: unknown;
+  };
 }
 
 export interface MCPPrompt {
@@ -573,6 +573,7 @@ export interface MCPContext {
   sessionId: string;
   agentId?: string;
   logger: ILogger;
+  orchestrator?: unknown;
 }
 
 // Additional configuration interfaces

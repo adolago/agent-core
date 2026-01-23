@@ -59,7 +59,7 @@ export interface DashboardWidget {
     groupBy: string[];
   };
   visualization: {
-    chartType?: 'line' | 'bar' | 'pie' | 'scatter' | 'heatmap' | 'area';
+    chartType?: 'line' | 'bar' | 'pie' | 'scatter' | 'heatmap' | 'area' | 'gauge';
     options: Record<string, any>;
     thresholds?: {
       warning: number;

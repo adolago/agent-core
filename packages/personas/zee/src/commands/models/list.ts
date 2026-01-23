@@ -11,6 +11,7 @@ import {
   type Api,
   discoverAuthStorage,
   discoverModels,
+  loadModelCatalog,
   type Model,
 } from "../../agents/llm-types.js";
 import {
@@ -23,7 +24,6 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-import { ensureZeeModelsJson } from "../../agents/models-config.js";
 import {
   CONFIG_PATH_ZEE,
   loadConfig,
@@ -342,7 +342,7 @@ const resolveConfiguredEntries = (cfg: ZeeConfig) => {
 };
 
 async function loadModelRegistry(cfg: ZeeConfig) {
-  await ensureZeeModelsJson(cfg);
+  await loadModelCatalog({ config: cfg });
   const agentDir = resolveZeeAgentDir();
   const authStorage = discoverAuthStorage(agentDir);
   const registry = discoverModels(authStorage, agentDir);

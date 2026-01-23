@@ -509,12 +509,10 @@ export class AuditManager extends EventEmitter {
       requirements: frameworkData.requirements.map((req, index) => ({
         id: `req-${Date.now()}-${index}`,
         ...req,
-        automatedCheck: {
-          enabled: false,
-          frequency: 'daily',
-          query: '',
-          ...req.automatedCheck,
-        },
+        automatedCheck: Object.assign(
+          { enabled: false, frequency: 'daily', query: '' },
+          req.automatedCheck ?? {},
+        ),
       })),
       auditFrequency: frameworkData.auditFrequency,
       retentionPeriod: frameworkData.retentionPeriod,

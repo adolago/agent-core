@@ -100,7 +100,7 @@ export async function runReplyAgent(params: {
   sessionStore?: Record<string, SessionEntry>;
   sessionKey?: string;
   storePath?: string;
-  defaultModel: string;
+  defaultModel?: string;
   agentCfgContextTokens?: number;
   resolvedVerboseLevel: VerboseLevel;
   isNewSession: boolean;

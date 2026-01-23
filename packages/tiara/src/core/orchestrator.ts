@@ -292,9 +292,9 @@ export class Orchestrator implements IOrchestrator {
   private initialized = false;
   private shutdownInProgress = false;
   private sessionManager: ISessionManager;
-  private healthCheckInterval?: number;
-  private maintenanceInterval?: number;
-  private metricsInterval?: number;
+  private healthCheckInterval?: ReturnType<typeof setInterval>;
+  private maintenanceInterval?: ReturnType<typeof setInterval>;
+  private metricsInterval?: ReturnType<typeof setInterval>;
   private agents = new Map<string, AgentProfile>();
   private taskQueue: Task[] = [];
   private taskHistory = new Map<string, Task>();
@@ -536,16 +536,18 @@ export class Orchestrator implements IOrchestrator {
 
     try {
       // Convert profiles to agent configs
-      const agentConfigs: ParallelAgentConfig[] = profiles.map(profile => ({
+      const agentConfigs: ParallelAgentConfig[] = profiles.map((profile) => {
+        const priority = profile.priority ?? 0;
+        return {
         agentId: profile.id,
         agentType: profile.type,
         task: `Initialize ${profile.type} agent with capabilities: ${profile.capabilities.join(', ')}`,
         capabilities: profile.capabilities,
-        priority: profile.priority >= 90 ? 'critical' :
-                  profile.priority >= 70 ? 'high' :
-                  profile.priority >= 40 ? 'medium' : 'low',
-        timeout: 60000
-      }));
+        priority:
+          priority >= 90 ? 'critical' : priority >= 70 ? 'high' : priority >= 40 ? 'medium' : 'low',
+        timeout: 60000,
+        };
+      });
 
       // Execute parallel spawning using session forking
       const result = await this.parallelExecutor.spawnParallelAgents(agentConfigs, {
@@ -1052,13 +1054,13 @@ export class Orchestrator implements IOrchestrator {
       }
     }
 
-    return available.sort((a, b) => b.priority - a.priority);
+    return available.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   }
 
   private selectAgentForTask(task: Task, agents: AgentProfile[]): AgentProfile | undefined {
     // Score agents based on capabilities, load, and priority
     const scoredAgents = agents.map((agent) => {
-      let score = agent.priority * 10;
+      let score = (agent.priority ?? 0) * 10;
 
       // Check capability match
       const requiredCapabilities = (task.metadata?.requiredCapabilities as string[]) || [];
@@ -1269,7 +1271,7 @@ export class Orchestrator implements IOrchestrator {
     }
 
     // Sort by priority (lowest first)
-    agentProfiles.sort((a, b) => a.priority - b.priority);
+    agentProfiles.sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
 
     // Cancel tasks for lowest priority agent
     const targetAgent = agentProfiles[0];
@@ -1395,7 +1397,7 @@ export class Orchestrator implements IOrchestrator {
   /**
    * Update Claude API configuration dynamically
    */
-  updateClaudeConfig(config: Partial<Config['claude']>): void {
+  updateClaudeConfig(config: Partial<NonNullable<Config['claude']>>): void {
     this.configManager.setClaudeConfig(config);
 
     if (this.claudeClient) {

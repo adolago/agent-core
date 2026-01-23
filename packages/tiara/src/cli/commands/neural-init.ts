@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
-import { logger } from '../../monitoring/logger.js';
+import { logger } from '../../core/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,7 +47,7 @@ export class NeuralInitCommand {
       const verified = await this.verifyInstallation(absoluteTarget);
       
       if (verified) {
-        logger.success(chalk.green('✅ Neural module initialized successfully!'));
+        logger.info(chalk.green('✅ Neural module initialized successfully!'));
         this.printUsage();
       } else {
         throw new Error('Installation verification failed');

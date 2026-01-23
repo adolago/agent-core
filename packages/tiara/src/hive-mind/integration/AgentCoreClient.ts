@@ -9,7 +9,7 @@
  * - Memory storage (learning patterns, decisions, agent state)
  */
 
-import type { AgentStatus, AgentType, AgentCapability } from '../types';
+import type { AgentStatus, AgentType, AgentCapability } from '../types.js';
 
 // =============================================================================
 // Types
@@ -240,19 +240,29 @@ export class AgentCoreClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        const errorData = (await response
+          .json()
+          .catch(() => ({ error: response.statusText }))) as Record<string, unknown>;
 
         // Handle different error response formats
         let errorMessage: string;
-        if (typeof errorData.error === 'string') {
-          errorMessage = errorData.error;
-        } else if (Array.isArray(errorData.error)) {
+        const errorField = errorData.error;
+        const messageField = errorData.message;
+
+        if (typeof errorField === 'string') {
+          errorMessage = errorField;
+        } else if (Array.isArray(errorField)) {
           // Validation errors from hono-openapi return an array
-          errorMessage = errorData.error.map((e: any) => e.message || JSON.stringify(e)).join('; ');
-        } else if (errorData.error) {
-          errorMessage = JSON.stringify(errorData.error);
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
+          errorMessage = errorField.map((e: unknown) => {
+            if (e && typeof e === 'object' && 'message' in e) {
+              return String((e as { message?: unknown }).message ?? e);
+            }
+            return JSON.stringify(e);
+          }).join('; ');
+        } else if (errorField) {
+          errorMessage = JSON.stringify(errorField);
+        } else if (typeof messageField === 'string') {
+          errorMessage = messageField;
         } else {
           errorMessage = JSON.stringify(errorData);
         }

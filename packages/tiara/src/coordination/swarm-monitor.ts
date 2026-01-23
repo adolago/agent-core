@@ -83,7 +83,10 @@ export class SwarmMonitor extends EventEmitter {
 
   constructor(config?: Partial<MonitoringConfig>) {
     super();
-    this.logger = new Logger('SwarmMonitor');
+    this.logger = new Logger(
+      { level: 'info', format: 'text', destination: 'console' },
+      { prefix: 'SwarmMonitor' },
+    );
     this.config = {
       updateInterval: 1000, // 1 second
       metricsRetention: 24, // 24 hours
@@ -382,7 +385,13 @@ export class SwarmMonitor extends EventEmitter {
 
     this.alerts.push(alert);
     this.emit('alert', alert);
-    this.logger[level](message);
+    const levelMap: Record<Alert['level'], 'info' | 'warn' | 'error'> = {
+      info: 'info',
+      warning: 'warn',
+      error: 'error',
+      critical: 'error',
+    };
+    this.logger[levelMap[level]](message);
   }
 
   private cleanOldMetrics(): void {

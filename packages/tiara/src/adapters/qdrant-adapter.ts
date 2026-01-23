@@ -958,17 +958,22 @@ export class QdrantCoordinationAdapter {
         if (filters.metricType && data.metricType !== filters.metricType) {
           return null;
         }
-        return {
+        const swarmId = p.payload.swarmId as string | null | undefined;
+        const agentId = p.payload.agentId as string | null | undefined;
+
+        const record: MetricRecord = {
           id: p.payload.id as string,
-          swarmId: p.payload.swarmId as string | undefined,
-          agentId: p.payload.agentId as string | undefined,
           metricType: data.metricType,
           metricName: p.payload.eventName as string,
           metricValue: data.metricValue,
           unit: data.unit,
           timestamp: new Date(p.payload.createdAt as number),
           metadata: data.metadata,
+          ...(swarmId != null ? { swarmId } : {}),
+          ...(agentId != null ? { agentId } : {}),
         };
+
+        return record;
       })
       .filter((m): m is MetricRecord => m !== null);
   }

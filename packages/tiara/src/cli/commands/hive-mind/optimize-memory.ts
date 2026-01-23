@@ -4,11 +4,11 @@
  * Provides comprehensive memory optimization tools for the Hive Mind system.
  */
 
-import { Command } from '../commander-fix.js';
+import { Command } from '../../commander-fix.js';
 import { CollectiveMemory, MemoryOptimizer } from '../../simple-commands/hive-mind/memory.js';
 import { MemoryMonitor } from '../../../hive-mind/core/MemoryMonitor.js';
 import { Memory } from '../../../hive-mind/core/Memory.js';
-import { DatabaseManager } from '../../../hive-mind/core/DatabaseManager.js';
+import { getQdrantStore } from '../../../hive-mind/core/QdrantStore.js';
 import chalk from 'chalk';
 
 export function createOptimizeMemoryCommand(): Command {
@@ -188,8 +188,8 @@ async function runMemoryOptimization(options: any): Promise<void> {
 
     // Step 2: Database optimization
     console.log(chalk.blue('2. Optimizing database performance...'));
-    const db = await DatabaseManager.getInstance();
-    const dbAnalytics = db.getDatabaseAnalytics();
+    const store = await getQdrantStore();
+    const dbAnalytics = store.getDatabaseAnalytics();
 
     if (dbAnalytics.fragmentation > 20) {
       console.log(chalk.yellow('   ⚠️ High database fragmentation detected'));
@@ -248,10 +248,10 @@ async function startMemoryMonitoring(): Promise<void> {
   try {
     // Initialize systems
     const memory = new Memory('hive-mind-monitor');
-    const db = await DatabaseManager.getInstance();
+    const store = await getQdrantStore();
     await memory.initialize();
 
-    const monitor = new MemoryMonitor(memory, db);
+    const monitor = new MemoryMonitor(memory, store);
 
     // Set up event listeners
     monitor.on('alert', (alert) => {
@@ -311,10 +311,10 @@ async function generateMemoryReport(): Promise<void> {
   try {
     // Initialize systems
     const memory = new Memory('hive-mind-reporter');
-    const db = await DatabaseManager.getInstance();
+    const store = await getQdrantStore();
     await memory.initialize();
 
-    const monitor = new MemoryMonitor(memory, db);
+    const monitor = new MemoryMonitor(memory, store);
 
     // Generate comprehensive report
     const report = await monitor.generateDetailedReport();

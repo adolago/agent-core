@@ -93,6 +93,20 @@ class HighPerformanceCache<T> {
     };
   }
 
+  get size(): number {
+    return this.cache.size;
+  }
+
+  *entries(): IterableIterator<[string, T]> {
+    for (const [key, entry] of this.cache.entries()) {
+      yield [key, entry.data];
+    }
+  }
+
+  [Symbol.iterator](): IterableIterator<[string, T]> {
+    return this.entries();
+  }
+
   clear(): void {
     this.cache.clear();
     this.currentMemory = 0;
@@ -160,8 +174,8 @@ class ObjectPool<T> {
 
 export class Memory extends EventEmitter {
   private swarmId: string;
-  private store: QdrantStore;
-  private mcpWrapper: MCPToolWrapper;
+  private storeClient!: QdrantStore;
+  private mcpWrapper!: MCPToolWrapper;
   private cache: HighPerformanceCache<any>;
   private namespaces: Map<string, MemoryNamespace>;
   private accessPatterns: Map<string, number>;
@@ -214,7 +228,7 @@ export class Memory extends EventEmitter {
   async initialize(): Promise<void> {
     const startTime = performance.now();
 
-    this.store = await getQdrantStore();
+    this.storeClient = await getQdrantStore();
     this.mcpWrapper = new MCPToolWrapper();
 
     // Optimize database connection (now a no-op for Qdrant)
@@ -269,7 +283,7 @@ export class Memory extends EventEmitter {
     // Pool for search results
     this.objectPools.set(
       'searchResult',
-      new ObjectPool(
+      new ObjectPool<{ results: any[]; metadata: Record<string, unknown> }>(
         () => ({ results: [], metadata: {} }),
         (obj) => {
           obj.results.length = 0;
@@ -329,7 +343,7 @@ export class Memory extends EventEmitter {
       entry.lastAccessedAt = new Date();
 
       // Store in Qdrant
-      await this.store.storeMemory({
+      await this.storeClient.storeMemory({
         key,
         namespace,
         value: serializedValue,
@@ -428,7 +442,7 @@ export class Memory extends EventEmitter {
       }
 
       // Qdrant lookup
-      const dbEntry = await this.store.getMemory(key, namespace);
+      const dbEntry = await this.storeClient.getMemory(key, namespace);
       if (dbEntry) {
         let value = dbEntry.value;
 
@@ -446,7 +460,9 @@ export class Memory extends EventEmitter {
         // Update access stats in background
         setImmediate(() => {
           this.updateAccessPattern(key, 'db_hit');
-          this.store.updateMemoryAccess(key, namespace).catch((err) => this.emit('error', err));
+          this.storeClient
+            .updateMemoryAccess(key, namespace)
+            .catch((err: unknown) => this.emit('error', err));
         });
 
         this.recordPerformance('retrieve_db', performance.now() - startTime);
@@ -462,10 +478,10 @@ export class Memory extends EventEmitter {
         })
         .then((mcpValue) => {
           if (mcpValue) {
-            this.store(key, mcpValue, namespace).catch((err) => this.emit('error', err));
+            this.store(key, mcpValue, namespace).catch((err: unknown) => this.emit('error', err));
           }
         })
-        .catch((err) => this.emit('mcpError', err));
+        .catch((err: unknown) => this.emit('mcpError', err));
 
       this.updateAccessPattern(key, 'miss');
       this.recordPerformance('retrieve_miss', performance.now() - startTime);
@@ -544,7 +560,7 @@ export class Memory extends EventEmitter {
 
     // If not enough results, search Qdrant
     if (results.length < (options.limit || 10)) {
-      const dbResults = await this.store.searchMemory(options);
+      const dbResults = await this.storeClient.searchMemory(options);
 
       for (const dbEntry of dbResults) {
         const entry: MemoryEntry = {
@@ -611,7 +627,7 @@ export class Memory extends EventEmitter {
     this.cache.delete(cacheKey);
 
     // Remove from Qdrant
-    await this.store.deleteMemory(key, namespace);
+    await this.storeClient.deleteMemory(key, namespace);
 
     // Remove from MCP memory
     await this.mcpWrapper.deleteMemory({
@@ -627,7 +643,7 @@ export class Memory extends EventEmitter {
    * List all entries in a namespace
    */
   async list(namespace: string = 'default', limit: number = 100): Promise<MemoryEntry[]> {
-    const entries = await this.store.listMemory(namespace, limit);
+    const entries = await this.storeClient.listMemory(namespace, limit);
 
     return entries.map((dbEntry) => ({
       key: dbEntry.key,
@@ -644,11 +660,11 @@ export class Memory extends EventEmitter {
    * Get memory statistics
    */
   async getStats(): Promise<MemoryStats> {
-    const stats = await this.store.getMemoryStats();
+    const stats = await this.storeClient.getMemoryStats();
 
     const byNamespace: Record<string, any> = {};
     for (const ns of this.namespaces.values()) {
-      const nsStats = await this.store.getNamespaceStats(ns.name);
+      const nsStats = await this.storeClient.getNamespaceStats(ns.name);
       byNamespace[ns.name] = nsStats;
     }
 
@@ -733,7 +749,7 @@ export class Memory extends EventEmitter {
    * Backup memory to external storage
    */
   async backup(path: string): Promise<void> {
-    const allEntries = await this.store.getAllMemoryEntries();
+    const allEntries = await this.storeClient.getAllMemoryEntries();
 
     const backup = {
       swarmId: this.swarmId,
@@ -771,12 +787,12 @@ export class Memory extends EventEmitter {
     const backup = JSON.parse(backupData);
 
     // Clear existing memory
-    await this.store.clearMemory(this.swarmId);
+    await this.storeClient.clearMemory(this.swarmId);
     this.cache.clear();
 
     // Restore entries
     for (const entry of backup.entries) {
-      await this.storeEntry(entry.key, entry.value, entry.namespace, entry.ttl);
+      await this.store(entry.key, entry.value, entry.namespace, entry.ttl);
     }
 
     this.emit('memoryRestored', { backupId, entryCount: backup.entries.length });
@@ -834,7 +850,7 @@ export class Memory extends EventEmitter {
    * Load memory from Qdrant
    */
   private async loadMemoryFromDatabase(): Promise<void> {
-    const recentEntries = await this.store.getRecentMemoryEntries(100);
+    const recentEntries = await this.storeClient.getRecentMemoryEntries(100);
 
     for (const dbEntry of recentEntries) {
       const entry: MemoryEntry = {
@@ -1149,7 +1165,7 @@ export class Memory extends EventEmitter {
     this.updateAccessPattern(cacheKey, 'read');
 
     // Update in Qdrant asynchronously
-    this.store.updateMemoryAccess(entry.key, entry.namespace).catch((err) => {
+    this.storeClient.updateMemoryAccess(entry.key, entry.namespace).catch((err: unknown) => {
       this.emit('error', err);
     });
   }
@@ -1296,7 +1312,7 @@ export class Memory extends EventEmitter {
   }
 
   private async compressOldEntries(): Promise<void> {
-    const oldEntries = await this.store.getOldMemoryEntries(30); // 30 days old
+    const oldEntries = await this.storeClient.getOldMemoryEntries(30); // 30 days old
 
     for (const entry of oldEntries) {
       const memEntry: MemoryEntry = {
@@ -1310,7 +1326,7 @@ export class Memory extends EventEmitter {
       };
       if (this.shouldCompress(memEntry)) {
         const compressed = await this.compressEntry(memEntry);
-        await this.storeEntry(entry.key, compressed, entry.namespace, entry.ttl);
+        await this.storeEntryRaw(entry.key, compressed, entry.namespace, entry.ttl);
       }
     }
   }
@@ -1318,8 +1334,13 @@ export class Memory extends EventEmitter {
   /**
    * Store a memory entry (renamed to avoid conflict with store field)
    */
-  private async storeEntry(key: string, value: any, namespace: string, ttl?: number): Promise<void> {
-    await this.store.storeMemory({
+  private async storeEntryRaw(
+    key: string,
+    value: any,
+    namespace: string,
+    ttl?: number,
+  ): Promise<void> {
+    await this.storeClient.storeMemory({
       key,
       namespace,
       value: typeof value === 'string' ? value : JSON.stringify(value),
@@ -1331,7 +1352,7 @@ export class Memory extends EventEmitter {
    * Get all memory entries (helper method)
    */
   private async getAllMemoryEntries(): Promise<MemoryEntry[]> {
-    const entries = await this.store.getAllMemoryEntries();
+    const entries = await this.storeClient.getAllMemoryEntries();
     return entries.map((e) => ({
       key: e.key,
       namespace: e.namespace,
@@ -1345,16 +1366,16 @@ export class Memory extends EventEmitter {
 
   private async optimizeNamespaces(): Promise<void> {
     for (const namespace of this.namespaces.values()) {
-      const stats = await this.store.getNamespaceStats(namespace.name);
+      const stats = await this.storeClient.getNamespaceStats(namespace.name);
 
       // Apply retention policies
       if (namespace.retentionPolicy === 'time-based' && namespace.ttl) {
-        await this.store.deleteOldEntries(namespace.name, namespace.ttl);
+        await this.storeClient.deleteOldEntries(namespace.name, namespace.ttl);
       }
 
       if (namespace.retentionPolicy === 'size-based' && namespace.maxEntries) {
         if (stats.entries > namespace.maxEntries) {
-          await this.store.trimNamespace(namespace.name, namespace.maxEntries);
+          await this.storeClient.trimNamespace(namespace.name, namespace.maxEntries);
         }
       }
     }

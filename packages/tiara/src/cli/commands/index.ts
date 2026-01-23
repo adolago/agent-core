@@ -80,14 +80,14 @@ export function setupCommands(cli: CLI): void {
             short: 't',
             description: 'Target directory',
             type: 'string',
-            defaultValue: '.claude/agents/neural',
+            default: '.claude/agents/neural',
           },
         ],
         action: async (ctx: CommandContext) => {
-          const { initNeuralModule } = await import('../../scripts/init-neural.js');
+          const { initNeuralModule } = await import('./neural-goal-init.js');
           await initNeuralModule({
             force: ctx.flags.force as boolean,
-            targetDir: ctx.flags.target as string,
+            target: ctx.flags.target as string,
           });
         },
       },
@@ -114,14 +114,14 @@ export function setupCommands(cli: CLI): void {
             short: 't',
             description: 'Target directory',
             type: 'string',
-            defaultValue: '.claude/agents/goal',
+            default: '.claude/agents/goal',
           },
         ],
         action: async (ctx: CommandContext) => {
-          const { initGoalModule } = await import('../../scripts/init-goal.js');
+          const { initGoalModule } = await import('./neural-goal-init.js');
           await initGoalModule({
             force: ctx.flags.force as boolean,
-            targetDir: ctx.flags.target as string,
+            target: ctx.flags.target as string,
           });
         },
       },
@@ -803,9 +803,16 @@ export function setupCommands(cli: CLI): void {
 
             if (health.mcp) {
               const config = await getConfigManager();
-              const mcpConfig = config.get().mcp;
-              console.log(`📍 Address: ${mcpConfig.host}:${mcpConfig.port}`);
-              console.log(`🔐 Authentication: ${mcpConfig.auth ? 'Enabled' : 'Disabled'}`);
+              const mcpConfig = (config.get().mcp ?? {}) as {
+                host?: string;
+                port?: number;
+                auth?: unknown;
+              };
+              const host = mcpConfig.host ?? 'localhost';
+              const port = mcpConfig.port ?? 3000;
+              const authEnabled = Boolean(mcpConfig.auth);
+              console.log(`📍 Address: ${host}:${port}`);
+              console.log(`🔐 Authentication: ${authEnabled ? 'Enabled' : 'Disabled'}`);
               console.log(`🔧 Tools: Available`);
               console.log(`📊 Metrics: Collecting`);
             }
@@ -2448,28 +2455,26 @@ Now, please proceed with the task: ${task}`;
         const { hiveMindCommand } = await import('./hive-mind/index.js');
 
         // Parse subcommand
-        const command = ctx.args[0] || ctx.flags.command || 'help';
-        const args = ctx.args.slice(command ? 1 : 0);
+        const command = String(ctx.args[0] ?? ctx.flags.command ?? 'help');
+        const args = ctx.args.slice(command ? 1 : 0).map(String);
 
         // Build args for hive-mind command
-        const hiveMindArgs = [command, ...args];
+        const hiveMindArgs: string[] = [command, ...args];
 
         if (ctx.flags['swarm-id']) {
-          hiveMindArgs.push('--swarm-id', ctx.flags['swarm-id']);
+          hiveMindArgs.push('--swarm-id', String(ctx.flags['swarm-id']));
         }
         if (ctx.flags.topology) {
-          hiveMindArgs.push('--topology', ctx.flags.topology);
+          hiveMindArgs.push('--topology', String(ctx.flags.topology));
         }
         if (ctx.flags['max-agents']) {
-          hiveMindArgs.push('--max-agents', ctx.flags['max-agents']);
+          hiveMindArgs.push('--max-agents', String(ctx.flags['max-agents']));
         }
         if (ctx.flags.help) {
           hiveMindArgs.push('--help');
         }
 
-        await hiveMindCommand.parseAsync(['node', 'hive-mind', ...hiveMindArgs], {
-          from: 'user',
-        });
+        await hiveMindCommand.parseAsync(['node', 'hive-mind', ...hiveMindArgs]);
       } catch (err) {
         error(`Hive Mind command error: ${getErrorMessage(err)}`);
       }

@@ -5,7 +5,7 @@
  * per MCP 2025-11 specification
  */
 
-import type { ILogger } from '../../interfaces/logger.js';
+import type { ILogger } from '../../utils/types.js';
 
 /**
  * MCP version in YYYY-MM format

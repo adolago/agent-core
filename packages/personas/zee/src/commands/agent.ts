@@ -8,7 +8,6 @@ import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
-  DEFAULT_MODEL,
   DEFAULT_PROVIDER,
 } from "../agents/defaults.js";
 import { loadModelCatalog } from "../agents/llm-types.js";
@@ -16,7 +15,7 @@ import { runWithModelFallback } from "../agents/model-fallback.js";
 import {
   buildAllowedModelSet,
   modelKey,
-  resolveConfiguredModelRef,
+  resolveExplicitModelRef,
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
 import { buildWorkspaceSkillSnapshot } from "../agents/skills.js";
@@ -312,14 +311,14 @@ export async function agentCommand(
     await saveSessionStore(storePath, sessionStore);
   }
 
-  const { provider: defaultProvider, model: defaultModel } =
-    resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
-  let provider = defaultProvider;
-  let model = defaultModel;
+  const defaultProvider = DEFAULT_PROVIDER;
+  const resolvedDefault = resolveExplicitModelRef({
+    cfg,
+    defaultProvider,
+  });
+  const hasDefaultModel = Boolean(resolvedDefault);
+  let provider = resolvedDefault?.provider;
+  let model = resolvedDefault?.model;
   const hasAllowlist =
     agentCfg?.models && Object.keys(agentCfg.models).length > 0;
   const hasStoredOverride = Boolean(
@@ -357,6 +356,9 @@ export async function agentCommand(
     }
   }
 
+  const hasModelOverride = Boolean(
+    sessionEntry?.modelOverride || sessionEntry?.providerOverride,
+  );
   const storedProviderOverride = sessionEntry?.providerOverride?.trim();
   const storedModelOverride = sessionEntry?.modelOverride?.trim();
   if (storedModelOverride) {
@@ -367,7 +369,7 @@ export async function agentCommand(
       model = storedModelOverride;
     }
   }
-  if (sessionEntry?.authProfileOverride) {
+  if (sessionEntry?.authProfileOverride && provider) {
     const store = ensureAuthProfileStore();
     const profile = store.profiles[sessionEntry.authProfileOverride];
     if (!profile || profile.provider !== provider) {
@@ -380,7 +382,8 @@ export async function agentCommand(
     }
   }
 
-  if (!resolvedThinkLevel) {
+  const shouldUseModel = hasModelOverride || hasDefaultModel;
+  if (!resolvedThinkLevel && provider && model) {
     let catalogForThinking = modelCatalog ?? allowedModelCatalog;
     if (!catalogForThinking || catalogForThinking.length === 0) {
       modelCatalog = await loadModelCatalog({ config: cfg });
@@ -408,8 +411,8 @@ export async function agentCommand(
     );
     const fallbackResult = await runWithModelFallback({
       cfg,
-      provider,
-      model,
+      provider: shouldUseModel ? provider : undefined,
+      model: shouldUseModel ? model : undefined,
       run: (providerOverride, modelOverride) =>
         runEmbeddedPiAgent({
           sessionId,

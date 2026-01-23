@@ -439,7 +439,7 @@ export class HiveCommunicationProtocol extends EventEmitter {
         memberCount: channel.members.size,
         messageCount: channel.messages.length,
       })),
-      messages: [],
+      messages: [] as HiveMessage[],
       knowledge: Array.from(this.knowledgeBase.entries()).map(([key, value]) => ({
         key,
         ...value,
