@@ -23,12 +23,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+type ProviderOptions = NonNullable<ModelMessage["providerOptions"]>
+
 function mergeProviderOptions(
-  existing: Record<string, unknown> | undefined,
-  extra: Record<string, unknown>,
-): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...(existing ?? {}) }
-  for (const [key, value] of Object.entries(extra)) {
+  existing: ProviderOptions | undefined,
+  extra: ProviderOptions,
+): ProviderOptions {
+  const merged: Record<string, unknown> = {
+    ...((existing ?? {}) as Record<string, unknown>),
+  }
+  for (const [key, value] of Object.entries(extra as Record<string, unknown>)) {
     const current = merged[key]
     if (isPlainObject(current) && isPlainObject(value)) {
       merged[key] = { ...current, ...value }
@@ -36,7 +40,7 @@ function mergeProviderOptions(
       merged[key] = value
     }
   }
-  return merged
+  return merged as ProviderOptions
 }
 
 export namespace ProviderTransform {
@@ -197,7 +201,7 @@ export namespace ProviderTransform {
     const system = msgs.filter((msg) => msg.role === "system").slice(0, 2)
     const final = msgs.filter((msg) => msg.role !== "system").slice(-2)
 
-    const providerOptions = {
+    const providerOptions: ProviderOptions = {
       anthropic: {
         cacheControl: { type: "ephemeral" },
       },
@@ -218,8 +222,8 @@ export namespace ProviderTransform {
       if (shouldUseContentOptions) {
         const lastContent = msg.content[msg.content.length - 1]
         if (lastContent && typeof lastContent === "object" && "providerOptions" in lastContent) {
-          const contentOptions = (lastContent as { providerOptions?: Record<string, unknown> }).providerOptions
-          ;(lastContent as { providerOptions?: Record<string, unknown> }).providerOptions = mergeProviderOptions(
+          const contentOptions = (lastContent as { providerOptions?: ProviderOptions }).providerOptions
+          ;(lastContent as { providerOptions?: ProviderOptions }).providerOptions = mergeProviderOptions(
             contentOptions,
             providerOptions,
           )
@@ -227,10 +231,7 @@ export namespace ProviderTransform {
         }
       }
 
-      msg.providerOptions = mergeProviderOptions(
-        msg.providerOptions as Record<string, unknown> | undefined,
-        providerOptions,
-      )
+      msg.providerOptions = mergeProviderOptions(msg.providerOptions, providerOptions)
     }
 
     return msgs
