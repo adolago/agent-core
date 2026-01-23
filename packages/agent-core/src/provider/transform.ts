@@ -275,6 +275,8 @@ export namespace ProviderTransform {
     })
   }
 
+  type ProviderOptionsHolder = { providerOptions?: Record<string, any> }
+
   export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
     msgs = unsupportedParts(msgs, model)
     msgs = normalizeMessages(msgs, model)
@@ -300,16 +302,17 @@ export namespace ProviderTransform {
       }
 
       msgs = msgs.map((msg) => {
-        if (!Array.isArray(msg.content)) return { ...msg, providerOptions: remap(msg.providerOptions) }
+        const msgWithOptions = msg as ModelMessage & ProviderOptionsHolder
+        if (!Array.isArray(msgWithOptions.content)) {
+          return { ...msgWithOptions, providerOptions: remap(msgWithOptions.providerOptions) }
+        }
         return {
-          ...msg,
-          providerOptions: remap(msg.providerOptions),
-          content: msg.content.map((part) => {
-            if (!("providerOptions" in part)) return part
-            const providerOptions = remap(
-              (part as { providerOptions?: Record<string, any> }).providerOptions,
-            )
-            return providerOptions ? { ...part, providerOptions } : part
+          ...msgWithOptions,
+          providerOptions: remap(msgWithOptions.providerOptions),
+          content: msgWithOptions.content.map((part) => {
+            const partWithOptions = part as typeof part & ProviderOptionsHolder
+            const providerOptions = remap(partWithOptions.providerOptions)
+            return providerOptions ? { ...partWithOptions, providerOptions } : part
           }),
         } as typeof msg
       })

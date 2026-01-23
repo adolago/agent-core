@@ -580,7 +580,7 @@ Required scopes:
             location: event.location,
             start: isAllDay ? { date: event.start } : { dateTime: event.start },
             end: isAllDay ? { date: event.end } : { dateTime: event.end },
-            attendees: event.attendees?.map(email => ({ email })),
+            attendees: event.attendees?.map((email: string) => ({ email })),
           });
           return {
             title: `Event Created`,
@@ -601,7 +601,7 @@ ${created.htmlLink ? `Link: ${created.htmlLink}` : ""}`,
             location: event.location,
             ...(event.start && { start: isAllDay ? { date: event.start } : { dateTime: event.start } }),
             ...(event.end && { end: isAllDay ? { date: event.end } : { dateTime: event.end } }),
-            ...(event.attendees && { attendees: event.attendees.map(email => ({ email })) }),
+            ...(event.attendees && { attendees: event.attendees.map((email: string) => ({ email })) }),
           });
           return {
             title: `Event Updated`,

@@ -11,12 +11,12 @@ test("calendar_free_slots forwards working hours to findFreeSlots", async () => 
     },
   }
 
-  const findFreeSlotsCalls: Array<{ calendarId: string; options: Record<string, unknown> }> = []
+  const findFreeSlotsCalls: Array<{ calendarId?: string; options: Record<string, unknown> }> = []
 
   const deps: CalendarDeps = {
     checkCredentialsExist: async () => true,
     findFreeSlots: async (calendarId, options) => {
-      findFreeSlotsCalls.push({ calendarId: calendarId ?? "primary", options })
+      findFreeSlotsCalls.push({ calendarId, options })
       return []
     },
     getTodayEvents: async () => [],
@@ -44,7 +44,7 @@ test("calendar_free_slots forwards working hours to findFreeSlots", async () => 
 
   expect(findFreeSlotsCalls.length).toBe(1)
   const call = findFreeSlotsCalls[0]
-  expect(call.calendarId).toBe("primary")
+  expect(call.calendarId ?? "primary").toBe("primary")
   expect(call.options).toMatchObject({
     minDurationMinutes: 45,
     workingHoursStart: 8,
