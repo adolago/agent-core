@@ -23,14 +23,24 @@ export function Diff<T>(props: DiffProps<T>) {
     }
   })
 
+  // Memoize contents to avoid recalculation
+  const beforeContents = createMemo(() => (typeof local.before?.contents === "string" ? local.before.contents : ""))
+  const afterContents = createMemo(() => (typeof local.after?.contents === "string" ? local.after.contents : ""))
+
+  // Memoize checksums to prevent expensive recalculation on every render
+  const beforeChecksum = createMemo(() => checksum(beforeContents()))
+  const afterChecksum = createMemo(() => checksum(afterContents()))
+
   let instance: FileDiff<T> | undefined
 
   createEffect(() => {
     const opts = options()
     const workerPool = getWorkerPool(props.diffStyle)
     const annotations = local.annotations
-    const beforeContents = typeof local.before?.contents === "string" ? local.before.contents : ""
-    const afterContents = typeof local.after?.contents === "string" ? local.after.contents : ""
+    const bContents = beforeContents()
+    const aContents = afterContents()
+    const bChecksum = beforeChecksum()
+    const aChecksum = afterChecksum()
 
     instance?.cleanUp()
     instance = new FileDiff<T>(opts, workerPool)
@@ -39,13 +49,13 @@ export function Diff<T>(props: DiffProps<T>) {
     instance.render({
       oldFile: {
         ...local.before,
-        contents: beforeContents,
-        cacheKey: checksum(beforeContents),
+        contents: bContents,
+        cacheKey: bChecksum,
       },
       newFile: {
         ...local.after,
-        contents: afterContents,
-        cacheKey: checksum(afterContents),
+        contents: aContents,
+        cacheKey: aChecksum,
       },
       lineAnnotations: annotations,
       containerWrapper: container,
