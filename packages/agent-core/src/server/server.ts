@@ -3,9 +3,12 @@ import { Log } from "../util/log"
 import { describeRoute, generateSpecs, resolver } from "hono-openapi"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
+import { basicAuth } from "hono/basic-auth"
+import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
 import { proxy } from "hono/proxy"
 import z from "zod"
+import { Flag } from "../flag/flag"
 import { Provider } from "../provider/provider"
 import { NamedError } from "@opencode-ai/util/error"
 import { lazy } from "../util/lazy"
@@ -65,6 +68,9 @@ export namespace Server {
     () =>
       app
         .onError((err, c) => {
+          if (err instanceof HTTPException) {
+            return err.getResponse()
+          }
           log.error("failed", {
             error: err,
           })
@@ -114,6 +120,21 @@ export namespace Server {
             },
           }),
         )
+        // Middleware to enforce authentication
+        .use(async (c, next) => {
+          const password = Flag.OPENCODE_SERVER_PASSWORD
+          if (password) {
+            return basicAuth({
+              verifyUser: (user, pwd) => {
+                if (pwd !== password) return false
+                const expectedUser = Flag.OPENCODE_SERVER_USERNAME
+                if (expectedUser && user !== expectedUser) return false
+                return true
+              },
+            })(c, next)
+          }
+          return next()
+        })
         // Middleware to provide instance context
         .use(async (c, next) => {
           let directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()
