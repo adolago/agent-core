@@ -133,13 +133,13 @@ describe("Dictation.transcribe", () => {
   it("sends GraphTypes.Audio payload from WAV PCM data", async () => {
     const wav = buildWav(new Int16Array([0, 32767]), 8000)
     let seenBody: any
-    const fetcher = async (_url: string, init?: RequestInit) => {
+    const fetcher = (async (_url: string, init?: RequestInit) => {
       seenBody = JSON.parse(String(init?.body ?? "{}"))
       return new Response(JSON.stringify({ text: "ok" }), {
         status: 200,
         headers: { "content-type": "application/json" },
       })
-    }
+    }) as typeof fetch
 
     const result = await Dictation.transcribe({
       config: {
