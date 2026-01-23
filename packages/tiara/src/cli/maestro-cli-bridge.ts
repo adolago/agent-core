@@ -370,7 +370,7 @@ export class MaestroCLIBridge {
       initialize: async () => {},
       shutdown: async () => {},
       createBank: async (agentId: string) => `bank-${agentId}`,
-      closeBank: async (bankId: string) => {},
+      closeBank: async (_bankId: string, _options?: { signal?: AbortSignal }) => {},
       store: async (entry: any) => {},
       retrieve: async (id: string) => undefined,
       query: async (query: any) => [],

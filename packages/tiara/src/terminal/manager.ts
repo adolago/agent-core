@@ -17,7 +17,7 @@ export interface ITerminalManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
   spawnTerminal(profile: AgentProfile): Promise<string>;
-  terminateTerminal(terminalId: string): Promise<void>;
+  terminateTerminal(terminalId: string, options?: { signal?: AbortSignal }): Promise<void>;
   executeCommand(terminalId: string, command: string): Promise<string>;
   getHealthStatus(): Promise<{
     healthy: boolean;
@@ -138,7 +138,10 @@ export class TerminalManager implements ITerminalManager {
     }
   }
 
-  async terminateTerminal(terminalId: string): Promise<void> {
+  async terminateTerminal(
+    terminalId: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<void> {
     const session = this.sessions.get(terminalId);
     if (!session) {
       throw new TerminalError(`Terminal not found: ${terminalId}`);
@@ -146,18 +149,49 @@ export class TerminalManager implements ITerminalManager {
 
     this.logger.debug('Terminating terminal', { terminalId });
 
+    const signal = options.signal;
+    if (signal?.aborted) {
+      throw new TerminalError(`Terminal termination aborted: ${terminalId}`);
+    }
+
+    let released = false;
+
     try {
       // Cleanup session
-      await session.cleanup();
+      await session.cleanup({ signal });
+      if (signal?.aborted) {
+        throw new TerminalError(`Terminal termination aborted: ${terminalId}`);
+      }
 
       // Return terminal to pool
       await this.pool.release(session.terminal);
+      released = true;
 
       // Remove session
       this.sessions.delete(terminalId);
 
       this.logger.info('Terminal terminated', { terminalId });
     } catch (error) {
+      if (signal?.aborted) {
+        this.logger.warn('Terminal termination aborted', { terminalId });
+        await session.terminal.kill().catch((killError) => {
+          this.logger.warn('Failed to kill terminal after abort', {
+            terminalId,
+            error: killError,
+          });
+        });
+        if (!released) {
+          await this.pool.release(session.terminal).catch((releaseError) => {
+            this.logger.warn('Failed to release terminal after abort', {
+              terminalId,
+              error: releaseError,
+            });
+          });
+        }
+        this.sessions.delete(terminalId);
+        return;
+      }
+
       this.logger.error('Failed to terminate terminal', error);
       throw error;
     }

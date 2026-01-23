@@ -113,12 +113,12 @@ export class TerminalSession {
     }
   }
 
-  async cleanup(): Promise<void> {
+  async cleanup(options: { signal?: AbortSignal } = {}): Promise<void> {
     this.logger.debug('Cleaning up terminal session', { sessionId: this.id });
 
     try {
       // Run cleanup commands
-      await this.runCleanupCommands();
+      await this.runCleanupCommands(options.signal);
     } catch (error) {
       this.logger.warn('Error during session cleanup', {
         sessionId: this.id,
@@ -182,11 +182,14 @@ export class TerminalSession {
     await this.terminal.executeCommand('export PS1="[claude-flow]$ "');
   }
 
-  private async runCleanupCommands(): Promise<void> {
+  private async runCleanupCommands(signal?: AbortSignal): Promise<void> {
     // Run any profile-specific cleanup commands
     if (this.profile.metadata?.cleanupCommands) {
       const commands = this.profile.metadata.cleanupCommands as string[];
       for (const command of commands) {
+        if (signal?.aborted) {
+          return;
+        }
         try {
           await this.terminal.executeCommand(command);
         } catch {

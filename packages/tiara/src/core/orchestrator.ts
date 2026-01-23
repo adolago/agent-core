@@ -156,25 +156,43 @@ class SessionManager implements ISessionManager {
       session.status = 'terminated';
       session.endTime = new Date();
 
-      // Terminate terminal with timeout
-      await Promise.race([
-        this.terminalManager.terminateTerminal(session.terminalId),
-        delay(5000).then(() => {
-          throw new Error('Terminal termination timeout');
-        }),
-      ]).catch((error) => {
-        this.logger.error('Error terminating terminal', { sessionId, error });
-      });
+      const runWithTimeout = async (
+        label: string,
+        timeoutMs: number,
+        task: (signal: AbortSignal) => Promise<void>,
+      ): Promise<void> => {
+        const controller = new AbortController();
+        let timedOut = false;
+        let caughtError: unknown | null = null;
+        const timeoutId = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, timeoutMs);
 
-      // Close memory bank with timeout
-      await Promise.race([
-        this.memoryManager.closeBank(session.memoryBankId),
-        delay(5000).then(() => {
-          throw new Error('Memory bank close timeout');
-        }),
-      ]).catch((error) => {
-        this.logger.error('Error closing memory bank', { sessionId, error });
-      });
+        try {
+          await task(controller.signal);
+        } catch (error) {
+          caughtError = error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        if (timedOut) {
+          this.logger.warn(`${label} timed out`, { sessionId, error: caughtError ?? undefined });
+          return;
+        }
+        if (caughtError) {
+          this.logger.error(`Error during ${label}`, { sessionId, error: caughtError });
+        }
+      };
+
+      await runWithTimeout('terminal termination', 5000, (signal) =>
+        this.terminalManager.terminateTerminal(session.terminalId, { signal }),
+      );
+
+      await runWithTimeout('memory bank close', 5000, (signal) =>
+        this.memoryManager.closeBank(session.memoryBankId, { signal }),
+      );
 
       // Clean up
       this.sessionProfiles.delete(sessionId);

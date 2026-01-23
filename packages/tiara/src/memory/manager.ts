@@ -15,7 +15,7 @@ export interface IMemoryManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
   createBank(agentId: string): Promise<string>;
-  closeBank(bankId: string): Promise<void>;
+  closeBank(bankId: string, options?: { signal?: AbortSignal }): Promise<void>;
   store(entry: MemoryEntry): Promise<void>;
   retrieve(id: string): Promise<MemoryEntry | undefined>;
   query(query: MemoryQuery): Promise<MemoryEntry[]>;
@@ -146,7 +146,11 @@ export class MemoryManager implements IMemoryManager {
     return bank.id;
   }
 
-  async closeBank(bankId: string): Promise<void> {
+  async closeBank(bankId: string, options: { signal?: AbortSignal } = {}): Promise<void> {
+    if (options.signal?.aborted) {
+      throw new MemoryError(`Memory bank close aborted: ${bankId}`);
+    }
+
     const bank = this.banks.get(bankId);
     if (!bank) {
       throw new MemoryError(`Memory bank not found: ${bankId}`);
@@ -155,7 +159,14 @@ export class MemoryManager implements IMemoryManager {
     // Flush any cached entries for this bank
     const bankEntries = this.cache.getByPrefix(`${bank.agentId}:`);
     for (const entry of bankEntries) {
+      if (options.signal?.aborted) {
+        throw new MemoryError(`Memory bank close aborted: ${bankId}`);
+      }
       await this.backend.store(entry);
+    }
+
+    if (options.signal?.aborted) {
+      throw new MemoryError(`Memory bank close aborted: ${bankId}`);
     }
 
     this.banks.delete(bankId);
