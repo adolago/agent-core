@@ -182,7 +182,7 @@ export function Prompt(props: PromptProps) {
     if (!recorder) {
       toast.show({
         variant: "warning",
-        message: "No recorder found. Install arecord or set tui.dictation.record_command.",
+        message: "No recorder found. Install arecord, ffmpeg, or sox, or set tui.dictation.record_command.",
       })
       return
     }

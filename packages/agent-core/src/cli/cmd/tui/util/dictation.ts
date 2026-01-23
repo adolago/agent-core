@@ -89,30 +89,123 @@ export namespace Dictation {
       return parsed.length > 0 ? parsed : undefined
     }
 
-    if (platform() !== "linux") return
-    const arecord = Bun.which("arecord")
-    if (arecord) {
-      return [arecord, "-q", "-f", "S16_LE", "-r", String(input.sampleRate), "-c", "1", "-t", "wav"]
-    }
+    const os = platform()
     const ffmpeg = Bun.which("ffmpeg")
-    if (ffmpeg) {
-      return [
-        ffmpeg,
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-f",
-        "pulse",
-        "-i",
-        "default",
-        "-ac",
-        "1",
-        "-ar",
-        String(input.sampleRate),
-        "-f",
-        "wav",
-        "-",
-      ]
+    const rec = Bun.which("rec")
+    const sox = Bun.which("sox")
+
+    const recCommand = rec
+      ? [
+          rec,
+          "-q",
+          "-r",
+          String(input.sampleRate),
+          "-c",
+          "1",
+          "-b",
+          "16",
+          "-e",
+          "signed-integer",
+          "-t",
+          "wav",
+          "-",
+        ]
+      : undefined
+
+    const soxCommand = sox
+      ? [
+          sox,
+          "-q",
+          "-d",
+          "-r",
+          String(input.sampleRate),
+          "-c",
+          "1",
+          "-b",
+          "16",
+          "-e",
+          "signed-integer",
+          "-t",
+          "wav",
+          "-",
+        ]
+      : undefined
+
+    if (os === "linux") {
+      const arecord = Bun.which("arecord")
+      if (arecord) {
+        return [arecord, "-q", "-f", "S16_LE", "-r", String(input.sampleRate), "-c", "1", "-t", "wav"]
+      }
+      if (ffmpeg) {
+        return [
+          ffmpeg,
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-f",
+          "pulse",
+          "-i",
+          "default",
+          "-ac",
+          "1",
+          "-ar",
+          String(input.sampleRate),
+          "-f",
+          "wav",
+          "-",
+        ]
+      }
+      return recCommand ?? soxCommand
+    }
+
+    if (os === "darwin") {
+      if (recCommand) return recCommand
+      if (soxCommand) return soxCommand
+      if (ffmpeg) {
+        return [
+          ffmpeg,
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-f",
+          "avfoundation",
+          "-i",
+          "none:0",
+          "-ac",
+          "1",
+          "-ar",
+          String(input.sampleRate),
+          "-f",
+          "wav",
+          "-",
+        ]
+      }
+      return
+    }
+
+    if (os === "win32") {
+      if (recCommand) return recCommand
+      if (soxCommand) return soxCommand
+      if (ffmpeg) {
+        return [
+          ffmpeg,
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-f",
+          "dshow",
+          "-i",
+          "audio=default",
+          "-ac",
+          "1",
+          "-ar",
+          String(input.sampleRate),
+          "-f",
+          "wav",
+          "-",
+        ]
+      }
+      return
     }
 
     return

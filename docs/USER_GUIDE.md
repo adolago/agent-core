@@ -100,6 +100,41 @@ You can also set `INWORLD_API_KEY` and `INWORLD_STT_ENDPOINT` as environment var
 Use `tui.dictation.record_command` to override the recorder command if `arecord` is unavailable.
 The dictation payload is sent as `GraphTypes.Audio` with a float PCM array (`data`) and `sampleRate`; your graph input key must match `tui.dictation.input_key` (default: `audio`).
 
+Example recorder commands:
+
+macOS (ffmpeg + avfoundation):
+```json
+{
+  "tui": {
+    "dictation": {
+      "record_command": ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-i", "none:0", "-ac", "1", "-ar", "16000", "-f", "wav", "-"]
+    }
+  }
+}
+```
+
+Windows (ffmpeg + dshow):
+```json
+{
+  "tui": {
+    "dictation": {
+      "record_command": ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "dshow", "-i", "audio=default", "-ac", "1", "-ar", "16000", "-f", "wav", "-"]
+    }
+  }
+}
+```
+
+macOS/Windows (sox/rec):
+```json
+{
+  "tui": {
+    "dictation": {
+      "record_command": ["rec", "-q", "-r", "16000", "-c", "1", "-b", "16", "-e", "signed-integer", "-t", "wav", "-"]
+    }
+  }
+}
+```
+
 ## 4. Usage
 
 ### Interactive Mode (TUI)
