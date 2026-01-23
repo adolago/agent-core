@@ -1019,10 +1019,17 @@ app.post('/api/register', async (req, res) => {
     
     users.push(user);
     
+    // Validate JWT_SECRET is configured
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('FATAL: JWT_SECRET environment variable is required');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     // Generate token
     const token = jwt.sign(
       { id: user.id, username: user.username },
-      process.env.JWT_SECRET || 'default-secret',
+      jwtSecret,
       { expiresIn: '24h' }
     );
     
@@ -1036,6 +1043,13 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    // Validate JWT_SECRET is configured
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('FATAL: JWT_SECRET environment variable is required');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
     
     // Find user
     const user = users.find(u => u.username === username);
@@ -1052,7 +1066,7 @@ app.post('/api/login', async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { id: user.id, username: user.username },
-      process.env.JWT_SECRET || 'default-secret',
+      jwtSecret,
       { expiresIn: '24h' }
     );
     
@@ -1077,6 +1091,13 @@ app.listen(port, () => {
     return `const jwt = require('jsonwebtoken');
 
 module.exports = (req, res, next) => {
+  // Validate JWT_SECRET is configured
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('FATAL: JWT_SECRET environment variable is required');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+
   const token = req.header('Authorization')?.replace('Bearer ', '');
   
   if (!token) {
@@ -1084,7 +1105,7 @@ module.exports = (req, res, next) => {
   }
   
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
+    const verified = jwt.verify(token, jwtSecret);
     req.user = verified;
     next();
   } catch (error) {

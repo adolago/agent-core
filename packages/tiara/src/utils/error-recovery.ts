@@ -183,13 +183,17 @@ export async function cleanNpmCache(): Promise<RecoveryResult> {
       console.log('✅ npx cache removed');
     }
 
-    // Fix permissions on WSL
+    // Fix permissions on WSL - use secure permissions
+    // Directories: 700 (owner rwx only), Files: 600 (owner rw only)
     if (isWSL()) {
       const npmDir = path.join(homeDir, '.npm');
       if (await fs.pathExists(npmDir)) {
         try {
-          safeExecSync(`chmod -R 755 "${npmDir}"`, { stdio: 'pipe' });
-          console.log('✅ npm directory permissions fixed');
+          // Fix directory permissions (700 - owner only)
+          safeExecSync(`find "${npmDir}" -type d -exec chmod 700 {} \\;`, { stdio: 'pipe' });
+          // Fix file permissions (600 - owner only, not executable)
+          safeExecSync(`find "${npmDir}" -type f -exec chmod 600 {} \\;`, { stdio: 'pipe' });
+          console.log('✅ npm directory permissions fixed (secure: 700/600)');
         } catch (error) {
           console.warn('⚠️  Permission fix failed, continuing...');
         }

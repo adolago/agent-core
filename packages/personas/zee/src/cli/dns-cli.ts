@@ -32,9 +32,49 @@ function run(cmd: string, args: string[], opts?: RunOpts): string {
   return typeof res.stdout === "string" ? res.stdout : "";
 }
 
+// Allowlist of paths that can be written with sudo
+const ALLOWED_SUDO_WRITE_PATHS = new Set([
+  "/etc/hosts",
+  "/etc/resolv.conf",
+  "/etc/NetworkManager/conf.d/dns-local.conf",
+  "/etc/NetworkManager/dnsmasq.d/zee.conf",
+  "/etc/dnsmasq.d/zee.conf",
+]);
+
+function isAllowedSudoPath(filePath: string): boolean {
+  const normalizedPath = path.resolve(filePath);
+  // Check exact matches
+  if (ALLOWED_SUDO_WRITE_PATHS.has(normalizedPath)) {
+    return true;
+  }
+  // Allow paths under /var/lib/zee/ for zone files
+  if (normalizedPath.startsWith("/var/lib/zee/")) {
+    return true;
+  }
+  return false;
+}
+
 function writeFileSudoIfNeeded(filePath: string, content: string): void {
+  // Normalize and validate path
+  const normalizedPath = path.resolve(filePath);
+
+  // Check for symlinks before writing (prevent symlink attacks)
   try {
-    fs.writeFileSync(filePath, content, "utf-8");
+    const stat = fs.lstatSync(normalizedPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `Refusing to write to symlink: ${normalizedPath}. Remove the symlink first.`,
+      );
+    }
+  } catch (err) {
+    // File doesn't exist yet, that's OK
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw err;
+    }
+  }
+
+  try {
+    fs.writeFileSync(normalizedPath, content, "utf-8");
     return;
   } catch (err) {
     const code = (err as { code?: string }).code;
@@ -43,7 +83,15 @@ function writeFileSudoIfNeeded(filePath: string, content: string): void {
     }
   }
 
-  const res = spawnSync("sudo", ["tee", filePath], {
+  // Validate path is in allowlist before using sudo
+  if (!isAllowedSudoPath(normalizedPath)) {
+    throw new Error(
+      `Refusing to write to non-allowlisted path with sudo: ${normalizedPath}. ` +
+        `Allowed paths: ${Array.from(ALLOWED_SUDO_WRITE_PATHS).join(", ")}, /var/lib/zee/*`,
+    );
+  }
+
+  const res = spawnSync("sudo", ["tee", normalizedPath], {
     input: content,
     encoding: "utf-8",
     stdio: ["pipe", "ignore", "inherit"],
@@ -51,7 +99,7 @@ function writeFileSudoIfNeeded(filePath: string, content: string): void {
   if (res.error) throw res.error;
   if (res.status !== 0) {
     throw new Error(
-      `sudo tee ${filePath} failed: exit ${res.status ?? "unknown"}`,
+      `sudo tee ${normalizedPath} failed: exit ${res.status ?? "unknown"}`,
     );
   }
 }

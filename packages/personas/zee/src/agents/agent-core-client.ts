@@ -364,7 +364,7 @@ export async function runEmbeddedPiAgent(
   try {
     const { client } = await getAgentCoreClient();
 
-    const resolvedModel = (() => {
+    const requestedModel = (() => {
       const modelRaw = model?.trim() ?? "";
       if (!modelRaw) return null;
       if (modelRaw.includes("/")) {
@@ -399,7 +399,7 @@ export async function runEmbeddedPiAgent(
       path: { id: ocSessionId },
       body: {
         parts: [{ type: "text", text: prompt }],
-        ...(resolvedModel ? { model: resolvedModel } : {}),
+        ...(requestedModel ? { model: requestedModel } : {}),
         system: extraSystemPrompt,
         agent: persona, // Route to specific persona (zee, stanley, johny)
       },

@@ -84,16 +84,30 @@ function randomBase62(length: number): string {
 
 function getRandomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length)
-  const cryptoObj = typeof globalThis !== "undefined" ? globalThis.crypto : undefined
 
+  // Try browser/modern runtime crypto API
+  const cryptoObj = typeof globalThis !== "undefined" ? globalThis.crypto : undefined
   if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
     cryptoObj.getRandomValues(bytes)
     return bytes
   }
 
-  for (let i = 0; i < length; i += 1) {
-    bytes[i] = Math.floor(Math.random() * 256)
+  // Try Node.js crypto module
+  try {
+    // Dynamic require to avoid bundler issues in browser contexts
+    const nodeCrypto = require("crypto")
+    if (nodeCrypto && typeof nodeCrypto.randomBytes === "function") {
+      const buffer = nodeCrypto.randomBytes(length)
+      bytes.set(new Uint8Array(buffer))
+      return bytes
+    }
+  } catch {
+    // Node crypto not available
   }
 
-  return bytes
+  // No secure random source available - fail rather than use insecure Math.random
+  throw new Error(
+    "Secure random number generator not available. " +
+      "crypto.getRandomValues or Node.js crypto.randomBytes is required for secure ID generation.",
+  )
 }
