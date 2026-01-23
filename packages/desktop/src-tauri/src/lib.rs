@@ -156,6 +156,7 @@ fn spawn_sidecar(app: &AppHandle, port: u32, password: &str) -> CommandChild {
     println!("spawning sidecar on port {port}");
 
     let (mut rx, child) = cli::create_command(app, format!("serve --port {port}").as_str())
+        .env("AGENT_CORE_SERVER_PASSWORD", password)
         .env("OPENCODE_SERVER_PASSWORD", password)
         .spawn()
         .expect("Failed to spawn agent-core");

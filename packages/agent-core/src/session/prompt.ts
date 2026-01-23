@@ -1623,10 +1623,59 @@ export namespace SessionPrompt {
   })
   export type CommandInput = z.infer<typeof CommandInput>
   const bashRegex = /!`([^`]+)`/g
-  // Match [Image N] as single token, quoted strings, or non-space sequences
-  const argsRegex = /(?:\[Image\s+\d+\]|"[^"]*"|'[^']*'|[^\s"']+)/gi
   const placeholderRegex = /\$(\d+)/g
-  const quoteTrimRegex = /^["']|["']$/g
+  const imageTokenRegex = /^\[image\s+\d+\]/i
+
+  function tokenizeArguments(input: string): string[] {
+    const tokens: string[] = []
+    const length = input.length
+    let index = 0
+
+    const isWhitespace = (value: string) => /\s/.test(value)
+
+    while (index < length) {
+      while (index < length && isWhitespace(input[index]!)) index++
+      if (index >= length) break
+
+      const imageMatch = imageTokenRegex.exec(input.slice(index))
+      if (imageMatch) {
+        tokens.push(imageMatch[0])
+        index += imageMatch[0].length
+        continue
+      }
+
+      let quote: "'" | '"' | null = null
+      if (input[index] === "'" || input[index] === '"') {
+        quote = input[index] as "'" | '"'
+        index++
+      }
+
+      let token = ""
+      while (index < length) {
+        const char = input[index]!
+        if (quote) {
+          if (char === quote) {
+            index++
+            break
+          }
+          token += char
+          index++
+          continue
+        }
+
+        if (isWhitespace(char)) break
+        if (char === "'" || char === '"') break
+        token += char
+        index++
+      }
+
+      if (token.length > 0 || quote) {
+        tokens.push(token)
+      }
+    }
+
+    return tokens
+  }
   /**
    * Regular expression to match @ file references in text
    * Matches @ followed by file paths, excluding commas, periods at end of sentences, and backticks
@@ -1640,8 +1689,7 @@ export namespace SessionPrompt {
     const session = await Session.get(input.sessionID)
     await emitSessionStartOnce(session, agentName)
 
-    const raw = input.arguments.match(argsRegex) ?? []
-    const args = raw.map((arg) => arg.replace(quoteTrimRegex, ""))
+    const args = tokenizeArguments(input.arguments)
 
     const templateCommand = await command.template
 

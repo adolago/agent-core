@@ -16,6 +16,7 @@ import { Installation } from "@/installation"
 import { MDNS } from "./mdns"
 import { ServerState } from "./state"
 import { Instance } from "../project/instance"
+import { getAuthConfig, isAuthorized } from "./auth"
 
 // Routes
 import { ProjectRoute } from "./route/project"
@@ -114,6 +115,24 @@ export namespace Server {
             },
           }),
         )
+        .use(async (c, next) => {
+          if (c.req.method === "OPTIONS") {
+            await next()
+            return
+          }
+          const authConfig = getAuthConfig()
+          if (!authConfig.disabled && !authConfig.password) {
+            return c.text(
+              "Server auth is enabled but no password is configured. Set AGENT_CORE_SERVER_PASSWORD or AGENT_CORE_DISABLE_SERVER_AUTH=1.",
+              500,
+            )
+          }
+          if (!isAuthorized(c.req.header("Authorization"))) {
+            c.header("WWW-Authenticate", 'Basic realm="agent-core"')
+            return c.text("Unauthorized", 401)
+          }
+          await next()
+        })
         // Middleware to provide instance context
         .use(async (c, next) => {
           let directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()

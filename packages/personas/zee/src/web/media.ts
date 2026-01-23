@@ -1,5 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { isIP } from "node:net";
+import dns from "node:dns/promises";
+import { fileURLToPath } from "node:url";
 
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import {
@@ -21,6 +24,92 @@ type WebMediaOptions = {
   maxBytes?: number;
   optimizeImages?: boolean;
 };
+
+const LOCAL_MEDIA_ROOT = process.env.ZEE_MEDIA_LOCAL_ROOT;
+const ALLOW_PRIVATE_URLS = process.env.ZEE_MEDIA_ALLOW_PRIVATE_URLS === "true";
+const ALLOW_LOCAL_PATHS = process.env.ZEE_MEDIA_ALLOW_LOCAL_PATHS === "true";
+
+function isPrivateIp(ip: string): boolean {
+  const ipVersion = isIP(ip);
+  if (ipVersion === 4) {
+    const [a, b] = ip.split(".").map((part) => Number(part));
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 0) return true;
+    return false;
+  }
+  if (ipVersion === 6) {
+    const normalized = ip.toLowerCase();
+    if (normalized === "::" || normalized === "::1") return true;
+    if (normalized.startsWith("fe80")) return true;
+    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+    if (normalized.startsWith("::ffff:")) {
+      return isPrivateIp(normalized.replace("::ffff:", ""));
+    }
+  }
+  return false;
+}
+
+async function assertSafeRemoteUrl(url: URL): Promise<void> {
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("Only http(s) media URLs are allowed");
+  }
+
+  if (ALLOW_PRIVATE_URLS) return;
+
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    throw new Error("Localhost media URLs are blocked");
+  }
+  if (isIP(host)) {
+    if (isPrivateIp(host)) {
+      throw new Error("Private network media URLs are blocked");
+    }
+    return;
+  }
+
+  const records = await dns.lookup(host, { all: true, verbatim: true });
+  if (records.some((record) => isPrivateIp(record.address))) {
+    throw new Error("Private network media URLs are blocked");
+  }
+}
+
+async function fetchWithSafeRedirects(
+  url: URL,
+  maxRedirects: number = 3,
+): Promise<{ response: Response; finalUrl: URL }> {
+  let current = url;
+  for (let i = 0; i <= maxRedirects; i += 1) {
+    await assertSafeRemoteUrl(current);
+    const response = await fetch(current.toString(), { redirect: "manual" });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) {
+        throw new Error("Redirect response missing location header");
+      }
+      current = new URL(location, current);
+      continue;
+    }
+    return { response, finalUrl: current };
+  }
+  throw new Error("Too many redirects while fetching media");
+}
+
+function resolveLocalMediaPath(rawPath: string): string {
+  if (!ALLOW_LOCAL_PATHS) {
+    throw new Error("Local media paths are disabled");
+  }
+  const baseDir = path.resolve(LOCAL_MEDIA_ROOT || process.cwd());
+  const resolved = path.resolve(baseDir, rawPath);
+  const relative = path.relative(baseDir, resolved);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error("Local media path is outside the allowed root");
+  }
+  return resolved;
+}
 
 function stripQuotes(value: string): string {
   return value.replace(/^["']|["']$/g, "");
@@ -50,8 +139,11 @@ async function loadWebMediaInternal(
   options: WebMediaOptions = {},
 ): Promise<WebMediaResult> {
   const { maxBytes, optimizeImages = true } = options;
-  if (mediaUrl.startsWith("file://")) {
-    mediaUrl = mediaUrl.replace("file://", "");
+  const trimmed = mediaUrl.trim();
+  if (trimmed.startsWith("file://")) {
+    mediaUrl = fileURLToPath(trimmed);
+  } else {
+    mediaUrl = trimmed;
   }
 
   const optimizeAndClampImage = async (buffer: Buffer, cap: number) => {
@@ -78,14 +170,10 @@ async function loadWebMediaInternal(
 
   if (/^https?:\/\//i.test(mediaUrl)) {
     let fileNameFromUrl: string | undefined;
-    try {
-      const url = new URL(mediaUrl);
-      const base = path.basename(url.pathname);
-      fileNameFromUrl = base || undefined;
-    } catch {
-      // ignore parse errors; leave undefined
-    }
-    const res = await fetch(mediaUrl);
+    const url = new URL(mediaUrl);
+    const { response: res, finalUrl } = await fetchWithSafeRedirects(url);
+    const base = path.basename(finalUrl.pathname);
+    fileNameFromUrl = base || undefined;
     if (!res.ok || !res.body) {
       throw new Error(`Failed to fetch media: HTTP ${res.status}`);
     }
@@ -97,7 +185,7 @@ async function loadWebMediaInternal(
     const filePathForMime =
       headerFileName && path.extname(headerFileName)
         ? headerFileName
-        : mediaUrl;
+        : finalUrl.toString();
     const contentType = await detectMime({
       buffer: array,
       headerMime: res.headers.get("content-type"),
@@ -144,10 +232,11 @@ async function loadWebMediaInternal(
   }
 
   // Local path
-  const data = await fs.readFile(mediaUrl);
-  const mime = await detectMime({ buffer: data, filePath: mediaUrl });
+  const localPath = resolveLocalMediaPath(mediaUrl);
+  const data = await fs.readFile(localPath);
+  const mime = await detectMime({ buffer: data, filePath: localPath });
   const kind = mediaKindFromMime(mime);
-  let fileName = path.basename(mediaUrl) || undefined;
+  let fileName = path.basename(localPath) || undefined;
   if (fileName && !path.extname(fileName) && mime) {
     const ext = extensionForMime(mime);
     if (ext) fileName = `${fileName}${ext}`;

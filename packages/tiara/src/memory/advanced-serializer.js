@@ -441,27 +441,13 @@ export class AdvancedSerializer {
   }
 
   _deserializeFunction(data) {
-    if (!this.options.preserveFunctions || !data.source) {
-      return function restoredFunction() {
-        throw new Error(`Function ${data.name} was not preserved during serialization`);
-      };
+    const name = data?.name || "[Anonymous]"
+    if (this.options.preserveFunctions) {
+      console.warn(`[AdvancedSerializer] Function deserialization disabled for security: ${name}`);
     }
-
-    try {
-      // This is potentially unsafe - use with caution in production
-      if (data.isAsync) {
-        return new Function(`return (${data.source})`)();
-      } else if (data.isGenerator) {
-        return new Function(`return (${data.source})`)();
-      } else {
-        return new Function(`return (${data.source})`)();
-      }
-    } catch (error) {
-      console.warn(`Failed to restore function ${data.name}:`, error.message);
-      return function restoredFunction() {
-        throw new Error(`Function ${data.name} could not be restored: ${error.message}`);
-      };
-    }
+    return function restoredFunction() {
+      throw new Error(`Function ${name} cannot be deserialized for security reasons`);
+    };
   }
 
   _deserializeSymbol(data) {

@@ -2,14 +2,11 @@
   "$schema": "agent-core",
   "grammar": {
     "provider": "languagetool",
-    "username": "dolagoartur@gmail.com",
-    "apiKey": "pit-oqFnllGFX5eB"
+    "username": "{env:LANGUAGETOOL_USERNAME}",
+    "apiKey": "{env:LANGUAGETOOL_API_KEY}"
   },
-  "plugin": [
-    "file:///home/artur/.local/src/agent-core/packages/anthropic-auth/index.mjs"
-  ],
-  "model": "nebius/zai-org/GLM-4.5-Air",
-  "small_model": "nebius/Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model": "nebius/zai-org/glm-4.5-air",
+  "small_model": "nebius/zai-org/glm-4.5-air",
   "memory": {
     "embedding": {
       "profile": "nebius/qwen3-embedding-8b",

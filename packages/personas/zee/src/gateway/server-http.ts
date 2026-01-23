@@ -58,6 +58,38 @@ export type HooksRequestHandler = (
   res: ServerResponse,
 ) => Promise<boolean>;
 
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function isAllowedGatewayOrigin(origin: string | undefined, req: IncomingMessage): boolean {
+  if (!origin) return true;
+  if (origin === "null") return false;
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (isLoopbackHost(url.hostname)) return true;
+
+  const hostHeader = req.headers.host;
+  const requestHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+  if (requestHost) {
+    const requestHostname = requestHost.split(":")[0]?.toLowerCase();
+    if (requestHostname && requestHostname === url.hostname.toLowerCase()) return true;
+  }
+
+  const allowlist = (process.env.ZEE_GATEWAY_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (allowlist.length === 0) return false;
+  return allowlist.includes(origin) || allowlist.includes(url.origin);
+}
+
 export function createHooksRequestHandler(
   opts: {
     getHooksConfig: () => HooksConfigResolved | null;
@@ -252,6 +284,13 @@ export function attachGatewayUpgradeHandler(opts: {
 }) {
   const { httpServer, wss, canvasHost } = opts;
   httpServer.on("upgrade", (req, socket, head) => {
+    const originHeader = req.headers.origin;
+    const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
+    if (!isAllowedGatewayOrigin(origin, req)) {
+      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+      socket.destroy();
+      return;
+    }
     if (canvasHost?.handleUpgrade(req, socket, head)) return;
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req);

@@ -1,5 +1,5 @@
 import { defer } from "@/util/defer"
-import { rm } from "node:fs/promises"
+import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { CliRenderer } from "@opentui/core"
@@ -9,8 +9,9 @@ export namespace Editor {
     const editor = process.env["VISUAL"] || process.env["EDITOR"]
     if (!editor) return
 
-    const filepath = join(tmpdir(), `${Date.now()}.md`)
-    await using _ = defer(async () => rm(filepath, { force: true }))
+    const tempDir = await mkdtemp(join(tmpdir(), "agent-core-editor-"))
+    await using _ = defer(async () => rm(tempDir, { recursive: true, force: true }))
+    const filepath = join(tempDir, "draft.md")
 
     await Bun.write(filepath, opts.value)
     opts.renderer.suspend()

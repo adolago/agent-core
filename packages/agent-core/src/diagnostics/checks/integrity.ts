@@ -216,15 +216,21 @@ async function checkStaleLocks(): Promise<CheckResult> {
     const files = await fs.readdir(stateDir, { recursive: true });
     const lockFiles = files.filter((f) => String(f).endsWith(".lock"));
     const now = Date.now();
-    const staleLocks: string[] = [];
+    const staleLocks: Array<{ path: string; ino: number; mtimeMs: number; size: number }> = [];
 
     for (const lockFile of lockFiles) {
       const fullPath = path.join(stateDir, String(lockFile));
       try {
-        const stat = await fs.stat(fullPath);
+        const stat = await fs.lstat(fullPath);
+        if (!stat.isFile() || stat.isSymbolicLink()) continue;
         const age = now - stat.mtimeMs;
         if (age > STALE_THRESHOLD_MS) {
-          staleLocks.push(fullPath);
+          staleLocks.push({
+            path: fullPath,
+            ino: stat.ino,
+            mtimeMs: stat.mtimeMs,
+            size: stat.size,
+          });
         }
       } catch {
         // File may have been deleted
@@ -250,15 +256,30 @@ async function checkStaleLocks(): Promise<CheckResult> {
       category: "integrity",
       status: "warn",
       message: `${staleLocks.length} stale lock file(s)`,
-      details: staleLocks.map((f) => path.basename(f)).join(", "),
+      details: staleLocks.map((f) => path.basename(f.path)).join(", "),
       severity: "warning",
       durationMs: Date.now() - start,
       autoFixable: true,
       fix: async () => {
+        let removed = 0;
+        const baseDir = path.resolve(stateDir);
         for (const lockFile of staleLocks) {
-          await fs.unlink(lockFile);
+          try {
+            const resolved = path.resolve(lockFile.path);
+            const rel = path.relative(baseDir, resolved);
+            if (rel.startsWith("..") || path.isAbsolute(rel)) continue;
+            const stat = await fs.lstat(lockFile.path);
+            if (!stat.isFile() || stat.isSymbolicLink()) continue;
+            if (stat.ino !== lockFile.ino || stat.size !== lockFile.size || stat.mtimeMs !== lockFile.mtimeMs) {
+              continue;
+            }
+            await fs.unlink(lockFile.path);
+            removed += 1;
+          } catch {
+            // Ignore best-effort cleanup failures
+          }
         }
-        return { success: true, message: `Removed ${staleLocks.length} stale lock(s)` };
+        return { success: true, message: `Removed ${removed} stale lock(s)` };
       },
     };
   } catch (error) {

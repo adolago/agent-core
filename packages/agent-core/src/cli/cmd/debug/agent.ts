@@ -8,7 +8,6 @@ import { Identifier } from "../../../id/id"
 import { ToolRegistry } from "../../../tool/registry"
 import { Instance } from "../../../project/instance"
 import { PermissionNext } from "../../../permission/next"
-import { iife } from "../../../util/iife"
 import { bootstrap } from "../../bootstrap"
 import { cmd } from "../cmd"
 
@@ -28,7 +27,7 @@ export const AgentCommand = cmd({
       })
       .option("params", {
         type: "string",
-        description: "Tool params as JSON or a JS object literal",
+        description: "Tool params as JSON",
       }),
   async handler(args) {
     await bootstrap(process.cwd(), async () => {
@@ -91,22 +90,16 @@ function parseToolParams(input?: string) {
   const trimmed = input.trim()
   if (trimmed.length === 0) return {}
 
-  const parsed = iife(() => {
-    try {
-      return JSON.parse(trimmed)
-    } catch (jsonError) {
-      try {
-        return new Function(`return (${trimmed})`)()
-      } catch (evalError) {
-        throw new Error(
-          `Failed to parse --params. Use JSON or a JS object literal. JSON error: ${jsonError}. Eval error: ${evalError}.`,
-        )
-      }
-    }
-  })
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch (jsonError) {
+    const message = jsonError instanceof Error ? jsonError.message : String(jsonError)
+    throw new Error(`Failed to parse --params as JSON: ${message}.`)
+  }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Tool params must be an object.")
+    throw new Error("Tool params must be a JSON object.")
   }
   return parsed as Record<string, unknown>
 }

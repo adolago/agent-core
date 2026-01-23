@@ -20,6 +20,7 @@ import net from "net"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
 import { Zee } from "../../paths"
+import { getAuthConfig } from "../../server/auth"
 
 const log = Log.create({ service: "daemon" })
 
@@ -87,7 +88,12 @@ export namespace Daemon {
 
   async function checkAndCleanStaleLock() {
     try {
-      await fs.stat(LOCK_FILE)
+      const stat = await fs.lstat(LOCK_FILE)
+      if (!stat.isFile() || stat.isSymbolicLink()) return
+      const baseDir = path.resolve(STATE_DIR)
+      const resolved = path.resolve(LOCK_FILE)
+      const rel = path.relative(baseDir, resolved)
+      if (rel.startsWith("..") || path.isAbsolute(rel)) return
       // If we reach here, lock exists but PID doesn't (or is dead)
       await fs.unlink(LOCK_FILE)
       log.info("removed stale lock file", { path: LOCK_FILE })
@@ -813,6 +819,16 @@ export const DaemonCommand = cmd({
         UI.error(`Failed to stop daemon: ${e}`)
         process.exit(1)
       }
+    }
+
+    const authConfig = getAuthConfig()
+    if (authConfig.disabled) {
+      UI.warn("Server auth is disabled via AGENT_CORE_DISABLE_SERVER_AUTH.")
+    } else if (!authConfig.password) {
+      UI.error(
+        "AGENT_CORE_SERVER_PASSWORD is not set. Set it (or OPENCODE_SERVER_PASSWORD) or set AGENT_CORE_DISABLE_SERVER_AUTH=1.",
+      )
+      process.exit(1)
     }
 
     try {

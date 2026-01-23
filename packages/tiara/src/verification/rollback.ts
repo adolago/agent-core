@@ -13,7 +13,7 @@
  */
 
 import { promises as fs } from 'fs';
-import { join } from 'path';
+import { join, resolve, relative, isAbsolute } from 'path';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { createHash } from 'crypto';
@@ -23,6 +23,16 @@ import { gzip, gunzip } from 'zlib';
 const execAsync = promisify(exec);
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
+
+function resolveSnapshotPath(baseDir: string, targetPath: string): string {
+  const resolvedBase = resolve(baseDir);
+  const resolvedTarget = resolve(resolvedBase, targetPath);
+  const rel = relative(resolvedBase, resolvedTarget);
+  if (rel.startsWith('..') || isAbsolute(rel)) {
+    throw new Error(`Snapshot path escapes base directory: ${targetPath}`);
+  }
+  return resolvedTarget;
+}
 
 // ============================================================================
 // Type Definitions
@@ -802,11 +812,13 @@ export class AutomatedRecovery extends EventEmitter {
   private strategies: Map<string, RecoveryStrategy> = new Map();
   private recoveryHistory: RecoveryAttempt[] = [];
   private stateManager: StateManager;
+  private baseDir: string;
   private isRecovering: boolean = false;
 
-  constructor(stateManager: StateManager) {
+  constructor(stateManager: StateManager, baseDir: string = process.cwd()) {
     super();
     this.stateManager = stateManager;
+    this.baseDir = baseDir;
     this.initializeDefaultStrategies();
   }
 
@@ -1080,7 +1092,8 @@ export class AutomatedRecovery extends EventEmitter {
       // Restore configuration files from snapshot
       for (const [path, content] of Object.entries(snapshot.state.config)) {
         try {
-          await fs.writeFile(path, JSON.stringify(content, null, 2));
+          const resolvedPath = resolveSnapshotPath(this.baseDir, path);
+          await fs.writeFile(resolvedPath, JSON.stringify(content, null, 2));
         } catch (error) {
           console.warn(`Failed to restore config file ${path}:`, error);
         }
@@ -1098,8 +1111,9 @@ export class AutomatedRecovery extends EventEmitter {
       // 2. Restore files
       for (const file of snapshot.state.files) {
         try {
-          await fs.writeFile(file.path, file.content);
-          await fs.chmod(file.path, file.stats.mode);
+          const resolvedPath = resolveSnapshotPath(this.baseDir, file.path);
+          await fs.writeFile(resolvedPath, file.content);
+          await fs.chmod(resolvedPath, file.stats.mode);
         } catch (error) {
           console.warn(`Failed to restore file ${file.path}:`, error);
         }
@@ -1108,7 +1122,8 @@ export class AutomatedRecovery extends EventEmitter {
       // 3. Restore memory
       for (const [path, content] of Object.entries(snapshot.state.memory)) {
         try {
-          await fs.writeFile(path, JSON.stringify(content, null, 2));
+          const resolvedPath = resolveSnapshotPath(this.baseDir, path);
+          await fs.writeFile(resolvedPath, JSON.stringify(content, null, 2));
         } catch (error) {
           console.warn(`Failed to restore memory file ${path}:`, error);
         }
@@ -1805,6 +1820,7 @@ export class RollbackManager extends EventEmitter {
   private automatedRecovery: AutomatedRecovery;
   private rollbackHistory: RollbackHistory;
   private gitRollbackManager: GitRollbackManager;
+  private baseDir: string;
   private isInitialized: boolean = false;
 
   constructor(config: {
@@ -1818,7 +1834,8 @@ export class RollbackManager extends EventEmitter {
     triggerConfig?: Partial<RollbackTriggerConfig>;
   } = {}) {
     super();
-    
+    const baseDir = resolve(config.gitDir ?? process.cwd());
+
     // Initialize components
     this.stateManager = new StateManager(
       config.snapshotDir,
@@ -1827,7 +1844,7 @@ export class RollbackManager extends EventEmitter {
     );
     
     this.rollbackTrigger = new RollbackTrigger(config.triggerConfig);
-    this.automatedRecovery = new AutomatedRecovery(this.stateManager);
+    this.automatedRecovery = new AutomatedRecovery(this.stateManager, baseDir);
     
     this.rollbackHistory = new RollbackHistory(
       config.historyDir,
@@ -1836,7 +1853,8 @@ export class RollbackManager extends EventEmitter {
       config.compressionEnabled
     );
     
-    this.gitRollbackManager = new GitRollbackManager(config.gitDir);
+    this.gitRollbackManager = new GitRollbackManager(baseDir);
+    this.baseDir = baseDir;
     
     this.setupEventHandlers();
   }
@@ -2048,7 +2066,8 @@ export class RollbackManager extends EventEmitter {
   private async restoreConfiguration(snapshot: SystemSnapshot): Promise<void> {
     for (const [path, content] of Object.entries(snapshot.state.config)) {
       try {
-        await fs.writeFile(path, JSON.stringify(content, null, 2));
+        const resolvedPath = resolveSnapshotPath(this.baseDir, path);
+        await fs.writeFile(resolvedPath, JSON.stringify(content, null, 2));
       } catch (error) {
         console.warn(`Failed to restore config ${path}:`, error);
       }
@@ -2058,7 +2077,8 @@ export class RollbackManager extends EventEmitter {
   private async restoreMemoryState(snapshot: SystemSnapshot): Promise<void> {
     for (const [path, content] of Object.entries(snapshot.state.memory)) {
       try {
-        await fs.writeFile(path, JSON.stringify(content, null, 2));
+        const resolvedPath = resolveSnapshotPath(this.baseDir, path);
+        await fs.writeFile(resolvedPath, JSON.stringify(content, null, 2));
       } catch (error) {
         console.warn(`Failed to restore memory ${path}:`, error);
       }
@@ -2068,8 +2088,9 @@ export class RollbackManager extends EventEmitter {
   private async restoreFileSystem(snapshot: SystemSnapshot): Promise<void> {
     for (const file of snapshot.state.files) {
       try {
-        await fs.writeFile(file.path, file.content);
-        await fs.chmod(file.path, file.stats.mode);
+        const resolvedPath = resolveSnapshotPath(this.baseDir, file.path);
+        await fs.writeFile(resolvedPath, file.content);
+        await fs.chmod(resolvedPath, file.stats.mode);
       } catch (error) {
         console.warn(`Failed to restore file ${file.path}:`, error);
       }

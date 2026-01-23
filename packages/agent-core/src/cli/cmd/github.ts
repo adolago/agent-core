@@ -27,6 +27,7 @@ import { Bus } from "../../bus"
 import { MessageV2 } from "../../session/message-v2"
 import { SessionPrompt } from "@/session/prompt"
 import { $ } from "bun"
+import { normalizeHttpUrl } from "@/util/net"
 
 type GitHubAuthor = {
   login: string
@@ -327,9 +328,9 @@ export const GithubInstallCommand = cmd({
             if (installation) return s.stop("GitHub app already installed")
 
             // Open browser
-            const url = GITHUB_APP_URL
+            const url = normalizeHttpUrl(GITHUB_APP_URL ?? "")
             if (!url) {
-              s.stop("GitHub app URL not configured")
+              s.stop("GitHub app URL invalid or not configured")
               throw new UI.CancelledError()
             }
             const command =

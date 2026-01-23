@@ -5,6 +5,8 @@ import { promises as fs } from 'fs';
 import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { chmod } from 'fs/promises';
+import { tmpdir } from 'os';
+import path from 'path';
 
 let verbosityLevel = 'normal';
 
@@ -298,10 +300,12 @@ export async function retry(fn, maxAttempts = 3, delay = 1000) {
 
 // Claude Flow MCP integration helpers
 export async function callRuvSwarmMCP(tool, params = {}) {
+  let tempDir;
   try {
     // First try real ruv-swarm MCP server
-    const tempFile = `/tmp/mcp_request_${Date.now()}.json`;
-    const tempScript = `/tmp/mcp_script_${Date.now()}.sh`;
+    tempDir = await fs.mkdtemp(path.join(tmpdir(), 'mcp-'));
+    const tempFile = path.join(tempDir, 'request.json');
+    const tempScript = path.join(tempDir, 'run.sh');
 
     // Create JSON-RPC messages for ruv-swarm MCP
     const initMessage = {
@@ -340,14 +344,6 @@ timeout 30s npx ruv-swarm mcp start --stdio < "${tempFile}" 2>/dev/null | tail -
       stdout: 'piped',
       stderr: 'piped',
     });
-
-    // Clean up temp files
-    try {
-      await fs.unlink(tempFile);
-      await fs.unlink(tempScript);
-    } catch {
-      // Ignore cleanup errors
-    }
 
     if (result.success && result.stdout.trim()) {
       try {
@@ -404,6 +400,14 @@ timeout 30s npx ruv-swarm mcp start --stdio < "${tempFile}" 2>/dev/null | tail -
         'task_distribution_enhancement',
       ],
     };
+  } finally {
+    if (tempDir) {
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   }
 }
 

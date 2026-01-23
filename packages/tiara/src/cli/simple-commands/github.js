@@ -7,7 +7,9 @@
 import { printSuccess, printError, printWarning } from '../utils.js';
 import { platform } from 'os';
 import { access, constants } from 'fs/promises';
-import { join } from 'path';
+import { join, delimiter } from 'path';
+
+const COMMAND_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 /**
  * Cross-platform check for executable availability
@@ -15,42 +17,41 @@ import { join } from 'path';
  * @returns {Promise<boolean>} - True if command is available
  */
 async function checkCommandAvailable(command) {
-  const { execSync } = await import('child_process');
+  if (!COMMAND_NAME_PATTERN.test(command)) {
+    printWarning(`Invalid command name: ${command}`);
+    return false;
+  }
 
-  if (platform() === 'win32') {
-    // Windows: Use 'where' command
-    try {
-      execSync(`where ${command}`, { stdio: 'ignore' });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  } else {
-    // Unix-like systems: Check common paths and use 'command -v'
-    try {
-      execSync(`command -v ${command}`, { stdio: 'ignore', shell: true });
-      return true;
-    } catch (e) {
-      // Fallback: Check common installation paths
-      const commonPaths = [
-        '/usr/local/bin',
-        '/usr/bin',
-        '/opt/homebrew/bin',
-        join(process.env.HOME || '', '.local', 'bin'),
-        join(process.env.HOME || '', 'bin'),
-      ];
+  const isWindows = platform() === 'win32';
+  const extensions = isWindows
+    ? (process.env.PATHEXT || '.EXE;.CMD;.BAT;.COM').split(';')
+    : [''];
+  const accessMode = isWindows ? constants.F_OK : constants.X_OK;
 
-      for (const dir of commonPaths) {
-        try {
-          await access(join(dir, command), constants.X_OK);
-          return true;
-        } catch (e) {
-          // Continue checking other paths
-        }
+  const pathEntries = (process.env.PATH || '').split(delimiter).filter(Boolean);
+  const commonPaths = [
+    '/usr/local/bin',
+    '/usr/bin',
+    '/opt/homebrew/bin',
+    join(process.env.HOME || '', '.local', 'bin'),
+    join(process.env.HOME || '', 'bin'),
+  ];
+  const candidateDirs = Array.from(
+    new Set([...pathEntries, ...commonPaths].map((dir) => dir.replace(/^"(.*)"$/, '$1'))),
+  );
+
+  for (const dir of candidateDirs) {
+    for (const ext of extensions) {
+      const candidate = join(dir, isWindows ? `${command}${ext}` : command);
+      try {
+        await access(candidate, accessMode);
+        return true;
+      } catch (e) {
+        // Continue checking other paths
       }
-      return false;
     }
   }
+  return false;
 }
 
 /**

@@ -27,6 +27,7 @@ import { TuiEvent } from "@/cli/cmd/tui/event"
 import { getAgentCoreRoot } from "../paths"
 import { Global } from "@/global"
 import open from "open"
+import { normalizeHttpUrl } from "@/util/net"
 
 export namespace MCP {
   const log = Log.create({ service: "mcp" })
@@ -1067,11 +1068,16 @@ export namespace MCP {
       throw new Error("OAuth state not found - this should not happen")
     }
 
+    const safeUrl = normalizeHttpUrl(authorizationUrl)
+    if (!safeUrl) {
+      throw new Error("OAuth authorization URL must be http(s)")
+    }
+
     // The SDK has already added the state parameter to the authorization URL
     // We just need to open the browser
-    log.info("opening browser for oauth", { mcpName, url: authorizationUrl, state: oauthState })
+    log.info("opening browser for oauth", { mcpName, url: safeUrl, state: oauthState })
     try {
-      const subprocess = await open(authorizationUrl)
+      const subprocess = await open(safeUrl)
       // The open package spawns a detached process and returns immediately.
       // We need to listen for errors which fire asynchronously:
       // - "error" event: command not found (ENOENT)
@@ -1094,7 +1100,7 @@ export namespace MCP {
       // Browser opening failed (e.g., in remote/headless sessions like SSH, devcontainers)
       // Emit event so CLI can display the URL for manual opening
       log.warn("failed to open browser, user must open URL manually", { mcpName, error })
-      Bus.publish(BrowserOpenFailed, { mcpName, url: authorizationUrl })
+      Bus.publish(BrowserOpenFailed, { mcpName, url: safeUrl })
     }
 
     // Wait for callback using the OAuth state parameter

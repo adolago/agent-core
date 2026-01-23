@@ -37,6 +37,7 @@ import { ArgsProvider, useArgs, type Args } from "./context/args"
 import open from "open"
 import { writeHeapSnapshot } from "v8"
 import { PromptRefProvider, usePromptRef } from "./context/prompt"
+import { normalizeHttpUrl } from "@/util/net"
 
 async function getTerminalBackgroundColor(): Promise<"dark" | "light"> {
   // can't set raw mode if not a TTY
@@ -510,7 +511,8 @@ function App() {
       title: "Open docs",
       value: "docs.open",
       onSelect: () => {
-        open("https://github.com/adolago/agent-core/tree/dev/docs").catch(() => {})
+        const url = normalizeHttpUrl("https://github.com/adolago/agent-core/tree/dev/docs")
+        if (url) open(url).catch(() => {})
         dialog.clear()
       },
       category: "System",
@@ -519,7 +521,8 @@ function App() {
       title: "Open WebUI",
       value: "webui.open",
       onSelect: () => {
-        open(sdk.url).catch(() => {})
+        const url = normalizeHttpUrl(sdk.url)
+        if (url) open(url).catch(() => {})
         dialog.clear()
       },
       category: "System",

@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "zee",
-  "model": "nebius/zai-org/GLM-4.5-Air",
-  "small_model": "nebius/Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model": "nebius/zai-org/glm-4.5-air",
+  "small_model": "nebius/zai-org/glm-4.5-air",
   "instructions": ["STYLE_GUIDE.md"],
   "mcp": {
     "context7": {
@@ -11,17 +11,14 @@
     },
     "memory": {
       "type": "local",
-      "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/memory.ts"],
       "enabled": true
     },
     "calendar": {
       "type": "local",
-      "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/calendar.ts"],
       "enabled": true
     },
     "portfolio": {
       "type": "local",
-      "command": ["bun", "run", "/home/artur/.local/src/agent-core/src/mcp/servers/portfolio.ts"],
       "enabled": true
     }
   },
@@ -73,12 +70,12 @@
       "color": "#7fd88c"
     },
     "title": {
-      "model": "nebius/Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "model": "nebius/zai-org/glm-4.5-air",
       "temperature": 0.5,
       "hidden": true
     },
     "compaction": {
-      "model": "nebius/Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "model": "nebius/zai-org/glm-4.5-air",
       "temperature": 0.3,
       "hidden": true
     }

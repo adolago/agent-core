@@ -18,7 +18,7 @@ agent-core web
 This starts a local server on `127.0.0.1` with a random available port and automatically opens Agent-Core in your default browser.
 
 :::caution
-If `OPENCODE_SERVER_PASSWORD` is not set, the server will be unsecured. This is fine for local use but should be set for network access.
+Server auth is enabled by default. Set `AGENT_CORE_SERVER_PASSWORD` (or `OPENCODE_SERVER_PASSWORD`) to configure HTTP basic auth, or set `AGENT_CORE_DISABLE_SERVER_AUTH=1` to opt out.
 :::
 
 ---
@@ -70,13 +70,13 @@ agent-core web --cors https://example.com
 
 ### Authentication
 
-To protect access, set a password using the `OPENCODE_SERVER_PASSWORD` environment variable:
+To protect access, set a password using the `AGENT_CORE_SERVER_PASSWORD` environment variable:
 
 ```bash
-OPENCODE_SERVER_PASSWORD=secret agent-core web
+AGENT_CORE_SERVER_PASSWORD=secret agent-core web
 ```
 
-The username defaults to `agent-core` but can be changed with `OPENCODE_SERVER_USERNAME`.
+The username defaults to `agent-core` but can be changed with `AGENT_CORE_SERVER_USERNAME` (or `OPENCODE_SERVER_USERNAME`).
 
 ---
 

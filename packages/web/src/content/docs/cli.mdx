@@ -358,7 +358,7 @@ Start a headless Agent-Core server for API access. Check out the [server docs](/
 agent-core serve
 ```
 
-This starts an HTTP server that provides API access to agent-core functionality without the TUI interface. Set `OPENCODE_SERVER_PASSWORD` to enable HTTP basic auth (username defaults to `agent-core`).
+This starts an HTTP server that provides API access to agent-core functionality without the TUI interface. Server auth is enabled by default; set `AGENT_CORE_SERVER_PASSWORD` (or `OPENCODE_SERVER_PASSWORD`) to configure HTTP basic auth, or set `AGENT_CORE_DISABLE_SERVER_AUTH=1` to opt out.
 
 #### Flags
 
@@ -454,7 +454,7 @@ Start a headless Agent-Core server with a web interface.
 agent-core web
 ```
 
-This starts an HTTP server and opens a web browser to access Agent-Core through a web interface. Set `OPENCODE_SERVER_PASSWORD` to enable HTTP basic auth (username defaults to `agent-core`).
+This starts an HTTP server and opens a web browser to access Agent-Core through a web interface. Server auth is enabled by default; set `AGENT_CORE_SERVER_PASSWORD` (or `OPENCODE_SERVER_PASSWORD`) to configure HTTP basic auth, or set `AGENT_CORE_DISABLE_SERVER_AUTH=1` to opt out.
 
 #### Flags
 
@@ -575,8 +575,11 @@ Environment variable names keep the legacy `OPENCODE_` prefix for compatibility.
 | `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` | boolean | Disable loading `.claude/skills`                  |
 | `OPENCODE_CLIENT`                     | string  | Client identifier (defaults to `cli`)             |
 | `OPENCODE_ENABLE_EXA`                 | boolean | Enable Exa web search tools                       |
-| `OPENCODE_SERVER_PASSWORD`            | string  | Enable basic auth for `serve`/`web`               |
-| `OPENCODE_SERVER_USERNAME`            | string  | Override basic auth username (default `agent-core`) |
+| `AGENT_CORE_SERVER_PASSWORD`          | string  | Basic auth password for `serve`/`web` (required unless auth disabled) |
+| `AGENT_CORE_SERVER_USERNAME`          | string  | Override basic auth username (default `agent-core`) |
+| `AGENT_CORE_DISABLE_SERVER_AUTH`      | boolean | Disable server auth for `serve`/`web` (not recommended) |
+| `OPENCODE_SERVER_PASSWORD`            | string  | Legacy alias for `AGENT_CORE_SERVER_PASSWORD`     |
+| `OPENCODE_SERVER_USERNAME`            | string  | Legacy alias for `AGENT_CORE_SERVER_USERNAME`     |
 
 ---
 

@@ -3,6 +3,7 @@ import { platform, release } from "os"
 import clipboardy from "clipboardy"
 import { lazy } from "../../../../util/lazy.js"
 import { tmpdir } from "os"
+import { mkdtemp, rm } from "node:fs/promises"
 import path from "path"
 
 /**
@@ -45,8 +46,10 @@ export namespace Clipboard {
       return { data: buffer, mime }
     }
 
-    const tmpInput = path.join(tmpdir(), `agent-core-img-in-${Date.now()}.png`)
-    const tmpOutput = path.join(tmpdir(), `agent-core-img-out-${Date.now()}.jpg`)
+    let tempDir: string | undefined
+    tempDir = await mkdtemp(path.join(tmpdir(), "agent-core-img-"))
+    const tmpInput = path.join(tempDir, "input.png")
+    const tmpOutput = path.join(tempDir, "output.jpg")
 
     try {
       // Write original image to temp file
@@ -84,8 +87,9 @@ export namespace Clipboard {
       console.warn(`[clipboard] Image compression failed:`, err)
       return { data: buffer, mime }
     } finally {
-      // Clean up temp files
-      await $`rm -f "${tmpInput}" "${tmpOutput}"`.nothrow().quiet()
+      if (tempDir) {
+        await rm(tempDir, { recursive: true, force: true })
+      }
     }
   }
 
@@ -93,7 +97,8 @@ export namespace Clipboard {
     const os = platform()
 
     if (os === "darwin") {
-      const tmpfile = path.join(tmpdir(), "agent-core-clipboard.png")
+      const tempDir = await mkdtemp(path.join(tmpdir(), "agent-core-clipboard-"))
+      const tmpfile = path.join(tempDir, "clipboard.png")
       try {
         await $`osascript -e 'set imageData to the clipboard as "PNGf"' -e 'set fileRef to open for access POSIX file "${tmpfile}" with write permission' -e 'set eof fileRef to 0' -e 'write imageData to fileRef' -e 'close access fileRef'`
           .nothrow()
@@ -104,7 +109,7 @@ export namespace Clipboard {
         return { data: compressed.data.toString("base64"), mime: compressed.mime }
       } catch {
       } finally {
-        await $`rm -f "${tmpfile}"`.nothrow().quiet()
+        await rm(tempDir, { recursive: true, force: true })
       }
     }
 
