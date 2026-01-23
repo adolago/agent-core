@@ -5,7 +5,8 @@ import { IconButton } from "./icon-button"
 import { Tooltip } from "./tooltip"
 
 export interface TextFieldProps
-  extends ComponentProps<typeof Kobalte.Input>,
+  extends
+    ComponentProps<typeof Kobalte.Input>,
     Partial<
       Pick<
         ComponentProps<typeof Kobalte>,
@@ -92,6 +93,7 @@ export function TextField(props: TextFieldProps) {
         <Show when={local.copyable}>
           <Tooltip value={copied() ? "Copied" : "Copy to clipboard"} placement="top" gutter={8}>
             <IconButton
+              aria-label="Copy to clipboard"
               type="button"
               icon={copied() ? "check" : "copy"}
               variant="ghost"
