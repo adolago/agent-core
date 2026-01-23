@@ -248,9 +248,45 @@ export namespace LifecycleHooks {
   // -------------------------------------------------------------------------
 
   const sessionStartTimes: Map<string, number> = new Map()
+  const SESSION_START_TTL_MS = 7 * 24 * 60 * 60 * 1000
+  const SESSION_START_MAX = 5000
+  const SESSION_START_CLEANUP_INTERVAL_MS = 60 * 60 * 1000
+  let lastSessionCleanup = 0
+
+  function cleanupSessionStartTimes(now = Date.now()) {
+    if (now - lastSessionCleanup < SESSION_START_CLEANUP_INTERVAL_MS) return
+    lastSessionCleanup = now
+
+    let removed = 0
+    const cutoff = now - SESSION_START_TTL_MS
+    for (const [sessionId, startTime] of sessionStartTimes) {
+      if (startTime < cutoff) {
+        sessionStartTimes.delete(sessionId)
+        removed++
+      }
+    }
+
+    if (sessionStartTimes.size > SESSION_START_MAX) {
+      const entries = Array.from(sessionStartTimes.entries()).sort((a, b) => a[1] - b[1])
+      const overflow = sessionStartTimes.size - SESSION_START_MAX
+      for (let i = 0; i < overflow; i++) {
+        sessionStartTimes.delete(entries[i]![0])
+        removed++
+      }
+    }
+
+    if (removed > 0) {
+      log.debug("Pruned session start times", {
+        removed,
+        remaining: sessionStartTimes.size,
+      })
+    }
+  }
 
   export async function emitSessionStart(payload: SessionLifecycle.StartPayload): Promise<void> {
-    sessionStartTimes.set(payload.sessionId, Date.now())
+    const now = Date.now()
+    cleanupSessionStartTimes(now)
+    sessionStartTimes.set(payload.sessionId, now)
     log.info("Emitting session.start hook", {
       sessionId: payload.sessionId,
       persona: payload.persona,
@@ -271,7 +307,9 @@ export namespace LifecycleHooks {
   }
 
   export async function emitSessionRestore(payload: SessionLifecycle.RestorePayload): Promise<void> {
-    sessionStartTimes.set(payload.sessionId, Date.now())
+    const now = Date.now()
+    cleanupSessionStartTimes(now)
+    sessionStartTimes.set(payload.sessionId, now)
     log.info("Emitting session.restore hook", {
       sessionId: payload.sessionId,
       persona: payload.persona,
