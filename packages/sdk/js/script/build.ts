@@ -24,10 +24,14 @@ await createClient({
     },
     {
       name: "@hey-api/sdk",
-      instance: "OpencodeClient",
       exportFromIndex: false,
       auth: false,
       paramsStructure: "flat",
+      operations: {
+        strategy: "single",
+        containerName: "OpencodeClient",
+        methods: "instance",
+      },
     },
     {
       name: "@hey-api/client-fetch",
