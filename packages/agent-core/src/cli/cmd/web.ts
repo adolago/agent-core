@@ -38,10 +38,8 @@ export const WebCommand = cmd({
     if (authConfig.disabled) {
       UI.println(UI.Style.TEXT_WARNING_BOLD + "!  " + "Server auth is disabled via AGENT_CORE_DISABLE_SERVER_AUTH.")
     } else if (!authConfig.password) {
-      UI.println(
-        UI.Style.TEXT_ERROR_BOLD +
-          "x  " +
-          "AGENT_CORE_SERVER_PASSWORD is not set. Set it (or OPENCODE_SERVER_PASSWORD) or set AGENT_CORE_DISABLE_SERVER_AUTH=1.",
+      UI.error(
+        "AGENT_CORE_SERVER_PASSWORD is not set. Set it (or OPENCODE_SERVER_PASSWORD) or set AGENT_CORE_DISABLE_SERVER_AUTH=1.",
       )
       process.exit(1)
     }
