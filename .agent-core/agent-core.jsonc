@@ -9,18 +9,9 @@
       "type": "remote",
       "url": "https://mcp.context7.com/mcp"
     },
-    "memory": {
-      "type": "local",
-      "enabled": true
-    },
-    "calendar": {
-      "type": "local",
-      "enabled": true
-    },
-    "portfolio": {
-      "type": "local",
-      "enabled": true
-    }
+    "personas-memory": { "enabled": true },
+    "personas-calendar": { "enabled": true },
+    "personas-portfolio": { "enabled": true }
   },
   "memory": {
     "required": true,
