@@ -78,6 +78,7 @@ export namespace Persistence {
   let walBuffer: WALEntry[] = []
   let walFlushInterval: NodeJS.Timeout | null = null
   let isRunning = false
+  let eventUnsubscribers: Array<() => void> = []
 
   // Mutex for WAL buffer operations to prevent race conditions
   let walMutexPromise: Promise<void> = Promise.resolve()
@@ -160,6 +161,7 @@ export namespace Persistence {
     }
 
     // Subscribe to events for WAL
+    clearEventListeners()
     setupEventListeners()
 
     log.info("Persistence initialized", {
@@ -180,6 +182,8 @@ export namespace Persistence {
       clearInterval(walFlushInterval)
       walFlushInterval = null
     }
+
+    clearEventListeners()
 
     let cleanShutdown = true
 
@@ -211,39 +215,53 @@ export namespace Persistence {
 
   function setupEventListeners(): void {
     // Listen for session events
-    Bus.subscribe(Session.Event.Created, (event) => {
+    eventUnsubscribers.push(Bus.subscribe(Session.Event.Created, (event) => {
       appendToWAL({
         timestamp: Date.now(),
         operation: "session_create",
         data: { session: event.properties.info },
       })
-    })
+    }))
 
-    Bus.subscribe(Session.Event.Updated, (event) => {
+    eventUnsubscribers.push(Bus.subscribe(Session.Event.Updated, (event) => {
       appendToWAL({
         timestamp: Date.now(),
         operation: "session_update",
         data: { session: event.properties.info },
       })
-    })
+    }))
 
     // Listen for message events
-    Bus.subscribe(MessageV2.Event.Updated, (event) => {
+    eventUnsubscribers.push(Bus.subscribe(MessageV2.Event.Updated, (event) => {
       appendToWAL({
         timestamp: Date.now(),
         operation: "message_create",
         data: { message: event.properties.info },
       })
-    })
+    }))
 
     // Listen for todo events
-    Bus.subscribe(Todo.Event.Updated, (event) => {
+    eventUnsubscribers.push(Bus.subscribe(Todo.Event.Updated, (event) => {
       appendToWAL({
         timestamp: Date.now(),
         operation: "todo_update",
         data: { sessionID: event.properties.sessionID, todos: event.properties.todos },
       })
-    })
+    }))
+  }
+
+  function clearEventListeners(): void {
+    if (eventUnsubscribers.length === 0) return
+    for (const unsubscribe of eventUnsubscribers) {
+      try {
+        unsubscribe()
+      } catch (error) {
+        log.warn("Failed to unsubscribe persistence listener", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+    eventUnsubscribers = []
   }
 
   function appendToWAL(entry: WALEntry): void {
