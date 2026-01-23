@@ -257,6 +257,22 @@ export const GatewayRoute = new Hono()
             },
           },
         },
+        400: {
+          description: "Invalid request",
+          content: {
+            "application/json": {
+              schema: resolver(GatewayResponseSchema),
+            },
+          },
+        },
+        500: {
+          description: "Server error",
+          content: {
+            "application/json": {
+              schema: resolver(GatewayResponseSchema),
+            },
+          },
+        },
       },
     }),
     async (c) => {
@@ -265,19 +281,19 @@ export const GatewayRoute = new Hono()
         body = await c.req.json()
       } catch {
         const payload: GatewayResponse = { success: false, error: "Invalid JSON body" }
-        return c.json(payload)
+        return c.json(payload, 400)
       }
 
       const parsed = WhatsAppSendInput.safeParse(body)
       if (!parsed.success) {
         const payload: GatewayResponse = { success: false, error: "Invalid request body" }
-        return c.json(payload)
+        return c.json(payload, 400)
       }
 
       const toRaw = parsed.data.chatId ?? parsed.data.to
       if (!toRaw) {
         const payload: GatewayResponse = { success: false, error: 'Missing "chatId" (or "to")' }
-        return c.json(payload)
+        return c.json(payload, 400)
       }
 
       try {
@@ -287,7 +303,7 @@ export const GatewayRoute = new Hono()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         log.warn("whatsapp send failed", { error: message })
-        return c.json({ success: false, error: message } satisfies GatewayResponse)
+        return c.json({ success: false, error: message } satisfies GatewayResponse, 500)
       }
     },
   )
@@ -306,6 +322,22 @@ export const GatewayRoute = new Hono()
             },
           },
         },
+        400: {
+          description: "Invalid request",
+          content: {
+            "application/json": {
+              schema: resolver(GatewayResponseSchema),
+            },
+          },
+        },
+        500: {
+          description: "Server error",
+          content: {
+            "application/json": {
+              schema: resolver(GatewayResponseSchema),
+            },
+          },
+        },
       },
     }),
     async (c) => {
@@ -314,19 +346,19 @@ export const GatewayRoute = new Hono()
         body = await c.req.json()
       } catch {
         const payload: GatewayResponse = { success: false, error: "Invalid JSON body" }
-        return c.json(payload)
+        return c.json(payload, 400)
       }
 
       const parsed = TelegramSendInput.safeParse(body)
       if (!parsed.success) {
         const payload: GatewayResponse = { success: false, error: "Invalid request body" }
-        return c.json(payload)
+        return c.json(payload, 400)
       }
 
       const toRaw = parsed.data.chatId ?? parsed.data.to
       if (toRaw === undefined || toRaw === null || String(toRaw).trim() === "") {
         const payload: GatewayResponse = { success: false, error: 'Missing "chatId" (or "to")' }
-        return c.json(payload)
+        return c.json(payload, 400)
       }
 
       const accountId = parsed.data.persona ?? "stanley"
@@ -343,7 +375,7 @@ export const GatewayRoute = new Hono()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         log.warn("telegram send failed", { error: message })
-        return c.json({ success: false, error: message } satisfies GatewayResponse)
+        return c.json({ success: false, error: message } satisfies GatewayResponse, 500)
       }
     },
   )
