@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 AGENT_BIN="${AGENT_BIN:-$HOME/.bun/bin/agent-core}"
-AGENT_CORE_BIN_PATH="${AGENT_CORE_BIN_PATH:-$HOME/.local/src/agent-core/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core}"
+AGENT_CORE_BIN_PATH="${AGENT_CORE_BIN_PATH:-$REPO_ROOT/packages/agent-core/dist/agent-core-linux-x64/bin/agent-core}"
 REPORT_DIR="${REPORT_DIR:-/tmp/agent-core-beta}"
 REPORT_FILE="$REPORT_DIR/report.txt"
 BUG_REPORT_PATH="$REPORT_DIR/bug-report.tar.gz"
@@ -38,7 +41,7 @@ log "# Config & repo checks"
 log "config.json: $HOME/.config/agent-core/config.json"
 log "agent-core.jsonc: $HOME/.config/agent-core/agent-core.jsonc"
 log "skills root: $HOME/.config/agent-core/skills -> $(readlink -f "$HOME/.config/agent-core/skills")"
-log "personas root: $HOME/.local/src/agent-core/packages/personas"
+log "personas root: $REPO_ROOT/packages/personas"
 log ""
 
 log "# Diagnostic check (runtime + config only)"

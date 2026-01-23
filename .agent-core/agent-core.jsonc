@@ -1,5 +1,5 @@
 {
-  "$schema": "https://opencode.ai/config.json",
+  "$schema": "agent-core",
   "default_agent": "zee",
   "model": "nebius/zai-org/glm-4.5-air",
   "small_model": "nebius/zai-org/glm-4.5-air",
