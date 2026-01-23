@@ -26,6 +26,7 @@ import { Locale } from "@/util/locale"
 import { formatDuration } from "@/util/format"
 import { createColors, createFrames } from "../../ui/spinner.ts"
 import { useDialog } from "@tui/ui/dialog"
+import { DialogSelect } from "@tui/ui/dialog-select"
 import { DialogProvider as DialogProviderConnect } from "../dialog-provider"
 import { DialogAlert } from "../../ui/dialog-alert"
 import { useToast } from "../../ui/toast"
@@ -34,6 +35,7 @@ import { useTextareaKeybindings } from "../textarea-keybindings"
 import { Dictation } from "@tui/util/dictation"
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
+import { createGrammarChecker, type GrammarError } from "../../util/grammar-realtime"
 
 export type PromptProps = {
   sessionID?: string
@@ -257,11 +259,61 @@ export function Prompt(props: PromptProps) {
       dictationRecording.cancel().catch(() => {})
       dictationRecording = undefined
     }
+    grammarChecker.cancel()
   })
   const fileStyleId = syntax().getStyleId("extmark.file")!
   const agentStyleId = syntax().getStyleId("extmark.agent")!
   const pasteStyleId = syntax().getStyleId("extmark.paste")!
+  const grammarStyleId = syntax().getStyleId("extmark.error.grammar")!
+  const spellingStyleId = syntax().getStyleId("extmark.error.spelling")!
+  const styleErrorStyleId = syntax().getStyleId("extmark.error.style")!
   let promptPartTypeId = 0
+  let grammarErrorTypeId = 0
+
+  // Real-time grammar checking - enabled by default
+  const [realtimeGrammarEnabled, setRealtimeGrammarEnabled] = createSignal(kv.get("realtime_grammar_enabled", true))
+  const grammarChecker = createGrammarChecker({
+    debounceMs: 500,
+    enabled: realtimeGrammarEnabled,
+    config: () => (sync.data.config as any).grammar,
+  })
+
+  function clearGrammarExtmarks() {
+    if (!grammarErrorTypeId) return
+    const extmarks = input.extmarks.getAllForTypeId(grammarErrorTypeId)
+    for (const em of extmarks) {
+      input.extmarks.delete(em.id)
+    }
+  }
+
+  function syncGrammarExtmarks(errors: GrammarError[]) {
+    if (!grammarErrorTypeId) return
+
+    // Clear previous grammar extmarks
+    clearGrammarExtmarks()
+
+    for (const error of errors) {
+      const styleId =
+        error.category === "spelling" ? spellingStyleId : error.category === "style" ? styleErrorStyleId : grammarStyleId
+
+      input.extmarks.create({
+        start: error.start,
+        end: error.end,
+        virtual: false,
+        styleId,
+        typeId: grammarErrorTypeId,
+        data: error,
+      })
+    }
+  }
+
+  // Update grammar extmarks when errors change
+  createEffect(() => {
+    const errors = grammarChecker.errors()
+    if (realtimeGrammarEnabled()) {
+      syncGrammarExtmarks(errors)
+    }
+  })
 
   sdk.event.on(TuiEvent.PromptAppend.type, (evt) => {
     input.insertText(evt.properties.text)
@@ -585,6 +637,111 @@ export function Prompt(props: PromptProps) {
           ))
         }
       },
+      {
+        title: realtimeGrammarEnabled() ? "Disable real-time grammar" : "Enable real-time grammar",
+        value: "prompt.grammar.realtime",
+        category: "Prompt",
+        onSelect: (d) => {
+          const newValue = !realtimeGrammarEnabled()
+          setRealtimeGrammarEnabled(newValue)
+          kv.set("realtime_grammar_enabled", newValue)
+          if (!newValue) {
+            // Clear grammar extmarks when disabling
+            grammarChecker.clear()
+            clearGrammarExtmarks()
+          } else {
+            // Trigger check immediately when enabling
+            grammarChecker.check(store.prompt.input)
+          }
+          toast.show({
+            variant: "info",
+            message: newValue ? "Real-time grammar checking enabled" : "Real-time grammar checking disabled",
+            duration: 2000,
+          })
+          d.clear()
+        },
+      },
+      {
+        title: "Fix grammar error at cursor",
+        value: "prompt.grammar.quickfix",
+        keybind: "grammar_quickfix",
+        category: "Prompt",
+        disabled: !realtimeGrammarEnabled() || grammarChecker.errors().length === 0,
+        onSelect: (d) => {
+          if (!grammarErrorTypeId) return
+          const cursorOffset = input.cursorOffset
+
+          // Find grammar extmark at cursor position
+          const grammarExtmarks = input.extmarks.getAllForTypeId(grammarErrorTypeId)
+          const errorAtCursor = grammarExtmarks.find(
+            (em: { start: number; end: number; data?: GrammarError }) =>
+              cursorOffset >= em.start && cursorOffset <= em.end && em.data
+          )
+
+          if (!errorAtCursor || !errorAtCursor.data) {
+            toast.show({
+              variant: "info",
+              message: "No grammar error at cursor position",
+              duration: 1500,
+            })
+            d.clear()
+            return
+          }
+
+          const error = errorAtCursor.data as GrammarError
+
+          if (error.replacements.length === 0) {
+            toast.show({
+              variant: "info",
+              message: error.message,
+              duration: 3000,
+            })
+            d.clear()
+            return
+          }
+
+          // If single replacement, apply directly
+          if (error.replacements.length === 1) {
+            const replacement = error.replacements[0]
+            const before = store.prompt.input.slice(0, error.start)
+            const after = store.prompt.input.slice(error.end)
+            const newText = before + replacement + after
+            input.setText(newText)
+            setStore("prompt", "input", newText)
+            // Re-trigger grammar check
+            grammarChecker.check(newText)
+            toast.show({
+              variant: "success",
+              message: `Fixed: "${replacement}"`,
+              duration: 1500,
+            })
+            d.clear()
+            return
+          }
+
+          // Multiple replacements - show selection dialog
+          d.clear()
+          dialog.replace(() => (
+            <DialogSelect
+              title={error.shortMessage || "Quick Fix"}
+              options={error.replacements.map((replacement, index) => ({
+                title: replacement,
+                value: index,
+                description: index === 0 ? "(most likely)" : undefined,
+                onSelect: () => {
+                  const before = store.prompt.input.slice(0, error.start)
+                  const after = store.prompt.input.slice(error.end)
+                  const newText = before + replacement + after
+                  input.setText(newText)
+                  setStore("prompt", "input", newText)
+                  // Re-trigger grammar check
+                  grammarChecker.check(newText)
+                },
+              }))}
+            />
+          ))
+        },
+      },
     ]
   })
 
@@ -610,6 +767,7 @@ export function Prompt(props: PromptProps) {
     reset() {
       input.clear()
       input.extmarks.clear()
+      grammarChecker.clear()
       setStore("prompt", {
         input: "",
         parts: [],
@@ -875,6 +1033,7 @@ export function Prompt(props: PromptProps) {
       mode: currentMode,
     })
     input.extmarks.clear()
+    grammarChecker.clear()
     setStore("prompt", {
       input: "",
       parts: [],
@@ -1055,6 +1214,10 @@ export function Prompt(props: PromptProps) {
                 setStore("prompt", "input", value)
                 autocomplete.onInput(value)
                 syncExtmarksWithPromptParts()
+                // Trigger real-time grammar check
+                if (realtimeGrammarEnabled()) {
+                  grammarChecker.check(value)
+                }
               }}
               keyBindings={textareaKeybindings()}
               onKeyDown={async (e) => {
@@ -1082,6 +1245,12 @@ export function Prompt(props: PromptProps) {
                 if (keybind.match("input_dictation_toggle", e)) {
                   e.preventDefault()
                   await toggleDictation()
+                  return
+                }
+                // Handle grammar quick-fix (Ctrl+.)
+                if (keybind.match("grammar_quickfix", e) && realtimeGrammarEnabled() && grammarErrorTypeId) {
+                  e.preventDefault()
+                  command.trigger("prompt.grammar.quickfix")
                   return
                 }
                 if (keybind.match("input_clear", e) && store.prompt.input !== "") {
@@ -1211,6 +1380,9 @@ export function Prompt(props: PromptProps) {
                 input = r
                 if (promptPartTypeId === 0) {
                   promptPartTypeId = input.extmarks.registerType("prompt-part")
+                }
+                if (grammarErrorTypeId === 0) {
+                  grammarErrorTypeId = input.extmarks.registerType("grammar-error")
                 }
                 props.ref?.(ref)
                 setTimeout(() => {
@@ -1403,6 +1575,11 @@ export function Prompt(props: PromptProps) {
                   <Show when={dictationKey() && dictationConfig()}>
                     <text fg={dictationHintColor()}>
                       {dictationKey()} <span style={{ fg: theme.textMuted }}>{dictationHintLabel()}</span>
+                    </text>
+                  </Show>
+                  <Show when={realtimeGrammarEnabled()}>
+                    <text fg={grammarChecker.errors().length > 0 ? theme.warning : theme.textMuted}>
+                      {grammarChecker.loading() ? "..." : grammarChecker.errors().length > 0 ? `${grammarChecker.errors().length} errors` : ""}
                     </text>
                   </Show>
                 </Match>

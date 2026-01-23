@@ -18,6 +18,7 @@ export type KeybindsConfig = SDKKeybindsConfig & {
   stash_delete?: string
   messages_line_up?: string
   messages_line_down?: string
+  grammar_quickfix?: string
 }
 
 export const { use: useKeybind, provider: KeybindProvider } = createSimpleContext({

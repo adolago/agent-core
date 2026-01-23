@@ -1154,5 +1154,27 @@ function getSyntaxRules(theme: Theme) {
         foreground: theme.textMuted,
       },
     },
+    // Grammar/spelling error styles for real-time checking
+    {
+      scope: ["extmark.error.spelling"],
+      style: {
+        foreground: theme.warning,
+        underline: true,
+      },
+    },
+    {
+      scope: ["extmark.error.grammar"],
+      style: {
+        foreground: theme.error,
+        underline: true,
+      },
+    },
+    {
+      scope: ["extmark.error.style"],
+      style: {
+        foreground: theme.info,
+        underline: true,
+      },
+    },
   ]
 }

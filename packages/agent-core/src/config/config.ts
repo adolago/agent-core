@@ -228,12 +228,10 @@ export namespace Config {
     const hasGitIgnore = await Bun.file(gitignore).exists()
     if (!hasGitIgnore) await Bun.write(gitignore, ["node_modules", "package.json", "bun.lock", ".gitignore"].join("\n"))
 
-    await BunProc.run(
-      ["add", "@opencode-ai/plugin@" + (Installation.isLocal() ? "latest" : Installation.VERSION), "--exact"],
-      {
-        cwd: dir,
-      },
-    ).catch((err) => {
+    const pluginVersion = Installation.isLocal() || Installation.isPreview() ? "latest" : Installation.VERSION
+    await BunProc.run(["add", "@opencode-ai/plugin@" + pluginVersion, "--exact"], {
+      cwd: dir,
+    }).catch((err) => {
       log.debug("failed to add plugin package", { error: String(err), dir })
     })
 
@@ -768,6 +766,7 @@ export namespace Config {
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
       input_submit: z.string().optional().default("return").describe("Submit input"),
       input_dictation_toggle: z.string().optional().default("f4").describe("Toggle dictation recording"),
+      grammar_quickfix: z.string().optional().default("ctrl+.").describe("Quick-fix grammar error at cursor"),
       input_newline: z
         .string()
         .optional()

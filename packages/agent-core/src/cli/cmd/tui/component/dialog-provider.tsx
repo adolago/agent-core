@@ -22,6 +22,16 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   google: 4,
 }
 
+// Services that aren't AI model providers but can be configured
+const SERVICES = [
+  {
+    id: "languagetool",
+    name: "LanguageTool",
+    description: "(Grammar checking)",
+    category: "Services",
+  },
+]
+
 function extractErrorMessage(error: unknown): string | null {
   if (!error) return null
   if (typeof error === "string") return error
@@ -53,9 +63,17 @@ export function createDialogProviderOptions() {
   const sync = useSync()
   const dialog = useDialog()
   const sdk = useSDK()
+  const toast = useToast()
   const connected = createMemo(() => new Set(sync.data.provider_next.connected))
+
+  // Check if LanguageTool is configured
+  const languageToolConfigured = createMemo(() => {
+    const grammar = (sync.data.config as any)?.grammar
+    return !!(grammar?.apiKey || grammar?.username)
+  })
+
   const options = createMemo(() => {
-    return pipe(
+    const providerOptions = pipe(
       sync.data.provider_next.all,
       sortBy((x) => PROVIDER_PRIORITY[x.id] ?? 99),
       map((provider) => {
@@ -133,6 +151,22 @@ export function createDialogProviderOptions() {
         }
       }),
     )
+
+    // Add service options (like LanguageTool)
+    const serviceOptions = SERVICES.map((service) => ({
+      title: service.name,
+      value: service.id,
+      description: service.description,
+      category: service.category,
+      footer: service.id === "languagetool" && languageToolConfigured() ? "Configured" : undefined,
+      async onSelect() {
+        if (service.id === "languagetool") {
+          dialog.replace(() => <LanguageToolMethod />)
+        }
+      },
+    }))
+
+    return [...providerOptions, ...serviceOptions]
   })
   return options
 }
@@ -292,5 +326,76 @@ function ApiMethod(props: ApiMethodProps) {
         dialog.replace(() => <DialogModel providerID={props.providerID} />)
       }}
     />
+  )
+}
+
+function LanguageToolMethod() {
+  const dialog = useDialog()
+  const sdk = useSDK()
+  const sync = useSync()
+  const { theme } = useTheme()
+  const toast = useToast()
+  const [step, setStep] = createSignal<"username" | "apikey">("username")
+  const [username, setUsername] = createSignal("")
+  const [error, setError] = createSignal<string | null>(null)
+
+  const currentConfig = createMemo(() => (sync.data.config as any)?.grammar ?? {})
+
+  return (
+    <Show
+      when={step() === "username"}
+      fallback={
+        <DialogPrompt
+          title="LanguageTool API Key"
+          placeholder={currentConfig().apiKey ? "••••" + currentConfig().apiKey.slice(-4) : "your-api-key"}
+          description={() => (
+            <box gap={1}>
+              <text fg={theme.textMuted}>Enter your LanguageTool API key</text>
+              <Link href="https://languagetool.org/proofreading-api" fg={theme.primary} />
+              <text fg={theme.textMuted}>Leave empty to use free tier (rate limited)</text>
+              {error() ? <text fg={theme.error}>{error()}</text> : null}
+            </box>
+          )}
+          onConfirm={async (apiKey) => {
+            try {
+              const newConfig = {
+                ...sync.data.config,
+                grammar: {
+                  provider: "languagetool" as const,
+                  username: username() || undefined,
+                  apiKey: apiKey || undefined,
+                },
+              }
+              await fetch(`${sdk.url}/config`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newConfig),
+              })
+              sync.set("config", newConfig)
+              const suffix = apiKey ? ` (key ••••${apiKey.slice(-4)})` : ""
+              toast.show({ message: `LanguageTool configured${suffix}`, variant: "success" })
+              dialog.clear()
+            } catch (e) {
+              setError("Failed to save configuration")
+            }
+          }}
+        />
+      }
+    >
+      <DialogPrompt
+        title="LanguageTool Username"
+        placeholder={currentConfig().username || "email@example.com (optional)"}
+        description={() => (
+          <box gap={1}>
+            <text fg={theme.textMuted}>Enter your LanguageTool account email</text>
+            <text fg={theme.textMuted}>Leave empty to use free tier</text>
+          </box>
+        )}
+        onConfirm={(value) => {
+          setUsername(value || "")
+          setStep("apikey")
+        }}
+      />
+    </Show>
   )
 }
