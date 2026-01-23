@@ -33,19 +33,20 @@ export namespace FileTime {
 
   export async function withLock<T>(filepath: string, fn: () => Promise<T>): Promise<T> {
     const current = state()
-    const currentLock = current.locks.get(filepath) ?? Promise.resolve()
+    const previousLock = current.locks.get(filepath)
     let release: () => void = () => {}
     const nextLock = new Promise<void>((resolve) => {
       release = resolve
     })
-    const chained = currentLock.then(() => nextLock)
-    current.locks.set(filepath, chained)
-    await currentLock
+    current.locks.set(filepath, nextLock)
+    if (previousLock) {
+      await previousLock
+    }
     try {
       return await fn()
     } finally {
       release()
-      if (current.locks.get(filepath) === chained) {
+      if (current.locks.get(filepath) === nextLock) {
         current.locks.delete(filepath)
       }
     }

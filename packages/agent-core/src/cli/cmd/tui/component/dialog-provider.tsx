@@ -102,6 +102,7 @@ export function createDialogProviderOptions() {
                 providerID: provider.id,
                 method: index,
               })
+              const requestId = (result.data as { requestId?: string } | undefined)?.requestId
               if (result.data?.method === "code") {
                 dialog.replace(() => (
                   <CodeMethod
@@ -109,6 +110,7 @@ export function createDialogProviderOptions() {
                     title={method.label}
                     index={index}
                     authorization={result.data!}
+                    requestId={requestId}
                   />
                 ))
               }
@@ -119,6 +121,7 @@ export function createDialogProviderOptions() {
                     title={method.label}
                     index={index}
                     authorization={result.data!}
+                    requestId={requestId}
                   />
                 ))
               }
@@ -144,6 +147,7 @@ interface AutoMethodProps {
   providerID: string
   title: string
   authorization: ProviderAuthAuthorization
+  requestId?: string
 }
 function AutoMethod(props: AutoMethodProps) {
   const { theme } = useTheme()
@@ -165,6 +169,7 @@ function AutoMethod(props: AutoMethodProps) {
     const result = await sdk.client.provider.oauth.callback({
       providerID: props.providerID,
       method: props.index,
+      requestId: props.requestId,
     })
     if (result.error) {
       dialog.clear()
@@ -200,6 +205,7 @@ interface CodeMethodProps {
   title: string
   providerID: string
   authorization: ProviderAuthAuthorization
+  requestId?: string
 }
 function CodeMethod(props: CodeMethodProps) {
   const { theme } = useTheme()
@@ -217,6 +223,7 @@ function CodeMethod(props: CodeMethodProps) {
           providerID: props.providerID,
           method: props.index,
           code: value,
+          requestId: props.requestId,
         })
         if (!error) {
           await sdk.client.instance.dispose()

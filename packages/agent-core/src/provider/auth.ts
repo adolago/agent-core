@@ -7,6 +7,13 @@ import type { AuthOuathResult, Hooks } from "@opencode-ai/plugin"
 import { NamedError } from "@opencode-ai/util/error"
 import { Auth } from "@/auth"
 import { Provider } from "@/provider/provider"
+import { randomUUID } from "crypto"
+
+type PendingAuth = {
+  result: AuthOuathResult
+  method: number
+  createdAt: number
+}
 
 export namespace ProviderAuth {
   const state = Instance.state(async () => {
@@ -16,7 +23,7 @@ export namespace ProviderAuth {
       map((x) => [x.auth!.provider, x.auth!] as const),
       fromEntries(),
     )
-    return { methods, pending: {} as Record<string, AuthOuathResult> }
+    return { methods, pending: {} as Record<string, Record<string, PendingAuth>> }
   })
 
   export const Method = z
@@ -46,6 +53,7 @@ export namespace ProviderAuth {
       url: z.string(),
       method: z.union([z.literal("auto"), z.literal("code")]),
       instructions: z.string(),
+      requestId: z.string().optional(),
     })
     .meta({
       ref: "ProviderAuthAuthorization",
@@ -62,11 +70,20 @@ export namespace ProviderAuth {
       const method = auth.methods[input.method]
       if (method.type === "oauth") {
         const result = await method.authorize()
-        await state().then((s) => (s.pending[input.providerID] = result))
+        const requestId = randomUUID()
+        await state().then((s) => {
+          s.pending[input.providerID] ??= {}
+          s.pending[input.providerID][requestId] = {
+            result,
+            method: input.method,
+            createdAt: Date.now(),
+          }
+        })
         return {
           url: result.url,
           method: result.method,
           instructions: result.instructions,
+          requestId,
         }
       }
     },
@@ -77,20 +94,34 @@ export namespace ProviderAuth {
       providerID: z.string(),
       method: z.number(),
       code: z.string().optional(),
+      requestId: z.string().optional(),
     }),
     async (input) => {
-      const match = await state().then((s) => s.pending[input.providerID])
-      if (!match) throw new OauthMissing({ providerID: input.providerID })
-      let result
-
-      if (match.method === "code") {
-        if (!input.code) throw new OauthCodeMissing({ providerID: input.providerID })
-        result = await match.callback(input.code)
+      const pending = await state().then((s) => s.pending[input.providerID])
+      let requestId = input.requestId
+      if (!requestId && pending && Object.keys(pending).length === 1) {
+        requestId = Object.keys(pending)[0]
+      }
+      if (!pending || !requestId || !pending[requestId]) {
+        throw new OauthStateMismatch({ providerID: input.providerID })
+      }
+      const entry = pending[requestId]
+      if (entry.method !== input.method) {
+        throw new OauthStateMismatch({ providerID: input.providerID })
       }
 
-      if (match.method === "auto") {
-        result = await match.callback()
-      }
+      try {
+        const match = entry.result
+        let result
+
+        if (match.method === "code") {
+          if (!input.code) throw new OauthCodeMissing({ providerID: input.providerID })
+          result = await match.callback(input.code)
+        }
+
+        if (match.method === "auto") {
+          result = await match.callback()
+        }
 
         if (result?.type === "success") {
           if ("key" in result) {
@@ -116,7 +147,17 @@ export namespace ProviderAuth {
           return
         }
 
-      throw new OauthCallbackFailed({})
+        throw new OauthCallbackFailed({})
+      } finally {
+        await state().then((s) => {
+          const providerPending = s.pending[input.providerID]
+          if (!providerPending || !requestId) return
+          delete providerPending[requestId]
+          if (Object.keys(providerPending).length === 0) {
+            delete s.pending[input.providerID]
+          }
+        })
+      }
     },
   )
 
@@ -155,4 +196,10 @@ export namespace ProviderAuth {
   )
 
   export const OauthCallbackFailed = NamedError.create("ProviderAuthOauthCallbackFailed", z.object({}))
+  export const OauthStateMismatch = NamedError.create(
+    "ProviderAuthOauthStateMismatch",
+    z.object({
+      providerID: z.string(),
+    }),
+  )
 }

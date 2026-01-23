@@ -261,15 +261,17 @@ export const ModelRoute = new Hono()
       z.object({
         method: z.number().meta({ description: "Auth method index" }),
         code: z.string().optional().meta({ description: "OAuth authorization code" }),
+        requestId: z.string().optional().meta({ description: "OAuth request identifier" }),
       }),
     ),
     async (c) => {
       const providerID = c.req.valid("param").providerID
-      const { method, code } = c.req.valid("json")
+      const { method, code, requestId } = c.req.valid("json")
       await ProviderAuth.callback({
         providerID,
         method,
         code,
+        requestId,
       })
       return c.json(true)
     },

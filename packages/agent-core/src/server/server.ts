@@ -12,6 +12,7 @@ import { lazy } from "../util/lazy"
 import { Storage } from "../storage/storage"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { websocket } from "hono/bun"
+import { bodyLimit } from "hono/body-limit"
 import { Installation } from "@/installation"
 import { MDNS } from "./mdns"
 import { ServerState } from "./state"
@@ -43,6 +44,24 @@ import { GatewayRoute } from "./route/gateway"
 
 // Default API port for the daemon
 const DEFAULT_API_PORT = 3210
+const DEFAULT_BODY_LIMIT_BYTES = 10 * 1024 * 1024
+
+function parseBodyLimitBytes(value?: string): number | undefined {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  const match = normalized.match(/^(\d+(?:\.\d+)?)(b|kb|mb|gb)?$/)
+  if (!match) return undefined
+  const amount = Number(match[1])
+  if (!Number.isFinite(amount) || amount <= 0) return undefined
+  const unit = match[2] ?? "b"
+  const multipliers: Record<string, number> = {
+    b: 1,
+    kb: 1024,
+    mb: 1024 * 1024,
+    gb: 1024 * 1024 * 1024,
+  }
+  return Math.floor(amount * (multipliers[unit] ?? 1))
+}
 
 // @ts-ignore This global is needed to prevent ai-sdk from logging warnings to stdout
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -99,6 +118,14 @@ export namespace Server {
             timer.stop()
           }
         })
+        .use(
+          bodyLimit({
+            maxSize:
+              parseBodyLimitBytes(process.env["AGENT_CORE_BODY_LIMIT"] ?? process.env["OPENCODE_BODY_LIMIT"]) ??
+              DEFAULT_BODY_LIMIT_BYTES,
+            onError: (c) => c.json({ error: "Request body too large" }, 413),
+          }),
+        )
         .use(
           cors({
             origin(input) {

@@ -19,6 +19,13 @@ async function loadSqliteModules() {
   }
 }
 
+function quoteIdentifier(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error('Invalid SQL identifier');
+  }
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 /**
  * Memory database consolidation strategy
  * Consolidates multiple memory storage locations into a unified structure
@@ -345,40 +352,46 @@ export class MemoryConsolidator {
       driver: sqlite3.Database
     });
     
-    for (const dbFile of dbFiles) {
+    for (const [index, dbFile] of dbFiles.entries()) {
       if (!existsSync(dbFile) || dbFile === targetDb) continue;
       
       try {
         // Attach the source database
-        const alias = `db_${path.basename(dbFile, '.db')}`;
-        await db.exec(`ATTACH DATABASE '${dbFile}' AS ${alias}`);
+        const alias = `db_${index}`;
+        const aliasIdent = quoteIdentifier(alias);
+        await db.run(`ATTACH DATABASE ? AS ${aliasIdent}`, [dbFile]);
         
         // Get tables from source database
         const tables = await db.all(`
-          SELECT name FROM ${alias}.sqlite_master 
+          SELECT name FROM ${aliasIdent}.sqlite_master 
           WHERE type='table' AND name LIKE '%memory%'
         `);
         
         // Copy data from each memory-related table
         for (const table of tables) {
           try {
-            await db.exec(`
+            if (!table?.name) continue;
+            const tableIdent = quoteIdentifier(table.name);
+            await db.run(
+              `
               INSERT OR IGNORE INTO memory_entries (key, value, namespace, timestamp, source)
               SELECT 
                 COALESCE(key, ''), 
                 COALESCE(value, ''), 
                 COALESCE(namespace, 'default'),
                 COALESCE(timestamp, strftime('%s', 'now') * 1000),
-                '${dbFile}'
-              FROM ${alias}.${table.name}
+                ?
+              FROM ${aliasIdent}.${tableIdent}
               WHERE key IS NOT NULL AND value IS NOT NULL
-            `);
+            `,
+              [dbFile],
+            );
           } catch (err) {
             // Table structure might be different, skip
           }
         }
         
-        await db.exec(`DETACH DATABASE ${alias}`);
+        await db.exec(`DETACH DATABASE ${aliasIdent}`);
       } catch (err) {
         printWarning(`Failed to merge ${dbFile}: ${err.message}`);
       }
