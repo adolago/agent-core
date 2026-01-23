@@ -472,7 +472,11 @@ export class ProjectManager extends EventEmitter {
     const averageProjectDuration =
       completedProjectsWithDuration.length > 0
         ? completedProjectsWithDuration.reduce((sum, p) => {
-            const duration = p.timeline.actualEnd!.getTime() - p.timeline.actualStart!.getTime();
+            const { actualStart, actualEnd } = p.timeline;
+            if (!actualStart || !actualEnd) {
+              return sum;
+            }
+            const duration = actualEnd.getTime() - actualStart.getTime();
             return sum + duration / (1000 * 60 * 60 * 24); // Convert to days
           }, 0) / completedProjectsWithDuration.length
         : 0;

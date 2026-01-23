@@ -805,9 +805,10 @@ export class CloudManager extends EventEmitter {
         resources = resources.filter((r) => r.metadata.environment === filters.environment);
       }
       if (filters.timeRange) {
-        resources = resources.filter(
-          (r) => r.createdAt >= filters.timeRange!.start && r.createdAt <= filters.timeRange!.end,
-        );
+        const { start, end } = filters.timeRange;
+        if (start && end) {
+          resources = resources.filter((r) => r.createdAt >= start && r.createdAt <= end);
+        }
       }
     }
 
