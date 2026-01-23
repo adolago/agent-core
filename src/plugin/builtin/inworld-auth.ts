@@ -105,9 +105,8 @@ export const InworldAuthPlugin: PluginFactory = async (
               body: JSON.stringify({
                 input: {
                   audio: {
-                    data: '',
+                    data: [],
                     sampleRate: 16000,
-                    mimeType: 'audio/wav',
                   },
                 },
               }),

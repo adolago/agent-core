@@ -128,3 +128,60 @@ describe("Dictation.resolveConfig", () => {
     expect(result?.responsePath).toBe("data.text")
   })
 })
+
+describe("Dictation.transcribe", () => {
+  it("sends GraphTypes.Audio payload from WAV PCM data", async () => {
+    const wav = buildWav(new Int16Array([0, 32767]), 8000)
+    let seenBody: any
+    const fetcher = async (_url: string, init?: RequestInit) => {
+      seenBody = JSON.parse(String(init?.body ?? "{}"))
+      return new Response(JSON.stringify({ text: "ok" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    }
+
+    const result = await Dictation.transcribe({
+      config: {
+        endpoint: "https://example.test/graph:start",
+        apiKey: "test-key",
+        inputKey: "audio",
+        sampleRate: 16000,
+        autoSubmit: false,
+      },
+      audio: wav,
+      fetcher,
+    })
+
+    expect(result).toBe("ok")
+    expect(seenBody.input.audio.sampleRate).toBe(8000)
+    expect(seenBody.input.audio.data).toHaveLength(2)
+    expect(seenBody.input.audio.data[0]).toBeCloseTo(0, 6)
+    expect(seenBody.input.audio.data[1]).toBeCloseTo(0.99997, 4)
+    expect(seenBody.input.audio.mimeType).toBeUndefined()
+  })
+})
+
+function buildWav(samples: Int16Array, sampleRate: number): Uint8Array {
+  const channels = 1
+  const bytesPerSample = 2
+  const dataSize = samples.length * bytesPerSample * channels
+  const buffer = Buffer.alloc(44 + dataSize)
+  buffer.write("RIFF", 0)
+  buffer.writeUInt32LE(36 + dataSize, 4)
+  buffer.write("WAVE", 8)
+  buffer.write("fmt ", 12)
+  buffer.writeUInt32LE(16, 16)
+  buffer.writeUInt16LE(1, 20)
+  buffer.writeUInt16LE(channels, 22)
+  buffer.writeUInt32LE(sampleRate, 24)
+  buffer.writeUInt32LE(sampleRate * channels * bytesPerSample, 28)
+  buffer.writeUInt16LE(channels * bytesPerSample, 32)
+  buffer.writeUInt16LE(16, 34)
+  buffer.write("data", 36)
+  buffer.writeUInt32LE(dataSize, 40)
+  for (let i = 0; i < samples.length; i += 1) {
+    buffer.writeInt16LE(samples[i] ?? 0, 44 + i * 2)
+  }
+  return new Uint8Array(buffer)
+}

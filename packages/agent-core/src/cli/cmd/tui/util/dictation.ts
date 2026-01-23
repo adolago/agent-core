@@ -36,6 +36,11 @@ export namespace Dictation {
     cancel: () => Promise<void>
   }
 
+  type DecodedAudio = {
+    data: number[]
+    sampleRate: number
+  }
+
   const DEFAULT_SAMPLE_RATE = 16_000
   const DEFAULT_INPUT_KEY = "audio"
   const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
@@ -153,12 +158,17 @@ export namespace Dictation {
   }): Promise<string | undefined> {
     const fetcher = input.fetcher ?? fetch
     input.onState?.("sending")
+    const decoded = decodeWav(input.audio)
+    if (!decoded) {
+      throw new Error(
+        "Dictation expects 16-bit PCM WAV audio. Update tui.dictation.record_command to output WAV.",
+      )
+    }
     const payload = {
       input: {
         [input.config.inputKey]: {
-          data: Buffer.from(input.audio).toString("base64"),
-          sampleRate: input.config.sampleRate,
-          mimeType: "audio/wav",
+          data: decoded.data,
+          sampleRate: decoded.sampleRate,
         },
       },
     }
@@ -189,6 +199,76 @@ export namespace Dictation {
       if (typeof resolved === "string") return resolved
     }
     return findTranscript(data)
+  }
+
+  function decodeWav(input: Uint8Array): DecodedAudio | undefined {
+    if (input.byteLength < 44) return
+    const view = new DataView(input.buffer, input.byteOffset, input.byteLength)
+    if (readTag(view, 0) !== "RIFF" || readTag(view, 8) !== "WAVE") return
+
+    let offset = 12
+    let format: { audioFormat: number; channels: number; sampleRate: number; bitsPerSample: number } | undefined
+    let dataOffset: number | undefined
+    let dataSize: number | undefined
+
+    while (offset + 8 <= input.byteLength) {
+      const chunkId = readTag(view, offset)
+      const chunkSize = view.getUint32(offset + 4, true)
+      offset += 8
+      if (offset + chunkSize > input.byteLength) break
+
+      if (chunkId === "fmt ") {
+        if (chunkSize < 16) return
+        format = {
+          audioFormat: view.getUint16(offset, true),
+          channels: view.getUint16(offset + 2, true),
+          sampleRate: view.getUint32(offset + 4, true),
+          bitsPerSample: view.getUint16(offset + 14, true),
+        }
+      } else if (chunkId === "data") {
+        dataOffset = offset
+        dataSize = chunkSize
+      }
+
+      offset += chunkSize
+      if (chunkSize % 2 === 1) offset += 1
+    }
+
+    if (!format || dataOffset === undefined || dataSize === undefined) return
+    if (format.channels < 1) return
+    const bytesPerSample = format.bitsPerSample / 8
+    if (!Number.isInteger(bytesPerSample) || bytesPerSample <= 0) return
+    const frameSize = bytesPerSample * format.channels
+    if (frameSize <= 0) return
+
+    const available = Math.min(dataSize, input.byteLength - dataOffset)
+    const sampleCount = Math.floor(available / frameSize)
+    const data = new Array<number>(sampleCount)
+    const dataView = new DataView(input.buffer, input.byteOffset + dataOffset, available)
+
+    if (format.audioFormat === 1 && format.bitsPerSample === 16) {
+      for (let i = 0; i < sampleCount; i += 1) {
+        const sample = dataView.getInt16(i * frameSize, true)
+        data[i] = sample / 32768
+      }
+    } else if (format.audioFormat === 3 && format.bitsPerSample === 32) {
+      for (let i = 0; i < sampleCount; i += 1) {
+        data[i] = dataView.getFloat32(i * frameSize, true)
+      }
+    } else {
+      return
+    }
+
+    return { data, sampleRate: format.sampleRate }
+  }
+
+  function readTag(view: DataView, offset: number): string {
+    return String.fromCharCode(
+      view.getUint8(offset),
+      view.getUint8(offset + 1),
+      view.getUint8(offset + 2),
+      view.getUint8(offset + 3),
+    )
   }
 
   function findTranscript(value: unknown): string | undefined {

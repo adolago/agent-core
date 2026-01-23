@@ -98,6 +98,7 @@ Configure Inworld STT and a keybind in `agent-core.jsonc`:
 
 You can also set `INWORLD_API_KEY` and `INWORLD_STT_ENDPOINT` as environment variables instead of storing secrets in config.
 Use `tui.dictation.record_command` to override the recorder command if `arecord` is unavailable.
+The dictation payload is sent as `GraphTypes.Audio` with a float PCM array (`data`) and `sampleRate`; your graph input key must match `tui.dictation.input_key` (default: `audio`).
 
 ## 4. Usage
 
