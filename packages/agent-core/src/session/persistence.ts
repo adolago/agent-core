@@ -181,14 +181,26 @@ export namespace Persistence {
       walFlushInterval = null
     }
 
+    let cleanShutdown = true
+
     // Flush remaining WAL entries
-    await flushWAL()
+    await flushWAL().catch((e) => {
+      cleanShutdown = false
+      log.error("WAL flush failed during shutdown", { error: String(e) })
+    })
 
     // Create final checkpoint
-    await createCheckpoint()
+    await createCheckpoint().catch((e) => {
+      cleanShutdown = false
+      log.error("Final checkpoint failed during shutdown", { error: String(e) })
+    })
 
     // Remove recovery marker (clean shutdown)
-    await fs.unlink(RECOVERY_MARKER).catch(() => {})
+    if (cleanShutdown) {
+      await fs.unlink(RECOVERY_MARKER).catch(() => {})
+    } else {
+      log.warn("Skipping recovery marker removal due to shutdown errors")
+    }
 
     log.info("Persistence shutdown complete")
   }

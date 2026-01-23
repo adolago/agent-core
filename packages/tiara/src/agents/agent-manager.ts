@@ -852,7 +852,17 @@ export class AgentManager extends EventEmitter {
       this.stopAgent(agentId, 'shutdown'),
     );
 
-    await Promise.all(shutdownPromises);
+    const results = await Promise.allSettled(shutdownPromises);
+    const failures = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+
+    for (const failure of failures) {
+      this.logger.error('Agent shutdown failed', { reason: failure.reason });
+    }
+    if (failures.length > 0) {
+      this.logger.warn(`${failures.length} agents failed to shutdown cleanly`);
+    }
 
     this.emit('agent-manager:shutdown');
   }
