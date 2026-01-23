@@ -95,7 +95,6 @@ export function TextField(props: TextFieldProps) {
             <IconButton
               aria-label="Copy to clipboard"
               type="button"
-              aria-label="Copy to clipboard"
               icon={copied() ? "check" : "copy"}
               variant="ghost"
               onClick={handleCopy}
