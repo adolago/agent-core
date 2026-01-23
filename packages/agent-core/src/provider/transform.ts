@@ -19,6 +19,26 @@ function mimeToModality(mime: string): Modality | undefined {
   return undefined
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function mergeProviderOptions(
+  existing: Record<string, unknown> | undefined,
+  extra: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...(existing ?? {}) }
+  for (const [key, value] of Object.entries(extra)) {
+    const current = merged[key]
+    if (isPlainObject(current) && isPlainObject(value)) {
+      merged[key] = { ...current, ...value }
+    } else {
+      merged[key] = value
+    }
+  }
+  return merged
+}
+
 export namespace ProviderTransform {
   // Maps npm package to the key the AI SDK expects for providerOptions
   function sdkKey(npm: string): string | undefined {
@@ -198,18 +218,19 @@ export namespace ProviderTransform {
       if (shouldUseContentOptions) {
         const lastContent = msg.content[msg.content.length - 1]
         if (lastContent && typeof lastContent === "object" && "providerOptions" in lastContent) {
-          ;(lastContent as { providerOptions?: Record<string, unknown> }).providerOptions = {
-            ...(lastContent as { providerOptions?: Record<string, unknown> }).providerOptions,
-            ...providerOptions,
-          }
+          const contentOptions = (lastContent as { providerOptions?: Record<string, unknown> }).providerOptions
+          ;(lastContent as { providerOptions?: Record<string, unknown> }).providerOptions = mergeProviderOptions(
+            contentOptions,
+            providerOptions,
+          )
           continue
         }
       }
 
-      msg.providerOptions = {
-        ...msg.providerOptions,
-        ...providerOptions,
-      }
+      msg.providerOptions = mergeProviderOptions(
+        msg.providerOptions as Record<string, unknown> | undefined,
+        providerOptions,
+      )
     }
 
     return msgs
