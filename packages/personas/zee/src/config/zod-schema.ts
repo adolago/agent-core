@@ -130,11 +130,19 @@ const QueueModeBySurfaceSchema = z
   })
   .optional();
 
+const TranscribeAudioCommandSchema = z.object({
+  command: z.array(z.string()),
+  timeoutSeconds: z.number().int().positive().optional(),
+});
+
+const TranscribeAudioInworldSchema = z.object({
+  provider: z.literal("inworld"),
+  timeoutSeconds: z.number().int().positive().optional(),
+  sampleRate: z.number().int().positive().optional(),
+});
+
 const TranscribeAudioSchema = z
-  .object({
-    command: z.array(z.string()),
-    timeoutSeconds: z.number().int().positive().optional(),
-  })
+  .union([TranscribeAudioCommandSchema, TranscribeAudioInworldSchema])
   .optional();
 
 const HexColorSchema = z

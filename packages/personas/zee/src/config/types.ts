@@ -759,12 +759,21 @@ export type GroupChatConfig = {
   historyLimit?: number;
 };
 
+export type TranscribeAudioConfig =
+  | {
+      // Optional CLI to turn inbound audio into text; templated args, must output transcript to stdout.
+      command: string[];
+      timeoutSeconds?: number;
+    }
+  | {
+      // Use agent-core's Inworld Runtime STT configuration.
+      provider: "inworld";
+      timeoutSeconds?: number;
+      sampleRate?: number;
+    };
+
 export type RoutingConfig = {
-  transcribeAudio?: {
-    // Optional CLI to turn inbound audio into text; templated args, must output transcript to stdout.
-    command: string[];
-    timeoutSeconds?: number;
-  };
+  transcribeAudio?: TranscribeAudioConfig;
   groupChat?: GroupChatConfig;
   /** Default agent id when no binding matches. Default: "main". */
   defaultAgentId?: string;

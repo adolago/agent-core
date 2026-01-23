@@ -14,6 +14,10 @@ vi.mock("../process/exec.js", () => ({
   runExec: vi.fn(),
 }));
 
+vi.mock("../agents/agent-core-client.js", () => ({
+  transcribeInworldAudio: vi.fn(),
+}));
+
 const runtime = {
   error: vi.fn(),
 };
@@ -70,4 +74,57 @@ describe("transcribeInboundAudio", () => {
     );
     expect(res).toBeUndefined();
   });
+
+  it("uses agent-core Inworld transcription when configured", async () => {
+    const wav = buildWav(new Int16Array([0, 32767]), 16000);
+    const tmpFile = path.join(os.tmpdir(), `zee-audio-${Date.now()}.wav`);
+    await fs.writeFile(tmpFile, wav);
+
+    const agentCoreModule = await import("../agents/agent-core-client.js");
+    vi.mocked(agentCoreModule.transcribeInworldAudio).mockResolvedValue(
+      "hello",
+    );
+
+    const { transcribeInboundAudio } = await import("./transcription.js");
+    const result = await transcribeInboundAudio(
+      {
+        routing: {
+          transcribeAudio: {
+            provider: "inworld",
+            timeoutSeconds: 5,
+          },
+        },
+      } as never,
+      { MediaPath: tmpFile } as never,
+      runtime as never,
+    );
+    expect(result?.text).toBe("hello");
+    expect(agentCoreModule.transcribeInworldAudio).toHaveBeenCalled();
+
+    await fs.unlink(tmpFile);
+  });
 });
+
+function buildWav(samples: Int16Array, sampleRate: number): Uint8Array {
+  const channels = 1;
+  const bytesPerSample = 2;
+  const dataSize = samples.length * bytesPerSample * channels;
+  const buffer = Buffer.alloc(44 + dataSize);
+  buffer.write("RIFF", 0);
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write("WAVE", 8);
+  buffer.write("fmt ", 12);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(channels, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * channels * bytesPerSample, 28);
+  buffer.writeUInt16LE(channels * bytesPerSample, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36);
+  buffer.writeUInt32LE(dataSize, 40);
+  for (let i = 0; i < samples.length; i += 1) {
+    buffer.writeInt16LE(samples[i] ?? 0, 44 + i * 2);
+  }
+  return new Uint8Array(buffer);
+}

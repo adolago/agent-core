@@ -109,6 +109,7 @@ export type EmbeddedPiCompactResult = {
 let agentCoreInstance: {
   client: OpencodeClient;
   server: { url: string; close: () => void } | null;
+  url: string;
 } | null = null;
 
 /**
@@ -172,9 +173,59 @@ async function getAgentCoreClient() {
     agentCoreInstance = {
       client,
       server: null, // No server to manage - using existing daemon
+      url: daemonUrl,
     };
   }
   return agentCoreInstance;
+}
+
+export async function transcribeInworldAudio(input: {
+  audio: Uint8Array;
+  timeoutMs?: number;
+}): Promise<string | undefined> {
+  const { url } = await getAgentCoreClient();
+  const timeoutMs = input.timeoutMs ?? 45_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${url}/stt/inworld`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        audio: Buffer.from(input.audio).toString("base64"),
+      }),
+    });
+
+    const raw = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = undefined;
+    }
+
+    if (!response.ok) {
+      const message =
+        data && typeof data === "object" && "error" in data
+          ? String((data as { error?: unknown }).error ?? "")
+          : raw || response.statusText;
+      throw new Error(`agent-core STT failed (${response.status}): ${message}`);
+    }
+
+    const payload = data as { success?: boolean; text?: unknown; error?: unknown } | undefined;
+    if (!payload?.success) {
+      throw new Error(
+        `agent-core STT failed: ${payload?.error ? String(payload.error) : "unknown error"}`,
+      );
+    }
+
+    const text = typeof payload.text === "string" ? payload.text.trim() : "";
+    return text || undefined;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // Session state tracking
