@@ -33,6 +33,7 @@ import { createOpencodeClient as createEventClient } from "@opencode-ai/sdk"
 import type { OpencodeClient, SessionMessageResponse } from "@opencode-ai/sdk/v2"
 import { applyPatch } from "diff"
 import { HEADER_DIRECTORY } from "@/gateway/constants"
+import { createAuthorizedFetch } from "@/server/auth"
 
 type AppEvent = {
   type: string
@@ -86,10 +87,14 @@ export namespace ACP {
       this.config = config
       this.sdk = config.sdk
       const sdkHasEvents = typeof (config.sdk as any)?.global?.event === "function"
+      const authFetch = createAuthorizedFetch(fetch)
       this.eventSdk = sdkHasEvents
         ? (config.sdk as unknown as EventClient)
-        : (createEventClient({ baseUrl: config.url }) as unknown as EventClient)
+        : (createEventClient({ baseUrl: config.url, fetch: authFetch }) as unknown as EventClient)
       this.sessionManager = new ACPSessionManager(this.sdk)
+      this.connection.signal.addEventListener("abort", () => {
+        this.dispose()
+      })
       this.startEventSubscription()
     }
 
@@ -117,6 +122,11 @@ export namespace ACP {
           })
         }
       }
+    }
+
+    dispose() {
+      if (this.eventAbort.signal.aborted) return
+      this.eventAbort.abort()
     }
 
     private async handleEvent(event: AppEvent) {
