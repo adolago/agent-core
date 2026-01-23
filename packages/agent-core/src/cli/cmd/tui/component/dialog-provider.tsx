@@ -169,8 +169,8 @@ function AutoMethod(props: AutoMethodProps) {
     const result = await sdk.client.provider.oauth.callback({
       providerID: props.providerID,
       method: props.index,
-      requestId: props.requestId,
-    })
+      ...(props.requestId ? { requestId: props.requestId } : {}),
+    } as any)
     if (result.error) {
       dialog.clear()
       return
@@ -223,8 +223,8 @@ function CodeMethod(props: CodeMethodProps) {
           providerID: props.providerID,
           method: props.index,
           code: value,
-          requestId: props.requestId,
-        })
+          ...(props.requestId ? { requestId: props.requestId } : {}),
+        } as any)
         if (!error) {
           await sdk.client.instance.dispose()
           await sync.bootstrap()
