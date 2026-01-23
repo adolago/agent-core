@@ -56,7 +56,8 @@ export * as Util from "./util/types.js";
 
 // Re-export common utilities
 export { z } from "zod";
-export type { LanguageModelV1 } from "ai";
+export type { LanguageModel } from "ai";
+export type LanguageModelV1 = import("ai").LanguageModel;
 
 /** agent-core version */
 export const VERSION = "0.1.0";

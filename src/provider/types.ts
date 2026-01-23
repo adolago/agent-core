@@ -5,7 +5,7 @@
  * (Claude Max, ChatGPT Plus, GitHub Copilot, etc.)
  */
 
-import type { LanguageModelV1 } from "ai";
+import type { LanguageModel } from "ai";
 
 /** Authentication methods supported by providers */
 export type AuthMethod =
@@ -109,9 +109,9 @@ export interface ProviderInfo {
 
 /** Provider SDK interface */
 export interface ProviderSDK {
-  languageModel(modelId: string): LanguageModelV1;
-  chat?(modelId: string): LanguageModelV1;
-  responses?(modelId: string): LanguageModelV1;
+  languageModel(modelId: string): LanguageModel;
+  chat?(modelId: string): LanguageModel;
+  responses?(modelId: string): LanguageModel;
 }
 
 /** Custom model loader for providers with special instantiation */
@@ -119,7 +119,7 @@ export type ModelLoader = (
   sdk: ProviderSDK,
   modelId: string,
   options?: Record<string, unknown>
-) => Promise<LanguageModelV1>;
+) => Promise<LanguageModel>;
 
 /** Provider registry interface */
 export interface ProviderRegistry {
@@ -133,7 +133,7 @@ export interface ProviderRegistry {
   getModel(providerId: string, modelId: string): Promise<Model>;
 
   /** Get the language model instance for inference */
-  getLanguage(model: Model): Promise<LanguageModelV1>;
+  getLanguage(model: Model): Promise<LanguageModel>;
 
   /** Get the default model based on config */
   defaultModel(): Promise<{ providerId: string; modelId: string }>;
