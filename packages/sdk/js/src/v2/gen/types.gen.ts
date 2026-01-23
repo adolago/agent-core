@@ -589,6 +589,7 @@ export type PermissionConfig =
 
 export type AgentConfig = {
   model?: string
+  fallback?: string
   temperature?: number
   top_p?: number
   top_k?: number
@@ -2031,6 +2032,7 @@ export type ProviderAuthAuthorization = {
   url: string
   method: "auto" | "code"
   instructions: string
+  requestId?: string
 }
 
 export type McpStatusConnected = {
@@ -2858,6 +2860,10 @@ export type SessionListData = {
      * Filter sessions by title (case-insensitive)
      */
     search?: string
+    /**
+     * Filter sessions by directory path
+     */
+    directory?: string
     /**
      * Maximum number of sessions to return
      */
@@ -4172,6 +4178,10 @@ export type ProviderOauthCallbackData = {
      * OAuth authorization code
      */
     code?: string
+    /**
+     * OAuth request identifier
+     */
+    requestId?: string
   }
   path: {
     /**

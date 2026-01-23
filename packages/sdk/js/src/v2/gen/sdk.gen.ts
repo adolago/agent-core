@@ -831,6 +831,7 @@ export class Session extends HeyApiClient {
     parameters?: {
       start?: number
       search?: string
+      directory?: string
       limit?: number
     },
     options?: Options<never, ThrowOnError>,
@@ -842,6 +843,7 @@ export class Session extends HeyApiClient {
           args: [
             { in: "query", key: "start" },
             { in: "query", key: "search" },
+            { in: "query", key: "directory" },
             { in: "query", key: "limit" },
           ],
         },
@@ -1917,6 +1919,7 @@ export class Oauth extends HeyApiClient {
       providerID: string
       method?: number
       code?: string
+      requestId?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1928,6 +1931,7 @@ export class Oauth extends HeyApiClient {
             { in: "path", key: "providerID" },
             { in: "body", key: "method" },
             { in: "body", key: "code" },
+            { in: "body", key: "requestId" },
           ],
         },
       ],
