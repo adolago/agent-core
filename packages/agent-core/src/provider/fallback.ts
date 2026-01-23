@@ -132,7 +132,7 @@ export namespace Fallback {
    */
   async function tryMidStreamFallback(error: Error, context: StreamContext): Promise<LLM.StreamOutput | undefined> {
     // Record failure for circuit breaker
-    CircuitBreaker.recordFailure(context.currentModel.providerID, error)
+    await CircuitBreaker.recordFailure(context.currentModel.providerID, error)
 
     const modelKey = `${context.currentModel.providerID}/${context.currentModel.id}`
 
@@ -244,7 +244,7 @@ export namespace Fallback {
       })
 
       // Check circuit breaker before attempting
-      if (!CircuitBreaker.canUse(currentModel.providerID)) {
+      if (!(await CircuitBreaker.canUse(currentModel.providerID))) {
         log.warn("circuit breaker open", { provider: currentModel.providerID })
 
         const fallbackModel = await FallbackChain.resolve(
@@ -269,9 +269,9 @@ export namespace Fallback {
       }
 
       // Track half-open requests
-      const state = CircuitBreaker.getState(currentModel.providerID)
+      const state = await CircuitBreaker.getState(currentModel.providerID)
       if (state.state === "half_open") {
-        CircuitBreaker.startHalfOpenRequest(currentModel.providerID)
+        await CircuitBreaker.startHalfOpenRequest(currentModel.providerID)
       }
 
       attempted.push(modelKey)
@@ -315,7 +315,7 @@ export namespace Fallback {
         return wrappedStream
       } catch (error) {
         lastError = error as Error
-        CircuitBreaker.recordFailure(currentModel.providerID, lastError)
+        await CircuitBreaker.recordFailure(currentModel.providerID, lastError)
 
         log.warn("stream failed", {
           attempt,
@@ -382,21 +382,21 @@ export namespace Fallback {
   /**
    * Get circuit breaker states for all providers.
    */
-  export function getCircuitBreakerStates(): Record<string, CircuitBreaker.ProviderState> {
+  export async function getCircuitBreakerStates(): Promise<Record<string, CircuitBreaker.ProviderState>> {
     return CircuitBreaker.getAllStates()
   }
 
   /**
    * Reset circuit breaker for a specific provider.
    */
-  export function resetCircuitBreaker(providerID: string): void {
-    CircuitBreaker.reset(providerID)
+  export async function resetCircuitBreaker(providerID: string): Promise<void> {
+    await CircuitBreaker.reset(providerID)
   }
 
   /**
    * Reset all circuit breakers.
    */
-  export function resetAllCircuitBreakers(): void {
-    CircuitBreaker.resetAll()
+  export async function resetAllCircuitBreakers(): Promise<void> {
+    await CircuitBreaker.resetAll()
   }
 }

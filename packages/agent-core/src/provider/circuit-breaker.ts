@@ -62,6 +62,21 @@ export namespace CircuitBreaker {
   // In-memory state (resets on restart)
   const breakers = new Map<string, ProviderState>()
   let config: Config = { ...DEFAULT_CONFIG }
+  let stateMutex: Promise<void> = Promise.resolve()
+
+  async function withStateLock<T>(fn: () => T | Promise<T>): Promise<T> {
+    const current = stateMutex
+    let release!: () => void
+    stateMutex = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await current
+    try {
+      return await fn()
+    } finally {
+      release()
+    }
+  }
 
   /**
    * Configure circuit breaker settings.
@@ -100,108 +115,116 @@ export namespace CircuitBreaker {
    *
    * @returns true if requests should be allowed, false if circuit is open
    */
-  export function canUse(providerID: string): boolean {
-    const state = getOrCreateState(providerID)
+  export async function canUse(providerID: string): Promise<boolean> {
+    return withStateLock(() => {
+      const state = getOrCreateState(providerID)
 
-    switch (state.state) {
-      case "closed":
-        return true
+      switch (state.state) {
+        case "closed":
+          return true
 
-      case "open": {
-        // Check if timeout has passed to transition to half_open
-        if (state.lastFailure && Date.now() - state.lastFailure >= config.timeout) {
-          transitionTo(providerID, state, "half_open", "timeout expired")
-          return state.halfOpenRequests < config.halfOpenLimit
+        case "open": {
+          // Check if timeout has passed to transition to half_open
+          if (state.lastFailure && Date.now() - state.lastFailure >= config.timeout) {
+            transitionTo(providerID, state, "half_open", "timeout expired")
+            return state.halfOpenRequests < config.halfOpenLimit
+          }
+          return false
         }
-        return false
-      }
 
-      case "half_open":
-        // Allow limited requests in half_open
-        return state.halfOpenRequests < config.halfOpenLimit
-    }
+        case "half_open":
+          // Allow limited requests in half_open
+          return state.halfOpenRequests < config.halfOpenLimit
+      }
+    })
   }
 
   /**
    * Record a successful request to a provider.
    */
-  export function recordSuccess(providerID: string): void {
-    const state = getOrCreateState(providerID)
+  export async function recordSuccess(providerID: string): Promise<void> {
+    await withStateLock(() => {
+      const state = getOrCreateState(providerID)
 
-    switch (state.state) {
-      case "closed":
-        // Reset failure count on success
-        state.failures = 0
-        break
+      switch (state.state) {
+        case "closed":
+          // Reset failure count on success
+          state.failures = 0
+          break
 
-      case "half_open":
-        state.halfOpenRequests = Math.max(0, state.halfOpenRequests - 1)
-        state.successes++
+        case "half_open":
+          state.halfOpenRequests = Math.max(0, state.halfOpenRequests - 1)
+          state.successes++
 
-        if (state.successes >= config.successThreshold) {
-          transitionTo(providerID, state, "closed", "success threshold reached")
-        }
-        break
+          if (state.successes >= config.successThreshold) {
+            transitionTo(providerID, state, "closed", "success threshold reached")
+          }
+          break
 
-      case "open":
-        // Shouldn't happen, but handle gracefully
-        log.warn("success recorded in open state", { providerID })
-        break
-    }
+        case "open":
+          // Shouldn't happen, but handle gracefully
+          log.warn("success recorded in open state", { providerID })
+          break
+      }
 
-    log.info("success", {
-      providerID,
-      state: state.state,
-      successes: state.successes,
-      failures: state.failures,
+      log.info("success", {
+        providerID,
+        state: state.state,
+        successes: state.successes,
+        failures: state.failures,
+      })
     })
   }
 
   /**
    * Record a failed request to a provider.
    */
-  export function recordFailure(providerID: string, error: Error): void {
-    const state = getOrCreateState(providerID)
-    state.lastFailure = Date.now()
-    state.lastError = error.message
+  export async function recordFailure(providerID: string, error: Error): Promise<void> {
+    await withStateLock(() => {
+      const state = getOrCreateState(providerID)
+      state.lastFailure = Date.now()
+      state.lastError = error.message
 
-    switch (state.state) {
-      case "closed":
-        state.failures++
+      switch (state.state) {
+        case "closed":
+          state.failures++
 
-        if (state.failures >= config.failureThreshold) {
-          transitionTo(providerID, state, "open", `failure threshold reached: ${error.message}`)
-        }
-        break
+          if (state.failures >= config.failureThreshold) {
+            transitionTo(providerID, state, "open", `failure threshold reached: ${error.message}`)
+          }
+          break
 
-      case "half_open":
-        state.halfOpenRequests = Math.max(0, state.halfOpenRequests - 1)
-        // Any failure in half_open immediately opens the circuit
-        transitionTo(providerID, state, "open", `failure in half_open: ${error.message}`)
-        break
+        case "half_open":
+          state.halfOpenRequests = Math.max(0, state.halfOpenRequests - 1)
+          // Any failure in half_open immediately opens the circuit
+          transitionTo(providerID, state, "open", `failure in half_open: ${error.message}`)
+          break
 
-      case "open":
-        // Already open, just update failure info
-        state.failures++
-        break
-    }
+        case "open":
+          // Already open, just update failure info
+          state.failures++
+          break
+      }
 
-    log.info("failure", {
-      providerID,
-      state: state.state,
-      failures: state.failures,
-      error: error.message,
+      log.info("failure", {
+        providerID,
+        state: state.state,
+        failures: state.failures,
+        error: error.message,
+      })
     })
   }
 
   /**
    * Increment half-open request counter when starting a request.
    */
-  export function startHalfOpenRequest(providerID: string): void {
-    const state = getOrCreateState(providerID)
-    if (state.state === "half_open") {
-      state.halfOpenRequests++
-    }
+  export async function startHalfOpenRequest(providerID: string): Promise<void> {
+    await withStateLock(() => {
+      const state = getOrCreateState(providerID)
+      if (state.state === "half_open") {
+        state.halfOpenRequests++
+      }
+    })
   }
 
   /**
@@ -242,42 +265,50 @@ export namespace CircuitBreaker {
   /**
    * Get the current state for a provider.
    */
-  export function getState(providerID: string): ProviderState {
-    return { ...getOrCreateState(providerID) }
+  export async function getState(providerID: string): Promise<ProviderState> {
+    return withStateLock(() => ({ ...getOrCreateState(providerID) }))
   }
 
   /**
    * Get all provider states.
    */
-  export function getAllStates(): Record<string, ProviderState> {
-    const result: Record<string, ProviderState> = {}
-    for (const [id, state] of breakers) {
-      result[id] = { ...state }
-    }
-    return result
+  export async function getAllStates(): Promise<Record<string, ProviderState>> {
+    return withStateLock(() => {
+      const result: Record<string, ProviderState> = {}
+      for (const [id, state] of breakers) {
+        result[id] = { ...state }
+      }
+      return result
+    })
   }
 
   /**
    * Reset state for a specific provider.
    */
-  export function reset(providerID: string): void {
-    breakers.delete(providerID)
-    log.info("reset", { providerID })
+  export async function reset(providerID: string): Promise<void> {
+    await withStateLock(() => {
+      breakers.delete(providerID)
+      log.info("reset", { providerID })
+    })
   }
 
   /**
    * Reset all circuit breakers.
    */
-  export function resetAll(): void {
-    breakers.clear()
-    log.info("reset all")
+  export async function resetAll(): Promise<void> {
+    await withStateLock(() => {
+      breakers.clear()
+      log.info("reset all")
+    })
   }
 
   /**
    * Force a provider into a specific state (for testing/admin).
    */
-  export function forceState(providerID: string, newState: State): void {
-    const state = getOrCreateState(providerID)
-    transitionTo(providerID, state, newState, "forced by admin")
+  export async function forceState(providerID: string, newState: State): Promise<void> {
+    await withStateLock(() => {
+      const state = getOrCreateState(providerID)
+      transitionTo(providerID, state, newState, "forced by admin")
+    })
   }
 }
