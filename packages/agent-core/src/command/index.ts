@@ -6,8 +6,10 @@ import { Identifier } from "../id/id"
 import PROMPT_INITIALIZE from "./template/initialize.txt"
 import PROMPT_REVIEW from "./template/review.txt"
 import { MCP } from "../mcp"
+import { Log } from "../util/log"
 
 export namespace Command {
+  const log = Log.create({ service: "command" })
   export const Event = {
     Executed: BusEvent.define(
       "command.executed",
@@ -97,22 +99,26 @@ export namespace Command {
         mcp: true,
         description: prompt.description,
         get template() {
-          // since a getter can't be async we need to manually return a promise here
-          return new Promise<string>(async (resolve, reject) => {
-            const template = await MCP.getPrompt(
-              prompt.client,
-              prompt.name,
-              prompt.arguments
-                ? // substitute each argument with $1, $2, etc.
-                  Object.fromEntries(prompt.arguments?.map((argument, i) => [argument.name, `$${i + 1}`]))
-                : {},
-            ).catch(reject)
-            resolve(
-              template?.messages
-                .map((message) => (message.content.type === "text" ? message.content.text : ""))
-                .join("\n") || "",
-            )
-          })
+          return (async () => {
+            try {
+              const template = await MCP.getPrompt(
+                prompt.client,
+                prompt.name,
+                prompt.arguments
+                  ? // substitute each argument with $1, $2, etc.
+                    Object.fromEntries(prompt.arguments?.map((argument, i) => [argument.name, `$${i + 1}`]))
+                  : {},
+              )
+              return (
+                template?.messages
+                  .map((message) => (message.content.type === "text" ? message.content.text : ""))
+                  .join("\n") || ""
+              )
+            } catch (error) {
+              log.error("failed to get MCP prompt", { error: String(error), name: prompt.name, client: prompt.client })
+              return ""
+            }
+          })()
         },
         hints: prompt.arguments?.map((_, i) => `$${i + 1}`) ?? [],
       }
