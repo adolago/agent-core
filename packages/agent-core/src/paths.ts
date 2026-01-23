@@ -9,18 +9,44 @@ import path from "path"
 import fs from "fs"
 import os from "os"
 
+function findAgentCoreRoot(startDir: string): string | undefined {
+  let current = path.resolve(startDir)
+  for (;;) {
+    const packageRoot = path.join(current, "packages", "agent-core")
+    const agentCoreDir = path.join(current, ".agent-core")
+    if (fs.existsSync(packageRoot) || fs.existsSync(agentCoreDir)) return current
+    const parent = path.dirname(current)
+    if (parent === current) return undefined
+    current = parent
+  }
+}
+
 /**
  * Get the agent-core root directory.
  * Order of precedence:
  * 1. AGENT_CORE_ROOT env var (set by binary or launcher)
- * 2. Source development path
+ * 2. AGENT_CORE_SOURCE/OPENCODE_SOURCE env vars
+ * 3. Walk up from cwd/argv/exec paths
  */
 export function getAgentCoreRoot(): string {
   if (process.env.AGENT_CORE_ROOT) {
     return process.env.AGENT_CORE_ROOT
   }
-  // Fallback to source path for development
-  return path.join(os.homedir(), ".local", "src", "agent-core")
+
+  const envSource = process.env.AGENT_CORE_SOURCE || process.env.OPENCODE_SOURCE
+  if (envSource) return envSource
+
+  const starts = [process.cwd()]
+  const argvPath = process.argv[1]
+  if (argvPath) starts.push(path.dirname(path.resolve(argvPath)))
+  starts.push(path.dirname(process.execPath))
+
+  for (const start of starts) {
+    const root = findAgentCoreRoot(start)
+    if (root) return root
+  }
+
+  return process.cwd()
 }
 
 /**

@@ -1,8 +1,39 @@
 import fs from "fs/promises"
+import fsSync from "fs"
 import path from "path"
 import os from "os"
 
 const app = "agent-core"
+
+function findSourceRoot(startDir: string): string | undefined {
+  let current = path.resolve(startDir)
+  for (;;) {
+    const packageRoot = path.join(current, "packages", "agent-core")
+    const agentCoreDir = path.join(current, ".agent-core")
+    if (fsSync.existsSync(packageRoot) || fsSync.existsSync(agentCoreDir)) return current
+    const parent = path.dirname(current)
+    if (parent === current) return undefined
+    current = parent
+  }
+}
+
+function resolveSourceRoot(): string {
+  const envSource =
+    process.env.AGENT_CORE_SOURCE || process.env.OPENCODE_SOURCE || process.env.AGENT_CORE_ROOT
+  if (envSource) return envSource
+
+  const starts = [process.cwd()]
+  const argvPath = process.argv[1]
+  if (argvPath) starts.push(path.dirname(path.resolve(argvPath)))
+  starts.push(path.dirname(process.execPath))
+
+  for (const start of starts) {
+    const root = findSourceRoot(start)
+    if (root) return root
+  }
+
+  return process.cwd()
+}
 
 // Compute XDG paths dynamically to support test isolation
 // Tests set XDG_* env vars in preload.ts, so we must read them at access time
@@ -26,7 +57,7 @@ export namespace Global {
       return process.env.AGENT_CORE_TEST_HOME || process.env.OPENCODE_TEST_HOME || os.homedir()
     },
     get source() {
-      return process.env.AGENT_CORE_SOURCE || path.join(this.home, ".local", "src", "agent-core")
+      return resolveSourceRoot()
     },
     get data() {
       return path.join(getXdgDataHome(), app)

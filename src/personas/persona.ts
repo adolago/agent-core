@@ -8,7 +8,7 @@
 import type { PersonaId, OrchestrationPersona } from "./types";
 import { ORCHESTRATION_PERSONAS } from "./types";
 import { existsSync, readFileSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, resolve } from "path";
 
 // Import AGENT_CONFIGS for tool injection
 import { AGENT_CONFIGS } from "../agent/personas";
@@ -34,18 +34,32 @@ const skillCache = new Map<string, LoadedSkill>();
 /**
  * Find the skills directory (supports both dev and installed paths)
  */
-function findSkillsDir(): string {
-  // Try relative paths from common locations
-  const candidates = [
-    join(process.cwd(), ".claude", "skills"),
-    join(dirname(process.execPath), "..", "..", ".claude", "skills"),
-    join(process.env.HOME || "", ".local", "src", "agent-core", ".claude", "skills"),
-  ];
+function findSkillsDirFrom(startDir: string): string | undefined {
+  let current = resolve(startDir);
+  for (;;) {
+    const candidate = join(current, ".claude", "skills");
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
 
-  for (const dir of candidates) {
-    if (existsSync(dir)) {
-      return dir;
-    }
+function findSkillsDir(): string {
+  const envRoot =
+    process.env.AGENT_CORE_SOURCE || process.env.OPENCODE_SOURCE || process.env.AGENT_CORE_ROOT;
+  if (envRoot) {
+    const envSkills = join(envRoot, ".claude", "skills");
+    if (existsSync(envSkills)) return envSkills;
+  }
+
+  const starts = [process.cwd(), dirname(process.execPath)];
+  const argvPath = process.argv[1];
+  if (argvPath) starts.push(dirname(resolve(argvPath)));
+
+  for (const start of starts) {
+    const skillsDir = findSkillsDirFrom(start);
+    if (skillsDir) return skillsDir;
   }
 
   // Fallback to cwd
