@@ -89,11 +89,7 @@ export namespace Server {
       app
         .onError((err, c) => {
           if (err instanceof HTTPException) {
-<<<<<<< HEAD
             return err.getResponse()
-=======
-            return c.json({ error: err.message }, err.status)
->>>>>>> origin/sentinel-auth-enforcement-7672350481453497819
           }
           log.error("failed", {
             error: err,
