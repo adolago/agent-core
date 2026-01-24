@@ -44,6 +44,11 @@ function isMcpConfigured(config: McpEntry): config is McpConfigured {
   return typeof config === "object" && config !== null && "type" in config
 }
 
+// Check if this is a shorthand persona MCP config like { enabled: true }
+function isShorthandConfig(config: McpEntry): config is { enabled: boolean } {
+  return typeof config === "object" && config !== null && "enabled" in config && !("type" in config)
+}
+
 type McpRemote = Extract<McpConfigured, { type: "remote" }>
 function isMcpRemote(config: McpEntry): config is McpRemote {
   return isMcpConfigured(config) && config.type === "remote"
@@ -78,8 +83,10 @@ export const McpListCommand = cmd({
         const mcpServers = config.mcp ?? {}
         const statuses = await MCP.status()
 
-        const servers = Object.entries(mcpServers).filter((entry): entry is [string, McpConfigured] =>
-          isMcpConfigured(entry[1]),
+        // Include both fully configured MCPs and shorthand persona configs
+        const servers = Object.entries(mcpServers).filter(
+          (entry): entry is [string, McpConfigured] | [string, { enabled: boolean }] =>
+            isMcpConfigured(entry[1]) || isShorthandConfig(entry[1]),
         )
 
         if (servers.length === 0) {
@@ -90,7 +97,8 @@ export const McpListCommand = cmd({
 
         for (const [name, serverConfig] of servers) {
           const status = statuses[name]
-          const hasOAuth = isMcpRemote(serverConfig) && !!serverConfig.oauth
+          const isConfigured = isMcpConfigured(serverConfig)
+          const hasOAuth = isConfigured && isMcpRemote(serverConfig) && !!serverConfig.oauth
           const hasStoredTokens = await MCP.hasStoredTokens(name)
 
           let statusIcon: string
@@ -122,7 +130,14 @@ export const McpListCommand = cmd({
             hint = "\n    " + status.error
           }
 
-          const typeHint = serverConfig.type === "remote" ? serverConfig.url : serverConfig.command.join(" ")
+          // Build type hint based on config type
+          let typeHint: string
+          if (isConfigured) {
+            typeHint = serverConfig.type === "remote" ? serverConfig.url : serverConfig.command.join(" ")
+          } else {
+            // Shorthand persona config
+            typeHint = `persona builtin (enabled: ${(serverConfig as { enabled: boolean }).enabled})`
+          }
           prompts.log.info(
             `${statusIcon} ${name} ${UI.Style.TEXT_DIM}${statusText}${hint}\n    ${UI.Style.TEXT_DIM}${typeHint}`,
           )

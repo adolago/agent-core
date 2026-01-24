@@ -208,15 +208,30 @@ export namespace MCP {
     mcp: z.infer<typeof Config.McpLocal>,
     agentCoreRoot: string,
   ): string[] | undefined {
+    // Check if provided command exists (handles bundled __dirname paths that don't exist at runtime)
     if (mcp.command?.length && mcp.command[0]) {
-      return mcp.command
+      // For "bun run <file>" or similar, verify the file exists
+      const scriptArg = mcp.command.find((arg, i) => i > 0 && arg.endsWith(".ts"))
+      if (!scriptArg || existsSync(scriptArg)) {
+        return mcp.command
+      }
+      // Script doesn't exist, fall through to source resolution
+      log.debug("command script not found, trying source paths", { serverName, script: scriptArg })
     }
 
+    // Try to find the server file in source directories
     const roots = [Global.Path.source, agentCoreRoot]
+    // Server name might be prefixed (e.g., "personas-memory" -> "memory.ts")
+    const baseName = serverName.replace(/^personas-/, "")
+    const candidates = [serverName, baseName]
+
     for (const root of roots) {
-      const candidate = path.join(root, "src", "mcp", "servers", `${serverName}.ts`)
-      if (existsSync(candidate)) {
-        return ["bun", "run", candidate]
+      for (const name of candidates) {
+        const candidate = path.join(root, "src", "mcp", "servers", `${name}.ts`)
+        if (existsSync(candidate)) {
+          log.debug("resolved local command", { serverName, path: candidate })
+          return ["bun", "run", candidate]
+        }
       }
     }
 
