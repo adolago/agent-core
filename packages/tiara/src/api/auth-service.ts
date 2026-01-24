@@ -588,7 +588,15 @@ export class AuthService {
   }
 
   private getSalt(): string {
-    return process.env.PASSWORD_SALT || 'salt';
+    const salt = process.env.PASSWORD_SALT;
+    if (!salt) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('PASSWORD_SALT environment variable is required in production');
+      }
+      console.warn('WARNING: PASSWORD_SALT not set, using random salt. Set PASSWORD_SALT in production.');
+      return randomBytes(32).toString('hex');
+    }
+    return salt;
   }
 
   private hashPasswordSync(password: string): string {
