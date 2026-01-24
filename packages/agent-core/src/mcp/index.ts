@@ -198,7 +198,7 @@ export namespace MCP {
     if (!persona) return undefined
     return {
       type: persona.type,
-      command: persona.command,
+      command: Array.from(persona.command),
       enabled: (entry as { enabled: boolean }).enabled,
     }
   }
