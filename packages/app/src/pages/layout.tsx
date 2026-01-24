@@ -989,8 +989,8 @@ export default function Layout(props: ParentProps) {
         return
       }
 
-      clientFor(props.directory).file
-        .status()
+      clientFor(props.directory)
+        .file.status()
         .then((x) => {
           const files = x.data ?? []
           const dirty = files.length > 0
@@ -1042,8 +1042,8 @@ export default function Layout(props: ParentProps) {
     })
 
     const refresh = async () => {
-      const sessions = await clientFor(props.directory).session
-        .list()
+      const sessions = await clientFor(props.directory)
+        .session.list()
         .then((x) => x.data ?? [])
         .catch(() => [])
       const active = sessions.filter((session) => session.time.archived === undefined)
@@ -1057,8 +1057,8 @@ export default function Layout(props: ParentProps) {
         return
       }
 
-      clientFor(props.directory).file
-        .status()
+      clientFor(props.directory)
+        .file.status()
         .then((x) => {
           const files = x.data ?? []
           const dirty = files.length > 0
@@ -1403,7 +1403,12 @@ export default function Layout(props: ParentProps) {
             keybind={command.keybind("session.archive")}
             gutter={8}
           >
-            <IconButton icon="archive" variant="ghost" onClick={() => archiveSession(props.session)} />
+            <IconButton
+              aria-label="Archive session"
+              icon="archive"
+              variant="ghost"
+              onClick={() => archiveSession(props.session)}
+            />
           </TooltipKeybind>
         </div>
       </div>
@@ -1557,7 +1562,13 @@ export default function Layout(props: ParentProps) {
                 >
                   <DropdownMenu open={menuOpen()} onOpenChange={setMenuOpen}>
                     <Tooltip value="More options" placement="top">
-                      <DropdownMenu.Trigger as={IconButton} icon="dot-grid" variant="ghost" class="size-6 rounded-md" />
+                      <DropdownMenu.Trigger
+                        as={IconButton}
+                        aria-label="Workspace options"
+                        icon="dot-grid"
+                        variant="ghost"
+                        class="size-6 rounded-md"
+                      />
                     </Tooltip>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Content
@@ -1597,6 +1608,7 @@ export default function Layout(props: ParentProps) {
                   </DropdownMenu>
                   <TooltipKeybind placement="right" title="New session" keybind={command.keybind("session.new")}>
                     <IconButton
+                      aria-label="New session"
                       icon="plus-small"
                       variant="ghost"
                       class="size-6 rounded-md"
@@ -1844,8 +1856,8 @@ export default function Layout(props: ParentProps) {
       const current = project()
       if (!current) return
 
-      const created = await clientFor(current.worktree).worktree
-        .create()
+      const created = await clientFor(current.worktree)
+        .worktree.create()
         .then((x) => x.data)
         .catch((err) => {
           showToast({
@@ -1892,7 +1904,13 @@ export default function Layout(props: ParentProps) {
                     </div>
                   }
                 >
-                  <IconButton icon="plus" variant="ghost" size="large" onClick={chooseProject} />
+                  <IconButton
+                    aria-label="Open project"
+                    icon="plus"
+                    variant="ghost"
+                    size="large"
+                    onClick={chooseProject}
+                  />
                 </Tooltip>
               </div>
               <DragOverlay>
@@ -1902,10 +1920,11 @@ export default function Layout(props: ParentProps) {
           </div>
           <div class="shrink-0 w-full pt-3 pb-3 flex flex-col items-center gap-2">
             <Tooltip placement={sidebarProps.mobile ? "bottom" : "right"} value="Settings" class="hidden">
-              <IconButton disabled icon="settings-gear" variant="ghost" size="large" />
+              <IconButton aria-label="Settings" disabled icon="settings-gear" variant="ghost" size="large" />
             </Tooltip>
             <Tooltip placement={sidebarProps.mobile ? "bottom" : "right"} value="Help">
               <IconButton
+                aria-label="Help"
                 icon="help"
                 variant="ghost"
                 size="large"
@@ -1957,6 +1976,7 @@ export default function Layout(props: ParentProps) {
                       <DropdownMenu>
                         <DropdownMenu.Trigger
                           as={IconButton}
+                          aria-label="Project options"
                           icon="dot-grid"
                           variant="ghost"
                           class="shrink-0 size-6 rounded-md opacity-0 group-hover/project:opacity-100 data-[expanded]:opacity-100 data-[expanded]:bg-surface-base-active"

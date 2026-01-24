@@ -1452,6 +1452,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     <span class="text-text-weak whitespace-nowrap ml-1">active</span>
                   </div>
                   <IconButton
+                    aria-label="Remove active file from context"
                     type="button"
                     icon="close"
                     variant="ghost"
@@ -1489,6 +1490,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     </Show>
                   </div>
                   <IconButton
+                    aria-label={`Remove ${getFilename(item.path)} from context`}
                     type="button"
                     icon="close"
                     variant="ghost"
@@ -1696,6 +1698,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               }
             >
               <IconButton
+                aria-label={working() ? "Stop generating" : "Send prompt"}
                 type="submit"
                 disabled={!prompt.dirty() && !working()}
                 icon={working() ? "stop" : "arrow-up"}
