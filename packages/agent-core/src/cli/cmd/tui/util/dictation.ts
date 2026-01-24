@@ -646,13 +646,21 @@ export namespace Dictation {
         const runtimeEntryPath = fileURLToPath(runtimeEntry)
         runtimeDir = path.dirname(runtimeEntryPath)
       } catch {
-        // Fallback for bundled binary: check source directory node_modules
-        const { Global } = await import("@/global")
+        // Fallback for bundled binary: check common locations for @inworld/runtime
         const { existsSync } = await import("fs")
+        const { homedir } = await import("os")
+        const home = homedir()
         const candidates = [
-          path.join(Global.Path.source, "node_modules", "@inworld", "runtime"),
-          path.join(Global.Path.source, "packages", "agent-core", "node_modules", "@inworld", "runtime"),
-        ]
+          // Standard source location
+          path.join(home, ".local", "src", "agent-core", "node_modules", "@inworld", "runtime"),
+          path.join(home, ".local", "src", "agent-core", "packages", "agent-core", "node_modules", "@inworld", "runtime"),
+          // Environment variable override
+          process.env.AGENT_CORE_SOURCE && path.join(process.env.AGENT_CORE_SOURCE, "node_modules", "@inworld", "runtime"),
+          // Global bun modules
+          path.join(home, ".bun", "install", "global", "node_modules", "@inworld", "runtime"),
+          // Current working directory
+          path.join(process.cwd(), "node_modules", "@inworld", "runtime"),
+        ].filter(Boolean) as string[]
         const found = candidates.find((p) => existsSync(path.join(p, "package.json")))
         if (!found) {
           throw new Error(
