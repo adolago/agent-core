@@ -1136,7 +1136,7 @@ exit 0
     }
 
     // Node.js environment - use background script
-    const { execSync } = await import('child_process');
+    const { spawnSync } = await import('child_process');
     const path = await import('path');
     const fs = await import('fs');
 
@@ -1164,9 +1164,11 @@ exit 0
 
       // Execute the background script
       try {
-        execSync(`"${bgScriptPath}" ${commandArgs.map((arg) => `"${arg}"`).join(' ')}`, {
-          stdio: 'inherit',
-        });
+        const result = spawnSync(bgScriptPath, commandArgs, { stdio: 'inherit', shell: false });
+        if (result.error) throw result.error;
+        if (result.status !== 0) {
+          throw new Error(`Background swarm script exited with code ${result.status}`);
+        }
       } catch (error) {
         console.error('Failed to launch background swarm:', error.message);
       }

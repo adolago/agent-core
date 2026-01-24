@@ -123,7 +123,10 @@ async function setupMcpServers(dryRun = false) {
     try {
       if (!dryRun) {
         console.log(`  🔄 Adding ${server.name}...`);
-        execSync(`claude mcp add ${server.name} ${server.command}`, { stdio: 'inherit' });
+        const commandParts = server.command.split(' ').filter(Boolean);
+        await runCommand('claude', ['mcp', 'add', server.name, ...commandParts], {
+          stdout: 'inherit',
+        });
         console.log(`  ✅ Added ${server.name} - ${server.description}`);
       } else {
         console.log(`  [DRY RUN] Would add ${server.name} - ${server.description}`);
@@ -139,7 +142,7 @@ async function setupMcpServers(dryRun = false) {
   if (!dryRun) {
     console.log('\n  📋 Verifying MCP servers...');
     try {
-      execSync('claude mcp list', { stdio: 'inherit' });
+      await runCommand('claude', ['mcp', 'list'], { stdout: 'inherit' });
     } catch (err) {
       console.log('  ⚠️  Could not verify MCP servers');
     }

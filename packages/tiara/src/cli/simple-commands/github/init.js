@@ -478,8 +478,16 @@ export async function githubInitCommand(flags = {}) {
     
     // Initialize first checkpoint
     try {
-      const { execSync } = await import('child_process');
-      execSync(`bash ${hooksPath} task "Initialize GitHub checkpoint system"`, { stdio: 'inherit' });
+      const { spawnSync } = await import('child_process');
+      const result = spawnSync(
+        'bash',
+        [hooksPath, 'task', 'Initialize GitHub checkpoint system'],
+        { stdio: 'inherit', shell: false },
+      );
+      if (result.error) throw result.error;
+      if (result.status !== 0) {
+        throw new Error(`hooks init exited with code ${result.status}`);
+      }
       printSuccess('✅ Created initial checkpoint');
     } catch (error) {
       printWarning('⚠️  Could not create initial checkpoint: ' + error.message);

@@ -3,7 +3,7 @@
  * Automatic error detection and recovery for common installation issues
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
@@ -190,9 +190,24 @@ export async function cleanNpmCache(): Promise<RecoveryResult> {
       if (await fs.pathExists(npmDir)) {
         try {
           // Fix directory permissions (700 - owner only)
-          safeExecSync(`find "${npmDir}" -type d -exec chmod 700 {} \\;`, { stdio: 'pipe' });
+          const chmodDirs = spawnSync(
+            'find',
+            [npmDir, '-type', 'd', '-exec', 'chmod', '700', '{}', ';'],
+            { stdio: 'pipe', encoding: 'utf-8' },
+          );
+          if (chmodDirs.error) throw chmodDirs.error;
+          if (chmodDirs.status !== 0) throw new Error(chmodDirs.stderr || 'chmod on dirs failed');
+
           // Fix file permissions (600 - owner only, not executable)
-          safeExecSync(`find "${npmDir}" -type f -exec chmod 600 {} \\;`, { stdio: 'pipe' });
+          const chmodFiles = spawnSync(
+            'find',
+            [npmDir, '-type', 'f', '-exec', 'chmod', '600', '{}', ';'],
+            { stdio: 'pipe', encoding: 'utf-8' },
+          );
+          if (chmodFiles.error) throw chmodFiles.error;
+          if (chmodFiles.status !== 0)
+            throw new Error(chmodFiles.stderr || 'chmod on files failed');
+
           console.log('✅ npm directory permissions fixed (secure: 700/600)');
         } catch (error) {
           console.warn('⚠️  Permission fix failed, continuing...');

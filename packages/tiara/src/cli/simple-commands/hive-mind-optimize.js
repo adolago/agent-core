@@ -343,11 +343,11 @@ async function generateReport(dbPath) {
  */
 async function createBackup(dbPath) {
   try {
-    const { execSync } = await import('child_process');
+    const { copyFile } = await import('node:fs/promises');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = dbPath.replace('.db', `-backup-${timestamp}.db`);
 
-    execSync(`cp "${dbPath}" "${backupPath}"`);
+    await copyFile(dbPath, backupPath);
     console.log(chalk.green(`✓ Backup created: ${path.basename(backupPath)}`));
 
     return backupPath;
