@@ -3,13 +3,14 @@ import { tui } from "./app"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "./worker"
 import path from "path"
-import { spawnSync } from "child_process"
+import { spawn, spawnSync } from "child_process"
 import { UI } from "@/cli/ui"
 import { iife } from "@/util/iife"
 import { Log } from "@/util/log"
 import { withNetworkOptions, resolveNetworkOptions, type NetworkOptions } from "@/cli/network"
 import { Daemon } from "@/cli/cmd/daemon"
 import { Config } from "@/config/config"
+import { createAuthorizedFetch } from "@/server/auth"
 import type { EventSource } from "./context/sdk"
 
 declare global {
@@ -97,7 +98,8 @@ async function checkDaemonHealth(url: string): Promise<boolean> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 1500)
   try {
-    const response = await fetch(`${url}${DAEMON_HEALTH_PATH}`, { signal: controller.signal })
+    const authorizedFetch = createAuthorizedFetch(fetch)
+    const response = await authorizedFetch(`${url}${DAEMON_HEALTH_PATH}`, { signal: controller.signal })
     if (!response.ok) return false
     const data = await response.json().catch(() => undefined)
     if (data && typeof data === "object" && "healthy" in data) {
@@ -111,23 +113,89 @@ async function checkDaemonHealth(url: string): Promise<boolean> {
   }
 }
 
+async function waitForHealthy(resolveUrl: () => Promise<string>, timeoutMs: number): Promise<string | null> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const url = await resolveUrl()
+    if (await checkDaemonHealth(url)) return url
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  return null
+}
+
+function attemptSystemctlStart(): { ok: boolean; details?: string } {
+  const result = spawnSync("systemctl", ["--no-ask-password", "start", "agent-core"], { encoding: "utf-8" })
+  if (result.status === 0) return { ok: true }
+
+  const stdout = (result.stdout ?? "").trim()
+  const stderr = (result.stderr ?? "").trim()
+  const details = stderr || stdout
+
+  const sudoResult = spawnSync("sudo", ["-n", "systemctl", "start", "agent-core"], { encoding: "utf-8" })
+  if (sudoResult.status === 0) return { ok: true }
+
+  const sudoStdout = (sudoResult.stdout ?? "").trim()
+  const sudoStderr = (sudoResult.stderr ?? "").trim()
+  const sudoDetails = sudoStderr || sudoStdout
+
+  return { ok: false, details: sudoDetails || details }
+}
+
+function spawnLocalDaemon(hostname: string, port: number, directory: string): boolean {
+  try {
+    const child = spawn(
+      "agent-core",
+      ["daemon", "--hostname", hostname, "--port", port.toString(), "--directory", directory],
+      {
+        detached: true,
+        stdio: "ignore",
+        env: process.env,
+      },
+    )
+    if (!child.pid) return false
+    child.unref()
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function ensureDaemonRunning(
   network: NetworkOptions,
-  _directory: string,
+  directory: string,
   options?: { systemdOnly?: boolean },
 ): Promise<string> {
   const systemdOnly = options?.systemdOnly ?? false
+  const explicitUrl = process.env.AGENT_CORE_URL?.trim()
+
+  if (explicitUrl) {
+    const url = resolveDaemonUrl(network)
+    if (await checkDaemonHealth(url)) return url
+    UI.error("AGENT_CORE_URL is set but the daemon is unreachable or unauthorized.")
+    UI.info("Unset AGENT_CORE_URL to use the local daemon/systemd service.")
+    process.exit(1)
+  }
+
   const systemd = getSystemdServiceState()
 
+  const resolveUrl = async () => resolveDaemonUrl(network, await Daemon.readPidFile())
+
   if (systemd.available && systemd.installed) {
-    const url = resolveDaemonUrl(network, await Daemon.readPidFile())
     if (!systemd.active) {
-      UI.error("Systemd service 'agent-core' is installed but not running.")
-      UI.info("Start it with: sudo systemctl start agent-core")
-      UI.info("Or run locally with: agent-core --no-daemon")
-      process.exit(1)
+      UI.info("Starting systemd service 'agent-core'...")
+      const started = attemptSystemctlStart()
+      if (!started.ok) {
+        UI.error("Failed to start systemd service 'agent-core'.")
+        if (started.details) UI.info(started.details)
+        UI.info("Try: sudo systemctl start agent-core")
+        UI.info("Or run locally with: agent-core --no-daemon")
+        process.exit(1)
+      }
     }
-    if (await checkDaemonHealth(url)) return url
+
+    const url = await waitForHealthy(resolveUrl, 8000)
+    if (url) return url
+
     UI.error("Systemd service 'agent-core' is active but the daemon is unhealthy.")
     UI.info("Check: systemctl status agent-core")
     UI.info("Logs:  journalctl -u agent-core -f")
@@ -141,21 +209,34 @@ async function ensureDaemonRunning(
   }
 
   const running = await Daemon.isRunning()
-  const state = await Daemon.readPidFile()
-  let url = resolveDaemonUrl(network, state)
+  let url = await resolveUrl()
 
   if (running) {
     if (await checkDaemonHealth(url)) return url
-    const refreshed = await Daemon.readPidFile()
-    url = resolveDaemonUrl(network, refreshed)
+    url = await resolveUrl()
     if (await checkDaemonHealth(url)) return url
     UI.error("Daemon appears to be running but is not healthy. Check `agent-core daemon-status`.")
     process.exit(1)
   }
 
-  UI.error("Daemon is not running.")
-  UI.info("Start it with: systemctl start agent-core")
-  UI.info("If not installed: ./scripts/systemd/install.sh --polkit")
+  const hostname = normalizeDaemonHost(network.hostname)
+  const port = network.port && network.port !== 0 ? network.port : DEFAULT_DAEMON_PORT
+
+  UI.info("Daemon is not running. Starting it now...")
+  const spawned = spawnLocalDaemon(hostname, port, directory)
+  if (!spawned) {
+    UI.error("Failed to spawn daemon process.")
+    UI.info("Try: agent-core daemon")
+    UI.info("Or run locally with: agent-core --no-daemon")
+    process.exit(1)
+  }
+
+  const startedUrl = await waitForHealthy(resolveUrl, 8000)
+  if (startedUrl) return startedUrl
+
+  UI.error("Daemon failed to become healthy after starting.")
+  UI.info("Check: agent-core daemon-status")
+  UI.info("Or run foreground for logs: agent-core daemon")
   process.exit(1)
 }
 

@@ -4,6 +4,7 @@ import { Installation } from "../../../installation"
 import { Config } from "../../../config/config"
 import { Global } from "../../../global"
 import { Flag } from "../../../flag/flag"
+import { createAuthorizedFetch } from "../../../server/auth"
 import fs from "fs/promises"
 import fsSync from "node:fs"
 import path from "path"
@@ -299,7 +300,8 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
   status.daemon.url = daemonUrl
 
   try {
-    const response = await fetch(`${daemonUrl}/global/health`, {
+    const authorizedFetch = createAuthorizedFetch(fetch)
+    const response = await authorizedFetch(`${daemonUrl}/global/health`, {
       signal: AbortSignal.timeout(2000),
     })
     if (response.ok) {

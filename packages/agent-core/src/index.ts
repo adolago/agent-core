@@ -34,6 +34,8 @@ import { CheckCommand } from "./cli/cmd/check"
 import path from "node:path"
 import fs from "node:fs"
 import os from "node:os"
+import { fileURLToPath } from "node:url"
+import { reloadFlags } from "./flag/flag"
 
 function loadDaemonEnv(): void {
   const configDir =
@@ -66,6 +68,7 @@ function loadDaemonEnv(): void {
 }
 
 loadDaemonEnv()
+reloadFlags()
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -101,6 +104,19 @@ const cli = yargs(hideBin(process.argv))
       const rootCandidate = path.resolve(path.dirname(process.execPath), "..")
       if (fs.existsSync(path.join(rootCandidate, "vendor", "personas"))) {
         process.env.AGENT_CORE_ROOT = rootCandidate
+      }
+    }
+
+    if (!process.env.AGENT_CORE_ROOT) {
+      try {
+        const here = path.dirname(fileURLToPath(import.meta.url))
+        const monorepoRoot = path.resolve(here, "../../..")
+        const rootConfigDir = path.join(monorepoRoot, ".agent-core")
+        if (fs.existsSync(rootConfigDir)) {
+          process.env.AGENT_CORE_ROOT = monorepoRoot
+        }
+      } catch {
+        // ignore
       }
     }
 

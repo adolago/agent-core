@@ -20,7 +20,7 @@ import net from "net"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
 import { Zee } from "../../paths"
-import { getAuthConfig } from "../../server/auth"
+import { getAuthConfig, createAuthorizedFetch } from "../../server/auth"
 
 const log = Log.create({ service: "daemon" })
 
@@ -712,10 +712,13 @@ async function verifyAgentEndpoint(daemonUrl: string, directory: string) {
   const url = new URL("/agent", daemonUrl)
   url.searchParams.set("directory", directory)
 
+  // Use authorized fetch to include server password if configured
+  const authorizedFetch = createAuthorizedFetch(fetch)
+
   let lastError: Error | undefined
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+      const response = await authorizedFetch(url, { signal: AbortSignal.timeout(15000) })
 
       if (!response.ok) {
         throw new Error(`Agent endpoint returned ${response.status} ${response.statusText}`)

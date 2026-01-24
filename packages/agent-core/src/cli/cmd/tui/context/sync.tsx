@@ -29,6 +29,7 @@ import { batch, onMount } from "solid-js"
 import { Log } from "@/util/log"
 import type { Path } from "@opencode-ai/sdk/v2"
 import { useToast } from "../ui/toast"
+import { createAuthorizedFetch } from "@/server/auth"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
   name: "Sync",
@@ -443,7 +444,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
             sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
-            fetch(`${sdk.url}/global/health`)
+            createAuthorizedFetch(fetch)(`${sdk.url}/global/health`)
               .then((res) => res.json())
               .then((data) => {
                 const normalized = normalizeDaemonHealth(data)
@@ -451,7 +452,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               })
               .catch(() => setStore("daemon", undefined)),
             // Fetch health status (internet + providers)
-            fetch(`${sdk.url}/global/health/status`)
+            createAuthorizedFetch(fetch)(`${sdk.url}/global/health/status`)
               .then((res) => res.json())
               .then((data: { internet: "ok" | "fail" | "checking"; providers: { id: string; name: string; status: "ok" | "fail" | "skip" }[] }) =>
                 setStore("health", reconcile(data)),

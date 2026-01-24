@@ -92,7 +92,7 @@ export namespace ACP {
         ? (config.sdk as unknown as EventClient)
         : (createEventClient({ baseUrl: config.url, fetch: authFetch }) as unknown as EventClient)
       this.sessionManager = new ACPSessionManager(this.sdk)
-      this.connection.signal.addEventListener("abort", () => {
+      this.connection.signal?.addEventListener?.("abort", () => {
         this.dispose()
       })
       this.startEventSubscription()

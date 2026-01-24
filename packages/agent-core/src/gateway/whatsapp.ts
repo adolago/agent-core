@@ -21,6 +21,7 @@ import fs from "fs/promises"
 import * as os from "node:os"
 import * as crypto from "node:crypto"
 import { spawn } from "node:child_process"
+import { createAuthorizedFetch } from "../server/auth"
 import {
   DEFAULT_API_PORT,
   MESSAGE_CHUNK_SIZE,
@@ -679,7 +680,8 @@ Commands:
       const timeoutId = setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
 
       try {
-        const response = await fetch(`${this.apiBaseUrl}/global/health`, {
+        const authorizedFetch = createAuthorizedFetch(fetch)
+        const response = await authorizedFetch(`${this.apiBaseUrl}/global/health`, {
           signal: controller.signal,
         })
         if (!response.ok) {

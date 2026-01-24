@@ -22,6 +22,9 @@ process.env["XDG_CACHE_HOME"] = path.join(dir, "cache")
 process.env["XDG_CONFIG_HOME"] = path.join(dir, "config")
 process.env["XDG_STATE_HOME"] = path.join(dir, "state")
 
+// Server auth breaks most unit tests (they don't send Authorization headers).
+process.env["AGENT_CORE_DISABLE_SERVER_AUTH"] = "true"
+
 // Pre-fetch models.json so tests don't need the macro fallback
 // Also write the cache version file to prevent global/index.ts from clearing the cache
 // Note: Must use "agent-core" to match Global.Path.cache which uses app = "agent-core"
