@@ -568,7 +568,17 @@ export class AuthService {
     }
 
     // Decode payload
-    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString());
+    let payload: any;
+    try {
+      const decodedPayload = Buffer.from(encodedPayload, 'base64url').toString('utf8');
+      payload = JSON.parse(decodedPayload);
+    } catch (error) {
+      throw new AuthenticationError('Invalid token payload', error);
+    }
+
+    if (!payload || typeof payload !== 'object') {
+      throw new AuthenticationError('Invalid token payload');
+    }
     
     // Check expiration
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
