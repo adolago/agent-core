@@ -1368,49 +1368,62 @@ COORDINATION KEY POINTS:
   }
 
   /**
-   * Execute a hook command
+   * Sanitize a string for safe shell argument usage
+   */
+  sanitizeShellArg(arg) {
+    if (typeof arg !== 'string') return '';
+    return arg.replace(/[`$\\!"';<>&|(){}[\]]/g, '');
+  }
+
+  /**
+   * Execute a hook command using spawn for safety
    */
   async executeHook(hookType, params) {
     try {
-      const { execSync } = await import('child_process');
+      const { spawnSync } = await import('child_process');
       
-      let hookCommand = `npx claude-flow@alpha hooks ${hookType}`;
+      const args = ['claude-flow@alpha', 'hooks', this.sanitizeShellArg(hookType)];
       
       if (params.description) {
-        hookCommand += ` --description "${params.description}"`;
+        args.push('--description', this.sanitizeShellArg(params.description));
       }
       if (params.file) {
-        hookCommand += ` --file "${params.file}"`;
+        args.push('--file', this.sanitizeShellArg(params.file));
       }
       if (params.taskId) {
-        hookCommand += ` --task-id "${params.taskId}"`;
+        args.push('--task-id', this.sanitizeShellArg(params.taskId));
       }
       if (params.sessionId) {
-        hookCommand += ` --session-id "${params.sessionId}"`;
+        args.push('--session-id', this.sanitizeShellArg(params.sessionId));
       }
       if (params.message) {
-        hookCommand += ` --message "${params.message}"`;
+        args.push('--message', this.sanitizeShellArg(params.message));
       }
       
-      execSync(hookCommand, { stdio: 'pipe' });
+      spawnSync('npx', args, { stdio: 'pipe' });
       
     } catch (error) {
-      // Hooks are optional, don't fail the workflow if they fail
       console.debug(`Hook ${hookType} failed:`, error.message);
     }
   }
 
   /**
-   * Store task result in memory
+   * Store task result in memory using spawn for safety
    */
   async storeTaskResult(taskId, result) {
     try {
-      const { execSync } = await import('child_process');
+      const { spawnSync } = await import('child_process');
       const resultJson = JSON.stringify(result);
+      const sanitizedTaskId = this.sanitizeShellArg(taskId);
+      const sanitizedExecutionId = this.sanitizeShellArg(this.executionId);
       
-      execSync(`npx claude-flow@alpha memory store "workflow/${this.executionId}/${taskId}" '${resultJson}'`, {
-        stdio: 'pipe'
-      });
+      spawnSync('npx', [
+        'claude-flow@alpha',
+        'memory',
+        'store',
+        `workflow/${sanitizedExecutionId}/${sanitizedTaskId}`,
+        resultJson
+      ], { stdio: 'pipe' });
       
     } catch (error) {
       console.debug(`Failed to store task result for ${taskId}:`, error.message);
