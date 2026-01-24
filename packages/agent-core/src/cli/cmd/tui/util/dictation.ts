@@ -2,6 +2,8 @@ import { platform } from "os"
 import { Auth } from "@/auth"
 
 export namespace Dictation {
+  export type RuntimeMode = "auto" | "force" | "disable"
+
   export type Config = {
     enabled?: boolean
     endpoint?: string
@@ -11,6 +13,7 @@ export namespace Dictation {
     auto_submit?: boolean
     response_path?: string
     record_command?: string | string[]
+    runtime_mode?: RuntimeMode
   }
 
   export type RuntimeConfig = {
@@ -21,6 +24,7 @@ export namespace Dictation {
     autoSubmit: boolean
     responsePath?: string
     recordCommand?: string | string[]
+    runtimeMode: RuntimeMode
   }
 
   export type TranscribeState = "sending" | "receiving"
@@ -43,6 +47,7 @@ export namespace Dictation {
 
   const DEFAULT_SAMPLE_RATE = 16_000
   const DEFAULT_INPUT_KEY = "__root__"
+  const DEFAULT_RUNTIME_MODE: RuntimeMode = "auto"
   const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
 
   export async function resolveConfig(input?: Config): Promise<RuntimeConfig | undefined> {
@@ -76,6 +81,8 @@ export namespace Dictation {
       autoSubmit: input?.auto_submit ?? false,
       responsePath: input?.response_path,
       recordCommand: input?.record_command,
+      runtimeMode:
+        input?.runtime_mode === "force" || input?.runtime_mode === "disable" ? input.runtime_mode : DEFAULT_RUNTIME_MODE,
     }
   }
 
@@ -257,6 +264,14 @@ export namespace Dictation {
         "Dictation expects 16-bit PCM WAV audio. Update tui.dictation.record_command to output WAV.",
       )
     }
+    const runtimeMode = input.config.runtimeMode ?? DEFAULT_RUNTIME_MODE
+    if (runtimeMode === "force") {
+      return await transcribeWithRuntime({
+        config: input.config,
+        decoded,
+        onState: input.onState,
+      })
+    }
     const audioInput = {
       type: "Audio",
       _iw_type: "Audio",
@@ -304,7 +319,7 @@ export namespace Dictation {
       }
       return findTranscript(data)
     } catch (error) {
-      if (isInputMismatchError(error)) {
+      if (runtimeMode === "auto" && isInputMismatchError(error)) {
         try {
           return await transcribeWithRuntime({
             config: input.config,

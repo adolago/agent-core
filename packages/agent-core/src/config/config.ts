@@ -881,6 +881,11 @@ export namespace Config {
           .optional()
           .default("__root__")
           .describe("Graph input key for audio data ('__root__' sends audio as the input value)"),
+        runtime_mode: z
+          .enum(["auto", "force", "disable"])
+          .optional()
+          .default("auto")
+          .describe("Runtime fallback mode: auto uses graph then fallback, force skips graph, disable blocks fallback"),
         sample_rate: z.number().int().positive().optional().default(16000).describe("Audio sample rate"),
         auto_submit: z.boolean().optional().default(false).describe("Auto-submit after dictation"),
         response_path: z.string().optional().describe("Dot path to transcript in response payload"),

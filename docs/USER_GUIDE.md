@@ -99,6 +99,7 @@ Configure Inworld STT and a keybind in `agent-core.jsonc`:
 You can also set `INWORLD_API_KEY` and `INWORLD_STT_ENDPOINT` as environment variables instead of storing secrets in config.
 Use `tui.dictation.record_command` to override the recorder command if `arecord` is unavailable.
 The dictation payload is sent as `GraphTypes.Audio` with a float PCM array (`data`) and `sampleRate`; by default it is sent as the root input (`input_key: "__root__"`). Set `tui.dictation.input_key` if your graph expects a nested key.
+Use `tui.dictation.runtime_mode` to control runtime fallback: `auto` (default) tries the graph then falls back to runtime STT on input mismatch, `force` skips the graph and uses runtime STT, and `disable` turns off the fallback.
 
 Example recorder commands:
 

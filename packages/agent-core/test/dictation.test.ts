@@ -110,6 +110,7 @@ describe("Dictation.resolveConfig", () => {
     expect(result?.inputKey).toBe("__root__")
     expect(result?.sampleRate).toBe(16000)
     expect(result?.autoSubmit).toBe(false)
+    expect(result?.runtimeMode).toBe("auto")
   })
 
   it("should respect custom optional field values", async () => {
@@ -120,12 +121,14 @@ describe("Dictation.resolveConfig", () => {
       sample_rate: 44100,
       auto_submit: true,
       response_path: "data.text",
+      runtime_mode: "force",
     })
     expect(result).toBeDefined()
     expect(result?.inputKey).toBe("custom_audio")
     expect(result?.sampleRate).toBe(44100)
     expect(result?.autoSubmit).toBe(true)
     expect(result?.responsePath).toBe("data.text")
+    expect(result?.runtimeMode).toBe("force")
   })
 })
 
@@ -148,6 +151,7 @@ describe("Dictation.transcribe", () => {
         inputKey: "__root__",
         sampleRate: 16000,
         autoSubmit: false,
+        runtimeMode: "auto",
       },
       audio: wav,
       fetcher,
@@ -180,6 +184,7 @@ describe("Dictation.transcribe", () => {
         inputKey: "audio",
         sampleRate: 16000,
         autoSubmit: false,
+        runtimeMode: "auto",
       },
       audio: wav,
       fetcher,
