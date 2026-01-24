@@ -240,9 +240,24 @@ export class AgentCoreClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = (await response
-          .json()
-          .catch(() => ({ error: response.statusText }))) as Record<string, unknown>;
+        const bodyText = await response.text().catch(() => '');
+        let errorData: Record<string, unknown> = { error: response.statusText };
+        if (bodyText) {
+          try {
+            const parsed = JSON.parse(bodyText) as unknown;
+            if (parsed && typeof parsed === 'object') {
+              errorData = parsed as Record<string, unknown>;
+            } else {
+              errorData = { error: parsed };
+            }
+          } catch (parseError) {
+            errorData = {
+              error: response.statusText,
+              parseError: parseError instanceof Error ? parseError.message : String(parseError),
+              rawResponse: bodyText.length > 500 ? `${bodyText.slice(0, 500)}…` : bodyText,
+            };
+          }
+        }
 
         // Handle different error response formats
         let errorMessage: string;
@@ -263,6 +278,11 @@ export class AgentCoreClient {
           errorMessage = JSON.stringify(errorField);
         } else if (typeof messageField === 'string') {
           errorMessage = messageField;
+        } else if (typeof errorData.parseError === 'string') {
+          errorMessage = `Failed to parse error response JSON: ${String(errorData.parseError)}`;
+          if (typeof errorData.rawResponse === 'string') {
+            errorMessage += ` (body: ${String(errorData.rawResponse)})`;
+          }
         } else {
           errorMessage = JSON.stringify(errorData);
         }
