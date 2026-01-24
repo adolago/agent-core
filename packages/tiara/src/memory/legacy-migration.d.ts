@@ -21,6 +21,9 @@ export interface LegacyMigrationOptions {
   includePersistence?: boolean;
   includeReasoningBank?: boolean;
   includeSqlite?: boolean;
+  memoryFiles?: string[];
+  persistenceFiles?: string[];
+  sqlitePaths?: string[];
 }
 
 export function migrateLegacyMemory(options?: LegacyMigrationOptions): Promise<LegacyMigrationSummary>;

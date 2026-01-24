@@ -76,6 +76,11 @@ export class UnifiedMemoryManager {
   } | null = null;
 
   private async getStore(): Promise<QdrantMemoryStore> {
+    const injected = (this as any).store;
+    if (injected && typeof injected !== 'function') {
+      return injected as QdrantMemoryStore;
+    }
+
     if (!this.memoryStore) {
       if (!this.storeConfig) {
         this.storeConfig = await loadMemoryConfig();

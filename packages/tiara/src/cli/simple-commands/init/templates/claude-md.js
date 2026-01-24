@@ -91,10 +91,6 @@ This is a Claude-Flow AI agent orchestration system.
 `;
 }
 
-export function createFlowNexusClaudeMd() {
-  return createMinimalClaudeMd();
-}
-
 export function createFullClaudeMd() {
   return `# Claude Code Configuration
 
