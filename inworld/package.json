@@ -1,0 +1,8 @@
+{
+  "name": "agent-core-inworld-graphs",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@inworld/runtime": "^0.6.0"
+  }
+}
