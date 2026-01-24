@@ -26,6 +26,7 @@ import { Bus } from "@/bus"
 import { TuiEvent } from "@/cli/cmd/tui/event"
 import { getAgentCoreRoot } from "../paths"
 import { Global } from "@/global"
+import { getAllPersonaMcpServers } from "../../../../src/mcp/servers"
 import open from "open"
 import { normalizeHttpUrl } from "@/util/net"
 
@@ -186,6 +187,21 @@ export namespace MCP {
   function isMcpConfigured(entry: McpEntry): entry is Config.Mcp {
     return typeof entry === "object" && entry !== null && "type" in entry
   }
+  const personaServers = getAllPersonaMcpServers()
+  type PersonaServerConfig = (typeof personaServers)[keyof typeof personaServers]
+
+  function resolveMcpConfigEntry(name: string, entry: McpEntry | undefined): Config.Mcp | undefined {
+    if (!entry) return undefined
+    if (isMcpConfigured(entry)) return entry
+    if (typeof entry !== "object" || entry === null || !("enabled" in entry)) return undefined
+    const persona = (personaServers as Record<string, PersonaServerConfig>)[name]
+    if (!persona) return undefined
+    return {
+      type: persona.type,
+      command: persona.command,
+      enabled: (entry as { enabled: boolean }).enabled,
+    }
+  }
 
   function resolveLocalCommand(
     serverName: string,
@@ -216,18 +232,19 @@ export namespace MCP {
 
       await Promise.all(
         Object.entries(config).map(async ([key, mcp]) => {
-          if (!isMcpConfigured(mcp)) {
+          const resolved = resolveMcpConfigEntry(key, mcp)
+          if (!resolved) {
             log.error("Ignoring MCP config entry without type", { key })
             return
           }
 
           // If disabled by config, mark as disabled without trying to connect
-          if (mcp.enabled === false) {
+          if (resolved.enabled === false) {
             status[key] = { status: "disabled" }
             return
           }
 
-          const result = await create(key, mcp).catch(() => undefined)
+          const result = await create(key, resolved).catch(() => undefined)
           if (!result) return
 
           status[key] = result.status
@@ -575,7 +592,8 @@ export namespace MCP {
 
     // Include all configured MCPs from config, not just connected ones
     for (const [key, mcp] of Object.entries(config)) {
-      if (!isMcpConfigured(mcp)) continue
+      const resolved = resolveMcpConfigEntry(key, mcp)
+      if (!resolved) continue
       result[key] = s.status[key] ?? { status: "disabled" }
     }
 
@@ -597,12 +615,13 @@ export namespace MCP {
         return
       }
 
-      if (!isMcpConfigured(mcp)) {
+      const resolved = resolveMcpConfigEntry(name, mcp)
+      if (!resolved) {
         log.error("Ignoring MCP connect request for config without type", { name })
         return
       }
 
-      const result = await create(name, { ...mcp, enabled: true })
+      const result = await create(name, { ...resolved, enabled: true })
 
       if (!result) {
         const s = await state()
@@ -684,7 +703,8 @@ export namespace MCP {
         return { status: "failed", error: "MCP config not found" }
       }
 
-      if (!isMcpConfigured(mcpConfig)) {
+      const resolved = resolveMcpConfigEntry(name, mcpConfig)
+      if (!resolved) {
         log.error("MCP config invalid for reconnect", { name })
         return { status: "failed", error: "Invalid MCP configuration" }
       }
@@ -702,7 +722,7 @@ export namespace MCP {
       log.info("Attempting MCP reconnection", { name })
 
       // Create new connection
-      const result = await create(name, { ...mcpConfig, enabled: true })
+      const result = await create(name, { ...resolved, enabled: true })
 
       if (!result) {
         s.status[name] = { status: "failed", error: "Unknown error during reconnection" }

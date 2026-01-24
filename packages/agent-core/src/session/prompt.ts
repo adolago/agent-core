@@ -155,18 +155,27 @@ export namespace SessionPrompt {
     return memoryRequiredCache
   }
 
+  function resolveMemoryMcpName(status: Record<string, MCP.Status>): string {
+    const preferred = process.env.AGENT_CORE_MEMORY_MCP
+    if (preferred && status[preferred]) return preferred
+    if (status["personas-memory"]) return "personas-memory"
+    if (status["memory"]) return "memory"
+    return preferred ?? "personas-memory"
+  }
+
   async function ensureRequiredMemory(sessionID: string): Promise<void> {
     const cfg = await Config.get()
     if (cfg.memory?.required !== true) return
 
     const status = await MCP.status()
-    const memoryStatus = status["memory"]
+    const memoryServer = resolveMemoryMcpName(status)
+    const memoryStatus = status[memoryServer]
     if (!memoryStatus || memoryStatus.status !== "connected") {
       const reason =
         memoryStatus?.status === "failed"
           ? memoryStatus.error
           : memoryStatus?.status ?? "missing"
-      const message = `Memory MCP is required but not connected (${reason}).`
+      const message = `Memory MCP "${memoryServer}" is required but not connected (${reason}).`
       const error = new NamedError.Unknown({ message })
       Bus.publish(Session.Event.Error, {
         sessionID,
