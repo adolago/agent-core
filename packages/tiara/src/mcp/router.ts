@@ -23,7 +23,7 @@ export class RequestRouter {
   /**
    * Routes a request to the appropriate handler
    */
-  async route(request: MCPRequest): Promise<unknown> {
+  async route(request: MCPRequest, context?: unknown): Promise<unknown> {
     this.totalRequests++;
 
     try {
@@ -37,13 +37,13 @@ export class RequestRouter {
 
       // Handle tool invocations
       if (method.startsWith('tools.')) {
-        return await this.handleToolMethod(method, params);
+        return await this.handleToolMethod(method, params, context);
       }
 
       // Try to execute as a tool directly
       const tool = this.toolRegistry.getTool(method);
       if (tool) {
-        const result = await this.toolRegistry.executeTool(method, params);
+        const result = await this.toolRegistry.executeTool(method, params, context);
         this.successfulRequests++;
         return result;
       }
@@ -93,13 +93,13 @@ export class RequestRouter {
   /**
    * Handles tool-related methods
    */
-  private async handleToolMethod(method: string, params: unknown): Promise<unknown> {
+  private async handleToolMethod(method: string, params: unknown, context?: unknown): Promise<unknown> {
     switch (method) {
       case 'tools.list':
         return this.toolRegistry.listTools();
 
       case 'tools.invoke':
-        return await this.invokeTool(params);
+        return await this.invokeTool(params, context);
 
       case 'tools.describe':
         return this.describeTool(params);
@@ -207,13 +207,13 @@ export class RequestRouter {
   /**
    * Invokes a tool
    */
-  private async invokeTool(params: unknown): Promise<unknown> {
+  private async invokeTool(params: unknown, context?: unknown): Promise<unknown> {
     if (!params || typeof params !== 'object' || !('tool' in params)) {
       throw new Error('Invalid params: tool required');
     }
 
     const { tool, input } = params as { tool: string; input?: unknown };
-    return await this.toolRegistry.executeTool(tool, input || {});
+    return await this.toolRegistry.executeTool(tool, input || {}, context);
   }
 
   /**

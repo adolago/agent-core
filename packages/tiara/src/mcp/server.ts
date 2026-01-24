@@ -22,7 +22,7 @@ import { MCPError as MCPErrorClass, MCPMethodNotFoundError } from '../utils/erro
 import type { ITransport } from './transports/base.js';
 import { StdioTransport } from './transports/stdio.js';
 import { HttpTransport } from './transports/http.js';
-import { ToolRegistry } from './tools.js';
+import { ToolRegistry, type ToolMetrics } from './tools.js';
 import { RequestRouter } from './router.js';
 import { SessionManager, ISessionManager } from './session-manager.js';
 import { AuthManager, IAuthManager } from './auth.js';
@@ -66,6 +66,10 @@ export class MCPServer implements IMCPServer {
   private requestQueue?: RequestQueue;
   private running = false;
   private currentSession?: MCPSession | undefined;
+  private responseTimeTotalMs = 0;
+  private responseTimeCount = 0;
+  private errorCounts = new Map<string, number>();
+  private metricsLastReset = new Date();
 
   private readonly serverInfo = {
     name: 'Claude-Flow MCP Server',
@@ -246,15 +250,28 @@ export class MCPServer implements IMCPServer {
     const sessionMetrics = this.sessionManager.getSessionMetrics();
     const lbMetrics = this.loadBalancer?.getMetrics();
 
+    const toolInvocations: Record<string, number> = {};
+    const toolMetrics = this.toolRegistry.getToolMetrics() as ToolMetrics[];
+    for (const metrics of toolMetrics) {
+      toolInvocations[metrics.name] = metrics.totalInvocations;
+    }
+
+    const errors: Record<string, number> = {};
+    for (const [code, count] of this.errorCounts.entries()) {
+      errors[code] = count;
+    }
+
     return {
       totalRequests: routerMetrics.totalRequests,
       successfulRequests: routerMetrics.successfulRequests,
       failedRequests: routerMetrics.failedRequests,
-      averageResponseTime: lbMetrics?.averageResponseTime || 0,
+      averageResponseTime:
+        lbMetrics?.averageResponseTime ??
+        (this.responseTimeCount > 0 ? this.responseTimeTotalMs / this.responseTimeCount : 0),
       activeSessions: sessionMetrics.active,
-      toolInvocations: {}, // TODO: Implement tool-specific metrics
-      errors: {}, // TODO: Implement error categorization
-      lastReset: lbMetrics?.lastReset || new Date(),
+      toolInvocations,
+      errors,
+      lastReset: lbMetrics?.lastReset || this.metricsLastReset,
     };
   }
 
@@ -274,6 +291,7 @@ export class MCPServer implements IMCPServer {
   }
 
   private async handleRequest(request: MCPRequest): Promise<MCPResponse> {
+    const requestStart = performance.now();
     this.logger.debug('Handling MCP request', {
       id: request.id,
       method: request.method,
@@ -290,6 +308,7 @@ export class MCPServer implements IMCPServer {
 
       // Check if session is initialized for non-initialize requests
       if (!session.isInitialized) {
+        this.recordError('-32002');
         return {
           jsonrpc: '2.0',
           id: request.id,
@@ -307,6 +326,7 @@ export class MCPServer implements IMCPServer {
       if (this.loadBalancer) {
         const allowed = await this.loadBalancer.shouldAllowRequest(session, request);
         if (!allowed) {
+          this.recordError('-32000');
           return {
             jsonrpc: '2.0',
             id: request.id,
@@ -318,12 +338,22 @@ export class MCPServer implements IMCPServer {
         }
       }
 
+      const context: MCPContext = {
+        sessionId: session.id,
+        agentId: session.authData?.user,
+        logger: this.logger,
+        orchestrator: this.orchestrator,
+        mcp: {
+          getMetrics: () => this.getMetrics(),
+        },
+      };
+
       // Record request start
       const requestMetrics = this.loadBalancer?.recordRequestStart(session, request);
 
       try {
         // Process request through router
-        const result = await this.router.route(request);
+        const result = await this.router.route(request, context);
 
         const response: MCPResponse = {
           jsonrpc: '2.0',
@@ -351,12 +381,26 @@ export class MCPServer implements IMCPServer {
         error,
       });
 
+      const mcpError = this.errorToMCPError(error);
+      this.recordError(String(mcpError.code));
+
       return {
         jsonrpc: '2.0',
         id: request.id,
-        error: this.errorToMCPError(error),
+        error: mcpError,
       };
+    } finally {
+      this.recordResponseTime(performance.now() - requestStart);
     }
+  }
+
+  private recordResponseTime(durationMs: number): void {
+    this.responseTimeTotalMs += durationMs;
+    this.responseTimeCount += 1;
+  }
+
+  private recordError(code: string): void {
+    this.errorCounts.set(code, (this.errorCounts.get(code) ?? 0) + 1);
   }
 
   private async handleInitialize(request: MCPRequest): Promise<MCPResponse> {

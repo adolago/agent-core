@@ -166,7 +166,7 @@ export function createSystemStatusTool(logger: ILogger): MCPTool {
             result.metrics = {
               memoryUsage: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
               cpuUsage: Math.round(process.cpuUsage().user / 1000), // Approximate %
-              avgResponseTime: 0, // TODO: Get from metrics store
+              avgResponseTime: Math.round(context.mcp?.getMetrics().averageResponseTime ?? 0),
             };
           } catch (error) {
             logger.warn('Failed to get performance metrics', { error });

@@ -574,6 +574,9 @@ export interface MCPContext {
   agentId?: string;
   logger: ILogger;
   orchestrator?: unknown;
+  mcp?: {
+    getMetrics: () => MCPMetrics;
+  };
 }
 
 // Additional configuration interfaces
