@@ -18,6 +18,7 @@ export namespace Dictation {
     response_path?: string
     record_command?: string | string[]
     runtime_mode?: RuntimeMode
+    max_duration?: number
   }
 
   export type RuntimeConfig = {
@@ -29,6 +30,7 @@ export namespace Dictation {
     responsePath?: string
     recordCommand?: string | string[]
     runtimeMode: RuntimeMode
+    maxDuration: number
   }
 
   export type TranscribeState = "sending" | "receiving"
@@ -52,6 +54,7 @@ export namespace Dictation {
   const DEFAULT_SAMPLE_RATE = 16_000
   const DEFAULT_INPUT_KEY = "__root__"
   const DEFAULT_RUNTIME_MODE: RuntimeMode = "auto"
+  const DEFAULT_MAX_DURATION = 30 // seconds - prevents 413 payload too large errors
   const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
   const GRAPH_MISMATCH_CACHE = new Set<string>()
   let runtimeSttBindings: Promise<{ expose: Record<string, unknown> }> | null = null
@@ -89,6 +92,7 @@ export namespace Dictation {
       recordCommand: input?.record_command,
       runtimeMode:
         input?.runtime_mode === "force" || input?.runtime_mode === "disable" ? input.runtime_mode : DEFAULT_RUNTIME_MODE,
+      maxDuration: input?.max_duration ?? DEFAULT_MAX_DURATION,
     }
   }
 
@@ -264,11 +268,16 @@ export namespace Dictation {
   }): Promise<string | undefined> {
     const fetcher = input.fetcher ?? fetch
     input.onState?.("sending")
-    const decoded = decodeWav(input.audio)
+    let decoded = decodeWav(input.audio)
     if (!decoded) {
       throw new Error(
         "Dictation expects 16-bit PCM WAV audio. Update tui.dictation.record_command to output WAV.",
       )
+    }
+    // Truncate audio to max duration to avoid 413 payload too large errors
+    const maxSamples = input.config.maxDuration * decoded.sampleRate
+    if (decoded.data.length > maxSamples) {
+      decoded = { data: decoded.data.slice(0, maxSamples), sampleRate: decoded.sampleRate }
     }
     const runtimeMode = input.config.runtimeMode ?? DEFAULT_RUNTIME_MODE
     if (runtimeMode === "force" || (runtimeMode === "auto" && GRAPH_MISMATCH_CACHE.has(input.config.endpoint))) {
