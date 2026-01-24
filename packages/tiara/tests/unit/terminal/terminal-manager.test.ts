@@ -121,6 +121,27 @@ describe('TerminalManager', () => {
       expect(mocks.logger.debug).toHaveBeenCalledWith('Performing terminal manager maintenance');
     });
   });
+
+  describe('Session Metadata', () => {
+    it('should surface linked memory bank IDs in active sessions', () => {
+      const agent = createAgentProfile({ id: 'agent-123' });
+      const fakeSession = {
+        id: 'terminal-session-123',
+        profile: agent,
+        terminal: { id: 'terminal-123', isAlive: () => true },
+        startTime: new Date(),
+        lastActivity: new Date(),
+        isHealthy: () => true,
+      };
+
+      (manager as any).sessions.set(fakeSession.id, fakeSession);
+      manager.linkMemoryBank(fakeSession.id, 'bank-123');
+
+      const sessions = manager.getActiveSessions();
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].memoryBankId).toBe('bank-123');
+    });
+  });
 });
 
 describe('TerminalManager Configuration', () => {

@@ -17,6 +17,7 @@ export interface ITerminalManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
   spawnTerminal(profile: AgentProfile): Promise<string>;
+  linkMemoryBank?(terminalId: string, memoryBankId: string): void;
   terminateTerminal(terminalId: string, options?: { signal?: AbortSignal }): Promise<void>;
   executeCommand(terminalId: string, command: string): Promise<string>;
   getHealthStatus(): Promise<{
@@ -34,6 +35,7 @@ export class TerminalManager implements ITerminalManager {
   private adapter: ITerminalAdapter;
   private pool: TerminalPool;
   private sessions = new Map<string, TerminalSession>();
+  private memoryBankIds = new Map<string, string>();
   private initialized = false;
 
   constructor(
@@ -138,6 +140,18 @@ export class TerminalManager implements ITerminalManager {
     }
   }
 
+  linkMemoryBank(terminalId: string, memoryBankId: string): void {
+    if (!this.sessions.has(terminalId)) {
+      this.logger.warn('Attempted to link memory bank to unknown terminal session', {
+        terminalId,
+        memoryBankId,
+      });
+      return;
+    }
+
+    this.memoryBankIds.set(terminalId, memoryBankId);
+  }
+
   async terminateTerminal(
     terminalId: string,
     options: { signal?: AbortSignal } = {},
@@ -169,6 +183,7 @@ export class TerminalManager implements ITerminalManager {
 
       // Remove session
       this.sessions.delete(terminalId);
+      this.memoryBankIds.delete(terminalId);
 
       this.logger.info('Terminal terminated', { terminalId });
     } catch (error) {
@@ -189,6 +204,7 @@ export class TerminalManager implements ITerminalManager {
           });
         }
         this.sessions.delete(terminalId);
+        this.memoryBankIds.delete(terminalId);
         return;
       }
 
@@ -295,7 +311,7 @@ export class TerminalManager implements ITerminalManager {
       startTime: session.startTime,
       status: session.isHealthy() ? 'active' : 'error',
       lastActivity: session.lastActivity,
-      memoryBankId: '', // TODO: Link to memory bank
+      memoryBankId: this.memoryBankIds.get(session.id) ?? '',
     }));
   }
 

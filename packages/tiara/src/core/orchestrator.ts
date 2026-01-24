@@ -102,6 +102,8 @@ class SessionManager implements ISessionManager {
         initialDelay: 1000,
       });
 
+      this.terminalManager.linkMemoryBank?.(terminalId, memoryBankId);
+
       // Create session
       const session: AgentSession = {
         id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
