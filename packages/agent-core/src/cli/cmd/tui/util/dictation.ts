@@ -631,9 +631,30 @@ export namespace Dictation {
   async function ensureRuntimeSttBindings(): Promise<{ expose: Record<string, unknown> }> {
     if (runtimeSttBindings) return runtimeSttBindings
     runtimeSttBindings = (async () => {
-      const runtimeEntry = await import.meta.resolve("@inworld/runtime")
-      const runtimeEntryPath = fileURLToPath(runtimeEntry)
-      const runtimeDir = path.dirname(runtimeEntryPath)
+      let runtimeDir: string
+      try {
+        const runtimeEntry = await import.meta.resolve("@inworld/runtime")
+        const runtimeEntryPath = fileURLToPath(runtimeEntry)
+        runtimeDir = path.dirname(runtimeEntryPath)
+      } catch {
+        // Fallback for bundled binary: check source directory node_modules
+        const { Global } = await import("@/global")
+        const candidates = [
+          path.join(Global.Path.source, "node_modules", "@inworld", "runtime"),
+          path.join(Global.Path.source, "packages", "agent-core", "node_modules", "@inworld", "runtime"),
+        ]
+        const found = candidates.find((p) => {
+          try {
+            return Bun.file(path.join(p, "package.json")).size > 0
+          } catch {
+            return false
+          }
+        })
+        if (!found) {
+          throw new Error("Cannot find module '@inworld/runtime' - install it with: bun add @inworld/runtime")
+        }
+        runtimeDir = found
+      }
       const require = createRequire(import.meta.url)
       const expose = require(path.join(runtimeDir, "expose_binary.js")) as Record<string, unknown>
 
