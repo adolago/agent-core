@@ -224,19 +224,100 @@ class ThresholdSignatureSystem {
     };
   }
 
-  // Simplified secret sharing (in production, use proper Shamir's Secret Sharing)
+  /**
+   * Implements Shamir's Secret Sharing Scheme
+   * Splits a secret into n shares where k shares are needed to reconstruct
+   * Uses polynomial interpolation over a prime field
+   */
   private generateSecretShares(secret: string, participants: string[]): Map<string, string> {
     const shares = new Map<string, string>();
-    const secretHash = this.crypto.hash(secret);
+    const n = participants.length;
+    const k = this.threshold;
+    
+    if (n < k) {
+      throw new Error(`Need at least ${k} participants for threshold ${k}`);
+    }
+    
+    const secretBytes = Buffer.from(secret, 'utf8');
+    const prime = BigInt('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1');
+    
+    const secretNum = BigInt('0x' + secretBytes.toString('hex')) % prime;
+    
+    const coefficients: bigint[] = [secretNum];
+    for (let i = 1; i < k; i++) {
+      const randomBytes = crypto.randomBytes(24);
+      coefficients.push(BigInt('0x' + randomBytes.toString('hex')) % prime);
+    }
     
     participants.forEach((participant, index) => {
-      // Create deterministic but secure share based on participant and secret
-      const shareData = `${secretHash}_${participant}_${index}`;
-      const share = this.crypto.hash(shareData);
-      shares.set(participant, share);
+      const x = BigInt(index + 1);
+      let y = BigInt(0);
+      
+      for (let i = 0; i < k; i++) {
+        y = (y + coefficients[i] * (x ** BigInt(i))) % prime;
+      }
+      
+      const shareData = {
+        x: x.toString(),
+        y: y.toString(),
+        participant
+      };
+      shares.set(participant, Buffer.from(JSON.stringify(shareData)).toString('base64'));
     });
 
     return shares;
+  }
+
+  /**
+   * Reconstructs secret from k shares using Lagrange interpolation
+   */
+  reconstructSecret(shares: Map<string, string>): string {
+    const prime = BigInt('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1');
+    const points: Array<{ x: bigint; y: bigint }> = [];
+    
+    for (const [, shareBase64] of shares) {
+      const shareData = JSON.parse(Buffer.from(shareBase64, 'base64').toString('utf8'));
+      points.push({ x: BigInt(shareData.x), y: BigInt(shareData.y) });
+    }
+    
+    if (points.length < this.threshold) {
+      throw new Error(`Need at least ${this.threshold} shares to reconstruct`);
+    }
+    
+    const k = this.threshold;
+    let secret = BigInt(0);
+    
+    for (let i = 0; i < k; i++) {
+      let numerator = BigInt(1);
+      let denominator = BigInt(1);
+      
+      for (let j = 0; j < k; j++) {
+        if (i !== j) {
+          numerator = (numerator * (prime - points[j].x)) % prime;
+          denominator = (denominator * ((points[i].x - points[j].x + prime) % prime)) % prime;
+        }
+      }
+      
+      const denominatorInverse = this.modInverse(denominator, prime);
+      const lagrangeCoeff = (numerator * denominatorInverse) % prime;
+      secret = (secret + points[i].y * lagrangeCoeff) % prime;
+    }
+    
+    const hexString = secret.toString(16);
+    return Buffer.from(hexString, 'hex').toString('utf8');
+  }
+
+  private modInverse(a: bigint, m: bigint): bigint {
+    let [old_r, r] = [a, m];
+    let [old_s, s] = [BigInt(1), BigInt(0)];
+    
+    while (r !== BigInt(0)) {
+      const quotient = old_r / r;
+      [old_r, r] = [r, old_r - quotient * r];
+      [old_s, s] = [s, old_s - quotient * s];
+    }
+    
+    return ((old_s % m) + m) % m;
   }
 
   // Create threshold signature
