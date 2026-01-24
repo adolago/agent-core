@@ -1373,8 +1373,8 @@ export class Orchestrator implements IOrchestrator {
       return;
     }
 
-    const intervalMs = this.config.orchestrator.agentHealthCheckIntervalMs || 30000;
-    
+    const intervalMs = this.config.orchestrator.healthCheckInterval || 30000;
+
     const interval = setInterval(async () => {
       try {
         const agent = this.agents.get(agentId);
@@ -1383,12 +1383,21 @@ export class Orchestrator implements IOrchestrator {
           return;
         }
 
-        const lastSeen = agent.lastSeen || new Date(0);
+        const sessions = this.sessionManager.getActiveSessions().filter((s) => s.agentId === agentId);
+        const lastSeen =
+          sessions.length > 0
+            ? sessions.reduce((latest, session) => {
+                return session.lastActivity > latest ? session.lastActivity : latest;
+              }, new Date(0))
+            : new Date(0);
         const staleThreshold = Date.now() - (intervalMs * 3);
-        
+
         if (lastSeen.getTime() < staleThreshold) {
           this.logger.warn('Agent appears stale', { agentId, lastSeen });
-          this.eventBus.emit(SystemEvents.AGENT_UNHEALTHY, { agentId, reason: 'stale' });
+          this.eventBus.emit(SystemEvents.AGENT_ERROR, {
+            agentId,
+            error: new Error(`Health check failed: stale (lastActivity=${lastSeen.toISOString()})`),
+          });
         }
       } catch (error) {
         this.logger.error('Agent health check failed', { agentId, error });
@@ -1414,15 +1423,15 @@ export class Orchestrator implements IOrchestrator {
         try {
           switch (name) {
             case 'Terminal Manager':
-              await this.terminalManager.cleanup?.();
+              await this.terminalManager.performMaintenance();
               this.logger.info('Terminal Manager recovery attempted');
               break;
             case 'Memory Manager':
-              await this.memoryManager.cleanup?.();
+              await this.memoryManager.performMaintenance();
               this.logger.info('Memory Manager recovery attempted');
               break;
             case 'Coordination Manager':
-              await this.coordinationManager.reset?.();
+              await this.coordinationManager.performMaintenance();
               this.logger.info('Coordination Manager recovery attempted');
               break;
             case 'MCP Server':
@@ -1480,7 +1489,7 @@ export class Orchestrator implements IOrchestrator {
       count: criticalTasks.length,
     });
 
-    const timeoutMs = this.config.orchestrator.shutdownTaskTimeoutMs || 30000;
+    const timeoutMs = this.config.orchestrator.shutdownTimeout || 30000;
     const startTime = Date.now();
 
     for (const task of criticalTasks) {
