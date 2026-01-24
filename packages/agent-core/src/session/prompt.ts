@@ -168,20 +168,46 @@ export namespace SessionPrompt {
     if (cfg.memory?.required !== true) return
 
     const status = await MCP.status()
-    const memoryServer = resolveMemoryMcpName(status)
-    const memoryStatus = status[memoryServer]
+    const mcpConfig = cfg.mcp ?? {}
+    let memoryServer = resolveMemoryMcpName(status)
+
+    if (!status[memoryServer]) {
+      if (mcpConfig["personas-memory"]) memoryServer = "personas-memory"
+      else if (mcpConfig["memory"]) memoryServer = "memory"
+    }
+
+    let memoryStatus = status[memoryServer]
     if (!memoryStatus || memoryStatus.status !== "connected") {
-      const reason =
-        memoryStatus?.status === "failed"
-          ? memoryStatus.error
-          : memoryStatus?.status ?? "missing"
-      const message = `Memory MCP "${memoryServer}" is required but not connected (${reason}).`
-      const error = new NamedError.Unknown({ message })
-      Bus.publish(Session.Event.Error, {
-        sessionID,
-        error: error.toObject(),
-      })
-      throw error
+      const configEntry = mcpConfig[memoryServer]
+      const entryDisabled =
+        typeof configEntry === "object" &&
+        configEntry !== null &&
+        "enabled" in configEntry &&
+        configEntry.enabled === false
+      const hasConfig = Boolean(configEntry)
+
+      if (hasConfig && !entryDisabled) {
+        await MCP.connect(memoryServer)
+        const refreshed = await MCP.status()
+        memoryStatus = refreshed[memoryServer]
+      }
+
+      if (!memoryStatus || memoryStatus.status !== "connected") {
+        const reason =
+          memoryStatus?.status === "failed"
+            ? memoryStatus.error
+            : memoryStatus?.status ?? (hasConfig ? "missing" : "not configured")
+        const message =
+          reason === "not configured"
+            ? `Memory MCP "${memoryServer}" is required but not configured.`
+            : `Memory MCP "${memoryServer}" is required but not connected (${reason}).`
+        const error = new NamedError.Unknown({ message })
+        Bus.publish(Session.Event.Error, {
+          sessionID,
+          error: error.toObject(),
+        })
+        throw error
+      }
     }
 
     const memoryCheck = await checkMemoryAvailability()

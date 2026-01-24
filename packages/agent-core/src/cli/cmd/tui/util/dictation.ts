@@ -1,4 +1,8 @@
 import { platform } from "os"
+import path from "path"
+import { createRequire } from "module"
+import { promisify } from "node:util"
+import { fileURLToPath } from "url"
 import { Auth } from "@/auth"
 
 export namespace Dictation {
@@ -49,6 +53,8 @@ export namespace Dictation {
   const DEFAULT_INPUT_KEY = "__root__"
   const DEFAULT_RUNTIME_MODE: RuntimeMode = "auto"
   const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
+  const GRAPH_MISMATCH_CACHE = new Set<string>()
+  let runtimeSttBindings: Promise<{ expose: Record<string, unknown> }> | null = null
 
   export async function resolveConfig(input?: Config): Promise<RuntimeConfig | undefined> {
     if (input?.enabled === false) return
@@ -265,7 +271,7 @@ export namespace Dictation {
       )
     }
     const runtimeMode = input.config.runtimeMode ?? DEFAULT_RUNTIME_MODE
-    if (runtimeMode === "force") {
+    if (runtimeMode === "force" || (runtimeMode === "auto" && GRAPH_MISMATCH_CACHE.has(input.config.endpoint))) {
       return await transcribeWithRuntime({
         config: input.config,
         decoded,
@@ -320,6 +326,7 @@ export namespace Dictation {
       return findTranscript(data)
     } catch (error) {
       if (runtimeMode === "auto" && isInputMismatchError(error)) {
+        GRAPH_MISMATCH_CACHE.add(input.config.endpoint)
         try {
           return await transcribeWithRuntime({
             config: input.config,
@@ -492,33 +499,225 @@ export namespace Dictation {
     decoded: DecodedAudio
     onState?: (state: TranscribeState) => void
   }): Promise<string | undefined> {
-    let STTFactory: typeof import("@inworld/runtime/primitives/stt").STTFactory
+    let expose: Record<string, unknown> | undefined
     try {
-      ;({ STTFactory } = await import("@inworld/runtime/primitives/stt"))
+      ;({ expose } = await ensureRuntimeSttBindings())
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       throw new Error(`@inworld/runtime is required for dictation fallback: ${message}`)
     }
 
     input.onState?.("sending")
-    const stt = await STTFactory.createRemote({ apiKey: input.config.apiKey })
+    const sttFactory = expose?.STTFactoryFunctions as
+      | { new: () => unknown; delete: (ptr: unknown) => void }
+      | undefined
+    const sttInterface = expose?.STTInterfaceFunctions as
+      | {
+          createRemote: (factory: unknown, config: unknown) => Promise<unknown>
+          isOK: (ptr: unknown) => boolean
+          get: (ptr: unknown) => unknown
+          delete: (ptr: unknown) => void
+          deleteInterface?: (ptr: unknown) => void
+          recognizeSpeech: (stt: unknown, audio: unknown, config: unknown) => Promise<unknown>
+        }
+      | undefined
+    const remoteConfig = expose?.RemoteSTTConfigFunctions as
+      | { new: () => unknown; delete: (ptr: unknown) => void; setApiKey: (ptr: unknown, key: string) => void }
+      | undefined
+    const speechConfig = expose?.SpeechRecognitionConfigFunctions as
+      | { new: () => unknown; delete: (ptr: unknown) => void }
+      | undefined
+    const audioChunk = expose?.AudioChunkFunctions as
+      | {
+          new: () => unknown
+          delete: (ptr: unknown) => void
+          setData: (ptr: unknown, data: unknown) => void
+          setSampleRate: (ptr: unknown, rate: number) => void
+        }
+      | undefined
+    const vectorFloat = expose?.VectorFloatFunctions as
+      | {
+          new: () => unknown
+          pushBack: (ptr: unknown, value: number) => void
+        }
+      | undefined
+    const inputStream = expose?.InputStreamFunctions as
+      | {
+          isOK: (ptr: unknown) => boolean
+          get: (ptr: unknown) => unknown
+          delete: (ptr: unknown) => void
+          deleteStream: (ptr: unknown) => void
+          hasNext: (ptr: unknown) => Promise<boolean>
+          read: (ptr: unknown) => Promise<unknown>
+        }
+      | undefined
+    const inworldString = expose?.InworldStringFunctions as
+      | { isOK: (ptr: unknown) => boolean; get: (ptr: unknown) => string }
+      | undefined
+
+    if (
+      !sttFactory ||
+      !sttInterface ||
+      !remoteConfig ||
+      !speechConfig ||
+      !audioChunk ||
+      !vectorFloat ||
+      !inputStream ||
+      !inworldString
+    ) {
+      throw new Error("@inworld/runtime STT bindings are unavailable")
+    }
+
+    let factoryPtr: unknown
+    let configPtr: unknown
+    let sttPtr: unknown
+    let audioPtr: unknown
+    let speechPtr: unknown
+    let statusOrStream: unknown
+    let streamPtr: unknown
+
     try {
-      const stream = await stt.recognizeSpeech({
-        data: input.decoded.data,
-        sampleRate: input.decoded.sampleRate,
-      })
-      input.onState?.("receiving")
-      let text = ""
-      for (;;) {
-        const result = await stream.next()
-        if (result.done) break
-        if (result.text) text += result.text
+      factoryPtr = sttFactory.new()
+      configPtr = remoteConfig.new()
+      remoteConfig.setApiKey(configPtr, input.config.apiKey)
+      const statusOrStt = await sttInterface.createRemote(factoryPtr, configPtr)
+      if (!sttInterface.isOK(statusOrStt)) {
+        throw new Error("Failed to create runtime STT instance")
       }
+      sttPtr = sttInterface.get(statusOrStt)
+      sttInterface.delete(statusOrStt)
+      statusOrStream = undefined
+
+      const vectorPtr = vectorFloat.new()
+      for (const sample of input.decoded.data) {
+        vectorFloat.pushBack(vectorPtr, sample)
+      }
+
+      audioPtr = audioChunk.new()
+      audioChunk.setData(audioPtr, vectorPtr)
+      audioChunk.setSampleRate(audioPtr, input.decoded.sampleRate)
+
+      speechPtr = speechConfig.new()
+      statusOrStream = await sttInterface.recognizeSpeech(sttPtr, audioPtr, speechPtr)
+      if (!inputStream.isOK(statusOrStream)) {
+        throw new Error("Failed to recognize speech via runtime STT")
+      }
+
+      streamPtr = inputStream.get(statusOrStream)
+      input.onState?.("receiving")
+
+      let text = ""
+      while (await inputStream.hasNext(streamPtr)) {
+        const statusOrText = await inputStream.read(streamPtr)
+        if (!inworldString.isOK(statusOrText)) {
+          throw new Error("Failed to read STT stream output")
+        }
+        const chunk = inworldString.get(statusOrText)
+        if (chunk) text += chunk
+      }
+
       return text.trim() || undefined
     } finally {
-      stt.destroy()
+      if (streamPtr) inputStream.deleteStream(streamPtr)
+      if (statusOrStream) inputStream.delete(statusOrStream)
+      if (audioPtr) audioChunk.delete(audioPtr)
+      if (speechPtr) speechConfig.delete(speechPtr)
+      if (sttPtr && sttInterface.deleteInterface) sttInterface.deleteInterface(sttPtr)
+      if (configPtr) remoteConfig.delete(configPtr)
+      if (factoryPtr) sttFactory.delete(factoryPtr)
     }
   }
+
+  async function ensureRuntimeSttBindings(): Promise<{ expose: Record<string, unknown> }> {
+    if (runtimeSttBindings) return runtimeSttBindings
+    runtimeSttBindings = (async () => {
+      const runtimeEntry = await import.meta.resolve("@inworld/runtime")
+      const runtimeEntryPath = fileURLToPath(runtimeEntry)
+      const runtimeDir = path.dirname(runtimeEntryPath)
+      const require = createRequire(import.meta.url)
+      const expose = require(path.join(runtimeDir, "expose_binary.js")) as Record<string, unknown>
+
+      const hasSttBindings =
+        Boolean(expose.RemoteSTTConfigFunctions) &&
+        Boolean(expose.STTFactoryFunctions) &&
+        Boolean(expose.STTInterfaceFunctions) &&
+        Boolean(expose.SpeechRecognitionConfigFunctions)
+      if (hasSttBindings) return { expose }
+
+      const platformDetection = require(path.join(runtimeDir, "common", "platform_detection.js")) as {
+        getBinaryPath?: (baseDir: string) => string
+      }
+      if (typeof platformDetection.getBinaryPath !== "function") {
+        throw new Error("Unable to resolve Inworld runtime binary path")
+      }
+      const koffiModule = await import("koffi")
+      const koffi = (koffiModule as { default?: typeof import("koffi") }).default ?? koffiModule
+      const libPath = platformDetection.getBinaryPath(path.join(runtimeDir, "..", "bin"))
+      const inworld = koffi.load(libPath)
+
+      const asyncFn = (name: string, ret: string, args: string[]) =>
+        promisify(inworld.func(name, ret, args).async)
+      const syncFn = (name: string, ret: string, args: string[]) => inworld.func(name, ret, args)
+
+      if (!expose.RemoteSTTConfigFunctions) {
+        expose.RemoteSTTConfigFunctions = {
+          new: syncFn("inworld_RemoteSTTConfig_new", "void *", []),
+          delete: syncFn("inworld_RemoteSTTConfig_delete", "void", ["void *"]),
+          setApiKey: syncFn("inworld_RemoteSTTConfig_api_key_set", "void", ["void *", "str"]),
+        }
+      }
+
+      if (!expose.LocalSTTConfigFunctions) {
+        expose.LocalSTTConfigFunctions = {
+          new: syncFn("inworld_LocalSTTConfig_new", "void *", []),
+          delete: syncFn("inworld_LocalSTTConfig_delete", "void", ["void *"]),
+          setModelPath: syncFn("inworld_LocalSTTConfig_model_path_set", "void", ["void *", "str"]),
+          setDevice: syncFn("inworld_LocalSTTConfig_device_set", "void", ["void *", "void *"]),
+        }
+      }
+
+      if (!expose.SpeechRecognitionConfigFunctions) {
+        expose.SpeechRecognitionConfigFunctions = {
+          new: syncFn("inworld_SpeechRecognitionConfig_new", "void *", []),
+          delete: syncFn("inworld_SpeechRecognitionConfig_delete", "void", ["void *"]),
+        }
+      }
+
+      if (!expose.STTFactoryFunctions) {
+        expose.STTFactoryFunctions = {
+          new: syncFn("inworld_STTFactory_new", "void *", []),
+          delete: syncFn("inworld_STTFactory_delete", "void", ["void *"]),
+        }
+      }
+
+      if (!expose.STTInterfaceFunctions) {
+        expose.STTInterfaceFunctions = {
+          createRemote: asyncFn("inworld_STTFactory_CreateSTT_rcinworld_RemoteSTTConfig", "void *", [
+            "void *",
+            "void *",
+          ]),
+          createLocal: asyncFn("inworld_STTFactory_CreateSTT_rcinworld_LocalSTTConfig", "void *", [
+            "void *",
+            "void *",
+          ]),
+          isOK: syncFn("inworld_StatusOr_STTInterface_ok", "bool", ["void *"]),
+          get: syncFn("inworld_StatusOr_STTInterface_value", "void *", ["void *"]),
+          delete: syncFn("inworld_StatusOr_STTInterface_delete", "void", ["void *"]),
+          recognizeSpeech: asyncFn("inworld_STTInterface_RecognizeSpeech", "void *", [
+            "void *",
+            "void *",
+            "void *",
+          ]),
+          deleteInterface: syncFn("inworld_STTInterface_delete", "void", ["void *"]),
+        }
+      }
+
+      return { expose }
+    })()
+
+    return runtimeSttBindings
+  }
+
 
   async function readAll(stream?: ReadableStream<Uint8Array> | null): Promise<Uint8Array> {
     if (!stream) return new Uint8Array()
