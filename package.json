@@ -84,6 +84,7 @@
     "printWidth": 120
   },
   "trustedDependencies": [
+    "@inworld/runtime",
     "esbuild",
     "protobufjs",
     "tree-sitter",

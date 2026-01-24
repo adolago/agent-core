@@ -65,6 +65,7 @@
     "@gitlab/gitlab-ai-provider": "3.1.2",
     "@hono/standard-validator": "0.1.5",
     "@hono/zod-validator": "catalog:",
+    "@inworld/runtime": "0.8.2",
     "@modelcontextprotocol/sdk": "1.25.2",
     "@octokit/graphql": "9.0.2",
     "@octokit/rest": "catalog:",

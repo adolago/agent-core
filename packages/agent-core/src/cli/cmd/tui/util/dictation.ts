@@ -269,38 +269,58 @@ export namespace Dictation {
     const payload = {
       input: !inputKey || inputKey === DEFAULT_INPUT_KEY ? audioInput : { [inputKey]: audioInput },
     }
-    const response = await fetcher(input.config.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${input.config.apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    })
-    input.onState?.("receiving")
 
-    if (!response.ok) {
-      const text = await response.text().catch(() => "")
-      throw new Error(`Dictation request failed (${response.status}): ${text || response.statusText}`)
-    }
+    try {
+      const response = await fetcher(input.config.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${input.config.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      })
+      input.onState?.("receiving")
 
-    const contentType = response.headers.get("content-type") ?? ""
-    const isNdjson = contentType.includes("application/x-ndjson") || contentType.includes("application/ndjson")
-    if (isNdjson) {
-      const text = await response.text().catch(() => "")
-      return parseNdjsonTranscript(text, input.config.responsePath)
-    }
-    if (!contentType.includes("application/json")) {
-      const text = await response.text()
-      return text.trim() || undefined
-    }
+      if (!response.ok) {
+        const text = await response.text().catch(() => "")
+        throw new Error(`Dictation request failed (${response.status}): ${text || response.statusText}`)
+      }
 
-    const data = await response.json()
-    if (input.config.responsePath) {
-      const resolved = getByPath(data, input.config.responsePath)
-      if (typeof resolved === "string") return resolved
+      const contentType = response.headers.get("content-type") ?? ""
+      const isNdjson = contentType.includes("application/x-ndjson") || contentType.includes("application/ndjson")
+      if (isNdjson) {
+        const text = await response.text().catch(() => "")
+        return parseNdjsonTranscript(text, input.config.responsePath)
+      }
+      if (!contentType.includes("application/json")) {
+        const text = await response.text()
+        return text.trim() || undefined
+      }
+
+      const data = await response.json()
+      if (input.config.responsePath) {
+        const resolved = getByPath(data, input.config.responsePath)
+        if (typeof resolved === "string") return resolved
+      }
+      return findTranscript(data)
+    } catch (error) {
+      if (isInputMismatchError(error)) {
+        try {
+          return await transcribeWithRuntime({
+            config: input.config,
+            decoded,
+            onState: input.onState,
+          })
+        } catch (runtimeError) {
+          const baseMessage = error instanceof Error ? error.message : String(error)
+          const runtimeMessage = runtimeError instanceof Error ? runtimeError.message : String(runtimeError)
+          throw new Error(
+            `Dictation failed via graph endpoint (${baseMessage}) and runtime fallback failed (${runtimeMessage}).`,
+          )
+        }
+      }
+      throw error
     }
-    return findTranscript(data)
   }
 
   function decodeWav(input: Uint8Array): DecodedAudio | undefined {
@@ -445,6 +465,44 @@ export namespace Dictation {
       if (found) lastTranscript = found
     }
     return lastTranscript?.trim() || undefined
+  }
+
+  function isInputMismatchError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false
+    return /input type mismatch|missing required input/i.test(error.message)
+  }
+
+  async function transcribeWithRuntime(input: {
+    config: RuntimeConfig
+    decoded: DecodedAudio
+    onState?: (state: TranscribeState) => void
+  }): Promise<string | undefined> {
+    let STTFactory: typeof import("@inworld/runtime/primitives/stt").STTFactory
+    try {
+      ;({ STTFactory } = await import("@inworld/runtime/primitives/stt"))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(`@inworld/runtime is required for dictation fallback: ${message}`)
+    }
+
+    input.onState?.("sending")
+    const stt = await STTFactory.createRemote({ apiKey: input.config.apiKey })
+    try {
+      const stream = await stt.recognizeSpeech({
+        data: input.decoded.data,
+        sampleRate: input.decoded.sampleRate,
+      })
+      input.onState?.("receiving")
+      let text = ""
+      for (;;) {
+        const result = await stream.next()
+        if (result.done) break
+        if (result.text) text += result.text
+      }
+      return text.trim() || undefined
+    } finally {
+      stt.destroy()
+    }
   }
 
   async function readAll(stream?: ReadableStream<Uint8Array> | null): Promise<Uint8Array> {
