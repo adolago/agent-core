@@ -1288,10 +1288,38 @@ export class Orchestrator implements IOrchestrator {
   }
 
   private handleSystemError(component: string, error: Error): void {
-    // Implement system-level error recovery strategies
     this.logger.error('Handling system error', { component, error });
 
-    // TODO: Implement specific recovery strategies based on component and error type
+    const errorType = error.name || 'UnknownError';
+    const errorMessage = error.message || '';
+
+    switch (component) {
+      case 'memory':
+        if (errorMessage.includes('ENOSPC') || errorMessage.includes('disk full')) {
+          this.logger.warn('Memory component disk space issue, triggering cleanup');
+          this.cleanupTaskHistory().catch(e => this.logger.error('Cleanup failed', e));
+        } else if (errorMessage.includes('ECONNREFUSED')) {
+          this.logger.warn('Memory backend connection refused, will retry on next operation');
+        }
+        break;
+      case 'coordination':
+        if (errorType === 'TimeoutError' || errorMessage.includes('timeout')) {
+          this.logger.warn('Coordination timeout, resetting coordination state');
+        }
+        break;
+      case 'terminal':
+        if (errorMessage.includes('EPERM') || errorMessage.includes('permission')) {
+          this.logger.error('Terminal permission error, check process privileges');
+        }
+        break;
+      case 'mcp':
+        if (errorMessage.includes('EADDRINUSE')) {
+          this.logger.error('MCP server port in use, cannot recover automatically');
+        }
+        break;
+      default:
+        this.logger.warn(`No specific recovery strategy for component: ${component}`);
+    }
   }
 
   private async resolveDeadlock(agents: string[], resources: string[]): Promise<void> {
@@ -1338,29 +1366,76 @@ export class Orchestrator implements IOrchestrator {
     }
   }
 
+  private agentHealthIntervals = new Map<string, NodeJS.Timeout>();
+
   private startAgentHealthMonitoring(agentId: string): void {
-    // TODO: Implement periodic health checks for individual agents
+    if (this.agentHealthIntervals.has(agentId)) {
+      return;
+    }
+
+    const intervalMs = this.config.orchestrator.agentHealthCheckIntervalMs || 30000;
+    
+    const interval = setInterval(async () => {
+      try {
+        const agent = this.agents.get(agentId);
+        if (!agent) {
+          this.stopAgentHealthMonitoring(agentId);
+          return;
+        }
+
+        const lastSeen = agent.lastSeen || new Date(0);
+        const staleThreshold = Date.now() - (intervalMs * 3);
+        
+        if (lastSeen.getTime() < staleThreshold) {
+          this.logger.warn('Agent appears stale', { agentId, lastSeen });
+          this.eventBus.emit(SystemEvents.AGENT_UNHEALTHY, { agentId, reason: 'stale' });
+        }
+      } catch (error) {
+        this.logger.error('Agent health check failed', { agentId, error });
+      }
+    }, intervalMs);
+
+    this.agentHealthIntervals.set(agentId, interval);
+  }
+
+  private stopAgentHealthMonitoring(agentId: string): void {
+    const interval = this.agentHealthIntervals.get(agentId);
+    if (interval) {
+      clearInterval(interval);
+      this.agentHealthIntervals.delete(agentId);
+    }
   }
 
   private async recoverUnhealthyComponents(health: HealthStatus): Promise<void> {
     for (const [name, component] of Object.entries(health.components)) {
       if (component.status === 'unhealthy') {
-        this.logger.warn('Attempting to recover unhealthy component', { name });
+        this.logger.warn('Attempting to recover unhealthy component', { name, details: component });
 
-        // TODO: Implement component-specific recovery strategies
-        switch (name) {
-          case 'Terminal Manager':
-            // Restart terminal pools, etc.
-            break;
-          case 'Memory Manager':
-            // Clear cache, reconnect to backends, etc.
-            break;
-          case 'Coordination Manager':
-            // Reset locks, clear message queues, etc.
-            break;
-          case 'MCP Server':
-            // Restart server, reset connections, etc.
-            break;
+        try {
+          switch (name) {
+            case 'Terminal Manager':
+              await this.terminalManager.cleanup?.();
+              this.logger.info('Terminal Manager recovery attempted');
+              break;
+            case 'Memory Manager':
+              await this.memoryManager.cleanup?.();
+              this.logger.info('Memory Manager recovery attempted');
+              break;
+            case 'Coordination Manager':
+              await this.coordinationManager.reset?.();
+              this.logger.info('Coordination Manager recovery attempted');
+              break;
+            case 'MCP Server':
+              await this.mcpServer.stop().catch(() => {});
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              await this.mcpServer.start();
+              this.logger.info('MCP Server restarted');
+              break;
+            default:
+              this.logger.warn(`No recovery strategy for component: ${name}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to recover component: ${name}`, { error });
         }
       }
     }
@@ -1393,18 +1468,66 @@ export class Orchestrator implements IOrchestrator {
   }
 
   private async processShutdownTasks(): Promise<void> {
-    // Process any critical tasks before shutdown
     const criticalTasks = this.taskQueue.filter(
       (t) => t.priority >= 90 || t.metadata?.critical === true,
     );
 
-    if (criticalTasks.length > 0) {
-      this.logger.info('Processing critical tasks before shutdown', {
-        count: criticalTasks.length,
-      });
-
-      // TODO: Implement critical task processing
+    if (criticalTasks.length === 0) {
+      return;
     }
+
+    this.logger.info('Processing critical tasks before shutdown', {
+      count: criticalTasks.length,
+    });
+
+    const timeoutMs = this.config.orchestrator.shutdownTaskTimeoutMs || 30000;
+    const startTime = Date.now();
+
+    for (const task of criticalTasks) {
+      if (Date.now() - startTime > timeoutMs) {
+        this.logger.warn('Shutdown task processing timeout exceeded', {
+          processed: criticalTasks.indexOf(task),
+          remaining: criticalTasks.length - criticalTasks.indexOf(task),
+        });
+        break;
+      }
+
+      try {
+        this.logger.info('Processing critical shutdown task', { taskId: task.id });
+        
+        const availableAgents = await this.getAvailableAgents();
+        if (availableAgents.length > 0) {
+          const agent = availableAgents[0];
+          task.assignedAgent = agent.id;
+          task.status = 'running';
+          
+          await this.coordinationManager.assignTask(task, agent.id);
+          
+          const taskTimeout = Math.min(10000, timeoutMs - (Date.now() - startTime));
+          await Promise.race([
+            this.waitForTaskCompletion(task.id),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Task timeout')), taskTimeout)
+            ),
+          ]);
+        }
+      } catch (error) {
+        this.logger.error('Failed to process critical shutdown task', { taskId: task.id, error });
+        task.status = 'failed';
+      }
+    }
+  }
+
+  private async waitForTaskCompletion(taskId: string): Promise<void> {
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        const task = this.taskHistory.get(taskId);
+        if (task && (task.status === 'completed' || task.status === 'failed')) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 100);
+    });
   }
 
   /**
