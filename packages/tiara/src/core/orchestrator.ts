@@ -1000,13 +1000,29 @@ export class Orchestrator implements IOrchestrator {
     this.logger.warn('Performing emergency shutdown');
 
     try {
-      // Force stop all components
-      await Promise.allSettled([
-        this.terminalManager.shutdown().catch(() => {}),
-        this.memoryManager.shutdown().catch(() => {}),
-        this.coordinationManager.shutdown().catch(() => {}),
-        this.mcpServer.stop().catch(() => {}),
+      const results = await Promise.allSettled([
+        this.terminalManager.shutdown().catch(e => {
+          this.logger.warn('Terminal manager shutdown warning:', e);
+          return e;
+        }),
+        this.memoryManager.shutdown().catch(e => {
+          this.logger.warn('Memory manager shutdown warning:', e);
+          return e;
+        }),
+        this.coordinationManager.shutdown().catch(e => {
+          this.logger.warn('Coordination manager shutdown warning:', e);
+          return e;
+        }),
+        this.mcpServer.stop().catch(e => {
+          this.logger.warn('MCP server stop warning:', e);
+          return e;
+        }),
       ]);
+      
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        this.logger.warn(`Emergency shutdown completed with ${failures.length} component failures`);
+      }
     } catch (error) {
       this.logger.error('Emergency shutdown error', error);
     }
