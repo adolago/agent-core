@@ -6,7 +6,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { execSync, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 
@@ -265,9 +265,9 @@ describe('Sorting Algorithms', () => {
       // Install dependencies (only once per task)
       try {
         console.log(`   📦 Installing dependencies...`);
-        execSync('npm install --silent', { 
+        await execAsync('npm install --silent', {
           cwd: task.projectDir,
-          stdio: 'pipe'
+          maxBuffer: 10 * 1024 * 1024
         });
       } catch (e) {
         console.log(`   ⚠️ Install warning: ${e.message.slice(0, 50)}`);
@@ -326,11 +326,11 @@ describe('Sorting Algorithms', () => {
 
     // Run REAL tests
     try {
-      const testResult = execSync('npm test', { 
+      const { stdout, stderr } = await execAsync('npm test', {
         cwd: task.projectDir,
-        encoding: 'utf8',
-        stdio: 'pipe'
+        maxBuffer: 10 * 1024 * 1024
       });
+      const testResult = `${stdout}${stderr}`;
       checks.test = { 
         passed: true, 
         score: 1.0,
@@ -346,11 +346,11 @@ describe('Sorting Algorithms', () => {
 
     // Run REAL lint
     try {
-      const lintResult = execSync('npm run lint', { 
+      const { stdout, stderr } = await execAsync('npm run lint', {
         cwd: task.projectDir,
-        encoding: 'utf8',
-        stdio: 'pipe'
+        maxBuffer: 10 * 1024 * 1024
       });
+      const lintResult = `${stdout}${stderr}`;
       const hasErrors = lintResult.includes('error');
       checks.lint = { 
         passed: !hasErrors, 

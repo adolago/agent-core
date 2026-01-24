@@ -5,16 +5,17 @@
 
 import { KeyRedactor } from '../utils/key-redactor.js';
 import { readFileSync } from 'fs';
-import { execSync } from 'child_process';
+import { execAsync } from '../utils/helpers.js';
 
 export async function validateNoSensitiveData(): Promise<{ safe: boolean; issues: string[] }> {
   const issues: string[] = [];
 
   try {
     // Get staged files
-    const stagedFiles = execSync('git diff --cached --name-only', { encoding: 'utf-8' })
+    const { stdout: stagedFilesStdout } = await execAsync('git diff --cached --name-only');
+    const stagedFiles = stagedFilesStdout
       .split('\n')
-      .filter(f => f.trim() && !f.includes('.env') && !f.includes('node_modules') && !f.endsWith('.map'));
+      .filter((f) => f.trim() && !f.includes('.env') && !f.includes('node_modules') && !f.endsWith('.map'));
 
     // Common documentation placeholder patterns (these are safe)
     const placeholderPatterns = [

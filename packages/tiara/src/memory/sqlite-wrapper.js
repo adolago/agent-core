@@ -5,9 +5,12 @@
  */
 
 import { createRequire } from 'module';
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,7 +23,7 @@ let rebuildAttempted = false;
 /**
  * Attempt to rebuild better-sqlite3 for the current Node.js version
  */
-function tryRebuildBetterSqlite3() {
+async function tryRebuildBetterSqlite3() {
   if (rebuildAttempted) return false;
   rebuildAttempted = true;
 
@@ -32,10 +35,10 @@ function tryRebuildBetterSqlite3() {
     console.warn(`\n🔧 Attempting to rebuild better-sqlite3 for Node.js ${process.version}...`);
 
     // Run npm rebuild in the better-sqlite3 directory
-    execSync('npm rebuild', {
+    await execAsync('npm rebuild', {
       cwd: betterSqlite3Path,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 120000 // 2 minute timeout
+      timeout: 120000, // 2 minute timeout
+      maxBuffer: 10 * 1024 * 1024,
     });
 
     console.warn(`✅ Rebuild successful! Retrying SQLite load...\n`);
@@ -76,7 +79,7 @@ async function tryLoadSQLite() {
 
       if (isVersionMismatch) {
         // Try auto-rebuild first
-        if (!rebuildAttempted && tryRebuildBetterSqlite3()) {
+        if (!rebuildAttempted && (await tryRebuildBetterSqlite3())) {
           // Rebuild succeeded, try loading again
           try {
             const require = createRequire(import.meta.url);

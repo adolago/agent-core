@@ -6,7 +6,10 @@
 
 import { printSuccess, printError, printWarning, printInfo } from '../utils.js';
 import { githubAPI } from './github-api.js';
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 class GitHubCoordinator {
   constructor() {
@@ -29,7 +32,8 @@ class GitHubCoordinator {
 
     // Check if we're in a git repository
     try {
-      const remoteUrl = execSync('git config --get remote.origin.url', { encoding: 'utf8' }).trim();
+      const { stdout: remoteUrlStdout } = await execAsync('git config --get remote.origin.url');
+      const remoteUrl = remoteUrlStdout.trim();
       const repoMatch = remoteUrl.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/);
 
       if (repoMatch) {
@@ -52,12 +56,11 @@ class GitHubCoordinator {
   async initializeSwarmIntegration() {
     try {
       // Check if ruv-swarm is available
-      execSync('npx ruv-swarm --version', { stdio: 'pipe' });
+      await execAsync('npx ruv-swarm --version');
 
       // Initialize swarm for GitHub coordination
-      const swarmInit = execSync(
+      const { stdout: swarmInit } = await execAsync(
         'npx ruv-swarm hook pre-task --description "GitHub workflow coordination"',
-        { encoding: 'utf8' },
       );
 
       if (swarmInit.includes('continue')) {
@@ -121,7 +124,7 @@ class GitHubCoordinator {
 
     // Store coordination plan in swarm memory
     const memoryKey = `github-coordination/${coordinationPlan.id}`;
-    execSync(
+    await execAsync(
       `npx ruv-swarm hook notification --message "GitHub Coordination: ${coordinationPlan.type} started" --telemetry true`,
     );
 
@@ -130,19 +133,19 @@ class GitHubCoordinator {
       printInfo(`Executing step: ${step}`);
 
       // Pre-step hook
-      execSync(`npx ruv-swarm hook pre-task --description "GitHub step: ${step}"`);
+      await execAsync(`npx ruv-swarm hook pre-task --description "GitHub step: ${step}"`);
 
       // Execute step
       await this.executeCoordinationStep(coordinationPlan, step);
 
       // Post-step hook
-      execSync(
+      await execAsync(
         `npx ruv-swarm hook post-edit --file "github-coordination" --memory-key "${memoryKey}/${step}"`,
       );
     }
 
     // Final coordination notification
-    execSync(
+    await execAsync(
       `npx ruv-swarm hook notification --message "GitHub Coordination: ${coordinationPlan.type} completed" --telemetry true`,
     );
   }

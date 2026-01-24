@@ -4,9 +4,12 @@
  * Provides verification integration for other commands via CLI
  */
 
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -36,7 +39,7 @@ async function preTaskVerification(taskId, agentType, data) {
   
   // Check git status
   try {
-    const gitStatus = execSync('git status --porcelain', { encoding: 'utf8' });
+    const { stdout: gitStatus } = await execAsync('git status --porcelain');
     const isClean = gitStatus.trim() === '';
     checks.push({
       name: 'git-status',
@@ -50,7 +53,7 @@ async function preTaskVerification(taskId, agentType, data) {
   // Check npm dependencies
   if (fs.existsSync('package.json')) {
     try {
-      execSync('npm ls --depth=0', { stdio: 'ignore' });
+      await execAsync('npm ls --depth=0');
       checks.push({ name: 'npm-deps', passed: true, score: 1.0 });
     } catch {
       checks.push({ name: 'npm-deps', passed: false, score: 0.5 });
@@ -88,7 +91,7 @@ async function postTaskVerification(taskId, agentType, data) {
   // Run type checking if available
   if (fs.existsSync('tsconfig.json') || fs.existsSync('package.json')) {
     try {
-      const result = execSync('npm run typecheck 2>&1 || true', { encoding: 'utf8' });
+      const { stdout: result } = await execAsync('npm run typecheck 2>&1 || true');
       const hasErrors = result.toLowerCase().includes('error');
       checks.push({
         name: 'typecheck',
@@ -105,7 +108,7 @@ async function postTaskVerification(taskId, agentType, data) {
     try {
       const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
       if (pkg.scripts && pkg.scripts.test) {
-        const result = execSync('npm test 2>&1 || true', { encoding: 'utf8' });
+        const { stdout: result } = await execAsync('npm test 2>&1 || true');
         const passed = result.includes('PASS') || result.includes('passing');
         checks.push({
           name: 'tests',
@@ -121,7 +124,7 @@ async function postTaskVerification(taskId, agentType, data) {
   // Run linting if available
   if (fs.existsSync('.eslintrc.js') || fs.existsSync('.eslintrc.json')) {
     try {
-      const result = execSync('npm run lint 2>&1 || true', { encoding: 'utf8' });
+      const { stdout: result } = await execAsync('npm run lint 2>&1 || true');
       const hasErrors = result.toLowerCase().includes('error');
       checks.push({
         name: 'lint',
@@ -160,7 +163,7 @@ async function postTaskVerification(taskId, agentType, data) {
     if (process.env.VERIFICATION_ROLLBACK === 'true') {
       console.log('🔄 Attempting rollback...');
       try {
-        execSync('git reset --hard HEAD');
+        await execAsync('git reset --hard HEAD');
         console.log('✅ Rollback completed');
       } catch (e) {
         console.error('❌ Rollback failed:', e.message);
