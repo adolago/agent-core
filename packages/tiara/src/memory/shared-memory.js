@@ -12,6 +12,15 @@ import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import { getProjectRoot, getSwarmDir, getHiveMindDir } from '../utils/project-root.js';
 
+function safeJsonParse(data, context) {
+  try {
+    return JSON.parse(data);
+  } catch (error) {
+    console.warn(`JSON parse failed (${context}): ${error.message}`);
+    return null;
+  }
+}
+
 /**
  * Migration definitions for schema evolution
  */
@@ -347,7 +356,10 @@ export class SharedMemory extends EventEmitter {
       // Deserialize value
       let value = row.value;
       if (row.type === 'json') {
-        value = JSON.parse(value);
+        value = safeJsonParse(value, `memory retrieve: ${key}`);
+        if (value === null) {
+          value = row.value;
+        }
       }
 
       // Update cache
@@ -381,7 +393,7 @@ export class SharedMemory extends EventEmitter {
         type: row.type,
         size: row.size,
         compressed: !!row.compressed,
-        tags: row.tags ? JSON.parse(row.tags) : [],
+        tags: row.tags ? (safeJsonParse(row.tags, `tags for ${row.key}`) || []) : [],
         createdAt: new Date(row.created_at * 1000),
         updatedAt: new Date(row.updated_at * 1000),
         accessedAt: new Date(row.accessed_at * 1000),
