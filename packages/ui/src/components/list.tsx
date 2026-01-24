@@ -148,28 +148,51 @@ export function List<T>(props: ListProps<T> & { ref?: (ref: ListRef) => void }) 
 
   function GroupHeader(groupProps: { category: string }): JSX.Element {
     const [stuck, setStuck] = createSignal(false)
-    const [header, setHeader] = createSignal<HTMLDivElement | undefined>(undefined)
+    const [sentinel, setSentinel] = createSignal<HTMLDivElement | undefined>(undefined)
 
     createEffect(() => {
+      const el = sentinel()
       const scroll = scrollRef()
-      const node = header()
-      if (!scroll || !node) return
+      if (!el || !scroll) return
 
-      const handler = () => {
-        const rect = node.getBoundingClientRect()
-        const scrollRect = scroll.getBoundingClientRect()
-        setStuck(rect.top <= scrollRect.top + 1 && scroll.scrollTop > 0)
-      }
+      // Use IntersectionObserver to detect when the header becomes sticky.
+      // This avoids adding a scroll event listener for every group, which would
+      // force expensive layout calculations (getBoundingClientRect) on every frame.
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          // If the sentinel (placed at the top of the group) exits the scroll container
+          // at the top, the header (which is sticky) is now in its "stuck" state.
+          setStuck(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0))
+        },
+        {
+          root: scroll,
+          threshold: [0, 1],
+        },
+      )
 
-      scroll.addEventListener("scroll", handler, { passive: true })
-      handler()
-      onCleanup(() => scroll.removeEventListener("scroll", handler))
+      observer.observe(el)
+      onCleanup(() => observer.disconnect())
     })
 
     return (
-      <div data-slot="list-header" data-stuck={stuck()} ref={setHeader}>
-        {groupProps.category}
-      </div>
+      <>
+        {/* Sentinel element to track when the group top reaches the scroll container top.
+            It's absolutely positioned at the top of the group (relative to list-group). */}
+        <div
+          ref={setSentinel}
+          style={{
+            height: "1px",
+            width: "100%",
+            position: "absolute",
+            top: "0",
+            "pointer-events": "none",
+            opacity: 0,
+          }}
+        />
+        <div data-slot="list-header" data-stuck={stuck()}>
+          {groupProps.category}
+        </div>
+      </>
     )
   }
 
