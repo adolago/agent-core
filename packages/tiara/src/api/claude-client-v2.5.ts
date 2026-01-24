@@ -118,7 +118,7 @@ export class ClaudeClientV25 extends EventEmitter {
       this.emit('request:start', request);
 
       // Convert to SDK format
-      const sdkParams: Anthropic.MessageCreateParams = {
+      const sdkParams: Anthropic.MessageCreateParamsNonStreaming = {
         model: request.model as Anthropic.Model,
         messages: request.messages.map(msg => ({
           role: msg.role as 'user' | 'assistant',
@@ -163,7 +163,7 @@ export class ClaudeClientV25 extends EventEmitter {
     try {
       this.emit('stream:start', request);
 
-      const sdkParams: Anthropic.MessageCreateParams = {
+      const sdkParams: Anthropic.MessageCreateParamsStreaming = {
         model: request.model as Anthropic.Model,
         messages: request.messages.map(msg => ({
           role: msg.role as 'user' | 'assistant',

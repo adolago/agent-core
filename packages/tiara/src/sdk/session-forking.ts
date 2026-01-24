@@ -232,7 +232,7 @@ export class ParallelSwarmExecutor extends EventEmitter {
         forkedSession.messages.push(message);
 
         // Extract output text from assistant messages
-        if (message.type === 'assistant') {
+        if (message.type === 'assistant' && Array.isArray(message.message?.content)) {
           const textContent = message.message.content
             .filter((c: any) => c.type === 'text')
             .map((c: any) => c.text)

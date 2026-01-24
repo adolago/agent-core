@@ -7,7 +7,7 @@
 
 import { EventEmitter } from 'events';
 import { VerificationRequest, VerificationResult } from './security.js';
-import { SecurityMiddleware, SecurityAlert, ThreatLevel, AttackPattern } from './types.js';
+import { SecurityMiddleware, SecurityAlert, ThreatAssessment, ThreatLevel, AttackPattern } from './types.js';
 
 // ======================== MIDDLEWARE MANAGER ========================
 
@@ -92,7 +92,7 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
 
   private threatIndicators = new Set<string>();
   private attackPatterns = new Map<string, AttackPattern>();
-  private threatDatabase: Map<string, ThreatLevel> = new Map();
+  private threatDatabase: Map<string, ThreatAssessment> = new Map();
 
   constructor() {
     this.initializeDefaultThreats();
@@ -167,7 +167,7 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
   }
 
   // Get threat level for agent
-  getThreatLevel(agentId: string): ThreatLevel | null {
+  getThreatLevel(agentId: string): ThreatAssessment | null {
     return this.threatDatabase.get(agentId) || null;
   }
 
@@ -249,7 +249,7 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
   exportThreatIntelligence(): {
     threatIndicators: string[];
     attackPatterns: AttackPattern[];
-    agentThreatLevels: Array<{ agentId: string; threatLevel: ThreatLevel }>;
+    agentThreatLevels: Array<{ agentId: string; threatLevel: ThreatAssessment }>;
   } {
     return {
       threatIndicators: Array.from(this.threatIndicators),

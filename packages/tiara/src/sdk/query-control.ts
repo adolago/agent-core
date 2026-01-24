@@ -61,6 +61,14 @@ export class RealTimeQueryController extends EventEmitter {
   private controlledQueries: Map<string, ControlledQuery> = new Map();
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
   private commandQueue: Map<string, QueryControlCommand[]> = new Map();
+  private pauseRequests: Set<string> = new Set();
+  private pausedStates: Map<string, { pausedAt: number; pausePointMessageId?: string; messages: unknown[] }> = new Map();
+  private pauseMetrics = {
+    totalPauses: 0,
+    totalResumes: 0,
+    totalPauseDuration: 0,
+    longestPause: 0
+  };
   private options: QueryControlOptions;
 
   constructor(options: QueryControlOptions = {}) {
@@ -134,6 +142,14 @@ export class RealTimeQueryController extends EventEmitter {
       controlled.status = 'paused';
       controlled.pausedAt = Date.now();
 
+      this.pauseRequests.delete(queryId);
+      this.pauseMetrics.totalPauses += 1;
+      this.pausedStates.set(queryId, {
+        pausedAt: controlled.pausedAt,
+        pausePointMessageId: undefined,
+        messages: []
+      });
+
       this.logger.info('Query paused', { queryId, reason });
       this.emit('query:paused', { queryId, reason });
 
@@ -167,6 +183,15 @@ export class RealTimeQueryController extends EventEmitter {
     controlled.isPaused = false;
     controlled.status = 'running';
     controlled.resumedAt = Date.now();
+
+    const pausedState = this.pausedStates.get(queryId);
+    if (pausedState) {
+      const pauseDuration = controlled.resumedAt - pausedState.pausedAt;
+      this.pauseMetrics.totalResumes += 1;
+      this.pauseMetrics.totalPauseDuration += pauseDuration;
+      this.pauseMetrics.longestPause = Math.max(this.pauseMetrics.longestPause, pauseDuration);
+      this.pausedStates.delete(queryId);
+    }
 
     this.logger.info('Query resumed', { queryId });
     this.emit('query:resumed', { queryId });
@@ -369,6 +394,35 @@ export class RealTimeQueryController extends EventEmitter {
   }
 
   /**
+   * Request a pause at the next safe point
+   */
+  requestPause(queryId: string, reason?: string): void {
+    this.pauseRequests.add(queryId);
+    this.queueCommand({ type: 'pause', queryId, params: { reason } });
+  }
+
+  /**
+   * Cancel a pending pause request
+   */
+  cancelPauseRequest(queryId: string): void {
+    this.pauseRequests.delete(queryId);
+  }
+
+  /**
+   * List paused queries
+   */
+  listPausedQueries(): string[] {
+    return Array.from(this.pausedStates.keys());
+  }
+
+  /**
+   * Get paused query state
+   */
+  getPausedState(queryId: string): { pausedAt: number; pausePointMessageId?: string; messages: unknown[] } | undefined {
+    return this.pausedStates.get(queryId);
+  }
+
+  /**
    * Get query status
    */
   getQueryStatus(queryId: string): ControlledQuery | undefined {
@@ -380,6 +434,27 @@ export class RealTimeQueryController extends EventEmitter {
    */
   getAllQueries(): Map<string, ControlledQuery> {
     return new Map(this.controlledQueries);
+  }
+
+  /**
+   * Get pause/resume metrics
+   */
+  getMetrics(): {
+    totalPauses: number;
+    totalResumes: number;
+    averagePauseDuration: number;
+    longestPause: number;
+  } {
+    const averagePauseDuration = this.pauseMetrics.totalResumes
+      ? this.pauseMetrics.totalPauseDuration / this.pauseMetrics.totalResumes
+      : 0;
+
+    return {
+      totalPauses: this.pauseMetrics.totalPauses,
+      totalResumes: this.pauseMetrics.totalResumes,
+      averagePauseDuration,
+      longestPause: this.pauseMetrics.longestPause
+    };
   }
 
   /**
@@ -467,4 +542,5 @@ export class RealTimeQueryController extends EventEmitter {
   }
 }
 
+export const queryController = new RealTimeQueryController();
 export { RealTimeQueryController as RealQueryController };

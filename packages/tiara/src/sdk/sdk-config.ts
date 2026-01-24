@@ -71,10 +71,10 @@ export class ClaudeFlowSDKAdapter {
   /**
    * Create a message with automatic retry handling
    */
-  async createMessage(params: Anthropic.MessageCreateParams): Promise<Anthropic.Message> {
+  async createMessage(params: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> {
     try {
       // SDK handles retry automatically based on configuration
-      const message = await this.sdk.messages.create(params);
+      const message = await this.sdk.messages.create({ ...params, stream: false });
 
       // Store in swarm metadata if in swarm mode
       if (this.config.swarmMode && message.id) {
@@ -100,13 +100,10 @@ export class ClaudeFlowSDKAdapter {
    * Create a streaming message
    */
   async createStreamingMessage(
-    params: Anthropic.MessageCreateParams,
+    params: Anthropic.MessageCreateParamsStreaming,
     options?: { onChunk?: (chunk: any) => void }
   ): Promise<Anthropic.Message> {
-    const stream = await this.sdk.messages.create({
-      ...params,
-      stream: true
-    });
+    const stream = await this.sdk.messages.create({ ...params, stream: true });
 
     let fullMessage: Partial<Anthropic.Message> = {};
 
@@ -192,8 +189,9 @@ export class ClaudeFlowSDKAdapter {
     let messageCount = 0;
 
     this.swarmMetadata.forEach((metadata) => {
-      if (metadata.tokensUsed) {
-        totalTokens += metadata.tokensUsed.total_tokens || 0;
+      const tokensUsed = metadata.tokensUsed as { total_tokens?: number } | undefined;
+      if (tokensUsed?.total_tokens) {
+        totalTokens += tokensUsed.total_tokens;
         messageCount++;
       }
     });

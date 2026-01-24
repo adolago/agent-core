@@ -4,6 +4,7 @@
  */
 
 import type { AgentId, TaskId, SwarmId, TaskResult, AgentState } from '../swarm/types.js';
+import type { VerificationRequest as SecurityVerificationRequest, VerificationResult as SecurityVerificationResult } from './security.js';
 
 // ===== CORE VERIFICATION TYPES =====
 
@@ -21,6 +22,13 @@ export class CryptographicError extends SecurityError {}
 export class RateLimitError extends SecurityError {}
 
 export type ThreatLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface ThreatAssessment {
+  level: ThreatLevel;
+  score: number;
+  indicators: string[];
+  mitigationActions: string[];
+}
 
 export interface AttackPattern {
   patternId: string;
@@ -43,8 +51,9 @@ export interface SecurityAlert {
 export interface SecurityMiddleware {
   name: string;
   priority: number;
-  beforeVerification?: (request: unknown) => Promise<void> | void;
-  afterVerification?: (result: unknown) => Promise<void> | void;
+  beforeVerification?: (request: SecurityVerificationRequest) => Promise<void> | void;
+  afterVerification?: (result: SecurityVerificationResult) => Promise<void> | void;
+  onError?: (error: Error) => Promise<void> | void;
 }
 export type CheckpointType = 'pre_execution' | 'mid_execution' | 'post_execution' | 'rollback_point';
 export type ClaimType = 'task_completion' | 'quality_metric' | 'performance_benchmark' | 'system_state' | 'agent_capability';

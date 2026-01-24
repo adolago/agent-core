@@ -116,6 +116,10 @@ export class IntegratedClaudeFlowSession {
       },
     });
 
+    if (this.controller) {
+      this.controller.registerQuery(sessionId, sessionId, integratedQuery);
+    }
+
     // Track with SDK features
     if (this.forking) {
       await this.forking.trackSession(sessionId, integratedQuery);
@@ -163,11 +167,11 @@ export class IntegratedClaudeFlowSession {
    * Pause a query (SDK) and create checkpoint
    */
   async pauseWithCheckpoint(
-    activeQuery: Query,
+    _activeQuery: Query,
     sessionId: string,
     originalPrompt: string,
     checkpointDescription: string
-  ) {
+  ): Promise<boolean> {
     if (!this.controller) {
       throw new Error('Query control not enabled');
     }
@@ -176,22 +180,20 @@ export class IntegratedClaudeFlowSession {
     this.controller.requestPause(sessionId);
 
     // Pause query
-    const pausePointId = await this.controller.pauseQuery(
-      activeQuery,
+    const paused = await this.controller.pauseQuery(
       sessionId,
-      originalPrompt,
-      {}
+      checkpointDescription || `Paused query for prompt: ${originalPrompt}`
     );
 
     // Create checkpoint at pause point
     if (this.checkpointManager) {
       await this.checkpointManager.createCheckpoint(
         sessionId,
-        checkpointDescription || `Paused at ${pausePointId}`
+        checkpointDescription || `Paused query ${sessionId}`
       );
     }
 
-    return pausePointId;
+    return paused;
   }
 
   /**
@@ -339,9 +341,9 @@ const cp = await manager.createCheckpoint('neural-session', 'Before training');
 await manager.rollbackToCheckpoint(cp);
 
 ## 3. Query Control + Task Orchestration
-import { RealQueryController } from './sdk/query-control';
+import { RealTimeQueryController } from './sdk/query-control';
 
-const controller = new RealQueryController();
+const controller = new RealTimeQueryController();
 const q = query({
   prompt: \`
     Use mcp__claude-flow__task_orchestrate to:
@@ -353,7 +355,7 @@ const q = query({
 
 // Pause if needed
 controller.requestPause('task-session');
-const pauseId = await controller.pauseQuery(q, 'task-session', 'Task', {});
+const paused = await controller.pauseQuery('task-session', 'Task');
 
 // Resume later
 const resumed = await controller.resumeQuery('task-session');

@@ -14,12 +14,17 @@ export type TiaraCategory =
   | 'workflow_template';
 
 export interface PatternEntry {
-  id: string;
-  type: TiaraCategory;
+  id?: string;
+  patternType: TiaraCategory;
+  content: string;
+  context?: Record<string, unknown> | string;
+  success?: boolean;
+  confidence?: number;
+  occurrences?: number;
   modelId?: string;
-  data: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   tags?: string[];
-  createdAt: Date;
+  createdAt?: Date;
 }
 
 export async function savePattern(pattern: PatternEntry): Promise<string> {

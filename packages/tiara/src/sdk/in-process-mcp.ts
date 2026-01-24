@@ -16,6 +16,7 @@ import {
   type McpSdkServerConfigWithInstance,
 } from '@anthropic-ai/claude-code';
 import { z } from 'zod';
+import type { Checkpoint } from './checkpoint-manager.js';
 
 /**
  * Example 1: Math Operations MCP Server
@@ -252,13 +253,13 @@ export function createCheckpointMcpServer(): McpSdkServerConfigWithInstance {
 
           return {
             sessionId,
-            checkpoints: checkpoints.map(c => ({
-              id: c.id,
-              description: c.description,
-              timestamp: c.timestamp,
-              messageCount: c.messageCount,
-              totalTokens: c.totalTokens,
-              filesModified: c.filesModified,
+            checkpoints: checkpoints.map((checkpoint: Checkpoint) => ({
+              id: checkpoint.id,
+              description: checkpoint.description,
+              timestamp: checkpoint.timestamp,
+              messageCount: checkpoint.messageCount,
+              totalTokens: checkpoint.totalTokens,
+              filesModified: checkpoint.filesModified,
             })),
             count: checkpoints.length,
           };

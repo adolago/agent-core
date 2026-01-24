@@ -867,6 +867,8 @@ async function analyzeErrorPattern(
       step: state.currentStep,
       provider: state.provider,
       errorMessage: error.message,
+      recurring: false,
+      occurrences: 1,
     },
   };
   

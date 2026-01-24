@@ -537,7 +537,8 @@ export class TruthAlertManager {
   private async escalateAlert(alert: TruthAlert, action: AlertAction): Promise<void> {
     const escalationLevel = action.config.level || 1;
     
-    if (escalationLevel <= alert.escalationLevel) return; // Already escalated
+    const currentLevel = alert.escalationLevel ?? 0;
+    if (escalationLevel <= currentLevel) return; // Already escalated
     
     alert.escalationLevel = escalationLevel;
     
@@ -891,8 +892,9 @@ export class TruthAlertManager {
     const alertAge = now - alert.timestamp.getTime();
     
     // Find next escalation level
+    const currentLevel = alert.escalationLevel ?? 0;
     const nextEscalation = alert.escalationPath.find(
-      e => e.level > alert.escalationLevel
+      e => e.level > currentLevel
     );
     
     if (nextEscalation && alertAge >= nextEscalation.delay) {
