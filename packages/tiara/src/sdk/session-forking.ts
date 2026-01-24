@@ -387,3 +387,89 @@ export class ParallelSwarmExecutor extends EventEmitter {
     }
   }
 }
+
+/**
+ * RealSessionForking - Lightweight session forking helper
+ * Provides trackSession/fork APIs used by SDK integrations.
+ */
+export class RealSessionForking extends EventEmitter {
+  private logger: Logger;
+  private activeSessions: Map<string, ForkedSession> = new Map();
+  private sessionHistory: Map<string, SDKMessage[]> = new Map();
+
+  constructor() {
+    super();
+    this.logger = new Logger(
+      { level: 'info', format: 'text', destination: 'console' },
+      { component: 'RealSessionForking' },
+    );
+  }
+
+  async trackSession(sessionId: string, queryGenerator: Query): Promise<void> {
+    const messages = this.sessionHistory.get(sessionId) || [];
+    this.sessionHistory.set(sessionId, messages);
+
+    const session = this.activeSessions.get(sessionId);
+
+    void (async () => {
+      let started = false;
+      for await (const message of queryGenerator) {
+        messages.push(message);
+        if (session && !started) {
+          session.status = 'active';
+          started = true;
+        }
+      }
+      if (session) {
+        session.status = 'completed';
+        session.endTime = Date.now();
+      }
+    })().catch((error) => {
+      if (session) {
+        session.status = 'failed';
+        session.error = error instanceof Error ? error : new Error(String(error));
+        session.endTime = Date.now();
+      }
+      this.logger.warn('Failed to track session messages', { sessionId, error });
+    });
+  }
+
+  async fork(baseSessionId: string, options: SessionForkOptions = {}): Promise<ForkedSession> {
+    const sessionId = generateId('fork-session');
+    const forkedQuery = query({
+      prompt: 'Continue from fork',
+      options: {
+        forkSession: true,
+        resume: baseSessionId,
+        resumeSessionAt: options.resumeFromMessage,
+        model: options.model || 'claude-sonnet-4',
+        timeout: options.timeout || 60000,
+        mcpServers: options.mcpServers || {},
+        cwd: process.cwd(),
+      },
+    });
+
+    const forkedSession: ForkedSession = {
+      sessionId,
+      agentId: baseSessionId,
+      agentType: 'fork',
+      query: forkedQuery,
+      messages: [],
+      status: 'spawning',
+      startTime: Date.now(),
+    };
+
+    this.activeSessions.set(sessionId, forkedSession);
+    void this.trackSession(sessionId, forkedQuery);
+
+    return forkedSession;
+  }
+
+  getActiveSessions(): Map<string, ForkedSession> {
+    return new Map(this.activeSessions);
+  }
+
+  getSessionHistory(sessionId: string): SDKMessage[] | undefined {
+    return this.sessionHistory.get(sessionId);
+  }
+}

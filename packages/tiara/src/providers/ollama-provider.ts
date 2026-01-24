@@ -80,6 +80,20 @@ interface OllamaModelInfo {
   };
 }
 
+interface OllamaTagsResponse {
+  models?: OllamaModelInfo[];
+}
+
+interface OllamaShowResponse {
+  name?: string;
+  description?: string;
+  details?: {
+    parameter_size?: string;
+    quantization_level?: string;
+    format?: string;
+  };
+}
+
 export class OllamaProvider extends BaseProvider {
   readonly name: LLMProvider = 'ollama';
   readonly capabilities: ProviderCapabilities = {
@@ -128,7 +142,7 @@ export class OllamaProvider extends BaseProvider {
     },
   };
 
-  private baseUrl: string;
+  private baseUrl = '';
   private availableModels: Set<string> = new Set();
 
   protected async doInitialize(): Promise<void> {
@@ -149,7 +163,7 @@ export class OllamaProvider extends BaseProvider {
         throw new Error(`Failed to fetch models: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = (await response.json()) as OllamaTagsResponse;
       this.availableModels.clear();
       
       if (data.models && Array.isArray(data.models)) {
@@ -214,7 +228,7 @@ export class OllamaProvider extends BaseProvider {
         await this.handleErrorResponse(response);
       }
 
-      const data: OllamaResponse = await response.json();
+      const data = (await response.json()) as OllamaResponse;
       
       // Calculate metrics
       const promptTokens = data.prompt_eval_count || this.estimateTokens(JSON.stringify(request.messages));
@@ -387,7 +401,7 @@ export class OllamaProvider extends BaseProvider {
         throw new Error('Model not found');
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as OllamaShowResponse;
       
       return {
         model,

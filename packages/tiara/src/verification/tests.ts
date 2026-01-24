@@ -6,9 +6,12 @@
  */
 
 import { EventEmitter } from 'events';
-import { SecurityEnforcementSystem, VerificationRequest, VerificationResult } from './security';
-import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware } from './middleware';
-import { SecurityAlert, AttackPattern, ThreatLevel } from './types';
+import { SecurityEnforcementSystem, VerificationRequest, VerificationResult } from './security.js';
+import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware } from './middleware.js';
+import { SecurityAlert, AttackPattern, ThreatLevel } from './types.js';
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 // ======================== TEST UTILITIES ========================
 
@@ -232,7 +235,7 @@ export class PenetrationTestingSuite {
         this.vulnerabilities.push(`Authentication bypass possible: ${test.name}`);
         results.push({ name: test.name, passed: false, error: 'No error thrown' });
       } catch (error) {
-        results.push({ name: test.name, passed: true, error: error.message });
+        results.push({ name: test.name, passed: true, error: getErrorMessage(error) });
       }
     }
 
@@ -263,7 +266,8 @@ export class PenetrationTestingSuite {
         await this.security.processVerificationRequest(request);
         successCount++;
       } catch (error) {
-        if (error.message.includes('rate limit') || error.message.includes('Rate limit')) {
+        const message = getErrorMessage(error);
+        if (message.includes('rate limit') || message.includes('Rate limit')) {
           rateLimitedCount++;
         }
       }
@@ -301,7 +305,8 @@ export class PenetrationTestingSuite {
       try {
         await this.security.processVerificationRequest(request);
       } catch (error) {
-        if (error.message.includes('Byzantine') || error.message.includes('byzantine')) {
+        const message = getErrorMessage(error);
+        if (message.includes('Byzantine') || message.includes('byzantine')) {
           byzantineDetected = true;
         }
       }
@@ -334,7 +339,8 @@ export class PenetrationTestingSuite {
     try {
       await this.security.processVerificationRequest(tamperedRequest);
     } catch (error) {
-      if (error.message.includes('signature') || error.message.includes('Invalid')) {
+      const message = getErrorMessage(error);
+      if (message.includes('signature') || message.includes('Invalid')) {
         signatureVerificationWorking = true;
       }
     }
@@ -379,7 +385,8 @@ export class PenetrationTestingSuite {
       try {
         await this.security.processVerificationRequest(request);
       } catch (error) {
-        if (error.message.includes('size') || error.message.includes('large') || error.message.includes('Invalid')) {
+        const message = getErrorMessage(error);
+        if (message.includes('size') || message.includes('large') || message.includes('Invalid')) {
           dosResistant = true;
         }
       }
@@ -499,15 +506,16 @@ export class LoadTestingSuite {
           });
         } catch (error) {
           const responseTime = Date.now() - requestStart;
+          const errorMessage = getErrorMessage(error);
           userResults.push({
             success: false,
             responseTime,
-            error: error.message,
+            error: errorMessage,
             timestamp: new Date()
           });
 
           // Track error distribution
-          const errorType = error.message.split(':')[0] || 'Unknown';
+          const errorType = errorMessage.split(':')[0] || 'Unknown';
           errorDistribution.set(errorType, (errorDistribution.get(errorType) || 0) + 1);
         }
         
@@ -691,7 +699,8 @@ export class SecurityValidationSuite {
         try {
           await this.security.processVerificationRequest(request);
         } catch (error) {
-          if (error.message.includes('rate limit')) {
+          const message = getErrorMessage(error);
+          if (message.includes('rate limit')) {
             rateLimitHit = true;
             break;
           }
@@ -737,11 +746,3 @@ export class SecurityValidationSuite {
     }
   }
 }
-
-// Export all testing components
-export {
-  SecurityTestUtils,
-  PenetrationTestingSuite,
-  LoadTestingSuite,
-  SecurityValidationSuite
-};

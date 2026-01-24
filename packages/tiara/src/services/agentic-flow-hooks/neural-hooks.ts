@@ -106,7 +106,8 @@ export const postNeuralTrainHook = {
     payload: NeuralHookPayload,
     context: AgenticHookContext
   ): Promise<HookHandlerResult> => {
-    const { modelId, accuracy, trainingData } = payload;
+    const { modelId, trainingData } = payload;
+    const accuracy = payload.accuracy ?? 0;
     
     const sideEffects: SideEffect[] = [];
     

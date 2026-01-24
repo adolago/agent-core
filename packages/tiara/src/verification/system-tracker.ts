@@ -113,8 +113,8 @@ export class SystemTruthTracker {
   private logger: ILogger;
   
   // System state
-  private systemMetrics: SystemTruthMetrics;
-  private healthIndicators: SystemHealthIndicators;
+  private systemMetrics!: SystemTruthMetrics;
+  private healthIndicators!: SystemHealthIndicators;
   private historicalMetrics: TruthMetric[] = [];
   private systemTrends = new Map<string, SystemTrend>();
   private distributionAnalyses = new Map<string, DistributionAnalysis>();
@@ -325,6 +325,49 @@ export class SystemTruthTracker {
     const successCount = metrics.filter(m => m.validation.isValid).length;
     this.systemMetrics.successRate = metrics.length > 0 ? 
       (successCount / metrics.length) * 100 : 100;
+  }
+
+  private async analyzeDistributions(metrics: TruthMetric[]): Promise<void> {
+    if (metrics.length === 0) return;
+
+    const buckets = new Map<string, number[]>();
+    for (const metric of metrics) {
+      if (!buckets.has(metric.metricType)) {
+        buckets.set(metric.metricType, []);
+      }
+      buckets.get(metric.metricType)!.push(metric.value);
+    }
+
+    for (const [metricType, values] of buckets.entries()) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+      const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
+
+      const analysis: DistributionAnalysis = {
+        metric: metricType,
+        distribution: {
+          min: sorted[0] ?? 0,
+          max: sorted[sorted.length - 1] ?? 0,
+          mean,
+          median,
+          mode: median,
+          stdDev: 0,
+          percentiles: {},
+        },
+        outliers: {
+          values: [],
+          count: 0,
+          percentage: 0,
+        },
+        normalityTest: {
+          isNormal: true,
+          pValue: 1,
+          testStatistic: 0,
+        },
+      };
+
+      this.distributionAnalyses.set(metricType, analysis);
+    }
   }
   
   private async updateDistributionMetrics(): Promise<void> {
@@ -793,6 +836,10 @@ export class SystemTruthTracker {
       overallAccuracy: 0.95,
       humanInterventionRate: 0.05,
       systemReliability: 0.98,
+      latency: 0,
+      throughput: 0,
+      errorRate: 0,
+      successRate: 0,
       agentCount: 0,
       activeAgents: 0,
       totalTasks: 0,

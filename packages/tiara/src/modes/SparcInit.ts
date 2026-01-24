@@ -20,6 +20,7 @@ export class SparcInit implements IInitMode {
 
   async initialize(config: InitConfig): Promise<InitResult> {
     const components: string[] = [];
+    const phases = ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'];
 
     try {
       // Basic initialization
@@ -129,7 +130,7 @@ export class SparcInit implements IInitMode {
         await config.databaseManager.store('sparc-config', {
           initialized: true,
           mode: 'sparc',
-          phases: ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'],
+          phases,
           tddEnabled: true,
           workflowActive: false,
           currentPhase: null,
@@ -137,7 +138,6 @@ export class SparcInit implements IInitMode {
         }, 'sparc');
 
         // Initialize phase tracking
-        const phases = ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'];
         for (const phase of phases) {
           await config.databaseManager.store(`phase-${phase}`, {
             name: phase,

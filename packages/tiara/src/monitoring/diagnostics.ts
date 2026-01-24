@@ -164,7 +164,9 @@ export class DiagnosticManager {
     config: DiagnosticConfig,
   ): Promise<ComponentDiagnostic | null> {
     try {
-      const component = this.systemIntegration.getComponent(componentName);
+      const component = this.systemIntegration.getComponent<{
+        getMetrics?: () => Promise<Record<string, any>> | Record<string, any>;
+      }>(componentName);
 
       if (!component) {
         return {

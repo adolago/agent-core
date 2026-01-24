@@ -9,6 +9,7 @@ import * as os from "os";
 import { parse } from "jsonc-parser";
 import type { ParseError } from "jsonc-parser";
 import type { CheckResult, CheckOptions } from "../types";
+import { Auth } from "../../auth";
 
 /** Deprecated configuration options that should be migrated */
 const DEPRECATED_OPTIONS = [
@@ -17,12 +18,19 @@ const DEPRECATED_OPTIONS = [
   { old: "maxTokens", new: "provider.maxTokens", since: "0.1.0" },
 ];
 
-/** Required environment variables for full functionality */
-const RECOMMENDED_ENV_VARS = [
-  { name: "ANTHROPIC_API_KEY", description: "Anthropic Claude API key" },
-  { name: "OPENAI_API_KEY", description: "OpenAI API key" },
-  { name: "NEBIUS_API_KEY", description: "Nebius embeddings API key" },
-  { name: "GOOGLE_API_KEY", description: "Google Gemini API key" },
+type RecommendedCredential = {
+  label: string;
+  description: string;
+  envVar?: string;
+  authProviderId?: string;
+};
+
+/** Recommended credentials for full functionality */
+const RECOMMENDED_CREDENTIALS: RecommendedCredential[] = [
+  { label: "Anthropic", envVar: "ANTHROPIC_API_KEY", description: "Anthropic Claude API key" },
+  { label: "OpenAI", envVar: "OPENAI_API_KEY", description: "OpenAI API key" },
+  { label: "Nebius", authProviderId: "nebius", description: "Nebius embeddings (agent-core auth login)" },
+  { label: "Google Gemini", envVar: "GOOGLE_API_KEY", description: "Google Gemini API key" },
 ];
 
 /**
@@ -327,28 +335,44 @@ async function checkKeybindConflicts(): Promise<CheckResult> {
 /**
  * Check environment variables
  */
-async function checkEnvVars(): Promise<CheckResult> {
+async function checkCredentials(): Promise<CheckResult> {
   const start = Date.now();
 
   const missing: string[] = [];
   const present: string[] = [];
 
-  for (const envVar of RECOMMENDED_ENV_VARS) {
-    const value = process.env[envVar.name];
-    if (!value || value.trim() === "") {
-      missing.push(envVar.name);
+  for (const credential of RECOMMENDED_CREDENTIALS) {
+    let isPresent = false;
+    if (credential.envVar) {
+      const value = process.env[credential.envVar];
+      isPresent = Boolean(value && value.trim());
+    }
+    if (!isPresent && credential.authProviderId) {
+      const auth = await Auth.get(credential.authProviderId);
+      if (auth?.type === "api") {
+        isPresent = Boolean(auth.key?.trim());
+      } else if (auth?.type === "oauth") {
+        isPresent = Boolean(auth.access?.trim());
+      } else if (auth?.type === "wellknown") {
+        isPresent = Boolean(auth.token?.trim());
+      }
+    }
+
+    const label = credential.envVar ?? `${credential.label} (auth login)`;
+    if (isPresent) {
+      present.push(label);
     } else {
-      present.push(envVar.name);
+      missing.push(label);
     }
   }
 
-  if (missing.length === RECOMMENDED_ENV_VARS.length) {
+  if (missing.length === RECOMMENDED_CREDENTIALS.length) {
     return {
       id: "config.env-vars",
-      name: "Environment Variables",
+      name: "Credentials",
       category: "config",
       status: "warn",
-      message: "No API keys configured",
+      message: "No credentials configured",
       details: `Missing: ${missing.join(", ")}\nSet at least one to use AI providers.`,
       severity: "warning",
       durationMs: Date.now() - start,
@@ -359,10 +383,10 @@ async function checkEnvVars(): Promise<CheckResult> {
   if (missing.length > 0) {
     return {
       id: "config.env-vars",
-      name: "Environment Variables",
+      name: "Credentials",
       category: "config",
       status: "pass",
-      message: `${present.length}/${RECOMMENDED_ENV_VARS.length} API keys configured`,
+      message: `${present.length}/${RECOMMENDED_CREDENTIALS.length} credentials configured`,
       details: `Present: ${present.join(", ")}\nMissing: ${missing.join(", ")}`,
       severity: "info",
       durationMs: Date.now() - start,
@@ -372,10 +396,10 @@ async function checkEnvVars(): Promise<CheckResult> {
 
   return {
     id: "config.env-vars",
-    name: "Environment Variables",
+    name: "Credentials",
     category: "config",
     status: "pass",
-    message: "All API keys configured",
+    message: "All credentials configured",
     severity: "info",
     durationMs: Date.now() - start,
     autoFixable: false,
@@ -479,7 +503,7 @@ export async function runConfigChecks(
   // Core checks
   results.push(await checkConfigSchema());
   results.push(await checkDeprecatedOptions());
-  results.push(await checkEnvVars());
+  results.push(await checkCredentials());
 
   // Extended checks
   if (options.full) {

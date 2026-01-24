@@ -4,7 +4,7 @@
  * Helps existing projects migrate to optimized prompts and configurations
  */
 
-import { Command } from '@cliffy/command';
+import { Command } from 'commander';
 import { MigrationRunner } from './migration-runner.js';
 import { MigrationAnalyzer } from './migration-analyzer.js';
 import type { MigrationStrategy } from './types.js';
@@ -24,7 +24,7 @@ program
   .description('Analyze existing project for migration readiness')
   .option('-d, --detailed', 'Show detailed analysis')
   .option('-o, --output <file>', 'Output analysis to file')
-  .action(async (projectPath = '.', options) => {
+  .action(async (projectPath = '.', options: { detailed?: boolean; output?: string }) => {
     try {
       const analyzer = new MigrationAnalyzer();
       const analysis = await analyzer.analyze(path.resolve(projectPath));
@@ -50,7 +50,17 @@ program
   .option('--dry-run', 'Simulate migration without making changes')
   .option('--preserve-custom', 'Preserve custom commands and configurations')
   .option('--skip-validation', 'Skip post-migration validation')
-  .action(async (projectPath = '.', options) => {
+  .action(async (
+    projectPath = '.',
+    options: {
+      strategy: MigrationStrategy;
+      backup: string;
+      force?: boolean;
+      dryRun?: boolean;
+      preserveCustom?: boolean;
+      skipValidation?: boolean;
+    },
+  ) => {
     try {
       const runner = new MigrationRunner({
         projectPath: path.resolve(projectPath),
@@ -75,7 +85,7 @@ program
   .option('-b, --backup <dir>', 'Backup directory to restore from', '.claude-backup')
   .option('-t, --timestamp <time>', 'Restore from specific timestamp')
   .option('-f, --force', 'Force rollback without prompts')
-  .action(async (projectPath = '.', options) => {
+  .action(async (projectPath = '.', options: { backup: string; timestamp?: string; force?: boolean }) => {
     try {
       const runner = new MigrationRunner({
         projectPath: path.resolve(projectPath),
@@ -95,7 +105,7 @@ program
   .command('validate [path]')
   .description('Validate migration was successful')
   .option('-v, --verbose', 'Show detailed validation results')
-  .action(async (projectPath = '.', options) => {
+  .action(async (projectPath = '.', options: { verbose?: boolean }) => {
     try {
       const runner = new MigrationRunner({
         projectPath: path.resolve(projectPath),
@@ -120,7 +130,7 @@ program
   .command('list-backups [path]')
   .description('List available backups')
   .option('-b, --backup <dir>', 'Backup directory', '.claude-backup')
-  .action(async (projectPath = '.', options) => {
+  .action(async (projectPath = '.', options: { backup: string }) => {
     try {
       const runner = new MigrationRunner({
         projectPath: path.resolve(projectPath),

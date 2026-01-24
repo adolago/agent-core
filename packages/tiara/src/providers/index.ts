@@ -15,7 +15,8 @@ export { CohereProvider } from './cohere-provider.js';
 export { OllamaProvider } from './ollama-provider.js';
 
 // Export manager
-export { ProviderManager, ProviderManagerConfig } from './provider-manager.js';
+export { ProviderManager } from './provider-manager.js';
+export type { ProviderManagerConfig } from './provider-manager.js';
 
 // Export utility functions
 export { createProviderManager, getDefaultProviderConfig } from './utils.js';

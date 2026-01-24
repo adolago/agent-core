@@ -59,7 +59,8 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     this.config = options.config;
     
     // Initialize circuit breaker
-    this.circuitBreaker = circuitBreaker(`llm-${this.name}`, {
+    const providerName = options.config.provider;
+    this.circuitBreaker = circuitBreaker(`llm-${providerName}`, {
       threshold: options.circuitBreakerOptions?.threshold || 5,
       timeout: options.circuitBreakerOptions?.timeout || 60000,
       resetTimeout: options.circuitBreakerOptions?.resetTimeout || 300000,
@@ -464,7 +465,9 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     // Clean up old metrics (keep last 1000)
     if (this.requestMetrics.size > 1000) {
       const oldestKey = this.requestMetrics.keys().next().value;
-      this.requestMetrics.delete(oldestKey);
+      if (oldestKey) {
+        this.requestMetrics.delete(oldestKey);
+      }
     }
   }
 

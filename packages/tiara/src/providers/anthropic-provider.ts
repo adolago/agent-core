@@ -275,7 +275,7 @@ export class AnthropicProvider extends BaseProvider {
     return model as LLMModel;
   }
 
-  destroy(): void {
+  override destroy(): void {
     super.destroy();
     this.claudeClient?.destroy();
   }

@@ -8,6 +8,9 @@
  */
 
 import * as crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type { EmbeddingProvider, EmbeddingProviderType } from "./types";
 
 // =============================================================================
@@ -28,6 +31,38 @@ export interface EmbeddingConfig {
   dimensions?: number;
   /** Base URL for the embedding API */
   baseUrl?: string;
+}
+
+// =============================================================================
+// Provider Auth Lookup
+// =============================================================================
+
+type StoredAuthEntry = {
+  type?: string;
+  key?: string;
+  access?: string;
+};
+
+function readAuthStoreApiKey(providerId: string): string | undefined {
+  const dataHome = process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local", "share");
+  const authPath = path.join(dataHome, "agent-core", "auth.json");
+
+  try {
+    const raw = fs.readFileSync(authPath, "utf8");
+    const parsed = JSON.parse(raw) as Record<string, StoredAuthEntry>;
+    const entry = parsed?.[providerId];
+    if (!entry) return undefined;
+    if (entry.type === "api" && typeof entry.key === "string" && entry.key.trim()) {
+      return entry.key.trim();
+    }
+    if (entry.type === "oauth" && typeof entry.access === "string" && entry.access.trim()) {
+      return entry.access.trim();
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
 }
 
 // =============================================================================
@@ -111,11 +146,10 @@ class OpenAIEmbeddingProvider implements EmbeddingProvider {
       ""
     );
     const isNebius = resolvedBaseUrl.includes("nebius.com");
-    this.apiKey =
-      config.apiKey ??
-      process.env.OPENAI_API_KEY ??
-      (isNebius ? process.env.NEBIUS_API_KEY : undefined) ??
-      "";
+    const nebiusAuthKey = isNebius ? readAuthStoreApiKey("nebius") : undefined;
+    this.apiKey = isNebius
+      ? nebiusAuthKey ?? ""
+      : config.apiKey ?? process.env.OPENAI_API_KEY ?? "";
     this.model = config.model ?? "text-embedding-3-small";
     this.dimensionsParam =
       typeof config.dimensions === "number" ? config.dimensions : undefined;
@@ -123,6 +157,11 @@ class OpenAIEmbeddingProvider implements EmbeddingProvider {
     this.baseUrl = resolvedBaseUrl;
 
     if (!this.apiKey) {
+      if (isNebius) {
+        throw new Error(
+          "Nebius API key required: run `agent-core auth login` and select nebius."
+        );
+      }
       throw new Error(
         "OpenAI API key required: set embedding.apiKey or OPENAI_API_KEY env"
       );

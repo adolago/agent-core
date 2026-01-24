@@ -285,6 +285,11 @@ export namespace Dictation {
     }
 
     const contentType = response.headers.get("content-type") ?? ""
+    const isNdjson = contentType.includes("application/x-ndjson") || contentType.includes("application/ndjson")
+    if (isNdjson) {
+      const text = await response.text().catch(() => "")
+      return parseNdjsonTranscript(text, input.config.responsePath)
+    }
     if (!contentType.includes("application/json")) {
       const text = await response.text()
       return text.trim() || undefined
@@ -413,6 +418,33 @@ export namespace Dictation {
       }
     }
     return current
+  }
+
+  function parseNdjsonTranscript(text: string, responsePath?: string): string | undefined {
+    if (!text) return
+    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    let lastTranscript: string | undefined
+    for (const line of lines) {
+      let entry: unknown
+      try {
+        entry = JSON.parse(line)
+      } catch {
+        continue
+      }
+      if (entry && typeof entry === "object") {
+        const error = (entry as Record<string, unknown>).error
+        if (typeof error === "string" && error.trim()) {
+          throw new Error(error)
+        }
+      }
+      if (responsePath) {
+        const resolved = getByPath(entry, responsePath)
+        if (typeof resolved === "string" && resolved.trim()) return resolved.trim()
+      }
+      const found = findTranscript(entry)
+      if (found) lastTranscript = found
+    }
+    return lastTranscript?.trim() || undefined
   }
 
   async function readAll(stream?: ReadableStream<Uint8Array> | null): Promise<Uint8Array> {

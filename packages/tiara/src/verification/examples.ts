@@ -6,10 +6,16 @@
  */
 
 import { EventEmitter } from 'events';
-import { SecurityEnforcementSystem, createProductionSecuritySystem, createHighSecuritySystem } from './index';
-import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware, IPFilterMiddleware } from './middleware';
-import { PenetrationTestingSuite, LoadTestingSuite, SecurityValidationSuite } from './tests';
-import { VerificationRequest, VerificationResult } from './security';
+import { SecurityEnforcementSystem, createProductionSecuritySystem, createHighSecuritySystem } from './index.js';
+import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware, IPFilterMiddleware } from './middleware.js';
+import { PenetrationTestingSuite, LoadTestingSuite, SecurityValidationSuite } from './tests.js';
+import { VerificationRequest, VerificationResult } from './security.js';
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const toError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
 
 // ======================== BASIC INTEGRATION EXAMPLE ========================
 
@@ -59,7 +65,7 @@ export class BasicSecurityIntegration {
         await this.security.registerAgent(agent.id, agent.capabilities, agent.level);
         console.log(`Registered agent: ${agent.id}`);
       } catch (error) {
-        console.error(`Failed to register agent ${agent.id}:`, error.message);
+        console.error(`Failed to register agent ${agent.id}:`, getErrorMessage(error));
       }
     }
   }
@@ -73,11 +79,11 @@ export class BasicSecurityIntegration {
       console.error(`✗ Verification failed: ${event.error}`);
     });
 
-    this.security.on('agentRegistered', (identity) => {
+    this.security.on('agentRegistered', (identity: any) => {
       console.log(`+ Agent registered: ${identity.agentId} (level: ${identity.securityLevel})`);
     });
 
-    this.security.on('emergencyShutdown', (event) => {
+    this.security.on('emergencyShutdown', (event: any) => {
       console.error(`🚨 EMERGENCY SHUTDOWN: ${event.reason}`);
     });
   }
@@ -153,7 +159,7 @@ export class AdvancedSecurityIntegration {
         return result;
       } catch (error) {
         // Execute error handling middleware
-        await this.middlewareManager.executeErrorHandling(error);
+        await this.middlewareManager.executeErrorHandling(toError(error));
         throw error;
       }
     };
@@ -252,7 +258,8 @@ export class ClaudeFlowAgentSecurityWrapper {
         securityStatus: 'SECURE'
       };
     } catch (error) {
-      if (error.message.includes('Byzantine') || error.message.includes('rate limit')) {
+      const message = getErrorMessage(error);
+      if (message.includes('Byzantine') || message.includes('rate limit')) {
         return {
           taskResult: null,
           verificationResult: null as any,
@@ -405,7 +412,7 @@ export class ProductionDeploymentExample {
 
   private setupProductionMonitoring(): void {
     // Security event monitoring
-    this.security.on('verificationError', (event) => {
+    this.security.on('verificationError', (event: any) => {
       this.monitoring.emit('securityIncident', {
         type: 'VERIFICATION_FAILURE',
         severity: 'HIGH',
@@ -414,7 +421,7 @@ export class ProductionDeploymentExample {
       });
     });
 
-    this.security.on('emergencyShutdown', (event) => {
+    this.security.on('emergencyShutdown', (event: any) => {
       this.alerting.emit('criticalAlert', {
         type: 'EMERGENCY_SHUTDOWN',
         message: event.reason,
@@ -468,7 +475,7 @@ export class ProductionDeploymentExample {
     console.log('📊 Starting production monitoring...');
     
     // Monitor for security incidents
-    this.monitoring.on('securityIncident', (incident) => {
+    this.monitoring.on('securityIncident', (incident: any) => {
       console.warn(`⚠️  Security incident: ${incident.type} - ${incident.details.error}`);
       
       // Could integrate with external monitoring systems here
@@ -476,7 +483,7 @@ export class ProductionDeploymentExample {
     });
 
     // Handle critical alerts
-    this.alerting.on('criticalAlert', (alert) => {
+    this.alerting.on('criticalAlert', (alert: any) => {
       console.error(`🚨 CRITICAL ALERT: ${alert.type} - ${alert.message}`);
       
       // Could integrate with PagerDuty, Slack, etc.
@@ -519,14 +526,6 @@ export class ProductionDeploymentExample {
   }
 }
 
-// Export all examples
-export {
-  BasicSecurityIntegration,
-  AdvancedSecurityIntegration,
-  ClaudeFlowAgentSecurityWrapper,
-  SecurityTestingExample,
-  ProductionDeploymentExample
-};
 
 // Usage examples as comments:
 /*

@@ -35,7 +35,7 @@ export function createMathMcpServer(): McpSdkServerConfigWithInstance {
           a: z.number().describe('First number'),
           b: z.number().describe('Second number'),
         }),
-        execute: async ({ a, b }) => {
+        execute: async ({ a, b }: { a: number; b: number }) => {
           return { result: a + b };
         },
       }),
@@ -48,7 +48,7 @@ export function createMathMcpServer(): McpSdkServerConfigWithInstance {
           a: z.number().describe('First number'),
           b: z.number().describe('Second number'),
         }),
-        execute: async ({ a, b }) => {
+        execute: async ({ a, b }: { a: number; b: number }) => {
           return { result: a * b };
         },
       }),
@@ -60,7 +60,7 @@ export function createMathMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           n: z.number().int().min(0).describe('Number to calculate factorial of'),
         }),
-        execute: async ({ n }) => {
+        execute: async ({ n }: { n: number }) => {
           let result = 1;
           for (let i = 2; i <= n; i++) {
             result *= i;
@@ -91,9 +91,9 @@ export function createSessionMcpServer(): McpSdkServerConfigWithInstance {
         description: 'Create a new session with initial data',
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
-          data: z.record(z.any()).optional().describe('Initial session data'),
+          data: z.record(z.string(), z.any()).optional().describe('Initial session data'),
         }),
-        execute: async ({ sessionId, data = {} }) => {
+        execute: async ({ sessionId, data = {} }: { sessionId: string; data?: Record<string, unknown> }) => {
           if (sessions.has(sessionId)) {
             return { error: 'Session already exists' };
           }
@@ -118,7 +118,7 @@ export function createSessionMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
         }),
-        execute: async ({ sessionId }) => {
+        execute: async ({ sessionId }: { sessionId: string }) => {
           const session = sessions.get(sessionId);
 
           if (!session) {
@@ -139,9 +139,9 @@ export function createSessionMcpServer(): McpSdkServerConfigWithInstance {
         description: 'Update session data (merges with existing)',
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
-          data: z.record(z.any()).describe('Data to merge'),
+          data: z.record(z.string(), z.any()).describe('Data to merge'),
         }),
-        execute: async ({ sessionId, data }) => {
+        execute: async ({ sessionId, data }: { sessionId: string; data: Record<string, unknown> }) => {
           const session = sessions.get(sessionId);
 
           if (!session) {
@@ -166,7 +166,7 @@ export function createSessionMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
         }),
-        execute: async ({ sessionId }) => {
+        execute: async ({ sessionId }: { sessionId: string }) => {
           const existed = sessions.delete(sessionId);
 
           return {
@@ -219,7 +219,7 @@ export function createCheckpointMcpServer(): McpSdkServerConfigWithInstance {
           sessionId: z.string().describe('Session identifier'),
           description: z.string().describe('Checkpoint description'),
         }),
-        execute: async ({ sessionId, description }) => {
+        execute: async ({ sessionId, description }: { sessionId: string; description: string }) => {
           try {
             const checkpointId = await checkpointManager.createCheckpoint(
               sessionId,
@@ -247,7 +247,7 @@ export function createCheckpointMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
         }),
-        execute: async ({ sessionId }) => {
+        execute: async ({ sessionId }: { sessionId: string }) => {
           const checkpoints = checkpointManager.listCheckpoints(sessionId);
 
           return {
@@ -272,7 +272,7 @@ export function createCheckpointMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           checkpointId: z.string().describe('Checkpoint identifier'),
         }),
-        execute: async ({ checkpointId }) => {
+        execute: async ({ checkpointId }: { checkpointId: string }) => {
           const checkpoint = checkpointManager.getCheckpoint(checkpointId);
 
           if (!checkpoint) {
@@ -300,7 +300,7 @@ export function createCheckpointMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           checkpointId: z.string().describe('Checkpoint identifier'),
         }),
-        execute: async ({ checkpointId }) => {
+        execute: async ({ checkpointId }: { checkpointId: string }) => {
           try {
             await checkpointManager.deleteCheckpoint(checkpointId);
 
@@ -325,7 +325,7 @@ export function createCheckpointMcpServer(): McpSdkServerConfigWithInstance {
           fromId: z.string().describe('From checkpoint ID'),
           toId: z.string().describe('To checkpoint ID'),
         }),
-        execute: async ({ fromId, toId }) => {
+        execute: async ({ fromId, toId }: { fromId: string; toId: string }) => {
           try {
             const diff = checkpointManager.getCheckpointDiff(fromId, toId);
 
@@ -364,7 +364,7 @@ export function createQueryControlMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
         }),
-        execute: async ({ sessionId }) => {
+        execute: async ({ sessionId }: { sessionId: string }) => {
           queryController.requestPause(sessionId);
 
           return {
@@ -382,7 +382,7 @@ export function createQueryControlMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
         }),
-        execute: async ({ sessionId }) => {
+        execute: async ({ sessionId }: { sessionId: string }) => {
           queryController.cancelPauseRequest(sessionId);
 
           return {
@@ -415,7 +415,7 @@ export function createQueryControlMcpServer(): McpSdkServerConfigWithInstance {
         parameters: z.object({
           sessionId: z.string().describe('Session identifier'),
         }),
-        execute: async ({ sessionId }) => {
+        execute: async ({ sessionId }: { sessionId: string }) => {
           const state = queryController.getPausedState(sessionId);
 
           if (!state) {
@@ -479,11 +479,3 @@ export function createQueryControlMcpServer(): McpSdkServerConfigWithInstance {
  * });
  * ```
  */
-
-// Export all server factories
-export {
-  createMathMcpServer,
-  createSessionMcpServer,
-  createCheckpointMcpServer,
-  createQueryControlMcpServer,
-};

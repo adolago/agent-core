@@ -158,6 +158,10 @@ export interface SystemTruthMetrics {
   overallAccuracy: number;
   humanInterventionRate: number;
   systemReliability: number;
+  latency: number;
+  throughput: number;
+  errorRate: number;
+  successRate: number;
   agentCount: number;
   activeAgents: number;
   totalTasks: number;
@@ -186,6 +190,10 @@ export interface TruthAlert {
   thresholds: AlertThreshold[];
   actions: AlertAction[];
   escalationPath: EscalationLevel[];
+  escalationLevel?: number;
+  acknowledged?: boolean;
+  acknowledgedAt?: Date;
+  acknowledgedBy?: string;
   resolved: boolean;
   resolvedAt?: Date;
   resolvedBy?: string;
@@ -193,7 +201,7 @@ export interface TruthAlert {
 
 export interface AlertThreshold {
   metric: string;
-  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'ne';
+  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'ne' | 'change' | 'rate';
   value: number;
   duration: number;
   severity: 'info' | 'warning' | 'critical' | 'emergency';
@@ -367,17 +375,17 @@ export class TruthTelemetryEngine extends EventEmitter {
   private memory: DistributedMemorySystem;
   
   // Core components
-  private metricsCollector: TruthMetricsCollector;
-  private agentScorer: AgentTruthScorer;
-  private systemTracker: SystemTruthTracker;
-  private alertManager: TruthAlertManager;
-  private dashboardExporter: DashboardExporter;
-  private automatedValidator: AutomatedValidator;
+  private metricsCollector!: TruthMetricsCollector;
+  private agentScorer!: AgentTruthScorer;
+  private systemTracker!: SystemTruthTracker;
+  private alertManager!: TruthAlertManager;
+  private dashboardExporter!: DashboardExporter;
+  private automatedValidator!: AutomatedValidator;
   
   // State management
   private truthMetrics = new Map<string, TruthMetric>();
   private agentScores = new Map<string, AgentTruthScore>();
-  private systemMetrics: SystemTruthMetrics;
+  private systemMetrics!: SystemTruthMetrics;
   private activeAlerts = new Map<string, TruthAlert>();
   private metricsBuffer: TruthMetric[] = [];
   
@@ -447,6 +455,10 @@ export class TruthTelemetryEngine extends EventEmitter {
       overallAccuracy: 0.95,
       humanInterventionRate: 0.05,
       systemReliability: 0.98,
+      latency: 0,
+      throughput: 0,
+      errorRate: 0,
+      successRate: 0,
       agentCount: 0,
       activeAgents: 0,
       totalTasks: 0,
@@ -1060,15 +1072,15 @@ export class TruthTelemetryEngine extends EventEmitter {
     try {
       const state = await this.memory.retrieve('truth-telemetry:state');
       
-      if (state && state.data) {
-        this.systemMetrics = state.data.systemMetrics || this.systemMetrics;
+      if (state && state.value) {
+        this.systemMetrics = state.value.systemMetrics || this.systemMetrics;
         
-        if (state.data.agentScores) {
-          this.agentScores = new Map(state.data.agentScores);
+        if (state.value.agentScores) {
+          this.agentScores = new Map(state.value.agentScores);
         }
         
-        if (state.data.activeAlerts) {
-          this.activeAlerts = new Map(state.data.activeAlerts);
+        if (state.value.activeAlerts) {
+          this.activeAlerts = new Map(state.value.activeAlerts);
         }
         
         this.logger.info('Loaded historical telemetry data');

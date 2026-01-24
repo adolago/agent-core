@@ -162,7 +162,7 @@ async function setupDefaultPipelines(): Promise<void> {
         name: 'continuation',
         hooks: agenticHookManager.getHooks('todo-continuation'),
         parallel: false,
-        condition: (ctx) => ctx.todoState?.remaining > 0,
+        condition: (ctx) => (ctx.todoState?.remaining ?? 0) > 0,
       },
       {
         name: 'reminder-injection',

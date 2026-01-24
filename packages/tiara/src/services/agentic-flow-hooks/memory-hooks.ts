@@ -122,20 +122,22 @@ export const postMemoryStoreHook = {
       }
     }
     
-    // Update memory index for search
-    await updateMemoryIndex(namespace, key, value, context);
-    
-    // Neural pattern detection
-    const patterns = await detectMemoryPatterns(namespace, key, value, context);
-    if (patterns.length > 0) {
-      sideEffects.push({
-        type: 'neural',
-        action: 'analyze',
-        data: {
-          patterns,
-          context: { namespace, key },
-        },
-      });
+    if (key !== undefined && value !== undefined) {
+      // Update memory index for search
+      await updateMemoryIndex(namespace, key, value, context);
+      
+      // Neural pattern detection
+      const patterns = await detectMemoryPatterns(namespace, key, value, context);
+      if (patterns.length > 0) {
+        sideEffects.push({
+          type: 'neural',
+          action: 'analyze',
+          data: {
+            patterns,
+            context: { namespace, key },
+          },
+        });
+      }
     }
     
     // Emit memory change event

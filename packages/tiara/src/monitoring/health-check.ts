@@ -13,6 +13,11 @@ import type {
 } from '../integration/types.js';
 import { getErrorMessage } from '../utils/error-handler.js';
 
+type MonitorableComponent = {
+  healthCheck?: () => Promise<HealthCheckResult>;
+  getMetrics?: () => Promise<Record<string, any>> | Record<string, any>;
+};
+
 export interface HealthCheckConfig {
   interval?: number; // Health check interval in ms (default: 30000)
   timeout?: number; // Health check timeout in ms (default: 5000)
@@ -195,7 +200,7 @@ export class HealthCheckManager {
     const startTime = Date.now();
 
     try {
-      const component = this.systemIntegration.getComponent(componentName);
+      const component = this.systemIntegration.getComponent<MonitorableComponent>(componentName);
 
       if (!component) {
         return {
@@ -248,8 +253,8 @@ export class HealthCheckManager {
       const cpuUsage = process.cpuUsage();
 
       // Get component-specific metrics
-      const agentManager = this.systemIntegration.getComponent('agentManager');
-      const taskEngine = this.systemIntegration.getComponent('taskEngine');
+      const agentManager = this.systemIntegration.getComponent<MonitorableComponent>('agentManager');
+      const taskEngine = this.systemIntegration.getComponent<MonitorableComponent>('taskEngine');
 
       let activeAgents = 0;
       let activeTasks = 0;

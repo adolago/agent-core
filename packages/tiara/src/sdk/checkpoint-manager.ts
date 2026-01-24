@@ -111,6 +111,9 @@ export class RealCheckpointManager extends EventEmitter {
     }
 
     const lastMessage = messages[messages.length - 1];
+    if (!lastMessage?.uuid) {
+      throw new Error(`Last message missing UUID for session: ${sessionId}`);
+    }
     const checkpointId = lastMessage.uuid; // ✅ Checkpoint = message UUID!
 
     // Calculate stats
@@ -252,8 +255,9 @@ export class RealCheckpointManager extends EventEmitter {
     let total = 0;
 
     for (const msg of messages) {
-      if ('message' in msg && 'usage' in msg.message) {
-        const usage = msg.message.usage as { input_tokens?: number; output_tokens?: number };
+      const message = msg.message;
+      if (message && 'usage' in message) {
+        const usage = message.usage as { input_tokens?: number; output_tokens?: number };
         total += (usage.input_tokens || 0) + (usage.output_tokens || 0);
       }
     }
@@ -268,8 +272,9 @@ export class RealCheckpointManager extends EventEmitter {
     const files = new Set<string>();
 
     for (const msg of messages) {
-      if (msg.type === 'assistant' && 'message' in msg) {
-        const content = msg.message.content;
+      const message = msg.message;
+      if (msg.type === 'assistant' && message?.content) {
+        const content = message.content;
         for (const block of content) {
           if (block.type === 'tool_use') {
             // Check for file operations

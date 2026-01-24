@@ -156,8 +156,8 @@ export class OpenAIProvider extends BaseProvider {
     },
   };
 
-  private baseUrl: string;
-  private headers: Record<string, string>;
+  private baseUrl = '';
+  private headers: Record<string, string> = {};
 
   protected async doInitialize(): Promise<void> {
     if (!this.config.apiKey) {
@@ -217,7 +217,7 @@ export class OpenAIProvider extends BaseProvider {
         await this.handleErrorResponse(response);
       }
 
-      const data: OpenAIResponse = await response.json();
+    const data = (await response.json()) as OpenAIResponse;
       const choice = data.choices[0];
 
       // Calculate cost

@@ -808,7 +808,7 @@ export class NeuralDomainMapper extends EventEmitter {
       outDegrees.set(nodeId, 0);
     }
     
-    for (const deps of dependencyGraph.values()) {
+    for (const [nodeId, deps] of dependencyGraph.entries()) {
       outDegrees.set(nodeId, deps.length);
       for (const depId of deps) {
         inDegrees.set(depId, (inDegrees.get(depId) || 0) + 1);
@@ -1664,16 +1664,3 @@ export class NeuralDomainMapper extends EventEmitter {
     return recommendations;
   }
 }
-
-// ===== Export Types =====
-
-export type {
-  DomainNode,
-  DomainEdge,
-  DomainGraph,
-  CohesionAnalysis,
-  DependencyAnalysis,
-  BoundaryOptimization,
-  GNNLayerConfig,
-  TrainingConfig,
-};

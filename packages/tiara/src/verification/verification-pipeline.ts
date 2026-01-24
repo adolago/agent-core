@@ -18,6 +18,7 @@ import type {
   VerificationError,
   VerificationWarning,
   ResourceUsage,
+  TruthEvidence,
   VerificationEvidence,
   VerificationCallback,
   CheckpointCallback,
@@ -588,7 +589,7 @@ export class VerificationPipeline {
         threshold: validator.config.threshold,
         scores: scores.map(s => s.score),
       },
-      evidence: scores.flatMap(s => s.evidence),
+      evidence: scores.flatMap(s => this.mapTruthEvidence(s.evidence)),
     };
   }
 
@@ -897,6 +898,17 @@ export class VerificationPipeline {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
+  }
+
+  private mapTruthEvidence(evidence: TruthEvidence[]): VerificationEvidence[] {
+    return evidence.map(item => ({
+      type: item.type,
+      source: item.source,
+      timestamp: item.timestamp,
+      data: item.details,
+      reliability: item.score,
+      weight: item.weight,
+    }));
   }
 
   private async handleExecutionError(error: unknown, executionId: string, startTime: number): Promise<VerificationResult> {

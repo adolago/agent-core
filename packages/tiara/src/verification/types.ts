@@ -8,7 +8,44 @@ import type { AgentId, TaskId, SwarmId, TaskResult, AgentState } from '../swarm/
 // ===== CORE VERIFICATION TYPES =====
 
 export type VerificationLevel = 'basic' | 'standard' | 'strict' | 'critical';
-export type VerificationStatus = 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
+export type VerificationStatus = 'pending' | 'running' | 'paused' | 'passed' | 'failed' | 'error' | 'cancelled';
+
+export const SECURITY_CONSTANTS = {
+  DEFAULT_SECURITY_LEVEL: 'MEDIUM',
+};
+
+export class SecurityError extends Error {}
+export class AuthenticationError extends SecurityError {}
+export class ByzantineError extends SecurityError {}
+export class CryptographicError extends SecurityError {}
+export class RateLimitError extends SecurityError {}
+
+export type ThreatLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface AttackPattern {
+  patternId: string;
+  name: string;
+  description: string;
+  indicators: string[];
+  severity: ThreatLevel;
+  mitigation: string[];
+  frequency: number;
+}
+
+export interface SecurityAlert {
+  alertId: string;
+  level: ThreatLevel;
+  message: string;
+  timestamp: Date;
+  details?: Record<string, unknown>;
+}
+
+export interface SecurityMiddleware {
+  name: string;
+  priority: number;
+  beforeVerification?: (request: unknown) => Promise<void> | void;
+  afterVerification?: (result: unknown) => Promise<void> | void;
+}
 export type CheckpointType = 'pre_execution' | 'mid_execution' | 'post_execution' | 'rollback_point';
 export type ClaimType = 'task_completion' | 'quality_metric' | 'performance_benchmark' | 'system_state' | 'agent_capability';
 

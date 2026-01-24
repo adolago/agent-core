@@ -337,7 +337,7 @@ export type AgenticHookType =
   | HookType; // Include existing Claude Flow hooks
 
 export type HookHandler = (
-  payload: HookPayload,
+  payload: any,
   context: AgenticHookContext
 ) => Promise<HookHandlerResult>;
 

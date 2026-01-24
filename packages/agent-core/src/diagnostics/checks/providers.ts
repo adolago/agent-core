@@ -4,6 +4,7 @@
  */
 
 import type { CheckResult, CheckOptions } from "../types";
+import { Auth } from "../../auth";
 
 interface ProviderConfig {
   name: string;
@@ -11,6 +12,7 @@ interface ProviderConfig {
   endpoint: string;
   envKey: string;
   timeout: number;
+  authProviderId?: string;
 }
 
 const PROVIDERS: ProviderConfig[] = [
@@ -34,6 +36,7 @@ const PROVIDERS: ProviderConfig[] = [
     endpoint: "https://api.tokenfactory.nebius.com/v1/models",
     envKey: "NEBIUS_API_KEY",
     timeout: 5000,
+    authProviderId: "nebius",
   },
   {
     name: "Google Gemini",
@@ -90,16 +93,33 @@ async function checkInternetConnectivity(): Promise<CheckResult> {
 
 async function checkProvider(provider: ProviderConfig): Promise<CheckResult> {
   const start = Date.now();
-  const apiKey = process.env[provider.envKey];
-  
-  if (!apiKey) {
+  let isConfigured = false;
+
+  if (provider.authProviderId) {
+    const auth = await Auth.get(provider.authProviderId);
+    if (auth?.type === "api") {
+      isConfigured = Boolean(auth.key?.trim());
+    } else if (auth?.type === "oauth") {
+      isConfigured = Boolean(auth.access?.trim());
+    } else if (auth?.type === "wellknown") {
+      isConfigured = Boolean(auth.token?.trim());
+    }
+  } else {
+    const apiKey = process.env[provider.envKey];
+    isConfigured = Boolean(apiKey && apiKey.trim());
+  }
+
+  if (!isConfigured) {
+    const details = provider.authProviderId
+      ? "Run `agent-core auth login` and select nebius."
+      : `Set ${provider.envKey} environment variable`;
     return {
       id: `providers.${provider.id}`,
       name: provider.name,
       category: "providers",
       status: "skip",
       message: "Not configured",
-      details: `Set ${provider.envKey} environment variable`,
+      details,
       severity: "info",
       durationMs: Date.now() - start,
       autoFixable: false,

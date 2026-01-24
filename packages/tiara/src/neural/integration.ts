@@ -13,6 +13,7 @@ import { EventEmitter } from 'events';
 import { NeuralDomainMapper, type DomainGraph, type CohesionAnalysis, type DependencyAnalysis, type BoundaryOptimization } from './NeuralDomainMapper.js';
 import type {
   AgenticHookContext,
+  HookPayload,
   NeuralHookPayload,
   Pattern,
   TrainingData,
@@ -81,6 +82,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   private activeAnalysis: Map<string, Promise<DomainAnalysisResult>> = new Map();
   private learningPatterns: Pattern[] = [];
   private isInitialized: boolean = false;
+  private lastHookContext?: AgenticHookContext;
 
   constructor(
     domainMapper?: NeuralDomainMapper,
@@ -358,13 +360,15 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
       id: 'domain-mapper-pattern-analysis',
       type: 'neural-pattern-detected',
       priority: 80,
-      handler: async (payload: NeuralHookPayload, context: AgenticHookContext) => {
-        if (!this.config.enableAutoAnalysis || !payload.patterns?.length) {
+      handler: async (payload: HookPayload, context: AgenticHookContext) => {
+        this.lastHookContext = context;
+        const neuralPayload = payload as NeuralHookPayload;
+        if (!this.config.enableAutoAnalysis || !neuralPayload.patterns?.length) {
           return { continue: true };
         }
 
         // Check if patterns are domain-related
-        const domainPatterns = payload.patterns.filter(p => 
+        const domainPatterns = neuralPayload.patterns.filter(p => 
           this.isDomainRelatedPattern(p)
         );
 
@@ -404,13 +408,14 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
             });
           }
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
           sideEffects.push({
             type: 'log',
             action: 'write',
             data: {
               level: 'error',
               message: 'Domain analysis failed',
-              error: error.message,
+              error: errorMessage,
             },
           });
         }
@@ -427,14 +432,16 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
       id: 'domain-mapper-training-integration',
       type: 'post-neural-train',
       priority: 90,
-      handler: async (payload: NeuralHookPayload, context: AgenticHookContext) => {
+      handler: async (payload: HookPayload, context: AgenticHookContext) => {
+        this.lastHookContext = context;
+        const neuralPayload = payload as NeuralHookPayload;
         if (!this.config.enableContinuousLearning) {
           return { continue: true };
         }
 
         // Extract domain-relevant training data
-        if (payload.trainingData) {
-          const domainTrainingData = this.extractDomainTrainingData(payload.trainingData);
+        if (neuralPayload.trainingData) {
+          const domainTrainingData = this.extractDomainTrainingData(neuralPayload.trainingData);
           if (domainTrainingData.inputs.length > 0) {
             // Retrain domain mapper with new data
             try {
@@ -453,6 +460,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
                 }],
               };
             } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
               return {
                 continue: true,
                 sideEffects: [{
@@ -461,7 +469,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
                   data: {
                     level: 'warning',
                     message: 'Failed to update domain mapper',
-                    error: error.message,
+                    error: errorMessage,
                   },
                 }],
               };
@@ -477,9 +485,16 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   private setupPeriodicAnalysis(): void {
     setInterval(async () => {
       try {
+        const baseContext = this.lastHookContext;
+        if (!baseContext) {
+          return;
+        }
+
         // Check if there are recent patterns to analyze
-        const recentPatterns = context.neural.patterns.getByType('behavior')
-          .filter(p => Date.now() - (p.context.timestamp || 0) < this.config.analysisInterval * 2);
+        const recentPatterns = baseContext.neural.patterns.getByType('behavior')
+          .filter((p: Pattern) =>
+            Date.now() - (p.context.timestamp || 0) < this.config.analysisInterval * 2
+          );
 
         if (recentPatterns.length > 0) {
           const mockContext: AgenticHookContext = {
@@ -494,8 +509,8 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
             },
             neural: {
               modelId: 'domain-mapper',
-              patterns: context.neural.patterns,
-              training: context.neural.training,
+              patterns: baseContext.neural.patterns,
+              training: baseContext.neural.training,
             },
             performance: {
               metrics: new Map(),
@@ -508,7 +523,8 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
           await this.trainOnPatterns(recentPatterns, mockContext);
         }
       } catch (error) {
-        this.emit('error', { type: 'periodic-analysis', error });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.emit('error', { type: 'periodic-analysis', error: errorMessage });
       }
     }, this.config.analysisInterval);
   }
@@ -599,7 +615,8 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
       try {
         await this.executeSideEffect(effect, context);
       } catch (error) {
-        this.emit('error', { type: 'side-effect', effect, error });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.emit('error', { type: 'side-effect', effect, error: errorMessage });
       }
     }
   }
@@ -619,7 +636,8 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
           correlationId: context.correlationId,
         });
       } catch (error) {
-        this.emit('error', { type: 'continuous-learning', error });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.emit('error', { type: 'continuous-learning', error: errorMessage });
       }
     }
   }
@@ -820,7 +838,3 @@ export async function createDomainMapperIntegration(
 /**
  * Export types for external use
  */
-export type {
-  DomainMapperIntegrationConfig,
-  DomainAnalysisResult,
-};

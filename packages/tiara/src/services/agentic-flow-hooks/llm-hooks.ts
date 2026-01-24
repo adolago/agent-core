@@ -109,7 +109,7 @@ export const postLLMCallHook = {
     payload: LLMHookPayload,
     context: AgenticHookContext
   ): Promise<HookHandlerResult> => {
-    const { provider, model, request, response, metrics } = payload;
+    const { provider, model, operation, request, response, metrics } = payload;
     
     if (!response || !metrics) {
       return { continue: true };

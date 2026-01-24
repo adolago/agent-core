@@ -22,6 +22,13 @@ import type {
   TruthTelemetryConfig,
 } from './telemetry.js';
 
+type DashboardSourceData = {
+  systemMetrics: SystemTruthMetrics;
+  agentScores: AgentTruthScore[];
+  truthMetrics: TruthMetric[];
+  activeAlerts: TruthAlert[];
+};
+
 export interface DashboardConfiguration {
   title: string;
   description: string;
@@ -255,12 +262,7 @@ export class DashboardExporter {
   // Dashboard Generation
   // ========================================================================================
   
-  async generateDashboard(data: {
-    systemMetrics: SystemTruthMetrics;
-    agentScores: AgentTruthScore[];
-    truthMetrics: TruthMetric[];
-    activeAlerts: TruthAlert[];
-  }): Promise<DashboardData> {
+  async generateDashboard(data: DashboardSourceData): Promise<DashboardData> {
     try {
       // Generate summary statistics
       const summary = await this.generateSummary(data);
@@ -293,7 +295,7 @@ export class DashboardExporter {
     }
   }
   
-  private async generateSummary(data: any): Promise<DashboardData['summary']> {
+  private async generateSummary(data: DashboardSourceData): Promise<DashboardData['summary']> {
     const { systemMetrics, agentScores, activeAlerts } = data;
     
     // Calculate overall system health
@@ -308,7 +310,7 @@ export class DashboardExporter {
     };
   }
   
-  private async generateCharts(data: any): Promise<DashboardData['charts']> {
+  private async generateCharts(data: DashboardSourceData): Promise<DashboardData['charts']> {
     const { systemMetrics, agentScores, truthMetrics, activeAlerts } = data;
     
     return {
@@ -320,7 +322,7 @@ export class DashboardExporter {
     };
   }
   
-  private async generateTables(data: any): Promise<DashboardData['tables']> {
+  private async generateTables(data: DashboardSourceData): Promise<DashboardData['tables']> {
     const { agentScores, activeAlerts } = data;
     
     return {
@@ -330,7 +332,7 @@ export class DashboardExporter {
     };
   }
   
-  private async generateInsights(data: any): Promise<SystemInsight[]> {
+  private async generateInsights(data: DashboardSourceData): Promise<SystemInsight[]> {
     const insights: SystemInsight[] = [];
     
     // Performance insights
@@ -527,7 +529,7 @@ export class DashboardExporter {
     resolved: alert.resolved,
   });
   
-  private async generateCriticalIssues(data: any): Promise<CriticalIssue[]> {
+  private async generateCriticalIssues(data: DashboardSourceData): Promise<CriticalIssue[]> {
     const { systemMetrics, agentScores, activeAlerts } = data;
     const issues: CriticalIssue[] = [];
     
@@ -579,7 +581,7 @@ export class DashboardExporter {
   // Insight Generation
   // ========================================================================================
   
-  private async analyzePerformanceInsights(data: any): Promise<SystemInsight | null> {
+  private async analyzePerformanceInsights(data: DashboardSourceData): Promise<SystemInsight | null> {
     const { systemMetrics, agentScores } = data;
     
     const avgScore = agentScores.length > 0 ? 
@@ -619,7 +621,7 @@ export class DashboardExporter {
     return null;
   }
   
-  private async analyzeEfficiencyInsights(data: any): Promise<SystemInsight | null> {
+  private async analyzeEfficiencyInsights(data: DashboardSourceData): Promise<SystemInsight | null> {
     const { systemMetrics } = data;
     
     if (systemMetrics.humanInterventionRate > 0.15) {
@@ -656,7 +658,7 @@ export class DashboardExporter {
     return null;
   }
   
-  private async analyzeQualityInsights(data: any): Promise<SystemInsight | null> {
+  private async analyzeQualityInsights(data: DashboardSourceData): Promise<SystemInsight | null> {
     const { systemMetrics, truthMetrics } = data;
     
     if (systemMetrics.overallAccuracy < 0.95) {
@@ -684,7 +686,7 @@ export class DashboardExporter {
     return null;
   }
   
-  private async analyzeRiskInsights(data: any): Promise<SystemInsight | null> {
+  private async analyzeRiskInsights(data: DashboardSourceData): Promise<SystemInsight | null> {
     const { agentScores } = data;
     
     const highRiskAgents = agentScores.filter(s => 

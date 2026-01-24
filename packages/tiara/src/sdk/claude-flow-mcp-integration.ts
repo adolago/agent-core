@@ -12,7 +12,7 @@
 
 import { query, type Query, type Options } from '@anthropic-ai/claude-code';
 import { RealSessionForking } from './session-forking.js';
-import { RealQueryController } from './query-control.js';
+import { RealTimeQueryController } from './query-control.js';
 import { RealCheckpointManager } from './checkpoint-manager.js';
 import {
   createMathMcpServer,
@@ -55,7 +55,7 @@ export interface ClaudeFlowIntegrationConfig {
  */
 export class IntegratedClaudeFlowSession {
   private forking?: RealSessionForking;
-  private controller?: RealQueryController;
+  private controller?: RealTimeQueryController;
   private checkpointManager?: RealCheckpointManager;
   private config: ClaudeFlowIntegrationConfig;
 
@@ -68,7 +68,7 @@ export class IntegratedClaudeFlowSession {
     }
 
     if (config.enableQueryControl) {
-      this.controller = new RealQueryController();
+      this.controller = new RealTimeQueryController();
     }
 
     if (config.enableCheckpoints) {
@@ -383,5 +383,3 @@ const q = query({
 ╚════════════════════════════════════════════════════════════╝
   `);
 }
-
-export { IntegratedClaudeFlowSession };

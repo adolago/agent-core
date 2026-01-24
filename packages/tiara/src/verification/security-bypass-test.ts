@@ -5,10 +5,16 @@
  * Tests all possible attack vectors and bypass attempts
  */
 
-import { SecurityEnforcementSystem, createHighSecuritySystem } from './index';
-import { PenetrationTestingSuite, SecurityValidationSuite } from './tests';
-import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware } from './middleware';
-import { VerificationRequest } from './security';
+import { SecurityEnforcementSystem, createHighSecuritySystem } from './index.js';
+import { PenetrationTestingSuite, SecurityValidationSuite } from './tests.js';
+import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware } from './middleware.js';
+import { VerificationRequest } from './security.js';
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const toError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
 
 export class SecurityBypassPreventionTest {
   private security: SecurityEnforcementSystem;
@@ -45,7 +51,7 @@ export class SecurityBypassPreventionTest {
         await this.middleware.executeAfterVerification(result);
         return result;
       } catch (error) {
-        await this.middleware.executeErrorHandling(error);
+        await this.middleware.executeErrorHandling(toError(error));
         throw error;
       }
     };
@@ -281,7 +287,8 @@ export class SecurityBypassPreventionTest {
         await this.security.processVerificationRequest(request);
         requestCount++;
       } catch (error) {
-        if (error.message.includes('rate limit') || error.message.includes('Rate limit')) {
+        const message = getErrorMessage(error);
+        if (message.includes('rate limit') || message.includes('Rate limit')) {
           rateLimitTriggered = true;
           break;
         }
@@ -352,7 +359,8 @@ export class SecurityBypassPreventionTest {
       try {
         await attempt();
       } catch (error) {
-        if (error.message.includes('Byzantine') || error.message.includes('byzantine')) {
+        const message = getErrorMessage(error);
+        if (message.includes('Byzantine') || message.includes('byzantine')) {
           preventedCount++;
         }
       }

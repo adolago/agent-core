@@ -28,6 +28,9 @@ export interface InitConfig {
   topologyManager?: any;
   agentRegistry?: any;
   metricsCollector?: any;
+  consensusEngine?: any;
+  mcpIntegrator?: any;
+  hiveMindCore?: any;
 }
 
 export interface InitResult {

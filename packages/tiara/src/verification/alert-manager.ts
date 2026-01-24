@@ -945,7 +945,7 @@ export class TruthAlertManager {
     return result;
   }
   
-  private getMetricProperty(metric: TruthMetric, path: string): any {
+  private getMetricProperty(metric: Record<string, any>, path: string): any {
     const parts = path.split('.');
     let value: any = metric;
     

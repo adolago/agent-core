@@ -612,18 +612,25 @@ class AgentAuthenticationSystem {
 
 // ======================== RATE LIMITING SYSTEM ========================
 
+type RateLimitConfig = {
+  perSecond: number;
+  perMinute: number;
+  perHour: number;
+  perDay: number;
+};
+
 class AdvancedRateLimiter {
   private requestCounts = new Map<string, { count: number; resetTime: Date; violations: number }>();
-  private globalLimits = {
+  private globalLimits: RateLimitConfig = {
     perSecond: 10,
     perMinute: 100,
     perHour: 1000,
     perDay: 10000
   };
-  private agentLimits = new Map<string, typeof this.globalLimits>();
+  private agentLimits = new Map<string, RateLimitConfig>();
 
   // Set custom limits for specific agent
-  setAgentLimits(agentId: string, limits: Partial<typeof this.globalLimits>): void {
+  setAgentLimits(agentId: string, limits: Partial<RateLimitConfig>): void {
     const currentLimits = this.agentLimits.get(agentId) || { ...this.globalLimits };
     this.agentLimits.set(agentId, { ...currentLimits, ...limits });
   }
@@ -674,7 +681,7 @@ class AdvancedRateLimiter {
   getRateLimitStats(agentId: string): {
     currentUsage: Record<string, number>;
     violations: Record<string, number>;
-    limits: typeof this.globalLimits;
+    limits: RateLimitConfig;
   } {
     const limits = this.agentLimits.get(agentId) || this.globalLimits;
     const currentUsage: Record<string, number> = {};
@@ -1322,16 +1329,17 @@ export class SecurityEnforcementSystem extends EventEmitter {
 
     } catch (error) {
       // Handle any errors with proper audit trail
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.metrics.rejectedRequests++;
       
       await this.auditTrail.createAuditEntry(
         request.agentId,
         'VERIFICATION_ERROR',
-        { error: error.message, request }
+        { error: errorMessage, request }
       );
 
       this.updateMetrics(request.agentId, Date.now() - startTime, false);
-      this.emit('verificationError', { request, error: error.message });
+      this.emit('verificationError', { request, error: errorMessage });
       
       throw error;
     }
@@ -1373,7 +1381,8 @@ export class SecurityEnforcementSystem extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      return { success: false, reason: error.message };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, reason: errorMessage };
     }
   }
 

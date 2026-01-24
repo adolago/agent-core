@@ -199,7 +199,7 @@ export class CohereProvider extends BaseProvider {
         await this.handleErrorResponse(response);
       }
 
-      const data: CohereChatResponse = await response.json();
+      const data = (await response.json()) as CohereChatResponse;
       
       // Calculate cost
       const pricing = this.capabilities.pricing![request.model || this.config.model];
@@ -264,7 +264,7 @@ export class CohereProvider extends BaseProvider {
         await this.handleErrorResponse(response);
       }
 
-      const data: CohereGenerateResponse = await response.json();
+      const data = (await response.json()) as CohereGenerateResponse;
       const generation = data.generations[0];
       
       // Calculate cost

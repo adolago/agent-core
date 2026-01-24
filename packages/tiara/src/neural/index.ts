@@ -17,6 +17,21 @@
  * @version 2.0.0
  */
 
+import { NeuralDomainMapper } from './NeuralDomainMapper.js';
+import type {
+  DomainNode,
+  DomainEdge,
+  DomainGraph,
+  CohesionAnalysis,
+  DependencyAnalysis,
+  BoundaryOptimization,
+  GNNLayerConfig,
+  TrainingConfig,
+} from './NeuralDomainMapper.js';
+import { NeuralDomainMapperIntegration, createDomainMapperIntegration } from './integration.js';
+import type { DomainAnalysisResult } from './integration.js';
+import type { TrainingData } from '../services/agentic-flow-hooks/types.js';
+
 // Core exports
 export {
   NeuralDomainMapper,

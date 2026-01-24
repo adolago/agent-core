@@ -80,7 +80,7 @@ export interface ValidationCheck {
 export interface MigrationManifest {
   version: string;
   files: {
-    commands: Record<string, CommandMigration>;
+    commands: CommandMigration[];
     configurations: Record<string, ConfigMigration>;
     templates: Record<string, TemplateMigration>;
   };

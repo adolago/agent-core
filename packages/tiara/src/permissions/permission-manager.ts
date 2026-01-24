@@ -15,7 +15,22 @@
 import { readFile, writeFile, mkdir, access } from 'fs/promises';
 import { join, dirname } from 'path';
 import { constants } from 'fs';
-import type { PermissionBehavior, PermissionRuleValue, PermissionUpdate } from '@anthropic-ai/claude-code/sdk';
+
+export type PermissionBehavior = 'allow' | 'deny' | 'ask' | 'warn';
+
+export interface PermissionRuleValue {
+  toolName: string;
+  ruleContent?: string;
+  metadata?: Record<string, any>;
+}
+
+export type PermissionUpdate =
+  | { type: 'addRules'; rules: PermissionRuleValue[]; behavior: PermissionBehavior }
+  | { type: 'replaceRules'; rules: PermissionRuleValue[]; behavior: PermissionBehavior }
+  | { type: 'removeRules'; rules: PermissionRuleValue[] }
+  | { type: 'setMode'; mode: PermissionConfig['mode'] }
+  | { type: 'addDirectories'; directories: string[] }
+  | { type: 'removeDirectories'; directories: string[] };
 
 // ===== Core Permission Types =====
 

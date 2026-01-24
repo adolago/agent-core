@@ -9,7 +9,7 @@
  * - Monitor agent status in real-time
  */
 
-import { type Query, type PermissionMode, type ModelInfo } from '@anthropic-ai/claude-code/sdk';
+import { type Query, type PermissionMode, type ModelInfo } from '@anthropic-ai/claude-code';
 import { EventEmitter } from 'events';
 import { Logger } from '../core/logger.js';
 
@@ -466,3 +466,5 @@ export class RealTimeQueryController extends EventEmitter {
     this.logger.info('Query controller shutdown complete');
   }
 }
+
+export { RealTimeQueryController as RealQueryController };

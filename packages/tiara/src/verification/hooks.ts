@@ -10,6 +10,7 @@ import { Logger } from '../core/logger.js';
 import { agenticHookManager } from '../services/agentic-flow-hooks/index.js';
 import type {
   AgenticHookContext,
+  HookPayload,
   HookHandlerResult,
   HookRegistration,
   WorkflowHookPayload,
@@ -257,12 +258,13 @@ export class VerificationHookManager {
       id: 'verification-pre-task',
       type: 'workflow-start',
       priority: 100, // High priority to run early
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         if (!this.config.preTask.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.createVerificationContext(payload, context);
+        const workflowPayload = payload as WorkflowHookPayload;
+        const verificationContext = this.createVerificationContext(workflowPayload, context);
         
         try {
           await this.executePreTaskChecks(verificationContext);
@@ -370,16 +372,17 @@ export class VerificationHookManager {
       id: 'verification-post-task',
       type: 'workflow-complete',
       priority: 90,
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         if (!this.config.postTask.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.getVerificationContext(payload.workflowId) || 
-                                   this.createVerificationContext(payload, context);
+        const workflowPayload = payload as WorkflowHookPayload;
+        const verificationContext = this.getVerificationContext(workflowPayload.workflowId) || 
+                                   this.createVerificationContext(workflowPayload, context);
         
         try {
-          await this.executePostTaskValidation(verificationContext, payload);
+          await this.executePostTaskValidation(verificationContext, workflowPayload);
           
           const accuracy = this.calculateAccuracy(verificationContext);
           const meetsThreshold = accuracy >= this.config.postTask.accuracyThreshold;
@@ -391,7 +394,7 @@ export class VerificationHookManager {
             continue: true,
             modified: true,
             payload: {
-              ...payload,
+              ...workflowPayload,
               validationResults: verificationContext.state.validationResults,
               accuracy,
               meetsThreshold
@@ -471,13 +474,14 @@ export class VerificationHookManager {
       filter: {
         patterns: [/integration.*test/i, /test.*integration/i]
       },
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         if (!this.config.integration.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.getVerificationContext(payload.workflowId) || 
-                                   this.createVerificationContext(payload, context);
+        const workflowPayload = payload as WorkflowHookPayload;
+        const verificationContext = this.getVerificationContext(workflowPayload.workflowId) || 
+                                   this.createVerificationContext(workflowPayload, context);
         
         try {
           await this.executeIntegrationTests(verificationContext);
@@ -490,7 +494,7 @@ export class VerificationHookManager {
             continue: true,
             modified: true,
             payload: {
-              ...payload,
+              ...workflowPayload,
               testResults: verificationContext.state.testResults,
               allTestsPassed,
               testSummary: {
@@ -640,15 +644,16 @@ export class VerificationHookManager {
       id: 'verification-truth-telemetry',
       type: 'performance-metric',
       priority: 70,
-      handler: async (payload: PerformanceHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         if (!this.config.telemetry.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.getOrCreateVerificationContext(payload, context);
+        const performancePayload = payload as PerformanceHookPayload;
+        const verificationContext = this.getOrCreateVerificationContext(performancePayload, context);
         
         try {
-          await this.executeTruthValidation(verificationContext, payload);
+          await this.executeTruthValidation(verificationContext, performancePayload);
           
           const truthfulness = this.calculateTruthfulness(verificationContext);
           
@@ -656,7 +661,7 @@ export class VerificationHookManager {
             continue: true,
             modified: true,
             payload: {
-              ...payload,
+              ...performancePayload,
               truthResults: verificationContext.state.truthResults,
               truthfulness
             },
@@ -751,19 +756,20 @@ export class VerificationHookManager {
       id: 'verification-rollback-trigger',
       type: 'workflow-error',
       priority: 95, // Very high priority for error handling
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         if (!this.config.rollback.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.getVerificationContext(payload.workflowId);
+        const workflowPayload = payload as WorkflowHookPayload;
+        const verificationContext = this.getVerificationContext(workflowPayload.workflowId);
         if (!verificationContext) {
           logger.warn('No verification context found for rollback evaluation');
           return { continue: true };
         }
 
         try {
-          const shouldRollback = await this.evaluateRollbackTriggers(verificationContext, payload.error);
+          const shouldRollback = await this.evaluateRollbackTriggers(verificationContext, workflowPayload.error);
           
           if (shouldRollback) {
             const rollbackResult = await this.executeRollback(verificationContext);
@@ -772,7 +778,7 @@ export class VerificationHookManager {
               continue: rollbackResult.success,
               modified: true,
               payload: {
-                ...payload,
+                ...workflowPayload,
                 rollbackExecuted: true,
                 rollbackResult
               },

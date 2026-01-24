@@ -7,10 +7,10 @@ import type { EventMap } from '../utils/types.js';
 import { TypedEventEmitter } from '../utils/helpers.js';
 
 export interface IEventBus {
-  emit(event: string, data?: unknown): void;
-  on(event: string, handler: (data: unknown) => void): void;
-  off(event: string, handler: (data: unknown) => void): void;
-  once(event: string, handler: (data: unknown) => void): void;
+  emit(event: string, data?: any): void;
+  on(event: string, handler: (data: any) => void): void;
+  off(event: string, handler: (data: any) => void): void;
+  once(event: string, handler: (data: any) => void): void;
 }
 
 /**
@@ -93,7 +93,7 @@ export class EventBus implements IEventBus {
   /**
    * Emits an event
    */
-  emit(event: string, data?: unknown): void {
+  emit(event: string, data?: any): void {
     // Type-safe emission for known events
     if (event in SystemEvents) {
       this.typedBus.emit(event as keyof EventMap, data as any);
@@ -106,30 +106,30 @@ export class EventBus implements IEventBus {
   /**
    * Registers an event handler
    */
-  on(event: string, handler: (data: unknown) => void): void {
+  on(event: string, handler: (data: any) => void): void {
     this.typedBus.on(event as any, handler);
   }
 
   /**
    * Removes an event handler
    */
-  off(event: string, handler: (data: unknown) => void): void {
+  off(event: string, handler: (data: any) => void): void {
     this.typedBus.off(event as any, handler);
   }
 
   /**
    * Registers a one-time event handler
    */
-  once(event: string, handler: (data: unknown) => void): void {
+  once(event: string, handler: (data: any) => void): void {
     this.typedBus.once(event as any, handler);
   }
 
   /**
    * Waits for an event to occur
    */
-  async waitFor(event: string, timeoutMs?: number): Promise<unknown> {
+  async waitFor(event: string, timeoutMs?: number): Promise<any> {
     return new Promise((resolve, reject) => {
-      const handler = (data: unknown) => {
+      const handler = (data: any) => {
         if (timer) clearTimeout(timer);
         resolve(data);
       };
@@ -151,8 +151,8 @@ export class EventBus implements IEventBus {
    */
   onFiltered(
     event: string,
-    filter: (data: unknown) => boolean,
-    handler: (data: unknown) => void,
+    filter: (data: any) => boolean,
+    handler: (data: any) => void,
   ): void {
     this.on(event, (data) => {
       if (filter(data)) {

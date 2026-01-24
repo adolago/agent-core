@@ -204,7 +204,7 @@ export class ClaudeFlowToolRegistry {
           zodSchema[key] = zodSchema[key].optional();
         }
       } else if (p.type === 'object') {
-        zodSchema[key] = z.record(z.any());
+        zodSchema[key] = z.record(z.string(), z.any());
         if (!schema.required?.includes(key)) {
           zodSchema[key] = zodSchema[key].optional();
         }

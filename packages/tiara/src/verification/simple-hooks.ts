@@ -8,6 +8,7 @@ import { Logger } from '../core/logger.js';
 import { agenticHookManager } from '../services/agentic-flow-hooks/index.js';
 import type {
   AgenticHookContext,
+  HookPayload,
   HookHandlerResult,
   HookRegistration,
   WorkflowHookPayload,
@@ -55,11 +56,12 @@ export class SimpleVerificationHookManager {
       id: 'simple-verification-pre-task',
       type: 'workflow-start',
       priority: 100,
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         logger.info('🔍 Pre-task verification starting...');
         
         try {
-          const result = await this.runSimpleChecks(payload, context);
+          const workflowPayload = payload as WorkflowHookPayload;
+          const result = await this.runSimpleChecks(workflowPayload, context);
           
           if (result.success) {
             logger.info('✅ Pre-task verification passed');
@@ -98,11 +100,12 @@ export class SimpleVerificationHookManager {
       id: 'simple-verification-post-task',
       type: 'workflow-complete',
       priority: 90,
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (payload: HookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
         logger.info('🔍 Post-task verification starting...');
         
         try {
-          const result = await this.runSimpleValidation(payload, context);
+          const workflowPayload = payload as WorkflowHookPayload;
+          const result = await this.runSimpleValidation(workflowPayload, context);
           
           logger.info(`✅ Post-task verification completed: ${result.message}`);
           return {

@@ -117,6 +117,7 @@ export interface LLMRequest {
   // Cost optimization
   costConstraints?: {
     maxCost?: number;
+    maxCostPerRequest?: number;
     preferredModels?: LLMModel[];
   };
 }
@@ -313,6 +314,7 @@ export interface ModelInfo {
   deprecated?: boolean;
   deprecationDate?: Date;
   recommendedReplacement?: LLMModel;
+  metadata?: Record<string, any>;
 }
 
 export interface HealthCheckResult {
@@ -364,11 +366,11 @@ export interface UsageStats {
   };
   errors: number;
   averageLatency: number;
-  modelBreakdown: Record<LLMModel, {
+  modelBreakdown: Partial<Record<LLMModel, {
     requests: number;
     tokens: number;
     cost: number;
-  }>;
+  }>>;
 }
 
 export type UsagePeriod = 'hour' | 'day' | 'week' | 'month' | 'all';

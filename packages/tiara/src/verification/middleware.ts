@@ -6,8 +6,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { VerificationRequest, VerificationResult } from './security';
-import { SecurityMiddleware, SecurityAlert, ThreatLevel, AttackPattern } from './types';
+import { VerificationRequest, VerificationResult } from './security.js';
+import { SecurityMiddleware, SecurityAlert, ThreatLevel, AttackPattern } from './types.js';
 
 // ======================== MIDDLEWARE MANAGER ========================
 
@@ -686,13 +686,3 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
     };
   }
 }
-
-// Export all middleware classes
-export {
-  SecurityMiddlewareManager,
-  ThreatIntelligenceMiddleware,
-  IPFilterMiddleware,
-  SecurityLoggingMiddleware,
-  PerformanceMonitoringMiddleware,
-  ComplianceMonitoringMiddleware
-};

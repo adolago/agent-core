@@ -130,7 +130,7 @@ export class GoogleProvider extends BaseProvider {
     },
   };
 
-  private baseUrl: string;
+  private baseUrl = '';
 
   protected async doInitialize(): Promise<void> {
     if (!this.config.apiKey) {
@@ -171,7 +171,7 @@ export class GoogleProvider extends BaseProvider {
         await this.handleErrorResponse(response);
       }
 
-      const data: GoogleAIResponse = await response.json();
+      const data = (await response.json()) as GoogleAIResponse;
       
       if (!data.candidates || data.candidates.length === 0) {
         throw new LLMProviderError(

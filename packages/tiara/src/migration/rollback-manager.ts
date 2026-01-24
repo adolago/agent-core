@@ -8,7 +8,7 @@ import * as crypto from 'crypto';
 import type { MigrationBackup, BackupFile } from './types.js';
 import { logger } from './logger.js';
 import * as chalk from 'chalk';
-import * as inquirer from 'inquirer';
+import inquirer from 'inquirer';
 
 export class RollbackManager {
   private projectPath: string;
@@ -156,10 +156,11 @@ export class RollbackManager {
     let selectedBackup: MigrationBackup;
 
     if (backupId) {
-      selectedBackup = backups.find((b) => b.metadata.backupId === backupId);
-      if (!selectedBackup) {
+      const found = backups.find((b) => b.metadata.backupId === backupId);
+      if (!found) {
         throw new Error(`Backup not found: ${backupId}`);
       }
+      selectedBackup = found;
     } else if (interactive) {
       selectedBackup = await this.selectBackupInteractively(backups);
     } else {

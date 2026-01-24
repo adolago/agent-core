@@ -1,6 +1,3 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const __dirname = dirname(fileURLToPath(import.meta.url));
 /**
  * Migration Runner - Executes migration strategies
  */
@@ -22,8 +19,10 @@ import { logger } from './logger.js';
 import { ProgressReporter } from './progress-reporter.js';
 import { MigrationValidator } from './migration-validator.js';
 import { glob } from 'glob';
-import * as inquirer from 'inquirer';
+import inquirer from 'inquirer';
 import * as chalk from 'chalk';
+
+const __dirname = path.dirname(__filename);
 
 export class MigrationRunner {
   private options: MigrationOptions;
@@ -107,9 +106,10 @@ export class MigrationRunner {
       // Print summary
       this.printSummary(result);
     } catch (error) {
+      const failure = error instanceof Error ? error : new Error(String(error));
       result.errors.push({
-        error: error instanceof Error ? error.message : String(error),
-        stack: error.stack,
+        error: failure.message,
+        stack: failure.stack,
       });
       this.progress.error('Migration failed');
 
