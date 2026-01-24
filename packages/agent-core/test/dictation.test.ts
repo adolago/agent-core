@@ -107,7 +107,7 @@ describe("Dictation.resolveConfig", () => {
       api_key: "test-key",
     })
     expect(result).toBeDefined()
-    expect(result?.inputKey).toBe("audio")
+    expect(result?.inputKey).toBe("__root__")
     expect(result?.sampleRate).toBe(16000)
     expect(result?.autoSubmit).toBe(false)
   })
@@ -145,6 +145,38 @@ describe("Dictation.transcribe", () => {
       config: {
         endpoint: "https://example.test/graph:start",
         apiKey: "test-key",
+        inputKey: "__root__",
+        sampleRate: 16000,
+        autoSubmit: false,
+      },
+      audio: wav,
+      fetcher,
+    })
+
+    expect(result).toBe("ok")
+    expect(seenBody.input.type).toBe("Audio")
+    expect(seenBody.input._iw_type).toBe("Audio")
+    expect(seenBody.input.data.sampleRate).toBe(8000)
+    expect(seenBody.input.data.data).toHaveLength(2)
+    expect(seenBody.input.data.data[0]).toBeCloseTo(0, 6)
+    expect(seenBody.input.data.data[1]).toBeCloseTo(0.99997, 4)
+  })
+
+  it("supports nested input keys for audio payloads", async () => {
+    const wav = buildWav(new Int16Array([0, 32767]), 8000)
+    let seenBody: any
+    const fetcher = (async (_url: string, init?: RequestInit) => {
+      seenBody = JSON.parse(String(init?.body ?? "{}"))
+      return new Response(JSON.stringify({ text: "ok" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    }) as typeof fetch
+
+    const result = await Dictation.transcribe({
+      config: {
+        endpoint: "https://example.test/graph:start",
+        apiKey: "test-key",
         inputKey: "audio",
         sampleRate: 16000,
         autoSubmit: false,
@@ -154,11 +186,12 @@ describe("Dictation.transcribe", () => {
     })
 
     expect(result).toBe("ok")
-    expect(seenBody.input.audio.sampleRate).toBe(8000)
-    expect(seenBody.input.audio.data).toHaveLength(2)
-    expect(seenBody.input.audio.data[0]).toBeCloseTo(0, 6)
-    expect(seenBody.input.audio.data[1]).toBeCloseTo(0.99997, 4)
-    expect(seenBody.input.audio.mimeType).toBeUndefined()
+    expect(seenBody.input.audio.type).toBe("Audio")
+    expect(seenBody.input.audio._iw_type).toBe("Audio")
+    expect(seenBody.input.audio.data.sampleRate).toBe(8000)
+    expect(seenBody.input.audio.data.data).toHaveLength(2)
+    expect(seenBody.input.audio.data.data[0]).toBeCloseTo(0, 6)
+    expect(seenBody.input.audio.data.data[1]).toBeCloseTo(0.99997, 4)
   })
 })
 

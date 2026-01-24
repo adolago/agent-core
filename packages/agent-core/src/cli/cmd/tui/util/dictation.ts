@@ -42,7 +42,7 @@ export namespace Dictation {
   }
 
   const DEFAULT_SAMPLE_RATE = 16_000
-  const DEFAULT_INPUT_KEY = "audio"
+  const DEFAULT_INPUT_KEY = "__root__"
   const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
 
   export async function resolveConfig(input?: Config): Promise<RuntimeConfig | undefined> {
@@ -134,7 +134,7 @@ export namespace Dictation {
     if (os === "linux") {
       const arecord = Bun.which("arecord")
       if (arecord) {
-        return [arecord, "-q", "-f", "S16_LE", "-r", String(input.sampleRate), "-c", "1", "-t", "wav"]
+        return [arecord, "-q", "-f", "S16_LE", "-r", String(input.sampleRate), "-c", "1", "-t", "wav", "-"]
       }
       if (ffmpeg) {
         return [
@@ -257,13 +257,17 @@ export namespace Dictation {
         "Dictation expects 16-bit PCM WAV audio. Update tui.dictation.record_command to output WAV.",
       )
     }
-    const payload = {
-      input: {
-        [input.config.inputKey]: {
-          data: decoded.data,
-          sampleRate: decoded.sampleRate,
-        },
+    const audioInput = {
+      type: "Audio",
+      _iw_type: "Audio",
+      data: {
+        data: decoded.data,
+        sampleRate: decoded.sampleRate,
       },
+    }
+    const inputKey = input.config.inputKey?.trim()
+    const payload = {
+      input: !inputKey || inputKey === DEFAULT_INPUT_KEY ? audioInput : { [inputKey]: audioInput },
     }
     const response = await fetcher(input.config.endpoint, {
       method: "POST",
@@ -308,7 +312,6 @@ export namespace Dictation {
       const chunkId = readTag(view, offset)
       const chunkSize = view.getUint32(offset + 4, true)
       offset += 8
-      if (offset + chunkSize > input.byteLength) break
 
       if (chunkId === "fmt ") {
         if (chunkSize < 16) return
@@ -318,13 +321,20 @@ export namespace Dictation {
           sampleRate: view.getUint32(offset + 4, true),
           bitsPerSample: view.getUint16(offset + 14, true),
         }
+        offset += chunkSize
+        if (chunkSize % 2 === 1) offset += 1
       } else if (chunkId === "data") {
         dataOffset = offset
-        dataSize = chunkSize
+        // For streaming WAV, chunkSize may be a placeholder (0x80000000).
+        // Use remaining bytes in buffer as actual data size.
+        dataSize = Math.min(chunkSize, input.byteLength - offset)
+        break // data chunk is last, stop parsing
+      } else {
+        // Skip unknown chunks
+        if (offset + chunkSize > input.byteLength) break
+        offset += chunkSize
+        if (chunkSize % 2 === 1) offset += 1
       }
-
-      offset += chunkSize
-      if (chunkSize % 2 === 1) offset += 1
     }
 
     if (!format || dataOffset === undefined || dataSize === undefined) return

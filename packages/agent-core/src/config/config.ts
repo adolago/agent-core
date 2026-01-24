@@ -876,7 +876,11 @@ export namespace Config {
         enabled: z.boolean().optional().describe("Enable dictation"),
         endpoint: z.string().optional().describe("Inworld runtime graph endpoint"),
         api_key: z.string().optional().describe("Inworld base64 runtime API key"),
-        input_key: z.string().optional().default("audio").describe("Graph input key for audio data"),
+        input_key: z
+          .string()
+          .optional()
+          .default("__root__")
+          .describe("Graph input key for audio data ('__root__' sends audio as the input value)"),
         sample_rate: z.number().int().positive().optional().default(16000).describe("Audio sample rate"),
         auto_submit: z.boolean().optional().default(false).describe("Auto-submit after dictation"),
         response_path: z.string().optional().describe("Dot path to transcript in response payload"),

@@ -12,6 +12,7 @@
     "test": "bun test",
     "build": "bun run script/build.ts",
     "dev": "bun run --conditions=browser ./src/index.ts",
+    "memory:health": "bun run script/memory-health-check.ts",
     "clean": "rm -rf node_modules dist"
   },
   "bin": {
