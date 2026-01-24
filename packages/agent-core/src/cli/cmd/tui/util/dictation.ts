@@ -648,19 +648,16 @@ export namespace Dictation {
       } catch {
         // Fallback for bundled binary: check source directory node_modules
         const { Global } = await import("@/global")
+        const { existsSync } = await import("fs")
         const candidates = [
           path.join(Global.Path.source, "node_modules", "@inworld", "runtime"),
           path.join(Global.Path.source, "packages", "agent-core", "node_modules", "@inworld", "runtime"),
         ]
-        const found = candidates.find((p) => {
-          try {
-            return Bun.file(path.join(p, "package.json")).size > 0
-          } catch {
-            return false
-          }
-        })
+        const found = candidates.find((p) => existsSync(path.join(p, "package.json")))
         if (!found) {
-          throw new Error("Cannot find module '@inworld/runtime' - install it with: bun add @inworld/runtime")
+          throw new Error(
+            `Cannot find module '@inworld/runtime' - install it with: bun add @inworld/runtime (checked: ${candidates.join(", ")})`
+          )
         }
         runtimeDir = found
       }
