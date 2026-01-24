@@ -73,7 +73,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       [ ! -f "$patch_file" ] && continue
       if [ -n "$wasm_list" ] && grep -q 'tree-sitter' "$patch_file"; then
         # Rewrite wasm references to absolute store paths to avoid runtime resolve failures.
-        bun --bun ${scripts + "/patch-wasm.ts"} "$patch_file" "$main_wasm" $wasm_list
+        bun --bun ${./scripts/patch-wasm.ts} "$patch_file" "$main_wasm" $wasm_list
       fi
     done
 
