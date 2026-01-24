@@ -258,7 +258,8 @@ spawnAgent();`;
     }
 
     formatText(text) {
-        return text
+        const escaped = this.escapeHtml(text);
+        return escaped
             .replace(/\n/g, '<br>')
             .replace(/• /g, '• ')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -286,8 +287,8 @@ spawnAgent();`;
             const card = document.createElement('div');
             card.className = 'agent-card';
             card.innerHTML = `
-                <div class="agent-name">${agent.name}</div>
-                <div class="agent-type">${agent.type} • ${agent.status}</div>
+                <div class="agent-name">${this.escapeHtml(agent.name)}</div>
+                <div class="agent-type">${this.escapeHtml(agent.type)} • ${this.escapeHtml(agent.status)}</div>
             `;
             grid.appendChild(card);
         });

@@ -18,6 +18,13 @@ class ClaudeFlowDashboard {
     this.initialize();
   }
 
+  escapeHtml(text) {
+    if (typeof text !== 'string') return String(text);
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   initialize() {
     this.setupCanvas();
     this.startSimulation();
@@ -339,8 +346,8 @@ class ClaudeFlowDashboard {
       }[type] || 'ℹ️';
 
     entry.innerHTML = `
-            <span class="log-timestamp">${timestamp}</span>
-            ${icon} ${message}
+            <span class="log-timestamp">${this.escapeHtml(timestamp)}</span>
+            ${icon} ${this.escapeHtml(message)}
         `;
 
     logContainer.insertBefore(entry, logContainer.firstChild);
