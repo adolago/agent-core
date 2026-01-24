@@ -30,6 +30,16 @@
       "category": "auth",
       "tags": ["auth", "google", "gemini", "antigravity", "free"],
       "capabilities": ["auth"]
+    },
+    {
+      "name": "opencode-antigravity-auth",
+      "displayName": "Google Antigravity (Legacy)",
+      "description": "Legacy OAuth authentication for Google Gemini models via Antigravity proxy",
+      "npm": "opencode-antigravity-auth",
+      "version": "1.2.8",
+      "category": "auth",
+      "tags": ["auth", "google", "gemini", "antigravity", "legacy", "free"],
+      "capabilities": ["auth"]
     }
   ],
   "categories": ["auth", "tools", "personas", "integrations"]
