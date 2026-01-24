@@ -14,6 +14,7 @@ export const FileIcon: Component<FileIconProps> = (props) => {
   return (
     <svg
       data-component="file-icon"
+      aria-hidden="true"
       {...rest}
       classList={{
         ...(local.classList ?? {}),

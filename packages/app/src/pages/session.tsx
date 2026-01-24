@@ -1264,7 +1264,7 @@ export default function Page() {
                           </Match>
                           <Match when={true}>
                             <div class="h-full px-4 pb-30 flex flex-col items-center justify-center text-center gap-6">
-                              <Mark class="w-14 opacity-10" />
+                              <Mark class="w-14 opacity-10" aria-hidden="true" />
                               <div class="text-13-regular text-text-weak max-w-56">No changes in this session yet</div>
                             </div>
                           </Match>
@@ -1536,7 +1536,7 @@ export default function Page() {
                           </Match>
                           <Match when={true}>
                             <div class="h-full px-6 pb-30 flex flex-col items-center justify-center text-center gap-6">
-                              <Mark class="w-14 opacity-10" />
+                              <Mark class="w-14 opacity-10" aria-hidden="true" />
                               <div class="text-13-regular text-text-weak max-w-56">No changes in this session yet</div>
                             </div>
                           </Match>
