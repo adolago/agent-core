@@ -25,6 +25,21 @@ import {
   nonInteractiveSelect,
 } from '../utils/safe-interactive.js';
 
+let claudeAvailableCache = null;
+async function isClaudeAvailable() {
+  if (claudeAvailableCache !== null) {
+    return claudeAvailableCache;
+  }
+  try {
+    const { execSync } = await import('child_process');
+    execSync('which claude', { stdio: 'ignore' });
+    claudeAvailableCache = true;
+  } catch {
+    claudeAvailableCache = false;
+  }
+  return claudeAvailableCache;
+}
+
 // Import SQLite for persistence - dynamically loaded to handle missing bindings
 let Database = null;
 let sqliteAvailable = false;
@@ -2206,13 +2221,9 @@ async function spawnClaudeCodeInstances(swarmId, swarmName, objective, workers, 
       console.log(chalk.green(`\n✓ Hive Mind prompt saved to: ${promptFile}`));
 
       // Check if claude command exists
-      const { spawn: childSpawn, execSync } = await import('child_process');
-      let claudeAvailable = false;
-
-      try {
-        execSync('which claude', { stdio: 'ignore' });
-        claudeAvailable = true;
-      } catch {
+      const { spawn: childSpawn } = await import('child_process');
+      const claudeAvailable = await isClaudeAvailable();
+      if (!claudeAvailable) {
         console.log(chalk.yellow('\n⚠️  Claude Code CLI not found in PATH'));
         console.log(chalk.gray('Install it with: npm install -g @anthropic-ai/claude-code'));
         console.log(chalk.gray('\nFalling back to displaying instructions...'));
@@ -3171,13 +3182,9 @@ async function launchClaudeWithContext(prompt, flags, sessionId) {
     await writeFile(promptFile, prompt);
     console.log(chalk.green(`\n✓ Session context saved to: ${promptFile}`));
 
-    const { spawn: childSpawn, execSync } = await import('child_process');
-    let claudeAvailable = false;
-
-    try {
-      execSync('which claude', { stdio: 'ignore' });
-      claudeAvailable = true;
-    } catch {
+    const { spawn: childSpawn } = await import('child_process');
+    const claudeAvailable = await isClaudeAvailable();
+    if (!claudeAvailable) {
       console.log(chalk.yellow('\n⚠️  Claude Code CLI not found'));
       console.log(chalk.gray('Install Claude Code: npm install -g @anthropic-ai/claude-code'));
       console.log(chalk.gray(`Run with: claude < ${promptFile}`));

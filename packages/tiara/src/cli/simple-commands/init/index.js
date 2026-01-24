@@ -86,13 +86,18 @@ import {
 /**
  * Check if Claude Code CLI is installed
  */
+let claudeCodeInstalledCache = null;
 function isClaudeCodeInstalled() {
+  if (claudeCodeInstalledCache !== null) {
+    return claudeCodeInstalledCache;
+  }
   try {
     execSync('which claude', { stdio: 'ignore' });
-    return true;
+    claudeCodeInstalledCache = true;
   } catch {
-    return false;
+    claudeCodeInstalledCache = false;
   }
+  return claudeCodeInstalledCache;
 }
 
 /**

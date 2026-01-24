@@ -209,13 +209,18 @@ export class WorkflowExecutor {
    * Check if Claude CLI is available
    */
   async isClaudeAvailable() {
+    if (this._claudeAvailable !== undefined) {
+      return this._claudeAvailable;
+    }
+
     try {
       const { execSync } = await import('child_process');
       execSync('which claude', { stdio: 'ignore' });
-      return true;
+      this._claudeAvailable = true;
     } catch {
-      return false;
+      this._claudeAvailable = false;
     }
+    return this._claudeAvailable;
   }
 
   /**

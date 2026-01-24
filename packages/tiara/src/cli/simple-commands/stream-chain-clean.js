@@ -9,13 +9,18 @@ import { exec, execSync } from 'child_process';
 /**
  * Check if claude CLI is available
  */
+let claudeAvailableCache = null;
 function checkClaudeAvailable() {
+  if (claudeAvailableCache !== null) {
+    return claudeAvailableCache;
+  }
   try {
     execSync('which claude', { stdio: 'ignore' });
-    return true;
+    claudeAvailableCache = true;
   } catch {
-    return false;
+    claudeAvailableCache = false;
   }
+  return claudeAvailableCache;
 }
 
 /**
