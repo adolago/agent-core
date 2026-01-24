@@ -240,22 +240,31 @@ export class AgentCoreClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const bodyText = await response.text().catch(() => '');
         let errorData: Record<string, unknown> = { error: response.statusText };
-        if (bodyText) {
-          try {
-            const parsed = JSON.parse(bodyText) as unknown;
-            if (parsed && typeof parsed === 'object') {
-              errorData = parsed as Record<string, unknown>;
-            } else {
-              errorData = { error: parsed };
+        if (typeof response.text === 'function') {
+          const bodyText = await response.text().catch(() => '');
+          if (bodyText) {
+            try {
+              const parsed = JSON.parse(bodyText) as unknown;
+              if (parsed && typeof parsed === 'object') {
+                errorData = parsed as Record<string, unknown>;
+              } else {
+                errorData = { error: parsed };
+              }
+            } catch (parseError) {
+              errorData = {
+                error: response.statusText,
+                parseError: parseError instanceof Error ? parseError.message : String(parseError),
+                rawResponse: bodyText.length > 500 ? `${bodyText.slice(0, 500)}…` : bodyText,
+              };
             }
-          } catch (parseError) {
-            errorData = {
-              error: response.statusText,
-              parseError: parseError instanceof Error ? parseError.message : String(parseError),
-              rawResponse: bodyText.length > 500 ? `${bodyText.slice(0, 500)}…` : bodyText,
-            };
+          }
+        } else if (typeof response.json === 'function') {
+          const parsed = await response.json().catch(() => null);
+          if (parsed && typeof parsed === 'object') {
+            errorData = parsed as Record<string, unknown>;
+          } else if (parsed !== null) {
+            errorData = { error: parsed };
           }
         }
 
