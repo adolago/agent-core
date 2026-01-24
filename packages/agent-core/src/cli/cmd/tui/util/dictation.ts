@@ -669,8 +669,10 @@ export namespace Dictation {
         }
         runtimeDir = found
       }
-      const require = createRequire(import.meta.url)
-      const expose = require(path.join(runtimeDir, "expose_binary.js")) as Record<string, unknown>
+      // Create require relative to the runtime directory, not the bundled binary
+      const { pathToFileURL } = await import("url")
+      const require = createRequire(pathToFileURL(path.join(runtimeDir, "package.json")).href)
+      const expose = require("./expose_binary.js") as Record<string, unknown>
 
       const hasSttBindings =
         Boolean(expose.RemoteSTTConfigFunctions) &&
@@ -679,7 +681,7 @@ export namespace Dictation {
         Boolean(expose.SpeechRecognitionConfigFunctions)
       if (hasSttBindings) return { expose }
 
-      const platformDetection = require(path.join(runtimeDir, "common", "platform_detection.js")) as {
+      const platformDetection = require("./common/platform_detection.js") as {
         getBinaryPath?: (baseDir: string) => string
       }
       if (typeof platformDetection.getBinaryPath !== "function") {
