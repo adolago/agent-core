@@ -35,7 +35,6 @@ import { KVProvider, useKV } from "./context/kv"
 import { Provider } from "@/provider/provider"
 import { ArgsProvider, useArgs, type Args } from "./context/args"
 import open from "open"
-import { writeHeapSnapshot } from "v8"
 import { PromptRefProvider, usePromptRef } from "./context/prompt"
 import { normalizeHttpUrl } from "@/util/net"
 
@@ -536,69 +535,6 @@ function App() {
       },
       onSelect: () => exit(),
       category: "System",
-    },
-    {
-      title: "Toggle debug panel",
-      category: "System",
-      value: "app.debug",
-      onSelect: (dialog) => {
-        renderer.toggleDebugOverlay()
-        dialog.clear()
-      },
-    },
-    {
-      title: "Toggle console",
-      category: "System",
-      value: "app.console",
-      onSelect: (dialog) => {
-        renderer.console.toggle()
-        dialog.clear()
-      },
-    },
-    {
-      title: "Write heap snapshot",
-      category: "System",
-      value: "app.heap_snapshot",
-      onSelect: (dialog) => {
-        const path = writeHeapSnapshot()
-        toast.show({
-          variant: "info",
-          message: `Heap snapshot written to ${path}`,
-          duration: 5000,
-        })
-        dialog.clear()
-      },
-    },
-    {
-      title: "Suspend terminal",
-      value: "terminal.suspend",
-      keybind: "terminal_suspend",
-      category: "System",
-      hidden: true,
-      onSelect: () => {
-        process.once("SIGCONT", () => {
-          renderer.resume()
-        })
-
-        renderer.suspend()
-        // pid=0 means send the signal to all processes in the process group
-        process.kill(0, "SIGTSTP")
-      },
-    },
-    {
-      title: terminalTitleEnabled() ? "Disable terminal title" : "Enable terminal title",
-      value: "terminal.title.toggle",
-      keybind: "terminal_title_toggle",
-      category: "System",
-      onSelect: (dialog) => {
-        setTerminalTitleEnabled((prev) => {
-          const next = !prev
-          kv.set("terminal_title_enabled", next)
-          if (!next) renderer.setTerminalTitle("")
-          return next
-        })
-        dialog.clear()
-      },
     },
   ])
 

@@ -641,26 +641,6 @@ export function Session() {
       },
     },
     {
-      title: showDetails() ? "Hide tool details" : "Show tool details",
-      value: "session.toggle.actions",
-      keybind: "tool_details",
-      category: "Session",
-      onSelect: (dialog) => {
-        setShowDetails((prev) => !prev)
-        dialog.clear()
-      },
-    },
-    {
-      title: "Toggle session scrollbar",
-      value: "session.toggle.scrollbar",
-      keybind: "scrollbar_toggle",
-      category: "Session",
-      onSelect: (dialog) => {
-        setShowScrollbar((prev) => !prev)
-        dialog.clear()
-      },
-    },
-    {
       title: animationsEnabled() ? "Disable animations" : "Enable animations",
       value: "session.toggle.animations",
       category: "Session",

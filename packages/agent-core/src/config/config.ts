@@ -704,8 +704,6 @@ export namespace Config {
       editor_open: z.string().optional().default("<leader>e").describe("Open external editor"),
       theme_list: z.string().optional().default("<leader>t").describe("List available themes"),
       sidebar_toggle: z.string().optional().default("<leader>b").describe("Toggle sidebar"),
-      scrollbar_toggle: z.string().optional().default("none").describe("Toggle session scrollbar"),
-      username_toggle: z.string().optional().default("none").describe("Toggle username visibility"),
       status_view: z.string().optional().default("<leader>s").describe("View status"),
       session_export: z.string().optional().default("<leader>x").describe("Export session to editor"),
       session_new: z.string().optional().default("<leader>n").describe("Create a new session"),
@@ -716,9 +714,6 @@ export namespace Config {
       session_delete: z.string().optional().default("ctrl+d").describe("Delete session"),
       stash_delete: z.string().optional().default("ctrl+d").describe("Delete stash entry"),
       model_provider_list: z.string().optional().default("ctrl+a").describe("Open provider list from model dialog"),
-      model_favorite_toggle: z.string().optional().default("ctrl+f").describe("Toggle model favorite status"),
-      session_share: z.string().optional().default("none").describe("Share current session"),
-      session_unshare: z.string().optional().default("none").describe("Unshare current session"),
       session_delegate: z.string().optional().default("<leader>d").describe("Delegate to another persona"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
       session_compact: z.string().optional().default("<leader>c").describe("Compact the session"),
@@ -738,9 +733,6 @@ export namespace Config {
         .describe("Scroll messages down by half page"),
       messages_first: z.string().optional().default("ctrl+g,home").describe("Navigate to first message"),
       messages_last: z.string().optional().default("ctrl+alt+g,end").describe("Navigate to last message"),
-      messages_next: z.string().optional().default("none").describe("Navigate to next message"),
-      messages_previous: z.string().optional().default("none").describe("Navigate to previous message"),
-      messages_last_user: z.string().optional().default("none").describe("Navigate to last user message"),
       messages_copy: z.string().optional().default("<leader>y").describe("Copy message"),
       messages_undo: z.string().optional().default("<leader>u").describe("Undo message"),
       messages_redo: z.string().optional().default("<leader>r").describe("Redo message"),
@@ -749,12 +741,9 @@ export namespace Config {
         .optional()
         .default("<leader>/")
         .describe("Toggle code block concealment in messages"),
-      tool_details: z.string().optional().default("none").describe("Toggle tool details visibility"),
       model_list: z.string().optional().default("<leader>m").describe("List available models"),
       model_cycle_recent: z.string().optional().default("f2").describe("Next recently used model"),
       model_cycle_recent_reverse: z.string().optional().default("shift+f2").describe("Previous recently used model"),
-      model_cycle_favorite: z.string().optional().default("none").describe("Next favorite model"),
-      model_cycle_favorite_reverse: z.string().optional().default("none").describe("Previous favorite model"),
       model_fallback_toggle: z.string().optional().default("f3").describe("Toggle between primary and fallback model"),
       command_list: z.string().optional().default("ctrl+p").describe("List available commands"),
       agent_list: z.string().optional().default("<leader>a").describe("List agents"),
@@ -850,8 +839,6 @@ export namespace Config {
       session_child_cycle: z.string().optional().default("<leader>right").describe("Next child session"),
       session_child_cycle_reverse: z.string().optional().default("<leader>left").describe("Previous child session"),
       session_parent: z.string().optional().default("<leader>up").describe("Go to parent session"),
-      terminal_suspend: z.string().optional().default("ctrl+z").describe("Suspend terminal"),
-      terminal_title_toggle: z.string().optional().default("none").describe("Toggle terminal title"),
       tips_toggle: z.string().optional().default("<leader>?").describe("Toggle tips on home screen"),
     })
     .strict()
@@ -874,21 +861,32 @@ export namespace Config {
     dictation: z
       .object({
         enabled: z.boolean().optional().describe("Enable dictation"),
-        endpoint: z.string().optional().describe("Inworld runtime graph endpoint"),
-        api_key: z.string().optional().describe("Inworld base64 runtime API key"),
-        input_key: z
+        provider: z.enum(["google"]).optional().default("google").describe("Dictation provider"),
+        model: z
+          .enum(["default", "chirp_2"])
+          .optional()
+          .default("default")
+          .describe("Speech recognition model: 'default' uses V1 API, 'chirp_2' uses V2 API with enhanced multilingual accuracy"),
+        region: z
           .string()
           .optional()
-          .default("__root__")
-          .describe("Graph input key for audio data ('__root__' sends audio as the input value)"),
-        runtime_mode: z
-          .enum(["auto", "force", "disable"])
+          .default("us-central1")
+          .describe("Google Cloud region for Chirp 2 (us-central1, europe-west4, asia-southeast1)"),
+        language: z.string().optional().default("en-US").describe("Primary language (BCP-47 code)"),
+        alternative_languages: z
+          .array(z.string())
           .optional()
-          .default("auto")
-          .describe("Runtime fallback mode: auto uses graph then fallback, force skips graph, disable blocks fallback"),
+          .default(["pt-BR", "es-ES", "de-DE"])
+          .describe("Alternative languages for auto-detection"),
         sample_rate: z.number().int().positive().optional().default(16000).describe("Audio sample rate"),
+        max_duration: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .default(30)
+          .describe("Maximum duration (seconds) to send for transcription"),
         auto_submit: z.boolean().optional().default(false).describe("Auto-submit after dictation"),
-        response_path: z.string().optional().describe("Dot path to transcript in response payload"),
         record_command: z
           .union([z.string(), z.array(z.string())])
           .optional()
