@@ -1,18 +1,16 @@
-import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { runEmbeddedPiAgent } from "../agents/agent-core-embedded.js";
+import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
+import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { getReplyFromConfig } from "./reply.js";
 
-vi.mock("../agents/agent-core-embedded.js", () => ({
+vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: vi.fn(),
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
-  resolveEmbeddedSessionLane: (key: string) =>
-    `session:${key.trim() || "main"}`,
+  resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
 }));
@@ -28,29 +26,29 @@ function makeResult(text: string) {
 }
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  const base = await fs.mkdtemp(path.join(os.tmpdir(), "zee-media-note-"));
-  const previousHome = process.env.HOME;
-  process.env.HOME = base;
-  try {
-    vi.mocked(runEmbeddedPiAgent).mockReset();
-    return await fn(base);
-  } finally {
-    process.env.HOME = previousHome;
-    try {
-      await fs.rm(base, { recursive: true, force: true });
-    } catch {
-      // ignore cleanup failures in tests
-    }
-  }
+  return withTempHomeBase(
+    async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      return await fn(home);
+    },
+    {
+      env: {
+        CLAWDBOT_BUNDLED_SKILLS_DIR: (home) => path.join(home, "bundled-skills"),
+      },
+      prefix: "clawdbot-media-note-",
+    },
+  );
 }
 
 function makeCfg(home: string) {
   return {
-    agent: {
-      model: "anthropic/claude-opus-4-5",
-      workspace: path.join(home, "zee"),
+    agents: {
+      defaults: {
+        model: "anthropic/claude-opus-4-5",
+        workspace: path.join(home, "clawd"),
+      },
     },
-    whatsapp: { allowFrom: ["*"] },
+    channels: { whatsapp: { allowFrom: ["*"] } },
     session: { store: path.join(home, "sessions.json") },
   };
 }

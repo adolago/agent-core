@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import {
   loadConfig,
   resolveConfigPath,
@@ -7,6 +7,14 @@ import {
   resolveStateDir,
 } from "../config/config.js";
 import { pickPrimaryTailnetIPv4 } from "../infra/tailnet.js";
+import { loadOrCreateDeviceIdentity } from "../infra/device-identity.js";
+import {
+  GATEWAY_CLIENT_MODES,
+  GATEWAY_CLIENT_NAMES,
+  type GatewayClientMode,
+  type GatewayClientName,
+} from "../utils/message-channel.js";
+import { loadGatewayTlsRuntime } from "../infra/tls/gateway.js";
 import { GatewayClient } from "./client.js";
 import { PROTOCOL_VERSION } from "./protocol/index.js";
 
@@ -14,14 +22,17 @@ export type CallGatewayOptions = {
   url?: string;
   token?: string;
   password?: string;
+  tlsFingerprint?: string;
+  config?: ClawdbotConfig;
   method: string;
   params?: unknown;
   expectFinal?: boolean;
   timeoutMs?: number;
-  clientName?: string;
+  clientName?: GatewayClientName;
+  clientDisplayName?: string;
   clientVersion?: string;
   platform?: string;
-  mode?: string;
+  mode?: GatewayClientMode;
   instanceId?: string;
   minProtocol?: number;
   maxProtocol?: number;
@@ -41,45 +52,44 @@ export type GatewayConnectionDetails = {
 };
 
 export function buildGatewayConnectionDetails(
-  options: { config?: ZeeConfig; url?: string; configPath?: string } = {},
+  options: { config?: ClawdbotConfig; url?: string; configPath?: string } = {},
 ): GatewayConnectionDetails {
   const config = options.config ?? loadConfig();
   const configPath =
-    options.configPath ??
-    resolveConfigPath(process.env, resolveStateDir(process.env));
+    options.configPath ?? resolveConfigPath(process.env, resolveStateDir(process.env));
   const isRemoteMode = config.gateway?.mode === "remote";
   const remote = isRemoteMode ? config.gateway?.remote : undefined;
+  const tlsEnabled = config.gateway?.tls?.enabled === true;
   const localPort = resolveGatewayPort(config);
   const tailnetIPv4 = pickPrimaryTailnetIPv4();
   const bindMode = config.gateway?.bind ?? "loopback";
-  const preferTailnet =
-    bindMode === "tailnet" || (bindMode === "auto" && !!tailnetIPv4);
+  const preferTailnet = bindMode === "tailnet" && !!tailnetIPv4;
+  const scheme = tlsEnabled ? "wss" : "ws";
   const localUrl =
     preferTailnet && tailnetIPv4
-      ? `ws://${tailnetIPv4}:${localPort}`
-      : `ws://127.0.0.1:${localPort}`;
+      ? `${scheme}://${tailnetIPv4}:${localPort}`
+      : `${scheme}://127.0.0.1:${localPort}`;
   const urlOverride =
     typeof options.url === "string" && options.url.trim().length > 0
       ? options.url.trim()
       : undefined;
   const remoteUrl =
-    typeof remote?.url === "string" && remote.url.trim().length > 0
-      ? remote.url.trim()
-      : undefined;
+    typeof remote?.url === "string" && remote.url.trim().length > 0 ? remote.url.trim() : undefined;
+  const remoteMisconfigured = isRemoteMode && !urlOverride && !remoteUrl;
   const url = urlOverride || remoteUrl || localUrl;
   const urlSource = urlOverride
     ? "cli --url"
     : remoteUrl
       ? "config gateway.remote.url"
-      : preferTailnet && tailnetIPv4
-        ? `local tailnet ${tailnetIPv4}`
-        : "local loopback";
-  const remoteFallbackNote =
-    isRemoteMode && !urlOverride && !remoteUrl
-      ? "Note: gateway.mode=remote but gateway.remote.url is missing; using local URL."
-      : undefined;
-  const bindDetail =
-    !urlOverride && !remoteUrl ? `Bind: ${bindMode}` : undefined;
+      : remoteMisconfigured
+        ? "missing gateway.remote.url (fallback local)"
+        : preferTailnet && tailnetIPv4
+          ? `local tailnet ${tailnetIPv4}`
+          : "local loopback";
+  const remoteFallbackNote = remoteMisconfigured
+    ? "Warn: gateway.mode=remote but gateway.remote.url is missing; set gateway.remote.url or switch gateway.mode=local."
+    : undefined;
+  const bindDetail = !urlOverride && !remoteUrl ? `Bind: ${bindMode}` : undefined;
   const message = [
     `Gateway target: ${url}`,
     `Source: ${urlSource}`,
@@ -99,21 +109,47 @@ export function buildGatewayConnectionDetails(
   };
 }
 
-export async function callGateway<T = unknown>(
-  opts: CallGatewayOptions,
-): Promise<T> {
+export async function callGateway<T = unknown>(opts: CallGatewayOptions): Promise<T> {
   const timeoutMs = opts.timeoutMs ?? 10_000;
-  const config = loadConfig();
+  const config = opts.config ?? loadConfig();
   const isRemoteMode = config.gateway?.mode === "remote";
   const remote = isRemoteMode ? config.gateway?.remote : undefined;
+  const urlOverride =
+    typeof opts.url === "string" && opts.url.trim().length > 0 ? opts.url.trim() : undefined;
+  const remoteUrl =
+    typeof remote?.url === "string" && remote.url.trim().length > 0 ? remote.url.trim() : undefined;
+  if (isRemoteMode && !urlOverride && !remoteUrl) {
+    const configPath =
+      opts.configPath ?? resolveConfigPath(process.env, resolveStateDir(process.env));
+    throw new Error(
+      [
+        "gateway remote mode misconfigured: gateway.remote.url missing",
+        `Config: ${configPath}`,
+        "Fix: set gateway.remote.url, or set gateway.mode=local.",
+      ].join("\n"),
+    );
+  }
   const authToken = config.gateway?.auth?.token;
   const authPassword = config.gateway?.auth?.password;
   const connectionDetails = buildGatewayConnectionDetails({
     config,
-    url: opts.url,
+    url: urlOverride,
     ...(opts.configPath ? { configPath: opts.configPath } : {}),
   });
   const url = connectionDetails.url;
+  const useLocalTls =
+    config.gateway?.tls?.enabled === true && !urlOverride && !remoteUrl && url.startsWith("wss://");
+  const tlsRuntime = useLocalTls ? await loadGatewayTlsRuntime(config.gateway?.tls) : undefined;
+  const remoteTlsFingerprint =
+    isRemoteMode && !urlOverride && remoteUrl && typeof remote?.tlsFingerprint === "string"
+      ? remote.tlsFingerprint.trim()
+      : undefined;
+  const overrideTlsFingerprint =
+    typeof opts.tlsFingerprint === "string" ? opts.tlsFingerprint.trim() : undefined;
+  const tlsFingerprint =
+    overrideTlsFingerprint ||
+    remoteTlsFingerprint ||
+    (tlsRuntime?.enabled ? tlsRuntime.fingerprintSha256 : undefined);
   const token =
     (typeof opts.token === "string" && opts.token.trim().length > 0
       ? opts.token.trim()
@@ -122,7 +158,7 @@ export async function callGateway<T = unknown>(
       ? typeof remote?.token === "string" && remote.token.trim().length > 0
         ? remote.token.trim()
         : undefined
-      : process.env.ZEE_GATEWAY_TOKEN?.trim() ||
+      : process.env.CLAWDBOT_GATEWAY_TOKEN?.trim() ||
         (typeof authToken === "string" && authToken.trim().length > 0
           ? authToken.trim()
           : undefined));
@@ -130,10 +166,9 @@ export async function callGateway<T = unknown>(
     (typeof opts.password === "string" && opts.password.trim().length > 0
       ? opts.password.trim()
       : undefined) ||
-    process.env.ZEE_GATEWAY_PASSWORD?.trim() ||
+    process.env.CLAWDBOT_GATEWAY_PASSWORD?.trim() ||
     (isRemoteMode
-      ? typeof remote?.password === "string" &&
-        remote.password.trim().length > 0
+      ? typeof remote?.password === "string" && remote.password.trim().length > 0
         ? remote.password.trim()
         : undefined
       : typeof authPassword === "string" && authPassword.trim().length > 0
@@ -143,11 +178,7 @@ export async function callGateway<T = unknown>(
   const formatCloseError = (code: number, reason: string) => {
     const reasonText = reason?.trim() || "no close reason";
     const hint =
-      code === 1006
-        ? "abnormal closure (no close frame)"
-        : code === 1000
-          ? "normal closure"
-          : "";
+      code === 1006 ? "abnormal closure (no close frame)" : code === 1000 ? "normal closure" : "";
     const suffix = hint ? ` ${hint}` : "";
     return `gateway closed (${code}${suffix}): ${reasonText}\n${connectionDetails.message}`;
   };
@@ -168,11 +199,16 @@ export async function callGateway<T = unknown>(
       url,
       token,
       password,
+      tlsFingerprint,
       instanceId: opts.instanceId ?? randomUUID(),
-      clientName: opts.clientName ?? "cli",
+      clientName: opts.clientName ?? GATEWAY_CLIENT_NAMES.CLI,
+      clientDisplayName: opts.clientDisplayName,
       clientVersion: opts.clientVersion ?? "dev",
       platform: opts.platform,
-      mode: opts.mode ?? "cli",
+      mode: opts.mode ?? GATEWAY_CLIENT_MODES.CLI,
+      role: "operator",
+      scopes: ["operator.admin", "operator.approvals", "operator.pairing"],
+      deviceIdentity: loadOrCreateDeviceIdentity(),
       minProtocol: opts.minProtocol ?? PROTOCOL_VERSION,
       maxProtocol: opts.maxProtocol ?? PROTOCOL_VERSION,
       onHelloOk: async () => {

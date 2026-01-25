@@ -1,9 +1,17 @@
-import { Editor, Key, matchesKey } from "@mariozechner/pi-tui";
+import {
+  Editor,
+  type EditorOptions,
+  type EditorTheme,
+  type TUI,
+  Key,
+  matchesKey,
+} from "@mariozechner/pi-tui";
 
 export class CustomEditor extends Editor {
   onEscape?: () => void;
   onCtrlC?: () => void;
   onCtrlD?: () => void;
+  onCtrlG?: () => void;
   onCtrlL?: () => void;
   onCtrlO?: () => void;
   onCtrlP?: () => void;
@@ -11,6 +19,9 @@ export class CustomEditor extends Editor {
   onShiftTab?: () => void;
   onAltEnter?: () => void;
 
+  constructor(tui: TUI, theme: EditorTheme, options?: EditorOptions) {
+    super(tui, theme, options);
+  }
   handleInput(data: string): void {
     if (matchesKey(data, Key.alt("enter")) && this.onAltEnter) {
       this.onAltEnter();
@@ -28,6 +39,10 @@ export class CustomEditor extends Editor {
       this.onCtrlP();
       return;
     }
+    if (matchesKey(data, Key.ctrl("g")) && this.onCtrlG) {
+      this.onCtrlG();
+      return;
+    }
     if (matchesKey(data, Key.ctrl("t")) && this.onCtrlT) {
       this.onCtrlT();
       return;
@@ -36,11 +51,7 @@ export class CustomEditor extends Editor {
       this.onShiftTab();
       return;
     }
-    if (
-      matchesKey(data, Key.escape) &&
-      this.onEscape &&
-      !this.isShowingAutocomplete()
-    ) {
+    if (matchesKey(data, Key.escape) && this.onEscape && !this.isShowingAutocomplete()) {
       this.onEscape();
       return;
     }

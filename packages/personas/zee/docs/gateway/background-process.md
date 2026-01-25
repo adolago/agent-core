@@ -1,15 +1,15 @@
 ---
-summary: "Background bash execution and process management"
+summary: "Background exec execution and process management"
 read_when:
-  - Adding or modifying background bash behavior
-  - Debugging long-running bash tasks
+  - Adding or modifying background exec behavior
+  - Debugging long-running exec tasks
 ---
 
-# Background Bash + Process Tool
+# Background Exec + Process Tool
 
-Zee runs shell commands through the `bash` tool and keeps long‑running tasks in memory. The `process` tool manages those background sessions.
+Clawdbot runs shell commands through the `exec` tool and keeps long‑running tasks in memory. The `process` tool manages those background sessions.
 
-## bash tool
+## exec tool
 
 Key parameters:
 - `command` (required)
@@ -17,24 +17,30 @@ Key parameters:
 - `background` (bool): background immediately
 - `timeout` (seconds, default 1800): kill the process after this timeout
 - `elevated` (bool): run on host if elevated mode is enabled/allowed
-- Need a real TTY? Use the tmux skill.
+- Need a real TTY? Set `pty: true`.
 - `workdir`, `env`
 
 Behavior:
 - Foreground runs return output directly.
 - When backgrounded (explicit or timeout), the tool returns `status: "running"` + `sessionId` and a short tail.
 - Output is kept in memory until the session is polled or cleared.
-- If the `process` tool is disallowed, `bash` runs synchronously and ignores `yieldMs`/`background`.
+- If the `process` tool is disallowed, `exec` runs synchronously and ignores `yieldMs`/`background`.
+
+## Child process bridging
+
+When spawning long-running child processes outside the exec/process tools (for example, CLI respawns or gateway helpers), attach the child-process bridge helper so termination signals are forwarded and listeners are detached on exit/error. This avoids orphaned processes on systemd and keeps shutdown behavior consistent across platforms.
 
 Environment overrides:
 - `PI_BASH_YIELD_MS`: default yield (ms)
 - `PI_BASH_MAX_OUTPUT_CHARS`: in‑memory output cap (chars)
+- `CLAWDBOT_BASH_PENDING_MAX_OUTPUT_CHARS`: pending stdout/stderr cap per stream (chars)
 - `PI_BASH_JOB_TTL_MS`: TTL for finished sessions (ms, bounded to 1m–3h)
 
 Config (preferred):
-- `agent.bash.backgroundMs` (default 10000)
-- `agent.bash.timeoutSec` (default 1800)
-- `agent.bash.cleanupMs` (default 1800000)
+- `tools.exec.backgroundMs` (default 10000)
+- `tools.exec.timeoutSec` (default 1800)
+- `tools.exec.cleanupMs` (default 1800000)
+ - `tools.exec.notifyOnExit` (default true): enqueue a system event + request heartbeat when a backgrounded exec exits.
 
 ## process tool
 
@@ -59,7 +65,7 @@ Notes:
 
 Run a long task and poll later:
 ```json
-{"tool": "bash", "command": "sleep 5 && echo done", "yieldMs": 1000}
+{"tool": "exec", "command": "sleep 5 && echo done", "yieldMs": 1000}
 ```
 ```json
 {"tool": "process", "action": "poll", "sessionId": "<id>"}
@@ -67,7 +73,7 @@ Run a long task and poll later:
 
 Start immediately in background:
 ```json
-{"tool": "bash", "command": "npm run build", "background": true}
+{"tool": "exec", "command": "npm run build", "background": true}
 ```
 
 Send stdin:

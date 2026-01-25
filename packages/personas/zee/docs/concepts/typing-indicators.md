@@ -1,23 +1,23 @@
 ---
-summary: "When Zee shows typing indicators and how to tune them"
+summary: "When Clawdbot shows typing indicators and how to tune them"
 read_when:
   - Changing typing indicator behavior or defaults
 ---
 # Typing indicators
 
-Typing indicators are sent to the chat provider while a run is active. Use
-`agent.typingMode` to control **when** typing starts and `typingIntervalSeconds`
+Typing indicators are sent to the chat channel while a run is active. Use
+`agents.defaults.typingMode` to control **when** typing starts and `typingIntervalSeconds`
 to control **how often** it refreshes.
 
 ## Defaults
-When `agent.typingMode` is **unset**, Zee keeps the legacy behavior:
+When `agents.defaults.typingMode` is **unset**, Clawdbot keeps the legacy behavior:
 - **Direct chats**: typing starts immediately once the model loop begins.
 - **Group chats with a mention**: typing starts immediately.
 - **Group chats without a mention**: typing starts only when message text begins streaming.
 - **Heartbeat runs**: typing is disabled.
 
 ## Modes
-Set `agent.typingMode` to one of:
+Set `agents.defaults.typingMode` to one of:
 - `never` — no typing indicator, ever.
 - `instant` — start typing **as soon as the model loop begins**, even if the run
   later returns only the silent reply token.

@@ -4,42 +4,44 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
+import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
 import { handleA2uiHttpRequest } from "../canvas-host/a2ui.js";
 import type { CanvasHostHandler } from "../canvas-host/server.js";
-import type { createSubsystemLogger } from "../logging.js";
-import { handleControlUiHttpRequest } from "./control-ui.js";
+import { loadConfig } from "../config/config.js";
+import type { createSubsystemLogger } from "../logging/subsystem.js";
+import { handleSlackHttpRequest } from "../slack/http/index.js";
+import { resolveAgentAvatar } from "../agents/identity-avatar.js";
+import { handleControlUiAvatarRequest, handleControlUiHttpRequest } from "./control-ui.js";
 import {
   extractHookToken,
+  getHookChannelError,
+  type HookMessageChannel,
   type HooksConfigResolved,
   normalizeAgentPayload,
   normalizeHookHeaders,
   normalizeWakePayload,
   readJsonBody,
+  resolveHookChannel,
+  resolveHookDeliver,
 } from "./hooks.js";
 import { applyHookMappings } from "./hooks-mapping.js";
+import { handleOpenAiHttpRequest } from "./openai-http.js";
+import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
+import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
 type HookDispatchers = {
-  dispatchWakeHook: (value: {
-    text: string;
-    mode: "now" | "next-heartbeat";
-  }) => void;
+  dispatchWakeHook: (value: { text: string; mode: "now" | "next-heartbeat" }) => void;
   dispatchAgentHook: (value: {
     message: string;
     name: string;
     wakeMode: "now" | "next-heartbeat";
     sessionKey: string;
     deliver: boolean;
-    provider:
-      | "last"
-      | "whatsapp"
-      | "telegram"
-      | "discord"
-      | "slack"
-      | "signal"
-      | "imessage";
+    channel: HookMessageChannel;
     to?: string;
     model?: string;
     thinking?: string;
@@ -53,42 +55,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-export type HooksRequestHandler = (
-  req: IncomingMessage,
-  res: ServerResponse,
-) => Promise<boolean>;
-
-function isLoopbackHost(host: string): boolean {
-  const normalized = host.toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
-}
-
-function isAllowedGatewayOrigin(origin: string | undefined, req: IncomingMessage): boolean {
-  if (!origin) return true;
-  if (origin === "null") return false;
-  let url: URL;
-  try {
-    url = new URL(origin);
-  } catch {
-    return false;
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-  if (isLoopbackHost(url.hostname)) return true;
-
-  const hostHeader = req.headers.host;
-  const requestHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
-  if (requestHost) {
-    const requestHostname = requestHost.split(":")[0]?.toLowerCase();
-    if (requestHostname && requestHostname === url.hostname.toLowerCase()) return true;
-  }
-
-  const allowlist = (process.env.ZEE_GATEWAY_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  if (allowlist.length === 0) return false;
-  return allowlist.includes(origin) || allowlist.includes(url.origin);
-}
+export type HooksRequestHandler = (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
 
 export function createHooksRequestHandler(
   opts: {
@@ -98,14 +65,7 @@ export function createHooksRequestHandler(
     logHooks: SubsystemLogger;
   } & HookDispatchers,
 ): HooksRequestHandler {
-  const {
-    getHooksConfig,
-    bindHost,
-    port,
-    logHooks,
-    dispatchAgentHook,
-    dispatchWakeHook,
-  } = opts;
+  const { getHooksConfig, bindHost, port, logHooks, dispatchAgentHook, dispatchWakeHook } = opts;
   return async (req, res) => {
     const hooksConfig = getHooksConfig();
     if (!hooksConfig) return false;
@@ -146,14 +106,11 @@ export function createHooksRequestHandler(
       return true;
     }
 
-    const payload =
-      typeof body.value === "object" && body.value !== null ? body.value : {};
+    const payload = typeof body.value === "object" && body.value !== null ? body.value : {};
     const headers = normalizeHookHeaders(req);
 
     if (subPath === "wake") {
-      const normalized = normalizeWakePayload(
-        payload as Record<string, unknown>,
-      );
+      const normalized = normalizeWakePayload(payload as Record<string, unknown>);
       if (!normalized.ok) {
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
@@ -164,9 +121,7 @@ export function createHooksRequestHandler(
     }
 
     if (subPath === "agent") {
-      const normalized = normalizeAgentPayload(
-        payload as Record<string, unknown>,
-      );
+      const normalized = normalizeAgentPayload(payload as Record<string, unknown>);
       if (!normalized.ok) {
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
@@ -202,13 +157,18 @@ export function createHooksRequestHandler(
             sendJson(res, 200, { ok: true, mode: mapped.action.mode });
             return true;
           }
+          const channel = resolveHookChannel(mapped.action.channel);
+          if (!channel) {
+            sendJson(res, 400, { ok: false, error: getHookChannelError() });
+            return true;
+          }
           const runId = dispatchAgentHook({
             message: mapped.action.message,
             name: mapped.action.name ?? "Hook",
             wakeMode: mapped.action.wakeMode,
             sessionKey: mapped.action.sessionKey ?? "",
-            deliver: mapped.action.deliver === true,
-            provider: mapped.action.provider ?? "last",
+            deliver: resolveHookDeliver(mapped.action.deliver),
+            channel,
             to: mapped.action.to,
             model: mapped.action.model,
             thinking: mapped.action.thinking,
@@ -235,28 +195,85 @@ export function createGatewayHttpServer(opts: {
   canvasHost: CanvasHostHandler | null;
   controlUiEnabled: boolean;
   controlUiBasePath: string;
+  openAiChatCompletionsEnabled: boolean;
+  openResponsesEnabled: boolean;
+  openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
   handleHooksRequest: HooksRequestHandler;
+  handlePluginRequest?: HooksRequestHandler;
+  resolvedAuth: import("./auth.js").ResolvedGatewayAuth;
+  tlsOptions?: TlsOptions;
 }): HttpServer {
   const {
     canvasHost,
     controlUiEnabled,
     controlUiBasePath,
+    openAiChatCompletionsEnabled,
+    openResponsesEnabled,
+    openResponsesConfig,
     handleHooksRequest,
+    handlePluginRequest,
+    resolvedAuth,
   } = opts;
-  const httpServer: HttpServer = createHttpServer((req, res) => {
+  const httpServer: HttpServer = opts.tlsOptions
+    ? createHttpsServer(opts.tlsOptions, (req, res) => {
+        void handleRequest(req, res);
+      })
+    : createHttpServer((req, res) => {
+        void handleRequest(req, res);
+      });
+
+  async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     // Don't interfere with WebSocket upgrades; ws handles the 'upgrade' event.
     if (String(req.headers.upgrade ?? "").toLowerCase() === "websocket") return;
 
-    void (async () => {
+    try {
+      const configSnapshot = loadConfig();
+      const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
       if (await handleHooksRequest(req, res)) return;
+      if (
+        await handleToolsInvokeHttpRequest(req, res, {
+          auth: resolvedAuth,
+          trustedProxies,
+        })
+      )
+        return;
+      if (await handleSlackHttpRequest(req, res)) return;
+      if (handlePluginRequest && (await handlePluginRequest(req, res))) return;
+      if (openResponsesEnabled) {
+        if (
+          await handleOpenResponsesHttpRequest(req, res, {
+            auth: resolvedAuth,
+            config: openResponsesConfig,
+            trustedProxies,
+          })
+        )
+          return;
+      }
+      if (openAiChatCompletionsEnabled) {
+        if (
+          await handleOpenAiHttpRequest(req, res, {
+            auth: resolvedAuth,
+            trustedProxies,
+          })
+        )
+          return;
+      }
       if (canvasHost) {
         if (await handleA2uiHttpRequest(req, res)) return;
         if (await canvasHost.handleHttpRequest(req, res)) return;
       }
       if (controlUiEnabled) {
         if (
+          handleControlUiAvatarRequest(req, res, {
+            basePath: controlUiBasePath,
+            resolveAvatar: (agentId) => resolveAgentAvatar(configSnapshot, agentId),
+          })
+        )
+          return;
+        if (
           handleControlUiHttpRequest(req, res, {
             basePath: controlUiBasePath,
+            config: configSnapshot,
           })
         )
           return;
@@ -265,14 +282,12 @@ export function createGatewayHttpServer(opts: {
       res.statusCode = 404;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end("Not Found");
-    })().catch((err) => {
-      // Log the full error internally but return a generic message to the client
-      console.error("HTTP request error:", err);
+    } catch (err) {
       res.statusCode = 500;
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.end(JSON.stringify({ ok: false, error: "Internal server error" }));
-    });
-  });
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.end(String(err));
+    }
+  }
 
   return httpServer;
 }
@@ -284,13 +299,6 @@ export function attachGatewayUpgradeHandler(opts: {
 }) {
   const { httpServer, wss, canvasHost } = opts;
   httpServer.on("upgrade", (req, socket, head) => {
-    const originHeader = req.headers.origin;
-    const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
-    if (!isAllowedGatewayOrigin(origin, req)) {
-      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-      socket.destroy();
-      return;
-    }
     if (canvasHost?.handleUpgrade(req, socket, head)) return;
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req);

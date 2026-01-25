@@ -104,9 +104,7 @@ export type KeyEncodingResult = {
   warnings: string[];
 };
 
-export function encodeKeySequence(
-  request: KeyEncodingRequest,
-): KeyEncodingResult {
+export function encodeKeySequence(request: KeyEncodingRequest): KeyEncodingResult {
   const warnings: string[] = [];
   let data = "";
 

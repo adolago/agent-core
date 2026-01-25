@@ -10,13 +10,28 @@ status: active
 ## Overview
 
 Each agent in a multi-agent setup can now have its own:
-- **Sandbox configuration** (`mode`, `scope`, `workspaceRoot`, `workspaceAccess`, `tools`)
-- **Tool restrictions** (`allow`, `deny`)
+- **Sandbox configuration** (`agents.list[].sandbox` overrides `agents.defaults.sandbox`)
+- **Tool restrictions** (`tools.allow` / `tools.deny`, plus `agents.list[].tools`)
 
 This allows you to run multiple agents with different security profiles:
 - Personal assistant with full access
 - Family/work agents with restricted tools
 - Public-facing agents in sandboxes
+
+`setupCommand` belongs under `sandbox.docker` (global or per-agent) and runs once
+when the container is created.
+
+Auth is per-agent: each agent reads from its own `agentDir` auth store at:
+
+```
+~/.clawdbot/agents/<agentId>/agent/auth-profiles.json
+```
+
+Credentials are **not** shared between agents. Never reuse `agentDir` across agents.
+If you want to share creds, copy `auth-profiles.json` into the other agent's `agentDir`.
+
+For how sandboxing behaves at runtime, see [Sandboxing](/gateway/sandboxing).
+For debugging “why is this blocked?”, see [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) and `clawdbot sandbox explain`.
 
 ---
 
@@ -26,18 +41,17 @@ This allows you to run multiple agents with different security profiles:
 
 ```json
 {
-  "routing": {
-    "defaultAgentId": "main",
-    "agents": {
-      "main": {
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "default": true,
         "name": "Personal Assistant",
         "workspace": "~/clawd",
-        "sandbox": {
-          "mode": "off"
-        }
-        // No tool restrictions - all tools available
+        "sandbox": { "mode": "off" }
       },
-      "family": {
+      {
+        "id": "family",
         "name": "Family Bot",
         "workspace": "~/clawd-family",
         "sandbox": {
@@ -46,24 +60,24 @@ This allows you to run multiple agents with different security profiles:
         },
         "tools": {
           "allow": ["read"],
-          "deny": ["bash", "write", "edit", "process", "browser"]
-        }
-      }
-    },
-    "bindings": [
-      {
-        "agentId": "family",
-        "match": {
-          "provider": "whatsapp",
-          "accountId": "*",
-          "peer": {
-            "kind": "group",
-            "id": "120363424282127706@g.us"
-          }
+          "deny": ["exec", "write", "edit", "apply_patch", "process", "browser"]
         }
       }
     ]
-  }
+  },
+  "bindings": [
+    {
+      "agentId": "family",
+      "match": {
+        "provider": "whatsapp",
+        "accountId": "*",
+        "peer": {
+          "kind": "group",
+          "id": "120363424282127706@g.us"
+        }
+      }
+    }
+  ]
 }
 ```
 
@@ -77,13 +91,15 @@ This allows you to run multiple agents with different security profiles:
 
 ```json
 {
-  "routing": {
-    "agents": {
-      "personal": {
+  "agents": {
+    "list": [
+      {
+        "id": "personal",
         "workspace": "~/clawd-personal",
         "sandbox": { "mode": "off" }
       },
-      "work": {
+      {
+        "id": "work",
         "workspace": "~/clawd-work",
         "sandbox": {
           "mode": "all",
@@ -91,14 +107,36 @@ This allows you to run multiple agents with different security profiles:
           "workspaceRoot": "/tmp/work-sandboxes"
         },
         "tools": {
-          "allow": ["read", "write", "bash"],
+          "allow": ["read", "write", "apply_patch", "exec"],
           "deny": ["browser", "gateway", "discord"]
         }
       }
-    }
+    ]
   }
 }
 ```
+
+---
+
+### Example 2b: Global coding profile + messaging-only agent
+
+```json
+{
+  "tools": { "profile": "coding" },
+  "agents": {
+    "list": [
+      {
+        "id": "support",
+        "tools": { "profile": "messaging", "allow": ["slack"] }
+      }
+    ]
+  }
+}
+```
+
+**Result:**
+- default agents get coding tools
+- `support` agent is messaging-only (+ Slack tool)
 
 ---
 
@@ -106,21 +144,23 @@ This allows you to run multiple agents with different security profiles:
 
 ```json
 {
-  "agent": {
-    "sandbox": {
-      "mode": "non-main",  // Global default
-      "scope": "session"
-    }
-  },
-  "routing": {
-    "agents": {
-      "main": {
+  "agents": {
+    "defaults": {
+      "sandbox": {
+        "mode": "non-main",  // Global default
+        "scope": "session"
+      }
+    },
+    "list": [
+      {
+        "id": "main",
         "workspace": "~/clawd",
         "sandbox": {
           "mode": "off"  // Override: main never sandboxed
         }
       },
-      "public": {
+      {
+        "id": "public",
         "workspace": "~/clawd-public",
         "sandbox": {
           "mode": "all",  // Override: public always sandboxed
@@ -128,10 +168,10 @@ This allows you to run multiple agents with different security profiles:
         },
         "tools": {
           "allow": ["read"],
-          "deny": ["bash", "write", "edit"]
+          "deny": ["exec", "write", "edit", "apply_patch"]
         }
       }
-    }
+    ]
   }
 }
 ```
@@ -140,32 +180,61 @@ This allows you to run multiple agents with different security profiles:
 
 ## Configuration Precedence
 
-When both global (`agent.*`) and agent-specific (`routing.agents[id].*`) configs exist:
+When both global (`agents.defaults.*`) and agent-specific (`agents.list[].*`) configs exist:
 
 ### Sandbox Config
 Agent-specific settings override global:
 ```
-routing.agents[id].sandbox.mode > agent.sandbox.mode
-routing.agents[id].sandbox.scope > agent.sandbox.scope
-routing.agents[id].sandbox.workspaceRoot > agent.sandbox.workspaceRoot
-routing.agents[id].sandbox.workspaceAccess > agent.sandbox.workspaceAccess
-routing.agents[id].sandbox.docker.* > agent.sandbox.docker.*
-routing.agents[id].sandbox.browser.* > agent.sandbox.browser.*
-routing.agents[id].sandbox.prune.* > agent.sandbox.prune.*
+agents.list[].sandbox.mode > agents.defaults.sandbox.mode
+agents.list[].sandbox.scope > agents.defaults.sandbox.scope
+agents.list[].sandbox.workspaceRoot > agents.defaults.sandbox.workspaceRoot
+agents.list[].sandbox.workspaceAccess > agents.defaults.sandbox.workspaceAccess
+agents.list[].sandbox.docker.* > agents.defaults.sandbox.docker.*
+agents.list[].sandbox.browser.* > agents.defaults.sandbox.browser.*
+agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 ```
 
 **Notes:**
-- `routing.agents[id].sandbox.{docker,browser,prune}.*` overrides `agent.sandbox.{docker,browser,prune}.*` for that agent (ignored when sandbox scope resolves to `"shared"`).
+- `agents.list[].sandbox.{docker,browser,prune}.*` overrides `agents.defaults.sandbox.{docker,browser,prune}.*` for that agent (ignored when sandbox scope resolves to `"shared"`).
 
 ### Tool Restrictions
 The filtering order is:
-1. **Global tool policy** (`agent.tools`)
-2. **Agent-specific tool policy** (`routing.agents[id].tools`)
-3. **Sandbox tool policy** (`agent.sandbox.tools` or `routing.agents[id].sandbox.tools`)
-4. **Subagent tool policy** (if applicable)
+1. **Tool profile** (`tools.profile` or `agents.list[].tools.profile`)
+2. **Provider tool profile** (`tools.byProvider[provider].profile` or `agents.list[].tools.byProvider[provider].profile`)
+3. **Global tool policy** (`tools.allow` / `tools.deny`)
+4. **Provider tool policy** (`tools.byProvider[provider].allow/deny`)
+5. **Agent-specific tool policy** (`agents.list[].tools.allow/deny`)
+6. **Agent provider policy** (`agents.list[].tools.byProvider[provider].allow/deny`)
+7. **Sandbox tool policy** (`tools.sandbox.tools` or `agents.list[].tools.sandbox.tools`)
+8. **Subagent tool policy** (`tools.subagents.tools`, if applicable)
 
 Each level can further restrict tools, but cannot grant back denied tools from earlier levels.
-If `routing.agents[id].sandbox.tools` is set, it replaces `agent.sandbox.tools` for that agent.
+If `agents.list[].tools.sandbox.tools` is set, it replaces `tools.sandbox.tools` for that agent.
+If `agents.list[].tools.profile` is set, it overrides `tools.profile` for that agent.
+Provider tool keys accept either `provider` (e.g. `google-antigravity`) or `provider/model` (e.g. `openai/gpt-5.2`).
+
+### Tool groups (shorthands)
+
+Tool policies (global, agent, sandbox) support `group:*` entries that expand to multiple concrete tools:
+
+- `group:runtime`: `exec`, `bash`, `process`
+- `group:fs`: `read`, `write`, `edit`, `apply_patch`
+- `group:sessions`: `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status`
+- `group:memory`: `memory_search`, `memory_get`
+- `group:ui`: `browser`, `canvas`
+- `group:automation`: `cron`, `gateway`
+- `group:messaging`: `message`
+- `group:nodes`: `nodes`
+- `group:clawdbot`: all built-in Clawdbot tools (excludes provider plugins)
+
+### Elevated Mode
+`tools.elevated` is the global baseline (sender-based allowlist). `agents.list[].tools.elevated` can further restrict elevated for specific agents (both must allow).
+
+Mitigation patterns:
+- Deny `exec` for untrusted agents (`agents.list[].tools.deny: ["exec"]`)
+- Avoid allowlisting senders that route to restricted agents
+- Disable elevated globally (`tools.elevated.enabled: false`) if you only want sandboxed execution
+- Disable elevated per agent (`agents.list[].tools.elevated.enabled: false`) for sensitive profiles
 
 ---
 
@@ -174,12 +243,18 @@ If `routing.agents[id].sandbox.tools` is set, it replaces `agent.sandbox.tools` 
 **Before (single agent):**
 ```json
 {
-  "agent": {
-    "workspace": "~/clawd",
+  "agents": {
+    "defaults": {
+      "workspace": "~/clawd",
+      "sandbox": {
+        "mode": "non-main"
+      }
+    }
+  },
+  "tools": {
     "sandbox": {
-      "mode": "non-main",
       "tools": {
-        "allow": ["read", "write", "bash"],
+        "allow": ["read", "write", "apply_patch", "exec"],
         "deny": []
       }
     }
@@ -190,21 +265,20 @@ If `routing.agents[id].sandbox.tools` is set, it replaces `agent.sandbox.tools` 
 **After (multi-agent with different profiles):**
 ```json
 {
-  "routing": {
-    "defaultAgentId": "main",
-    "agents": {
-      "main": {
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "default": true,
         "workspace": "~/clawd",
-        "sandbox": {
-          "mode": "off"
-        }
+        "sandbox": { "mode": "off" }
       }
-    }
+    ]
   }
 }
 ```
 
-The global `agent.workspace` and `agent.sandbox` are still supported for backward compatibility, but we recommend using `routing.agents` for clarity in multi-agent setups.
+Legacy `agent.*` configs are migrated by `clawdbot doctor`; prefer `agents.defaults` + `agents.list` going forward.
 
 ---
 
@@ -215,7 +289,7 @@ The global `agent.workspace` and `agent.sandbox` are still supported for backwar
 {
   "tools": {
     "allow": ["read"],
-    "deny": ["bash", "write", "edit", "process"]
+    "deny": ["exec", "write", "edit", "apply_patch", "process"]
   }
 }
 ```
@@ -224,8 +298,8 @@ The global `agent.workspace` and `agent.sandbox` are still supported for backwar
 ```json
 {
   "tools": {
-    "allow": ["read", "bash", "process"],
-    "deny": ["write", "edit", "browser", "gateway"]
+    "allow": ["read", "exec", "process"],
+    "deny": ["write", "edit", "apply_patch", "browser", "gateway"]
   }
 }
 ```
@@ -234,11 +308,20 @@ The global `agent.workspace` and `agent.sandbox` are still supported for backwar
 ```json
 {
   "tools": {
-    "allow": ["sessions_list", "sessions_send", "sessions_history"],
-    "deny": ["bash", "write", "edit", "read", "browser"]
+    "allow": ["sessions_list", "sessions_send", "sessions_history", "session_status"],
+    "deny": ["exec", "write", "edit", "apply_patch", "read", "browser"]
   }
 }
 ```
+
+---
+
+## Common Pitfall: "non-main"
+
+`agents.defaults.sandbox.mode: "non-main"` is based on `session.mainKey` (default `"main"`),
+not the agent id. Group/channel sessions always get their own keys, so they
+are treated as non-main and will be sandboxed. If you want an agent to never
+sandbox, set `agents.list[].sandbox.mode: "off"`.
 
 ---
 
@@ -247,13 +330,13 @@ The global `agent.workspace` and `agent.sandbox` are still supported for backwar
 After configuring multi-agent sandbox and tools:
 
 1. **Check agent resolution:**
-   ```bash
-   zee agents list --bindings
+   ```exec
+   clawdbot agents list --bindings
    ```
 
 2. **Verify sandbox containers:**
-   ```bash
-   docker ps --filter "label=zee.sandbox=1"
+   ```exec
+   docker ps --filter "label=clawdbot.sandbox=1"
    ```
 
 3. **Test tool restrictions:**
@@ -261,8 +344,8 @@ After configuring multi-agent sandbox and tools:
    - Verify the agent cannot use denied tools
 
 4. **Monitor logs:**
-   ```bash
-   tail -f "${ZEE_STATE_DIR:-$HOME/.zee}/logs/gateway.log" | grep -E "routing|sandbox|tools"
+   ```exec
+   tail -f "${CLAWDBOT_STATE_DIR:-$HOME/.clawdbot}/logs/gateway.log" | grep -E "routing|sandbox|tools"
    ```
 
 ---
@@ -270,8 +353,8 @@ After configuring multi-agent sandbox and tools:
 ## Troubleshooting
 
 ### Agent not sandboxed despite `mode: "all"`
-- Check if there's a global `agent.sandbox.mode` that overrides it
-- Agent-specific config takes precedence, so set `routing.agents[id].sandbox.mode: "all"`
+- Check if there's a global `agents.defaults.sandbox.mode` that overrides it
+- Agent-specific config takes precedence, so set `agents.list[].sandbox.mode: "all"`
 
 ### Tools still available despite deny list
 - Check tool filtering order: global → agent → sandbox → subagent
@@ -287,5 +370,5 @@ After configuring multi-agent sandbox and tools:
 ## See Also
 
 - [Multi-Agent Routing](/concepts/multi-agent)
-- [Sandbox Configuration](/gateway/configuration#agent-sandbox)
+- [Sandbox Configuration](/gateway/configuration#agentsdefaults-sandbox)
 - [Session Management](/concepts/session)

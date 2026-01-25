@@ -4,12 +4,14 @@ import os from "node:os";
 import path from "node:path";
 
 import lockfile from "proper-lockfile";
-
+import { getPairingAdapter } from "../channels/plugins/pairing.js";
+import type { ChannelId, ChannelPairingAdapter } from "../channels/plugins/types.js";
 import { resolveOAuthDir, resolveStateDir } from "../config/paths.js";
 
 const PAIRING_CODE_LENGTH = 8;
 const PAIRING_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const PAIRING_PENDING_TTL_MS = 60 * 60 * 1000;
+const PAIRING_PENDING_MAX = 3;
 const PAIRING_STORE_LOCK_OPTIONS = {
   retries: {
     retries: 10,
@@ -21,13 +23,7 @@ const PAIRING_STORE_LOCK_OPTIONS = {
   stale: 30_000,
 } as const;
 
-export type PairingProvider =
-  | "telegram"
-  | "signal"
-  | "imessage"
-  | "discord"
-  | "slack"
-  | "whatsapp";
+export type PairingChannel = ChannelId;
 
 export type PairingRequest = {
   id: string;
@@ -52,18 +48,24 @@ function resolveCredentialsDir(env: NodeJS.ProcessEnv = process.env): string {
   return resolveOAuthDir(env, stateDir);
 }
 
-function resolvePairingPath(
-  provider: PairingProvider,
-  env: NodeJS.ProcessEnv = process.env,
-): string {
-  return path.join(resolveCredentialsDir(env), `${provider}-pairing.json`);
+/** Sanitize channel ID for use in filenames (prevent path traversal). */
+function safeChannelKey(channel: PairingChannel): string {
+  const raw = String(channel).trim().toLowerCase();
+  if (!raw) throw new Error("invalid pairing channel");
+  const safe = raw.replace(/[\\/:*?"<>|]/g, "_").replace(/\.\./g, "_");
+  if (!safe || safe === "_") throw new Error("invalid pairing channel");
+  return safe;
+}
+
+function resolvePairingPath(channel: PairingChannel, env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveCredentialsDir(env), `${safeChannelKey(channel)}-pairing.json`);
 }
 
 function resolveAllowFromPath(
-  provider: PairingProvider,
+  channel: PairingChannel,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  return path.join(resolveCredentialsDir(env), `${provider}-allowFrom.json`);
+  return path.join(resolveCredentialsDir(env), `${safeChannelKey(channel)}-allowFrom.json`);
 }
 
 function safeParseJson<T>(raw: string): T | null {
@@ -93,10 +95,7 @@ async function readJsonFile<T>(
 async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
   const dir = path.dirname(filePath);
   await fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
-  const tmp = path.join(
-    dir,
-    `${path.basename(filePath)}.${crypto.randomUUID()}.tmp`,
-  );
+  const tmp = path.join(dir, `${path.basename(filePath)}.${crypto.randomUUID()}.tmp`);
   await fs.promises.writeFile(tmp, `${JSON.stringify(value, null, 2)}\n`, {
     encoding: "utf-8",
   });
@@ -159,6 +158,18 @@ function pruneExpiredRequests(reqs: PairingRequest[], nowMs: number) {
   return { requests: kept, removed };
 }
 
+function resolveLastSeenAt(entry: PairingRequest): number {
+  return parseTimestamp(entry.lastSeenAt) ?? parseTimestamp(entry.createdAt) ?? 0;
+}
+
+function pruneExcessRequests(reqs: PairingRequest[], maxPending: number) {
+  if (maxPending <= 0 || reqs.length <= maxPending) {
+    return { requests: reqs, removed: false };
+  }
+  const sorted = reqs.slice().sort((a, b) => resolveLastSeenAt(a) - resolveLastSeenAt(b));
+  return { requests: sorted.slice(-maxPending), removed: true };
+}
+
 function randomCode(): string {
   // Human-friendly: 8 chars, upper, no ambiguous chars (0O1I).
   let out = "";
@@ -181,39 +192,35 @@ function normalizeId(value: string | number): string {
   return String(value).trim();
 }
 
-function normalizeAllowEntry(provider: PairingProvider, entry: string): string {
+function normalizeAllowEntry(channel: PairingChannel, entry: string): string {
   const trimmed = entry.trim();
   if (!trimmed) return "";
   if (trimmed === "*") return "";
-  if (provider === "telegram") return trimmed.replace(/^(telegram|tg):/i, "");
-  if (provider === "signal") return trimmed.replace(/^signal:/i, "");
-  if (provider === "discord") return trimmed.replace(/^(discord|user):/i, "");
-  if (provider === "slack") return trimmed.replace(/^(slack|user):/i, "");
-  return trimmed;
+  const adapter = getPairingAdapter(channel);
+  const normalized = adapter?.normalizeAllowEntry ? adapter.normalizeAllowEntry(trimmed) : trimmed;
+  return String(normalized).trim();
 }
 
-export async function readProviderAllowFromStore(
-  provider: PairingProvider,
+export async function readChannelAllowFromStore(
+  channel: PairingChannel,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<string[]> {
-  const filePath = resolveAllowFromPath(provider, env);
+  const filePath = resolveAllowFromPath(channel, env);
   const { value } = await readJsonFile<AllowFromStore>(filePath, {
     version: 1,
     allowFrom: [],
   });
   const list = Array.isArray(value.allowFrom) ? value.allowFrom : [];
-  return list
-    .map((v) => normalizeAllowEntry(provider, String(v)))
-    .filter(Boolean);
+  return list.map((v) => normalizeAllowEntry(channel, String(v))).filter(Boolean);
 }
 
-export async function addProviderAllowFromStoreEntry(params: {
-  provider: PairingProvider;
+export async function addChannelAllowFromStoreEntry(params: {
+  channel: PairingChannel;
   entry: string | number;
   env?: NodeJS.ProcessEnv;
 }): Promise<{ changed: boolean; allowFrom: string[] }> {
   const env = params.env ?? process.env;
-  const filePath = resolveAllowFromPath(params.provider, env);
+  const filePath = resolveAllowFromPath(params.channel, env);
   return await withFileLock(
     filePath,
     { version: 1, allowFrom: [] } satisfies AllowFromStore,
@@ -223,15 +230,11 @@ export async function addProviderAllowFromStoreEntry(params: {
         allowFrom: [],
       });
       const current = (Array.isArray(value.allowFrom) ? value.allowFrom : [])
-        .map((v) => normalizeAllowEntry(params.provider, String(v)))
+        .map((v) => normalizeAllowEntry(params.channel, String(v)))
         .filter(Boolean);
-      const normalized = normalizeAllowEntry(
-        params.provider,
-        normalizeId(params.entry),
-      );
+      const normalized = normalizeAllowEntry(params.channel, normalizeId(params.entry));
       if (!normalized) return { changed: false, allowFrom: current };
-      if (current.includes(normalized))
-        return { changed: false, allowFrom: current };
+      if (current.includes(normalized)) return { changed: false, allowFrom: current };
       const next = [...current, normalized];
       await writeJsonFile(filePath, {
         version: 1,
@@ -242,11 +245,42 @@ export async function addProviderAllowFromStoreEntry(params: {
   );
 }
 
-export async function listProviderPairingRequests(
-  provider: PairingProvider,
+export async function removeChannelAllowFromStoreEntry(params: {
+  channel: PairingChannel;
+  entry: string | number;
+  env?: NodeJS.ProcessEnv;
+}): Promise<{ changed: boolean; allowFrom: string[] }> {
+  const env = params.env ?? process.env;
+  const filePath = resolveAllowFromPath(params.channel, env);
+  return await withFileLock(
+    filePath,
+    { version: 1, allowFrom: [] } satisfies AllowFromStore,
+    async () => {
+      const { value } = await readJsonFile<AllowFromStore>(filePath, {
+        version: 1,
+        allowFrom: [],
+      });
+      const current = (Array.isArray(value.allowFrom) ? value.allowFrom : [])
+        .map((v) => normalizeAllowEntry(params.channel, String(v)))
+        .filter(Boolean);
+      const normalized = normalizeAllowEntry(params.channel, normalizeId(params.entry));
+      if (!normalized) return { changed: false, allowFrom: current };
+      const next = current.filter((entry) => entry !== normalized);
+      if (next.length === current.length) return { changed: false, allowFrom: current };
+      await writeJsonFile(filePath, {
+        version: 1,
+        allowFrom: next,
+      } satisfies AllowFromStore);
+      return { changed: true, allowFrom: next };
+    },
+  );
+}
+
+export async function listChannelPairingRequests(
+  channel: PairingChannel,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<PairingRequest[]> {
-  const filePath = resolvePairingPath(provider, env);
+  const filePath = resolvePairingPath(channel, env);
   return await withFileLock(
     filePath,
     { version: 1, requests: [] } satisfies PairingStore,
@@ -257,8 +291,15 @@ export async function listProviderPairingRequests(
       });
       const reqs = Array.isArray(value.requests) ? value.requests : [];
       const nowMs = Date.now();
-      const { requests: pruned, removed } = pruneExpiredRequests(reqs, nowMs);
-      if (removed) {
+      const { requests: prunedExpired, removed: expiredRemoved } = pruneExpiredRequests(
+        reqs,
+        nowMs,
+      );
+      const { requests: pruned, removed: cappedRemoved } = pruneExcessRequests(
+        prunedExpired,
+        PAIRING_PENDING_MAX,
+      );
+      if (expiredRemoved || cappedRemoved) {
         await writeJsonFile(filePath, {
           version: 1,
           requests: pruned,
@@ -278,14 +319,16 @@ export async function listProviderPairingRequests(
   );
 }
 
-export async function upsertProviderPairingRequest(params: {
-  provider: PairingProvider;
+export async function upsertChannelPairingRequest(params: {
+  channel: PairingChannel;
   id: string | number;
   meta?: Record<string, string | undefined | null>;
   env?: NodeJS.ProcessEnv;
+  /** Extension channels can pass their adapter directly to bypass registry lookup. */
+  pairingAdapter?: ChannelPairingAdapter;
 }): Promise<{ code: string; created: boolean }> {
   const env = params.env ?? process.env;
-  const filePath = resolvePairingPath(params.provider, env);
+  const filePath = resolvePairingPath(params.channel, env);
   return await withFileLock(
     filePath,
     { version: 1, requests: [] } satisfies PairingStore,
@@ -307,8 +350,11 @@ export async function upsertProviderPairingRequest(params: {
           : undefined;
 
       let reqs = Array.isArray(value.requests) ? value.requests : [];
-      const { requests: pruned } = pruneExpiredRequests(reqs, nowMs);
-      reqs = pruned;
+      const { requests: prunedExpired, removed: expiredRemoved } = pruneExpiredRequests(
+        reqs,
+        nowMs,
+      );
+      reqs = prunedExpired;
       const existingIdx = reqs.findIndex((r) => r.id === id);
       const existingCodes = new Set(
         reqs.map((req) =>
@@ -321,9 +367,7 @@ export async function upsertProviderPairingRequest(params: {
       if (existingIdx >= 0) {
         const existing = reqs[existingIdx];
         const existingCode =
-          existing && typeof existing.code === "string"
-            ? existing.code.trim()
-            : "";
+          existing && typeof existing.code === "string" ? existing.code.trim() : "";
         const code = existingCode || generateUniqueCode(existingCodes);
         const next: PairingRequest = {
           id,
@@ -333,13 +377,28 @@ export async function upsertProviderPairingRequest(params: {
           meta: meta ?? existing?.meta,
         };
         reqs[existingIdx] = next;
+        const { requests: capped } = pruneExcessRequests(reqs, PAIRING_PENDING_MAX);
         await writeJsonFile(filePath, {
           version: 1,
-          requests: reqs,
+          requests: capped,
         } satisfies PairingStore);
         return { code, created: false };
       }
 
+      const { requests: capped, removed: cappedRemoved } = pruneExcessRequests(
+        reqs,
+        PAIRING_PENDING_MAX,
+      );
+      reqs = capped;
+      if (PAIRING_PENDING_MAX > 0 && reqs.length >= PAIRING_PENDING_MAX) {
+        if (expiredRemoved || cappedRemoved) {
+          await writeJsonFile(filePath, {
+            version: 1,
+            requests: reqs,
+          } satisfies PairingStore);
+        }
+        return { code: "", created: false };
+      }
       const code = generateUniqueCode(existingCodes);
       const next: PairingRequest = {
         id,
@@ -357,8 +416,8 @@ export async function upsertProviderPairingRequest(params: {
   );
 }
 
-export async function approveProviderPairingCode(params: {
-  provider: PairingProvider;
+export async function approveChannelPairingCode(params: {
+  channel: PairingChannel;
   code: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<{ id: string; entry?: PairingRequest } | null> {
@@ -366,7 +425,7 @@ export async function approveProviderPairingCode(params: {
   const code = params.code.trim().toUpperCase();
   if (!code) return null;
 
-  const filePath = resolvePairingPath(params.provider, env);
+  const filePath = resolvePairingPath(params.channel, env);
   return await withFileLock(
     filePath,
     { version: 1, requests: [] } satisfies PairingStore,
@@ -378,9 +437,7 @@ export async function approveProviderPairingCode(params: {
       const reqs = Array.isArray(value.requests) ? value.requests : [];
       const nowMs = Date.now();
       const { requests: pruned, removed } = pruneExpiredRequests(reqs, nowMs);
-      const idx = pruned.findIndex(
-        (r) => String(r.code ?? "").toUpperCase() === code,
-      );
+      const idx = pruned.findIndex((r) => String(r.code ?? "").toUpperCase() === code);
       if (idx < 0) {
         if (removed) {
           await writeJsonFile(filePath, {
@@ -397,8 +454,8 @@ export async function approveProviderPairingCode(params: {
         version: 1,
         requests: pruned,
       } satisfies PairingStore);
-      await addProviderAllowFromStoreEntry({
-        provider: params.provider,
+      await addChannelAllowFromStoreEntry({
+        channel: params.channel,
         entry: entry.id,
         env,
       });

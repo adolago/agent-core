@@ -2,9 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { note } from "@clack/prompts";
-
-import type { ZeeConfig } from "../config/config.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import { resolveOAuthDir, resolveStateDir } from "../config/paths.js";
 import {
   loadSessionStore,
@@ -13,7 +12,8 @@ import {
   resolveSessionTranscriptsDirForAgent,
   resolveStorePath,
 } from "../config/sessions.js";
-import { DEFAULT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";
+import { note } from "../terminal/note.js";
+import { shortenHomePath } from "../utils.js";
 
 type DoctorPrompterLike = {
   confirmSkipInNonInteractive: (params: {
@@ -96,11 +96,7 @@ function countJsonlLines(filePath: string): number {
 function findOtherStateDirs(stateDir: string): string[] {
   const resolvedState = path.resolve(stateDir);
   const roots =
-    process.platform === "darwin"
-      ? ["/Users"]
-      : process.platform === "linux"
-        ? ["/home"]
-        : [];
+    process.platform === "darwin" ? ["/Users"] : process.platform === "linux" ? ["/home"] : [];
   const found: string[] = [];
   for (const root of roots) {
     let entries: fs.Dirent[] = [];
@@ -112,7 +108,7 @@ function findOtherStateDirs(stateDir: string): string[] {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       if (entry.name.startsWith(".")) continue;
-      const candidate = path.resolve(root, entry.name, ".zee");
+      const candidate = path.resolve(root, entry.name, ".clawdbot");
       if (candidate === resolvedState) continue;
       if (existsDir(candidate)) found.push(candidate);
     }
@@ -121,31 +117,31 @@ function findOtherStateDirs(stateDir: string): string[] {
 }
 
 export async function noteStateIntegrity(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   prompter: DoctorPrompterLike,
+  configPath?: string,
 ) {
   const warnings: string[] = [];
   const changes: string[] = [];
   const env = process.env;
   const homedir = os.homedir;
   const stateDir = resolveStateDir(env, homedir);
-  const defaultStateDir = path.join(homedir(), ".zee");
+  const defaultStateDir = path.join(homedir(), ".clawdbot");
   const oauthDir = resolveOAuthDir(env, stateDir);
-  const agentId = normalizeAgentId(
-    cfg.routing?.defaultAgentId ?? DEFAULT_AGENT_ID,
-  );
-  const sessionsDir = resolveSessionTranscriptsDirForAgent(
-    agentId,
-    env,
-    homedir,
-  );
+  const agentId = resolveDefaultAgentId(cfg);
+  const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId, env, homedir);
   const storePath = resolveStorePath(cfg.session?.store, { agentId });
   const storeDir = path.dirname(storePath);
+  const displayStateDir = shortenHomePath(stateDir);
+  const displayOauthDir = shortenHomePath(oauthDir);
+  const displaySessionsDir = shortenHomePath(sessionsDir);
+  const displayStoreDir = shortenHomePath(storeDir);
+  const displayConfigPath = configPath ? shortenHomePath(configPath) : undefined;
 
   let stateDirExists = existsDir(stateDir);
   if (!stateDirExists) {
     warnings.push(
-      `- CRITICAL: state directory missing (${stateDir}). Sessions, credentials, logs, and config are stored there.`,
+      `- CRITICAL: state directory missing (${displayStateDir}). Sessions, credentials, logs, and config are stored there.`,
     );
     if (cfg.gateway?.mode === "remote") {
       warnings.push(
@@ -153,26 +149,26 @@ export async function noteStateIntegrity(
       );
     }
     const create = await prompter.confirmSkipInNonInteractive({
-      message: `Create ${stateDir} now?`,
+      message: `Create ${displayStateDir} now?`,
       initialValue: false,
     });
     if (create) {
       const created = ensureDir(stateDir);
       if (created.ok) {
-        changes.push(`- Created ${stateDir}`);
+        changes.push(`- Created ${displayStateDir}`);
         stateDirExists = true;
       } else {
-        warnings.push(`- Failed to create ${stateDir}: ${created.error}`);
+        warnings.push(`- Failed to create ${displayStateDir}: ${created.error}`);
       }
     }
   }
 
   if (stateDirExists && !canWriteDir(stateDir)) {
-    warnings.push(`- State directory not writable (${stateDir}).`);
+    warnings.push(`- State directory not writable (${displayStateDir}).`);
     const hint = dirPermissionHint(stateDir);
     if (hint) warnings.push(`  ${hint}`);
     const repair = await prompter.confirmSkipInNonInteractive({
-      message: `Repair permissions on ${stateDir}?`,
+      message: `Repair permissions on ${displayStateDir}?`,
       initialValue: true,
     });
     if (repair) {
@@ -180,10 +176,53 @@ export async function noteStateIntegrity(
         const stat = fs.statSync(stateDir);
         const target = addUserRwx(stat.mode);
         fs.chmodSync(stateDir, target);
-        changes.push(`- Repaired permissions on ${stateDir}`);
+        changes.push(`- Repaired permissions on ${displayStateDir}`);
       } catch (err) {
-        warnings.push(`- Failed to repair ${stateDir}: ${String(err)}`);
+        warnings.push(`- Failed to repair ${displayStateDir}: ${String(err)}`);
       }
+    }
+  }
+  if (stateDirExists && process.platform !== "win32") {
+    try {
+      const stat = fs.statSync(stateDir);
+      if ((stat.mode & 0o077) !== 0) {
+        warnings.push(
+          `- State directory permissions are too open (${displayStateDir}). Recommend chmod 700.`,
+        );
+        const tighten = await prompter.confirmSkipInNonInteractive({
+          message: `Tighten permissions on ${displayStateDir} to 700?`,
+          initialValue: true,
+        });
+        if (tighten) {
+          fs.chmodSync(stateDir, 0o700);
+          changes.push(`- Tightened permissions on ${displayStateDir} to 700`);
+        }
+      }
+    } catch (err) {
+      warnings.push(`- Failed to read ${displayStateDir} permissions: ${String(err)}`);
+    }
+  }
+
+  if (configPath && existsFile(configPath) && process.platform !== "win32") {
+    try {
+      const stat = fs.statSync(configPath);
+      if ((stat.mode & 0o077) !== 0) {
+        warnings.push(
+          `- Config file is group/world readable (${displayConfigPath ?? configPath}). Recommend chmod 600.`,
+        );
+        const tighten = await prompter.confirmSkipInNonInteractive({
+          message: `Tighten permissions on ${displayConfigPath ?? configPath} to 600?`,
+          initialValue: true,
+        });
+        if (tighten) {
+          fs.chmodSync(configPath, 0o600);
+          changes.push(`- Tightened permissions on ${displayConfigPath ?? configPath} to 600`);
+        }
+      }
+    } catch (err) {
+      warnings.push(
+        `- Failed to read config permissions (${displayConfigPath ?? configPath}): ${String(err)}`,
+      );
     }
   }
 
@@ -192,26 +231,33 @@ export async function noteStateIntegrity(
     dirCandidates.set(sessionsDir, "Sessions dir");
     dirCandidates.set(storeDir, "Session store dir");
     dirCandidates.set(oauthDir, "OAuth dir");
+    const displayDirFor = (dir: string) => {
+      if (dir === sessionsDir) return displaySessionsDir;
+      if (dir === storeDir) return displayStoreDir;
+      if (dir === oauthDir) return displayOauthDir;
+      return shortenHomePath(dir);
+    };
 
     for (const [dir, label] of dirCandidates) {
+      const displayDir = displayDirFor(dir);
       if (!existsDir(dir)) {
-        warnings.push(`- ${label} missing (${dir}).`);
+        warnings.push(`- CRITICAL: ${label} missing (${displayDir}).`);
         const create = await prompter.confirmSkipInNonInteractive({
-          message: `Create ${label} at ${dir}?`,
+          message: `Create ${label} at ${displayDir}?`,
           initialValue: true,
         });
         if (create) {
           const created = ensureDir(dir);
           if (created.ok) {
-            changes.push(`- Created ${label}: ${dir}`);
+            changes.push(`- Created ${label}: ${displayDir}`);
           } else {
-            warnings.push(`- Failed to create ${dir}: ${created.error}`);
+            warnings.push(`- Failed to create ${displayDir}: ${created.error}`);
           }
         }
         continue;
       }
       if (!canWriteDir(dir)) {
-        warnings.push(`- ${label} not writable (${dir}).`);
+        warnings.push(`- ${label} not writable (${displayDir}).`);
         const hint = dirPermissionHint(dir);
         if (hint) warnings.push(`  ${hint}`);
         const repair = await prompter.confirmSkipInNonInteractive({
@@ -223,9 +269,9 @@ export async function noteStateIntegrity(
             const stat = fs.statSync(dir);
             const target = addUserRwx(stat.mode);
             fs.chmodSync(dir, target);
-            changes.push(`- Repaired permissions on ${label}: ${dir}`);
+            changes.push(`- Repaired permissions on ${label}: ${displayDir}`);
           } catch (err) {
-            warnings.push(`- Failed to repair ${dir}: ${String(err)}`);
+            warnings.push(`- Failed to repair ${displayDir}: ${String(err)}`);
           }
         }
       }
@@ -243,24 +289,20 @@ export async function noteStateIntegrity(
     warnings.push(
       [
         "- Multiple state directories detected. This can split session history.",
-        ...Array.from(extraStateDirs).map((dir) => `  - ${dir}`),
-        `  Active state dir: ${stateDir}`,
+        ...Array.from(extraStateDirs).map((dir) => `  - ${shortenHomePath(dir)}`),
+        `  Active state dir: ${displayStateDir}`,
       ].join("\n"),
     );
   }
 
   const store = loadSessionStore(storePath);
-  const entries = Object.entries(store).filter(
-    ([, entry]) => entry && typeof entry === "object",
-  );
+  const entries = Object.entries(store).filter(([, entry]) => entry && typeof entry === "object");
   if (entries.length > 0) {
     const recent = entries
       .slice()
       .sort((a, b) => {
-        const aUpdated =
-          typeof a[1].updatedAt === "number" ? a[1].updatedAt : 0;
-        const bUpdated =
-          typeof b[1].updatedAt === "number" ? b[1].updatedAt : 0;
+        const aUpdated = typeof a[1].updatedAt === "number" ? a[1].updatedAt : 0;
+        const bUpdated = typeof b[1].updatedAt === "number" ? b[1].updatedAt : 0;
         return bUpdated - aUpdated;
       })
       .slice(0, 5);
@@ -281,14 +323,10 @@ export async function noteStateIntegrity(
     const mainKey = resolveMainSessionKey(cfg);
     const mainEntry = store[mainKey];
     if (mainEntry?.sessionId) {
-      const transcriptPath = resolveSessionFilePath(
-        mainEntry.sessionId,
-        mainEntry,
-        { agentId },
-      );
+      const transcriptPath = resolveSessionFilePath(mainEntry.sessionId, mainEntry, { agentId });
       if (!existsFile(transcriptPath)) {
         warnings.push(
-          `- Main session transcript missing (${transcriptPath}). History will appear to reset.`,
+          `- Main session transcript missing (${shortenHomePath(transcriptPath)}). History will appear to reset.`,
         );
       } else {
         const lineCount = countJsonlLines(transcriptPath);
@@ -316,7 +354,7 @@ export function noteWorkspaceBackupTip(workspaceDir: string) {
   note(
     [
       "- Tip: back up the workspace in a private git repo (GitHub or GitLab).",
-      "- Keep ~/.zee out of git; it contains credentials and session history.",
+      "- Keep ~/.clawdbot out of git; it contains credentials and session history.",
       "- Details: /concepts/agent-workspace#git-backup-recommended",
     ].join("\n"),
     "Workspace",

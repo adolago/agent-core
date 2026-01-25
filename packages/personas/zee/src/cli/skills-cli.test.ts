@@ -8,15 +8,9 @@ import {
   type SkillStatusEntry,
   type SkillStatusReport,
 } from "../agents/skills-status.js";
-import {
-  formatSkillInfo,
-  formatSkillsCheck,
-  formatSkillsList,
-} from "./skills-cli.js";
+import { formatSkillInfo, formatSkillsCheck, formatSkillsList } from "./skills-cli.js";
 
-function createMockSkill(
-  overrides: Partial<SkillStatusEntry> = {},
-): SkillStatusEntry {
+function createMockSkill(overrides: Partial<SkillStatusEntry> = {}): SkillStatusEntry {
   return {
     name: "test-skill",
     description: "A test skill",
@@ -64,7 +58,7 @@ describe("skills-cli", () => {
       const report = createMockReport([]);
       const output = formatSkillsList(report, {});
       expect(output).toContain("No skills found");
-      expect(output).toContain("npx zeehub");
+      expect(output).toContain("npx clawdhub");
     });
 
     it("formats skills list with eligible skill", () => {
@@ -131,9 +125,7 @@ describe("skills-cli", () => {
     });
 
     it("outputs JSON with --json flag", () => {
-      const report = createMockReport([
-        createMockSkill({ name: "json-skill" }),
-      ]);
+      const report = createMockReport([createMockSkill({ name: "json-skill" })]);
       const output = formatSkillsList(report, { json: true });
       const parsed = JSON.parse(output);
       expect(parsed.skills).toHaveLength(1);
@@ -146,7 +138,7 @@ describe("skills-cli", () => {
       const report = createMockReport([]);
       const output = formatSkillInfo(report, "unknown-skill", {});
       expect(output).toContain("not found");
-      expect(output).toContain("npx zeehub");
+      expect(output).toContain("npx clawdhub");
     });
 
     it("shows detailed info for a skill", () => {
@@ -181,9 +173,7 @@ describe("skills-cli", () => {
     });
 
     it("outputs JSON with --json flag", () => {
-      const report = createMockReport([
-        createMockSkill({ name: "info-skill" }),
-      ]);
+      const report = createMockReport([createMockSkill({ name: "info-skill" })]);
       const output = formatSkillInfo(report, "info-skill", { json: true });
       const parsed = JSON.parse(output);
       expect(parsed.name).toBe("info-skill");
@@ -208,7 +198,7 @@ describe("skills-cli", () => {
       expect(output).toContain("ready-2");
       expect(output).toContain("not-ready");
       expect(output).toContain("go"); // missing binary
-      expect(output).toContain("npx zeehub");
+      expect(output).toContain("npx clawdhub");
     });
 
     it("outputs JSON with --json flag", () => {

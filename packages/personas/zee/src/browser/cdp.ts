@@ -1,35 +1,6 @@
-import WebSocket from "ws";
+import { appendCdpPath, fetchJson, isLoopbackHost, withCdpSocket } from "./cdp.helpers.js";
 
-import { rawDataToString } from "../infra/ws.js";
-
-type CdpResponse = {
-  id: number;
-  result?: unknown;
-  error?: { message?: string };
-};
-
-type Pending = {
-  resolve: (value: unknown) => void;
-  reject: (err: Error) => void;
-};
-
-type CdpSendFn = (
-  method: string,
-  params?: Record<string, unknown>,
-) => Promise<unknown>;
-
-function isLoopbackHost(host: string) {
-  const h = host.trim().toLowerCase();
-  return (
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h === "0.0.0.0" ||
-    h === "[::1]" ||
-    h === "::1" ||
-    h === "[::]" ||
-    h === "::"
-  );
-}
+export { appendCdpPath, fetchJson, fetchOk, getHeadersWithAuth } from "./cdp.helpers.js";
 
 export function normalizeCdpWsUrl(wsUrl: string, cdpUrl: string): string {
   const ws = new URL(wsUrl);
@@ -40,97 +11,17 @@ export function normalizeCdpWsUrl(wsUrl: string, cdpUrl: string): string {
     if (cdpPort) ws.port = cdpPort;
     ws.protocol = cdp.protocol === "https:" ? "wss:" : "ws:";
   }
+  if (cdp.protocol === "https:" && ws.protocol === "ws:") {
+    ws.protocol = "wss:";
+  }
+  if (!ws.username && !ws.password && (cdp.username || cdp.password)) {
+    ws.username = cdp.username;
+    ws.password = cdp.password;
+  }
+  for (const [key, value] of cdp.searchParams.entries()) {
+    if (!ws.searchParams.has(key)) ws.searchParams.append(key, value);
+  }
   return ws.toString();
-}
-
-function createCdpSender(ws: WebSocket) {
-  let nextId = 1;
-  const pending = new Map<number, Pending>();
-
-  const send: CdpSendFn = (
-    method: string,
-    params?: Record<string, unknown>,
-  ) => {
-    const id = nextId++;
-    const msg = { id, method, params };
-    ws.send(JSON.stringify(msg));
-    return new Promise<unknown>((resolve, reject) => {
-      pending.set(id, { resolve, reject });
-    });
-  };
-
-  const closeWithError = (err: Error) => {
-    for (const [, p] of pending) p.reject(err);
-    pending.clear();
-    try {
-      ws.close();
-    } catch {
-      // ignore
-    }
-  };
-
-  ws.on("message", (data) => {
-    try {
-      const parsed = JSON.parse(rawDataToString(data)) as CdpResponse;
-      if (typeof parsed.id !== "number") return;
-      const p = pending.get(parsed.id);
-      if (!p) return;
-      pending.delete(parsed.id);
-      if (parsed.error?.message) {
-        p.reject(new Error(parsed.error.message));
-        return;
-      }
-      p.resolve(parsed.result);
-    } catch {
-      // ignore
-    }
-  });
-
-  ws.on("close", () => {
-    closeWithError(new Error("CDP socket closed"));
-  });
-
-  return { send, closeWithError };
-}
-
-async function fetchJson<T>(url: string, timeoutMs = 1500): Promise<T> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return (await res.json()) as T;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-async function withCdpSocket<T>(
-  wsUrl: string,
-  fn: (send: CdpSendFn) => Promise<T>,
-): Promise<T> {
-  const ws = new WebSocket(wsUrl, { handshakeTimeout: 5000 });
-  const { send, closeWithError } = createCdpSender(ws);
-
-  const openPromise = new Promise<void>((resolve, reject) => {
-    ws.once("open", () => resolve());
-    ws.once("error", (err) => reject(err));
-  });
-
-  await openPromise;
-
-  try {
-    return await fn(send);
-  } catch (err) {
-    closeWithError(err instanceof Error ? err : new Error(String(err)));
-    throw err;
-  } finally {
-    try {
-      ws.close();
-    } catch {
-      // ignore
-    }
-  }
 }
 
 export async function captureScreenshotPng(opts: {
@@ -153,9 +44,7 @@ export async function captureScreenshot(opts: {
   return await withCdpSocket(opts.wsUrl, async (send) => {
     await send("Page.enable");
 
-    let clip:
-      | { x: number; y: number; width: number; height: number; scale: number }
-      | undefined;
+    let clip: { x: number; y: number; width: number; height: number; scale: number } | undefined;
     if (opts.fullPage) {
       const metrics = (await send("Page.getLayoutMetrics")) as {
         cssContentSize?: { width?: number; height?: number };
@@ -171,9 +60,7 @@ export async function captureScreenshot(opts: {
 
     const format = opts.format ?? "png";
     const quality =
-      format === "jpeg"
-        ? Math.max(0, Math.min(100, Math.round(opts.quality ?? 85)))
-        : undefined;
+      format === "jpeg" ? Math.max(0, Math.min(100, Math.round(opts.quality ?? 85))) : undefined;
 
     const result = (await send("Page.captureScreenshot", {
       format,
@@ -193,9 +80,8 @@ export async function createTargetViaCdp(opts: {
   cdpUrl: string;
   url: string;
 }): Promise<{ targetId: string }> {
-  const base = opts.cdpUrl.replace(/\/$/, "");
   const version = await fetchJson<{ webSocketDebuggerUrl?: string }>(
-    `${base}/json/version`,
+    appendCdpPath(opts.cdpUrl, "/json/version"),
     1500,
   );
   const wsUrlRaw = String(version?.webSocketDebuggerUrl ?? "").trim();
@@ -207,8 +93,7 @@ export async function createTargetViaCdp(opts: {
       targetId?: string;
     };
     const targetId = String(created?.targetId ?? "").trim();
-    if (!targetId)
-      throw new Error("CDP Target.createTarget returned no targetId");
+    if (!targetId) throw new Error("CDP Target.createTarget returned no targetId");
     return { targetId };
   });
 }
@@ -268,7 +153,7 @@ export type AriaSnapshotNode = {
   depth: number;
 };
 
-type RawAXNode = {
+export type RawAXNode = {
   nodeId?: string;
   role?: { value?: string };
   name?: { value?: string };
@@ -288,10 +173,7 @@ function axValue(v: unknown): string {
   return "";
 }
 
-function formatAriaSnapshot(
-  nodes: RawAXNode[],
-  limit: number,
-): AriaSnapshotNode[] {
+export function formatAriaSnapshot(nodes: RawAXNode[], limit: number): AriaSnapshotNode[] {
   const byId = new Map<string, RawAXNode>();
   for (const n of nodes) {
     if (n.nodeId) byId.set(n.nodeId, n);
@@ -302,14 +184,11 @@ function formatAriaSnapshot(
   for (const n of nodes) {
     for (const c of n.childIds ?? []) referenced.add(c);
   }
-  const root =
-    nodes.find((n) => n.nodeId && !referenced.has(n.nodeId)) ?? nodes[0];
+  const root = nodes.find((n) => n.nodeId && !referenced.has(n.nodeId)) ?? nodes[0];
   if (!root?.nodeId) return [];
 
   const out: AriaSnapshotNode[] = [];
-  const stack: Array<{ id: string; depth: number }> = [
-    { id: root.nodeId, depth: 0 },
-  ];
+  const stack: Array<{ id: string; depth: number }> = [{ id: root.nodeId, depth: 0 }];
   while (stack.length && out.length < limit) {
     const popped = stack.pop();
     if (!popped) break;
@@ -327,9 +206,7 @@ function formatAriaSnapshot(
       name: name || "",
       ...(value ? { value } : {}),
       ...(description ? { description } : {}),
-      ...(typeof n.backendDOMNodeId === "number"
-        ? { backendDOMNodeId: n.backendDOMNodeId }
-        : {}),
+      ...(typeof n.backendDOMNodeId === "number" ? { backendDOMNodeId: n.backendDOMNodeId } : {}),
       depth,
     });
 
@@ -366,10 +243,7 @@ export async function snapshotDom(opts: {
   nodes: DomSnapshotNode[];
 }> {
   const limit = Math.max(1, Math.min(5000, Math.floor(opts.limit ?? 800)));
-  const maxTextChars = Math.max(
-    0,
-    Math.min(5000, Math.floor(opts.maxTextChars ?? 220)),
-  );
+  const maxTextChars = Math.max(0, Math.min(5000, Math.floor(opts.maxTextChars ?? 220)));
 
   const expression = `(() => {
     const maxNodes = ${JSON.stringify(limit)};
@@ -449,10 +323,7 @@ export async function getDomText(opts: {
   maxChars?: number;
   selector?: string;
 }): Promise<{ text: string }> {
-  const maxChars = Math.max(
-    0,
-    Math.min(5_000_000, Math.floor(opts.maxChars ?? 200_000)),
-  );
+  const maxChars = Math.max(0, Math.min(5_000_000, Math.floor(opts.maxChars ?? 200_000)));
   const selectorExpr = opts.selector ? JSON.stringify(opts.selector) : "null";
   const expression = `(() => {
     const fmt = ${JSON.stringify(opts.format)};
@@ -497,14 +368,8 @@ export async function querySelector(opts: {
   matches: QueryMatch[];
 }> {
   const limit = Math.max(1, Math.min(200, Math.floor(opts.limit ?? 20)));
-  const maxText = Math.max(
-    0,
-    Math.min(5000, Math.floor(opts.maxTextChars ?? 500)),
-  );
-  const maxHtml = Math.max(
-    0,
-    Math.min(20000, Math.floor(opts.maxHtmlChars ?? 1500)),
-  );
+  const maxText = Math.max(0, Math.min(5000, Math.floor(opts.maxTextChars ?? 500)));
+  const maxHtml = Math.max(0, Math.min(20000, Math.floor(opts.maxHtmlChars ?? 1500)));
 
   const expression = `(() => {
     const sel = ${JSON.stringify(opts.selector)};

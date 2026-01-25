@@ -1,17 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { note } from "@clack/prompts";
-
 import {
   DEFAULT_SANDBOX_BROWSER_IMAGE,
   DEFAULT_SANDBOX_COMMON_IMAGE,
   DEFAULT_SANDBOX_IMAGE,
   resolveSandboxScope,
 } from "../agents/sandbox.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import { runCommandWithTimeout, runExec } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { note } from "../terminal/note.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
 type SandboxScriptInfo = {
@@ -39,16 +38,10 @@ function resolveSandboxScript(scriptRel: string): SandboxScriptInfo | null {
   return null;
 }
 
-async function runSandboxScript(
-  scriptRel: string,
-  runtime: RuntimeEnv,
-): Promise<boolean> {
+async function runSandboxScript(scriptRel: string, runtime: RuntimeEnv): Promise<boolean> {
   const script = resolveSandboxScript(scriptRel);
   if (!script) {
-    note(
-      `Unable to locate ${scriptRel}. Run it from the repo root.`,
-      "Sandbox",
-    );
+    note(`Unable to locate ${scriptRel}. Run it from the repo root.`, "Sandbox");
     return false;
   }
 
@@ -85,47 +78,57 @@ async function dockerImageExists(image: string): Promise<boolean> {
   try {
     await runExec("docker", ["image", "inspect", image], { timeoutMs: 5_000 });
     return true;
-  } catch {
-    return false;
+  } catch (error: any) {
+    const stderr = error?.stderr || error?.message || "";
+    if (String(stderr).includes("No such image")) {
+      return false;
+    }
+    throw error;
   }
 }
 
-function resolveSandboxDockerImage(cfg: ZeeConfig): string {
-  const image = cfg.agent?.sandbox?.docker?.image?.trim();
+function resolveSandboxDockerImage(cfg: ClawdbotConfig): string {
+  const image = cfg.agents?.defaults?.sandbox?.docker?.image?.trim();
   return image ? image : DEFAULT_SANDBOX_IMAGE;
 }
 
-function resolveSandboxBrowserImage(cfg: ZeeConfig): string {
-  const image = cfg.agent?.sandbox?.browser?.image?.trim();
+function resolveSandboxBrowserImage(cfg: ClawdbotConfig): string {
+  const image = cfg.agents?.defaults?.sandbox?.browser?.image?.trim();
   return image ? image : DEFAULT_SANDBOX_BROWSER_IMAGE;
 }
 
-function updateSandboxDockerImage(cfg: ZeeConfig, image: string): ZeeConfig {
+function updateSandboxDockerImage(cfg: ClawdbotConfig, image: string): ClawdbotConfig {
   return {
     ...cfg,
-    agent: {
-      ...cfg.agent,
-      sandbox: {
-        ...cfg.agent?.sandbox,
-        docker: {
-          ...cfg.agent?.sandbox?.docker,
-          image,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        sandbox: {
+          ...cfg.agents?.defaults?.sandbox,
+          docker: {
+            ...cfg.agents?.defaults?.sandbox?.docker,
+            image,
+          },
         },
       },
     },
   };
 }
 
-function updateSandboxBrowserImage(cfg: ZeeConfig, image: string): ZeeConfig {
+function updateSandboxBrowserImage(cfg: ClawdbotConfig, image: string): ClawdbotConfig {
   return {
     ...cfg,
-    agent: {
-      ...cfg.agent,
-      sandbox: {
-        ...cfg.agent?.sandbox,
-        browser: {
-          ...cfg.agent?.sandbox?.browser,
-          image,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        sandbox: {
+          ...cfg.agents?.defaults?.sandbox,
+          browser: {
+            ...cfg.agents?.defaults?.sandbox?.browser,
+            image,
+          },
         },
       },
     },
@@ -150,10 +153,7 @@ async function handleMissingSandboxImage(
   const buildHint = params.buildScript
     ? `Build it with ${params.buildScript}.`
     : "Build or pull it first.";
-  note(
-    `Sandbox ${params.label} image missing: ${params.image}. ${buildHint}`,
-    "Sandbox",
-  );
+  note(`Sandbox ${params.label} image missing: ${params.image}. ${buildHint}`, "Sandbox");
 
   let built = false;
   if (params.buildScript) {
@@ -170,11 +170,11 @@ async function handleMissingSandboxImage(
 }
 
 export async function maybeRepairSandboxImages(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   runtime: RuntimeEnv,
   prompter: DoctorPrompter,
-): Promise<ZeeConfig> {
-  const sandbox = cfg.agent?.sandbox;
+): Promise<ClawdbotConfig> {
+  const sandbox = cfg.agents?.defaults?.sandbox;
   const mode = sandbox?.mode ?? "off";
   if (!sandbox || mode === "off") return cfg;
 
@@ -200,7 +200,7 @@ export async function maybeRepairSandboxImages(
             : undefined,
       updateConfig: (image) => {
         next = updateSandboxDockerImage(next, image);
-        changes.push(`Updated agent.sandbox.docker.image → ${image}`);
+        changes.push(`Updated agents.defaults.sandbox.docker.image → ${image}`);
       },
     },
     runtime,
@@ -215,7 +215,7 @@ export async function maybeRepairSandboxImages(
         buildScript: "scripts/sandbox-browser-setup.sh",
         updateConfig: (image) => {
           next = updateSandboxBrowserImage(next, image);
-          changes.push(`Updated agent.sandbox.browser.image → ${image}`);
+          changes.push(`Updated agents.defaults.sandbox.browser.image → ${image}`);
         },
       },
       runtime,
@@ -230,12 +230,13 @@ export async function maybeRepairSandboxImages(
   return next;
 }
 
-export function noteSandboxScopeWarnings(cfg: ZeeConfig) {
-  const globalSandbox = cfg.agent?.sandbox;
-  const agents = cfg.routing?.agents ?? {};
+export function noteSandboxScopeWarnings(cfg: ClawdbotConfig) {
+  const globalSandbox = cfg.agents?.defaults?.sandbox;
+  const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
   const warnings: string[] = [];
 
-  for (const [agentId, agent] of Object.entries(agents)) {
+  for (const agent of agents) {
+    const agentId = agent.id;
     const agentSandbox = agent.sandbox;
     if (!agentSandbox) continue;
 
@@ -260,9 +261,10 @@ export function noteSandboxScopeWarnings(cfg: ZeeConfig) {
     if (overrides.length === 0) continue;
 
     warnings.push(
-      `- routing.agents.${agentId}.sandbox: ${overrides.join(
-        "/",
-      )} overrides ignored (scope resolves to "shared").`,
+      [
+        `- agents.list (id "${agentId}") sandbox ${overrides.join("/")} overrides ignored.`,
+        `  scope resolves to "shared".`,
+      ].join("\n"),
     );
   }
 

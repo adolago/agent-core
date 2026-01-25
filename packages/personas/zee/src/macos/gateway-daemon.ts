@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import process from "node:process";
+import type { GatewayLockHandle } from "../infra/gateway-lock.js";
 
-declare const __ZEE_VERSION__: string;
+declare const __CLAWDBOT_VERSION__: string;
 
 const BUNDLED_VERSION =
-  typeof __ZEE_VERSION__ === "string" ? __ZEE_VERSION__ : "0.0.0";
+  (typeof __CLAWDBOT_VERSION__ === "string" && __CLAWDBOT_VERSION__) ||
+  process.env.CLAWDBOT_BUNDLED_VERSION ||
+  "0.0.0";
 
 function argValue(args: string[], flag: string): string | undefined {
   const idx = args.indexOf(flag);
@@ -23,7 +26,7 @@ type GatewayWsLogStyle = "auto" | "full" | "compact";
 
 async function main() {
   if (hasFlag(args, "--version") || hasFlag(args, "-v")) {
-    // Match `zee --version` behavior for Swift env/version checks.
+    // Match `clawdbot --version` behavior for Swift env/version checks.
     // Keep output a single line.
     console.log(BUNDLED_VERSION);
     process.exit(0);
@@ -43,20 +46,28 @@ async function main() {
     { startGatewayServer },
     { setGatewayWsLogStyle },
     { setVerbose },
+    { acquireGatewayLock, GatewayLockError },
+    { consumeGatewaySigusr1RestartAuthorization, isGatewaySigusr1RestartExternallyAllowed },
     { defaultRuntime },
+    { enableConsoleCapture, setConsoleTimestampPrefix },
   ] = await Promise.all([
     import("../config/config.js"),
     import("../gateway/server.js"),
     import("../gateway/ws-logging.js"),
     import("../globals.js"),
+    import("../infra/gateway-lock.js"),
+    import("../infra/restart.js"),
     import("../runtime.js"),
-  ]);
+    import("../logging.js"),
+  ] as const);
 
+  enableConsoleCapture();
+  setConsoleTimestampPrefix(true);
   setVerbose(hasFlag(args, "--verbose"));
 
-  const wsLogRaw = (
-    hasFlag(args, "--compact") ? "compact" : argValue(args, "--ws-log")
-  ) as string | undefined;
+  const wsLogRaw = (hasFlag(args, "--compact") ? "compact" : argValue(args, "--ws-log")) as
+    | string
+    | undefined;
   const wsLogStyle: GatewayWsLogStyle =
     wsLogRaw === "compact" ? "compact" : wsLogRaw === "full" ? "full" : "auto";
   setGatewayWsLogStyle(wsLogStyle);
@@ -64,7 +75,7 @@ async function main() {
   const cfg = loadConfig();
   const portRaw =
     argValue(args, "--port") ??
-    process.env.ZEE_GATEWAY_PORT ??
+    process.env.CLAWDBOT_GATEWAY_PORT ??
     (typeof cfg.gateway?.port === "number" ? String(cfg.gateway.port) : "") ??
     "18789";
   const port = Number.parseInt(portRaw, 10);
@@ -75,27 +86,27 @@ async function main() {
 
   const bindRaw =
     argValue(args, "--bind") ??
-    process.env.ZEE_GATEWAY_BIND ??
+    process.env.CLAWDBOT_GATEWAY_BIND ??
     cfg.gateway?.bind ??
     "loopback";
   const bind =
     bindRaw === "loopback" ||
-    bindRaw === "tailnet" ||
     bindRaw === "lan" ||
-    bindRaw === "auto"
+    bindRaw === "auto" ||
+    bindRaw === "custom" ||
+    bindRaw === "tailnet"
       ? bindRaw
       : null;
   if (!bind) {
-    defaultRuntime.error(
-      'Invalid --bind (use "loopback", "tailnet", "lan", or "auto")',
-    );
+    defaultRuntime.error('Invalid --bind (use "loopback", "lan", "tailnet", "auto", or "custom")');
     process.exit(1);
   }
 
   const token = argValue(args, "--token");
-  if (token) process.env.ZEE_GATEWAY_TOKEN = token;
+  if (token) process.env.CLAWDBOT_GATEWAY_TOKEN = token;
 
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;
+  let lock: GatewayLockHandle | null = null;
   let shuttingDown = false;
   let forceExitTimer: ReturnType<typeof setTimeout> | null = null;
   let restartResolver: (() => void) | null = null;
@@ -108,9 +119,7 @@ async function main() {
 
   const request = (action: "stop" | "restart", signal: string) => {
     if (shuttingDown) {
-      defaultRuntime.log(
-        `gateway: received ${signal} during shutdown; ignoring`,
-      );
+      defaultRuntime.log(`gateway: received ${signal} during shutdown; ignoring`);
       return;
     }
     shuttingDown = true;
@@ -120,9 +129,7 @@ async function main() {
     );
 
     forceExitTimer = setTimeout(() => {
-      defaultRuntime.error(
-        "gateway: shutdown timed out; exiting without full cleanup",
-      );
+      defaultRuntime.error("gateway: shutdown timed out; exiting without full cleanup");
       cleanupSignals();
       process.exit(0);
     }, 5000);
@@ -149,15 +156,40 @@ async function main() {
     })();
   };
 
-  const onSigterm = () => request("stop", "SIGTERM");
-  const onSigint = () => request("stop", "SIGINT");
-  const onSigusr1 = () => request("restart", "SIGUSR1");
+  const onSigterm = () => {
+    defaultRuntime.log("gateway: signal SIGTERM received");
+    request("stop", "SIGTERM");
+  };
+  const onSigint = () => {
+    defaultRuntime.log("gateway: signal SIGINT received");
+    request("stop", "SIGINT");
+  };
+  const onSigusr1 = () => {
+    defaultRuntime.log("gateway: signal SIGUSR1 received");
+    const authorized = consumeGatewaySigusr1RestartAuthorization();
+    if (!authorized && !isGatewaySigusr1RestartExternallyAllowed()) {
+      defaultRuntime.log(
+        "gateway: SIGUSR1 restart ignored (not authorized; enable commands.restart or use gateway tool).",
+      );
+      return;
+    }
+    request("restart", "SIGUSR1");
+  };
 
   process.on("SIGTERM", onSigterm);
   process.on("SIGINT", onSigint);
   process.on("SIGUSR1", onSigusr1);
 
   try {
+    try {
+      lock = await acquireGatewayLock();
+    } catch (err) {
+      if (err instanceof GatewayLockError) {
+        defaultRuntime.error(`Gateway start blocked: ${err.message}`);
+        process.exit(1);
+      }
+      throw err;
+    }
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
@@ -172,8 +204,15 @@ async function main() {
       });
     }
   } finally {
+    await (lock as GatewayLockHandle | null)?.release();
     cleanupSignals();
   }
 }
 
-void main();
+void main().catch((err) => {
+  console.error(
+    "[clawdbot] Gateway daemon failed:",
+    err instanceof Error ? (err.stack ?? err.message) : err,
+  );
+  process.exit(1);
+});

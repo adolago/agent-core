@@ -14,6 +14,19 @@ vi.mock("./store.js", () => ({
 
 const { startMediaServer } = await import("./server.js");
 
+const waitForFileRemoval = async (file: string, timeoutMs = 200) => {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      await fs.stat(file);
+    } catch {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error(`timed out waiting for ${file} removal`);
+};
+
 describe("media server", () => {
   beforeAll(async () => {
     await fs.rm(MEDIA_DIR, { recursive: true, force: true });
@@ -32,8 +45,7 @@ describe("media server", () => {
     const res = await fetch(`http://localhost:${port}/media/file1`);
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("hello");
-    await new Promise((r) => setTimeout(r, 600));
-    await expect(fs.stat(file)).rejects.toThrow();
+    await waitForFileRemoval(file);
     await new Promise((r) => server.close(r));
   });
 
@@ -54,9 +66,7 @@ describe("media server", () => {
     const server = await startMediaServer(0, 5_000);
     const port = (server.address() as AddressInfo).port;
     // URL-encoded "../" to bypass client-side path normalization
-    const res = await fetch(
-      `http://localhost:${port}/media/%2e%2e%2fpackage.json`,
-    );
+    const res = await fetch(`http://localhost:${port}/media/%2e%2e%2fpackage.json`);
     expect(res.status).toBe(400);
     expect(await res.text()).toBe("invalid path");
     await new Promise((r) => server.close(r));

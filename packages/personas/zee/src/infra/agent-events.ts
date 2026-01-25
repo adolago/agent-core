@@ -1,9 +1,6 @@
-export type AgentEventStream =
-  | "lifecycle"
-  | "tool"
-  | "assistant"
-  | "error"
-  | (string & {});
+import type { VerboseLevel } from "../auto-reply/thinking.js";
+
+export type AgentEventStream = "lifecycle" | "tool" | "assistant" | "error" | (string & {});
 
 export type AgentEventPayload = {
   runId: string;
@@ -16,9 +13,7 @@ export type AgentEventPayload = {
 
 export type AgentRunContext = {
   sessionKey?: string;
-  sessionId?: string;
-  requestId?: string;
-  traceId?: string;
+  verboseLevel?: VerboseLevel;
 };
 
 // Keep per-run counters so streams stay strictly monotonic per runId.
@@ -26,10 +21,7 @@ const seqByRun = new Map<string, number>();
 const listeners = new Set<(evt: AgentEventPayload) => void>();
 const runContextById = new Map<string, AgentRunContext>();
 
-export function registerAgentRunContext(
-  runId: string,
-  context: AgentRunContext,
-) {
+export function registerAgentRunContext(runId: string, context: AgentRunContext) {
   if (!runId) return;
   const existing = runContextById.get(runId);
   if (!existing) {
@@ -39,14 +31,8 @@ export function registerAgentRunContext(
   if (context.sessionKey && existing.sessionKey !== context.sessionKey) {
     existing.sessionKey = context.sessionKey;
   }
-  if (context.sessionId && existing.sessionId !== context.sessionId) {
-    existing.sessionId = context.sessionId;
-  }
-  if (context.requestId && existing.requestId !== context.requestId) {
-    existing.requestId = context.requestId;
-  }
-  if (context.traceId && existing.traceId !== context.traceId) {
-    existing.traceId = context.traceId;
+  if (context.verboseLevel && existing.verboseLevel !== context.verboseLevel) {
+    existing.verboseLevel = context.verboseLevel;
   }
 }
 
@@ -65,8 +51,14 @@ export function resetAgentRunContextForTest() {
 export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
   const nextSeq = (seqByRun.get(event.runId) ?? 0) + 1;
   seqByRun.set(event.runId, nextSeq);
+  const context = runContextById.get(event.runId);
+  const sessionKey =
+    typeof event.sessionKey === "string" && event.sessionKey.trim()
+      ? event.sessionKey
+      : context?.sessionKey;
   const enriched: AgentEventPayload = {
     ...event,
+    sessionKey,
     seq: nextSeq,
     ts: Date.now(),
   };

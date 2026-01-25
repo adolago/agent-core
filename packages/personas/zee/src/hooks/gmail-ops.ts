@@ -1,16 +1,18 @@
 import { spawn } from "node:child_process";
 
 import {
-  CONFIG_PATH_ZEE,
+  type ClawdbotConfig,
+  CONFIG_PATH_CLAWDBOT,
   loadConfig,
   readConfigFileSnapshot,
   resolveGatewayPort,
-  validateConfigObject,
+  validateConfigObjectWithPlugins,
   writeConfigFile,
-  type ZeeConfig,
 } from "../config/config.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime } from "../runtime.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { displayPath } from "../utils.js";
 import {
   buildDefaultHookUrl,
   buildGogWatchServeArgs,
@@ -60,6 +62,7 @@ export type GmailSetupOptions = {
   renewEveryMinutes?: number;
   tailscale?: "off" | "serve" | "funnel";
   tailscalePath?: string;
+  tailscaleTarget?: string;
   pushEndpoint?: string;
   json?: boolean;
 };
@@ -80,10 +83,10 @@ export type GmailRunOptions = {
   renewEveryMinutes?: number;
   tailscale?: "off" | "serve" | "funnel";
   tailscalePath?: string;
+  tailscaleTarget?: string;
 };
 
-const DEFAULT_GMAIL_TOPIC_IAM_MEMBER =
-  "serviceAccount:gmail-api-push@system.gserviceaccount.com";
+const DEFAULT_GMAIL_TOPIC_IAM_MEMBER = "serviceAccount:gmail-api-push@system.gserviceaccount.com";
 
 export async function runGmailSetup(opts: GmailSetupOptions) {
   await ensureDependency("gcloud", ["--cask", "gcloud-cli"]);
@@ -96,25 +99,20 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
 
   const configSnapshot = await readConfigFileSnapshot();
   if (!configSnapshot.valid) {
-    throw new Error(`Config invalid: ${CONFIG_PATH_ZEE}`);
+    throw new Error(`Config invalid: ${CONFIG_PATH_CLAWDBOT}`);
   }
 
   const baseConfig = configSnapshot.config;
   const hooksPath = normalizeHooksPath(baseConfig.hooks?.path);
-  const hookToken =
-    opts.hookToken ?? baseConfig.hooks?.token ?? generateHookToken();
-  const pushToken =
-    opts.pushToken ?? baseConfig.hooks?.gmail?.pushToken ?? generateHookToken();
+  const hookToken = opts.hookToken ?? baseConfig.hooks?.token ?? generateHookToken();
+  const pushToken = opts.pushToken ?? baseConfig.hooks?.gmail?.pushToken ?? generateHookToken();
 
-  const topicInput =
-    opts.topic ?? baseConfig.hooks?.gmail?.topic ?? DEFAULT_GMAIL_TOPIC;
+  const topicInput = opts.topic ?? baseConfig.hooks?.gmail?.topic ?? DEFAULT_GMAIL_TOPIC;
   const parsedTopic = parseTopicPath(topicInput);
   const topicName = parsedTopic?.topicName ?? topicInput;
 
   const projectId =
-    opts.project ??
-    parsedTopic?.projectId ??
-    (await resolveProjectIdFromGogCredentials());
+    opts.project ?? parsedTopic?.projectId ?? (await resolveProjectIdFromGogCredentials());
   // Gmail watch requires the Pub/Sub topic to live in the OAuth client project.
   if (!projectId) {
     throw new Error(
@@ -134,26 +132,31 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
   const serveBind = opts.bind ?? DEFAULT_GMAIL_SERVE_BIND;
   const servePort = opts.port ?? DEFAULT_GMAIL_SERVE_PORT;
   const configuredServePath = opts.path ?? baseConfig.hooks?.gmail?.serve?.path;
+  const configuredTailscaleTarget =
+    opts.tailscaleTarget ?? baseConfig.hooks?.gmail?.tailscale?.target;
+  const normalizedServePath =
+    typeof configuredServePath === "string" && configuredServePath.trim().length > 0
+      ? normalizeServePath(configuredServePath)
+      : DEFAULT_GMAIL_SERVE_PATH;
+  const normalizedTailscaleTarget =
+    typeof configuredTailscaleTarget === "string" && configuredTailscaleTarget.trim().length > 0
+      ? configuredTailscaleTarget.trim()
+      : undefined;
 
   const includeBody = opts.includeBody ?? true;
   const maxBytes = opts.maxBytes ?? DEFAULT_GMAIL_MAX_BYTES;
-  const renewEveryMinutes =
-    opts.renewEveryMinutes ?? DEFAULT_GMAIL_RENEW_MINUTES;
+  const renewEveryMinutes = opts.renewEveryMinutes ?? DEFAULT_GMAIL_RENEW_MINUTES;
 
   const tailscaleMode = opts.tailscale ?? "funnel";
   // Tailscale strips the path before proxying; keep a public path while gog
-  // listens on "/" unless the user explicitly configured a serve path.
+  // listens on "/" whenever Tailscale is enabled.
   const servePath = normalizeServePath(
-    tailscaleMode !== "off" && !configuredServePath
-      ? "/"
-      : (configuredServePath ?? DEFAULT_GMAIL_SERVE_PATH),
+    tailscaleMode !== "off" && !normalizedTailscaleTarget ? "/" : normalizedServePath,
   );
   const tailscalePath = normalizeServePath(
     opts.tailscalePath ??
       baseConfig.hooks?.gmail?.tailscale?.path ??
-      (tailscaleMode !== "off"
-        ? (configuredServePath ?? DEFAULT_GMAIL_SERVE_PATH)
-        : servePath),
+      (tailscaleMode !== "off" ? normalizedServePath : servePath),
   );
 
   await runGcloud(["config", "set", "project", projectId, "--quiet"]);
@@ -188,6 +191,7 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
         mode: tailscaleMode,
         path: tailscalePath,
         port: servePort,
+        target: normalizedTailscaleTarget,
         token: pushToken,
       });
 
@@ -206,7 +210,7 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
     true,
   );
 
-  const nextConfig: ZeeConfig = {
+  const nextConfig: ClawdbotConfig = {
     ...baseConfig,
     hooks: {
       ...baseConfig.hooks,
@@ -235,16 +239,15 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
           ...baseConfig.hooks?.gmail?.tailscale,
           mode: tailscaleMode,
           path: tailscalePath,
+          target: normalizedTailscaleTarget,
         },
       },
     },
   };
 
-  const validated = validateConfigObject(nextConfig);
+  const validated = validateConfigObjectWithPlugins(nextConfig);
   if (!validated.ok) {
-    throw new Error(
-      `Config validation failed: ${validated.issues[0]?.message ?? "invalid"}`,
-    );
+    throw new Error(`Config validation failed: ${validated.issues[0]?.message ?? "invalid"}`);
   }
   await writeConfigFile(validated.config);
 
@@ -274,8 +277,8 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
   defaultRuntime.log(`- subscription: ${subscription}`);
   defaultRuntime.log(`- push endpoint: ${pushEndpoint}`);
   defaultRuntime.log(`- hook url: ${hookUrl}`);
-  defaultRuntime.log(`- config: ${CONFIG_PATH_ZEE}`);
-  defaultRuntime.log("Next: zee hooks gmail run");
+  defaultRuntime.log(`- config: ${displayPath(CONFIG_PATH_CLAWDBOT)}`);
+  defaultRuntime.log(`Next: ${formatCliCommand("clawdbot webhooks gmail run")}`);
 }
 
 export async function runGmailService(opts: GmailRunOptions) {
@@ -298,6 +301,7 @@ export async function runGmailService(opts: GmailRunOptions) {
     renewEveryMinutes: opts.renewEveryMinutes,
     tailscaleMode: opts.tailscale,
     tailscalePath: opts.tailscalePath,
+    tailscaleTarget: opts.tailscaleTarget,
   };
 
   const resolved = resolveGmailHookRuntimeConfig(config, overrides);
@@ -313,6 +317,7 @@ export async function runGmailService(opts: GmailRunOptions) {
       mode: runtimeConfig.tailscale.mode,
       path: runtimeConfig.tailscale.path,
       port: runtimeConfig.serve.port,
+      target: runtimeConfig.tailscale.target,
     });
   }
 

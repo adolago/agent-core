@@ -1,5 +1,5 @@
 ---
-summary: "Zee Gateway CLI (`zee gateway`) — run, query, and discover gateways"
+summary: "Clawdbot Gateway CLI (`clawdbot gateway`) — run, query, and discover gateways"
 read_when:
   - Running the Gateway from the CLI (dev or servers)
   - Debugging Gateway auth, bind modes, and connectivity
@@ -8,9 +8,9 @@ read_when:
 
 # Gateway CLI
 
-The Gateway is Zee's WebSocket server (providers, nodes, sessions, hooks).
+The Gateway is Clawdbot’s WebSocket server (channels, nodes, sessions, hooks).
 
-Subcommands in this page live under `zee gateway ...`.
+Subcommands in this page live under `clawdbot gateway …`.
 
 Related docs:
 - [/gateway/bonjour](/gateway/bonjour)
@@ -22,25 +22,33 @@ Related docs:
 Run a local Gateway process:
 
 ```bash
-zee gateway
+clawdbot gateway
+```
+
+Foreground alias:
+
+```bash
+clawdbot gateway run
 ```
 
 Notes:
-- By default, the Gateway refuses to start unless `gateway.mode=local` is set in `~/.zee/zee.json`. Use `--allow-unconfigured` for ad-hoc/dev runs.
+- By default, the Gateway refuses to start unless `gateway.mode=local` is set in `~/.clawdbot/clawdbot.json`. Use `--allow-unconfigured` for ad-hoc/dev runs.
 - Binding beyond loopback without auth is blocked (safety guardrail).
-- `SIGUSR1` triggers an in-process restart (useful without a supervisor).
+- `SIGUSR1` triggers an in-process restart when authorized (enable `commands.restart` or use the gateway tool/config apply/update).
+- `SIGINT`/`SIGTERM` handlers stop the gateway process, but they don’t restore any custom terminal state. If you wrap the CLI with a TUI or raw-mode input, restore the terminal before exit.
 
 ### Options
 
 - `--port <port>`: WebSocket port (default comes from config/env; usually `18789`).
-- `--bind <loopback|lan|tailnet|auto>`: listener bind mode.
+- `--bind <loopback|lan|tailnet|auto|custom>`: listener bind mode.
 - `--auth <token|password>`: auth mode override.
-- `--token <token>`: token override (also sets `ZEE_GATEWAY_TOKEN` for the process).
-- `--password <password>`: password override (also sets `ZEE_GATEWAY_PASSWORD` for the process).
+- `--token <token>`: token override (also sets `CLAWDBOT_GATEWAY_TOKEN` for the process).
+- `--password <password>`: password override (also sets `CLAWDBOT_GATEWAY_PASSWORD` for the process).
 - `--tailscale <off|serve|funnel>`: expose the Gateway via Tailscale.
 - `--tailscale-reset-on-exit`: reset Tailscale serve/funnel config on shutdown.
+- `--allow-unconfigured`: allow gateway start without `gateway.mode=local` in config.
 - `--dev`: create a dev config + workspace if missing (skips BOOTSTRAP.md).
-- `--reset`: recreate the dev config (requires `--dev`).
+- `--reset`: reset dev config + credentials + sessions + workspace (requires `--dev`).
 - `--force`: kill any existing listener on the selected port before starting.
 - `--verbose`: verbose logs.
 - `--claude-cli-logs`: only show claude-cli logs in the console (and enable its stdout/stderr).
@@ -63,35 +71,52 @@ Shared options (where supported):
 - `--token <token>`: Gateway token.
 - `--password <password>`: Gateway password.
 - `--timeout <ms>`: timeout/budget (varies per command).
-- `--expect-final`: wait for a "final" response (agent calls).
+- `--expect-final`: wait for a “final” response (agent calls).
 
 ### `gateway health`
 
 ```bash
-zee gateway health --url ws://127.0.0.1:18789
+clawdbot gateway health --url ws://127.0.0.1:18789
 ```
 
 ### `gateway status`
 
-`gateway status` is the "debug everything" command. It always probes:
+`gateway status` shows the Gateway service (launchd/systemd/schtasks) plus an optional RPC probe.
+
+```bash
+clawdbot gateway status
+clawdbot gateway status --json
+```
+
+Options:
+- `--url <url>`: override the probe URL.
+- `--token <token>`: token auth for the probe.
+- `--password <password>`: password auth for the probe.
+- `--timeout <ms>`: probe timeout (default `10000`).
+- `--no-probe`: skip the RPC probe (service-only view).
+- `--deep`: scan system-level services too.
+
+### `gateway probe`
+
+`gateway probe` is the “debug everything” command. It always probes:
 - your configured remote gateway (if set), and
 - localhost (loopback) **even if remote is configured**.
 
-If multiple gateways are reachable, it prints all of them and warns this is an unconventional setup (usually you want only one gateway).
+If multiple gateways are reachable, it prints all of them. Multiple gateways are supported when you use isolated profiles/ports (e.g., a rescue bot), but most installs still run a single gateway.
 
 ```bash
-zee gateway status
-zee gateway status --json
+clawdbot gateway probe
+clawdbot gateway probe --json
 ```
 
 #### Remote over SSH (Mac app parity)
 
-The macOS app "Remote over SSH" mode uses a local port-forward so the remote gateway (which may be bound to loopback only) becomes reachable at `ws://127.0.0.1:<port>`.
+The macOS app “Remote over SSH” mode uses a local port-forward so the remote gateway (which may be bound to loopback only) becomes reachable at `ws://127.0.0.1:<port>`.
 
 CLI equivalent:
 
 ```bash
-zee gateway status --ssh steipete@peters-mac-studio-1
+clawdbot gateway probe --ssh user@gateway-host
 ```
 
 Options:
@@ -108,31 +133,46 @@ Config (optional, used as defaults):
 Low-level RPC helper.
 
 ```bash
-zee gateway call status
-zee gateway call logs.tail --params '{"sinceMs": 60000}'
+clawdbot gateway call status
+clawdbot gateway call logs.tail --params '{"sinceMs": 60000}'
 ```
+
+## Manage the Gateway service
+
+```bash
+clawdbot gateway install
+clawdbot gateway start
+clawdbot gateway stop
+clawdbot gateway restart
+clawdbot gateway uninstall
+```
+
+Notes:
+- `gateway install` supports `--port`, `--runtime`, `--token`, `--force`, `--json`.
+- Lifecycle commands accept `--json` for scripting.
 
 ## Discover gateways (Bonjour)
 
-`gateway discover` scans for Gateway beacons (`_zee-gateway._tcp`).
+`gateway discover` scans for Gateway beacons (`_clawdbot-gw._tcp`).
 
 - Multicast DNS-SD: `local.`
-- Unicast DNS-SD (Wide-Area Bonjour): `zee.internal.` (requires split DNS + DNS server; see [/gateway/bonjour](/gateway/bonjour))
+- Unicast DNS-SD (Wide-Area Bonjour): `clawdbot.internal.` (requires split DNS + DNS server; see [/gateway/bonjour](/gateway/bonjour))
 
-Gateways always advertise `_zee-gateway._tcp`; `_zee-bridge._tcp` is only published when the bridge is enabled.
+Only gateways with Bonjour discovery enabled (default) advertise the beacon.
 
 Wide-Area discovery records include (TXT):
+- `role` (gateway role hint)
+- `transport` (transport hint, e.g. `gateway`)
 - `gatewayPort` (WebSocket port, usually `18789`)
-- `bridgePort` (bridge port, when enabled)
 - `sshPort` (SSH port; defaults to `22` if not present)
 - `tailnetDns` (MagicDNS hostname, when available)
+- `gatewayTls` / `gatewayTlsSha256` (TLS enabled + cert fingerprint)
 - `cliPath` (optional hint for remote installs)
-- `gatewayTls` / `gatewayTlsSha256` (TLS hints, when enabled)
 
 ### `gateway discover`
 
 ```bash
-zee gateway discover
+clawdbot gateway discover
 ```
 
 Options:
@@ -142,6 +182,6 @@ Options:
 Examples:
 
 ```bash
-zee gateway discover --timeout 4000
-zee gateway discover --json | jq '.beacons[].wsUrl'
+clawdbot gateway discover --timeout 4000
+clawdbot gateway discover --json | jq '.beacons[].wsUrl'
 ```

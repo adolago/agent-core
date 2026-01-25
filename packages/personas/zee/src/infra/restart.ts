@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import {
-  GATEWAY_LAUNCH_AGENT_LABEL,
-  GATEWAY_SYSTEMD_SERVICE_NAME,
+  resolveGatewayLaunchAgentLabel,
+  resolveGatewaySystemdServiceName,
 } from "../daemon/constants.js";
 
 export type RestartAttempt = {
@@ -12,6 +12,45 @@ export type RestartAttempt = {
 };
 
 const SPAWN_TIMEOUT_MS = 2000;
+const SIGUSR1_AUTH_GRACE_MS = 5000;
+
+let sigusr1AuthorizedCount = 0;
+let sigusr1AuthorizedUntil = 0;
+let sigusr1ExternalAllowed = false;
+
+function resetSigusr1AuthorizationIfExpired(now = Date.now()) {
+  if (sigusr1AuthorizedCount <= 0) return;
+  if (now <= sigusr1AuthorizedUntil) return;
+  sigusr1AuthorizedCount = 0;
+  sigusr1AuthorizedUntil = 0;
+}
+
+export function setGatewaySigusr1RestartPolicy(opts?: { allowExternal?: boolean }) {
+  sigusr1ExternalAllowed = opts?.allowExternal === true;
+}
+
+export function isGatewaySigusr1RestartExternallyAllowed() {
+  return sigusr1ExternalAllowed;
+}
+
+export function authorizeGatewaySigusr1Restart(delayMs = 0) {
+  const delay = Math.max(0, Math.floor(delayMs));
+  const expiresAt = Date.now() + delay + SIGUSR1_AUTH_GRACE_MS;
+  sigusr1AuthorizedCount += 1;
+  if (expiresAt > sigusr1AuthorizedUntil) {
+    sigusr1AuthorizedUntil = expiresAt;
+  }
+}
+
+export function consumeGatewaySigusr1RestartAuthorization(): boolean {
+  resetSigusr1AuthorizationIfExpired();
+  if (sigusr1AuthorizedCount <= 0) return false;
+  sigusr1AuthorizedCount -= 1;
+  if (sigusr1AuthorizedCount <= 0) {
+    sigusr1AuthorizedUntil = 0;
+  }
+  return true;
+}
 
 function formatSpawnDetail(result: {
   error?: unknown;
@@ -20,8 +59,7 @@ function formatSpawnDetail(result: {
   stderr?: string | Buffer | null;
 }): string {
   const clean = (value: string | Buffer | null | undefined) => {
-    const text =
-      typeof value === "string" ? value : value ? value.toString() : "";
+    const text = typeof value === "string" ? value : value ? value.toString() : "";
     return text.replace(/\s+/g, " ").trim();
   };
   if (result.error) {
@@ -41,20 +79,25 @@ function formatSpawnDetail(result: {
   return "unknown error";
 }
 
-function normalizeSystemdUnit(raw?: string): string {
+function normalizeSystemdUnit(raw?: string, profile?: string): string {
   const unit = raw?.trim();
-  if (!unit) return `${GATEWAY_SYSTEMD_SERVICE_NAME}.service`;
+  if (!unit) {
+    return `${resolveGatewaySystemdServiceName(profile)}.service`;
+  }
   return unit.endsWith(".service") ? unit : `${unit}.service`;
 }
 
-export function triggerZeeRestart(): RestartAttempt {
+export function triggerClawdbotRestart(): RestartAttempt {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return { ok: true, method: "supervisor", detail: "test mode" };
   }
   const tried: string[] = [];
   if (process.platform !== "darwin") {
     if (process.platform === "linux") {
-      const unit = normalizeSystemdUnit(process.env.ZEE_SYSTEMD_UNIT);
+      const unit = normalizeSystemdUnit(
+        process.env.CLAWDBOT_SYSTEMD_UNIT,
+        process.env.CLAWDBOT_PROFILE,
+      );
       const userArgs = ["--user", "restart", unit];
       tried.push(`systemctl ${userArgs.join(" ")}`);
       const userRestart = spawnSync("systemctl", userArgs, {
@@ -86,9 +129,10 @@ export function triggerZeeRestart(): RestartAttempt {
     };
   }
 
-  const label = process.env.ZEE_LAUNCHD_LABEL || GATEWAY_LAUNCH_AGENT_LABEL;
-  const uid =
-    typeof process.getuid === "function" ? process.getuid() : undefined;
+  const label =
+    process.env.CLAWDBOT_LAUNCHD_LABEL ||
+    resolveGatewayLaunchAgentLabel(process.env.CLAWDBOT_PROFILE);
+  const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
   const target = uid !== undefined ? `gui/${uid}/${label}` : label;
   const args = ["kickstart", "-k", target];
   tried.push(`launchctl ${args.join(" ")}`);
@@ -129,6 +173,7 @@ export function scheduleGatewaySigusr1Restart(opts?: {
     typeof opts?.reason === "string" && opts.reason.trim()
       ? opts.reason.trim().slice(0, 200)
       : undefined;
+  authorizeGatewaySigusr1Restart(delayMs);
   const pid = process.pid;
   const hasListener = process.listenerCount("SIGUSR1") > 0;
   setTimeout(() => {
@@ -151,3 +196,11 @@ export function scheduleGatewaySigusr1Restart(opts?: {
     mode: hasListener ? "emit" : "signal",
   };
 }
+
+export const __testing = {
+  resetSigusr1State() {
+    sigusr1AuthorizedCount = 0;
+    sigusr1AuthorizedUntil = 0;
+    sigusr1ExternalAllowed = false;
+  },
+};

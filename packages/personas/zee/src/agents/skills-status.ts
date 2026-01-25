@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import { CONFIG_DIR } from "../utils.js";
 import {
   hasBinary,
@@ -12,6 +12,7 @@ import {
   resolveSkillConfig,
   resolveSkillsInstallPreferences,
   type SkillEntry,
+  type SkillEligibilityContext,
   type SkillInstallSpec,
   type SkillsInstallPreferences,
 } from "./skills.js";
@@ -31,10 +32,10 @@ export type SkillInstallOption = {
 
 export type SkillStatusEntry = {
   name: string;
-  description?: string;
-  source?: string;
-  filePath?: string;
-  baseDir?: string;
+  description: string;
+  source: string;
+  filePath: string;
+  baseDir: string;
   skillKey: string;
   primaryEnv?: string;
   emoji?: string;
@@ -68,7 +69,7 @@ export type SkillStatusReport = {
 };
 
 function resolveSkillKey(entry: SkillEntry): string {
-  return entry.zee?.skillKey ?? entry.skill.name;
+  return entry.clawdbot?.skillKey ?? entry.skill.name;
 }
 
 function selectPreferredInstallSpec(
@@ -97,72 +98,96 @@ function normalizeInstallOptions(
   entry: SkillEntry,
   prefs: SkillsInstallPreferences,
 ): SkillInstallOption[] {
-  const install = entry.zee?.install ?? [];
+  const install = entry.clawdbot?.install ?? [];
   if (install.length === 0) return [];
-  const preferred = selectPreferredInstallSpec(install, prefs);
-  if (!preferred) return [];
-  const { spec, index } = preferred;
-  const id = (spec.id ?? `${spec.kind}-${index}`).trim();
-  const bins = spec.bins ?? [];
-  let label = (spec.label ?? "").trim();
-  if (spec.kind === "node" && spec.package) {
-    label = `Install ${spec.package} (${prefs.nodeManager})`;
-  }
-  if (!label) {
-    if (spec.kind === "brew" && spec.formula) {
-      label = `Install ${spec.formula} (brew)`;
-    } else if (spec.kind === "node" && spec.package) {
+
+  const platform = process.platform;
+  const filtered = install.filter((spec) => {
+    const osList = spec.os ?? [];
+    return osList.length === 0 || osList.includes(platform);
+  });
+  if (filtered.length === 0) return [];
+
+  const toOption = (spec: SkillInstallSpec, index: number): SkillInstallOption => {
+    const id = (spec.id ?? `${spec.kind}-${index}`).trim();
+    const bins = spec.bins ?? [];
+    let label = (spec.label ?? "").trim();
+    if (spec.kind === "node" && spec.package) {
       label = `Install ${spec.package} (${prefs.nodeManager})`;
-    } else if (spec.kind === "go" && spec.module) {
-      label = `Install ${spec.module} (go)`;
-    } else if (spec.kind === "uv" && spec.package) {
-      label = `Install ${spec.package} (uv)`;
-    } else {
-      label = "Run installer";
     }
+    if (!label) {
+      if (spec.kind === "brew" && spec.formula) {
+        label = `Install ${spec.formula} (brew)`;
+      } else if (spec.kind === "node" && spec.package) {
+        label = `Install ${spec.package} (${prefs.nodeManager})`;
+      } else if (spec.kind === "go" && spec.module) {
+        label = `Install ${spec.module} (go)`;
+      } else if (spec.kind === "uv" && spec.package) {
+        label = `Install ${spec.package} (uv)`;
+      } else if (spec.kind === "download" && spec.url) {
+        const url = spec.url.trim();
+        const last = url.split("/").pop();
+        label = `Download ${last && last.length > 0 ? last : url}`;
+      } else {
+        label = "Run installer";
+      }
+    }
+    return { id, kind: spec.kind, label, bins };
+  };
+
+  const allDownloads = filtered.every((spec) => spec.kind === "download");
+  if (allDownloads) {
+    return filtered.map((spec, index) => toOption(spec, index));
   }
-  return [
-    {
-      id,
-      kind: spec.kind,
-      label,
-      bins,
-    },
-  ];
+
+  const preferred = selectPreferredInstallSpec(filtered, prefs);
+  if (!preferred) return [];
+  return [toOption(preferred.spec, preferred.index)];
 }
 
 function buildSkillStatus(
   entry: SkillEntry,
-  config?: ZeeConfig,
+  config?: ClawdbotConfig,
   prefs?: SkillsInstallPreferences,
+  eligibility?: SkillEligibilityContext,
 ): SkillStatusEntry {
   const skillKey = resolveSkillKey(entry);
   const skillConfig = resolveSkillConfig(config, skillKey);
   const disabled = skillConfig?.enabled === false;
   const allowBundled = resolveBundledAllowlist(config);
   const blockedByAllowlist = !isBundledSkillAllowed(entry, allowBundled);
-  const always = entry.zee?.always === true;
-  const emoji = entry.zee?.emoji ?? entry.frontmatter.emoji;
+  const always = entry.clawdbot?.always === true;
+  const emoji = entry.clawdbot?.emoji ?? entry.frontmatter.emoji;
   const homepageRaw =
-    entry.zee?.homepage ??
+    entry.clawdbot?.homepage ??
     entry.frontmatter.homepage ??
     entry.frontmatter.website ??
     entry.frontmatter.url;
   const homepage = homepageRaw?.trim() ? homepageRaw.trim() : undefined;
 
-  const requiredBins = entry.zee?.requires?.bins ?? [];
-  const requiredAnyBins = entry.zee?.requires?.anyBins ?? [];
-  const requiredEnv = entry.zee?.requires?.env ?? [];
-  const requiredConfig = entry.zee?.requires?.config ?? [];
-  const requiredOs = entry.zee?.os ?? [];
+  const requiredBins = entry.clawdbot?.requires?.bins ?? [];
+  const requiredAnyBins = entry.clawdbot?.requires?.anyBins ?? [];
+  const requiredEnv = entry.clawdbot?.requires?.env ?? [];
+  const requiredConfig = entry.clawdbot?.requires?.config ?? [];
+  const requiredOs = entry.clawdbot?.os ?? [];
 
-  const missingBins = requiredBins.filter((bin) => !hasBinary(bin));
+  const missingBins = requiredBins.filter((bin) => {
+    if (hasBinary(bin)) return false;
+    if (eligibility?.remote?.hasBin?.(bin)) return false;
+    return true;
+  });
   const missingAnyBins =
-    requiredAnyBins.length > 0 && !requiredAnyBins.some((bin) => hasBinary(bin))
+    requiredAnyBins.length > 0 &&
+    !(
+      requiredAnyBins.some((bin) => hasBinary(bin)) ||
+      eligibility?.remote?.hasAnyBin?.(requiredAnyBins)
+    )
       ? requiredAnyBins
       : [];
   const missingOs =
-    requiredOs.length > 0 && !requiredOs.includes(process.platform)
+    requiredOs.length > 0 &&
+    !requiredOs.includes(process.platform) &&
+    !eligibility?.remote?.platforms?.some((platform) => requiredOs.includes(platform))
       ? requiredOs
       : [];
 
@@ -170,22 +195,18 @@ function buildSkillStatus(
   for (const envName of requiredEnv) {
     if (process.env[envName]) continue;
     if (skillConfig?.env?.[envName]) continue;
-    if (skillConfig?.apiKey && entry.zee?.primaryEnv === envName) {
+    if (skillConfig?.apiKey && entry.clawdbot?.primaryEnv === envName) {
       continue;
     }
     missingEnv.push(envName);
   }
 
-  const configChecks: SkillStatusConfigCheck[] = requiredConfig.map(
-    (pathStr) => {
-      const value = resolveConfigPath(config, pathStr);
-      const satisfied = isConfigPathTruthy(config, pathStr);
-      return { path: pathStr, value, satisfied };
-    },
-  );
-  const missingConfig = configChecks
-    .filter((check) => !check.satisfied)
-    .map((check) => check.path);
+  const configChecks: SkillStatusConfigCheck[] = requiredConfig.map((pathStr) => {
+    const value = resolveConfigPath(config, pathStr);
+    const satisfied = isConfigPathTruthy(config, pathStr);
+    return { path: pathStr, value, satisfied };
+  });
+  const missingConfig = configChecks.filter((check) => !check.satisfied).map((check) => check.path);
 
   const missing = always
     ? { bins: [], anyBins: [], env: [], config: [], os: [] }
@@ -213,7 +234,7 @@ function buildSkillStatus(
     filePath: entry.skill.filePath,
     baseDir: entry.skill.baseDir,
     skillKey,
-    primaryEnv: entry.zee?.primaryEnv,
+    primaryEnv: entry.clawdbot?.primaryEnv,
     emoji,
     homepage,
     always,
@@ -229,31 +250,27 @@ function buildSkillStatus(
     },
     missing,
     configChecks,
-    install: normalizeInstallOptions(
-      entry,
-      prefs ?? resolveSkillsInstallPreferences(config),
-    ),
+    install: normalizeInstallOptions(entry, prefs ?? resolveSkillsInstallPreferences(config)),
   };
 }
 
 export function buildWorkspaceSkillStatus(
   workspaceDir: string,
   opts?: {
-    config?: ZeeConfig;
+    config?: ClawdbotConfig;
     managedSkillsDir?: string;
     entries?: SkillEntry[];
+    eligibility?: SkillEligibilityContext;
   },
 ): SkillStatusReport {
-  const managedSkillsDir =
-    opts?.managedSkillsDir ?? path.join(CONFIG_DIR, "skills");
-  const skillEntries =
-    opts?.entries ?? loadWorkspaceSkillEntries(workspaceDir, opts);
+  const managedSkillsDir = opts?.managedSkillsDir ?? path.join(CONFIG_DIR, "skills");
+  const skillEntries = opts?.entries ?? loadWorkspaceSkillEntries(workspaceDir, opts);
   const prefs = resolveSkillsInstallPreferences(opts?.config);
   return {
     workspaceDir,
     managedSkillsDir,
     skills: skillEntries.map((entry) =>
-      buildSkillStatus(entry, opts?.config, prefs),
+      buildSkillStatus(entry, opts?.config, prefs, opts?.eligibility),
     ),
   };
 }

@@ -1,4 +1,25 @@
 import { extractErrorCode, formatErrorMessage } from "../infra/errors.js";
+import { loadConfig } from "../config/config.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { resolveBrowserConfig } from "./config.js";
+
+let cachedConfigToken: string | null | undefined = undefined;
+
+function getBrowserControlToken(): string | null {
+  const env = process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN?.trim();
+  if (env) return env;
+
+  if (cachedConfigToken !== undefined) return cachedConfigToken;
+  try {
+    const cfg = loadConfig();
+    const resolved = resolveBrowserConfig(cfg.browser);
+    const token = resolved.controlToken?.trim() || "";
+    cachedConfigToken = token ? token : null;
+  } catch {
+    cachedConfigToken = null;
+  }
+  return cachedConfigToken;
+}
 
 function unwrapCause(err: unknown): unknown {
   if (!err || typeof err !== "object") return null;
@@ -6,38 +27,31 @@ function unwrapCause(err: unknown): unknown {
   return cause ?? null;
 }
 
-function enhanceBrowserFetchError(
-  url: string,
-  err: unknown,
-  timeoutMs: number,
-): Error {
+function enhanceBrowserFetchError(url: string, err: unknown, timeoutMs: number): Error {
   const cause = unwrapCause(err);
   const code = extractErrorCode(cause) ?? extractErrorCode(err) ?? "";
 
-  const hint =
-    "Start (or restart) the Zee gateway (Zee.app menubar, or `zee gateway`) and try again.";
+  const hint = `Start (or restart) the Clawdbot gateway (Clawdbot.app menubar, or \`${formatCliCommand("clawdbot gateway")}\`) and try again.`;
 
   if (code === "ECONNREFUSED") {
     return new Error(
-      `Can't reach the zee browser control server at ${url} (connection refused). ${hint}`,
+      `Can't reach the clawd browser control server at ${url} (connection refused). ${hint}`,
     );
   }
   if (code === "ETIMEDOUT" || code === "UND_ERR_CONNECT_TIMEOUT") {
     return new Error(
-      `Can't reach the zee browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
+      `Can't reach the clawd browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
     );
   }
 
   const msg = formatErrorMessage(err);
   if (msg.toLowerCase().includes("abort")) {
     return new Error(
-      `Can't reach the zee browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
+      `Can't reach the clawd browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
     );
   }
 
-  return new Error(
-    `Can't reach the zee browser control server at ${url}. ${hint} (${msg})`,
-  );
+  return new Error(`Can't reach the clawd browser control server at ${url}. ${hint} (${msg})`);
 }
 
 export async function fetchBrowserJson<T>(
@@ -49,7 +63,20 @@ export async function fetchBrowserJson<T>(
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   let res: Response;
   try {
-    res = await fetch(url, { ...init, signal: ctrl.signal } as RequestInit);
+    const token = getBrowserControlToken();
+    const mergedHeaders = (() => {
+      if (!token) return init?.headers;
+      const h = new Headers(init?.headers ?? {});
+      if (!h.has("Authorization")) {
+        h.set("Authorization", `Bearer ${token}`);
+      }
+      return h;
+    })();
+    res = await fetch(url, {
+      ...init,
+      ...(mergedHeaders ? { headers: mergedHeaders } : {}),
+      signal: ctrl.signal,
+    } as RequestInit);
   } catch (err) {
     throw enhanceBrowserFetchError(url, err, timeoutMs);
   } finally {

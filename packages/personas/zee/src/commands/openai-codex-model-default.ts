@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import type { AgentModelListConfig } from "../config/types.js";
 
 export const OPENAI_CODEX_DEFAULT_MODEL = "openai-codex/gpt-5.2";
@@ -12,9 +12,7 @@ function shouldSetOpenAICodexModel(model?: string): boolean {
   return normalized === "gpt" || normalized === "gpt-mini";
 }
 
-function resolvePrimaryModel(
-  model?: AgentModelListConfig | string,
-): string | undefined {
+function resolvePrimaryModel(model?: AgentModelListConfig | string): string | undefined {
   if (typeof model === "string") return model;
   if (model && typeof model === "object" && typeof model.primary === "string") {
     return model.primary;
@@ -22,23 +20,29 @@ function resolvePrimaryModel(
   return undefined;
 }
 
-export function applyOpenAICodexModelDefault(cfg: ZeeConfig): {
-  next: ZeeConfig;
+export function applyOpenAICodexModelDefault(cfg: ClawdbotConfig): {
+  next: ClawdbotConfig;
   changed: boolean;
 } {
-  const current = resolvePrimaryModel(cfg.agent?.model);
+  const current = resolvePrimaryModel(cfg.agents?.defaults?.model);
   if (!shouldSetOpenAICodexModel(current)) {
     return { next: cfg, changed: false };
   }
   return {
     next: {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        model:
-          cfg.agent?.model && typeof cfg.agent.model === "object"
-            ? { ...cfg.agent.model, primary: OPENAI_CODEX_DEFAULT_MODEL }
-            : { primary: OPENAI_CODEX_DEFAULT_MODEL },
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          model:
+            cfg.agents?.defaults?.model && typeof cfg.agents.defaults.model === "object"
+              ? {
+                  ...cfg.agents.defaults.model,
+                  primary: OPENAI_CODEX_DEFAULT_MODEL,
+                }
+              : { primary: OPENAI_CODEX_DEFAULT_MODEL },
+        },
       },
     },
     changed: true,

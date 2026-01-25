@@ -1,10 +1,7 @@
 import fs from "node:fs";
 
-import type { ZeeConfig } from "../config/config.js";
-import {
-  DEFAULT_ACCOUNT_ID,
-  normalizeAccountId,
-} from "../routing/session-key.js";
+import type { ClawdbotConfig } from "../config/config.js";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 
 export type TelegramTokenSource = "env" | "tokenFile" | "config" | "none";
 
@@ -20,19 +17,20 @@ type ResolveTelegramTokenOpts = {
 };
 
 export function resolveTelegramToken(
-  cfg?: ZeeConfig,
+  cfg?: ClawdbotConfig,
   opts: ResolveTelegramTokenOpts = {},
 ): TelegramTokenResolution {
   const accountId = normalizeAccountId(opts.accountId);
+  const telegramCfg = cfg?.channels?.telegram;
   const accountCfg =
     accountId !== DEFAULT_ACCOUNT_ID
-      ? cfg?.telegram?.accounts?.[accountId]
-      : cfg?.telegram?.accounts?.[DEFAULT_ACCOUNT_ID];
+      ? telegramCfg?.accounts?.[accountId]
+      : telegramCfg?.accounts?.[DEFAULT_ACCOUNT_ID];
   const accountTokenFile = accountCfg?.tokenFile?.trim();
   if (accountTokenFile) {
     if (!fs.existsSync(accountTokenFile)) {
       opts.logMissingFile?.(
-        `telegram.accounts.${accountId}.tokenFile not found: ${accountTokenFile}`,
+        `channels.telegram.accounts.${accountId}.tokenFile not found: ${accountTokenFile}`,
       );
       return { token: "", source: "none" };
     }
@@ -43,7 +41,7 @@ export function resolveTelegramToken(
       }
     } catch (err) {
       opts.logMissingFile?.(
-        `telegram.accounts.${accountId}.tokenFile read failed: ${String(err)}`,
+        `channels.telegram.accounts.${accountId}.tokenFile read failed: ${String(err)}`,
       );
       return { token: "", source: "none" };
     }
@@ -55,27 +53,11 @@ export function resolveTelegramToken(
     return { token: accountToken, source: "config" };
   }
 
-  // Check account-specific env var (e.g., TELEGRAM_STANLEY_BOT_TOKEN for "stanley" account)
-  if (accountId !== DEFAULT_ACCOUNT_ID) {
-    const accountEnvVar = `TELEGRAM_${accountId.toUpperCase()}_BOT_TOKEN`;
-    const accountEnvToken = process.env[accountEnvVar]?.trim();
-    if (accountEnvToken) {
-      return { token: accountEnvToken, source: "env" };
-    }
-  }
-
   const allowEnv = accountId === DEFAULT_ACCOUNT_ID;
-  const envToken = allowEnv
-    ? (opts.envToken ?? process.env.TELEGRAM_BOT_TOKEN)?.trim()
-    : "";
-  if (envToken) {
-    return { token: envToken, source: "env" };
-  }
-
-  const tokenFile = cfg?.telegram?.tokenFile?.trim();
+  const tokenFile = telegramCfg?.tokenFile?.trim();
   if (tokenFile && allowEnv) {
     if (!fs.existsSync(tokenFile)) {
-      opts.logMissingFile?.(`telegram.tokenFile not found: ${tokenFile}`);
+      opts.logMissingFile?.(`channels.telegram.tokenFile not found: ${tokenFile}`);
       return { token: "", source: "none" };
     }
     try {
@@ -84,14 +66,19 @@ export function resolveTelegramToken(
         return { token, source: "tokenFile" };
       }
     } catch (err) {
-      opts.logMissingFile?.(`telegram.tokenFile read failed: ${String(err)}`);
+      opts.logMissingFile?.(`channels.telegram.tokenFile read failed: ${String(err)}`);
       return { token: "", source: "none" };
     }
   }
 
-  const configToken = cfg?.telegram?.botToken?.trim();
+  const configToken = telegramCfg?.botToken?.trim();
   if (configToken && allowEnv) {
     return { token: configToken, source: "config" };
+  }
+
+  const envToken = allowEnv ? (opts.envToken ?? process.env.TELEGRAM_BOT_TOKEN)?.trim() : "";
+  if (envToken) {
+    return { token: envToken, source: "env" };
   }
 
   return { token: "", source: "none" };

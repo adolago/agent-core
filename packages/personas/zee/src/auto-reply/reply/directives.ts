@@ -1,7 +1,8 @@
-import type { ReasoningLevel } from "../thinking.js";
+import type { NoticeLevel, ReasoningLevel } from "../thinking.js";
 import {
   type ElevatedLevel,
   normalizeElevatedLevel,
+  normalizeNoticeLevel,
   normalizeReasoningLevel,
   normalizeThinkLevel,
   normalizeVerboseLevel,
@@ -16,17 +17,14 @@ type ExtractedLevel<T> = {
   hasDirective: boolean;
 };
 
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const matchLevelDirective = (
   body: string,
   names: string[],
 ): { start: number; end: number; rawLevel?: string } | null => {
   const namePattern = names.map(escapeRegExp).join("|");
-  const match = body.match(
-    new RegExp(`(?:^|\\s)\\/(?:${namePattern})(?=$|\\s|:)`, "i"),
-  );
+  const match = body.match(new RegExp(`(?:^|\\s)\\/(?:${namePattern})(?=$|\\s|:)`, "i"));
   if (!match || match.index === undefined) return null;
   const start = match.index;
   let end = match.index + match[0].length;
@@ -56,6 +54,7 @@ const extractLevelDirective = <T>(
   const level = normalize(rawLevel);
   const cleaned = body
     .slice(0, match.start)
+    .concat(" ")
     .concat(body.slice(match.end))
     .replace(/\s+/g, " ")
     .trim();
@@ -75,9 +74,7 @@ const extractSimpleDirective = (
   const match = body.match(
     new RegExp(`(?:^|\\s)\\/(?:${namePattern})(?=$|\\s|:)(?:\\s*:\\s*)?`, "i"),
   );
-  const cleaned = match
-    ? body.replace(match[0], "").replace(/\s+/g, " ").trim()
-    : body.trim();
+  const cleaned = match ? body.replace(match[0], " ").replace(/\s+/g, " ").trim() : body.trim();
   return {
     cleaned,
     hasDirective: Boolean(match),
@@ -91,11 +88,7 @@ export function extractThinkDirective(body?: string): {
   hasDirective: boolean;
 } {
   if (!body) return { cleaned: "", hasDirective: false };
-  const extracted = extractLevelDirective(
-    body,
-    ["thinking", "think", "t"],
-    normalizeThinkLevel,
-  );
+  const extracted = extractLevelDirective(body, ["thinking", "think", "t"], normalizeThinkLevel);
   return {
     cleaned: extracted.cleaned,
     thinkLevel: extracted.level,
@@ -111,14 +104,26 @@ export function extractVerboseDirective(body?: string): {
   hasDirective: boolean;
 } {
   if (!body) return { cleaned: "", hasDirective: false };
-  const extracted = extractLevelDirective(
-    body,
-    ["verbose", "v"],
-    normalizeVerboseLevel,
-  );
+  const extracted = extractLevelDirective(body, ["verbose", "v"], normalizeVerboseLevel);
   return {
     cleaned: extracted.cleaned,
     verboseLevel: extracted.level,
+    rawLevel: extracted.rawLevel,
+    hasDirective: extracted.hasDirective,
+  };
+}
+
+export function extractNoticeDirective(body?: string): {
+  cleaned: string;
+  noticeLevel?: NoticeLevel;
+  rawLevel?: string;
+  hasDirective: boolean;
+} {
+  if (!body) return { cleaned: "", hasDirective: false };
+  const extracted = extractLevelDirective(body, ["notice", "notices"], normalizeNoticeLevel);
+  return {
+    cleaned: extracted.cleaned,
+    noticeLevel: extracted.level,
     rawLevel: extracted.rawLevel,
     hasDirective: extracted.hasDirective,
   };
@@ -131,11 +136,7 @@ export function extractElevatedDirective(body?: string): {
   hasDirective: boolean;
 } {
   if (!body) return { cleaned: "", hasDirective: false };
-  const extracted = extractLevelDirective(
-    body,
-    ["elevated", "elev"],
-    normalizeElevatedLevel,
-  );
+  const extracted = extractLevelDirective(body, ["elevated", "elev"], normalizeElevatedLevel);
   return {
     cleaned: extracted.cleaned,
     elevatedLevel: extracted.level,
@@ -151,11 +152,7 @@ export function extractReasoningDirective(body?: string): {
   hasDirective: boolean;
 } {
   if (!body) return { cleaned: "", hasDirective: false };
-  const extracted = extractLevelDirective(
-    body,
-    ["reasoning", "reason"],
-    normalizeReasoningLevel,
-  );
+  const extracted = extractLevelDirective(body, ["reasoning", "reason"], normalizeReasoningLevel);
   return {
     cleaned: extracted.cleaned,
     reasoningLevel: extracted.level,
@@ -172,4 +169,5 @@ export function extractStatusDirective(body?: string): {
   return extractSimpleDirective(body, ["status"]);
 }
 
-export type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel };
+export type { ElevatedLevel, NoticeLevel, ReasoningLevel, ThinkLevel, VerboseLevel };
+export { extractExecDirective } from "./exec/directive.js";

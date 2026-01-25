@@ -4,11 +4,15 @@ export {
   DEFAULT_WEB_MEDIA_BYTES,
   HEARTBEAT_PROMPT,
   HEARTBEAT_TOKEN,
-  monitorWebProvider,
+  monitorWebChannel,
+  // Aliases for zee naming convention
+  monitorWebChannel as monitorWebProvider,
   resolveHeartbeatRecipients,
   runWebHeartbeatOnce,
   type WebMonitorTuning,
-  type WebProviderStatus,
+  type WebChannelStatus,
+  // Alias for zee naming
+  type WebChannelStatus as WebProviderStatus,
 } from "./web/auto-reply.js";
 export {
   extractMediaPlaceholder,
@@ -26,7 +30,6 @@ export {
   getStatusCode,
   logoutWeb,
   logWebSelfId,
-  pickProvider,
   WA_WEB_AUTH_DIR,
   waitForWaConnection,
   webAuthExists,

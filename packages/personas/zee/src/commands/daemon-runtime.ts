@@ -10,12 +10,10 @@ export const GATEWAY_DAEMON_RUNTIME_OPTIONS: Array<{
   {
     value: "node",
     label: "Node (recommended)",
-    hint: "Required for WhatsApp (Baileys WebSocket). Bun can corrupt memory on reconnect.",
+    hint: "Required for WhatsApp + Telegram. Bun can corrupt memory on reconnect.",
   },
 ];
 
-export function isGatewayDaemonRuntime(
-  value: string | undefined,
-): value is GatewayDaemonRuntime {
+export function isGatewayDaemonRuntime(value: string | undefined): value is GatewayDaemonRuntime {
   return value === "node" || value === "bun";
 }

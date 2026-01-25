@@ -1,85 +1,86 @@
 ---
-summary: "Top-level overview of Zee, features, and purpose"
+summary: "Top-level overview of Clawdbot, features, and purpose"
 read_when:
-  - Introducing Zee to newcomers
+  - Introducing Clawdbot to newcomers
 ---
-# ZEE 🦞
+# Clawdbot 🦞
 
 > *"EXFOLIATE! EXFOLIATE!"* — A space lobster, probably
 
 <p align="center">
-  <img src="whatsapp-clawd.jpg" alt="ZEE" width="420" />
+  <img src="whatsapp-clawd.jpg" alt="Clawdbot" width="420" />
 </p>
 
 <p align="center">
   <strong>Any OS + WhatsApp/Telegram/Discord/iMessage gateway for AI agents (Pi).</strong><br />
+  Plugins add Mattermost and more.
   Send a message, get an agent response — from your pocket.
 </p>
 
 <p align="center">
-  <a href="https://github.com/zee/zee">GitHub</a> ·
-  <a href="https://github.com/zee/zee/releases">Releases</a> ·
-  <a href="https://docs.clawd.bot">Docs</a> ·
-  <a href="https://docs.clawd.bot/start/clawd">Clawd setup</a>
+  <a href="https://github.com/clawdbot/clawdbot">GitHub</a> ·
+  <a href="https://github.com/clawdbot/clawdbot/releases">Releases</a> ·
+  <a href="/">Docs</a> ·
+  <a href="/start/clawd">Clawdbot assistant setup</a>
 </p>
 
-ZEE bridges WhatsApp (via WhatsApp Web / Baileys), Telegram (Bot API / grammY), Discord (Bot API / discord.js), and iMessage (imsg CLI) to coding agents like [Pi](https://github.com/badlogic/pi-mono).
-It’s built for [Clawd](https://clawd.me), a space lobster who needed a TARDIS.
+Clawdbot bridges WhatsApp (via WhatsApp Web / Baileys), Telegram (Bot API / grammY), Discord (Bot API / channels.discord.js), and iMessage (imsg CLI) to coding agents like [Pi](https://github.com/badlogic/pi-mono). Plugins add Mattermost (Bot API + WebSocket) and more.
+Clawdbot also powers [Clawd](https://clawd.me), the space‑lobster assistant.
 
 ## Start here
 
-- **New install from zero:** https://docs.clawd.bot/start/getting-started
-- **Guided setup (recommended):** https://docs.clawd.bot/start/wizard (`zee onboard`)
+- **New install from zero:** [Getting Started](/start/getting-started)
+- **Guided setup (recommended):** [Wizard](/start/wizard) (`clawdbot onboard`)
 - **Open the dashboard (local Gateway):** http://127.0.0.1:18789/ (or http://localhost:18789/)
 
 If the Gateway is running on the same computer, that link opens the browser Control UI
-immediately. If it fails, start the Gateway first: `zee gateway`.
+immediately. If it fails, start the Gateway first: `clawdbot gateway`.
 
 ## Dashboard (browser Control UI)
 
 The dashboard is the browser Control UI for chat, config, nodes, sessions, and more.
 Local default: http://127.0.0.1:18789/
-Remote access: https://docs.clawd.bot/web and https://docs.clawd.bot/gateway/tailscale
+Remote access: [Web surfaces](/web) and [Tailscale](/gateway/tailscale)
 
 ## How it works
 
 ```
-WhatsApp / Telegram / Discord
+WhatsApp / Telegram / Discord / iMessage (+ plugins)
         │
         ▼
   ┌───────────────────────────┐
-  │          Gateway          │  ws://127.0.0.1:18789 (loopback default)
-  │     (single source)       │  ws://<gateway-host>:18789 (LAN/tailnet bind)
-  │                           │  tcp://0.0.0.0:18790 (Bridge, optional)
+  │          Gateway          │  ws://127.0.0.1:18789 (loopback-only)
+  │     (single source)       │
   │                           │  http://<gateway-host>:18793
-  │                           │    /__zee__/canvas/ (Canvas host)
+  │                           │    /__clawdbot__/canvas/ (Canvas host)
   └───────────┬───────────────┘
               │
               ├─ Pi agent (RPC)
-              ├─ CLI (zee …)
+              ├─ CLI (clawdbot …)
               ├─ Chat UI (SwiftUI)
-              ├─ macOS app (Zee.app)
-              ├─ iOS node via Gateway WS + auth
-              └─ Android node via Bridge + pairing
+              ├─ macOS app (Clawdbot.app)
+              ├─ iOS node via Gateway WS + pairing
+              └─ Android node via Gateway WS + pairing
 ```
 
-Most operations flow through the **Gateway** (`zee gateway`), a single long-running process that owns provider connections and the WebSocket control plane.
+Most operations flow through the **Gateway** (`clawdbot gateway`), a single long-running process that owns channel connections and the WebSocket control plane.
 
 ## Network model
 
-- **One Gateway per host**: it is the only process allowed to own the WhatsApp Web session.
+- **One Gateway per host (recommended)**: it is the only process allowed to own the WhatsApp Web session. If you need a rescue bot or strict isolation, run multiple gateways with isolated profiles and ports; see [Multiple gateways](/gateway/multiple-gateways).
 - **Loopback-first**: Gateway WS defaults to `ws://127.0.0.1:18789`.
-  - For Tailnet access, run `zee gateway --bind tailnet --token ...` (token is required for non-loopback binds).
-- **Bridge for nodes**: optional LAN/tailnet-facing bridge on `tcp://0.0.0.0:18790` for Android/legacy nodes (paired; Bonjour-discoverable).
-- **iOS nodes**: connect directly to the Gateway WebSocket with token/password auth.
-- **Canvas host**: HTTP file server on `canvasHost.port` (default `18793`), serving `/__zee__/canvas/` for node WebViews; see [Configuration](/gateway/configuration) (`canvasHost`).
-- **Remote use**: SSH tunnel or tailnet/VPN; see [Remote access](/gateway/remote) and [Discovery + transports](/gateway/discovery).
+  - The wizard now generates a gateway token by default (even for loopback).
+  - For Tailnet access, run `clawdbot gateway --bind tailnet --token ...` (token is required for non-loopback binds).
+- **Nodes**: connect to the Gateway WebSocket (LAN/tailnet/SSH as needed); legacy TCP bridge is deprecated/removed.
+- **Canvas host**: HTTP file server on `canvasHost.port` (default `18793`), serving `/__clawdbot__/canvas/` for node WebViews; see [Gateway configuration](/gateway/configuration) (`canvasHost`).
+- **Remote use**: SSH tunnel or tailnet/VPN; see [Remote access](/gateway/remote) and [Discovery](/gateway/discovery).
 
 ## Features (high level)
 
 - 📱 **WhatsApp Integration** — Uses Baileys for WhatsApp Web protocol
 - ✈️ **Telegram Bot** — DMs + groups via grammY
-- 🎮 **Discord Bot** — DMs + guild channels via discord.js
+- 🎮 **Discord Bot** — DMs + guild channels via channels.discord.js
+- 🧩 **Mattermost Bot (plugin)** — Bot token + WebSocket events
 - 💬 **iMessage** — Local imsg CLI integration (macOS)
 - 🤖 **Agent bridge** — Pi (RPC mode) with tool streaming
 - ⏱️ **Streaming + chunking** — Block streaming + Telegram draft streaming details ([/concepts/streaming](/concepts/streaming))
@@ -90,14 +91,10 @@ Most operations flow through the **Gateway** (`zee gateway`), a single long-runn
 - 📎 **Media Support** — Send and receive images, audio, documents
 - 🎤 **Voice notes** — Optional transcription hook
 - 🖥️ **WebChat + macOS app** — Local UI + menu bar companion for ops and voice wake
-- 📱 **iOS node** — Connects via gateway WS + auth and exposes a Canvas surface
-- 📱 **Android node** — Bridge-paired node with Canvas + Chat + Camera
+- 📱 **iOS node** — Pairs as a node and exposes a Canvas surface
+- 📱 **Android node** — Pairs as a node and exposes Canvas + Chat + Camera
 
 Note: legacy Claude/Codex/Gemini/Opencode paths have been removed; Pi is the only coding-agent path.
-
-## Roadmap
-
-See [Roadmap](/roadmap) for current focus areas, including the iOS node app.
 
 ## Quick start
 
@@ -105,113 +102,119 @@ Runtime requirement: **Node ≥ 22**.
 
 ```bash
 # Recommended: global install (npm/pnpm)
-npm install -g zee@latest
-# or: pnpm add -g zee@latest
+npm install -g clawdbot@latest
+# or: pnpm add -g clawdbot@latest
 
-# Onboard + install the daemon (launchd/systemd user service)
-zee onboard --install-daemon
+# Onboard + install the service (launchd/systemd user service)
+clawdbot onboard --install-daemon
 
 # Pair WhatsApp Web (shows QR)
-zee providers login
+clawdbot channels login
 
-# Gateway runs via daemon after onboarding; manual run is still possible:
-zee gateway --port 18789
+# Gateway runs via the service after onboarding; manual run is still possible:
+clawdbot gateway --port 18789
 ```
+
+Switching between npm and git installs later is easy: install the other flavor and run `clawdbot doctor` to update the gateway service entrypoint.
 
 From source (development):
 
 ```bash
-git clone https://github.com/zee/zee.git
-cd zee
+git clone https://github.com/clawdbot/clawdbot.git
+cd clawdbot
 pnpm install
-pnpm ui:install
-pnpm ui:build
+pnpm ui:build # auto-installs UI deps on first run
 pnpm build
-pnpm zee onboard --install-daemon
+clawdbot onboard --install-daemon
 ```
+
+If you don’t have a global install yet, run the onboarding step via `pnpm clawdbot ...` from the repo.
 
 Multi-instance quickstart (optional):
 
 ```bash
-ZEE_CONFIG_PATH=~/.zee/a.json \
-ZEE_STATE_DIR=~/.zee-a \
-zee gateway --port 19001
+CLAWDBOT_CONFIG_PATH=~/.clawdbot/a.json \
+CLAWDBOT_STATE_DIR=~/.clawdbot-a \
+clawdbot gateway --port 19001
 ```
 
 Send a test message (requires a running Gateway):
 
 ```bash
-zee send --to +15555550123 --message "Hello from ZEE"
+clawdbot message send --target +15555550123 --message "Hello from Clawdbot"
 ```
 
 ## Configuration (optional)
 
-Config lives at `~/.zee/zee.json`.
+Config lives at `~/.clawdbot/clawdbot.json`.
 
-- If you **do nothing**, ZEE uses the bundled Pi binary in RPC mode with per-sender sessions.
-- If you want to lock it down, start with `whatsapp.allowFrom` and (for groups) mention rules.
+- If you **do nothing**, Clawdbot uses the bundled Pi binary in RPC mode with per-sender sessions.
+- If you want to lock it down, start with `channels.whatsapp.allowFrom` and (for groups) mention rules.
 
 Example:
 
 ```json5
 {
-  whatsapp: {
-    allowFrom: ["+15555550123"],
-    groups: { "*": { requireMention: true } }
+  channels: {
+    whatsapp: {
+      allowFrom: ["+15555550123"],
+      groups: { "*": { requireMention: true } }
+    }
   },
-  routing: { groupChat: { mentionPatterns: ["@clawd"] } }
+  messages: { groupChat: { mentionPatterns: ["@clawd"] } }
 }
 ```
 
 ## Docs
 
 - Start here:
-  - [Docs hubs (all pages linked)](https://docs.clawd.bot/start/hubs)
-  - [FAQ](https://docs.clawd.bot/start/faq) ← *common questions answered*
-  - [Configuration](https://docs.clawd.bot/gateway/configuration)
-  - [Configuration examples](https://docs.clawd.bot/gateway/configuration-examples)
-  - [Slash commands](https://docs.clawd.bot/tools/slash-commands)
-  - [Multi-agent routing](https://docs.clawd.bot/concepts/multi-agent)
-  - [Updating / rollback](https://docs.clawd.bot/install/updating)
-  - [Pairing (DM + nodes)](https://docs.clawd.bot/start/pairing)
-  - [Nix mode](https://docs.clawd.bot/install/nix)
-  - [Clawd personal assistant setup](https://docs.clawd.bot/start/clawd)
-  - [Skills](https://docs.clawd.bot/tools/skills)
-  - [Skills config](https://docs.clawd.bot/tools/skills-config)
-  - [Workspace templates](https://docs.clawd.bot/reference/templates/AGENTS)
-  - [RPC adapters](https://docs.clawd.bot/reference/rpc)
-  - [Gateway runbook](https://docs.clawd.bot/gateway)
-  - [Nodes (iOS/Android)](https://docs.clawd.bot/nodes)
-  - [Web surfaces (Control UI)](https://docs.clawd.bot/web)
-  - [Discovery + transports](https://docs.clawd.bot/gateway/discovery)
-  - [Remote access](https://docs.clawd.bot/gateway/remote)
+  - [Docs hubs (all pages linked)](/start/hubs)
+  - [Help](/help) ← *common fixes + troubleshooting*
+  - [Configuration](/gateway/configuration)
+  - [Configuration examples](/gateway/configuration-examples)
+  - [Slash commands](/tools/slash-commands)
+  - [Multi-agent routing](/concepts/multi-agent)
+  - [Updating / rollback](/install/updating)
+  - [Pairing (DM + nodes)](/start/pairing)
+  - [Nix mode](/install/nix)
+  - [Clawdbot assistant setup (Clawd)](/start/clawd)
+  - [Skills](/tools/skills)
+  - [Skills config](/tools/skills-config)
+  - [Workspace templates](/reference/templates/AGENTS)
+  - [RPC adapters](/reference/rpc)
+  - [Gateway runbook](/gateway)
+  - [Nodes (iOS/Android)](/nodes)
+  - [Web surfaces (Control UI)](/web)
+  - [Discovery + transports](/gateway/discovery)
+  - [Remote access](/gateway/remote)
 - Providers and UX:
-  - [WebChat](https://docs.clawd.bot/web/webchat)
-  - [Control UI (browser)](https://docs.clawd.bot/web/control-ui)
-  - [Telegram](https://docs.clawd.bot/providers/telegram)
-  - [Discord](https://docs.clawd.bot/providers/discord)
-  - [iMessage](https://docs.clawd.bot/providers/imessage)
-  - [Groups](https://docs.clawd.bot/concepts/groups)
-  - [WhatsApp group messages](https://docs.clawd.bot/concepts/group-messages)
-  - [Media: images](https://docs.clawd.bot/nodes/images)
-  - [Media: audio](https://docs.clawd.bot/nodes/audio)
+  - [WebChat](/web/webchat)
+  - [Control UI (browser)](/web/control-ui)
+  - [Telegram](/channels/telegram)
+  - [Discord](/channels/discord)
+  - [Mattermost (plugin)](/channels/mattermost)
+  - [iMessage](/channels/imessage)
+  - [Groups](/concepts/groups)
+  - [WhatsApp group messages](/concepts/group-messages)
+  - [Media: images](/nodes/images)
+  - [Media: audio](/nodes/audio)
 - Companion apps:
-  - [macOS app](https://docs.clawd.bot/platforms/macos)
-  - [iOS app](https://docs.clawd.bot/platforms/ios)
-  - [Android app](https://docs.clawd.bot/platforms/android)
-  - [Windows (WSL2)](https://docs.clawd.bot/platforms/windows)
-  - [Linux app](https://docs.clawd.bot/platforms/linux)
+  - [macOS app](/platforms/macos)
+  - [iOS app](/platforms/ios)
+  - [Android app](/platforms/android)
+  - [Windows (WSL2)](/platforms/windows)
+  - [Linux app](/platforms/linux)
 - Ops and safety:
-  - [Sessions](https://docs.clawd.bot/concepts/session)
-  - [Cron jobs](https://docs.clawd.bot/automation/cron-jobs)
-  - [Webhooks](https://docs.clawd.bot/automation/webhook)
-  - [Gmail hooks (Pub/Sub)](https://docs.clawd.bot/automation/gmail-pubsub)
-  - [Security](https://docs.clawd.bot/gateway/security)
-  - [Troubleshooting](https://docs.clawd.bot/gateway/troubleshooting)
+  - [Sessions](/concepts/session)
+  - [Cron jobs](/automation/cron-jobs)
+  - [Webhooks](/automation/webhook)
+  - [Gmail hooks (Pub/Sub)](/automation/gmail-pubsub)
+  - [Security](/gateway/security)
+  - [Troubleshooting](/gateway/troubleshooting)
 
 ## The name
 
-**ZEE = CLAW + TARDIS** — because every space lobster needs a time-and-space machine.
+**Clawdbot = CLAW + TARDIS** — because every space lobster needs a time-and-space machine.
 
 ---
 

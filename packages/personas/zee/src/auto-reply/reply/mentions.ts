@@ -1,143 +1,62 @@
-import type { PersonaId } from "../../agents/agent-core-embedded.js";
-import type { ZeeConfig } from "../../config/config.js";
+import { resolveAgentConfig } from "../../agents/agent-scope.js";
+import { getChannelDock } from "../../channels/dock.js";
+import { normalizeChannelId } from "../../channels/plugins/index.js";
+import type { ClawdbotConfig } from "../../config/config.js";
 import type { MsgContext } from "../templating.js";
 
-// Valid personas for routing
-const PERSONA_PATTERNS: Record<string, PersonaId> = {
-  stanley: "stanley",
-  stan: "stanley",
-  johny: "johny",
-  john: "johny",
-  johnny: "johny",
-  zee: "zee",
-};
-const MAX_MENTION_PATTERN_LENGTH = 200;
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-function hasControlChars(value: string): boolean {
-  for (let i = 0; i < value.length; i += 1) {
-    const code = value.charCodeAt(i);
-    if (code < 0x20 || code === 0x7f) return true;
+function deriveMentionPatterns(identity?: { name?: string; emoji?: string }) {
+  const patterns: string[] = [];
+  const name = identity?.name?.trim();
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean).map(escapeRegExp);
+    const re = parts.length ? parts.join(String.raw`\s+`) : escapeRegExp(name);
+    patterns.push(String.raw`\b@?${re}\b`);
   }
-  return false;
-}
-
-function isRegexQuantifierStart(
-  ch: string,
-  pattern: string,
-  index: number,
-): boolean {
-  if (ch === "*" || ch === "+" || ch === "?") return true;
-  if (ch !== "{") return false;
-  const end = pattern.indexOf("}", index + 1);
-  if (end === -1) return false;
-  const body = pattern.slice(index + 1, end);
-  return /^[0-9,\s]+$/.test(body);
-}
-
-// Reject nested quantifiers to reduce worst-case backtracking.
-function hasNestedQuantifiers(pattern: string): boolean {
-  const stack: Array<{ hasQuantifier: boolean }> = [];
-  let escaped = false;
-  let inClass = false;
-
-  for (let i = 0; i < pattern.length; i += 1) {
-    const ch = pattern[i];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (ch === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (inClass) {
-      if (ch === "]") inClass = false;
-      continue;
-    }
-    if (ch === "[") {
-      inClass = true;
-      continue;
-    }
-    if (ch === "(") {
-      stack.push({ hasQuantifier: false });
-      continue;
-    }
-    if (ch === ")") {
-      const group = stack.pop();
-      if (group?.hasQuantifier) {
-        const next = pattern[i + 1];
-        if (next && isRegexQuantifierStart(next, pattern, i + 1)) {
-          return true;
-        }
-      }
-      continue;
-    }
-    if (ch === "?" && pattern[i - 1] === "(") {
-      continue;
-    }
-    if (isRegexQuantifierStart(ch, pattern, i)) {
-      for (const group of stack) {
-        group.hasQuantifier = true;
-      }
-    }
+  const emoji = identity?.emoji?.trim();
+  if (emoji) {
+    patterns.push(escapeRegExp(emoji));
   }
-
-  return false;
+  return patterns;
 }
 
-function isSafeMentionPattern(pattern: string): boolean {
-  if (!pattern) return false;
-  if (pattern.length > MAX_MENTION_PATTERN_LENGTH) return false;
-  if (hasControlChars(pattern)) return false;
-  if (hasNestedQuantifiers(pattern)) return false;
-  return true;
+const BACKSPACE_CHAR = "\u0008";
+
+export const CURRENT_MESSAGE_MARKER = "[Current message - respond to this]";
+
+function normalizeMentionPattern(pattern: string): string {
+  if (!pattern.includes(BACKSPACE_CHAR)) return pattern;
+  return pattern.split(BACKSPACE_CHAR).join("\\b");
 }
 
-/**
- * Detect if the message mentions a specific persona (@stanley, @johny, etc.)
- * Returns the detected persona or "zee" as default
- */
-export function detectPersonaMention(text: string): PersonaId {
-  if (!text) return "zee";
+function normalizeMentionPatterns(patterns: string[]): string[] {
+  return patterns.map(normalizeMentionPattern);
+}
 
-  const normalized = normalizeMentionText(text);
-
-  // Check for @mentions of personas
-  for (const [pattern, persona] of Object.entries(PERSONA_PATTERNS)) {
-    // Match @persona at word boundary
-    const regex = new RegExp(`@${pattern}\\b`, "i");
-    if (regex.test(normalized)) {
-      return persona;
-    }
+function resolveMentionPatterns(cfg: ClawdbotConfig | undefined, agentId?: string): string[] {
+  if (!cfg) return [];
+  const agentConfig = agentId ? resolveAgentConfig(cfg, agentId) : undefined;
+  const agentGroupChat = agentConfig?.groupChat;
+  if (agentGroupChat && Object.hasOwn(agentGroupChat, "mentionPatterns")) {
+    return agentGroupChat.mentionPatterns ?? [];
   }
-
-  return "zee";
-}
-
-/**
- * Strip persona mentions from text (after detection)
- */
-export function stripPersonaMentions(text: string): string {
-  if (!text) return text;
-
-  let result = text;
-  for (const pattern of Object.keys(PERSONA_PATTERNS)) {
-    // Remove @persona mentions
-    const regex = new RegExp(`@${pattern}\\b`, "gi");
-    result = result.replace(regex, "");
+  const globalGroupChat = cfg.messages?.groupChat;
+  if (globalGroupChat && Object.hasOwn(globalGroupChat, "mentionPatterns")) {
+    return globalGroupChat.mentionPatterns ?? [];
   }
-
-  return result.replace(/\s+/g, " ").trim();
+  const derived = deriveMentionPatterns(agentConfig?.identity);
+  return derived.length > 0 ? derived : [];
 }
 
-export function buildMentionRegexes(cfg: ZeeConfig | undefined): RegExp[] {
-  const patterns = cfg?.routing?.groupChat?.mentionPatterns ?? [];
+export function buildMentionRegexes(cfg: ClawdbotConfig | undefined, agentId?: string): RegExp[] {
+  const patterns = normalizeMentionPatterns(resolveMentionPatterns(cfg, agentId));
   return patterns
     .map((pattern) => {
-      const trimmed = pattern.trim();
-      if (!isSafeMentionPattern(trimmed)) return null;
       try {
-        return new RegExp(trimmed, "i");
+        return new RegExp(pattern, "i");
       } catch {
         return null;
       }
@@ -146,31 +65,47 @@ export function buildMentionRegexes(cfg: ZeeConfig | undefined): RegExp[] {
 }
 
 export function normalizeMentionText(text: string): string {
-  return (text ?? "")
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g, "")
-    .toLowerCase();
+  return (text ?? "").replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g, "").toLowerCase();
 }
 
-export function matchesMentionPatterns(
-  text: string,
-  mentionRegexes: RegExp[],
-): boolean {
+export function matchesMentionPatterns(text: string, mentionRegexes: RegExp[]): boolean {
   if (mentionRegexes.length === 0) return false;
   const cleaned = normalizeMentionText(text ?? "");
   if (!cleaned) return false;
   return mentionRegexes.some((re) => re.test(cleaned));
 }
 
+export type ExplicitMentionSignal = {
+  hasAnyMention: boolean;
+  isExplicitlyMentioned: boolean;
+  canResolveExplicit: boolean;
+};
+
+export function matchesMentionWithExplicit(params: {
+  text: string;
+  mentionRegexes: RegExp[];
+  explicit?: ExplicitMentionSignal;
+}): boolean {
+  const cleaned = normalizeMentionText(params.text ?? "");
+  const explicit = params.explicit?.isExplicitlyMentioned === true;
+  const explicitAvailable = params.explicit?.canResolveExplicit === true;
+  const hasAnyMention = params.explicit?.hasAnyMention === true;
+  if (hasAnyMention && explicitAvailable) return explicit;
+  if (!cleaned) return explicit;
+  return explicit || params.mentionRegexes.some((re) => re.test(cleaned));
+}
+
 export function stripStructuralPrefixes(text: string): string {
   // Ignore wrapper labels, timestamps, and sender prefixes so directive-only
   // detection still works in group batches that include history/context.
-  const marker = "[Current message - respond to this]";
-  const afterMarker = text.includes(marker)
-    ? text.slice(text.indexOf(marker) + marker.length)
+  const afterMarker = text.includes(CURRENT_MESSAGE_MARKER)
+    ? text.slice(text.indexOf(CURRENT_MESSAGE_MARKER) + CURRENT_MESSAGE_MARKER.length).trimStart()
     : text;
+
   return afterMarker
     .replace(/\[[^\]]+\]\s*/g, "")
     .replace(/^[ \t]*[A-Za-z0-9+()\-_. ]+:\s*/gm, "")
+    .replace(/\\n/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -178,30 +113,33 @@ export function stripStructuralPrefixes(text: string): string {
 export function stripMentions(
   text: string,
   ctx: MsgContext,
-  cfg: ZeeConfig | undefined,
+  cfg: ClawdbotConfig | undefined,
+  agentId?: string,
 ): string {
   let result = text;
-  const patterns = cfg?.routing?.groupChat?.mentionPatterns ?? [];
+  const providerId = ctx.Provider ? normalizeChannelId(ctx.Provider) : null;
+  const providerMentions = providerId ? getChannelDock(providerId)?.mentions : undefined;
+  const patterns = normalizeMentionPatterns([
+    ...resolveMentionPatterns(cfg, agentId),
+    ...(providerMentions?.stripPatterns?.({ ctx, cfg, agentId }) ?? []),
+  ]);
   for (const p of patterns) {
-    const trimmed = p.trim();
-    if (!isSafeMentionPattern(trimmed)) continue;
     try {
-      const re = new RegExp(trimmed, "gi");
+      const re = new RegExp(p, "gi");
       result = result.replace(re, " ");
     } catch {
       // ignore invalid regex
     }
   }
-  const selfE164 = (ctx.To ?? "").replace(/^whatsapp:/, "");
-  if (selfE164) {
-    const esc = selfE164.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    result = result
-      .replace(new RegExp(esc, "gi"), " ")
-      .replace(new RegExp(`@${esc}`, "gi"), " ");
+  if (providerMentions?.stripMentions) {
+    result = providerMentions.stripMentions({
+      text: result,
+      ctx,
+      cfg,
+      agentId,
+    });
   }
   // Generic mention patterns like @123456789 or plain digits
   result = result.replace(/@[0-9+]{5,}/g, " ");
-  // Discord-style mentions (<@123> or <@!123>)
-  result = result.replace(/<@!?\d+>/g, " ");
   return result.replace(/\s+/g, " ").trim();
 }

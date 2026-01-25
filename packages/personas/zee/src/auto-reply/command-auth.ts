@@ -1,111 +1,169 @@
-import type { ZeeConfig } from "../config/config.js";
-import {
-  type CommandAuthorizer,
-  isSenderAuthorizedForCommands,
-  resolveCommandAuthorizedFromAuthorizers,
-} from "../security/command-gating.js";
-import { normalizeE164 } from "../utils.js";
+import type { ChannelDock } from "../channels/dock.js";
+import { getChannelDock, listChannelDocks } from "../channels/dock.js";
+import type { ChannelId } from "../channels/plugins/types.js";
+import { normalizeAnyChannelId } from "../channels/registry.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import type { MsgContext } from "./templating.js";
 
 export type CommandAuthorization = {
-  isWhatsAppProvider: boolean;
+  providerId?: ChannelId;
   ownerList: string[];
-  senderE164?: string;
+  senderId?: string;
   isAuthorizedSender: boolean;
   from?: string;
   to?: string;
-  /** Whether access groups gating was applied */
-  accessGroupsApplied: boolean;
 };
+
+function resolveProviderFromContext(ctx: MsgContext, cfg: ClawdbotConfig): ChannelId | undefined {
+  const direct =
+    normalizeAnyChannelId(ctx.Provider) ??
+    normalizeAnyChannelId(ctx.Surface) ??
+    normalizeAnyChannelId(ctx.OriginatingChannel);
+  if (direct) return direct;
+  const candidates = [ctx.From, ctx.To]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .flatMap((value) => value.split(":").map((part) => part.trim()));
+  for (const candidate of candidates) {
+    const normalized = normalizeAnyChannelId(candidate);
+    if (normalized) return normalized;
+  }
+  const configured = listChannelDocks()
+    .map((dock) => {
+      if (!dock.config?.resolveAllowFrom) return null;
+      const allowFrom = dock.config.resolveAllowFrom({
+        cfg,
+        accountId: ctx.AccountId,
+      });
+      if (!Array.isArray(allowFrom) || allowFrom.length === 0) return null;
+      return dock.id;
+    })
+    .filter((value): value is ChannelId => Boolean(value));
+  if (configured.length === 1) return configured[0];
+  return undefined;
+}
+
+function formatAllowFromList(params: {
+  dock?: ChannelDock;
+  cfg: ClawdbotConfig;
+  accountId?: string | null;
+  allowFrom: Array<string | number>;
+}): string[] {
+  const { dock, cfg, accountId, allowFrom } = params;
+  if (!allowFrom || allowFrom.length === 0) return [];
+  if (dock?.config?.formatAllowFrom) {
+    return dock.config.formatAllowFrom({ cfg, accountId, allowFrom });
+  }
+  return allowFrom.map((entry) => String(entry).trim()).filter(Boolean);
+}
+
+function normalizeAllowFromEntry(params: {
+  dock?: ChannelDock;
+  cfg: ClawdbotConfig;
+  accountId?: string | null;
+  value: string;
+}): string[] {
+  const normalized = formatAllowFromList({
+    dock: params.dock,
+    cfg: params.cfg,
+    accountId: params.accountId,
+    allowFrom: [params.value],
+  });
+  return normalized.filter((entry) => entry.trim().length > 0);
+}
+
+function resolveSenderCandidates(params: {
+  dock?: ChannelDock;
+  providerId?: ChannelId;
+  cfg: ClawdbotConfig;
+  accountId?: string | null;
+  senderId?: string | null;
+  senderE164?: string | null;
+  from?: string | null;
+}): string[] {
+  const { dock, cfg, accountId } = params;
+  const candidates: string[] = [];
+  const pushCandidate = (value?: string | null) => {
+    const trimmed = (value ?? "").trim();
+    if (!trimmed) return;
+    candidates.push(trimmed);
+  };
+  if (params.providerId === "whatsapp") {
+    pushCandidate(params.senderE164);
+    pushCandidate(params.senderId);
+  } else {
+    pushCandidate(params.senderId);
+    pushCandidate(params.senderE164);
+  }
+  pushCandidate(params.from);
+
+  const normalized: string[] = [];
+  for (const sender of candidates) {
+    const entries = normalizeAllowFromEntry({ dock, cfg, accountId, value: sender });
+    for (const entry of entries) {
+      if (!normalized.includes(entry)) normalized.push(entry);
+    }
+  }
+  return normalized;
+}
 
 export function resolveCommandAuthorization(params: {
   ctx: MsgContext;
-  cfg: ZeeConfig;
+  cfg: ClawdbotConfig;
   commandAuthorized: boolean;
 }): CommandAuthorization {
   const { ctx, cfg, commandAuthorized } = params;
-  const provider = (ctx.Provider ?? "").trim().toLowerCase();
-  const from = (ctx.From ?? "").replace(/^whatsapp:/, "");
-  const to = (ctx.To ?? "").replace(/^whatsapp:/, "");
-  const hasWhatsappPrefix =
-    (ctx.From ?? "").startsWith("whatsapp:") ||
-    (ctx.To ?? "").startsWith("whatsapp:");
-  const looksLikeE164 = (value: string) =>
-    Boolean(value && /^\+?\d{3,}$/.test(value.replace(/[^\d+]/g, "")));
-  const inferWhatsApp =
-    !provider &&
-    Boolean(cfg.whatsapp?.allowFrom?.length) &&
-    (looksLikeE164(from) || looksLikeE164(to));
-  const isWhatsAppProvider =
-    provider === "whatsapp" || hasWhatsappPrefix || inferWhatsApp;
-
-  const configuredAllowFrom = isWhatsAppProvider
-    ? cfg.whatsapp?.allowFrom
-    : undefined;
-  const allowFromList =
-    configuredAllowFrom?.filter((entry) => entry?.trim()) ?? [];
+  const providerId = resolveProviderFromContext(ctx, cfg);
+  const dock = providerId ? getChannelDock(providerId) : undefined;
+  const from = (ctx.From ?? "").trim();
+  const to = (ctx.To ?? "").trim();
+  const allowFromRaw = dock?.config?.resolveAllowFrom
+    ? dock.config.resolveAllowFrom({ cfg, accountId: ctx.AccountId })
+    : [];
+  const allowFromList = formatAllowFromList({
+    dock,
+    cfg,
+    accountId: ctx.AccountId,
+    allowFrom: Array.isArray(allowFromRaw) ? allowFromRaw : [],
+  });
   const allowAll =
-    !isWhatsAppProvider ||
-    allowFromList.length === 0 ||
-    allowFromList.some((entry) => entry.trim() === "*");
+    allowFromList.length === 0 || allowFromList.some((entry) => entry.trim() === "*");
 
-  const senderE164 = normalizeE164(
-    ctx.SenderE164 ?? (isWhatsAppProvider ? from : ""),
-  );
-  const ownerCandidates =
-    isWhatsAppProvider && !allowAll
-      ? allowFromList.filter((entry) => entry !== "*")
-      : [];
-  if (isWhatsAppProvider && !allowAll && ownerCandidates.length === 0 && to) {
-    ownerCandidates.push(to);
+  const ownerCandidates = allowAll ? [] : allowFromList.filter((entry) => entry !== "*");
+  if (!allowAll && ownerCandidates.length === 0 && to) {
+    const normalizedTo = normalizeAllowFromEntry({
+      dock,
+      cfg,
+      accountId: ctx.AccountId,
+      value: to,
+    });
+    if (normalizedTo.length > 0) ownerCandidates.push(...normalizedTo);
   }
-  const ownerList = ownerCandidates
-    .map((entry) => normalizeE164(entry))
-    .filter((entry): entry is string => Boolean(entry));
+  const ownerList = Array.from(new Set(ownerCandidates));
 
-  // Check if access groups are enabled (default: true for security)
-  const useAccessGroups = cfg.commands?.useAccessGroups !== false;
+  const senderCandidates = resolveSenderCandidates({
+    dock,
+    providerId,
+    cfg,
+    accountId: ctx.AccountId,
+    senderId: ctx.SenderId,
+    senderE164: ctx.SenderE164,
+    from,
+  });
+  const matchedSender = ownerList.length
+    ? senderCandidates.find((candidate) => ownerList.includes(candidate))
+    : undefined;
+  const senderId = matchedSender ?? senderCandidates[0];
 
-  // Build authorizers for access group check
-  const authorizers: CommandAuthorizer[] = [];
-  if (isWhatsAppProvider && allowFromList.length > 0) {
-    const senderAllowed = senderE164
-      ? isSenderAuthorizedForCommands({
-          senderId: senderE164,
-          allowFromList,
-          useAccessGroups,
-        })
-      : false;
-    authorizers.push({ configured: true, allowed: senderAllowed });
-  }
-
-  // Resolve authorization using access groups (WhatsApp only)
-  const accessGroupsAuthorized =
-    !isWhatsAppProvider || !useAccessGroups
-      ? true
-      : resolveCommandAuthorizedFromAuthorizers({
-          useAccessGroups,
-          authorizers,
-          modeWhenAccessGroupsOff: "configured",
-        });
-
-  const isOwner =
-    !isWhatsAppProvider ||
-    allowAll ||
-    ownerList.length === 0 ||
-    (senderE164 ? ownerList.includes(senderE164) : false);
-
-  // Both legacy owner check AND access groups must pass
-  const isAuthorizedSender =
-    commandAuthorized && isOwner && accessGroupsAuthorized;
+  const enforceOwner = Boolean(dock?.commands?.enforceOwnerForCommands);
+  const isOwner = !enforceOwner || allowAll || ownerList.length === 0 || Boolean(matchedSender);
+  const isAuthorizedSender = commandAuthorized && isOwner;
 
   return {
-    isWhatsAppProvider,
+    providerId,
     ownerList,
-    senderE164: senderE164 || undefined,
+    senderId: senderId || undefined,
     isAuthorizedSender,
     from: from || undefined,
     to: to || undefined,
-    accessGroupsApplied: useAccessGroups && isWhatsAppProvider,
   };
 }

@@ -1,21 +1,17 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
+import { resolveStateDir } from "../config/paths.js";
 
 export type VoiceWakeConfig = {
   triggers: string[];
   updatedAtMs: number;
 };
 
-const DEFAULT_TRIGGERS = ["zee", "claude", "computer"];
-
-function defaultBaseDir() {
-  return path.join(os.homedir(), ".zee");
-}
+const DEFAULT_TRIGGERS = ["clawd", "claude", "computer"];
 
 function resolvePath(baseDir?: string) {
-  const root = baseDir ?? defaultBaseDir();
+  const root = baseDir ?? resolveStateDir();
   return path.join(root, "settings", "voicewake.json");
 }
 
@@ -62,9 +58,7 @@ export function defaultVoiceWakeTriggers() {
   return [...DEFAULT_TRIGGERS];
 }
 
-export async function loadVoiceWakeConfig(
-  baseDir?: string,
-): Promise<VoiceWakeConfig> {
+export async function loadVoiceWakeConfig(baseDir?: string): Promise<VoiceWakeConfig> {
   const filePath = resolvePath(baseDir);
   const existing = await readJSON<VoiceWakeConfig>(filePath);
   if (!existing) {

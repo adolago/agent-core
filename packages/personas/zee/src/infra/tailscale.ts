@@ -1,42 +1,128 @@
 import { existsSync } from "node:fs";
 import { promptYesNo } from "../cli/prompt.js";
-import {
-  danger,
-  info,
-  logVerbose,
-  shouldLogVerbose,
-  warn,
-} from "../globals.js";
+import { danger, info, logVerbose, shouldLogVerbose, warn } from "../globals.js";
 import { runExec } from "../process/exec.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { colorize, isRich, theme } from "../terminal/theme.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import { ensureBinary } from "./binaries.js";
 
-export async function getTailnetHostname(exec: typeof runExec = runExec) {
+function parsePossiblyNoisyJsonObject(stdout: string): Record<string, unknown> {
+  const trimmed = stdout.trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    return JSON.parse(trimmed.slice(start, end + 1)) as Record<string, unknown>;
+  }
+  return JSON.parse(trimmed) as Record<string, unknown>;
+}
+
+/**
+ * Locate Tailscale binary using multiple strategies:
+ * 1. PATH lookup (via which command)
+ * 2. Known macOS app path
+ * 3. find /Applications for Tailscale.app
+ * 4. locate database (if available)
+ *
+ * @returns Path to Tailscale binary or null if not found
+ */
+export async function findTailscaleBinary(): Promise<string | null> {
+  // Helper to check if a binary exists and is executable
+  const checkBinary = async (path: string): Promise<boolean> => {
+    if (!path || !existsSync(path)) return false;
+    try {
+      // Use Promise.race with runExec to implement timeout
+      await Promise.race([
+        runExec(path, ["--version"], { timeoutMs: 3000 }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+      ]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Strategy 1: which command
+  try {
+    const { stdout } = await runExec("which", ["tailscale"]);
+    const fromPath = stdout.trim();
+    if (fromPath && (await checkBinary(fromPath))) {
+      return fromPath;
+    }
+  } catch {
+    // which failed, continue
+  }
+
+  // Strategy 2: Known macOS app path
+  const macAppPath = "/Applications/Tailscale.app/Contents/MacOS/Tailscale";
+  if (await checkBinary(macAppPath)) {
+    return macAppPath;
+  }
+
+  // Strategy 3: find command in /Applications
+  try {
+    const { stdout } = await runExec(
+      "find",
+      [
+        "/Applications",
+        "-maxdepth",
+        "3",
+        "-name",
+        "Tailscale",
+        "-path",
+        "*/Tailscale.app/Contents/MacOS/Tailscale",
+      ],
+      { timeoutMs: 5000 },
+    );
+    const found = stdout.trim().split("\n")[0];
+    if (found && (await checkBinary(found))) {
+      return found;
+    }
+  } catch {
+    // find failed, continue
+  }
+
+  // Strategy 4: locate command
+  try {
+    const { stdout } = await runExec("locate", ["Tailscale.app"]);
+    const candidates = stdout
+      .trim()
+      .split("\n")
+      .filter((line) => line.includes("/Tailscale.app/Contents/MacOS/Tailscale"));
+    for (const candidate of candidates) {
+      if (await checkBinary(candidate)) {
+        return candidate;
+      }
+    }
+  } catch {
+    // locate failed, continue
+  }
+
+  return null;
+}
+
+export async function getTailnetHostname(exec: typeof runExec = runExec, detectedBinary?: string) {
   // Derive tailnet hostname (or IP fallback) from tailscale status JSON.
-  const candidates = [
-    "tailscale",
-    "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
-  ];
+  const candidates = detectedBinary
+    ? [detectedBinary]
+    : ["tailscale", "/Applications/Tailscale.app/Contents/MacOS/Tailscale"];
   let lastError: unknown;
 
   for (const candidate of candidates) {
     if (candidate.startsWith("/") && !existsSync(candidate)) continue;
     try {
-      const { stdout } = await exec(candidate, ["status", "--json"]);
-      const parsed = stdout
-        ? (JSON.parse(stdout) as Record<string, unknown>)
-        : {};
+      const { stdout } = await exec(candidate, ["status", "--json"], {
+        timeoutMs: 5000,
+        maxBuffer: 400_000,
+      });
+      const parsed = stdout ? parsePossiblyNoisyJsonObject(stdout) : {};
       const self =
         typeof parsed.Self === "object" && parsed.Self !== null
           ? (parsed.Self as Record<string, unknown>)
           : undefined;
-      const dns =
-        typeof self?.DNSName === "string"
-          ? (self.DNSName as string)
-          : undefined;
+      const dns = typeof self?.DNSName === "string" ? (self.DNSName as string) : undefined;
       const ips = Array.isArray(self?.TailscaleIPs)
-        ? (self.TailscaleIPs as string[])
+        ? ((parsed.Self as { TailscaleIPs?: string[] }).TailscaleIPs ?? [])
         : [];
       if (dns && dns.length > 0) return dns.replace(/\.$/, "");
       if (ips.length > 0) return ips[0];
@@ -47,6 +133,30 @@ export async function getTailnetHostname(exec: typeof runExec = runExec) {
   }
 
   throw lastError ?? new Error("Could not determine Tailscale DNS or IP");
+}
+
+/**
+ * Get the Tailscale binary command to use.
+ * Returns a cached detected binary or the default "tailscale" command.
+ */
+let cachedTailscaleBinary: string | null = null;
+
+export async function getTailscaleBinary(): Promise<string> {
+  if (cachedTailscaleBinary) return cachedTailscaleBinary;
+  cachedTailscaleBinary = await findTailscaleBinary();
+  return cachedTailscaleBinary ?? "tailscale";
+}
+
+export async function readTailscaleStatusJson(
+  exec: typeof runExec = runExec,
+  opts?: { timeoutMs?: number },
+): Promise<Record<string, unknown>> {
+  const tailscaleBin = await getTailscaleBinary();
+  const { stdout } = await exec(tailscaleBin, ["status", "--json"], {
+    timeoutMs: opts?.timeoutMs ?? 5000,
+    maxBuffer: 400_000,
+  });
+  return stdout ? parsePossiblyNoisyJsonObject(stdout) : {};
 }
 
 export async function ensureGoInstalled(
@@ -96,6 +206,64 @@ export async function ensureTailscaledInstalled(
   await exec("brew", ["install", "tailscale"]);
 }
 
+type ExecErrorDetails = {
+  stdout?: unknown;
+  stderr?: unknown;
+  message?: unknown;
+  code?: unknown;
+};
+
+function extractExecErrorText(err: unknown) {
+  const errOutput = err as ExecErrorDetails;
+  const stdout = typeof errOutput.stdout === "string" ? errOutput.stdout : "";
+  const stderr = typeof errOutput.stderr === "string" ? errOutput.stderr : "";
+  const message = typeof errOutput.message === "string" ? errOutput.message : "";
+  const code = typeof errOutput.code === "string" ? errOutput.code : "";
+  return { stdout, stderr, message, code };
+}
+
+function isPermissionDeniedError(err: unknown): boolean {
+  const { stdout, stderr, message, code } = extractExecErrorText(err);
+  if (code.toUpperCase() === "EACCES") return true;
+  const combined = `${stdout}\n${stderr}\n${message}`.toLowerCase();
+  return (
+    combined.includes("permission denied") ||
+    combined.includes("access denied") ||
+    combined.includes("operation not permitted") ||
+    combined.includes("not permitted") ||
+    combined.includes("requires root") ||
+    combined.includes("must be run as root") ||
+    combined.includes("must be run with sudo") ||
+    combined.includes("requires sudo") ||
+    combined.includes("need sudo")
+  );
+}
+
+// Helper to attempt a command, and retry with sudo if it fails.
+async function execWithSudoFallback(
+  exec: typeof runExec,
+  bin: string,
+  args: string[],
+  opts: { maxBuffer?: number; timeoutMs?: number },
+): Promise<{ stdout: string; stderr: string }> {
+  try {
+    return await exec(bin, args, opts);
+  } catch (err) {
+    if (!isPermissionDeniedError(err)) {
+      throw err;
+    }
+    logVerbose(`Command failed, retrying with sudo: ${bin} ${args.join(" ")}`);
+    try {
+      return await exec("sudo", ["-n", bin, ...args], opts);
+    } catch (sudoErr) {
+      const { stderr, message } = extractExecErrorText(sudoErr);
+      const detail = (stderr || message).trim();
+      if (detail) logVerbose(`Sudo retry failed: ${detail}`);
+      throw err;
+    }
+  }
+}
+
 export async function ensureFunnel(
   port: number,
   exec: typeof runExec = runExec,
@@ -104,16 +272,11 @@ export async function ensureFunnel(
 ) {
   // Ensure Funnel is enabled and publish the webhook port.
   try {
-    const statusOut = (
-      await exec("tailscale", ["funnel", "status", "--json"])
-    ).stdout.trim();
-    const parsed = statusOut
-      ? (JSON.parse(statusOut) as Record<string, unknown>)
-      : {};
+    const tailscaleBin = await getTailscaleBinary();
+    const statusOut = (await exec(tailscaleBin, ["funnel", "status", "--json"])).stdout.trim();
+    const parsed = statusOut ? (JSON.parse(statusOut) as Record<string, unknown>) : {};
     if (!parsed || Object.keys(parsed).length === 0) {
-      runtime.error(
-        danger("Tailscale Funnel is not enabled on this tailnet/device."),
-      );
+      runtime.error(danger("Tailscale Funnel is not enabled on this tailnet/device."));
       runtime.error(
         info(
           "Enable in admin console: https://login.tailscale.com/admin (see https://tailscale.com/kb/1223/funnel)",
@@ -124,10 +287,7 @@ export async function ensureFunnel(
           "macOS user-space tailscaled docs: https://github.com/tailscale/tailscale/wiki/Tailscaled-on-macOS",
         ),
       );
-      const proceed = await prompt(
-        "Attempt local setup with user-space tailscaled?",
-        true,
-      );
+      const proceed = await prompt("Attempt local setup with user-space tailscaled?", true);
       if (!proceed) runtime.exit(1);
       await ensureBinary("brew", exec, runtime);
       await ensureGoInstalled(exec, prompt, runtime);
@@ -135,8 +295,10 @@ export async function ensureFunnel(
     }
 
     logVerbose(`Enabling funnel on port ${port}…`);
-    const { stdout } = await exec(
-      "tailscale",
+    // Attempt with fallback
+    const { stdout } = await execWithSudoFallback(
+      exec,
+      tailscaleBin,
       ["funnel", "--yes", "--bg", `${port}`],
       {
         maxBuffer: 200_000,
@@ -161,22 +323,17 @@ export async function ensureFunnel(
         );
       }
     }
-    if (
-      stderr.includes("client version") ||
-      stdout.includes("client version")
-    ) {
+    if (stderr.includes("client version") || stdout.includes("client version")) {
       console.error(
         warn(
           "Tailscale client/server version mismatch detected; try updating tailscale/tailscaled.",
         ),
       );
     }
-    runtime.error(
-      "Failed to enable Tailscale Funnel. Is it allowed on your tailnet?",
-    );
+    runtime.error("Failed to enable Tailscale Funnel. Is it allowed on your tailnet?");
     runtime.error(
       info(
-        "Tip: Funnel is optional for ZEE. You can keep running the web gateway without it: `pnpm zee gateway`",
+        `Tip: Funnel is optional for CLAWDBOT. You can keep running the web gateway without it: \`${formatCliCommand("clawdbot gateway")}\``,
       ),
     );
     if (shouldLogVerbose()) {
@@ -193,35 +350,33 @@ export async function ensureFunnel(
   }
 }
 
-export async function enableTailscaleServe(
-  port: number,
-  exec: typeof runExec = runExec,
-) {
-  await exec("tailscale", ["serve", "--bg", "--yes", `${port}`], {
+export async function enableTailscaleServe(port: number, exec: typeof runExec = runExec) {
+  const tailscaleBin = await getTailscaleBinary();
+  await execWithSudoFallback(exec, tailscaleBin, ["serve", "--bg", "--yes", `${port}`], {
     maxBuffer: 200_000,
     timeoutMs: 15_000,
   });
 }
 
 export async function disableTailscaleServe(exec: typeof runExec = runExec) {
-  await exec("tailscale", ["serve", "reset"], {
+  const tailscaleBin = await getTailscaleBinary();
+  await execWithSudoFallback(exec, tailscaleBin, ["serve", "reset"], {
     maxBuffer: 200_000,
     timeoutMs: 15_000,
   });
 }
 
-export async function enableTailscaleFunnel(
-  port: number,
-  exec: typeof runExec = runExec,
-) {
-  await exec("tailscale", ["funnel", "--bg", "--yes", `${port}`], {
+export async function enableTailscaleFunnel(port: number, exec: typeof runExec = runExec) {
+  const tailscaleBin = await getTailscaleBinary();
+  await execWithSudoFallback(exec, tailscaleBin, ["funnel", "--bg", "--yes", `${port}`], {
     maxBuffer: 200_000,
     timeoutMs: 15_000,
   });
 }
 
 export async function disableTailscaleFunnel(exec: typeof runExec = runExec) {
-  await exec("tailscale", ["funnel", "reset"], {
+  const tailscaleBin = await getTailscaleBinary();
+  await execWithSudoFallback(exec, tailscaleBin, ["funnel", "reset"], {
     maxBuffer: 200_000,
     timeoutMs: 15_000,
   });

@@ -1,19 +1,8 @@
+import { resolveMainSessionKeyFromConfig } from "../../config/sessions.js";
 import { getLastHeartbeatEvent } from "../../infra/heartbeat-events.js";
 import { setHeartbeatsEnabled } from "../../infra/heartbeat-runner.js";
-import {
-  enqueueSystemEvent,
-  isSystemEventContextChanged,
-} from "../../infra/system-events.js";
-import {
-  listSystemPresence,
-  updateSystemPresence,
-} from "../../infra/system-presence.js";
-import {
-  areWideEventsEnabled,
-  emitWideEvent,
-  getWideEventLogPath,
-  resolveWideEventPolicy,
-} from "../../logging/wide-events.js";
+import { enqueueSystemEvent, isSystemEventContextChanged } from "../../infra/system-events.js";
+import { listSystemPresence, updateSystemPresence } from "../../infra/system-presence.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
@@ -44,42 +33,40 @@ export const systemHandlers: GatewayRequestHandlers = {
   "system-event": ({ params, respond, context }) => {
     const text = typeof params.text === "string" ? params.text.trim() : "";
     if (!text) {
-      respond(
-        false,
-        undefined,
-        errorShape(ErrorCodes.INVALID_REQUEST, "text required"),
-      );
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "text required"));
       return;
     }
-    const instanceId =
-      typeof params.instanceId === "string" ? params.instanceId : undefined;
+    const sessionKey = resolveMainSessionKeyFromConfig();
+    const deviceId = typeof params.deviceId === "string" ? params.deviceId : undefined;
+    const instanceId = typeof params.instanceId === "string" ? params.instanceId : undefined;
     const host = typeof params.host === "string" ? params.host : undefined;
     const ip = typeof params.ip === "string" ? params.ip : undefined;
     const mode = typeof params.mode === "string" ? params.mode : undefined;
-    const version =
-      typeof params.version === "string" ? params.version : undefined;
-    const platform =
-      typeof params.platform === "string" ? params.platform : undefined;
-    const deviceFamily =
-      typeof params.deviceFamily === "string" ? params.deviceFamily : undefined;
+    const version = typeof params.version === "string" ? params.version : undefined;
+    const platform = typeof params.platform === "string" ? params.platform : undefined;
+    const deviceFamily = typeof params.deviceFamily === "string" ? params.deviceFamily : undefined;
     const modelIdentifier =
-      typeof params.modelIdentifier === "string"
-        ? params.modelIdentifier
-        : undefined;
+      typeof params.modelIdentifier === "string" ? params.modelIdentifier : undefined;
     const lastInputSeconds =
-      typeof params.lastInputSeconds === "number" &&
-      Number.isFinite(params.lastInputSeconds)
+      typeof params.lastInputSeconds === "number" && Number.isFinite(params.lastInputSeconds)
         ? params.lastInputSeconds
         : undefined;
-    const reason =
-      typeof params.reason === "string" ? params.reason : undefined;
+    const reason = typeof params.reason === "string" ? params.reason : undefined;
+    const roles =
+      Array.isArray(params.roles) && params.roles.every((t) => typeof t === "string")
+        ? (params.roles as string[])
+        : undefined;
+    const scopes =
+      Array.isArray(params.scopes) && params.scopes.every((t) => typeof t === "string")
+        ? (params.scopes as string[])
+        : undefined;
     const tags =
-      Array.isArray(params.tags) &&
-      params.tags.every((t) => typeof t === "string")
+      Array.isArray(params.tags) && params.tags.every((t) => typeof t === "string")
         ? (params.tags as string[])
         : undefined;
     const presenceUpdate = updateSystemPresence({
       text,
+      deviceId,
       instanceId,
       host,
       ip,
@@ -90,6 +77,8 @@ export const systemHandlers: GatewayRequestHandlers = {
       modelIdentifier,
       lastInputSeconds,
       reason,
+      roles,
+      scopes,
       tags,
     });
     const isNodePresenceLine = text.startsWith("Node:");
@@ -99,21 +88,15 @@ export const systemHandlers: GatewayRequestHandlers = {
       const reasonValue = next.reason ?? reason;
       const normalizedReason = (reasonValue ?? "").toLowerCase();
       const ignoreReason =
-        normalizedReason.startsWith("periodic") ||
-        normalizedReason === "heartbeat";
+        normalizedReason.startsWith("periodic") || normalizedReason === "heartbeat";
       const hostChanged = changed.has("host");
       const ipChanged = changed.has("ip");
       const versionChanged = changed.has("version");
       const modeChanged = changed.has("mode");
       const reasonChanged = changed.has("reason") && !ignoreReason;
-      const hasChanges =
-        hostChanged ||
-        ipChanged ||
-        versionChanged ||
-        modeChanged ||
-        reasonChanged;
+      const hasChanges = hostChanged || ipChanged || versionChanged || modeChanged || reasonChanged;
       if (hasChanges) {
-        const contextChanged = isSystemEventContextChanged(presenceUpdate.key);
+        const contextChanged = isSystemEventContextChanged(sessionKey, presenceUpdate.key);
         const parts: string[] = [];
         if (contextChanged || hostChanged || ipChanged) {
           const hostLabel = next.host?.trim() || "Unknown";
@@ -132,12 +115,13 @@ export const systemHandlers: GatewayRequestHandlers = {
         const deltaText = parts.join(" · ");
         if (deltaText) {
           enqueueSystemEvent(deltaText, {
+            sessionKey,
             contextKey: presenceUpdate.key,
           });
         }
       }
     } else {
-      enqueueSystemEvent(text);
+      enqueueSystemEvent(text, { sessionKey });
     }
     const nextPresenceVersion = context.incrementPresenceVersion();
     context.broadcast(
@@ -152,32 +136,5 @@ export const systemHandlers: GatewayRequestHandlers = {
       },
     );
     respond(true, { ok: true }, undefined);
-  },
-  "wideEvents.probe": async ({ respond, req }) => {
-    const ts = new Date().toISOString();
-    await emitWideEvent({
-      event: {
-        ts,
-        service: "zee-gateway",
-        traceId: req.id,
-        requestId: req.id,
-        method: "wideEvents.probe",
-        meta: { probe: true },
-      },
-      ok: true,
-      durationMs: 0,
-      debug: true,
-    });
-    respond(
-      true,
-      {
-        ok: true,
-        ts,
-        file: getWideEventLogPath(),
-        enabled: areWideEventsEnabled(),
-        payloads: resolveWideEventPolicy(),
-      },
-      undefined,
-    );
   },
 };

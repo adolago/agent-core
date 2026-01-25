@@ -4,8 +4,8 @@ import path from "node:path";
 
 import { CONFIG_DIR, ensureDir } from "../utils.js";
 
-export const WIDE_AREA_DISCOVERY_DOMAIN = "zee.internal.";
-export const WIDE_AREA_ZONE_FILENAME = "zee.internal.db";
+export const WIDE_AREA_DISCOVERY_DOMAIN = "clawdbot.internal.";
+export const WIDE_AREA_ZONE_FILENAME = "clawdbot.internal.db";
 
 export function getWideAreaZonePath(): string {
   return path.join(CONFIG_DIR, "dns", WIDE_AREA_ZONE_FILENAME);
@@ -23,10 +23,7 @@ function dnsLabel(raw: string, fallback: string): string {
 }
 
 function txtQuote(value: string): string {
-  const escaped = value
-    .replaceAll("\\", "\\\\")
-    .replaceAll('"', '\\"')
-    .replaceAll("\n", "\\n");
+  const escaped = value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", "\\n");
   return `"${escaped}"`;
 }
 
@@ -54,7 +51,7 @@ function extractSerial(zoneText: string): number | null {
 }
 
 function extractContentHash(zoneText: string): string | null {
-  const match = zoneText.match(/^\s*;\s*zee-content-hash:\s*(\S+)\s*$/m);
+  const match = zoneText.match(/^\s*;\s*clawdbot-content-hash:\s*(\S+)\s*$/m);
   return match?.[1] ?? null;
 }
 
@@ -70,59 +67,43 @@ function computeContentHash(body: string): string {
 
 export type WideAreaGatewayZoneOpts = {
   gatewayPort: number;
-  bridgePort?: number;
-  canvasPort?: number;
   displayName: string;
   tailnetIPv4: string;
   tailnetIPv6?: string;
   gatewayTlsEnabled?: boolean;
   gatewayTlsFingerprintSha256?: string;
   instanceLabel?: string;
-  bridgeInstanceLabel?: string;
   hostLabel?: string;
   tailnetDns?: string;
   sshPort?: number;
   cliPath?: string;
 };
 
-function renderZone(
-  opts: WideAreaGatewayZoneOpts & { serial: number },
-): string {
-  const hostname = os.hostname().split(".")[0] ?? "zee";
-  const hostLabel = dnsLabel(opts.hostLabel ?? hostname, "zee");
-  const gatewayInstanceLabel = dnsLabel(
-    opts.instanceLabel ?? `${hostname}-gateway`,
-    "zee-gateway",
-  );
-  const bridgeInstanceLabel = dnsLabel(
-    opts.bridgeInstanceLabel ?? `${hostname}-bridge`,
-    "zee-bridge",
-  );
+function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string {
+  const hostname = os.hostname().split(".")[0] ?? "clawdbot";
+  const hostLabel = dnsLabel(opts.hostLabel ?? hostname, "clawdbot");
+  const instanceLabel = dnsLabel(opts.instanceLabel ?? `${hostname}-gateway`, "clawdbot-gw");
 
-  const txtBase = [
+  const txt = [
     `displayName=${opts.displayName.trim() || hostname}`,
+    `role=gateway`,
+    `transport=gateway`,
     `gatewayPort=${opts.gatewayPort}`,
   ];
-  if (opts.bridgePort) {
-    txtBase.push(`bridgePort=${opts.bridgePort}`);
-  }
-  if (opts.canvasPort) {
-    txtBase.push(`canvasPort=${opts.canvasPort}`);
-  }
   if (opts.gatewayTlsEnabled) {
-    txtBase.push(`gatewayTls=1`);
+    txt.push(`gatewayTls=1`);
     if (opts.gatewayTlsFingerprintSha256) {
-      txtBase.push(`gatewayTlsSha256=${opts.gatewayTlsFingerprintSha256}`);
+      txt.push(`gatewayTlsSha256=${opts.gatewayTlsFingerprintSha256}`);
     }
   }
   if (opts.tailnetDns?.trim()) {
-    txtBase.push(`tailnetDns=${opts.tailnetDns.trim()}`);
+    txt.push(`tailnetDns=${opts.tailnetDns.trim()}`);
   }
   if (typeof opts.sshPort === "number" && opts.sshPort > 0) {
-    txtBase.push(`sshPort=${opts.sshPort}`);
+    txt.push(`sshPort=${opts.sshPort}`);
   }
   if (opts.cliPath?.trim()) {
-    txtBase.push(`cliPath=${opts.cliPath.trim()}`);
+    txt.push(`cliPath=${opts.cliPath.trim()}`);
   }
 
   const records: string[] = [];
@@ -138,41 +119,19 @@ function renderZone(
     records.push(`${hostLabel} IN AAAA ${opts.tailnetIPv6}`);
   }
 
-  const gatewayTxt = [...txtBase, "transport=gateway"];
-  records.push(
-    `_zee-gateway._tcp IN PTR ${gatewayInstanceLabel}._zee-gateway._tcp`,
-  );
-  records.push(
-    `${gatewayInstanceLabel}._zee-gateway._tcp IN SRV 0 0 ${opts.gatewayPort} ${hostLabel}`,
-  );
-  records.push(
-    `${gatewayInstanceLabel}._zee-gateway._tcp IN TXT ${gatewayTxt.map(txtQuote).join(" ")}`,
-  );
-
-  if (opts.bridgePort && opts.bridgePort > 0) {
-    const bridgeTxt = [...txtBase, "transport=bridge"];
-    records.push(
-      `_zee-bridge._tcp IN PTR ${bridgeInstanceLabel}._zee-bridge._tcp`,
-    );
-    records.push(
-      `${bridgeInstanceLabel}._zee-bridge._tcp IN SRV 0 0 ${opts.bridgePort} ${hostLabel}`,
-    );
-    records.push(
-      `${bridgeInstanceLabel}._zee-bridge._tcp IN TXT ${bridgeTxt.map(txtQuote).join(" ")}`,
-    );
-  }
+  records.push(`_clawdbot-gw._tcp IN PTR ${instanceLabel}._clawdbot-gw._tcp`);
+  records.push(`${instanceLabel}._clawdbot-gw._tcp IN SRV 0 0 ${opts.gatewayPort} ${hostLabel}`);
+  records.push(`${instanceLabel}._clawdbot-gw._tcp IN TXT ${txt.map(txtQuote).join(" ")}`);
 
   const contentBody = `${records.join("\n")}\n`;
   const hashBody = `${records
     .map((line) =>
-      line === soaLine
-        ? `@ IN SOA ns1 hostmaster SERIAL 7200 3600 1209600 60`
-        : line,
+      line === soaLine ? `@ IN SOA ns1 hostmaster SERIAL 7200 3600 1209600 60` : line,
     )
     .join("\n")}\n`;
   const contentHash = computeContentHash(hashBody);
 
-  return `; zee-content-hash: ${contentHash}\n${contentBody}`;
+  return `; clawdbot-content-hash: ${contentHash}\n${contentBody}`;
 }
 
 export function renderWideAreaGatewayZoneText(

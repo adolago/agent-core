@@ -1,17 +1,9 @@
-import type {
-  PortListener,
-  PortListenerKind,
-  PortUsage,
-} from "./ports-types.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import type { PortListener, PortListenerKind, PortUsage } from "./ports-types.js";
 
-export function classifyPortListener(
-  listener: PortListener,
-  port: number,
-): PortListenerKind {
-  const raw = `${listener.commandLine ?? ""} ${listener.command ?? ""}`
-    .trim()
-    .toLowerCase();
-  if (raw.includes("zee") || raw.includes("clawdis")) return "gateway";
+export function classifyPortListener(listener: PortListener, port: number): PortListenerKind {
+  const raw = `${listener.commandLine ?? ""} ${listener.command ?? ""}`.trim().toLowerCase();
+  if (raw.includes("clawdbot")) return "gateway";
   if (raw.includes("ssh")) {
     const portToken = String(port);
     const tunnelPattern = new RegExp(
@@ -23,18 +15,13 @@ export function classifyPortListener(
   return "unknown";
 }
 
-export function buildPortHints(
-  listeners: PortListener[],
-  port: number,
-): string[] {
+export function buildPortHints(listeners: PortListener[], port: number): string[] {
   if (listeners.length === 0) return [];
-  const kinds = new Set(
-    listeners.map((listener) => classifyPortListener(listener, port)),
-  );
+  const kinds = new Set(listeners.map((listener) => classifyPortListener(listener, port)));
   const hints: string[] = [];
   if (kinds.has("gateway")) {
     hints.push(
-      "Gateway already running locally. Stop it (zee daemon stop) or use a different port.",
+      `Gateway already running locally. Stop it (${formatCliCommand("clawdbot gateway stop")}) or use a different port.`,
     );
   }
   if (kinds.has("ssh")) {
@@ -46,7 +33,9 @@ export function buildPortHints(
     hints.push("Another process is listening on this port.");
   }
   if (listeners.length > 1) {
-    hints.push("Multiple listeners detected; ensure only one gateway/tunnel.");
+    hints.push(
+      "Multiple listeners detected; ensure only one gateway/tunnel per port unless intentionally running isolated profiles.",
+    );
   }
   return hints;
 }

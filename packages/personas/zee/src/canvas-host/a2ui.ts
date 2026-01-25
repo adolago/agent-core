@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
@@ -6,67 +5,9 @@ import { fileURLToPath } from "node:url";
 
 import { detectMime } from "../media/mime.js";
 
-export const A2UI_PATH = "/__zee__/a2ui";
-export const CANVAS_HOST_PATH = "/__zee__/canvas";
-export const CANVAS_WS_PATH = "/__zee/ws";
-
-const SCRIPT_TAG_REGEX = /<script\b(?![^>]*\bnonce=)([^>]*)>/gi;
-function hasInvalidCanvasPathChars(value: string): boolean {
-  for (let i = 0; i < value.length; i += 1) {
-    const code = value.charCodeAt(i);
-    if (code < 0x20 || code === 0x7f) return true;
-    const ch = value[i];
-    if (
-      ch === "<" ||
-      ch === ">" ||
-      ch === '"' ||
-      ch === "'" ||
-      ch === "`" ||
-      ch === "\\"
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export function generateCanvasNonce(): string {
-  return randomBytes(16).toString("base64");
-}
-
-export function applyScriptNonce(html: string, nonce: string): string {
-  return html.replace(SCRIPT_TAG_REGEX, `<script nonce="${nonce}"$1>`);
-}
-
-function buildCanvasCsp(nonce: string): string {
-  return [
-    "default-src 'self'",
-    "base-uri 'self'",
-    "object-src 'none'",
-    "frame-ancestors 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self' data:",
-    "connect-src 'self' ws: wss:",
-  ].join("; ");
-}
-
-export function applyCanvasHtmlHeaders(
-  res: ServerResponse,
-  nonce: string,
-): void {
-  res.setHeader("Content-Security-Policy", buildCanvasCsp(nonce));
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("Referrer-Policy", "no-referrer");
-  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-}
-
-export function applyCanvasAssetHeaders(res: ServerResponse): void {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-}
+export const A2UI_PATH = "/__clawdbot__/a2ui";
+export const CANVAS_HOST_PATH = "/__clawdbot__/canvas";
+export const CANVAS_WS_PATH = "/__clawdbot/ws";
 
 let cachedA2uiRootReal: string | null | undefined;
 let resolvingA2uiRoot: Promise<string | null> | null = null;
@@ -112,24 +53,19 @@ async function resolveA2uiRootReal(): Promise<string | null> {
   return resolvingA2uiRoot;
 }
 
-export function normalizeCanvasUrlPath(rawPath: string): string | null {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(rawPath || "/");
-  } catch {
-    return null;
-  }
-  if (hasInvalidCanvasPathChars(decoded)) return null;
+function normalizeUrlPath(rawPath: string): string {
+  const decoded = decodeURIComponent(rawPath || "/");
   const normalized = path.posix.normalize(decoded);
   return normalized.startsWith("/") ? normalized : `/${normalized}`;
 }
 
-async function resolveA2uiFilePath(rootReal: string, normalizedPath: string) {
-  const rel = normalizedPath.replace(/^\/+/, "");
+async function resolveA2uiFilePath(rootReal: string, urlPath: string) {
+  const normalized = normalizeUrlPath(urlPath);
+  const rel = normalized.replace(/^\/+/, "");
   if (rel.split("/").some((p) => p === "..")) return null;
 
   let candidate = path.join(rootReal, rel);
-  if (normalizedPath.endsWith("/")) {
+  if (normalized.endsWith("/")) {
     candidate = path.join(candidate, "index.html");
   }
 
@@ -142,9 +78,7 @@ async function resolveA2uiFilePath(rootReal: string, normalizedPath: string) {
     // ignore
   }
 
-  const rootPrefix = rootReal.endsWith(path.sep)
-    ? rootReal
-    : `${rootReal}${path.sep}`;
+  const rootPrefix = rootReal.endsWith(path.sep) ? rootReal : `${rootReal}${path.sep}`;
   try {
     const lstat = await fs.lstat(candidate);
     if (lstat.isSymbolicLink()) return null;
@@ -162,9 +96,9 @@ export function injectCanvasLiveReload(html: string): string {
 (() => {
   // Cross-platform action bridge helper.
   // Works on:
-  // - iOS: window.webkit.messageHandlers.zeeCanvasA2UIAction.postMessage(...)
-  // - Android: window.zeeCanvasA2UIAction.postMessage(...)
-  const actionHandlerName = "zeeCanvasA2UIAction";
+  // - iOS: window.webkit.messageHandlers.clawdbotCanvasA2UIAction.postMessage(...)
+  // - Android: window.clawdbotCanvasA2UIAction.postMessage(...)
+  const actionHandlerName = "clawdbotCanvasA2UIAction";
   function postToNode(payload) {
     try {
       const raw = typeof payload === "string" ? payload : JSON.stringify(payload);
@@ -189,11 +123,11 @@ export function injectCanvasLiveReload(html: string): string {
     const action = { ...userAction, id };
     return postToNode({ userAction: action });
   }
-  globalThis.Zee = globalThis.Zee ?? {};
-  globalThis.Zee.postMessage = postToNode;
-  globalThis.Zee.sendUserAction = sendUserAction;
-  globalThis.zeePostMessage = postToNode;
-  globalThis.zeeSendUserAction = sendUserAction;
+  globalThis.Clawdbot = globalThis.Clawdbot ?? {};
+  globalThis.Clawdbot.postMessage = postToNode;
+  globalThis.Clawdbot.sendUserAction = sendUserAction;
+  globalThis.clawdbotPostMessage = postToNode;
+  globalThis.clawdbotSendUserAction = sendUserAction;
 
   try {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -241,15 +175,7 @@ export async function handleA2uiHttpRequest(
   }
 
   const rel = url.pathname.slice(A2UI_PATH.length);
-  const normalizedPath = normalizeCanvasUrlPath(rel || "/");
-  if (!normalizedPath) {
-    res.statusCode = 404;
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.end("not found");
-    return true;
-  }
-
-  const filePath = await resolveA2uiFilePath(a2uiRootReal, normalizedPath);
+  const filePath = await resolveA2uiFilePath(a2uiRootReal, rel || "/");
   if (!filePath) {
     res.statusCode = 404;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -265,17 +191,12 @@ export async function handleA2uiHttpRequest(
   res.setHeader("Cache-Control", "no-store");
 
   if (mime === "text/html") {
-    const nonce = generateCanvasNonce();
     const html = await fs.readFile(filePath, "utf8");
-    const withReload = injectCanvasLiveReload(html);
-    const withNonce = applyScriptNonce(withReload, nonce);
-    applyCanvasHtmlHeaders(res, nonce);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.end(withNonce);
+    res.end(injectCanvasLiveReload(html));
     return true;
   }
 
-  applyCanvasAssetHeaders(res);
   res.setHeader("Content-Type", mime);
   res.end(await fs.readFile(filePath));
   return true;

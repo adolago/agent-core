@@ -1,9 +1,5 @@
 import fs from "node:fs/promises";
-import http, {
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from "node:http";
+import http, { type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -11,19 +7,15 @@ import type { Duplex } from "node:stream";
 
 import chokidar from "chokidar";
 import { type WebSocket, WebSocketServer } from "ws";
+import { isTruthyEnvValue } from "../infra/env.js";
 import { detectMime } from "../media/mime.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { ensureDir, resolveUserPath } from "../utils.js";
 import {
-  applyCanvasAssetHeaders,
-  applyCanvasHtmlHeaders,
-  applyScriptNonce,
   CANVAS_HOST_PATH,
   CANVAS_WS_PATH,
-  generateCanvasNonce,
   handleA2uiHttpRequest,
   injectCanvasLiveReload,
-  normalizeCanvasUrlPath,
 } from "./a2ui.js";
 
 export type CanvasHostOpts = {
@@ -57,15 +49,8 @@ export type CanvasHostHandlerOpts = {
 export type CanvasHostHandler = {
   rootDir: string;
   basePath: string;
-  handleHttpRequest: (
-    req: IncomingMessage,
-    res: ServerResponse,
-  ) => Promise<boolean>;
-  handleUpgrade: (
-    req: IncomingMessage,
-    socket: Duplex,
-    head: Buffer,
-  ) => boolean;
+  handleHttpRequest: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
+  handleUpgrade: (req: IncomingMessage, socket: Duplex, head: Buffer) => boolean;
   close: () => Promise<void>;
 };
 
@@ -73,7 +58,7 @@ function defaultIndexHTML() {
   return `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Zee Canvas</title>
+<title>Clawdbot Canvas</title>
 <style>
   html, body { height: 100%; margin: 0; background: #000; color: #fff; font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   .wrap { min-height: 100%; display: grid; place-items: center; padding: 24px; }
@@ -91,7 +76,7 @@ function defaultIndexHTML() {
 <div class="wrap">
   <div class="card">
     <div class="title">
-      <h1>Zee Canvas</h1>
+      <h1>Clawdbot Canvas</h1>
       <div class="sub">Interactive test page (auto-reload enabled)</div>
     </div>
 
@@ -112,26 +97,26 @@ function defaultIndexHTML() {
   const statusEl = document.getElementById("status");
   const log = (msg) => { logEl.textContent = String(msg); };
 
-  const hasIOS = () => !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zeeCanvasA2UIAction);
-  const hasAndroid = () => !!(window.zeeCanvasA2UIAction && typeof window.zeeCanvasA2UIAction.postMessage === "function");
-  const hasHelper = () => typeof window.zeeSendUserAction === "function";
+  const hasIOS = () => !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clawdbotCanvasA2UIAction);
+  const hasAndroid = () => !!(window.clawdbotCanvasA2UIAction && typeof window.clawdbotCanvasA2UIAction.postMessage === "function");
+  const hasHelper = () => typeof window.clawdbotSendUserAction === "function";
   statusEl.innerHTML =
     "Bridge: " +
     (hasHelper() ? "<span class='ok'>ready</span>" : "<span class='bad'>missing</span>") +
     " · iOS=" + (hasIOS() ? "yes" : "no") +
     " · Android=" + (hasAndroid() ? "yes" : "no");
 
-  window.addEventListener("zee:a2ui-action-status", (ev) => {
+  window.addEventListener("clawdbot:a2ui-action-status", (ev) => {
     const d = ev && ev.detail || {};
     log("Action status: id=" + (d.id || "?") + " ok=" + String(!!d.ok) + (d.error ? (" error=" + d.error) : ""));
   });
 
   function send(name, sourceComponentId) {
     if (!hasHelper()) {
-      log("No action bridge found. Ensure you're viewing this on an iOS/Android Zee node canvas.");
+      log("No action bridge found. Ensure you're viewing this on an iOS/Android Clawdbot node canvas.");
       return;
     }
-    const ok = window.zeeSendUserAction({
+    const ok = window.clawdbotSendUserAction({
       name,
       surfaceId: "main",
       sourceComponentId,
@@ -149,12 +134,19 @@ function defaultIndexHTML() {
 `;
 }
 
-async function resolveFilePath(rootReal: string, normalizedPath: string) {
-  const rel = normalizedPath.replace(/^\/+/, "");
+function normalizeUrlPath(rawPath: string): string {
+  const decoded = decodeURIComponent(rawPath || "/");
+  const normalized = path.posix.normalize(decoded);
+  return normalized.startsWith("/") ? normalized : `/${normalized}`;
+}
+
+async function resolveFilePath(rootReal: string, urlPath: string) {
+  const normalized = normalizeUrlPath(urlPath);
+  const rel = normalized.replace(/^\/+/, "");
   if (rel.split("/").some((p) => p === "..")) return null;
 
   let candidate = path.join(rootReal, rel);
-  if (normalizedPath.endsWith("/")) {
+  if (normalized.endsWith("/")) {
     candidate = path.join(candidate, "index.html");
   }
 
@@ -167,9 +159,7 @@ async function resolveFilePath(rootReal: string, normalizedPath: string) {
     // ignore
   }
 
-  const rootPrefix = rootReal.endsWith(path.sep)
-    ? rootReal
-    : `${rootReal}${path.sep}`;
+  const rootPrefix = rootReal.endsWith(path.sep) ? rootReal : `${rootReal}${path.sep}`;
   try {
     const lstat = await fs.lstat(candidate);
     if (lstat.isSymbolicLink()) return null;
@@ -182,7 +172,7 @@ async function resolveFilePath(rootReal: string, normalizedPath: string) {
 }
 
 function isDisabledByEnv() {
-  if (process.env.ZEE_SKIP_CANVAS_HOST === "1") return true;
+  if (isTruthyEnvValue(process.env.CLAWDBOT_SKIP_CANVAS_HOST)) return true;
   if (process.env.NODE_ENV === "test") return true;
   if (process.env.VITEST) return true;
   return false;
@@ -190,8 +180,7 @@ function isDisabledByEnv() {
 
 function normalizeBasePath(rawPath: string | undefined) {
   const trimmed = (rawPath ?? CANVAS_HOST_PATH).trim();
-  const normalized =
-    normalizeCanvasUrlPath(trimmed || CANVAS_HOST_PATH) ?? CANVAS_HOST_PATH;
+  const normalized = normalizeUrlPath(trimmed || CANVAS_HOST_PATH);
   if (normalized === "/") return "/";
   return normalized.replace(/\/+$/, "");
 }
@@ -204,11 +193,7 @@ async function prepareCanvasRoot(rootDir: string) {
     await fs.stat(indexPath);
   } catch {
     try {
-      await fs.writeFile(
-        path.join(rootReal, "index.html"),
-        defaultIndexHTML(),
-        "utf8",
-      );
+      await fs.writeFile(path.join(rootReal, "index.html"), defaultIndexHTML(), "utf8");
     } catch {
       // ignore; we'll still serve the "missing file" message if needed.
     }
@@ -230,9 +215,7 @@ export async function createCanvasHostHandler(
     };
   }
 
-  const rootDir = resolveUserPath(
-    opts.rootDir ?? path.join(os.homedir(), "zee", "canvas"),
-  );
+  const rootDir = resolveUserPath(opts.rootDir ?? path.join(os.homedir(), "clawd", "canvas"));
   const rootReal = await prepareCanvasRoot(rootDir);
 
   const liveReload = opts.liveReload !== false;
@@ -270,6 +253,7 @@ export async function createCanvasHostHandler(
     ? chokidar.watch(rootReal, {
         ignoreInitial: true,
         awaitWriteFinish: { stabilityThreshold: 75, pollInterval: 10 },
+        usePolling: opts.allowInTests === true,
         ignored: [
           /(^|[\\/])\../, // dotfiles
           /(^|[\\/])node_modules([\\/]|$)/,
@@ -286,11 +270,7 @@ export async function createCanvasHostHandler(
     void watcher.close().catch(() => {});
   });
 
-  const handleUpgrade = (
-    req: IncomingMessage,
-    socket: Duplex,
-    head: Buffer,
-  ) => {
+  const handleUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer) => {
     if (!wss) return false;
     const url = new URL(req.url ?? "/", "http://localhost");
     if (url.pathname !== CANVAS_WS_PATH) return false;
@@ -300,10 +280,7 @@ export async function createCanvasHostHandler(
     return true;
   };
 
-  const handleHttpRequest = async (
-    req: IncomingMessage,
-    res: ServerResponse,
-  ) => {
+  const handleHttpRequest = async (req: IncomingMessage, res: ServerResponse) => {
     const urlRaw = req.url;
     if (!urlRaw) return false;
 
@@ -334,23 +311,14 @@ export async function createCanvasHostHandler(
         return true;
       }
 
-      const normalizedPath = normalizeCanvasUrlPath(urlPath);
-      if (!normalizedPath) {
-        res.statusCode = 404;
-        res.setHeader("Content-Type", "text/plain; charset=utf-8");
-        res.end("not found");
-        return true;
-      }
-
-      const filePath = await resolveFilePath(rootReal, normalizedPath);
+      const filePath = await resolveFilePath(rootReal, urlPath);
       if (!filePath) {
-        if (normalizedPath === "/" || normalizedPath.endsWith("/")) {
-          const nonce = generateCanvasNonce();
-          const html = `<!doctype html><meta charset="utf-8" /><title>Zee Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`;
+        if (urlPath === "/" || urlPath.endsWith("/")) {
           res.statusCode = 404;
-          applyCanvasHtmlHeaders(res, nonce);
           res.setHeader("Content-Type", "text/html; charset=utf-8");
-          res.end(applyScriptNonce(html, nonce));
+          res.end(
+            `<!doctype html><meta charset="utf-8" /><title>Clawdbot Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
+          );
           return true;
         }
         res.statusCode = 404;
@@ -367,17 +335,12 @@ export async function createCanvasHostHandler(
 
       res.setHeader("Cache-Control", "no-store");
       if (mime === "text/html") {
-        const nonce = generateCanvasNonce();
         const html = await fs.readFile(filePath, "utf8");
-        const withReload = liveReload ? injectCanvasLiveReload(html) : html;
-        const withNonce = applyScriptNonce(withReload, nonce);
-        applyCanvasHtmlHeaders(res, nonce);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(withNonce);
+        res.end(liveReload ? injectCanvasLiveReload(html) : html);
         return true;
       }
 
-      applyCanvasAssetHeaders(res);
       res.setHeader("Content-Type", mime);
       res.end(await fs.readFile(filePath));
       return true;
@@ -406,9 +369,7 @@ export async function createCanvasHostHandler(
   };
 }
 
-export async function startCanvasHost(
-  opts: CanvasHostServerOpts,
-): Promise<CanvasHostServer> {
+export async function startCanvasHost(opts: CanvasHostServerOpts): Promise<CanvasHostServer> {
   if (isDisabledByEnv() && opts.allowInTests !== true) {
     return { port: 0, rootDir: "", close: async () => {} };
   }
@@ -446,9 +407,7 @@ export async function startCanvasHost(
   });
 
   const listenPort =
-    typeof opts.port === "number" && Number.isFinite(opts.port) && opts.port > 0
-      ? opts.port
-      : 0;
+    typeof opts.port === "number" && Number.isFinite(opts.port) && opts.port > 0 ? opts.port : 0;
   await new Promise<void>((resolve, reject) => {
     const onError = (err: NodeJS.ErrnoException) => {
       server.off("listening", onListening);

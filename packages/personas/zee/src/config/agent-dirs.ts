@@ -3,7 +3,7 @@ import path from "node:path";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveStateDir } from "./paths.js";
-import type { ZeeConfig } from "./types.js";
+import type { ClawdbotConfig } from "./types.js";
 
 export type DuplicateAgentDir = {
   agentDir: string;
@@ -28,21 +28,19 @@ function canonicalizeAgentDir(agentDir: string): string {
   return resolved;
 }
 
-function collectReferencedAgentIds(cfg: ZeeConfig): string[] {
+function collectReferencedAgentIds(cfg: ClawdbotConfig): string[] {
   const ids = new Set<string>();
 
+  const agents = Array.isArray(cfg.agents?.list) ? cfg.agents?.list : [];
   const defaultAgentId =
-    cfg.routing?.defaultAgentId?.trim() || DEFAULT_AGENT_ID;
+    agents.find((agent) => agent?.default)?.id ?? agents[0]?.id ?? DEFAULT_AGENT_ID;
   ids.add(normalizeAgentId(defaultAgentId));
 
-  const agents = cfg.routing?.agents;
-  if (agents && typeof agents === "object") {
-    for (const id of Object.keys(agents)) {
-      ids.add(normalizeAgentId(id));
-    }
+  for (const entry of agents) {
+    if (entry?.id) ids.add(normalizeAgentId(entry.id));
   }
 
-  const bindings = cfg.routing?.bindings;
+  const bindings = cfg.bindings;
   if (Array.isArray(bindings)) {
     for (const binding of bindings) {
       const id = binding?.agentId;
@@ -56,22 +54,22 @@ function collectReferencedAgentIds(cfg: ZeeConfig): string[] {
 }
 
 function resolveEffectiveAgentDir(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   agentId: string,
   deps?: { env?: NodeJS.ProcessEnv; homedir?: () => string },
 ): string {
   const id = normalizeAgentId(agentId);
-  const configured = cfg.routing?.agents?.[id]?.agentDir?.trim();
-  if (configured) return resolveUserPath(configured);
-  const root = resolveStateDir(
-    deps?.env ?? process.env,
-    deps?.homedir ?? os.homedir,
-  );
+  const configured = Array.isArray(cfg.agents?.list)
+    ? cfg.agents?.list.find((agent) => normalizeAgentId(agent.id) === id)?.agentDir
+    : undefined;
+  const trimmed = configured?.trim();
+  if (trimmed) return resolveUserPath(trimmed);
+  const root = resolveStateDir(deps?.env ?? process.env, deps?.homedir ?? os.homedir);
   return path.join(root, "agents", id, "agent");
 }
 
 export function findDuplicateAgentDirs(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   deps?: { env?: NodeJS.ProcessEnv; homedir?: () => string },
 ): DuplicateAgentDir[] {
   const byDir = new Map<string, { agentDir: string; agentIds: string[] }>();
@@ -90,19 +88,15 @@ export function findDuplicateAgentDirs(
   return [...byDir.values()].filter((v) => v.agentIds.length > 1);
 }
 
-export function formatDuplicateAgentDirError(
-  dups: DuplicateAgentDir[],
-): string {
+export function formatDuplicateAgentDirError(dups: DuplicateAgentDir[]): string {
   const lines: string[] = [
     "Duplicate agentDir detected (multi-agent config).",
     "Each agent must have a unique agentDir; sharing it causes auth/session state collisions and token invalidation.",
     "",
     "Conflicts:",
-    ...dups.map(
-      (d) => `- ${d.agentDir}: ${d.agentIds.map((id) => `"${id}"`).join(", ")}`,
-    ),
+    ...dups.map((d) => `- ${d.agentDir}: ${d.agentIds.map((id) => `"${id}"`).join(", ")}`),
     "",
-    "Fix: remove the shared routing.agents.*.agentDir override (or give each agent its own directory).",
+    "Fix: remove the shared agents.list[].agentDir override (or give each agent its own directory).",
     "If you want to share credentials, copy auth-profiles.json instead of sharing the entire agentDir.",
   ];
   return lines.join("\n");

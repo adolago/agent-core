@@ -1,3 +1,5 @@
+import { chunkMarkdownTextWithMode, type ChunkMode } from "../auto-reply/chunk.js";
+
 export type ChunkDiscordTextOpts = {
   /** Max characters per Discord message. Default: 2000. */
   maxChars?: number;
@@ -40,9 +42,7 @@ function parseFenceLine(line: string): OpenFence | null {
 }
 
 function closeFenceLine(openFence: OpenFence) {
-  return `${openFence.indent}${openFence.markerChar.repeat(
-    openFence.markerLen,
-  )}`;
+  return `${openFence.indent}${openFence.markerChar.repeat(openFence.markerLen)}`;
 }
 
 function closeFenceIfNeeded(text: string, openFence: OpenFence | null) {
@@ -78,9 +78,8 @@ function splitLongLine(
     }
     if (breakIdx <= 0) breakIdx = limit;
     out.push(remaining.slice(0, breakIdx));
-    const brokeOnSeparator =
-      breakIdx < remaining.length && /\s/.test(remaining[breakIdx]);
-    remaining = remaining.slice(breakIdx + (brokeOnSeparator ? 1 : 0));
+    // Keep the separator for the next segment so words don't get glued together.
+    remaining = remaining.slice(breakIdx);
   }
   if (remaining.length) out.push(remaining);
   return out;
@@ -90,10 +89,7 @@ function splitLongLine(
  * Chunks outbound Discord text by both character count and (soft) line count,
  * while keeping fenced code blocks balanced across chunks.
  */
-export function chunkDiscordText(
-  text: string,
-  opts: ChunkDiscordTextOpts = {},
-): string[] {
+export function chunkDiscordText(text: string, opts: ChunkDiscordTextOpts = {}): string[] {
   const maxChars = Math.max(1, Math.floor(opts.maxChars ?? DEFAULT_MAX_CHARS));
   const maxLines = Math.max(1, Math.floor(opts.maxLines ?? DEFAULT_MAX_LINES));
 
@@ -137,9 +133,7 @@ export function chunkDiscordText(
       }
     }
 
-    const reserveChars = nextOpenFence
-      ? closeFenceLine(nextOpenFence).length + 1
-      : 0;
+    const reserveChars = nextOpenFence ? closeFenceLine(nextOpenFence).length + 1 : 0;
     const reserveLines = nextOpenFence ? 1 : 0;
     const effectiveMaxChars = maxChars - reserveChars;
     const effectiveMaxLines = maxLines - reserveLines;
@@ -154,11 +148,7 @@ export function chunkDiscordText(
     for (let segIndex = 0; segIndex < segments.length; segIndex++) {
       const segment = segments[segIndex];
       const isLineContinuation = segIndex > 0;
-      const delimiter = isLineContinuation
-        ? ""
-        : current.length > 0
-          ? "\n"
-          : "";
+      const delimiter = isLineContinuation ? "" : current.length > 0 ? "\n" : "";
       const addition = `${delimiter}${segment}`;
       const nextLen = current.length + addition.length;
       const nextLines = currentLines + (isLineContinuation ? 0 : 1);
@@ -187,5 +177,67 @@ export function chunkDiscordText(
     if (payload.trim().length) chunks.push(payload);
   }
 
+  return rebalanceReasoningItalics(text, chunks);
+}
+
+export function chunkDiscordTextWithMode(
+  text: string,
+  opts: ChunkDiscordTextOpts & { chunkMode?: ChunkMode },
+): string[] {
+  const chunkMode = opts.chunkMode ?? "length";
+  if (chunkMode !== "newline") {
+    return chunkDiscordText(text, opts);
+  }
+  const lineChunks = chunkMarkdownTextWithMode(
+    text,
+    Math.max(1, Math.floor(opts.maxChars ?? DEFAULT_MAX_CHARS)),
+    "newline",
+  );
+  const chunks: string[] = [];
+  for (const line of lineChunks) {
+    const nested = chunkDiscordText(line, opts);
+    if (!nested.length && line) {
+      chunks.push(line);
+      continue;
+    }
+    chunks.push(...nested);
+  }
   return chunks;
+}
+
+// Keep italics intact for reasoning payloads that are wrapped once with `_…_`.
+// When Discord chunking splits the message, we close italics at the end of
+// each chunk and reopen at the start of the next so every chunk renders
+// consistently.
+function rebalanceReasoningItalics(source: string, chunks: string[]): string[] {
+  if (chunks.length <= 1) return chunks;
+
+  const opensWithReasoningItalics =
+    source.startsWith("Reasoning:\n_") && source.trimEnd().endsWith("_");
+  if (!opensWithReasoningItalics) return chunks;
+
+  const adjusted = [...chunks];
+  for (let i = 0; i < adjusted.length; i++) {
+    const isLast = i === adjusted.length - 1;
+    const current = adjusted[i];
+
+    // Ensure current chunk closes italics so Discord renders it italicized.
+    const needsClosing = !current.trimEnd().endsWith("_");
+    if (needsClosing) {
+      adjusted[i] = `${current}_`;
+    }
+
+    if (isLast) break;
+
+    // Re-open italics on the next chunk if needed.
+    const next = adjusted[i + 1];
+    const leadingWhitespaceLen = next.length - next.trimStart().length;
+    const leadingWhitespace = next.slice(0, leadingWhitespaceLen);
+    const nextBody = next.slice(leadingWhitespaceLen);
+    if (!nextBody.startsWith("_")) {
+      adjusted[i + 1] = `${leadingWhitespace}_${nextBody}`;
+    }
+  }
+
+  return adjusted;
 }

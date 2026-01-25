@@ -5,8 +5,8 @@ import { buildSandboxCreateArgs, type SandboxDockerConfig } from "./sandbox.js";
 describe("buildSandboxCreateArgs", () => {
   it("includes hardening and resource flags", () => {
     const cfg: SandboxDockerConfig = {
-      image: "zee-sandbox:bookworm-slim",
-      containerPrefix: "zee-sbx-",
+      image: "clawdbot-sandbox:bookworm-slim",
+      containerPrefix: "clawdbot-sbx-",
       workdir: "/workspace",
       readOnlyRoot: true,
       tmpfs: ["/tmp"],
@@ -24,32 +24,32 @@ describe("buildSandboxCreateArgs", () => {
         core: "0",
       },
       seccompProfile: "/tmp/seccomp.json",
-      apparmorProfile: "zee-sandbox",
+      apparmorProfile: "clawdbot-sandbox",
       dns: ["1.1.1.1"],
       extraHosts: ["internal.service:10.0.0.5"],
     };
 
     const args = buildSandboxCreateArgs({
-      name: "zee-sbx-test",
+      name: "clawdbot-sbx-test",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
-      labels: { "zee.sandboxBrowser": "1" },
+      labels: { "clawdbot.sandboxBrowser": "1" },
     });
 
     expect(args).toEqual(
       expect.arrayContaining([
         "create",
         "--name",
-        "zee-sbx-test",
+        "clawdbot-sbx-test",
         "--label",
-        "zee.sandbox=1",
+        "clawdbot.sandbox=1",
         "--label",
-        "zee.sessionKey=main",
+        "clawdbot.sessionKey=main",
         "--label",
-        "zee.createdAtMs=1700000000000",
+        "clawdbot.createdAtMs=1700000000000",
         "--label",
-        "zee.sandboxBrowser=1",
+        "clawdbot.sandboxBrowser=1",
         "--read-only",
         "--tmpfs",
         "/tmp",
@@ -64,7 +64,7 @@ describe("buildSandboxCreateArgs", () => {
         "--security-opt",
         "seccomp=/tmp/seccomp.json",
         "--security-opt",
-        "apparmor=zee-sandbox",
+        "apparmor=clawdbot-sandbox",
         "--dns",
         "1.1.1.1",
         "--add-host",
@@ -90,5 +90,68 @@ describe("buildSandboxCreateArgs", () => {
     expect(ulimitValues).toEqual(
       expect.arrayContaining(["nofile=1024:2048", "nproc=128", "core=0"]),
     );
+  });
+
+  it("emits -v flags for custom binds", () => {
+    const cfg: SandboxDockerConfig = {
+      image: "clawdbot-sandbox:bookworm-slim",
+      containerPrefix: "clawdbot-sbx-",
+      workdir: "/workspace",
+      readOnlyRoot: false,
+      tmpfs: [],
+      network: "none",
+      capDrop: [],
+      binds: ["/home/user/source:/source:rw", "/var/run/docker.sock:/var/run/docker.sock"],
+    };
+
+    const args = buildSandboxCreateArgs({
+      name: "clawdbot-sbx-binds",
+      cfg,
+      scopeKey: "main",
+      createdAtMs: 1700000000000,
+    });
+
+    expect(args).toContain("-v");
+    const vFlags: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "-v") {
+        const value = args[i + 1];
+        if (value) vFlags.push(value);
+      }
+    }
+    expect(vFlags).toContain("/home/user/source:/source:rw");
+    expect(vFlags).toContain("/var/run/docker.sock:/var/run/docker.sock");
+  });
+
+  it("omits -v flags when binds is empty or undefined", () => {
+    const cfg: SandboxDockerConfig = {
+      image: "clawdbot-sandbox:bookworm-slim",
+      containerPrefix: "clawdbot-sbx-",
+      workdir: "/workspace",
+      readOnlyRoot: false,
+      tmpfs: [],
+      network: "none",
+      capDrop: [],
+      binds: [],
+    };
+
+    const args = buildSandboxCreateArgs({
+      name: "clawdbot-sbx-no-binds",
+      cfg,
+      scopeKey: "main",
+      createdAtMs: 1700000000000,
+    });
+
+    // Count -v flags that are NOT workspace mounts (workspace mounts are internal)
+    const customVFlags: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "-v") {
+        const value = args[i + 1];
+        if (value && !value.includes("/workspace")) {
+          customVFlags.push(value);
+        }
+      }
+    }
+    expect(customVFlags).toHaveLength(0);
   });
 });

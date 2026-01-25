@@ -1,5 +1,5 @@
 ---
-summary: "Fix Chrome/Chromium CDP startup issues for Zee browser control on Linux"
+summary: "Fix Chrome/Brave/Edge/Chromium CDP startup issues for Clawdbot browser control on Linux"
 read_when: "Browser control fails on Linux, especially with snap Chromium"
 ---
 
@@ -7,14 +7,14 @@ read_when: "Browser control fails on Linux, especially with snap Chromium"
 
 ## Problem: "Failed to start Chrome CDP on port 18800"
 
-Zee's browser control server fails to launch Chrome/Chromium with the error:
+Clawdbot's browser control server fails to launch Chrome/Brave/Edge/Chromium with the error:
 ```
 {"error":"Error: Failed to start Chrome CDP on port 18800 for profile \"clawd\"."}
 ```
 
 ### Root Cause
 
-On Ubuntu (and many Linux distros), the default Chromium installation is a **snap package**. Snap's AppArmor confinement interferes with how Zee spawns and monitors the browser process.
+On Ubuntu (and many Linux distros), the default Chromium installation is a **snap package**. Snap's AppArmor confinement interferes with how Clawdbot spawns and monitors the browser process.
 
 The `apt install chromium` command installs a stub package that redirects to snap:
 ```
@@ -34,7 +34,7 @@ sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt --fix-broken install -y  # if there are dependency errors
 ```
 
-Then update your Zee config (`~/.zee/zee.json`):
+Then update your Clawdbot config (`~/.clawdbot/clawdbot.json`):
 
 ```json
 {
@@ -49,7 +49,7 @@ Then update your Zee config (`~/.zee/zee.json`):
 
 ### Solution 2: Use Snap Chromium with Attach-Only Mode
 
-If you must use snap Chromium, configure Zee to attach to a manually-started browser:
+If you must use snap Chromium, configure Clawdbot to attach to a manually-started browser:
 
 1. Update config:
 ```json
@@ -67,7 +67,7 @@ If you must use snap Chromium, configure Zee to attach to a manually-started bro
 ```bash
 chromium-browser --headless --no-sandbox --disable-gpu \
   --remote-debugging-port=18800 \
-  --user-data-dir=$HOME/.zee/browser/clawd/user-data \
+  --user-data-dir=$HOME/.clawdbot/browser/clawd/user-data \
   about:blank &
 ```
 
@@ -79,7 +79,7 @@ Description=Clawd Browser (Chrome CDP)
 After=network.target
 
 [Service]
-ExecStart=/snap/bin/chromium --headless --no-sandbox --disable-gpu --remote-debugging-port=18800 --user-data-dir=%h/.zee/browser/clawd/user-data about:blank
+ExecStart=/snap/bin/chromium --headless --no-sandbox --disable-gpu --remote-debugging-port=18800 --user-data-dir=%h/.clawdbot/browser/clawd/user-data about:blank
 Restart=on-failure
 RestartSec=5
 
@@ -107,8 +107,23 @@ curl -s http://127.0.0.1:18791/tabs
 | Option | Description | Default |
 |--------|-------------|---------|
 | `browser.enabled` | Enable browser control | `true` |
-| `browser.executablePath` | Path to Chrome/Chromium binary | auto-detected |
+| `browser.executablePath` | Path to a Chromium-based browser binary (Chrome/Brave/Edge/Chromium) | auto-detected (prefers default browser when Chromium-based) |
 | `browser.headless` | Run without GUI | `false` |
 | `browser.noSandbox` | Add `--no-sandbox` flag (needed for some Linux setups) | `false` |
 | `browser.attachOnly` | Don't launch browser, only attach to existing | `false` |
 | `browser.cdpPort` | Chrome DevTools Protocol port | `18800` |
+
+### Problem: "Chrome extension relay is running, but no tab is connected"
+
+You’re using the `chrome` profile (extension relay). It expects the Clawdbot
+browser extension to be attached to a live tab.
+
+Fix options:
+1. **Use the managed browser:** `clawdbot browser start --browser-profile clawd`
+   (or set `browser.defaultProfile: "clawd"`).
+2. **Use the extension relay:** install the extension, open a tab, and click the
+   Clawdbot extension icon to attach it.
+
+Notes:
+- The `chrome` profile uses your **system default Chromium browser** when possible.
+- Local `clawd` profiles auto-assign `cdpPort`/`cdpUrl`; only set those for remote CDP.

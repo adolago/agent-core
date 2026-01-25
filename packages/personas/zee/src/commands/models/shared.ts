@@ -6,15 +6,12 @@ import {
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
 import {
+  type ClawdbotConfig,
   readConfigFileSnapshot,
   writeConfigFile,
-  type ZeeConfig,
 } from "../../config/config.js";
 
-export const ensureFlagCompatibility = (opts: {
-  json?: boolean;
-  plain?: boolean;
-}) => {
+export const ensureFlagCompatibility = (opts: { json?: boolean; plain?: boolean }) => {
   if (opts.json && opts.plain) {
     throw new Error("Choose either --json or --plain, not both.");
   }
@@ -34,13 +31,11 @@ export const formatMs = (value?: number | null) => {
 };
 
 export async function updateConfig(
-  mutator: (cfg: ZeeConfig) => ZeeConfig,
-): Promise<ZeeConfig> {
+  mutator: (cfg: ClawdbotConfig) => ClawdbotConfig,
+): Promise<ClawdbotConfig> {
   const snapshot = await readConfigFileSnapshot();
   if (!snapshot.valid) {
-    const issues = snapshot.issues
-      .map((issue) => `- ${issue.path}: ${issue.message}`)
-      .join("\n");
+    const issues = snapshot.issues.map((issue) => `- ${issue.path}: ${issue.message}`).join("\n");
     throw new Error(`Invalid config at ${snapshot.path}\n${issues}`);
   }
   const next = mutator(snapshot.config);
@@ -48,7 +43,7 @@ export async function updateConfig(
   return next;
 }
 
-export function resolveModelTarget(params: { raw: string; cfg: ZeeConfig }): {
+export function resolveModelTarget(params: { raw: string; cfg: ClawdbotConfig }): {
   provider: string;
   model: string;
 } {
@@ -67,9 +62,9 @@ export function resolveModelTarget(params: { raw: string; cfg: ZeeConfig }): {
   return resolved.ref;
 }
 
-export function buildAllowlistSet(cfg: ZeeConfig): Set<string> {
+export function buildAllowlistSet(cfg: ClawdbotConfig): Set<string> {
   const allowed = new Set<string>();
-  const models = cfg.agent?.models ?? {};
+  const models = cfg.agents?.defaults?.models ?? {};
   for (const raw of Object.keys(models)) {
     const parsed = parseModelRef(String(raw ?? ""), DEFAULT_PROVIDER);
     if (!parsed) continue;
@@ -82,12 +77,20 @@ export function normalizeAlias(alias: string): string {
   const trimmed = alias.trim();
   if (!trimmed) throw new Error("Alias cannot be empty.");
   if (!/^[A-Za-z0-9_.:-]+$/.test(trimmed)) {
-    throw new Error(
-      "Alias must use letters, numbers, dots, underscores, colons, or dashes.",
-    );
+    throw new Error("Alias must use letters, numbers, dots, underscores, colons, or dashes.");
   }
   return trimmed;
 }
 
 export { modelKey };
 export { DEFAULT_MODEL, DEFAULT_PROVIDER };
+
+/**
+ * Model key format: "provider/model"
+ *
+ * The model key is displayed in `/model status` and used to reference models.
+ * When using `/model <key>`, use the exact format shown (e.g., "openrouter/moonshotai/kimi-k2").
+ *
+ * For providers with hierarchical model IDs (e.g., OpenRouter), the model ID may include
+ * sub-providers (e.g., "moonshotai/kimi-k2"), resulting in a key like "openrouter/moonshotai/kimi-k2".
+ */

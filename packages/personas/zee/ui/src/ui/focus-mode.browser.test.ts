@@ -1,28 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ZeeApp } from "./app";
+import { ClawdbotApp } from "./app";
 
-const originalConnect = ZeeApp.prototype.connect;
+const originalConnect = ClawdbotApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("zee-app") as ZeeApp;
+  const app = document.createElement("clawdbot-app") as ClawdbotApp;
   document.body.append(app);
   return app;
 }
 
 beforeEach(() => {
-  ZeeApp.prototype.connect = () => {
+  ClawdbotApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
-  window.__ZEE_CONTROL_UI_BASE_PATH__ = undefined;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
 
 afterEach(() => {
-  ZeeApp.prototype.connect = originalConnect;
-  window.__ZEE_CONTROL_UI_BASE_PATH__ = undefined;
+  ClawdbotApp.prototype.connect = originalConnect;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
@@ -45,14 +45,14 @@ describe("chat focus mode", () => {
     await app.updateComplete;
     expect(shell?.classList.contains("shell--chat-focus")).toBe(true);
 
-    const link = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/connections"]');
+    const link = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/channels"]');
     expect(link).not.toBeNull();
     link?.dispatchEvent(
       new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
     );
 
     await app.updateComplete;
-    expect(app.tab).toBe("connections");
+    expect(app.tab).toBe("channels");
     expect(shell?.classList.contains("shell--chat-focus")).toBe(false);
 
     const chatLink = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/chat"]');
@@ -65,4 +65,3 @@ describe("chat focus mode", () => {
     expect(shell?.classList.contains("shell--chat-focus")).toBe(true);
   });
 });
-

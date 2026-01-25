@@ -1,11 +1,19 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
+import {
+  coerceToFailoverError,
+  describeFailoverError,
+  isFailoverError,
+  isTimeoutError,
+} from "./failover-error.js";
 import {
   buildModelAliasIndex,
   modelKey,
   parseModelRef,
+  resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "./model-selection.js";
+import type { FailoverReason } from "./pi-embedded-helpers.js";
 
 type ModelCandidate = {
   provider: string;
@@ -16,25 +24,30 @@ type FallbackAttempt = {
   provider: string;
   model: string;
   error: string;
+  reason?: FailoverReason;
+  status?: number;
+  code?: string;
 };
 
 function isAbortError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
+  if (isFailoverError(err)) return false;
   const name = "name" in err ? String(err.name) : "";
-  if (name === "AbortError") return true;
-  const message =
-    "message" in err && typeof err.message === "string"
-      ? err.message.toLowerCase()
-      : "";
-  return message.includes("aborted");
+  // Only treat explicit AbortError names as user aborts.
+  // Message-based checks (e.g., "aborted") can mask timeouts and skip fallback.
+  return name === "AbortError";
+}
+
+function shouldRethrowAbort(err: unknown): boolean {
+  return isAbortError(err) && !isTimeoutError(err);
 }
 
 function buildAllowedModelKeys(
-  cfg: ZeeConfig | undefined,
+  cfg: ClawdbotConfig | undefined,
   defaultProvider: string,
 ): Set<string> | null {
   const rawAllowlist = (() => {
-    const modelMap = cfg?.agent?.models ?? {};
+    const modelMap = cfg?.agents?.defaults?.models ?? {};
     return Object.keys(modelMap);
   })();
   if (rawAllowlist.length === 0) return null;
@@ -48,7 +61,7 @@ function buildAllowedModelKeys(
 }
 
 function resolveImageFallbackCandidates(params: {
-  cfg: ZeeConfig | undefined;
+  cfg: ClawdbotConfig | undefined;
   defaultProvider: string;
   modelOverride?: string;
 }): ModelCandidate[] {
@@ -60,10 +73,7 @@ function resolveImageFallbackCandidates(params: {
   const seen = new Set<string>();
   const candidates: ModelCandidate[] = [];
 
-  const addCandidate = (
-    candidate: ModelCandidate,
-    enforceAllowlist: boolean,
-  ) => {
+  const addCandidate = (candidate: ModelCandidate, enforceAllowlist: boolean) => {
     if (!candidate.provider || !candidate.model) return;
     const key = modelKey(candidate.provider, candidate.model);
     if (seen.has(key)) return;
@@ -85,17 +95,16 @@ function resolveImageFallbackCandidates(params: {
   if (params.modelOverride?.trim()) {
     addRaw(params.modelOverride, false);
   } else {
-    const imageModel = params.cfg?.agent?.imageModel as
+    const imageModel = params.cfg?.agents?.defaults?.imageModel as
       | { primary?: string }
       | string
       | undefined;
-    const primary =
-      typeof imageModel === "string" ? imageModel.trim() : imageModel?.primary;
+    const primary = typeof imageModel === "string" ? imageModel.trim() : imageModel?.primary;
     if (primary?.trim()) addRaw(primary, false);
   }
 
   const imageFallbacks = (() => {
-    const imageModel = params.cfg?.agent?.imageModel as
+    const imageModel = params.cfg?.agents?.defaults?.imageModel as
       | { fallbacks?: string[] }
       | string
       | undefined;
@@ -113,24 +122,32 @@ function resolveImageFallbackCandidates(params: {
 }
 
 function resolveFallbackCandidates(params: {
-  cfg: ZeeConfig | undefined;
+  cfg: ClawdbotConfig | undefined;
   provider: string;
   model: string;
+  /** Optional explicit fallbacks list; when provided (even empty), replaces agents.defaults.model.fallbacks. */
+  fallbacksOverride?: string[];
 }): ModelCandidate[] {
-  const provider = params.provider.trim() || DEFAULT_PROVIDER;
-  const model = params.model.trim() || DEFAULT_MODEL;
+  const primary = params.cfg
+    ? resolveConfiguredModelRef({
+        cfg: params.cfg,
+        defaultProvider: DEFAULT_PROVIDER,
+        defaultModel: DEFAULT_MODEL,
+      })
+    : null;
+  const defaultProvider = primary?.provider ?? DEFAULT_PROVIDER;
+  const defaultModel = primary?.model ?? DEFAULT_MODEL;
+  const provider = String(params.provider ?? "").trim() || defaultProvider;
+  const model = String(params.model ?? "").trim() || defaultModel;
   const aliasIndex = buildModelAliasIndex({
     cfg: params.cfg ?? {},
-    defaultProvider: DEFAULT_PROVIDER,
+    defaultProvider,
   });
-  const allowlist = buildAllowedModelKeys(params.cfg, DEFAULT_PROVIDER);
+  const allowlist = buildAllowedModelKeys(params.cfg, defaultProvider);
   const seen = new Set<string>();
   const candidates: ModelCandidate[] = [];
 
-  const addCandidate = (
-    candidate: ModelCandidate,
-    enforceAllowlist: boolean,
-  ) => {
+  const addCandidate = (candidate: ModelCandidate, enforceAllowlist: boolean) => {
     if (!candidate.provider || !candidate.model) return;
     const key = modelKey(candidate.provider, candidate.model);
     if (seen.has(key)) return;
@@ -142,7 +159,8 @@ function resolveFallbackCandidates(params: {
   addCandidate({ provider, model }, false);
 
   const modelFallbacks = (() => {
-    const model = params.cfg?.agent?.model as
+    if (params.fallbacksOverride !== undefined) return params.fallbacksOverride;
+    const model = params.cfg?.agents?.defaults?.model as
       | { fallbacks?: string[] }
       | string
       | undefined;
@@ -153,21 +171,27 @@ function resolveFallbackCandidates(params: {
   for (const raw of modelFallbacks) {
     const resolved = resolveModelRefFromString({
       raw: String(raw ?? ""),
-      defaultProvider: DEFAULT_PROVIDER,
+      defaultProvider,
       aliasIndex,
     });
     if (!resolved) continue;
     addCandidate(resolved.ref, true);
   }
 
+  if (params.fallbacksOverride === undefined && primary?.provider && primary.model) {
+    addCandidate({ provider: primary.provider, model: primary.model }, false);
+  }
+
   return candidates;
 }
 
 export async function runWithModelFallback<T>(params: {
-  cfg: ZeeConfig | undefined;
-  provider?: string;
-  model?: string;
-  run: (provider?: string, model?: string) => Promise<T>;
+  cfg: ClawdbotConfig | undefined;
+  provider: string;
+  model: string;
+  /** Optional explicit fallbacks list; when provided (even empty), replaces agents.defaults.model.fallbacks. */
+  fallbacksOverride?: string[];
+  run: (provider: string, model: string) => Promise<T>;
   onError?: (attempt: {
     provider: string;
     model: string;
@@ -177,36 +201,15 @@ export async function runWithModelFallback<T>(params: {
   }) => void | Promise<void>;
 }): Promise<{
   result: T;
-  provider?: string;
-  model?: string;
+  provider: string;
+  model: string;
   attempts: FallbackAttempt[];
 }> {
-  let provider = params.provider?.trim() || "";
-  let model = params.model?.trim() || "";
-  if (!provider && model.includes("/")) {
-    const [providerFromModel, modelFromModel] = model.split("/", 2);
-    if (providerFromModel && modelFromModel) {
-      provider = providerFromModel;
-      model = modelFromModel;
-    }
-  }
-  if (!provider || !model) {
-    const result = await params.run(
-      provider ? provider : undefined,
-      model ? model : undefined,
-    );
-    return {
-      result,
-      provider: provider || undefined,
-      model: model || undefined,
-      attempts: [],
-    };
-  }
-
   const candidates = resolveFallbackCandidates({
     cfg: params.cfg,
-    provider,
-    model,
+    provider: params.provider,
+    model: params.model,
+    fallbacksOverride: params.fallbacksOverride,
   });
   const attempts: FallbackAttempt[] = [];
   let lastError: unknown;
@@ -222,17 +225,28 @@ export async function runWithModelFallback<T>(params: {
         attempts,
       };
     } catch (err) {
-      if (isAbortError(err)) throw err;
-      lastError = err;
+      if (shouldRethrowAbort(err)) throw err;
+      const normalized =
+        coerceToFailoverError(err, {
+          provider: candidate.provider,
+          model: candidate.model,
+        }) ?? err;
+      if (!isFailoverError(normalized)) throw err;
+
+      lastError = normalized;
+      const described = describeFailoverError(normalized);
       attempts.push({
         provider: candidate.provider,
         model: candidate.model,
-        error: err instanceof Error ? err.message : String(err),
+        error: described.message,
+        reason: described.reason,
+        status: described.status,
+        code: described.code,
       });
       await params.onError?.({
         provider: candidate.provider,
         model: candidate.model,
-        error: err,
+        error: normalized,
         attempt: i + 1,
         total: candidates.length,
       });
@@ -245,18 +259,19 @@ export async function runWithModelFallback<T>(params: {
       ? attempts
           .map(
             (attempt) =>
-              `${attempt.provider}/${attempt.model}: ${attempt.error}`,
+              `${attempt.provider}/${attempt.model}: ${attempt.error}${
+                attempt.reason ? ` (${attempt.reason})` : ""
+              }`,
           )
           .join(" | ")
       : "unknown";
-  throw new Error(
-    `All models failed (${attempts.length || candidates.length}): ${summary}`,
-    { cause: lastError instanceof Error ? lastError : undefined },
-  );
+  throw new Error(`All models failed (${attempts.length || candidates.length}): ${summary}`, {
+    cause: lastError instanceof Error ? lastError : undefined,
+  });
 }
 
 export async function runWithImageModelFallback<T>(params: {
-  cfg: ZeeConfig | undefined;
+  cfg: ClawdbotConfig | undefined;
   modelOverride?: string;
   run: (provider: string, model: string) => Promise<T>;
   onError?: (attempt: {
@@ -279,7 +294,7 @@ export async function runWithImageModelFallback<T>(params: {
   });
   if (candidates.length === 0) {
     throw new Error(
-      "No image model configured. Set agent.imageModel.primary or agent.imageModel.fallbacks.",
+      "No image model configured. Set agents.defaults.imageModel.primary or agents.defaults.imageModel.fallbacks.",
     );
   }
 
@@ -297,7 +312,7 @@ export async function runWithImageModelFallback<T>(params: {
         attempts,
       };
     } catch (err) {
-      if (isAbortError(err)) throw err;
+      if (shouldRethrowAbort(err)) throw err;
       lastError = err;
       attempts.push({
         provider: candidate.provider,
@@ -318,14 +333,10 @@ export async function runWithImageModelFallback<T>(params: {
   const summary =
     attempts.length > 0
       ? attempts
-          .map(
-            (attempt) =>
-              `${attempt.provider}/${attempt.model}: ${attempt.error}`,
-          )
+          .map((attempt) => `${attempt.provider}/${attempt.model}: ${attempt.error}`)
           .join(" | ")
       : "unknown";
-  throw new Error(
-    `All image models failed (${attempts.length || candidates.length}): ${summary}`,
-    { cause: lastError instanceof Error ? lastError : undefined },
-  );
+  throw new Error(`All image models failed (${attempts.length || candidates.length}): ${summary}`, {
+    cause: lastError instanceof Error ? lastError : undefined,
+  });
 }

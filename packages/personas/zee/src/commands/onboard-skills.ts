@@ -1,14 +1,13 @@
 import { installSkill } from "../agents/skills-install.js";
 import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
-import type { ZeeConfig } from "../config/config.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { detectBinary, resolveNodeManagerOptions } from "./onboard-helpers.js";
 
 function summarizeInstallFailure(message: string): string | undefined {
-  const cleaned = message
-    .replace(/^Install failed(?:\s*\([^)]*\))?\s*:?\s*/i, "")
-    .trim();
+  const cleaned = message.replace(/^Install failed(?:\s*\([^)]*\))?\s*:?\s*/i, "").trim();
   if (!cleaned) return undefined;
   const maxLen = 140;
   return cleaned.length > maxLen ? `${cleaned.slice(0, maxLen - 1)}…` : cleaned;
@@ -20,20 +19,17 @@ function formatSkillHint(skill: {
 }): string {
   const desc = skill.description?.trim();
   const installLabel = skill.install[0]?.label?.trim();
-  const combined =
-    desc && installLabel ? `${desc} — ${installLabel}` : desc || installLabel;
+  const combined = desc && installLabel ? `${desc} — ${installLabel}` : desc || installLabel;
   if (!combined) return "install";
   const maxLen = 90;
-  return combined.length > maxLen
-    ? `${combined.slice(0, maxLen - 1)}…`
-    : combined;
+  return combined.length > maxLen ? `${combined.slice(0, maxLen - 1)}…` : combined;
 }
 
 function upsertSkillEntry(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   skillKey: string,
   patch: { apiKey?: string },
-): ZeeConfig {
+): ClawdbotConfig {
   const entries = { ...cfg.skills?.entries };
   const existing = (entries[skillKey] as { apiKey?: string } | undefined) ?? {};
   entries[skillKey] = { ...existing, ...patch };
@@ -47,23 +43,19 @@ function upsertSkillEntry(
 }
 
 export async function setupSkills(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   workspaceDir: string,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
-): Promise<ZeeConfig> {
+): Promise<ClawdbotConfig> {
   const report = buildWorkspaceSkillStatus(workspaceDir, { config: cfg });
   const eligible = report.skills.filter((s) => s.eligible);
-  const missing = report.skills.filter(
-    (s) => !s.eligible && !s.disabled && !s.blockedByAllowlist,
-  );
+  const missing = report.skills.filter((s) => !s.eligible && !s.disabled && !s.blockedByAllowlist);
   const blocked = report.skills.filter((s) => s.blockedByAllowlist);
 
   const needsBrewPrompt =
     process.platform !== "win32" &&
-    report.skills.some((skill) =>
-      skill.install.some((option) => option.kind === "brew"),
-    ) &&
+    report.skills.some((skill) => skill.install.some((option) => option.kind === "brew")) &&
     !(await detectBinary("brew"));
 
   await prompter.note(
@@ -109,7 +101,7 @@ export async function setupSkills(
     options: resolveNodeManagerOptions(),
   })) as "npm" | "pnpm" | "bun";
 
-  let next: ZeeConfig = {
+  let next: ClawdbotConfig = {
     ...cfg,
     skills: {
       ...cfg.skills,
@@ -140,9 +132,7 @@ export async function setupSkills(
       ],
     });
 
-    const selected = (toInstall as string[]).filter(
-      (name) => name !== "__skip__",
-    );
+    const selected = (toInstall as string[]).filter((name) => name !== "__skip__");
     for (const name of selected) {
       const target = installable.find((s) => s.name === name);
       if (!target || target.install.length === 0) continue;
@@ -160,12 +150,12 @@ export async function setupSkills(
       } else {
         const code = result.code == null ? "" : ` (exit ${result.code})`;
         const detail = summarizeInstallFailure(result.message);
-        spin.stop(
-          `Install failed: ${name}${code}${detail ? ` — ${detail}` : ""}`,
-        );
+        spin.stop(`Install failed: ${name}${code}${detail ? ` — ${detail}` : ""}`);
         if (result.stderr) runtime.log(result.stderr.trim());
         else if (result.stdout) runtime.log(result.stdout.trim());
-        runtime.log("Tip: run `zee doctor` to review skills + requirements.");
+        runtime.log(
+          `Tip: run \`${formatCliCommand("clawdbot doctor")}\` to review skills + requirements.`,
+        );
         runtime.log("Docs: https://docs.clawd.bot/skills");
       }
     }

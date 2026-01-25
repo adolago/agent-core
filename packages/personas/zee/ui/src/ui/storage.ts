@@ -1,6 +1,6 @@
-import type { ThemeMode } from "./theme";
+const KEY = "clawdbot.control.settings.v1";
 
-const SETTINGS_STORAGE_KEY = ["zee", "control", "settings", "v1"].join(".");
+import type { ThemeMode } from "./theme";
 
 export type UiSettings = {
   gatewayUrl: string;
@@ -9,6 +9,10 @@ export type UiSettings = {
   lastActiveSessionKey: string;
   theme: ThemeMode;
   chatFocusMode: boolean;
+  chatShowThinking: boolean;
+  splitRatio: number; // Sidebar split ratio (0.4 to 0.7, default 0.6)
+  navCollapsed: boolean; // Collapsible sidebar state
+  navGroupsCollapsed: Record<string, boolean>; // Which nav groups are collapsed
 };
 
 export function loadSettings(): UiSettings {
@@ -24,10 +28,14 @@ export function loadSettings(): UiSettings {
     lastActiveSessionKey: "main",
     theme: "system",
     chatFocusMode: false,
+    chatShowThinking: true,
+    splitRatio: 0.6,
+    navCollapsed: false,
+    navGroupsCollapsed: {},
   };
 
   try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const raw = localStorage.getItem(KEY);
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
     return {
@@ -57,6 +65,25 @@ export function loadSettings(): UiSettings {
         typeof parsed.chatFocusMode === "boolean"
           ? parsed.chatFocusMode
           : defaults.chatFocusMode,
+      chatShowThinking:
+        typeof parsed.chatShowThinking === "boolean"
+          ? parsed.chatShowThinking
+          : defaults.chatShowThinking,
+      splitRatio:
+        typeof parsed.splitRatio === "number" &&
+        parsed.splitRatio >= 0.4 &&
+        parsed.splitRatio <= 0.7
+          ? parsed.splitRatio
+          : defaults.splitRatio,
+      navCollapsed:
+        typeof parsed.navCollapsed === "boolean"
+          ? parsed.navCollapsed
+          : defaults.navCollapsed,
+      navGroupsCollapsed:
+        typeof parsed.navGroupsCollapsed === "object" &&
+        parsed.navGroupsCollapsed !== null
+          ? parsed.navGroupsCollapsed
+          : defaults.navGroupsCollapsed,
     };
   } catch {
     return defaults;
@@ -64,5 +91,5 @@ export function loadSettings(): UiSettings {
 }
 
 export function saveSettings(next: UiSettings) {
-  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(KEY, JSON.stringify(next));
 }

@@ -1,10 +1,16 @@
-import type { ZeeConfig } from "../../config/config.js";
+import type { AgentToolResult } from "@mariozechner/pi-agent-core";
+import type { ClawdbotConfig } from "../../config/config.js";
+import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
 import {
+  deleteMessageTelegram,
   reactMessageTelegram,
   sendMessageTelegram,
 } from "../../telegram/send.js";
 import { resolveTelegramToken } from "../../telegram/token.js";
-import type { AgentToolResult } from "../types.js";
+import {
+  resolveTelegramInlineButtonsScope,
+  resolveTelegramTargetChatType,
+} from "../../telegram/inline-buttons.js";
 import {
   createActionGate,
   jsonResult,
@@ -13,85 +19,6 @@ import {
   readStringOrNumberParam,
   readStringParam,
 } from "./common.js";
-
-export async function handleTelegramAction(
-  params: Record<string, unknown>,
-  cfg: ZeeConfig,
-): Promise<AgentToolResult<unknown>> {
-  const action = readStringParam(params, "action", { required: true });
-  const isActionEnabled = createActionGate(cfg.telegram?.actions);
-
-  if (action === "react") {
-    if (!isActionEnabled("reactions")) {
-      throw new Error("Telegram reactions are disabled.");
-    }
-    const chatId = readStringOrNumberParam(params, "chatId", {
-      required: true,
-    });
-    const messageId = readNumberParam(params, "messageId", {
-      required: true,
-      integer: true,
-    });
-    const { emoji, remove, isEmpty } = readReactionParams(params, {
-      removeErrorMessage: "Emoji is required to remove a Telegram reaction.",
-    });
-    const token = resolveTelegramToken(cfg).token;
-    if (!token) {
-      throw new Error(
-        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or telegram.botToken.",
-      );
-    }
-    await reactMessageTelegram(chatId ?? "", messageId ?? 0, emoji ?? "", {
-      token,
-      remove,
-    });
-    if (!remove && !isEmpty) {
-      return jsonResult({ ok: true, added: emoji });
-    }
-    return jsonResult({ ok: true, removed: true });
-  }
-
-  if (action === "sendMessage") {
-    if (!isActionEnabled("sendMessage")) {
-      throw new Error("Telegram sendMessage is disabled.");
-    }
-    const to = readStringParam(params, "to", { required: true });
-    const mediaUrl = readStringParam(params, "mediaUrl");
-    const content =
-      readStringParam(params, "content", {
-        required: !mediaUrl,
-        allowEmpty: true,
-      }) ?? "";
-    const buttons = readTelegramButtons(params);
-    // Optional threading parameters for forum topics and reply chains
-    const replyToMessageId = readNumberParam(params, "replyToMessageId", {
-      integer: true,
-    });
-    const messageThreadId = readNumberParam(params, "messageThreadId", {
-      integer: true,
-    });
-    const token = resolveTelegramToken(cfg).token;
-    if (!token) {
-      throw new Error(
-        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or telegram.botToken.",
-      );
-    }
-    const result = await sendMessageTelegram(to, content, {
-      token,
-      mediaUrl: mediaUrl || undefined,
-      buttons,
-      replyToMessageId: replyToMessageId ?? undefined,
-      messageThreadId: messageThreadId ?? undefined,
-    });
-    return jsonResult({
-      ok: true,
-      messageId: result.messageId,
-      chatId: result.chatId,
-    });
-  }
-
-  throw new Error(`Unsupported Telegram action: ${action}`);
-}
 
 type TelegramButton = {
   text: string;
@@ -112,23 +39,18 @@ export function readTelegramButtons(
     }
     return row.map((button, buttonIndex) => {
       if (!button || typeof button !== "object") {
-        throw new Error(
-          `buttons[${rowIndex}][${buttonIndex}] must be an object`,
-        );
+        throw new Error(`buttons[${rowIndex}][${buttonIndex}] must be an object`);
       }
       const text =
         typeof (button as { text?: unknown }).text === "string"
           ? (button as { text: string }).text.trim()
           : "";
       const callbackData =
-        typeof (button as { callback_data?: unknown }).callback_data ===
-        "string"
+        typeof (button as { callback_data?: unknown }).callback_data === "string"
           ? (button as { callback_data: string }).callback_data.trim()
           : "";
       if (!text || !callbackData) {
-        throw new Error(
-          `buttons[${rowIndex}][${buttonIndex}] requires text and callback_data`,
-        );
+        throw new Error(`buttons[${rowIndex}][${buttonIndex}] requires text and callback_data`);
       }
       if (callbackData.length > 64) {
         throw new Error(
@@ -140,4 +62,151 @@ export function readTelegramButtons(
   });
   const filtered = rows.filter((row) => row.length > 0);
   return filtered.length > 0 ? filtered : undefined;
+}
+
+export async function handleTelegramAction(
+  params: Record<string, unknown>,
+  cfg: ClawdbotConfig,
+): Promise<AgentToolResult<unknown>> {
+  const action = readStringParam(params, "action", { required: true });
+  const accountId = readStringParam(params, "accountId");
+  const isActionEnabled = createActionGate(cfg.channels?.telegram?.actions);
+
+  if (action === "react") {
+    // Check reaction level first
+    const reactionLevelInfo = resolveTelegramReactionLevel({
+      cfg,
+      accountId: accountId ?? undefined,
+    });
+    if (!reactionLevelInfo.agentReactionsEnabled) {
+      throw new Error(
+        `Telegram agent reactions disabled (reactionLevel="${reactionLevelInfo.level}"). ` +
+          `Set channels.telegram.reactionLevel to "minimal" or "extensive" to enable.`,
+      );
+    }
+    // Also check the existing action gate for backward compatibility
+    if (!isActionEnabled("reactions")) {
+      throw new Error("Telegram reactions are disabled via actions.reactions.");
+    }
+    const chatId = readStringOrNumberParam(params, "chatId", {
+      required: true,
+    });
+    const messageId = readNumberParam(params, "messageId", {
+      required: true,
+      integer: true,
+    });
+    const { emoji, remove, isEmpty } = readReactionParams(params, {
+      removeErrorMessage: "Emoji is required to remove a Telegram reaction.",
+    });
+    const token = resolveTelegramToken(cfg, { accountId }).token;
+    if (!token) {
+      throw new Error(
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
+      );
+    }
+    await reactMessageTelegram(chatId ?? "", messageId ?? 0, emoji ?? "", {
+      token,
+      remove,
+      accountId: accountId ?? undefined,
+    });
+    if (!remove && !isEmpty) {
+      return jsonResult({ ok: true, added: emoji });
+    }
+    return jsonResult({ ok: true, removed: true });
+  }
+
+  if (action === "sendMessage") {
+    if (!isActionEnabled("sendMessage")) {
+      throw new Error("Telegram sendMessage is disabled.");
+    }
+    const to = readStringParam(params, "to", { required: true });
+    const mediaUrl = readStringParam(params, "mediaUrl");
+    // Allow content to be omitted when sending media-only (e.g., voice notes)
+    const content =
+      readStringParam(params, "content", {
+        required: !mediaUrl,
+        allowEmpty: true,
+      }) ?? "";
+    const buttons = readTelegramButtons(params);
+    if (buttons) {
+      const inlineButtonsScope = resolveTelegramInlineButtonsScope({
+        cfg,
+        accountId: accountId ?? undefined,
+      });
+      if (inlineButtonsScope === "off") {
+        throw new Error(
+          'Telegram inline buttons are disabled. Set channels.telegram.capabilities.inlineButtons to "dm", "group", "all", or "allowlist".',
+        );
+      }
+      if (inlineButtonsScope === "dm" || inlineButtonsScope === "group") {
+        const targetType = resolveTelegramTargetChatType(to);
+        if (targetType === "unknown") {
+          throw new Error(
+            `Telegram inline buttons require a numeric chat id when inlineButtons="${inlineButtonsScope}".`,
+          );
+        }
+        if (inlineButtonsScope === "dm" && targetType !== "direct") {
+          throw new Error('Telegram inline buttons are limited to DMs when inlineButtons="dm".');
+        }
+        if (inlineButtonsScope === "group" && targetType !== "group") {
+          throw new Error(
+            'Telegram inline buttons are limited to groups when inlineButtons="group".',
+          );
+        }
+      }
+    }
+    // Optional threading parameters for forum topics and reply chains
+    const replyToMessageId = readNumberParam(params, "replyToMessageId", {
+      integer: true,
+    });
+    const messageThreadId = readNumberParam(params, "messageThreadId", {
+      integer: true,
+    });
+    const token = resolveTelegramToken(cfg, { accountId }).token;
+    if (!token) {
+      throw new Error(
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
+      );
+    }
+    const result = await sendMessageTelegram(to, content, {
+      token,
+      accountId: accountId ?? undefined,
+      mediaUrl: mediaUrl || undefined,
+      buttons,
+      replyToMessageId: replyToMessageId ?? undefined,
+      messageThreadId: messageThreadId ?? undefined,
+      asVoice: typeof params.asVoice === "boolean" ? params.asVoice : undefined,
+    });
+    return jsonResult({
+      ok: true,
+      messageId: result.messageId,
+      chatId: result.chatId,
+    });
+  }
+
+  if (action === "deleteMessage") {
+    if (!isActionEnabled("deleteMessage")) {
+      throw new Error("Telegram deleteMessage is disabled.");
+    }
+    const chatId = readStringOrNumberParam(params, "chatId", {
+      required: true,
+    });
+    const messageId = readNumberParam(params, "messageId", {
+      required: true,
+      integer: true,
+    });
+    const token = resolveTelegramToken(cfg, { accountId }).token;
+    if (!token) {
+      throw new Error(
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
+      );
+    }
+    await deleteMessageTelegram(chatId ?? "", messageId ?? 0, {
+      token,
+      accountId: accountId ?? undefined,
+    });
+    return jsonResult({ ok: true, deleted: true });
+  }
+
+  throw new Error(`Unsupported Telegram action: ${action}`);
 }

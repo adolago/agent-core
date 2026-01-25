@@ -1,28 +1,21 @@
 import type { Command } from "commander";
-
+import { listPairingChannels, notifyPairingApproved } from "../channels/plugins/pairing.js";
+import { normalizeChannelId } from "../channels/plugins/index.js";
 import { loadConfig } from "../config/config.js";
-import { sendMessageDiscord } from "../discord/send.js";
-import { sendMessageIMessage } from "../imessage/send.js";
+import { resolvePairingIdLabel } from "../pairing/pairing-labels.js";
 import {
-  approveProviderPairingCode,
-  listProviderPairingRequests,
-  type PairingProvider,
+  approveChannelPairingCode,
+  listChannelPairingRequests,
+  type PairingChannel,
 } from "../pairing/pairing-store.js";
-import { sendMessageSignal } from "../signal/send.js";
-import { sendMessageSlack } from "../slack/send.js";
-import { sendMessageTelegram } from "../telegram/send.js";
-import { resolveTelegramToken } from "../telegram/token.js";
+import { defaultRuntime } from "../runtime.js";
+import { formatDocsLink } from "../terminal/links.js";
+import { renderTable } from "../terminal/table.js";
+import { theme } from "../terminal/theme.js";
+import { formatCliCommand } from "./command-format.js";
 
-const PROVIDERS: PairingProvider[] = [
-  "telegram",
-  "signal",
-  "imessage",
-  "discord",
-  "slack",
-  "whatsapp",
-];
-
-function parseProvider(raw: unknown): PairingProvider {
+/** Parse channel, allowing extension channels not in core registry. */
+function parseChannel(raw: unknown, channels: PairingChannel[]): PairingChannel {
   const value = (
     typeof raw === "string"
       ? raw
@@ -32,96 +25,120 @@ function parseProvider(raw: unknown): PairingProvider {
   )
     .trim()
     .toLowerCase();
-  if ((PROVIDERS as string[]).includes(value)) return value as PairingProvider;
-  throw new Error(
-    `Invalid provider: ${value || "(empty)"} (expected one of: ${PROVIDERS.join(", ")})`,
-  );
+  if (!value) throw new Error("Channel required");
+
+  const normalized = normalizeChannelId(value);
+  if (normalized) {
+    if (!channels.includes(normalized as PairingChannel)) {
+      throw new Error(`Channel ${normalized} does not support pairing`);
+    }
+    return normalized as PairingChannel;
+  }
+
+  // Allow extension channels: validate format but don't require registry
+  if (/^[a-z][a-z0-9_-]{0,63}$/.test(value)) return value as PairingChannel;
+  throw new Error(`Invalid channel: ${value}`);
 }
 
-async function notifyApproved(provider: PairingProvider, id: string) {
-  const message = "✅ Zee access approved. Send a message to start chatting.";
-  if (provider === "telegram") {
-    const cfg = loadConfig();
-    const { token } = resolveTelegramToken(cfg);
-    if (!token) throw new Error("telegram token not configured");
-    await sendMessageTelegram(id, message, { token });
-    return;
-  }
-  if (provider === "discord") {
-    await sendMessageDiscord(`user:${id}`, message);
-    return;
-  }
-  if (provider === "slack") {
-    await sendMessageSlack(`user:${id}`, message);
-    return;
-  }
-  if (provider === "signal") {
-    await sendMessageSignal(id, message);
-    return;
-  }
-  if (provider === "imessage") {
-    await sendMessageIMessage(id, message);
-    return;
-  }
-  // WhatsApp: approval still works (store); notifying requires an active web session.
+async function notifyApproved(channel: PairingChannel, id: string) {
+  const cfg = loadConfig();
+  await notifyPairingApproved({ channelId: channel, id, cfg });
 }
 
 export function registerPairingCli(program: Command) {
+  const channels = listPairingChannels();
   const pairing = program
     .command("pairing")
-    .description("Secure DM pairing (approve inbound requests)");
+    .description("Secure DM pairing (approve inbound requests)")
+    .addHelpText(
+      "after",
+      () =>
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/pairing", "docs.clawd.bot/cli/pairing")}\n`,
+    );
 
   pairing
     .command("list")
     .description("List pending pairing requests")
-    .requiredOption(
-      "--provider <provider>",
-      `Provider (${PROVIDERS.join(", ")})`,
-    )
+    .option("--channel <channel>", `Channel (${channels.join(", ")})`)
+    .argument("[channel]", `Channel (${channels.join(", ")})`)
     .option("--json", "Print JSON", false)
-    .action(async (opts) => {
-      const provider = parseProvider(opts.provider);
-      const requests = await listProviderPairingRequests(provider);
+    .action(async (channelArg, opts) => {
+      const channelRaw = opts.channel ?? channelArg;
+      if (!channelRaw) {
+        throw new Error(
+          `Channel required. Use --channel <channel> or pass it as the first argument (expected one of: ${channels.join(", ")})`,
+        );
+      }
+      const channel = parseChannel(channelRaw, channels);
+      const requests = await listChannelPairingRequests(channel);
       if (opts.json) {
-        console.log(JSON.stringify({ provider, requests }, null, 2));
+        defaultRuntime.log(JSON.stringify({ channel, requests }, null, 2));
         return;
       }
       if (requests.length === 0) {
-        console.log(`No pending ${provider} pairing requests.`);
+        defaultRuntime.log(theme.muted(`No pending ${channel} pairing requests.`));
         return;
       }
-      for (const r of requests) {
-        const meta = r.meta ? JSON.stringify(r.meta) : "";
-        console.log(
-          `${r.code}  id=${r.id}${meta ? `  meta=${meta}` : ""}  ${r.createdAt}`,
-        );
-      }
+      const idLabel = resolvePairingIdLabel(channel);
+      const tableWidth = Math.max(60, (process.stdout.columns ?? 120) - 1);
+      defaultRuntime.log(
+        `${theme.heading("Pairing requests")} ${theme.muted(`(${requests.length})`)}`,
+      );
+      defaultRuntime.log(
+        renderTable({
+          width: tableWidth,
+          columns: [
+            { key: "Code", header: "Code", minWidth: 10 },
+            { key: "ID", header: idLabel, minWidth: 12, flex: true },
+            { key: "Meta", header: "Meta", minWidth: 8, flex: true },
+            { key: "Requested", header: "Requested", minWidth: 12 },
+          ],
+          rows: requests.map((r) => ({
+            Code: r.code,
+            ID: r.id,
+            Meta: r.meta ? JSON.stringify(r.meta) : "",
+            Requested: r.createdAt,
+          })),
+        }).trimEnd(),
+      );
     });
 
   pairing
     .command("approve")
     .description("Approve a pairing code and allow that sender")
-    .requiredOption(
-      "--provider <provider>",
-      `Provider (${PROVIDERS.join(", ")})`,
-    )
-    .argument("<code>", "Pairing code (shown to the requester)")
-    .option("--notify", "Notify the requester on the same provider", false)
-    .action(async (code, opts) => {
-      const provider = parseProvider(opts.provider);
-      const approved = await approveProviderPairingCode({
-        provider,
-        code: String(code),
+    .option("--channel <channel>", `Channel (${channels.join(", ")})`)
+    .argument("<codeOrChannel>", "Pairing code (or channel when using 2 args)")
+    .argument("[code]", "Pairing code (when channel is passed as the 1st arg)")
+    .option("--notify", "Notify the requester on the same channel", false)
+    .action(async (codeOrChannel, code, opts) => {
+      const channelRaw = opts.channel ?? codeOrChannel;
+      const resolvedCode = opts.channel ? codeOrChannel : code;
+      if (!opts.channel && !code) {
+        throw new Error(
+          `Usage: ${formatCliCommand("clawdbot pairing approve <channel> <code>")} (or: ${formatCliCommand("clawdbot pairing approve --channel <channel> <code>")})`,
+        );
+      }
+      if (opts.channel && code != null) {
+        throw new Error(
+          `Too many arguments. Use: ${formatCliCommand("clawdbot pairing approve --channel <channel> <code>")}`,
+        );
+      }
+      const channel = parseChannel(channelRaw, channels);
+      const approved = await approveChannelPairingCode({
+        channel,
+        code: String(resolvedCode),
       });
       if (!approved) {
-        throw new Error(`No pending pairing request found for code: ${code}`);
+        throw new Error(`No pending pairing request found for code: ${String(resolvedCode)}`);
       }
 
-      console.log(`Approved ${provider} sender ${approved.id}.`);
+      defaultRuntime.log(
+        `${theme.success("Approved")} ${theme.muted(channel)} sender ${theme.command(approved.id)}.`,
+      );
 
       if (!opts.notify) return;
-      await notifyApproved(provider, approved.id).catch((err) => {
-        console.log(`Failed to notify requester: ${String(err)}`);
+      await notifyApproved(channel, approved.id).catch((err) => {
+        defaultRuntime.log(theme.warn(`Failed to notify requester: ${String(err)}`));
       });
     });
 }

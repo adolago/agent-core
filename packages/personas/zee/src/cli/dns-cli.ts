@@ -5,14 +5,12 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { loadConfig } from "../config/config.js";
-import {
-  pickPrimaryTailnetIPv4,
-  pickPrimaryTailnetIPv6,
-} from "../infra/tailnet.js";
-import {
-  getWideAreaZonePath,
-  WIDE_AREA_DISCOVERY_DOMAIN,
-} from "../infra/widearea-dns.js";
+import { pickPrimaryTailnetIPv4, pickPrimaryTailnetIPv6 } from "../infra/tailnet.js";
+import { getWideAreaZonePath, WIDE_AREA_DISCOVERY_DOMAIN } from "../infra/widearea-dns.js";
+import { defaultRuntime } from "../runtime.js";
+import { formatDocsLink } from "../terminal/links.js";
+import { renderTable } from "../terminal/table.js";
+import { theme } from "../terminal/theme.js";
 
 type RunOpts = { allowFailure?: boolean; inherit?: boolean };
 
@@ -32,49 +30,9 @@ function run(cmd: string, args: string[], opts?: RunOpts): string {
   return typeof res.stdout === "string" ? res.stdout : "";
 }
 
-// Allowlist of paths that can be written with sudo
-const ALLOWED_SUDO_WRITE_PATHS = new Set([
-  "/etc/hosts",
-  "/etc/resolv.conf",
-  "/etc/NetworkManager/conf.d/dns-local.conf",
-  "/etc/NetworkManager/dnsmasq.d/zee.conf",
-  "/etc/dnsmasq.d/zee.conf",
-]);
-
-function isAllowedSudoPath(filePath: string): boolean {
-  const normalizedPath = path.resolve(filePath);
-  // Check exact matches
-  if (ALLOWED_SUDO_WRITE_PATHS.has(normalizedPath)) {
-    return true;
-  }
-  // Allow paths under /var/lib/zee/ for zone files
-  if (normalizedPath.startsWith("/var/lib/zee/")) {
-    return true;
-  }
-  return false;
-}
-
 function writeFileSudoIfNeeded(filePath: string, content: string): void {
-  // Normalize and validate path
-  const normalizedPath = path.resolve(filePath);
-
-  // Check for symlinks before writing (prevent symlink attacks)
   try {
-    const stat = fs.lstatSync(normalizedPath);
-    if (stat.isSymbolicLink()) {
-      throw new Error(
-        `Refusing to write to symlink: ${normalizedPath}. Remove the symlink first.`,
-      );
-    }
-  } catch (err) {
-    // File doesn't exist yet, that's OK
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw err;
-    }
-  }
-
-  try {
-    fs.writeFileSync(normalizedPath, content, "utf-8");
+    fs.writeFileSync(filePath, content, "utf-8");
     return;
   } catch (err) {
     const code = (err as { code?: string }).code;
@@ -83,24 +41,14 @@ function writeFileSudoIfNeeded(filePath: string, content: string): void {
     }
   }
 
-  // Validate path is in allowlist before using sudo
-  if (!isAllowedSudoPath(normalizedPath)) {
-    throw new Error(
-      `Refusing to write to non-allowlisted path with sudo: ${normalizedPath}. ` +
-        `Allowed paths: ${Array.from(ALLOWED_SUDO_WRITE_PATHS).join(", ")}, /var/lib/zee/*`,
-    );
-  }
-
-  const res = spawnSync("sudo", ["tee", normalizedPath], {
+  const res = spawnSync("sudo", ["tee", filePath], {
     input: content,
     encoding: "utf-8",
     stdio: ["pipe", "ignore", "inherit"],
   });
   if (res.error) throw res.error;
   if (res.status !== 0) {
-    throw new Error(
-      `sudo tee ${normalizedPath} failed: exit ${res.status ?? "unknown"}`,
-    );
+    throw new Error(`sudo tee ${filePath} failed: exit ${res.status ?? "unknown"}`);
   }
 }
 
@@ -146,13 +94,15 @@ function ensureImportLine(corefilePath: string, importGlob: string): boolean {
 export function registerDnsCli(program: Command) {
   const dns = program
     .command("dns")
-    .description("DNS helpers for wide-area discovery (Tailscale + CoreDNS)");
+    .description("DNS helpers for wide-area discovery (Tailscale + CoreDNS)")
+    .addHelpText(
+      "after",
+      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dns", "docs.clawd.bot/cli/dns")}\n`,
+    );
 
   dns
     .command("setup")
-    .description(
-      "Set up CoreDNS to serve zee.internal for unicast DNS-SD (Wide-Area Bonjour)",
-    )
+    .description("Set up CoreDNS to serve clawdbot.internal for unicast DNS-SD (Wide-Area Bonjour)")
     .option(
       "--apply",
       "Install/update CoreDNS config and (re)start the service (requires sudo)",
@@ -164,33 +114,47 @@ export function registerDnsCli(program: Command) {
       const tailnetIPv6 = pickPrimaryTailnetIPv6();
       const zonePath = getWideAreaZonePath();
 
-      console.log(`Domain: ${WIDE_AREA_DISCOVERY_DOMAIN}`);
-      console.log(`Zone file (gateway-owned): ${zonePath}`);
-      console.log(
-        `Detected tailnet IP: ${tailnetIPv4 ?? "—"}${tailnetIPv6 ? ` (v6 ${tailnetIPv6})` : ""}`,
+      const tableWidth = Math.max(60, (process.stdout.columns ?? 120) - 1);
+      defaultRuntime.log(theme.heading("DNS setup"));
+      defaultRuntime.log(
+        renderTable({
+          width: tableWidth,
+          columns: [
+            { key: "Key", header: "Key", minWidth: 18 },
+            { key: "Value", header: "Value", minWidth: 24, flex: true },
+          ],
+          rows: [
+            { Key: "Domain", Value: WIDE_AREA_DISCOVERY_DOMAIN },
+            { Key: "Zone file", Value: zonePath },
+            {
+              Key: "Tailnet IP",
+              Value: `${tailnetIPv4 ?? "—"}${tailnetIPv6 ? ` (v6 ${tailnetIPv6})` : ""}`,
+            },
+          ],
+        }).trimEnd(),
       );
-      console.log("");
-      console.log("Recommended ~/.zee/zee.json:");
-      console.log(
+      defaultRuntime.log("");
+      defaultRuntime.log(theme.heading("Recommended ~/.clawdbot/clawdbot.json:"));
+      defaultRuntime.log(
         JSON.stringify(
           {
-            bridge: { bind: "tailnet" },
+            gateway: { bind: "auto" },
             discovery: { wideArea: { enabled: true } },
           },
           null,
           2,
         ),
       );
-      console.log("");
-      console.log("Tailscale admin (DNS → Nameservers):");
-      console.log(
-        `- Add nameserver: ${tailnetIPv4 ?? "<this machine's tailnet IPv4>"}`,
+      defaultRuntime.log("");
+      defaultRuntime.log(theme.heading("Tailscale admin (DNS → Nameservers):"));
+      defaultRuntime.log(
+        theme.muted(`- Add nameserver: ${tailnetIPv4 ?? "<this machine's tailnet IPv4>"}`),
       );
-      console.log(`- Restrict to domain (Split DNS): zee.internal`);
+      defaultRuntime.log(theme.muted("- Restrict to domain (Split DNS): clawdbot.internal"));
 
       if (!opts.apply) {
-        console.log("");
-        console.log("Run with --apply to install CoreDNS and configure it.");
+        defaultRuntime.log("");
+        defaultRuntime.log(theme.muted("Run with --apply to install CoreDNS and configure it."));
         return;
       }
 
@@ -198,9 +162,7 @@ export function registerDnsCli(program: Command) {
         throw new Error("dns setup is currently supported on macOS only");
       }
       if (!tailnetIPv4 && !tailnetIPv6) {
-        throw new Error(
-          "no tailnet IP detected; ensure Tailscale is running on this machine",
-        );
+        throw new Error("no tailnet IP detected; ensure Tailscale is running on this machine");
       }
 
       const prefix = detectBrewPrefix();
@@ -208,7 +170,7 @@ export function registerDnsCli(program: Command) {
       const corefilePath = path.join(etcDir, "Corefile");
       const confDir = path.join(etcDir, "conf.d");
       const importGlob = path.join(confDir, "*.server");
-      const serverPath = path.join(confDir, "zee.internal.server");
+      const serverPath = path.join(confDir, "clawdbot.internal.server");
 
       run("brew", ["list", "coredns"], { allowFailure: true });
       run("brew", ["install", "coredns"], {
@@ -224,9 +186,7 @@ export function registerDnsCli(program: Command) {
         ensureImportLine(corefilePath, importGlob);
       }
 
-      const bindArgs = [tailnetIPv4, tailnetIPv6].filter((v): v is string =>
-        Boolean(v?.trim()),
-      );
+      const bindArgs = [tailnetIPv4, tailnetIPv6].filter((v): v is string => Boolean(v?.trim()));
 
       const server = [
         `${WIDE_AREA_DISCOVERY_DOMAIN.replace(/\.$/, "")}:53 {`,
@@ -250,7 +210,7 @@ export function registerDnsCli(program: Command) {
         const serial = `${y}${m}${d}01`;
 
         const zoneLines = [
-          `; created by zee dns setup (will be overwritten by the gateway when wide-area discovery is enabled)`,
+          `; created by clawdbot dns setup (will be overwritten by the gateway when wide-area discovery is enabled)`,
           `$ORIGIN ${WIDE_AREA_DISCOVERY_DOMAIN}`,
           `$TTL 60`,
           `@ IN SOA ns1 hostmaster ${serial} 7200 3600 1209600 60`,
@@ -263,16 +223,18 @@ export function registerDnsCli(program: Command) {
         fs.writeFileSync(zonePath, zoneLines.join("\n"), "utf-8");
       }
 
-      console.log("");
-      console.log("Starting CoreDNS (sudo)…");
+      defaultRuntime.log("");
+      defaultRuntime.log(theme.heading("Starting CoreDNS (sudo)…"));
       run("sudo", ["brew", "services", "restart", "coredns"], {
         inherit: true,
       });
 
       if (cfg.discovery?.wideArea?.enabled !== true) {
-        console.log("");
-        console.log(
-          "Note: enable discovery.wideArea.enabled in ~/.zee/zee.json on the gateway and restart the gateway so it writes the DNS-SD zone.",
+        defaultRuntime.log("");
+        defaultRuntime.log(
+          theme.muted(
+            "Note: enable discovery.wideArea.enabled in ~/.clawdbot/clawdbot.json on the gateway and restart the gateway so it writes the DNS-SD zone.",
+          ),
         );
       }
     });

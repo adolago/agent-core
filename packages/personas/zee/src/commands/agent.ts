@@ -1,171 +1,64 @@
-import crypto from "node:crypto";
-import { runEmbeddedPiAgent } from "../agents/agent-core-embedded.js";
 import {
+  listAgentIds,
   resolveAgentDir,
+  resolveAgentModelFallbacksOverride,
+  resolveAgentModelPrimary,
   resolveAgentWorkspaceDir,
 } from "../agents/agent-scope.js";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
-import { lookupContextTokens } from "../agents/context.js";
-import {
-  DEFAULT_CONTEXT_TOKENS,
-  DEFAULT_PROVIDER,
-} from "../agents/defaults.js";
-import { loadModelCatalog } from "../agents/llm-types.js";
+import { runCliAgent } from "../agents/cli-runner.js";
+import { getCliSessionId } from "../agents/cli-session.js";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
+import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runWithModelFallback } from "../agents/model-fallback.js";
 import {
   buildAllowedModelSet,
+  isCliProvider,
   modelKey,
-  resolveExplicitModelRef,
+  resolveConfiguredModelRef,
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
+import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { buildWorkspaceSkillSnapshot } from "../agents/skills.js";
+import { getSkillsSnapshotVersion } from "../agents/skills/refresh.js";
 import { resolveAgentTimeoutMs } from "../agents/timeout.js";
-import { hasNonzeroUsage } from "../agents/usage.js";
 import { ensureAgentWorkspace } from "../agents/workspace.js";
-import type { MsgContext } from "../auto-reply/templating.js";
 import {
+  formatThinkingLevels,
+  formatXHighModelHint,
   normalizeThinkLevel,
   normalizeVerboseLevel,
+  supportsXHighThinking,
   type ThinkLevel,
   type VerboseLevel,
 } from "../auto-reply/thinking.js";
 import { type CliDeps, createDefaultDeps } from "../cli/deps.js";
-import { loadConfig, type ZeeConfig } from "../config/config.js";
+import { loadConfig } from "../config/config.js";
 import {
-  DEFAULT_IDLE_MINUTES,
-  loadSessionStore,
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
-  resolveSessionKey,
-  resolveStorePath,
   type SessionEntry,
-  saveSessionStore,
+  updateSessionStore,
 } from "../config/sessions.js";
 import {
+  clearAgentRunContext,
   emitAgentEvent,
   registerAgentRunContext,
 } from "../infra/agent-events.js";
-import { deliverOutboundPayloads } from "../infra/outbound/deliver.js";
-import { buildOutboundResultEnvelope } from "../infra/outbound/envelope.js";
-import {
-  formatOutboundPayloadLog,
-  type NormalizedOutboundPayload,
-  normalizeOutboundPayloads,
-  normalizeOutboundPayloadsForJson,
-} from "../infra/outbound/payloads.js";
-import { resolveOutboundTarget } from "../infra/outbound/targets.js";
+import { getRemoteSkillEligibility } from "../infra/skills-remote.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { applyVerboseOverride } from "../sessions/level-overrides.js";
 import { resolveSendPolicy } from "../sessions/send-policy.js";
-import {
-  normalizeMessageProvider,
-  resolveMessageProvider,
-} from "../utils/message-provider.js";
-import { normalizeE164 } from "../utils.js";
-
-type AgentCommandOpts = {
-  message: string;
-  to?: string;
-  sessionId?: string;
-  sessionKey?: string;
-  thinking?: string;
-  thinkingOnce?: string;
-  verbose?: string;
-  json?: boolean;
-  timeout?: string;
-  deliver?: boolean;
-  /** Message provider context (webchat|voicewake|whatsapp|...). */
-  messageProvider?: string;
-  provider?: string; // delivery provider (whatsapp|telegram|...)
-  bestEffortDeliver?: boolean;
-  abortSignal?: AbortSignal;
-  lane?: string;
-  runId?: string;
-  extraSystemPrompt?: string;
-};
-
-type SessionResolution = {
-  sessionId: string;
-  sessionKey?: string;
-  sessionEntry?: SessionEntry;
-  sessionStore?: Record<string, SessionEntry>;
-  storePath: string;
-  isNewSession: boolean;
-  persistedThinking?: ThinkLevel;
-  persistedVerbose?: VerboseLevel;
-};
-
-function resolveSession(opts: {
-  cfg: ZeeConfig;
-  to?: string;
-  sessionId?: string;
-  sessionKey?: string;
-}): SessionResolution {
-  const sessionCfg = opts.cfg.session;
-  const scope = sessionCfg?.scope ?? "per-sender";
-  const mainKey = sessionCfg?.mainKey ?? "main";
-  const idleMinutes = Math.max(
-    sessionCfg?.idleMinutes ?? DEFAULT_IDLE_MINUTES,
-    1,
-  );
-  const idleMs = idleMinutes * 60_000;
-  const explicitSessionKey = opts.sessionKey?.trim();
-  const storeAgentId = resolveAgentIdFromSessionKey(explicitSessionKey);
-  const storePath = resolveStorePath(sessionCfg?.store, {
-    agentId: storeAgentId,
-  });
-  const sessionStore = loadSessionStore(storePath);
-  const now = Date.now();
-
-  const ctx: MsgContext | undefined = opts.to?.trim()
-    ? { From: opts.to }
-    : undefined;
-  let sessionKey: string | undefined =
-    explicitSessionKey ??
-    (ctx ? resolveSessionKey(scope, ctx, mainKey) : undefined);
-  let sessionEntry = sessionKey ? sessionStore[sessionKey] : undefined;
-
-  // If a session id was provided, prefer to re-use its entry (by id) even when no key was derived.
-  if (
-    !explicitSessionKey &&
-    opts.sessionId &&
-    (!sessionEntry || sessionEntry.sessionId !== opts.sessionId)
-  ) {
-    const foundKey = Object.keys(sessionStore).find(
-      (key) => sessionStore[key]?.sessionId === opts.sessionId,
-    );
-    if (foundKey) {
-      sessionKey = sessionKey ?? foundKey;
-      sessionEntry = sessionStore[foundKey];
-    }
-  }
-
-  const fresh = sessionEntry && sessionEntry.updatedAt >= now - idleMs;
-  const sessionId =
-    opts.sessionId?.trim() ||
-    (fresh ? sessionEntry?.sessionId : undefined) ||
-    crypto.randomUUID();
-  const isNewSession = !fresh && !opts.sessionId;
-
-  const persistedThinking =
-    fresh && sessionEntry?.thinkingLevel
-      ? normalizeThinkLevel(sessionEntry.thinkingLevel)
-      : undefined;
-  const persistedVerbose =
-    fresh && sessionEntry?.verboseLevel
-      ? normalizeVerboseLevel(sessionEntry.verboseLevel)
-      : undefined;
-
-  return {
-    sessionId,
-    sessionKey,
-    sessionEntry,
-    sessionStore,
-    storePath,
-    isNewSession,
-    persistedThinking,
-    persistedVerbose,
-  };
-}
+import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
+import { clearSessionAuthProfileOverride } from "../agents/auth-profiles/session-override.js";
+import { resolveMessageChannel } from "../utils/message-channel.js";
+import { deliverAgentCommandResult } from "./agent/delivery.js";
+import { resolveAgentRunContext } from "./agent/run-context.js";
+import { resolveSession } from "./agent/session.js";
+import { updateSessionStoreAfterAgentRun } from "./agent/session-store.js";
+import type { AgentCommandOpts } from "./agent/types.js";
+import { normalizeAgentId } from "../routing/session-key.js";
 
 export async function agentCommand(
   opts: AgentCommandOpts,
@@ -174,47 +67,61 @@ export async function agentCommand(
 ) {
   const body = (opts.message ?? "").trim();
   if (!body) throw new Error("Message (--message) is required");
-  if (!opts.to && !opts.sessionId && !opts.sessionKey) {
-    throw new Error("Pass --to <E.164> or --session-id to choose a session");
+  if (!opts.to && !opts.sessionId && !opts.sessionKey && !opts.agentId) {
+    throw new Error("Pass --to <E.164>, --session-id, or --agent to choose a session");
   }
 
   const cfg = loadConfig();
-  const agentCfg = cfg.agent;
-  const sessionAgentId = resolveAgentIdFromSessionKey(opts.sessionKey?.trim());
+  const agentIdOverrideRaw = opts.agentId?.trim();
+  const agentIdOverride = agentIdOverrideRaw ? normalizeAgentId(agentIdOverrideRaw) : undefined;
+  if (agentIdOverride) {
+    const knownAgents = listAgentIds(cfg);
+    if (!knownAgents.includes(agentIdOverride)) {
+      throw new Error(
+        `Unknown agent id "${agentIdOverrideRaw}". Use "${formatCliCommand("clawdbot agents list")}" to see configured agents.`,
+      );
+    }
+  }
+  if (agentIdOverride && opts.sessionKey) {
+    const sessionAgentId = resolveAgentIdFromSessionKey(opts.sessionKey);
+    if (sessionAgentId !== agentIdOverride) {
+      throw new Error(
+        `Agent id "${agentIdOverrideRaw}" does not match session key agent "${sessionAgentId}".`,
+      );
+    }
+  }
+  const agentCfg = cfg.agents?.defaults;
+  const sessionAgentId = agentIdOverride ?? resolveAgentIdFromSessionKey(opts.sessionKey?.trim());
   const workspaceDirRaw = resolveAgentWorkspaceDir(cfg, sessionAgentId);
   const agentDir = resolveAgentDir(cfg, sessionAgentId);
   const workspace = await ensureAgentWorkspace({
     dir: workspaceDirRaw,
-    ensureBootstrapFiles: !cfg.agent?.skipBootstrap,
+    ensureBootstrapFiles: !agentCfg?.skipBootstrap,
   });
   const workspaceDir = workspace.dir;
-
-  const allowFrom = (cfg.whatsapp?.allowFrom ?? [])
-    .map((val) => normalizeE164(val))
-    .filter((val) => val.length > 1);
+  const configuredModel = resolveConfiguredModelRef({
+    cfg,
+    defaultProvider: DEFAULT_PROVIDER,
+    defaultModel: DEFAULT_MODEL,
+  });
+  const thinkingLevelsHint = formatThinkingLevels(configuredModel.provider, configuredModel.model);
 
   const thinkOverride = normalizeThinkLevel(opts.thinking);
   const thinkOnce = normalizeThinkLevel(opts.thinkingOnce);
   if (opts.thinking && !thinkOverride) {
-    throw new Error(
-      "Invalid thinking level. Use one of: off, minimal, low, medium, high.",
-    );
+    throw new Error(`Invalid thinking level. Use one of: ${thinkingLevelsHint}.`);
   }
   if (opts.thinkingOnce && !thinkOnce) {
-    throw new Error(
-      "Invalid one-shot thinking level. Use one of: off, minimal, low, medium, high.",
-    );
+    throw new Error(`Invalid one-shot thinking level. Use one of: ${thinkingLevelsHint}.`);
   }
 
   const verboseOverride = normalizeVerboseLevel(opts.verbose);
   if (opts.verbose && !verboseOverride) {
-    throw new Error('Invalid verbose level. Use "on" or "off".');
+    throw new Error('Invalid verbose level. Use "on", "full", or "off".');
   }
 
   const timeoutSecondsRaw =
-    opts.timeout !== undefined
-      ? Number.parseInt(String(opts.timeout), 10)
-      : undefined;
+    opts.timeout !== undefined ? Number.parseInt(String(opts.timeout), 10) : undefined;
   if (
     timeoutSecondsRaw !== undefined &&
     (Number.isNaN(timeoutSecondsRaw) || timeoutSecondsRaw <= 0)
@@ -231,6 +138,7 @@ export async function agentCommand(
     to: opts.to,
     sessionId: opts.sessionId,
     sessionKey: opts.sessionKey,
+    agentId: agentIdOverride,
   });
 
   const {
@@ -246,383 +154,367 @@ export async function agentCommand(
   let sessionEntry = resolvedSessionEntry;
   const runId = opts.runId?.trim() || sessionId;
 
-  if (sessionKey) {
-    registerAgentRunContext(runId, { sessionKey });
-  }
-
-  if (opts.deliver === true) {
-    const sendPolicy = resolveSendPolicy({
-      cfg,
-      entry: sessionEntry,
-      sessionKey,
-      provider: sessionEntry?.provider,
-      chatType: sessionEntry?.chatType,
-    });
-    if (sendPolicy === "deny") {
-      throw new Error("send blocked by session policy");
-    }
-  }
-
-  let resolvedThinkLevel =
-    thinkOnce ??
-    thinkOverride ??
-    persistedThinking ??
-    (agentCfg?.thinkingDefault as ThinkLevel | undefined);
-  const resolvedVerboseLevel =
-    verboseOverride ??
-    persistedVerbose ??
-    (agentCfg?.verboseDefault as VerboseLevel | undefined);
-
-  const needsSkillsSnapshot = isNewSession || !sessionEntry?.skillsSnapshot;
-  const skillsSnapshot = needsSkillsSnapshot
-    ? buildWorkspaceSkillSnapshot(workspaceDir, { config: cfg })
-    : sessionEntry?.skillsSnapshot;
-
-  if (skillsSnapshot && sessionStore && sessionKey && needsSkillsSnapshot) {
-    const current = sessionEntry ?? {
-      sessionId,
-      updatedAt: Date.now(),
-    };
-    const next: SessionEntry = {
-      ...current,
-      sessionId,
-      updatedAt: Date.now(),
-      skillsSnapshot,
-    };
-    sessionStore[sessionKey] = next;
-    await saveSessionStore(storePath, sessionStore);
-    sessionEntry = next;
-  }
-
-  // Persist explicit /command overrides to the session store when we have a key.
-  if (sessionStore && sessionKey) {
-    const entry = sessionStore[sessionKey] ??
-      sessionEntry ?? { sessionId, updatedAt: Date.now() };
-    const next: SessionEntry = { ...entry, sessionId, updatedAt: Date.now() };
-    if (thinkOverride) {
-      if (thinkOverride === "off") delete next.thinkingLevel;
-      else next.thinkingLevel = thinkOverride;
-    }
-    if (verboseOverride) {
-      if (verboseOverride === "off") delete next.verboseLevel;
-      else next.verboseLevel = verboseOverride;
-    }
-    sessionStore[sessionKey] = next;
-    await saveSessionStore(storePath, sessionStore);
-  }
-
-  const defaultProvider = DEFAULT_PROVIDER;
-  const resolvedDefault = resolveExplicitModelRef({
-    cfg,
-    defaultProvider,
-  });
-  const hasDefaultModel = Boolean(resolvedDefault);
-  let provider = resolvedDefault?.provider;
-  let model = resolvedDefault?.model;
-  const hasAllowlist =
-    agentCfg?.models && Object.keys(agentCfg.models).length > 0;
-  const hasStoredOverride = Boolean(
-    sessionEntry?.modelOverride || sessionEntry?.providerOverride,
-  );
-  const needsModelCatalog = hasAllowlist || hasStoredOverride;
-  let allowedModelKeys = new Set<string>();
-  let allowedModelCatalog: Awaited<ReturnType<typeof loadModelCatalog>> = [];
-  let modelCatalog: Awaited<ReturnType<typeof loadModelCatalog>> | null = null;
-
-  if (needsModelCatalog) {
-    modelCatalog = await loadModelCatalog({ config: cfg });
-    const allowed = buildAllowedModelSet({
-      cfg,
-      catalog: modelCatalog,
-      defaultProvider,
-    });
-    allowedModelKeys = allowed.allowedKeys;
-    allowedModelCatalog = allowed.allowedCatalog;
-  }
-
-  if (sessionEntry && sessionStore && sessionKey && hasStoredOverride) {
-    const overrideProvider =
-      sessionEntry.providerOverride?.trim() || defaultProvider;
-    const overrideModel = sessionEntry.modelOverride?.trim();
-    if (overrideModel) {
-      const key = modelKey(overrideProvider, overrideModel);
-      if (allowedModelKeys.size > 0 && !allowedModelKeys.has(key)) {
-        delete sessionEntry.providerOverride;
-        delete sessionEntry.modelOverride;
-        sessionEntry.updatedAt = Date.now();
-        sessionStore[sessionKey] = sessionEntry;
-        await saveSessionStore(storePath, sessionStore);
-      }
-    }
-  }
-
-  const hasModelOverride = Boolean(
-    sessionEntry?.modelOverride || sessionEntry?.providerOverride,
-  );
-  const storedProviderOverride = sessionEntry?.providerOverride?.trim();
-  const storedModelOverride = sessionEntry?.modelOverride?.trim();
-  if (storedModelOverride) {
-    const candidateProvider = storedProviderOverride || defaultProvider;
-    const key = modelKey(candidateProvider, storedModelOverride);
-    if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
-      provider = candidateProvider;
-      model = storedModelOverride;
-    }
-  }
-  if (sessionEntry?.authProfileOverride && provider) {
-    const store = ensureAuthProfileStore();
-    const profile = store.profiles[sessionEntry.authProfileOverride];
-    if (!profile || profile.provider !== provider) {
-      delete sessionEntry.authProfileOverride;
-      sessionEntry.updatedAt = Date.now();
-      if (sessionStore && sessionKey) {
-        sessionStore[sessionKey] = sessionEntry;
-        await saveSessionStore(storePath, sessionStore);
-      }
-    }
-  }
-
-  const shouldUseModel = hasModelOverride || hasDefaultModel;
-  if (!resolvedThinkLevel && provider && model) {
-    let catalogForThinking = modelCatalog ?? allowedModelCatalog;
-    if (!catalogForThinking || catalogForThinking.length === 0) {
-      modelCatalog = await loadModelCatalog({ config: cfg });
-      catalogForThinking = modelCatalog;
-    }
-    resolvedThinkLevel = resolveThinkingDefault({
-      cfg,
-      provider,
-      model,
-      catalog: catalogForThinking,
-    });
-  }
-  const sessionFile = resolveSessionFilePath(sessionId, sessionEntry);
-
-  const startedAt = Date.now();
-  let lifecycleEnded = false;
-
-  let result: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
-  let fallbackProvider = provider;
-  let fallbackModel = model;
   try {
-    const messageProvider = resolveMessageProvider(
-      opts.messageProvider,
-      opts.provider,
-    );
-    const fallbackResult = await runWithModelFallback({
-      cfg,
-      provider: shouldUseModel ? provider : undefined,
-      model: shouldUseModel ? model : undefined,
-      run: (providerOverride, modelOverride) =>
-        runEmbeddedPiAgent({
-          sessionId,
-          sessionKey,
-          messageProvider,
-          sessionFile,
-          workspaceDir,
-          config: cfg,
-          skillsSnapshot,
-          prompt: body,
-          provider: providerOverride,
-          model: modelOverride,
-          authProfileId: sessionEntry?.authProfileOverride,
-          thinkLevel: resolvedThinkLevel,
-          verboseLevel: resolvedVerboseLevel,
-          timeoutMs,
-          runId,
-          lane: opts.lane as "main" | "compact" | undefined,
-          abortSignal: opts.abortSignal,
-          extraSystemPrompt: opts.extraSystemPrompt,
-          agentDir,
-          onAgentEvent: (evt) => {
-            if (
-              evt.stream === "lifecycle" &&
-              typeof evt.data?.phase === "string" &&
-              (evt.data.phase === "end" || evt.data.phase === "error")
-            ) {
-              lifecycleEnded = true;
-            }
-            emitAgentEvent({
-              runId,
-              stream: evt.stream,
-              data: evt.data,
-            });
-          },
-        }),
-    });
-    result = fallbackResult.result;
-    fallbackProvider = fallbackResult.provider;
-    fallbackModel = fallbackResult.model;
-    if (!lifecycleEnded) {
-      emitAgentEvent({
-        runId,
-        stream: "lifecycle",
-        data: {
-          phase: "end",
-          startedAt,
-          endedAt: Date.now(),
-          aborted: result.meta.aborted ?? false,
-        },
-      });
-    }
-  } catch (err) {
-    if (!lifecycleEnded) {
-      emitAgentEvent({
-        runId,
-        stream: "lifecycle",
-        data: {
-          phase: "error",
-          startedAt,
-          endedAt: Date.now(),
-          error: String(err),
-        },
-      });
-    }
-    throw err;
-  }
-
-  // Update token+model fields in the session store.
-  if (sessionStore && sessionKey) {
-    const usage = result.meta.agentMeta?.usage;
-    const modelUsed = result.meta.agentMeta?.model ?? fallbackModel ?? model;
-    const providerUsed =
-      result.meta.agentMeta?.provider ?? fallbackProvider ?? provider;
-    const contextTokens =
-      agentCfg?.contextTokens ??
-      lookupContextTokens(modelUsed) ??
-      DEFAULT_CONTEXT_TOKENS;
-
-    const entry = sessionStore[sessionKey] ?? {
-      sessionId,
-      updatedAt: Date.now(),
-    };
-    const next: SessionEntry = {
-      ...entry,
-      sessionId,
-      updatedAt: Date.now(),
-      modelProvider: providerUsed,
-      model: modelUsed,
-      contextTokens,
-    };
-    next.abortedLastRun = result.meta.aborted ?? false;
-    if (hasNonzeroUsage(usage)) {
-      const input = usage.input ?? 0;
-      const output = usage.output ?? 0;
-      const promptTokens =
-        input + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0);
-      next.inputTokens = input;
-      next.outputTokens = output;
-      next.totalTokens =
-        promptTokens > 0 ? promptTokens : (usage.total ?? input);
-    }
-    sessionStore[sessionKey] = next;
-    await saveSessionStore(storePath, sessionStore);
-  }
-
-  const payloads = result.payloads ?? [];
-  const deliver = opts.deliver === true;
-  const bestEffortDeliver = opts.bestEffortDeliver === true;
-  const deliveryProvider =
-    normalizeMessageProvider(opts.provider) ?? "whatsapp";
-
-  const logDeliveryError = (err: unknown) => {
-    const message = `Delivery failed (${deliveryProvider}${deliveryTarget ? ` to ${deliveryTarget}` : ""}): ${String(err)}`;
-    runtime.error?.(message);
-    if (!runtime.error) runtime.log(message);
-  };
-
-  const isDeliveryProviderKnown =
-    deliveryProvider === "whatsapp" ||
-    deliveryProvider === "telegram" ||
-    deliveryProvider === "discord" ||
-    deliveryProvider === "slack" ||
-    deliveryProvider === "signal" ||
-    deliveryProvider === "imessage" ||
-    deliveryProvider === "webchat";
-
-  const resolvedTarget =
-    deliver && isDeliveryProviderKnown
-      ? resolveOutboundTarget({
-          provider: deliveryProvider,
-          to: opts.to,
-          allowFrom,
-        })
-      : null;
-  const deliveryTarget = resolvedTarget?.ok ? resolvedTarget.to : undefined;
-
-  if (deliver) {
-    if (!isDeliveryProviderKnown) {
-      const err = new Error(`Unknown provider: ${deliveryProvider}`);
-      if (!bestEffortDeliver) throw err;
-      logDeliveryError(err);
-    } else if (resolvedTarget && !resolvedTarget.ok) {
-      if (!bestEffortDeliver) throw resolvedTarget.error;
-      logDeliveryError(resolvedTarget.error);
-    }
-  }
-
-  const normalizedPayloads = normalizeOutboundPayloadsForJson(payloads);
-  if (opts.json) {
-    runtime.log(
-      JSON.stringify(
-        buildOutboundResultEnvelope({
-          payloads: normalizedPayloads,
-          meta: result.meta,
-        }),
-        null,
-        2,
-      ),
-    );
-    if (!deliver) {
-      return { payloads: normalizedPayloads, meta: result.meta };
-    }
-  }
-
-  if (payloads.length === 0) {
-    runtime.log("No reply from agent.");
-    return { payloads: [], meta: result.meta };
-  }
-
-  const deliveryPayloads = normalizeOutboundPayloads(payloads);
-  const logPayload = (payload: NormalizedOutboundPayload) => {
-    if (opts.json) return;
-    const output = formatOutboundPayloadLog(payload);
-    if (output) runtime.log(output);
-  };
-  if (!deliver) {
-    for (const payload of deliveryPayloads) {
-      logPayload(payload);
-    }
-  }
-  if (
-    deliver &&
-    (deliveryProvider === "whatsapp" ||
-      deliveryProvider === "telegram" ||
-      deliveryProvider === "discord" ||
-      deliveryProvider === "slack" ||
-      deliveryProvider === "signal" ||
-      deliveryProvider === "imessage")
-  ) {
-    if (deliveryTarget) {
-      await deliverOutboundPayloads({
+    if (opts.deliver === true) {
+      const sendPolicy = resolveSendPolicy({
         cfg,
-        provider: deliveryProvider,
-        to: deliveryTarget,
-        payloads: deliveryPayloads,
-        bestEffort: bestEffortDeliver,
-        onError: (err) => logDeliveryError(err),
-        onPayload: logPayload,
-        deps: {
-          sendWhatsApp: deps.sendMessageWhatsApp,
-          sendTelegram: deps.sendMessageTelegram,
-          sendDiscord: deps.sendMessageDiscord,
-          sendSlack: deps.sendMessageSlack,
-          sendSignal: deps.sendMessageSignal,
-          sendIMessage: deps.sendMessageIMessage,
-        },
+        entry: sessionEntry,
+        sessionKey,
+        channel: sessionEntry?.channel,
+        chatType: sessionEntry?.chatType,
+      });
+      if (sendPolicy === "deny") {
+        throw new Error("send blocked by session policy");
+      }
+    }
+
+    let resolvedThinkLevel =
+      thinkOnce ??
+      thinkOverride ??
+      persistedThinking ??
+      (agentCfg?.thinkingDefault as ThinkLevel | undefined);
+    const resolvedVerboseLevel =
+      verboseOverride ?? persistedVerbose ?? (agentCfg?.verboseDefault as VerboseLevel | undefined);
+
+    if (sessionKey) {
+      registerAgentRunContext(runId, {
+        sessionKey,
+        verboseLevel: resolvedVerboseLevel,
       });
     }
-  }
 
-  return { payloads: normalizedPayloads, meta: result.meta };
+    const needsSkillsSnapshot = isNewSession || !sessionEntry?.skillsSnapshot;
+    const skillsSnapshotVersion = getSkillsSnapshotVersion(workspaceDir);
+    const skillsSnapshot = needsSkillsSnapshot
+      ? buildWorkspaceSkillSnapshot(workspaceDir, {
+          config: cfg,
+          eligibility: { remote: getRemoteSkillEligibility() },
+          snapshotVersion: skillsSnapshotVersion,
+        })
+      : sessionEntry?.skillsSnapshot;
+
+    if (skillsSnapshot && sessionStore && sessionKey && needsSkillsSnapshot) {
+      const current = sessionEntry ?? {
+        sessionId,
+        updatedAt: Date.now(),
+      };
+      const next: SessionEntry = {
+        ...current,
+        sessionId,
+        updatedAt: Date.now(),
+        skillsSnapshot,
+      };
+      sessionStore[sessionKey] = next;
+      await updateSessionStore(storePath, (store) => {
+        store[sessionKey] = next;
+      });
+      sessionEntry = next;
+    }
+
+    // Persist explicit /command overrides to the session store when we have a key.
+    if (sessionStore && sessionKey) {
+      const entry = sessionStore[sessionKey] ??
+        sessionEntry ?? { sessionId, updatedAt: Date.now() };
+      const next: SessionEntry = { ...entry, sessionId, updatedAt: Date.now() };
+      if (thinkOverride) {
+        if (thinkOverride === "off") delete next.thinkingLevel;
+        else next.thinkingLevel = thinkOverride;
+      }
+      applyVerboseOverride(next, verboseOverride);
+      sessionStore[sessionKey] = next;
+      await updateSessionStore(storePath, (store) => {
+        store[sessionKey] = next;
+      });
+    }
+
+    const agentModelPrimary = resolveAgentModelPrimary(cfg, sessionAgentId);
+    const cfgForModelSelection = agentModelPrimary
+      ? {
+          ...cfg,
+          agents: {
+            ...cfg.agents,
+            defaults: {
+              ...cfg.agents?.defaults,
+              model: {
+                ...(typeof cfg.agents?.defaults?.model === "object"
+                  ? cfg.agents.defaults.model
+                  : undefined),
+                primary: agentModelPrimary,
+              },
+            },
+          },
+        }
+      : cfg;
+
+    const { provider: defaultProvider, model: defaultModel } = resolveConfiguredModelRef({
+      cfg: cfgForModelSelection,
+      defaultProvider: DEFAULT_PROVIDER,
+      defaultModel: DEFAULT_MODEL,
+    });
+    let provider = defaultProvider;
+    let model = defaultModel;
+    const hasAllowlist = agentCfg?.models && Object.keys(agentCfg.models).length > 0;
+    const hasStoredOverride = Boolean(
+      sessionEntry?.modelOverride || sessionEntry?.providerOverride,
+    );
+    const needsModelCatalog = hasAllowlist || hasStoredOverride;
+    let allowedModelKeys = new Set<string>();
+    let allowedModelCatalog: Awaited<ReturnType<typeof loadModelCatalog>> = [];
+    let modelCatalog: Awaited<ReturnType<typeof loadModelCatalog>> | null = null;
+
+    if (needsModelCatalog) {
+      modelCatalog = await loadModelCatalog({ config: cfg });
+      const allowed = buildAllowedModelSet({
+        cfg,
+        catalog: modelCatalog,
+        defaultProvider,
+        defaultModel,
+      });
+      allowedModelKeys = allowed.allowedKeys;
+      allowedModelCatalog = allowed.allowedCatalog;
+    }
+
+    if (sessionEntry && sessionStore && sessionKey && hasStoredOverride) {
+      const entry = sessionEntry;
+      const overrideProvider = sessionEntry.providerOverride?.trim() || defaultProvider;
+      const overrideModel = sessionEntry.modelOverride?.trim();
+      if (overrideModel) {
+        const key = modelKey(overrideProvider, overrideModel);
+        if (
+          !isCliProvider(overrideProvider, cfg) &&
+          allowedModelKeys.size > 0 &&
+          !allowedModelKeys.has(key)
+        ) {
+          const { updated } = applyModelOverrideToSessionEntry({
+            entry,
+            selection: { provider: defaultProvider, model: defaultModel, isDefault: true },
+          });
+          if (updated) {
+            sessionStore[sessionKey] = entry;
+            await updateSessionStore(storePath, (store) => {
+              store[sessionKey] = entry;
+            });
+          }
+        }
+      }
+    }
+
+    const storedProviderOverride = sessionEntry?.providerOverride?.trim();
+    const storedModelOverride = sessionEntry?.modelOverride?.trim();
+    if (storedModelOverride) {
+      const candidateProvider = storedProviderOverride || defaultProvider;
+      const key = modelKey(candidateProvider, storedModelOverride);
+      if (
+        isCliProvider(candidateProvider, cfg) ||
+        allowedModelKeys.size === 0 ||
+        allowedModelKeys.has(key)
+      ) {
+        provider = candidateProvider;
+        model = storedModelOverride;
+      }
+    }
+    if (sessionEntry) {
+      const authProfileId = sessionEntry.authProfileOverride;
+      if (authProfileId) {
+        const entry = sessionEntry;
+        const store = ensureAuthProfileStore();
+        const profile = store.profiles[authProfileId];
+        if (!profile || profile.provider !== provider) {
+          if (sessionStore && sessionKey) {
+            await clearSessionAuthProfileOverride({
+              sessionEntry: entry,
+              sessionStore,
+              sessionKey,
+              storePath,
+            });
+          }
+        }
+      }
+    }
+
+    if (!resolvedThinkLevel) {
+      let catalogForThinking = modelCatalog ?? allowedModelCatalog;
+      if (!catalogForThinking || catalogForThinking.length === 0) {
+        modelCatalog = await loadModelCatalog({ config: cfg });
+        catalogForThinking = modelCatalog;
+      }
+      resolvedThinkLevel = resolveThinkingDefault({
+        cfg,
+        provider,
+        model,
+        catalog: catalogForThinking,
+      });
+    }
+    if (resolvedThinkLevel === "xhigh" && !supportsXHighThinking(provider, model)) {
+      const explicitThink = Boolean(thinkOnce || thinkOverride);
+      if (explicitThink) {
+        throw new Error(`Thinking level "xhigh" is only supported for ${formatXHighModelHint()}.`);
+      }
+      resolvedThinkLevel = "high";
+      if (sessionEntry && sessionStore && sessionKey && sessionEntry.thinkingLevel === "xhigh") {
+        const entry = sessionEntry;
+        entry.thinkingLevel = "high";
+        entry.updatedAt = Date.now();
+        sessionStore[sessionKey] = entry;
+        await updateSessionStore(storePath, (store) => {
+          store[sessionKey] = entry;
+        });
+      }
+    }
+    const sessionFile = resolveSessionFilePath(sessionId, sessionEntry, {
+      agentId: sessionAgentId,
+    });
+
+    const startedAt = Date.now();
+    let lifecycleEnded = false;
+
+    let result: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
+    let fallbackProvider = provider;
+    let fallbackModel = model;
+    try {
+      const runContext = resolveAgentRunContext(opts);
+      const messageChannel = resolveMessageChannel(
+        runContext.messageChannel,
+        opts.replyChannel ?? opts.channel,
+      );
+      const spawnedBy = opts.spawnedBy ?? sessionEntry?.spawnedBy;
+      const fallbackResult = await runWithModelFallback({
+        cfg,
+        provider,
+        model,
+        fallbacksOverride: resolveAgentModelFallbacksOverride(cfg, sessionAgentId),
+        run: (providerOverride, modelOverride) => {
+          if (isCliProvider(providerOverride, cfg)) {
+            const cliSessionId = getCliSessionId(sessionEntry, providerOverride);
+            return runCliAgent({
+              sessionId,
+              sessionKey,
+              sessionFile,
+              workspaceDir,
+              config: cfg,
+              prompt: body,
+              provider: providerOverride,
+              model: modelOverride,
+              thinkLevel: resolvedThinkLevel,
+              timeoutMs,
+              runId,
+              extraSystemPrompt: opts.extraSystemPrompt,
+              cliSessionId,
+              images: opts.images,
+              streamParams: opts.streamParams,
+            });
+          }
+          const authProfileId =
+            providerOverride === provider ? sessionEntry?.authProfileOverride : undefined;
+          return runEmbeddedPiAgent({
+            sessionId,
+            sessionKey,
+            messageChannel,
+            agentAccountId: runContext.accountId,
+            messageTo: opts.replyTo ?? opts.to,
+            messageThreadId: opts.threadId,
+            groupId: runContext.groupId,
+            groupChannel: runContext.groupChannel,
+            groupSpace: runContext.groupSpace,
+            spawnedBy,
+            currentChannelId: runContext.currentChannelId,
+            currentThreadTs: runContext.currentThreadTs,
+            replyToMode: runContext.replyToMode,
+            hasRepliedRef: runContext.hasRepliedRef,
+            sessionFile,
+            workspaceDir,
+            config: cfg,
+            skillsSnapshot,
+            prompt: body,
+            images: opts.images,
+            clientTools: opts.clientTools,
+            provider: providerOverride,
+            model: modelOverride,
+            authProfileId,
+            authProfileIdSource: authProfileId
+              ? sessionEntry?.authProfileOverrideSource
+              : undefined,
+            thinkLevel: resolvedThinkLevel,
+            verboseLevel: resolvedVerboseLevel,
+            timeoutMs,
+            runId,
+            lane: opts.lane,
+            abortSignal: opts.abortSignal,
+            extraSystemPrompt: opts.extraSystemPrompt,
+            streamParams: opts.streamParams,
+            agentDir,
+            onAgentEvent: (evt) => {
+              // Track lifecycle end for fallback emission below.
+              if (
+                evt.stream === "lifecycle" &&
+                typeof evt.data?.phase === "string" &&
+                (evt.data.phase === "end" || evt.data.phase === "error")
+              ) {
+                lifecycleEnded = true;
+              }
+            },
+          });
+        },
+      });
+      result = fallbackResult.result;
+      fallbackProvider = fallbackResult.provider;
+      fallbackModel = fallbackResult.model;
+      if (!lifecycleEnded) {
+        emitAgentEvent({
+          runId,
+          stream: "lifecycle",
+          data: {
+            phase: "end",
+            startedAt,
+            endedAt: Date.now(),
+            aborted: result.meta.aborted ?? false,
+          },
+        });
+      }
+    } catch (err) {
+      if (!lifecycleEnded) {
+        emitAgentEvent({
+          runId,
+          stream: "lifecycle",
+          data: {
+            phase: "error",
+            startedAt,
+            endedAt: Date.now(),
+            error: String(err),
+          },
+        });
+      }
+      throw err;
+    }
+
+    // Update token+model fields in the session store.
+    if (sessionStore && sessionKey) {
+      await updateSessionStoreAfterAgentRun({
+        cfg,
+        contextTokensOverride: agentCfg?.contextTokens,
+        sessionId,
+        sessionKey,
+        storePath,
+        sessionStore,
+        defaultProvider: provider,
+        defaultModel: model,
+        fallbackProvider,
+        fallbackModel,
+        result,
+      });
+    }
+
+    const payloads = result.payloads ?? [];
+    return await deliverAgentCommandResult({
+      cfg,
+      deps,
+      runtime,
+      opts,
+      sessionEntry,
+      result,
+      payloads,
+    });
+  } finally {
+    clearAgentRunContext(runId);
+  }
 }

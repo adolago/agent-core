@@ -30,8 +30,8 @@ const { initSpy, runSpy, loadConfig } = vi.hoisted(() => ({
     stop: vi.fn(),
   })),
   loadConfig: vi.fn(() => ({
-    agent: { maxConcurrent: 2 },
-    telegram: {},
+    agents: { defaults: { maxConcurrent: 2 } },
+    channels: { telegram: {} },
   })),
 }));
 
@@ -79,8 +79,8 @@ vi.mock("../auto-reply/reply.js", () => ({
 describe("monitorTelegramProvider (grammY)", () => {
   beforeEach(() => {
     loadConfig.mockReturnValue({
-      agent: { maxConcurrent: 2 },
-      telegram: {},
+      agents: { defaults: { maxConcurrent: 2 } },
+      channels: { telegram: {} },
     });
     initSpy.mockClear();
     runSpy.mockClear();
@@ -109,8 +109,8 @@ describe("monitorTelegramProvider (grammY)", () => {
   it("uses agent maxConcurrent for runner concurrency", async () => {
     runSpy.mockClear();
     loadConfig.mockReturnValue({
-      agent: { maxConcurrent: 3 },
-      telegram: {},
+      agents: { defaults: { maxConcurrent: 3 } },
+      channels: { telegram: {} },
     });
 
     await monitorTelegramProvider({ token: "tok" });

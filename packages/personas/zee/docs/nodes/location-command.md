@@ -76,7 +76,7 @@ Goal: model can request location even when node is backgrounded, but only when:
 
 Push-triggered flow (future):
 1) Gateway sends a push to the node (silent push or FCM data).
-2) Node wakes briefly and calls `location.get` internally.
+2) Node wakes briefly and requests location from the device.
 3) Node forwards payload to Gateway.
 
 Notes:
@@ -85,11 +85,11 @@ Notes:
 
 ## Model/tooling integration
 - Tool surface: `nodes` tool adds `location_get` action (node required).
-- CLI: `zee nodes location get --node <id>`.
+- CLI: `clawdbot nodes location get --node <id>`.
 - Agent guidelines: only call when user enabled location and understands the scope.
 
 ## UX copy (suggested)
 - Off: “Location sharing is disabled.”
-- While Using: “Only when Zee is open.”
+- While Using: “Only when Clawdbot is open.”
 - Always: “Allow background location. Requires system permission.”
 - Precise: “Use precise GPS location. Toggle off to share approximate location.”

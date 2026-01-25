@@ -1,44 +1,43 @@
 ---
-summary: "End-to-end guide for running Zee as a personal assistant with safety cautions"
+summary: "End-to-end guide for running Clawdbot as a personal assistant with safety cautions"
 read_when:
   - Onboarding a new assistant instance
   - Reviewing safety/permission implications
 ---
-# Building a personal assistant with ZEE (Clawd-style)
+# Building a personal assistant with Clawdbot (Clawd-style)
 
-ZEE is a WhatsApp + Telegram + Discord gateway for **Pi** agents. This guide is the “personal assistant” setup: one dedicated WhatsApp number that behaves like your always-on agent.
+Clawdbot is a WhatsApp + Telegram + Discord + iMessage gateway for **Pi** agents. Plugins add Mattermost. This guide is the "personal assistant" setup: one dedicated WhatsApp number that behaves like your always-on agent.
 
 ## ⚠️ Safety first
 
 You’re putting an agent in a position to:
 - run commands on your machine (depending on your Pi tool setup)
 - read/write files in your workspace
-- send messages back out via WhatsApp/Telegram/Discord
+- send messages back out via WhatsApp/Telegram/Discord/Mattermost (plugin)
 
 Start conservative:
-- Always set `whatsapp.allowFrom` (never run open-to-the-world on your personal Mac).
+- Always set `channels.whatsapp.allowFrom` (never run open-to-the-world on your personal Mac).
 - Use a dedicated WhatsApp number for the assistant.
-- Heartbeats now default to every 30 minutes. Disable until you trust the setup by setting `agent.heartbeat.every: "0m"`.
+- Heartbeats now default to every 30 minutes. Disable until you trust the setup by setting `agents.defaults.heartbeat.every: "0m"`.
 
 ## Prerequisites
 
 - Node **22+**
-- ZEE available on PATH (recommended: global install)
+- Clawdbot available on PATH (recommended: global install)
 - A second phone number (SIM/eSIM/prepaid) for the assistant
 
 ```bash
-npm install -g zee@latest
-# or: pnpm add -g zee@latest
+npm install -g clawdbot@latest
+# or: pnpm add -g clawdbot@latest
 ```
 
 From source (development):
 
 ```bash
-git clone https://github.com/zee/zee.git
-cd zee
+git clone https://github.com/clawdbot/clawdbot.git
+cd clawdbot
 pnpm install
-pnpm ui:install
-pnpm ui:build
+pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 pnpm link --global
 ```
@@ -57,54 +56,55 @@ Your Phone (personal)          Second Phone (assistant)
                                        ▼
                               ┌─────────────────┐
                               │  Your Mac       │
-                              │  (zee)      │
+                              │  (clawdbot)      │
                               │    Pi agent     │
                               └─────────────────┘
 ```
 
-If you link your personal WhatsApp to ZEE, every message to you becomes “agent input”. That’s rarely what you want.
+If you link your personal WhatsApp to Clawdbot, every message to you becomes “agent input”. That’s rarely what you want.
 
 ## 5-minute quick start
 
 1) Pair WhatsApp Web (shows QR; scan with the assistant phone):
 
 ```bash
-zee providers login
+clawdbot channels login
 ```
 
 2) Start the Gateway (leave it running):
 
 ```bash
-zee gateway --port 18789
+clawdbot gateway --port 18789
 ```
 
-3) Put a minimal config in `~/.zee/zee.json`:
+3) Put a minimal config in `~/.clawdbot/clawdbot.json`:
 
 ```json5
 {
-  whatsapp: {
-    allowFrom: ["+15555550123"]
-  }
+  channels: { whatsapp: { allowFrom: ["+15555550123"] } }
 }
 ```
 
 Now message the assistant number from your allowlisted phone.
 
+When onboarding finishes, we auto-open the dashboard with your gateway token and print the tokenized link. To reopen later: `clawdbot dashboard`.
+
 ## Give the agent a workspace (AGENTS)
 
 Clawd reads operating instructions and “memory” from its workspace directory.
 
-By default, Zee uses `~/clawd` as the agent workspace, and will create it (plus starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`) automatically on setup/first agent run. `BOOTSTRAP.md` is only created when the workspace is brand new (it should not come back after you delete it).
+By default, Clawdbot uses `~/clawd` as the agent workspace, and will create it (plus starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`) automatically on setup/first agent run. `BOOTSTRAP.md` is only created when the workspace is brand new (it should not come back after you delete it).
 
-Tip: treat this folder like Clawd’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up.
+Tip: treat this folder like Clawd’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up. If git is installed, brand-new workspaces are auto-initialized.
 
 ```bash
-zee setup
+clawdbot setup
 ```
 
-Full workspace layout + backup guide: [`docs/agent-workspace.md`](/concepts/agent-workspace)
+Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
+Memory workflow: [Memory](/concepts/memory)
 
-Optional: choose a different workspace with `agent.workspace` (supports `~`).
+Optional: choose a different workspace with `agents.defaults.workspace` (supports `~`).
 
 ```json5
 {
@@ -126,7 +126,7 @@ If you already ship your own workspace files from a repo, you can disable bootst
 
 ## The config that turns it into “an assistant”
 
-ZEE defaults to a good assistant setup, but you’ll usually want to tune:
+Clawdbot defaults to a good assistant setup, but you’ll usually want to tune:
 - persona/instructions in `SOUL.md`
 - thinking defaults (if desired)
 - heartbeats (once you trust it)
@@ -144,10 +144,12 @@ Example:
     // Start with 0; enable later.
     heartbeat: { every: "0m" }
   },
-  whatsapp: {
-    allowFrom: ["+15555550123"],
-    groups: {
-      "*": { requireMention: true }
+  channels: {
+    whatsapp: {
+      allowFrom: ["+15555550123"],
+      groups: {
+        "*": { requireMention: true }
+      }
     }
   },
   routing: {
@@ -158,25 +160,31 @@ Example:
   session: {
     scope: "per-sender",
     resetTriggers: ["/new", "/reset"],
-    idleMinutes: 10080
+    reset: {
+      mode: "daily",
+      atHour: 4,
+      idleMinutes: 10080
+    }
   }
 }
 ```
 
 ## Sessions and memory
 
-- Session files: `~/.zee/agents/<agentId>/sessions/{{SessionId}}.jsonl`
-- Session metadata (token usage, last route, etc): `~/.zee/agents/<agentId>/sessions/sessions.json` (legacy: `~/.zee/sessions/sessions.json`)
+- Session files: `~/.clawdbot/agents/<agentId>/sessions/{{SessionId}}.jsonl`
+- Session metadata (token usage, last route, etc): `~/.clawdbot/agents/<agentId>/sessions/sessions.json` (legacy: `~/.clawdbot/sessions/sessions.json`)
 - `/new` or `/reset` starts a fresh session for that chat (configurable via `resetTriggers`). If sent alone, the agent replies with a short hello to confirm the reset.
 - `/compact [instructions]` compacts the session context and reports the remaining context budget.
 
 ## Heartbeats (proactive mode)
 
-By default, ZEE runs a heartbeat every 30 minutes with the prompt:
-`Read HEARTBEAT.md if exists. Consider outstanding tasks. Checkup sometimes on your human during (user local) day time.`
-Set `agent.heartbeat.every: "0m"` to disable.
+By default, Clawdbot runs a heartbeat every 30 minutes with the prompt:
+`Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`
+Set `agents.defaults.heartbeat.every: "0m"` to disable.
 
-- If the agent replies with `HEARTBEAT_OK` (optionally with short padding; see `agent.heartbeat.ackMaxChars`), ZEE suppresses outbound delivery for that heartbeat.
+- If `HEARTBEAT.md` exists but is effectively empty (only blank lines and markdown headers like `# Heading`), Clawdbot skips the heartbeat run to save API calls.
+- If the file is missing, the heartbeat still runs and the model decides what to do.
+- If the agent replies with `HEARTBEAT_OK` (optionally with short padding; see `agents.defaults.heartbeat.ackMaxChars`), Clawdbot suppresses outbound delivery for that heartbeat.
 - Heartbeats run full agent turns — shorter intervals burn more tokens.
 
 ```json5
@@ -201,24 +209,25 @@ Here’s the screenshot.
 MEDIA:/tmp/screenshot.png
 ```
 
-ZEE extracts these and sends them as media alongside the text.
+Clawdbot extracts these and sends them as media alongside the text.
 
 ## Operations checklist
 
 ```bash
-zee status          # local status (creds, sessions, queued events)
-zee status --deep   # also probes the running Gateway (WA connect + Telegram)
-zee health --json   # gateway health snapshot (WS)
+clawdbot status          # local status (creds, sessions, queued events)
+clawdbot status --all    # full diagnosis (read-only, pasteable)
+clawdbot status --deep   # adds gateway health probes (Telegram + Discord)
+clawdbot health --json   # gateway health snapshot (WS)
 ```
 
-Logs live under `/tmp/zee/` (default: `zee-YYYY-MM-DD.log`).
+Logs live under `/tmp/clawdbot/` (default: `clawdbot-YYYY-MM-DD.log`).
 
 ## Next steps
 
 - WebChat: [WebChat](/web/webchat)
 - Gateway ops: [Gateway runbook](/gateway)
 - Cron + wakeups: [Cron jobs](/automation/cron-jobs)
-- macOS menu bar companion: [Zee macOS app](/platforms/macos)
+- macOS menu bar companion: [Clawdbot macOS app](/platforms/macos)
 - iOS node app: [iOS app](/platforms/ios)
 - Android node app: [Android app](/platforms/android)
 - Windows status: [Windows (WSL2)](/platforms/windows)

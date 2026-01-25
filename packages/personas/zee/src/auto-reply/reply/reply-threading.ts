@@ -1,29 +1,35 @@
-import type { ZeeConfig } from "../../config/config.js";
+import { getChannelDock } from "../../channels/dock.js";
+import { normalizeChannelId } from "../../channels/plugins/index.js";
+import type { ClawdbotConfig } from "../../config/config.js";
 import type { ReplyToMode } from "../../config/types.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 
 export function resolveReplyToMode(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   channel?: OriginatingChannelType,
+  accountId?: string | null,
+  chatType?: string | null,
 ): ReplyToMode {
-  switch (channel) {
-    case "telegram":
-      return cfg.telegram?.replyToMode ?? "first";
-    case "discord":
-      return cfg.discord?.replyToMode ?? "off";
-    case "slack":
-      return cfg.slack?.replyToMode ?? "off";
-    default:
-      return "all";
-  }
+  const provider = normalizeChannelId(channel);
+  if (!provider) return "all";
+  const resolved = getChannelDock(provider)?.threading?.resolveReplyToMode?.({
+    cfg,
+    accountId,
+    chatType,
+  });
+  return resolved ?? "all";
 }
 
-export function createReplyToModeFilter(mode: ReplyToMode) {
+export function createReplyToModeFilter(
+  mode: ReplyToMode,
+  opts: { allowTagsWhenOff?: boolean } = {},
+) {
   let hasThreaded = false;
   return (payload: ReplyPayload): ReplyPayload => {
     if (!payload.replyToId) return payload;
     if (mode === "off") {
+      if (opts.allowTagsWhenOff && payload.replyToTag) return payload;
       return { ...payload, replyToId: undefined };
     }
     if (mode === "all") return payload;
@@ -33,4 +39,17 @@ export function createReplyToModeFilter(mode: ReplyToMode) {
     hasThreaded = true;
     return payload;
   };
+}
+
+export function createReplyToModeFilterForChannel(
+  mode: ReplyToMode,
+  channel?: OriginatingChannelType,
+) {
+  const provider = normalizeChannelId(channel);
+  const allowTagsWhenOff = provider
+    ? Boolean(getChannelDock(provider)?.threading?.allowTagsWhenOff)
+    : false;
+  return createReplyToModeFilter(mode, {
+    allowTagsWhenOff,
+  });
 }

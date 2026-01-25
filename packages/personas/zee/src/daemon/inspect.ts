@@ -4,12 +4,14 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import {
-  GATEWAY_LAUNCH_AGENT_LABEL,
-  GATEWAY_SYSTEMD_SERVICE_NAME,
-  GATEWAY_WINDOWS_TASK_NAME,
+  GATEWAY_SERVICE_KIND,
+  GATEWAY_SERVICE_MARKER,
   LEGACY_GATEWAY_LAUNCH_AGENT_LABELS,
   LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES,
   LEGACY_GATEWAY_WINDOWS_TASK_NAMES,
+  resolveGatewayLaunchAgentLabel,
+  resolveGatewaySystemdServiceName,
+  resolveGatewayWindowsTaskName,
 } from "./constants.js";
 
 export type ExtraGatewayService = {
@@ -23,23 +25,29 @@ export type FindExtraGatewayServicesOptions = {
   deep?: boolean;
 };
 
-const EXTRA_MARKERS = ["zee", "clawdis"];
+const EXTRA_MARKERS = ["clawdbot"];
 const execFileAsync = promisify(execFile);
 
-export function renderGatewayServiceCleanupHints(): string[] {
+export function renderGatewayServiceCleanupHints(
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): string[] {
+  const profile = env.CLAWDBOT_PROFILE;
   switch (process.platform) {
-    case "darwin":
+    case "darwin": {
+      const label = resolveGatewayLaunchAgentLabel(profile);
+      return [`launchctl bootout gui/$UID/${label}`, `rm ~/Library/LaunchAgents/${label}.plist`];
+    }
+    case "linux": {
+      const unit = resolveGatewaySystemdServiceName(profile);
       return [
-        `launchctl bootout gui/$UID/${GATEWAY_LAUNCH_AGENT_LABEL}`,
-        `rm ~/Library/LaunchAgents/${GATEWAY_LAUNCH_AGENT_LABEL}.plist`,
+        `systemctl --user disable --now ${unit}.service`,
+        `rm ~/.config/systemd/user/${unit}.service`,
       ];
-    case "linux":
-      return [
-        `systemctl --user disable --now ${GATEWAY_SYSTEMD_SERVICE_NAME}.service`,
-        `rm ~/.config/systemd/user/${GATEWAY_SYSTEMD_SERVICE_NAME}.service`,
-      ];
-    case "win32":
-      return [`schtasks /Delete /TN "${GATEWAY_WINDOWS_TASK_NAME}" /F`];
+    }
+    case "win32": {
+      const task = resolveGatewayWindowsTaskName(profile);
+      return [`schtasks /Delete /TN "${task}" /F`];
+    }
     default:
       return [];
   }
@@ -56,24 +64,51 @@ function containsMarker(content: string): boolean {
   return EXTRA_MARKERS.some((marker) => lower.includes(marker));
 }
 
-function tryExtractPlistLabel(contents: string): string | null {
-  const match = contents.match(
-    /<key>Label<\/key>\s*<string>([\s\S]*?)<\/string>/i,
+function hasGatewayServiceMarker(content: string): boolean {
+  const lower = content.toLowerCase();
+  return (
+    lower.includes("clawdbot_service_marker") &&
+    lower.includes(GATEWAY_SERVICE_MARKER.toLowerCase()) &&
+    lower.includes("clawdbot_service_kind") &&
+    lower.includes(GATEWAY_SERVICE_KIND.toLowerCase())
   );
+}
+
+function isClawdbotGatewayLaunchdService(label: string, contents: string): boolean {
+  if (hasGatewayServiceMarker(contents)) return true;
+  const lowerContents = contents.toLowerCase();
+  if (!lowerContents.includes("gateway")) return false;
+  return label.startsWith("com.clawdbot.");
+}
+
+function isClawdbotGatewaySystemdService(name: string, contents: string): boolean {
+  if (hasGatewayServiceMarker(contents)) return true;
+  if (!name.startsWith("clawdbot-gateway")) return false;
+  return contents.toLowerCase().includes("gateway");
+}
+
+function isClawdbotGatewayTaskName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return false;
+  const defaultName = resolveGatewayWindowsTaskName().toLowerCase();
+  return normalized === defaultName || normalized.startsWith("clawdbot gateway");
+}
+
+function tryExtractPlistLabel(contents: string): string | null {
+  const match = contents.match(/<key>Label<\/key>\s*<string>([\s\S]*?)<\/string>/i);
   if (!match) return null;
   return match[1]?.trim() || null;
 }
 
 function isIgnoredLaunchdLabel(label: string): boolean {
   return (
-    label === GATEWAY_LAUNCH_AGENT_LABEL ||
-    LEGACY_GATEWAY_LAUNCH_AGENT_LABELS.includes(label)
+    label === resolveGatewayLaunchAgentLabel() || LEGACY_GATEWAY_LAUNCH_AGENT_LABELS.includes(label)
   );
 }
 
 function isIgnoredSystemdName(name: string): boolean {
   return (
-    name === GATEWAY_SYSTEMD_SERVICE_NAME ||
+    name === resolveGatewaySystemdServiceName() ||
     LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES.includes(name)
   );
 }
@@ -104,6 +139,7 @@ async function scanLaunchdDir(params: {
     if (!containsMarker(contents)) continue;
     const label = tryExtractPlistLabel(contents) ?? labelFromName;
     if (isIgnoredLaunchdLabel(label)) continue;
+    if (isClawdbotGatewayLaunchdService(label, contents)) continue;
     results.push({
       platform: "darwin",
       label,
@@ -139,6 +175,7 @@ async function scanSystemdDir(params: {
       continue;
     }
     if (!containsMarker(contents)) continue;
+    if (isClawdbotGatewaySystemdService(name, contents)) continue;
     results.push({
       platform: "linux",
       label: entry,
@@ -211,11 +248,7 @@ async function execSchtasks(
     return {
       stdout: typeof e.stdout === "string" ? e.stdout : "",
       stderr:
-        typeof e.stderr === "string"
-          ? e.stderr
-          : typeof e.message === "string"
-            ? e.message
-            : "",
+        typeof e.stderr === "string" ? e.stderr : typeof e.message === "string" ? e.message : "",
       code: typeof e.code === "number" ? e.code : 1,
     };
   }
@@ -302,7 +335,7 @@ export async function findExtraGatewayServices(
     for (const task of tasks) {
       const name = task.name.trim();
       if (!name) continue;
-      if (name === GATEWAY_WINDOWS_TASK_NAME) continue;
+      if (isClawdbotGatewayTaskName(name)) continue;
       if (LEGACY_GATEWAY_WINDOWS_TASK_NAMES.includes(name)) continue;
       const lowerName = name.toLowerCase();
       const lowerCommand = task.taskToRun?.toLowerCase() ?? "";

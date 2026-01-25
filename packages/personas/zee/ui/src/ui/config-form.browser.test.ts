@@ -69,20 +69,11 @@ describe("config form renderer", () => {
       "abc123",
     );
 
-    const select = container.querySelector("select") as HTMLSelectElement | null;
-    const selects = Array.from(container.querySelectorAll("select"));
-    const modeSelect = selects.find((el) =>
-      Array.from(el.options).some((opt) => opt.textContent?.trim() === "token"),
-    ) as HTMLSelectElement | undefined;
-    expect(modeSelect).not.toBeUndefined();
-    if (!modeSelect) return;
-    const tokenOption = Array.from(modeSelect.options).find(
-      (opt) => opt.textContent?.trim() === "token",
-    );
-    expect(tokenOption).not.toBeUndefined();
-    if (!tokenOption) return;
-    modeSelect.value = tokenOption.value;
-    modeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    const tokenButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".cfg-segmented__btn"),
+    ).find((btn) => btn.textContent?.trim() === "token");
+    expect(tokenButton).not.toBeUndefined();
+    tokenButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["mode"], "token");
 
     const checkbox = container.querySelector(
@@ -110,16 +101,16 @@ describe("config form renderer", () => {
       container,
     );
 
-    const addButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Add",
-    );
+    const addButton = container.querySelector(
+      ".cfg-array__add",
+    ) as HTMLButtonElement | null;
     expect(addButton).not.toBeUndefined();
     addButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["allowFrom"], ["+1", ""]);
 
-    const removeButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Remove",
-    );
+    const removeButton = container.querySelector(
+      ".cfg-array__item-remove",
+    ) as HTMLButtonElement | null;
     expect(removeButton).not.toBeUndefined();
     removeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["allowFrom"], []);
@@ -140,19 +131,11 @@ describe("config form renderer", () => {
       container,
     );
 
-    const selects = Array.from(container.querySelectorAll("select"));
-    const bindSelect = selects.find((el) =>
-      Array.from(el.options).some((opt) => opt.textContent?.trim() === "tailnet"),
-    ) as HTMLSelectElement | undefined;
-    expect(bindSelect).not.toBeUndefined();
-    if (!bindSelect) return;
-    const tailnetOption = Array.from(bindSelect.options).find(
-      (opt) => opt.textContent?.trim() === "tailnet",
-    );
-    expect(tailnetOption).not.toBeUndefined();
-    if (!tailnetOption) return;
-    bindSelect.value = tailnetOption.value;
-    bindSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    const tailnetButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".cfg-segmented__btn"),
+    ).find((btn) => btn.textContent?.trim() === "tailnet");
+    expect(tailnetButton).not.toBeUndefined();
+    tailnetButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["bind"], "tailnet");
   });
 
@@ -182,12 +165,51 @@ describe("config form renderer", () => {
       container,
     );
 
-    const removeButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Remove",
-    );
+    const removeButton = container.querySelector(
+      ".cfg-map__item-remove",
+    ) as HTMLButtonElement | null;
     expect(removeButton).not.toBeUndefined();
     removeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["slack"], {});
+  });
+
+  it("supports wildcard uiHints for map entries", () => {
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    const schema = {
+      type: "object",
+      properties: {
+        plugins: {
+          type: "object",
+          properties: {
+            entries: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                properties: {
+                  enabled: { type: "boolean" },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const analysis = analyzeConfigSchema(schema);
+    render(
+      renderConfigForm({
+        schema: analysis.schema,
+        uiHints: {
+          "plugins.entries.*.enabled": { label: "Plugin Enabled" },
+        },
+        unsupportedPaths: analysis.unsupportedPaths,
+        value: { plugins: { entries: { "voice-call": { enabled: true } } } },
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("Plugin Enabled");
   });
 
   it("flags unsupported unions", () => {
@@ -212,6 +234,28 @@ describe("config form renderer", () => {
     };
     const analysis = analyzeConfigSchema(schema);
     expect(analysis.unsupportedPaths).not.toContain("note");
+  });
+
+  it("ignores untyped additionalProperties schemas", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        channels: {
+          type: "object",
+          properties: {
+            whatsapp: {
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+              },
+            },
+          },
+          additionalProperties: {},
+        },
+      },
+    };
+    const analysis = analyzeConfigSchema(schema);
+    expect(analysis.unsupportedPaths).not.toContain("channels");
   });
 
   it("flags additionalProperties true", () => {

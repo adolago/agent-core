@@ -1,35 +1,29 @@
-import { stripHeartbeatToken } from "../heartbeat.js";
-import { HEARTBEAT_TOKEN, SILENT_REPLY_TOKEN } from "../tokens.js";
+import type { HumanDelayConfig } from "../../config/types.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
+import { normalizeReplyPayload } from "./normalize-reply.js";
+import type { ResponsePrefixContext } from "./response-prefix-template.js";
 import type { TypingController } from "./typing.js";
 
 export type ReplyDispatchKind = "tool" | "block" | "final";
 
-type ReplyDispatchErrorHandler = (
-  err: unknown,
-  info: { kind: ReplyDispatchKind },
-) => void;
+type ReplyDispatchErrorHandler = (err: unknown, info: { kind: ReplyDispatchKind }) => void;
 
 type ReplyDispatchDeliverer = (
   payload: ReplyPayload,
   info: { kind: ReplyDispatchKind },
 ) => Promise<void>;
 
-/** Human-like delay configuration for natural message rhythm. */
-export type HumanDelayConfig = {
-  enabled?: boolean;
-  minMs?: number;
-  maxMs?: number;
-};
-
 const DEFAULT_HUMAN_DELAY_MIN_MS = 800;
 const DEFAULT_HUMAN_DELAY_MAX_MS = 2500;
 
 /** Generate a random delay within the configured range. */
 function getHumanDelay(config: HumanDelayConfig | undefined): number {
-  if (!config?.enabled) return 0;
-  const min = config.minMs ?? DEFAULT_HUMAN_DELAY_MIN_MS;
-  const max = config.maxMs ?? DEFAULT_HUMAN_DELAY_MAX_MS;
+  const mode = config?.mode ?? "off";
+  if (mode === "off") return 0;
+  const min =
+    mode === "custom" ? (config?.minMs ?? DEFAULT_HUMAN_DELAY_MIN_MS) : DEFAULT_HUMAN_DELAY_MIN_MS;
+  const max =
+    mode === "custom" ? (config?.maxMs ?? DEFAULT_HUMAN_DELAY_MAX_MS) : DEFAULT_HUMAN_DELAY_MAX_MS;
   if (max <= min) return min;
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -40,6 +34,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export type ReplyDispatcherOptions = {
   deliver: ReplyDispatchDeliverer;
   responsePrefix?: string;
+  /** Static context for response prefix template interpolation. */
+  responsePrefixContext?: ResponsePrefixContext;
+  /** Dynamic context provider for response prefix template interpolation.
+   * Called at normalization time, after model selection is complete. */
+  responsePrefixContextProvider?: () => ResponsePrefixContext;
   onHeartbeatStrip?: () => void;
   onIdle?: () => void;
   onError?: ReplyDispatchErrorHandler;
@@ -47,10 +46,7 @@ export type ReplyDispatcherOptions = {
   humanDelay?: HumanDelayConfig;
 };
 
-type ReplyDispatcherWithTypingOptions = Omit<
-  ReplyDispatcherOptions,
-  "onIdle"
-> & {
+export type ReplyDispatcherWithTypingOptions = Omit<ReplyDispatcherOptions, "onIdle"> & {
   onReplyStart?: () => Promise<void> | void;
   onIdle?: () => void;
 };
@@ -69,46 +65,27 @@ export type ReplyDispatcher = {
   getQueuedCounts: () => Record<ReplyDispatchKind, number>;
 };
 
-function normalizeReplyPayload(
+function normalizeReplyPayloadInternal(
   payload: ReplyPayload,
-  opts: Pick<ReplyDispatcherOptions, "responsePrefix" | "onHeartbeatStrip">,
+  opts: Pick<
+    ReplyDispatcherOptions,
+    | "responsePrefix"
+    | "responsePrefixContext"
+    | "responsePrefixContextProvider"
+    | "onHeartbeatStrip"
+  >,
 ): ReplyPayload | null {
-  const hasMedia = Boolean(
-    payload.mediaUrl || (payload.mediaUrls?.length ?? 0) > 0,
-  );
-  const trimmed = payload.text?.trim() ?? "";
-  if (!trimmed && !hasMedia) return null;
+  // Prefer dynamic context provider over static context
+  const prefixContext = opts.responsePrefixContextProvider?.() ?? opts.responsePrefixContext;
 
-  // Avoid sending the explicit silent token when no media is attached.
-  if (trimmed === SILENT_REPLY_TOKEN && !hasMedia) return null;
-
-  let text = payload.text ?? undefined;
-  if (text && !trimmed) {
-    // Keep empty text when media exists so media-only replies still send.
-    text = "";
-  }
-  if (text?.includes(HEARTBEAT_TOKEN)) {
-    const stripped = stripHeartbeatToken(text, { mode: "message" });
-    if (stripped.didStrip) opts.onHeartbeatStrip?.();
-    if (stripped.shouldSkip && !hasMedia) return null;
-    text = stripped.text;
-  }
-
-  if (
-    opts.responsePrefix &&
-    text &&
-    text.trim() !== HEARTBEAT_TOKEN &&
-    !text.startsWith(opts.responsePrefix)
-  ) {
-    text = `${opts.responsePrefix} ${text}`;
-  }
-
-  return { ...payload, text };
+  return normalizeReplyPayload(payload, {
+    responsePrefix: opts.responsePrefix,
+    responsePrefixContext: prefixContext,
+    onHeartbeatStrip: opts.onHeartbeatStrip,
+  });
 }
 
-export function createReplyDispatcher(
-  options: ReplyDispatcherOptions,
-): ReplyDispatcher {
+export function createReplyDispatcher(options: ReplyDispatcherOptions): ReplyDispatcher {
   let sendChain: Promise<void> = Promise.resolve();
   // Track in-flight deliveries so we can emit a reliable "idle" signal.
   let pending = 0;
@@ -122,7 +99,7 @@ export function createReplyDispatcher(
   };
 
   const enqueue = (kind: ReplyDispatchKind, payload: ReplyPayload) => {
-    const normalized = normalizeReplyPayload(payload, options);
+    const normalized = normalizeReplyPayloadInternal(payload, options);
     if (!normalized) return false;
     queuedCounts[kind] += 1;
     pending += 1;

@@ -105,10 +105,7 @@ function randomChoice(values: string[], fallback: string) {
 }
 
 function createSlugBase(words = 2) {
-  const parts = [
-    randomChoice(SLUG_ADJECTIVES, "steady"),
-    randomChoice(SLUG_NOUNS, "harbor"),
-  ];
+  const parts = [randomChoice(SLUG_ADJECTIVES, "steady"), randomChoice(SLUG_NOUNS, "harbor")];
   if (words > 2) parts.push(randomChoice(SLUG_NOUNS, "reef"));
   return parts.join("-");
 }
@@ -118,17 +115,19 @@ export function createSessionSlug(isTaken?: (id: string) => boolean): string {
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const base = createSlugBase(2);
     if (!isIdTaken(base)) return base;
-    const candidate = `${base}-2`;
-    if (!isIdTaken(candidate)) return candidate;
+    for (let i = 2; i <= 12; i += 1) {
+      const candidate = `${base}-${i}`;
+      if (!isIdTaken(candidate)) return candidate;
+    }
   }
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const base = createSlugBase(3);
     if (!isIdTaken(base)) return base;
-    const candidate = `${base}-2`;
-    if (!isIdTaken(candidate)) return candidate;
+    for (let i = 2; i <= 12; i += 1) {
+      const candidate = `${base}-${i}`;
+      if (!isIdTaken(candidate)) return candidate;
+    }
   }
   const fallback = `${createSlugBase(3)}-${Math.random().toString(36).slice(2, 5)}`;
-  return isIdTaken(fallback)
-    ? `${fallback}-${Date.now().toString(36)}`
-    : fallback;
+  return isIdTaken(fallback) ? `${fallback}-${Date.now().toString(36)}` : fallback;
 }

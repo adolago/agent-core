@@ -1,5 +1,5 @@
-import type { ZeeConfig } from "../../config/config.js";
-import type { AgentToolResult } from "../types.js";
+import type { AgentToolResult } from "@mariozechner/pi-agent-core";
+import type { ClawdbotConfig } from "../../config/config.js";
 import { createActionGate, readStringParam } from "./common.js";
 import { handleDiscordGuildAction } from "./discord-actions-guild.js";
 import { handleDiscordMessagingAction } from "./discord-actions-messaging.js";
@@ -11,6 +11,7 @@ const messagingActions = new Set([
   "sticker",
   "poll",
   "permissions",
+  "fetchMessage",
   "readMessages",
   "sendMessage",
   "editMessage",
@@ -37,16 +38,25 @@ const guildActions = new Set([
   "voiceStatus",
   "eventList",
   "eventCreate",
+  "channelCreate",
+  "channelEdit",
+  "channelDelete",
+  "channelMove",
+  "categoryCreate",
+  "categoryEdit",
+  "categoryDelete",
+  "channelPermissionSet",
+  "channelPermissionRemove",
 ]);
 
 const moderationActions = new Set(["timeout", "kick", "ban"]);
 
 export async function handleDiscordAction(
   params: Record<string, unknown>,
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
 ): Promise<AgentToolResult<unknown>> {
   const action = readStringParam(params, "action", { required: true });
-  const isActionEnabled = createActionGate(cfg.discord?.actions);
+  const isActionEnabled = createActionGate(cfg.channels?.discord?.actions);
 
   if (messagingActions.has(action)) {
     return await handleDiscordMessagingAction(action, params, isActionEnabled);

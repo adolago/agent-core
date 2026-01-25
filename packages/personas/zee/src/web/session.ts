@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 import fsSync from "node:fs";
-import fs from "node:fs/promises";
-import path from "node:path";
 import {
   DisconnectReason,
   fetchLatestBaileysVersion,
@@ -10,28 +8,28 @@ import {
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import qrcode from "qrcode-terminal";
-import { resolveOAuthDir } from "../config/paths.js";
-import { danger, info, success } from "../globals.js";
+import { danger, success } from "../globals.js";
 import { getChildLogger, toPinoLikeLogger } from "../logging.js";
-import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
-import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import type { Provider } from "../utils.js";
-import { ensureDir, jidToE164, resolveUserPath } from "../utils.js";
+import { ensureDir, resolveUserPath } from "../utils.js";
 import { VERSION } from "../version.js";
+import { formatCliCommand } from "../cli/command-format.js";
 
-function resolveDefaultWebAuthDir(): string {
-  return path.join(resolveOAuthDir(), "whatsapp", DEFAULT_ACCOUNT_ID);
-}
+import {
+  maybeRestoreCredsFromBackup,
+  resolveDefaultWebAuthDir,
+  resolveWebCredsBackupPath,
+  resolveWebCredsPath,
+} from "./auth-store.js";
 
-export const WA_WEB_AUTH_DIR = resolveDefaultWebAuthDir();
-
-function resolveWebCredsPath(authDir: string) {
-  return path.join(authDir, "creds.json");
-}
-
-function resolveWebCredsBackupPath(authDir: string) {
-  return path.join(authDir, "creds.json.bak");
-}
+export {
+  getWebAuthAgeMs,
+  logoutWeb,
+  logWebSelfId,
+  pickWebChannel,
+  readWebSelfId,
+  WA_WEB_AUTH_DIR,
+  webAuthExists,
+} from "./auth-store.js";
 
 let credsSaveQueue: Promise<void> = Promise.resolve();
 function enqueueSaveCreds(
@@ -54,35 +52,6 @@ function readCredsJsonRaw(filePath: string): string | null {
     return fsSync.readFileSync(filePath, "utf-8");
   } catch {
     return null;
-  }
-}
-
-function maybeRestoreCredsFromBackup(
-  authDir: string,
-  logger: ReturnType<typeof getChildLogger>,
-): void {
-  try {
-    const credsPath = resolveWebCredsPath(authDir);
-    const backupPath = resolveWebCredsBackupPath(authDir);
-    const raw = readCredsJsonRaw(credsPath);
-    if (raw) {
-      // Validate that creds.json is parseable.
-      JSON.parse(raw);
-      return;
-    }
-
-    const backupRaw = readCredsJsonRaw(backupPath);
-    if (!backupRaw) return;
-
-    // Ensure backup is parseable before restoring.
-    JSON.parse(backupRaw);
-    fsSync.copyFileSync(backupPath, credsPath);
-    logger.warn(
-      { credsPath },
-      "restored corrupted WhatsApp creds.json from backup",
-    );
-  } catch {
-    // ignore
   }
 }
 
@@ -134,7 +103,7 @@ export async function createWaSocket(
   const authDir = resolveUserPath(opts.authDir ?? resolveDefaultWebAuthDir());
   await ensureDir(authDir);
   const sessionLogger = getChildLogger({ module: "web-session" });
-  maybeRestoreCredsFromBackup(authDir, sessionLogger);
+  maybeRestoreCredsFromBackup(authDir);
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({
@@ -145,14 +114,12 @@ export async function createWaSocket(
     version,
     logger,
     printQRInTerminal: false,
-    browser: ["zee", "cli", VERSION],
+    browser: ["clawdbot", "cli", VERSION],
     syncFullHistory: false,
     markOnlineOnConnect: false,
   });
 
-  sock.ev.on("creds.update", () =>
-    enqueueSaveCreds(authDir, saveCreds, sessionLogger),
-  );
+  sock.ev.on("creds.update", () => enqueueSaveCreds(authDir, saveCreds, sessionLogger));
   sock.ev.on(
     "connection.update",
     (update: Partial<import("@whiskeysockets/baileys").ConnectionState>) => {
@@ -169,7 +136,9 @@ export async function createWaSocket(
           const status = getStatusCode(lastDisconnect?.error);
           if (status === DisconnectReason.loggedOut) {
             console.error(
-              danger("WhatsApp session logged out. Run: zee providers login"),
+              danger(
+                `WhatsApp session logged out. Run: ${formatCliCommand("clawdbot channels login")}`,
+              ),
             );
           }
         }
@@ -177,19 +146,13 @@ export async function createWaSocket(
           console.log(success("WhatsApp Web connected."));
         }
       } catch (err) {
-        sessionLogger.error(
-          { error: String(err) },
-          "connection.update handler error",
-        );
+        sessionLogger.error({ error: String(err) }, "connection.update handler error");
       }
     },
   );
 
   // Handle WebSocket-level errors to prevent unhandled exceptions from crashing the process
-  if (
-    sock.ws &&
-    typeof (sock.ws as unknown as { on?: unknown }).on === "function"
-  ) {
+  if (sock.ws && typeof (sock.ws as unknown as { on?: unknown }).on === "function") {
     sock.ws.on("error", (err: Error) => {
       sessionLogger.error({ error: String(err) }, "WebSocket error");
     });
@@ -198,9 +161,7 @@ export async function createWaSocket(
   return sock;
 }
 
-export async function waitForWaConnection(
-  sock: ReturnType<typeof makeWASocket>,
-) {
+export async function waitForWaConnection(sock: ReturnType<typeof makeWASocket>) {
   return new Promise<void>((resolve, reject) => {
     type OffCapable = {
       off?: (event: string, listener: (...args: unknown[]) => void) => void;
@@ -208,9 +169,7 @@ export async function waitForWaConnection(
     const evWithOff = sock.ev as unknown as OffCapable;
 
     const handler = (...args: unknown[]) => {
-      const update = (args[0] ?? {}) as Partial<
-        import("@whiskeysockets/baileys").ConnectionState
-      >;
+      const update = (args[0] ?? {}) as Partial<import("@whiskeysockets/baileys").ConnectionState>;
       if (update.connection === "open") {
         evWithOff.off?.("connection.update", handler);
         resolve();
@@ -242,9 +201,7 @@ function safeStringify(value: unknown, limit = 800): string {
         if (typeof v === "function") {
           const maybeName = (v as { name?: unknown }).name;
           const name =
-            typeof maybeName === "string" && maybeName.length > 0
-              ? maybeName
-              : "anonymous";
+            typeof maybeName === "string" && maybeName.length > 0 ? maybeName : "anonymous";
           return `[Function ${name}]`;
         }
         if (typeof v === "object" && v) {
@@ -282,8 +239,7 @@ function extractBoomDetails(err: unknown): {
         ? (payload.statusCode as number)
         : undefined;
   const error = typeof payload?.error === "string" ? payload.error : undefined;
-  const message =
-    typeof payload?.message === "string" ? payload.message : undefined;
+  const message = typeof payload?.message === "string" ? payload.message : undefined;
   if (!statusCode && !error && !message) return null;
   return { statusCode, error, message };
 }
@@ -297,24 +253,18 @@ export function formatError(err: unknown): string {
   const boom =
     extractBoomDetails(err) ??
     extractBoomDetails((err as { error?: unknown })?.error) ??
-    extractBoomDetails(
-      (err as { lastDisconnect?: { error?: unknown } })?.lastDisconnect?.error,
-    );
+    extractBoomDetails((err as { lastDisconnect?: { error?: unknown } })?.lastDisconnect?.error);
 
   const status = boom?.statusCode ?? getStatusCode(err);
   const code = (err as { code?: unknown })?.code;
-  const codeText =
-    typeof code === "string" || typeof code === "number"
-      ? String(code)
-      : undefined;
+  const codeText = typeof code === "string" || typeof code === "number" ? String(code) : undefined;
 
   const messageCandidates = [
     boom?.message,
     typeof (err as { message?: unknown })?.message === "string"
       ? ((err as { message?: unknown }).message as string)
       : undefined,
-    typeof (err as { error?: { message?: unknown } })?.error?.message ===
-    "string"
+    typeof (err as { error?: { message?: unknown } })?.error?.message === "string"
       ? ((err as { error?: { message?: unknown } }).error?.message as string)
       : undefined,
   ].filter((v): v is string => Boolean(v && v.trim().length > 0));
@@ -330,132 +280,6 @@ export function formatError(err: unknown): string {
   return safeStringify(err);
 }
 
-export async function webAuthExists(
-  authDir: string = resolveDefaultWebAuthDir(),
-) {
-  const sessionLogger = getChildLogger({ module: "web-session" });
-  const resolvedAuthDir = resolveUserPath(authDir);
-  maybeRestoreCredsFromBackup(resolvedAuthDir, sessionLogger);
-  const credsPath = resolveWebCredsPath(resolvedAuthDir);
-  try {
-    await fs.access(resolvedAuthDir);
-  } catch {
-    return false;
-  }
-  try {
-    const stats = await fs.stat(credsPath);
-    if (!stats.isFile() || stats.size <= 1) return false;
-    const raw = await fs.readFile(credsPath, "utf-8");
-    JSON.parse(raw);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function clearLegacyBaileysAuthState(authDir: string) {
-  const entries = await fs.readdir(authDir, { withFileTypes: true });
-  const shouldDelete = (name: string) => {
-    if (name === "oauth.json") return false;
-    if (name === "creds.json" || name === "creds.json.bak") return true;
-    if (!name.endsWith(".json")) return false;
-    return /^(app-state-sync|session|sender-key|pre-key)-/.test(name);
-  };
-  await Promise.all(
-    entries.map(async (entry) => {
-      if (!entry.isFile()) return;
-      if (!shouldDelete(entry.name)) return;
-      await fs.rm(path.join(authDir, entry.name), { force: true });
-    }),
-  );
-}
-
-export async function logoutWeb(params: {
-  authDir?: string;
-  isLegacyAuthDir?: boolean;
-  runtime?: RuntimeEnv;
-}) {
-  const runtime = params.runtime ?? defaultRuntime;
-  const resolvedAuthDir = resolveUserPath(
-    params.authDir ?? resolveDefaultWebAuthDir(),
-  );
-  const exists = await webAuthExists(resolvedAuthDir);
-  if (!exists) {
-    runtime.log(info("No WhatsApp Web session found; nothing to delete."));
-    return false;
-  }
-  if (params.isLegacyAuthDir) {
-    await clearLegacyBaileysAuthState(resolvedAuthDir);
-  } else {
-    await fs.rm(resolvedAuthDir, { recursive: true, force: true });
-  }
-  runtime.log(success("Cleared WhatsApp Web credentials."));
-  return true;
-}
-
-export function readWebSelfId(authDir: string = resolveDefaultWebAuthDir()) {
-  // Read the cached WhatsApp Web identity (jid + E.164) from disk if present.
-  try {
-    const credsPath = resolveWebCredsPath(resolveUserPath(authDir));
-    if (!fsSync.existsSync(credsPath)) {
-      return { e164: null, jid: null } as const;
-    }
-    const raw = fsSync.readFileSync(credsPath, "utf-8");
-    const parsed = JSON.parse(raw) as { me?: { id?: string } } | undefined;
-    const jid = parsed?.me?.id ?? null;
-    const e164 = jid ? jidToE164(jid) : null;
-    return { e164, jid } as const;
-  } catch {
-    return { e164: null, jid: null } as const;
-  }
-}
-
-/**
- * Return the age (in milliseconds) of the cached WhatsApp web auth state, or null when missing.
- * Helpful for heartbeats/observability to spot stale credentials.
- */
-export function getWebAuthAgeMs(
-  authDir: string = resolveDefaultWebAuthDir(),
-): number | null {
-  try {
-    const stats = fsSync.statSync(
-      resolveWebCredsPath(resolveUserPath(authDir)),
-    );
-    return Date.now() - stats.mtimeMs;
-  } catch {
-    return null;
-  }
-}
-
 export function newConnectionId() {
   return randomUUID();
-}
-
-export function logWebSelfId(
-  authDir: string = resolveDefaultWebAuthDir(),
-  runtime: RuntimeEnv = defaultRuntime,
-  includeProviderPrefix = false,
-) {
-  // Human-friendly log of the currently linked personal web session.
-  const { e164, jid } = readWebSelfId(authDir);
-  const details =
-    e164 || jid
-      ? `${e164 ?? "unknown"}${jid ? ` (jid ${jid})` : ""}`
-      : "unknown";
-  const prefix = includeProviderPrefix ? "Web Provider: " : "";
-  runtime.log(info(`${prefix}${details}`));
-}
-
-export async function pickProvider(
-  pref: Provider | "auto",
-  authDir: string = resolveDefaultWebAuthDir(),
-): Promise<Provider> {
-  const choice: Provider = pref === "auto" ? "web" : pref;
-  const hasWeb = await webAuthExists(authDir);
-  if (!hasWeb) {
-    throw new Error(
-      "No WhatsApp Web session found. Run `zee providers login --verbose` to link.",
-    );
-  }
-  return choice;
 }

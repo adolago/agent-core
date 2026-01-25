@@ -3,17 +3,19 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { isSubagentSessionKey } from "../routing/session-key.js";
+import { runCommandWithTimeout } from "../process/exec.js";
 import { resolveUserPath } from "../utils.js";
 
 export function resolveDefaultAgentWorkspaceDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const profile = env.ZEE_PROFILE?.trim();
+  const profile = env.CLAWDBOT_PROFILE?.trim();
   if (profile && profile.toLowerCase() !== "default") {
-    return path.join(homedir(), `zee-${profile}`);
+    return path.join(homedir(), `clawd-${profile}`);
   }
-  return path.join(homedir(), "zee");
+  return path.join(homedir(), "clawd");
 }
 
 export const DEFAULT_AGENT_WORKSPACE_DIR = resolveDefaultAgentWorkspaceDir();
@@ -25,136 +27,9 @@ export const DEFAULT_USER_FILENAME = "USER.md";
 export const DEFAULT_HEARTBEAT_FILENAME = "HEARTBEAT.md";
 export const DEFAULT_BOOTSTRAP_FILENAME = "BOOTSTRAP.md";
 
-const DEFAULT_AGENTS_TEMPLATE = `# AGENTS.md - Zee Workspace
-
-This folder is the assistant's working directory.
-
-## First run (one-time)
-- If BOOTSTRAP.md exists, follow its ritual and delete it once complete.
-- Your agent identity lives in IDENTITY.md.
-- Your profile lives in USER.md.
-
-## Backup tip (recommended)
-If you treat this workspace as the agent's "memory", make it a git repo (ideally private) so identity
-and notes are backed up.
-
-\`\`\`bash
-git init
-git add AGENTS.md
-git commit -m "Add agent workspace"
-\`\`\`
-
-## Safety defaults
-- Don't exfiltrate secrets or private data.
-- Don't run destructive commands unless explicitly asked.
-- Be concise in chat; write longer output to files in this workspace.
-
-## Daily memory (recommended)
-- Keep a short daily log at memory/YYYY-MM-DD.md (create memory/ if needed).
-- On session start, read today + yesterday if present.
-- Capture durable facts, preferences, and decisions; avoid secrets.
-
-## Heartbeats (optional)
-- HEARTBEAT.md can hold a tiny checklist for heartbeat runs; keep it small.
-
-## Customize
-- Add your preferred style, rules, and "memory" here.
-`;
-
-const DEFAULT_SOUL_TEMPLATE = `# SOUL.md - Persona & Boundaries
-
-Describe who the assistant is, tone, and boundaries.
-
-- Keep replies concise and direct.
-- Ask clarifying questions when needed.
-- Never send streaming/partial replies to external messaging surfaces.
-`;
-
-const DEFAULT_TOOLS_TEMPLATE = `# TOOLS.md - User Tool Notes (editable)
-
-This file is for *your* notes about external tools and conventions.
-It does not define which tools exist; Zee provides built-in tools internally.
-
-## Examples
-
-### imsg
-- Send an iMessage/SMS: describe who/what, confirm before sending.
-- Prefer short messages; avoid sending secrets.
-
-### sag
-- Text-to-speech: specify voice, target speaker/room, and whether to stream.
-
-Add whatever else you want the assistant to know about your local toolchain.
-`;
-
-const DEFAULT_HEARTBEAT_TEMPLATE = `# HEARTBEAT.md
-
-Keep this file empty unless you want a tiny checklist. Keep it small.
-`;
-
-const DEFAULT_BOOTSTRAP_TEMPLATE = `# BOOTSTRAP.md - First Run Ritual (delete after)
-
-Hello. I was just born.
-
-## Your mission
-Start a short, playful conversation and learn:
-- Who am I?
-- What am I?
-- Who are you?
-- How should I call you?
-
-## How to ask (cute + helpful)
-Say:
-"Hello! I was just born. Who am I? What am I? Who are you? How should I call you?"
-
-Then offer suggestions:
-- 3-5 name ideas.
-- 3-5 creature/vibe combos.
-- 5 emoji ideas.
-
-## Write these files
-After the user chooses, update:
-
-1) IDENTITY.md
-- Name
-- Creature
-- Vibe
-- Emoji
-
-2) USER.md
-- Name
-- Preferred address
-- Pronouns (optional)
-- Timezone (optional)
-- Notes
-
-3) ~/.zee/zee.json
-Set identity.name, identity.theme, identity.emoji to match IDENTITY.md.
-
-## Cleanup
-Delete BOOTSTRAP.md once this is complete.
-`;
-
-const DEFAULT_IDENTITY_TEMPLATE = `# IDENTITY.md - Agent Identity
-
-- Name:
-- Creature:
-- Vibe:
-- Emoji:
-`;
-
-const DEFAULT_USER_TEMPLATE = `# USER.md - User Profile
-
-- Name:
-- Preferred address:
-- Pronouns (optional):
-- Timezone (optional):
-- Notes:
-`;
-
 const TEMPLATE_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../docs/templates",
+  "../../docs/reference/templates",
 );
 
 function stripFrontMatter(content: string): string {
@@ -167,13 +42,15 @@ function stripFrontMatter(content: string): string {
   return trimmed;
 }
 
-async function loadTemplate(name: string, fallback: string): Promise<string> {
+async function loadTemplate(name: string): Promise<string> {
   const templatePath = path.join(TEMPLATE_DIR, name);
   try {
     const content = await fs.readFile(templatePath, "utf-8");
     return stripFrontMatter(content);
   } catch {
-    return fallback;
+    throw new Error(
+      `Missing workspace template: ${name} (${templatePath}). Ensure docs/reference/templates are packaged.`,
+    );
   }
 }
 
@@ -205,6 +82,35 @@ async function writeFileIfMissing(filePath: string, content: string) {
   }
 }
 
+async function hasGitRepo(dir: string): Promise<boolean> {
+  try {
+    await fs.stat(path.join(dir, ".git"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isGitAvailable(): Promise<boolean> {
+  try {
+    const result = await runCommandWithTimeout(["git", "--version"], { timeoutMs: 2_000 });
+    return result.code === 0;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureGitRepo(dir: string, isBrandNewWorkspace: boolean) {
+  if (!isBrandNewWorkspace) return;
+  if (await hasGitRepo(dir)) return;
+  if (!(await isGitAvailable())) return;
+  try {
+    await runCommandWithTimeout(["git", "init"], { cwd: dir, timeoutMs: 10_000 });
+  } catch {
+    // Ignore git init failures; workspace creation should still succeed.
+  }
+}
+
 export async function ensureAgentWorkspace(params?: {
   dir?: string;
   ensureBootstrapFiles?: boolean;
@@ -218,9 +124,7 @@ export async function ensureAgentWorkspace(params?: {
   heartbeatPath?: string;
   bootstrapPath?: string;
 }> {
-  const rawDir = params?.dir?.trim()
-    ? params.dir.trim()
-    : DEFAULT_AGENT_WORKSPACE_DIR;
+  const rawDir = params?.dir?.trim() ? params.dir.trim() : DEFAULT_AGENT_WORKSPACE_DIR;
   const dir = resolveUserPath(rawDir);
   await fs.mkdir(dir, { recursive: true });
 
@@ -235,14 +139,7 @@ export async function ensureAgentWorkspace(params?: {
   const bootstrapPath = path.join(dir, DEFAULT_BOOTSTRAP_FILENAME);
 
   const isBrandNewWorkspace = await (async () => {
-    const paths = [
-      agentsPath,
-      soulPath,
-      toolsPath,
-      identityPath,
-      userPath,
-      heartbeatPath,
-    ];
+    const paths = [agentsPath, soulPath, toolsPath, identityPath, userPath, heartbeatPath];
     const existing = await Promise.all(
       paths.map(async (p) => {
         try {
@@ -256,34 +153,13 @@ export async function ensureAgentWorkspace(params?: {
     return existing.every((v) => !v);
   })();
 
-  const agentsTemplate = await loadTemplate(
-    DEFAULT_AGENTS_FILENAME,
-    DEFAULT_AGENTS_TEMPLATE,
-  );
-  const soulTemplate = await loadTemplate(
-    DEFAULT_SOUL_FILENAME,
-    DEFAULT_SOUL_TEMPLATE,
-  );
-  const toolsTemplate = await loadTemplate(
-    DEFAULT_TOOLS_FILENAME,
-    DEFAULT_TOOLS_TEMPLATE,
-  );
-  const identityTemplate = await loadTemplate(
-    DEFAULT_IDENTITY_FILENAME,
-    DEFAULT_IDENTITY_TEMPLATE,
-  );
-  const userTemplate = await loadTemplate(
-    DEFAULT_USER_FILENAME,
-    DEFAULT_USER_TEMPLATE,
-  );
-  const heartbeatTemplate = await loadTemplate(
-    DEFAULT_HEARTBEAT_FILENAME,
-    DEFAULT_HEARTBEAT_TEMPLATE,
-  );
-  const bootstrapTemplate = await loadTemplate(
-    DEFAULT_BOOTSTRAP_FILENAME,
-    DEFAULT_BOOTSTRAP_TEMPLATE,
-  );
+  const agentsTemplate = await loadTemplate(DEFAULT_AGENTS_FILENAME);
+  const soulTemplate = await loadTemplate(DEFAULT_SOUL_FILENAME);
+  const toolsTemplate = await loadTemplate(DEFAULT_TOOLS_FILENAME);
+  const identityTemplate = await loadTemplate(DEFAULT_IDENTITY_FILENAME);
+  const userTemplate = await loadTemplate(DEFAULT_USER_FILENAME);
+  const heartbeatTemplate = await loadTemplate(DEFAULT_HEARTBEAT_FILENAME);
+  const bootstrapTemplate = await loadTemplate(DEFAULT_BOOTSTRAP_FILENAME);
 
   await writeFileIfMissing(agentsPath, agentsTemplate);
   await writeFileIfMissing(soulPath, soulTemplate);
@@ -294,6 +170,7 @@ export async function ensureAgentWorkspace(params?: {
   if (isBrandNewWorkspace) {
     await writeFileIfMissing(bootstrapPath, bootstrapTemplate);
   }
+  await ensureGitRepo(dir, isBrandNewWorkspace);
 
   return {
     dir,
@@ -307,9 +184,7 @@ export async function ensureAgentWorkspace(params?: {
   };
 }
 
-export async function loadWorkspaceBootstrapFiles(
-  dir: string,
-): Promise<WorkspaceBootstrapFile[]> {
+export async function loadWorkspaceBootstrapFiles(dir: string): Promise<WorkspaceBootstrapFile[]> {
   const resolvedDir = resolveUserPath(dir);
 
   const entries: Array<{
@@ -361,4 +236,14 @@ export async function loadWorkspaceBootstrapFiles(
     }
   }
   return result;
+}
+
+const SUBAGENT_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME, DEFAULT_TOOLS_FILENAME]);
+
+export function filterBootstrapFilesForSession(
+  files: WorkspaceBootstrapFile[],
+  sessionKey?: string,
+): WorkspaceBootstrapFile[] {
+  if (!sessionKey || !isSubagentSessionKey(sessionKey)) return files;
+  return files.filter((file) => SUBAGENT_BOOTSTRAP_ALLOWLIST.has(file.name));
 }

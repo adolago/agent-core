@@ -4,29 +4,67 @@ import fs from "node:fs/promises";
 import { request } from "node:https";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import { CONFIG_DIR } from "../utils.js";
+import { resolveConfigDir } from "../utils.js";
 import { detectMime, extensionForMime } from "./mime.js";
 
-const MEDIA_DIR = path.join(CONFIG_DIR, "media");
+const resolveMediaDir = () => path.join(resolveConfigDir(), "media");
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB default
 const DEFAULT_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
+/**
+ * Sanitize a filename for cross-platform safety.
+ * Removes chars unsafe on Windows/SharePoint/all platforms.
+ * Keeps: alphanumeric, dots, hyphens, underscores, Unicode letters/numbers.
+ */
+function sanitizeFilename(name: string): string {
+  // Remove: < > : " / \ | ? * and control chars (U+0000-U+001F)
+  // oxlint-disable-next-line no-control-regex -- Intentionally matching control chars
+  const unsafe = /[<>:"/\\|?*\x00-\x1f]/g;
+  const sanitized = name.trim().replace(unsafe, "_").replace(/\s+/g, "_"); // Replace whitespace runs with underscore
+  // Collapse multiple underscores, trim leading/trailing, limit length
+  return sanitized.replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, 60);
+}
+
+/**
+ * Extract original filename from path if it matches the embedded format.
+ * Pattern: {original}---{uuid}.{ext} → returns "{original}.{ext}"
+ * Falls back to basename if no pattern match, or "file.bin" if empty.
+ */
+export function extractOriginalFilename(filePath: string): string {
+  const basename = path.basename(filePath);
+  if (!basename) return "file.bin"; // Fallback for empty input
+
+  const ext = path.extname(basename);
+  const nameWithoutExt = path.basename(basename, ext);
+
+  // Check for ---{uuid} pattern (36 chars: 8-4-4-4-12 with hyphens)
+  const match = nameWithoutExt.match(
+    /^(.+)---[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,
+  );
+  if (match?.[1]) {
+    return `${match[1]}${ext}`;
+  }
+
+  return basename; // Fallback: use as-is
+}
+
 export function getMediaDir() {
-  return MEDIA_DIR;
+  return resolveMediaDir();
 }
 
 export async function ensureMediaDir() {
-  await fs.mkdir(MEDIA_DIR, { recursive: true });
-  return MEDIA_DIR;
+  const mediaDir = resolveMediaDir();
+  await fs.mkdir(mediaDir, { recursive: true });
+  return mediaDir;
 }
 
 export async function cleanOldMedia(ttlMs = DEFAULT_TTL_MS) {
-  await ensureMediaDir();
-  const entries = await fs.readdir(MEDIA_DIR).catch(() => []);
+  const mediaDir = await ensureMediaDir();
+  const entries = await fs.readdir(mediaDir).catch(() => []);
   const now = Date.now();
   await Promise.all(
     entries.map(async (file) => {
-      const full = path.join(MEDIA_DIR, file);
+      const full = path.join(mediaDir, file);
       const stat = await fs.stat(full).catch(() => null);
       if (!stat) return;
       if (now - stat.mtimeMs > ttlMs) {
@@ -82,14 +120,9 @@ async function downloadToFile(
       });
       pipeline(res, out)
         .then(() => {
-          const sniffBuffer = Buffer.concat(
-            sniffChunks,
-            Math.min(sniffLen, 16384),
-          );
+          const sniffBuffer = Buffer.concat(sniffChunks, Math.min(sniffLen, 16384));
           const rawHeader = res.headers["content-type"];
-          const headerMime = Array.isArray(rawHeader)
-            ? rawHeader[0]
-            : rawHeader;
+          const headerMime = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
           resolve({
             headerMime,
             sniffBuffer,
@@ -115,24 +148,20 @@ export async function saveMediaSource(
   headers?: Record<string, string>,
   subdir = "",
 ): Promise<SavedMedia> {
-  const dir = subdir ? path.join(MEDIA_DIR, subdir) : MEDIA_DIR;
+  const baseDir = resolveMediaDir();
+  const dir = subdir ? path.join(baseDir, subdir) : baseDir;
   await fs.mkdir(dir, { recursive: true });
   await cleanOldMedia();
   const baseId = crypto.randomUUID();
   if (looksLikeUrl(source)) {
     const tempDest = path.join(dir, `${baseId}.tmp`);
-    const { headerMime, sniffBuffer, size } = await downloadToFile(
-      source,
-      tempDest,
-      headers,
-    );
+    const { headerMime, sniffBuffer, size } = await downloadToFile(source, tempDest, headers);
     const mime = await detectMime({
       buffer: sniffBuffer,
       headerMime,
       filePath: source,
     });
-    const ext =
-      extensionForMime(mime) ?? path.extname(new URL(source).pathname);
+    const ext = extensionForMime(mime) ?? path.extname(new URL(source).pathname);
     const id = ext ? `${baseId}${ext}` : baseId;
     const finalDest = path.join(dir, id);
     await fs.rename(tempDest, finalDest);
@@ -160,21 +189,29 @@ export async function saveMediaBuffer(
   contentType?: string,
   subdir = "inbound",
   maxBytes = MAX_BYTES,
+  originalFilename?: string,
 ): Promise<SavedMedia> {
   if (buffer.byteLength > maxBytes) {
-    throw new Error(
-      `Media exceeds ${(maxBytes / (1024 * 1024)).toFixed(0)}MB limit`,
-    );
+    throw new Error(`Media exceeds ${(maxBytes / (1024 * 1024)).toFixed(0)}MB limit`);
   }
-  const dir = path.join(MEDIA_DIR, subdir);
+  const dir = path.join(resolveMediaDir(), subdir);
   await fs.mkdir(dir, { recursive: true });
-  const baseId = crypto.randomUUID();
-  const headerExt = extensionForMime(
-    contentType?.split(";")[0]?.trim() ?? undefined,
-  );
+  const uuid = crypto.randomUUID();
+  const headerExt = extensionForMime(contentType?.split(";")[0]?.trim() ?? undefined);
   const mime = await detectMime({ buffer, headerMime: contentType });
-  const ext = headerExt ?? extensionForMime(mime);
-  const id = ext ? `${baseId}${ext}` : baseId;
+  const ext = headerExt ?? extensionForMime(mime) ?? "";
+
+  let id: string;
+  if (originalFilename) {
+    // Embed original name: {sanitized}---{uuid}.ext
+    const base = path.parse(originalFilename).name;
+    const sanitized = sanitizeFilename(base);
+    id = sanitized ? `${sanitized}---${uuid}${ext}` : `${uuid}${ext}`;
+  } else {
+    // Legacy: just UUID
+    id = ext ? `${uuid}${ext}` : uuid;
+  }
+
   const dest = path.join(dir, id);
   await fs.writeFile(dest, buffer);
   return { id, path: dest, size: buffer.byteLength, contentType: mime };

@@ -1,4 +1,5 @@
 import type { GatewayBrowserClient } from "../gateway";
+import { extractText } from "../chat/message-extract";
 import { generateUUID } from "../uuid";
 
 export type ChatState = {
@@ -42,9 +43,9 @@ export async function loadChatHistory(state: ChatState) {
   }
 }
 
-export async function sendChat(state: ChatState): Promise<boolean> {
+export async function sendChatMessage(state: ChatState, message: string): Promise<boolean> {
   if (!state.client || !state.connected) return false;
-  const msg = state.chatMessage.trim();
+  const msg = message.trim();
   if (!msg) return false;
 
   const now = Date.now();
@@ -58,7 +59,6 @@ export async function sendChat(state: ChatState): Promise<boolean> {
   ];
 
   state.chatSending = true;
-  state.chatMessage = "";
   state.lastError = null;
   const runId = generateUUID();
   state.chatRunId = runId;
@@ -77,7 +77,6 @@ export async function sendChat(state: ChatState): Promise<boolean> {
     state.chatRunId = null;
     state.chatStream = null;
     state.chatStreamStartedAt = null;
-    state.chatMessage = msg;
     state.lastError = error;
     state.chatMessages = [
       ...state.chatMessages,
@@ -90,6 +89,23 @@ export async function sendChat(state: ChatState): Promise<boolean> {
     return false;
   } finally {
     state.chatSending = false;
+  }
+}
+
+export async function abortChatRun(state: ChatState): Promise<boolean> {
+  if (!state.client || !state.connected) return false;
+  const runId = state.chatRunId;
+  try {
+    await state.client.request(
+      "chat.abort",
+      runId
+        ? { sessionKey: state.sessionKey, runId }
+        : { sessionKey: state.sessionKey },
+    );
+    return true;
+  } catch (err) {
+    state.lastError = String(err);
+    return false;
   }
 }
 
@@ -125,22 +141,4 @@ export function handleChatEvent(
     state.lastError = payload.errorMessage ?? "chat error";
   }
   return payload.state;
-}
-
-function extractText(message: unknown): string | null {
-  const m = message as Record<string, unknown>;
-  const content = m.content;
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    const parts = content
-      .map((p) => {
-        const item = p as Record<string, unknown>;
-        if (item.type === "text" && typeof item.text === "string") return item.text;
-        return null;
-      })
-      .filter((v): v is string => typeof v === "string");
-    if (parts.length > 0) return parts.join("\n");
-  }
-  if (typeof m.text === "string") return m.text;
-  return null;
 }

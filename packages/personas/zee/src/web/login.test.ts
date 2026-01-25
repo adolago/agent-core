@@ -36,10 +36,8 @@ describe("web login", () => {
   it("loginWeb waits for connection and closes", async () => {
     const sock = await createWaSocket();
     const close = vi.spyOn(sock.ws, "close");
-    const waiter: typeof waitForWaConnection = vi
-      .fn()
-      .mockResolvedValue(undefined);
-    await loginWeb(false, "web", waiter);
+    const waiter: typeof waitForWaConnection = vi.fn().mockResolvedValue(undefined);
+    await loginWeb(false, waiter);
     await new Promise((resolve) => setTimeout(resolve, 550));
     expect(close).toHaveBeenCalled();
   });

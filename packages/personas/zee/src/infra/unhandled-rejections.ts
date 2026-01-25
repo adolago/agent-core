@@ -1,12 +1,12 @@
 import process from "node:process";
 
+import { formatUncaughtError } from "./errors.js";
+
 type UnhandledRejectionHandler = (reason: unknown) => boolean;
 
 const handlers = new Set<UnhandledRejectionHandler>();
 
-export function registerUnhandledRejectionHandler(
-  handler: UnhandledRejectionHandler,
-): () => void {
+export function registerUnhandledRejectionHandler(handler: UnhandledRejectionHandler): () => void {
   handlers.add(handler);
   return () => {
     handlers.delete(handler);
@@ -19,7 +19,7 @@ export function isUnhandledRejectionHandled(reason: unknown): boolean {
       if (handler(reason)) return true;
     } catch (err) {
       console.error(
-        "[zee] Unhandled rejection handler failed:",
+        "[clawdbot] Unhandled rejection handler failed:",
         err instanceof Error ? (err.stack ?? err.message) : err,
       );
     }
@@ -30,10 +30,7 @@ export function isUnhandledRejectionHandled(reason: unknown): boolean {
 export function installUnhandledRejectionHandler(): void {
   process.on("unhandledRejection", (reason, _promise) => {
     if (isUnhandledRejectionHandled(reason)) return;
-    console.error(
-      "[zee] Unhandled promise rejection:",
-      reason instanceof Error ? (reason.stack ?? reason.message) : reason,
-    );
+    console.error("[clawdbot] Unhandled promise rejection:", formatUncaughtError(reason));
     process.exit(1);
   });
 }

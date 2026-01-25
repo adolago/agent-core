@@ -1,18 +1,15 @@
-import chalk from "chalk";
+import chalk, { Chalk } from "chalk";
 
-// Semantic palette for CLI output. Keep in sync with docs/cli/index.md.
-export const LOBSTER_PALETTE = {
-  accent: "#FF5A2D",
-  accentBright: "#FF7A3D",
-  accentDim: "#D14A22",
-  info: "#FF8A5B",
-  success: "#2FBF71",
-  warn: "#FFB020",
-  error: "#E23D2D",
-  muted: "#8B7F77",
-} as const;
+import { LOBSTER_PALETTE } from "./palette.js";
 
-const hex = (value: string) => chalk.hex(value);
+const hasForceColor =
+  typeof process.env.FORCE_COLOR === "string" &&
+  process.env.FORCE_COLOR.trim().length > 0 &&
+  process.env.FORCE_COLOR.trim() !== "0";
+
+const baseChalk = process.env.NO_COLOR && !hasForceColor ? new Chalk({ level: 0 }) : chalk;
+
+const hex = (value: string) => baseChalk.hex(value);
 
 export const theme = {
   accent: hex(LOBSTER_PALETTE.accent),
@@ -23,15 +20,12 @@ export const theme = {
   warn: hex(LOBSTER_PALETTE.warn),
   error: hex(LOBSTER_PALETTE.error),
   muted: hex(LOBSTER_PALETTE.muted),
-  heading: chalk.bold.hex(LOBSTER_PALETTE.accent),
+  heading: baseChalk.bold.hex(LOBSTER_PALETTE.accent),
   command: hex(LOBSTER_PALETTE.accentBright),
   option: hex(LOBSTER_PALETTE.warn),
 } as const;
 
-export const isRich = () => Boolean(process.stdout.isTTY && chalk.level > 0);
+export const isRich = () => Boolean(baseChalk.level > 0);
 
-export const colorize = (
-  rich: boolean,
-  color: (value: string) => string,
-  value: string,
-) => (rich ? color(value) : value);
+export const colorize = (rich: boolean, color: (value: string) => string, value: string) =>
+  rich ? color(value) : value;

@@ -11,11 +11,7 @@ export function formatErrorMessage(err: unknown): string {
     return err.message || err.name || "Error";
   }
   if (typeof err === "string") return err;
-  if (
-    typeof err === "number" ||
-    typeof err === "boolean" ||
-    typeof err === "bigint"
-  ) {
+  if (typeof err === "number" || typeof err === "boolean" || typeof err === "bigint") {
     return String(err);
   }
   try {
@@ -23,4 +19,14 @@ export function formatErrorMessage(err: unknown): string {
   } catch {
     return Object.prototype.toString.call(err);
   }
+}
+
+export function formatUncaughtError(err: unknown): string {
+  if (extractErrorCode(err) === "INVALID_CONFIG") {
+    return formatErrorMessage(err);
+  }
+  if (err instanceof Error) {
+    return err.stack ?? err.message ?? err.name;
+  }
+  return formatErrorMessage(err);
 }

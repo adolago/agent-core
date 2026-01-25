@@ -1,18 +1,59 @@
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { installSkill } from "../../agents/skills-install.js";
 import { buildWorkspaceSkillStatus } from "../../agents/skills-status.js";
-import { DEFAULT_AGENT_WORKSPACE_DIR } from "../../agents/workspace.js";
-import type { ZeeConfig } from "../../config/config.js";
+import { loadWorkspaceSkillEntries, type SkillEntry } from "../../agents/skills.js";
+import type { ClawdbotConfig } from "../../config/config.js";
 import { loadConfig, writeConfigFile } from "../../config/config.js";
-import { resolveUserPath } from "../../utils.js";
+import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import {
   ErrorCodes,
   errorShape,
   formatValidationErrors,
+  validateSkillsBinsParams,
   validateSkillsInstallParams,
   validateSkillsStatusParams,
   validateSkillsUpdateParams,
 } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
+
+function listWorkspaceDirs(cfg: ClawdbotConfig): string[] {
+  const dirs = new Set<string>();
+  const list = cfg.agents?.list;
+  if (Array.isArray(list)) {
+    for (const entry of list) {
+      if (entry && typeof entry === "object" && typeof entry.id === "string") {
+        dirs.add(resolveAgentWorkspaceDir(cfg, entry.id));
+      }
+    }
+  }
+  dirs.add(resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg)));
+  return [...dirs];
+}
+
+function collectSkillBins(entries: SkillEntry[]): string[] {
+  const bins = new Set<string>();
+  for (const entry of entries) {
+    const required = entry.clawdbot?.requires?.bins ?? [];
+    const anyBins = entry.clawdbot?.requires?.anyBins ?? [];
+    const install = entry.clawdbot?.install ?? [];
+    for (const bin of required) {
+      const trimmed = bin.trim();
+      if (trimmed) bins.add(trimmed);
+    }
+    for (const bin of anyBins) {
+      const trimmed = bin.trim();
+      if (trimmed) bins.add(trimmed);
+    }
+    for (const spec of install) {
+      const specBins = spec?.bins ?? [];
+      for (const bin of specBins) {
+        const trimmed = String(bin).trim();
+        if (trimmed) bins.add(trimmed);
+      }
+    }
+  }
+  return [...bins].sort();
+}
 
 export const skillsHandlers: GatewayRequestHandlers = {
   "skills.status": ({ params, respond }) => {
@@ -28,12 +69,33 @@ export const skillsHandlers: GatewayRequestHandlers = {
       return;
     }
     const cfg = loadConfig();
-    const workspaceDirRaw = cfg.agent?.workspace ?? DEFAULT_AGENT_WORKSPACE_DIR;
-    const workspaceDir = resolveUserPath(workspaceDirRaw);
+    const workspaceDir = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
     const report = buildWorkspaceSkillStatus(workspaceDir, {
       config: cfg,
+      eligibility: { remote: getRemoteSkillEligibility() },
     });
     respond(true, report, undefined);
+  },
+  "skills.bins": ({ params, respond }) => {
+    if (!validateSkillsBinsParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid skills.bins params: ${formatValidationErrors(validateSkillsBinsParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const cfg = loadConfig();
+    const workspaceDirs = listWorkspaceDirs(cfg);
+    const bins = new Set<string>();
+    for (const workspaceDir of workspaceDirs) {
+      const entries = loadWorkspaceSkillEntries(workspaceDir, { config: cfg });
+      for (const bin of collectSkillBins(entries)) bins.add(bin);
+    }
+    respond(true, { bins: [...bins].sort() }, undefined);
   },
   "skills.install": async ({ params, respond }) => {
     if (!validateSkillsInstallParams(params)) {
@@ -53,7 +115,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
       timeoutMs?: number;
     };
     const cfg = loadConfig();
-    const workspaceDirRaw = cfg.agent?.workspace ?? DEFAULT_AGENT_WORKSPACE_DIR;
+    const workspaceDirRaw = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
     const result = await installSkill({
       workspaceDir: workspaceDirRaw,
       skillName: p.name,
@@ -64,9 +126,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
     respond(
       result.ok,
       result,
-      result.ok
-        ? undefined
-        : errorShape(ErrorCodes.UNAVAILABLE, result.message),
+      result.ok ? undefined : errorShape(ErrorCodes.UNAVAILABLE, result.message),
     );
   },
   "skills.update": async ({ params, respond }) => {
@@ -112,15 +172,11 @@ export const skillsHandlers: GatewayRequestHandlers = {
     }
     entries[p.skillKey] = current;
     skills.entries = entries;
-    const nextConfig: ZeeConfig = {
+    const nextConfig: ClawdbotConfig = {
       ...cfg,
       skills,
     };
     await writeConfigFile(nextConfig);
-    respond(
-      true,
-      { ok: true, skillKey: p.skillKey, config: current },
-      undefined,
-    );
+    respond(true, { ok: true, skillKey: p.skillKey, config: current }, undefined);
   },
 };

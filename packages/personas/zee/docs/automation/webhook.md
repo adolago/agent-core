@@ -2,7 +2,7 @@
 summary: "Webhook ingress for wake and isolated agent runs"
 read_when:
   - Adding or changing webhook endpoints
-  - Wiring external systems into Zee
+  - Wiring external systems into Clawdbot
 ---
 
 # Webhooks
@@ -29,7 +29,7 @@ Notes:
 
 Every request must include the hook token:
 - `Authorization: Bearer <token>`
-- or `x-zee-token: <token>`
+- or `x-clawdbot-token: <token>`
 - or `?token=<token>`
 
 ## Endpoints
@@ -41,8 +41,8 @@ Payload:
 { "text": "System line", "mode": "now" }
 ```
 
-- `text` required (string)
-- `mode` optional: `now` | `next-heartbeat` (default `now`)
+- `text` **required** (string): The description of the event (e.g., "New email received").
+- `mode` optional (`now` | `next-heartbeat`): Whether to trigger an immediate heartbeat (default `now`) or wait for the next periodic check.
 
 Effect:
 - Enqueues a system event for the **main** session
@@ -57,8 +57,8 @@ Payload:
   "name": "Email",
   "sessionKey": "hook:email:msg-123",
   "wakeMode": "now",
-  "deliver": false,
-  "provider": "last",
+  "deliver": true,
+  "channel": "last",
   "to": "+15551234567",
   "model": "openai/gpt-5.2-mini",
   "thinking": "low",
@@ -66,16 +66,16 @@ Payload:
 }
 ```
 
-- `message` required (string)
-- `name` optional (used in the summary prefix)
-- `sessionKey` optional (default random `hook:<uuid>`)
-- `wakeMode` optional: `now` | `next-heartbeat` (default `now`)
-- `deliver` optional (default `false`)
-- `provider` optional: `last` | `whatsapp` | `telegram`
-- `to` optional (provider-specific target)
-- `model` optional (model override, `provider/model` or alias; must be allowed if `agent.models` is set)
-- `thinking` optional (override)
-- `timeoutSeconds` optional
+- `message` **required** (string): The prompt or message for the agent to process.
+- `name` optional (string): Human-readable name for the hook (e.g., "GitHub"), used as a prefix in session summaries.
+- `sessionKey` optional (string): The key used to identify the agent's session. Defaults to a random `hook:<uuid>`. Using a consistent key allows for a multi-turn conversation within the hook context.
+- `wakeMode` optional (`now` | `next-heartbeat`): Whether to trigger an immediate heartbeat (default `now`) or wait for the next periodic check.
+- `deliver` optional (boolean): If `true`, the agent's response will be sent to the messaging channel. Defaults to `true`. Responses that are only heartbeat acknowledgments are automatically skipped.
+- `channel` optional (string): The messaging channel for delivery. One of: `last`, `whatsapp`, `telegram`, `discord`, `slack`, `mattermost` (plugin), `signal`, `imessage`, `msteams`. Defaults to `last`.
+- `to` optional (string): The recipient identifier for the channel (e.g., phone number for WhatsApp/Signal, chat ID for Telegram, channel ID for Discord/Slack/Mattermost (plugin), conversation ID for MS Teams). Defaults to the last recipient in the main session.
+- `model` optional (string): Model override (e.g., `anthropic/claude-3-5-sonnet` or an alias). Must be in the allowed model list if restricted.
+- `thinking` optional (string): Thinking level override (e.g., `low`, `medium`, `high`).
+- `timeoutSeconds` optional (number): Maximum duration for the agent run in seconds.
 
 Effect:
 - Runs an **isolated** agent turn (own session key)
@@ -94,10 +94,10 @@ Mapping options (summary):
 - `hooks.transformsDir` + `transform.module` loads a JS/TS module for custom logic.
 - Use `match.source` to keep a generic ingest endpoint (payload-driven routing).
 - TS transforms require a TS loader (e.g. `bun` or `tsx`) or precompiled `.js` at runtime.
-- Set `deliver: true` + `provider`/`to` on mappings to route replies to a chat surface
-  (`provider` defaults to `last` and falls back to WhatsApp).
-- `zee hooks gmail setup` writes `hooks.gmail` config for `zee hooks gmail run`.
-See [`docs/gmail-pubsub.md`](https://docs.clawd.bot/automation/gmail-pubsub) for the full Gmail watch flow.
+- Set `deliver: true` + `channel`/`to` on mappings to route replies to a chat surface
+  (`channel` defaults to `last` and falls back to WhatsApp).
+- `clawdbot webhooks gmail setup` writes `hooks.gmail` config for `clawdbot webhooks gmail run`.
+See [Gmail Pub/Sub](/automation/gmail-pubsub) for the full Gmail watch flow.
 
 ## Responses
 
@@ -118,7 +118,7 @@ curl -X POST http://127.0.0.1:18789/hooks/wake \
 
 ```bash
 curl -X POST http://127.0.0.1:18789/hooks/agent \
-  -H 'x-zee-token: SECRET' \
+  -H 'x-clawdbot-token: SECRET' \
   -H 'Content-Type: application/json' \
   -d '{"message":"Summarize inbox","name":"Email","wakeMode":"next-heartbeat"}'
 ```
@@ -129,12 +129,12 @@ Add `model` to the agent payload (or mapping) to override the model for that run
 
 ```bash
 curl -X POST http://127.0.0.1:18789/hooks/agent \
-  -H 'x-zee-token: SECRET' \
+  -H 'x-clawdbot-token: SECRET' \
   -H 'Content-Type: application/json' \
   -d '{"message":"Summarize inbox","name":"Email","model":"openai/gpt-5.2-mini"}'
 ```
 
-If you enforce `agent.models`, make sure the override model is included there.
+If you enforce `agents.defaults.models`, make sure the override model is included there.
 
 ```bash
 curl -X POST http://127.0.0.1:18789/hooks/gmail \

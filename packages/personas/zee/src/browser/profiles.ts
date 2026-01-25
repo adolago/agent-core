@@ -28,12 +28,7 @@ export function allocateCdpPort(
 ): number | null {
   const start = range?.start ?? CDP_PORT_RANGE_START;
   const end = range?.end ?? CDP_PORT_RANGE_END;
-  if (
-    !Number.isFinite(start) ||
-    !Number.isFinite(end) ||
-    start <= 0 ||
-    end <= 0
-  ) {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end <= 0) {
     return null;
   }
   if (start > end) return null;
@@ -74,7 +69,7 @@ export function getUsedPorts(
 }
 
 export const PROFILE_COLORS = [
-  "#FF4500", // Orange-red (zee default)
+  "#FF4500", // Orange-red (clawd default)
   "#0066CC", // Blue
   "#00AA00", // Green
   "#9933FF", // Purple

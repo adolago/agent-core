@@ -1,182 +1,177 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
+
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { lookupContextTokens } from "../agents/context.js";
-import {
-  DEFAULT_CONTEXT_TOKENS,
-  DEFAULT_MODEL,
-  DEFAULT_PROVIDER,
-} from "../agents/defaults.js";
+import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { resolveConfiguredModelRef } from "../agents/model-selection.js";
-import { loadConfig, type ZeeConfig } from "../config/config.js";
+import { type ClawdbotConfig, loadConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import {
   buildGroupDisplayName,
+  canonicalizeMainSessionAlias,
   loadSessionStore,
-  resolveAgentIdFromSessionKey,
-  resolveSessionTranscriptPath,
+  resolveMainSessionKey,
   resolveStorePath,
   type SessionEntry,
+  type SessionScope,
 } from "../config/sessions.js";
 import {
   normalizeAgentId,
+  normalizeMainKey,
   parseAgentSessionKey,
 } from "../routing/session-key.js";
+import { normalizeSessionDeliveryFields } from "../utils/delivery-context.js";
+import {
+  readFirstUserMessageFromTranscript,
+  readLastMessagePreviewFromTranscript,
+} from "./session-utils.fs.js";
+import type {
+  GatewayAgentRow,
+  GatewaySessionRow,
+  GatewaySessionsDefaults,
+  SessionsListResult,
+} from "./session-utils.types.js";
 
-export type GatewaySessionsDefaults = {
-  model: string | null;
-  contextTokens: number | null;
+export {
+  archiveFileOnDisk,
+  capArrayByJsonBytes,
+  readFirstUserMessageFromTranscript,
+  readLastMessagePreviewFromTranscript,
+  readSessionPreviewItemsFromTranscript,
+  readSessionMessages,
+  resolveSessionTranscriptCandidates,
+} from "./session-utils.fs.js";
+export type {
+  GatewayAgentRow,
+  GatewaySessionRow,
+  GatewaySessionsDefaults,
+  SessionsListResult,
+  SessionsPatchResult,
+  SessionsPreviewEntry,
+  SessionsPreviewResult,
+} from "./session-utils.types.js";
+
+const DERIVED_TITLE_MAX_LEN = 60;
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
+const AVATAR_DATA_RE = /^data:/i;
+const AVATAR_HTTP_RE = /^https?:\/\//i;
+const AVATAR_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
+const WINDOWS_ABS_RE = /^[a-zA-Z]:[\\/]/;
+
+const AVATAR_MIME_BY_EXT: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".bmp": "image/bmp",
+  ".tif": "image/tiff",
+  ".tiff": "image/tiff",
 };
 
-export type GatewaySessionRow = {
-  key: string;
-  kind: "direct" | "group" | "global" | "unknown";
-  displayName?: string;
-  provider?: string;
-  subject?: string;
-  room?: string;
-  space?: string;
-  chatType?: "direct" | "group" | "room";
-  updatedAt: number | null;
-  sessionId?: string;
-  systemSent?: boolean;
-  abortedLastRun?: boolean;
-  thinkingLevel?: string;
-  verboseLevel?: string;
-  reasoningLevel?: string;
-  elevatedLevel?: string;
-  sendPolicy?: "allow" | "deny";
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-  model?: string;
-  contextTokens?: number;
-  lastProvider?: SessionEntry["lastProvider"];
-  lastTo?: string;
-  lastAccountId?: string;
-};
-
-export type SessionsListResult = {
-  ts: number;
-  path: string;
-  count: number;
-  defaults: GatewaySessionsDefaults;
-  sessions: GatewaySessionRow[];
-};
-
-export type SessionsPatchResult = {
-  ok: true;
-  path: string;
-  key: string;
-  entry: SessionEntry;
-};
-
-export function readSessionMessages(
-  sessionId: string,
-  storePath: string | undefined,
-  sessionFile?: string,
-): unknown[] {
-  const candidates = resolveSessionTranscriptCandidates(
-    sessionId,
-    storePath,
-    sessionFile,
-  );
-
-  const filePath = candidates.find((p) => fs.existsSync(p));
-  if (!filePath) return [];
-
-  const lines = fs.readFileSync(filePath, "utf-8").split(/\r?\n/);
-  const messages: unknown[] = [];
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    try {
-      const parsed = JSON.parse(line);
-      if (parsed?.message) {
-        messages.push(parsed.message);
-      }
-    } catch {
-      // ignore bad lines
-    }
-  }
-  return messages;
+function resolveAvatarMime(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  return AVATAR_MIME_BY_EXT[ext] ?? "application/octet-stream";
 }
 
-export function resolveSessionTranscriptCandidates(
-  sessionId: string,
-  storePath: string | undefined,
-  sessionFile?: string,
-  agentId?: string,
-): string[] {
-  const candidates: string[] = [];
-  if (sessionFile) candidates.push(sessionFile);
-  if (storePath) {
-    const dir = path.dirname(storePath);
-    candidates.push(path.join(dir, `${sessionId}.jsonl`));
-  }
-  if (agentId) {
-    candidates.push(resolveSessionTranscriptPath(sessionId, agentId));
-  }
-  candidates.push(
-    path.join(os.homedir(), ".zee", "sessions", `${sessionId}.jsonl`),
-  );
-  return candidates;
+function isWorkspaceRelativePath(value: string): boolean {
+  if (!value) return false;
+  if (value.startsWith("~")) return false;
+  if (AVATAR_SCHEME_RE.test(value) && !WINDOWS_ABS_RE.test(value)) return false;
+  return true;
 }
 
-export function archiveFileOnDisk(filePath: string, reason: string): string {
-  const ts = new Date().toISOString().replaceAll(":", "-");
-  const archived = `${filePath}.${reason}.${ts}`;
-  fs.renameSync(filePath, archived);
-  return archived;
-}
-
-function jsonUtf8Bytes(value: unknown): number {
+function resolveIdentityAvatarUrl(
+  cfg: ClawdbotConfig,
+  agentId: string,
+  avatar: string | undefined,
+): string | undefined {
+  if (!avatar) return undefined;
+  const trimmed = avatar.trim();
+  if (!trimmed) return undefined;
+  if (AVATAR_DATA_RE.test(trimmed) || AVATAR_HTTP_RE.test(trimmed)) return trimmed;
+  if (!isWorkspaceRelativePath(trimmed)) return undefined;
+  const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
+  const workspaceRoot = path.resolve(workspaceDir);
+  const resolved = path.resolve(workspaceRoot, trimmed);
+  const relative = path.relative(workspaceRoot, resolved);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return undefined;
   try {
-    return Buffer.byteLength(JSON.stringify(value), "utf8");
+    const stat = fs.statSync(resolved);
+    if (!stat.isFile() || stat.size > AVATAR_MAX_BYTES) return undefined;
+    const buffer = fs.readFileSync(resolved);
+    const mime = resolveAvatarMime(resolved);
+    return `data:${mime};base64,${buffer.toString("base64")}`;
   } catch {
-    return Buffer.byteLength(String(value), "utf8");
+    return undefined;
   }
 }
 
-export function capArrayByJsonBytes<T>(
-  items: T[],
-  maxBytes: number,
-): { items: T[]; bytes: number } {
-  if (items.length === 0) return { items, bytes: 2 };
-  const parts = items.map((item) => jsonUtf8Bytes(item));
-  let bytes = 2 + parts.reduce((a, b) => a + b, 0) + (items.length - 1);
-  let start = 0;
-  while (bytes > maxBytes && start < items.length - 1) {
-    bytes -= parts[start] + 1;
-    start += 1;
+function formatSessionIdPrefix(sessionId: string, updatedAt?: number | null): string {
+  const prefix = sessionId.slice(0, 8);
+  if (updatedAt && updatedAt > 0) {
+    const d = new Date(updatedAt);
+    const date = d.toISOString().slice(0, 10);
+    return `${prefix} (${date})`;
   }
-  const next = start > 0 ? items.slice(start) : items;
-  return { items: next, bytes };
+  return prefix;
+}
+
+function truncateTitle(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const cut = text.slice(0, maxLen - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  if (lastSpace > maxLen * 0.6) return cut.slice(0, lastSpace) + "…";
+  return cut + "…";
+}
+
+export function deriveSessionTitle(
+  entry: SessionEntry | undefined,
+  firstUserMessage?: string | null,
+): string | undefined {
+  if (!entry) return undefined;
+
+  if (entry.displayName?.trim()) {
+    return entry.displayName.trim();
+  }
+
+  if (entry.subject?.trim()) {
+    return entry.subject.trim();
+  }
+
+  if (firstUserMessage?.trim()) {
+    const normalized = firstUserMessage.replace(/\s+/g, " ").trim();
+    return truncateTitle(normalized, DERIVED_TITLE_MAX_LEN);
+  }
+
+  if (entry.sessionId) {
+    return formatSessionIdPrefix(entry.sessionId, entry.updatedAt);
+  }
+
+  return undefined;
 }
 
 export function loadSessionEntry(sessionKey: string) {
   const cfg = loadConfig();
   const sessionCfg = cfg.session;
-  const agentId = resolveAgentIdFromSessionKey(sessionKey);
+  const canonicalKey = resolveSessionStoreKey({ cfg, sessionKey });
+  const agentId = resolveSessionStoreAgentId(cfg, canonicalKey);
   const storePath = resolveStorePath(sessionCfg?.store, { agentId });
   const store = loadSessionStore(storePath);
-  const parsed = parseAgentSessionKey(sessionKey);
-  const legacyKey = parsed?.rest;
-  const entry = store[sessionKey] ?? (legacyKey ? store[legacyKey] : undefined);
-  return { cfg, storePath, store, entry };
+  const entry = store[canonicalKey];
+  return { cfg, storePath, store, entry, canonicalKey };
 }
 
-export function classifySessionKey(
-  key: string,
-  entry?: SessionEntry,
-): GatewaySessionRow["kind"] {
+export function classifySessionKey(key: string, entry?: SessionEntry): GatewaySessionRow["kind"] {
   if (key === "global") return "global";
   if (key === "unknown") return "unknown";
-  if (entry?.chatType === "group" || entry?.chatType === "room") return "group";
-  if (
-    key.startsWith("group:") ||
-    key.includes(":group:") ||
-    key.includes(":channel:")
-  ) {
+  if (entry?.chatType === "group" || entry?.chatType === "channel") {
+    return "group";
+  }
+  if (key.includes(":group:") || key.includes(":channel:")) {
     return "group";
   }
   return "direct";
@@ -184,19 +179,15 @@ export function classifySessionKey(
 
 export function parseGroupKey(
   key: string,
-): { provider?: string; kind?: "group" | "channel"; id?: string } | null {
+): { channel?: string; kind?: "group" | "channel"; id?: string } | null {
   const agentParsed = parseAgentSessionKey(key);
   const rawKey = agentParsed?.rest ?? key;
-  if (rawKey.startsWith("group:")) {
-    const raw = rawKey.slice("group:".length);
-    return raw ? { id: raw } : null;
-  }
   const parts = rawKey.split(":").filter(Boolean);
   if (parts.length >= 3) {
-    const [provider, kind, ...rest] = parts;
+    const [channel, kind, ...rest] = parts;
     if (kind === "group" || kind === "channel") {
       const id = rest.join(":");
-      return { provider, kind, id };
+      return { channel, kind, id };
     }
   }
   return null;
@@ -220,14 +211,25 @@ function listExistingAgentIdsFromDisk(): string[] {
   }
 }
 
-function listConfiguredAgentIds(cfg: ZeeConfig): string[] {
-  const ids = new Set<string>();
-  const defaultId = normalizeAgentId(cfg.routing?.defaultAgentId);
-  ids.add(defaultId);
-  const agents = cfg.routing?.agents;
-  if (agents && typeof agents === "object") {
-    for (const id of Object.keys(agents)) ids.add(normalizeAgentId(id));
+function listConfiguredAgentIds(cfg: ClawdbotConfig): string[] {
+  const agents = cfg.agents?.list ?? [];
+  if (agents.length > 0) {
+    const ids = new Set<string>();
+    for (const entry of agents) {
+      if (entry?.id) ids.add(normalizeAgentId(entry.id));
+    }
+    const defaultId = normalizeAgentId(resolveDefaultAgentId(cfg));
+    ids.add(defaultId);
+    const sorted = Array.from(ids).filter(Boolean);
+    sorted.sort((a, b) => a.localeCompare(b));
+    return sorted.includes(defaultId)
+      ? [defaultId, ...sorted.filter((id) => id !== defaultId)]
+      : sorted;
   }
+
+  const ids = new Set<string>();
+  const defaultId = normalizeAgentId(resolveDefaultAgentId(cfg));
+  ids.add(defaultId);
   for (const id of listExistingAgentIdsFromDisk()) ids.add(id);
   const sorted = Array.from(ids).filter(Boolean);
   sorted.sort((a, b) => a.localeCompare(b));
@@ -237,16 +239,110 @@ function listConfiguredAgentIds(cfg: ZeeConfig): string[] {
   return sorted;
 }
 
+export function listAgentsForGateway(cfg: ClawdbotConfig): {
+  defaultId: string;
+  mainKey: string;
+  scope: SessionScope;
+  agents: GatewayAgentRow[];
+} {
+  const defaultId = normalizeAgentId(resolveDefaultAgentId(cfg));
+  const mainKey = normalizeMainKey(cfg.session?.mainKey);
+  const scope = cfg.session?.scope ?? "per-sender";
+  const configuredById = new Map<
+    string,
+    { name?: string; identity?: GatewayAgentRow["identity"] }
+  >();
+  for (const entry of cfg.agents?.list ?? []) {
+    if (!entry?.id) continue;
+    const identity = entry.identity
+      ? {
+          name: entry.identity.name?.trim() || undefined,
+          theme: entry.identity.theme?.trim() || undefined,
+          emoji: entry.identity.emoji?.trim() || undefined,
+          avatar: entry.identity.avatar?.trim() || undefined,
+          avatarUrl: resolveIdentityAvatarUrl(
+            cfg,
+            normalizeAgentId(entry.id),
+            entry.identity.avatar?.trim(),
+          ),
+        }
+      : undefined;
+    configuredById.set(normalizeAgentId(entry.id), {
+      name: typeof entry.name === "string" && entry.name.trim() ? entry.name.trim() : undefined,
+      identity,
+    });
+  }
+  const explicitIds = new Set(
+    (cfg.agents?.list ?? [])
+      .map((entry) => (entry?.id ? normalizeAgentId(entry.id) : ""))
+      .filter(Boolean),
+  );
+  const allowedIds = explicitIds.size > 0 ? new Set([...explicitIds, defaultId]) : null;
+  let agentIds = listConfiguredAgentIds(cfg).filter((id) =>
+    allowedIds ? allowedIds.has(id) : true,
+  );
+  if (mainKey && !agentIds.includes(mainKey)) {
+    agentIds = [...agentIds, mainKey];
+  }
+  const agents = agentIds.map((id) => {
+    const meta = configuredById.get(id);
+    return {
+      id,
+      name: meta?.name,
+      identity: meta?.identity,
+    };
+  });
+  return { defaultId, mainKey, scope, agents };
+}
+
 function canonicalizeSessionKeyForAgent(agentId: string, key: string): string {
   if (key === "global" || key === "unknown") return key;
   if (key.startsWith("agent:")) return key;
   return `agent:${normalizeAgentId(agentId)}:${key}`;
 }
 
-function canonicalizeSpawnedByForAgent(
-  agentId: string,
-  spawnedBy?: string,
-): string | undefined {
+function resolveDefaultStoreAgentId(cfg: ClawdbotConfig): string {
+  return normalizeAgentId(resolveDefaultAgentId(cfg));
+}
+
+export function resolveSessionStoreKey(params: {
+  cfg: ClawdbotConfig;
+  sessionKey: string;
+}): string {
+  const raw = params.sessionKey.trim();
+  if (!raw) return raw;
+  if (raw === "global" || raw === "unknown") return raw;
+
+  const parsed = parseAgentSessionKey(raw);
+  if (parsed) {
+    const agentId = normalizeAgentId(parsed.agentId);
+    const canonical = canonicalizeMainSessionAlias({
+      cfg: params.cfg,
+      agentId,
+      sessionKey: raw,
+    });
+    if (canonical !== raw) return canonical;
+    return raw;
+  }
+
+  const rawMainKey = normalizeMainKey(params.cfg.session?.mainKey);
+  if (raw === "main" || raw === rawMainKey) {
+    return resolveMainSessionKey(params.cfg);
+  }
+  const agentId = resolveDefaultStoreAgentId(params.cfg);
+  return canonicalizeSessionKeyForAgent(agentId, raw);
+}
+
+function resolveSessionStoreAgentId(cfg: ClawdbotConfig, canonicalKey: string): string {
+  if (canonicalKey === "global" || canonicalKey === "unknown") {
+    return resolveDefaultStoreAgentId(cfg);
+  }
+  const parsed = parseAgentSessionKey(canonicalKey);
+  if (parsed?.agentId) return normalizeAgentId(parsed.agentId);
+  return resolveDefaultStoreAgentId(cfg);
+}
+
+function canonicalizeSpawnedByForAgent(agentId: string, spawnedBy?: string): string | undefined {
   const raw = spawnedBy?.trim();
   if (!raw) return undefined;
   if (raw === "global" || raw === "unknown") return raw;
@@ -254,71 +350,52 @@ function canonicalizeSpawnedByForAgent(
   return `agent:${normalizeAgentId(agentId)}:${raw}`;
 }
 
-export function resolveGatewaySessionStoreTarget(params: {
-  cfg: ZeeConfig;
-  key: string;
-}): {
+export function resolveGatewaySessionStoreTarget(params: { cfg: ClawdbotConfig; key: string }): {
   agentId: string;
   storePath: string;
   canonicalKey: string;
   storeKeys: string[];
 } {
   const key = params.key.trim();
-  const agentId = resolveAgentIdFromSessionKey(key);
+  const canonicalKey = resolveSessionStoreKey({
+    cfg: params.cfg,
+    sessionKey: key,
+  });
+  const agentId = resolveSessionStoreAgentId(params.cfg, canonicalKey);
   const storeConfig = params.cfg.session?.store;
   const storePath = resolveStorePath(storeConfig, { agentId });
 
-  if (key === "global" || key === "unknown") {
-    return { agentId, storePath, canonicalKey: key, storeKeys: [key] };
+  if (canonicalKey === "global" || canonicalKey === "unknown") {
+    const storeKeys = key && key !== canonicalKey ? [canonicalKey, key] : [key];
+    return { agentId, storePath, canonicalKey, storeKeys };
   }
 
-  const parsed = parseAgentSessionKey(key);
-  if (parsed) {
-    return {
-      agentId,
-      storePath,
-      canonicalKey: key,
-      storeKeys: [key, parsed.rest],
-    };
-  }
-
-  if (key.startsWith("subagent:")) {
-    const canonical = canonicalizeSessionKeyForAgent(agentId, key);
-    return {
-      agentId,
-      storePath,
-      canonicalKey: canonical,
-      storeKeys: [canonical, key],
-    };
-  }
-
-  const canonical = canonicalizeSessionKeyForAgent(agentId, key);
+  const storeKeys = new Set<string>();
+  storeKeys.add(canonicalKey);
+  if (key && key !== canonicalKey) storeKeys.add(key);
   return {
     agentId,
     storePath,
-    canonicalKey: canonical,
-    storeKeys: [canonical, key],
+    canonicalKey,
+    storeKeys: Array.from(storeKeys),
   };
 }
 
-export function loadCombinedSessionStoreForGateway(cfg: ZeeConfig): {
+export function loadCombinedSessionStoreForGateway(cfg: ClawdbotConfig): {
   storePath: string;
   store: Record<string, SessionEntry>;
 } {
   const storeConfig = cfg.session?.store;
   if (storeConfig && !isStorePathTemplate(storeConfig)) {
     const storePath = resolveStorePath(storeConfig);
-    const defaultAgentId = normalizeAgentId(cfg.routing?.defaultAgentId);
+    const defaultAgentId = normalizeAgentId(resolveDefaultAgentId(cfg));
     const store = loadSessionStore(storePath);
     const combined: Record<string, SessionEntry> = {};
     for (const [key, entry] of Object.entries(store)) {
       const canonicalKey = canonicalizeSessionKeyForAgent(defaultAgentId, key);
       combined[canonicalKey] = {
         ...entry,
-        spawnedBy: canonicalizeSpawnedByForAgent(
-          defaultAgentId,
-          entry.spawnedBy,
-        ),
+        spawnedBy: canonicalizeSpawnedByForAgent(defaultAgentId, entry.spawnedBy),
       };
     }
     return { storePath, store: combined };
@@ -331,38 +408,40 @@ export function loadCombinedSessionStoreForGateway(cfg: ZeeConfig): {
     const store = loadSessionStore(storePath);
     for (const [key, entry] of Object.entries(store)) {
       const canonicalKey = canonicalizeSessionKeyForAgent(agentId, key);
+      // Merge with existing entry if present (avoid overwriting with less complete data)
+      const existing = combined[canonicalKey];
       combined[canonicalKey] = {
+        ...existing,
         ...entry,
-        spawnedBy: canonicalizeSpawnedByForAgent(agentId, entry.spawnedBy),
+        spawnedBy: canonicalizeSpawnedByForAgent(agentId, entry.spawnedBy ?? existing?.spawnedBy),
       };
     }
   }
 
   const storePath =
-    typeof storeConfig === "string" && storeConfig.trim()
-      ? storeConfig.trim()
-      : "(multiple)";
+    typeof storeConfig === "string" && storeConfig.trim() ? storeConfig.trim() : "(multiple)";
   return { storePath, store: combined };
 }
 
-export function getSessionDefaults(cfg: ZeeConfig): GatewaySessionsDefaults {
+export function getSessionDefaults(cfg: ClawdbotConfig): GatewaySessionsDefaults {
   const resolved = resolveConfiguredModelRef({
     cfg,
     defaultProvider: DEFAULT_PROVIDER,
     defaultModel: DEFAULT_MODEL,
   });
   const contextTokens =
-    cfg.agent?.contextTokens ??
+    cfg.agents?.defaults?.contextTokens ??
     lookupContextTokens(resolved.model) ??
     DEFAULT_CONTEXT_TOKENS;
   return {
+    modelProvider: resolved.provider ?? null,
     model: resolved.model ?? null,
     contextTokens: contextTokens ?? null,
   };
 }
 
 export function resolveSessionModelRef(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   entry?: SessionEntry,
 ): { provider: string; model: string } {
   const resolved = resolveConfiguredModelRef({
@@ -381,7 +460,7 @@ export function resolveSessionModelRef(
 }
 
 export function listSessionsFromStore(params: {
-  cfg: ZeeConfig;
+  cfg: ClawdbotConfig;
   storePath: string;
   store: Record<string, SessionEntry>;
   opts: import("./protocol/index.js").SessionsListParams;
@@ -391,10 +470,14 @@ export function listSessionsFromStore(params: {
 
   const includeGlobal = opts.includeGlobal === true;
   const includeUnknown = opts.includeUnknown === true;
+  const includeDerivedTitles = opts.includeDerivedTitles === true;
+  const includeLastMessage = opts.includeLastMessage === true;
   const spawnedBy = typeof opts.spawnedBy === "string" ? opts.spawnedBy : "";
+  const label = typeof opts.label === "string" ? opts.label.trim() : "";
+  const agentId = typeof opts.agentId === "string" ? normalizeAgentId(opts.agentId) : "";
+  const search = typeof opts.search === "string" ? opts.search.trim().toLowerCase() : "";
   const activeMinutes =
-    typeof opts.activeMinutes === "number" &&
-    Number.isFinite(opts.activeMinutes)
+    typeof opts.activeMinutes === "number" && Number.isFinite(opts.activeMinutes)
       ? Math.max(1, Math.floor(opts.activeMinutes))
       : undefined;
 
@@ -402,6 +485,12 @@ export function listSessionsFromStore(params: {
     .filter(([key]) => {
       if (!includeGlobal && key === "global") return false;
       if (!includeUnknown && key === "unknown") return false;
+      if (agentId) {
+        if (key === "global" || key === "unknown") return false;
+        const parsed = parseAgentSessionKey(key);
+        if (!parsed) return false;
+        return normalizeAgentId(parsed.agentId) === agentId;
+      }
       return true;
     })
     .filter(([key, entry]) => {
@@ -409,38 +498,50 @@ export function listSessionsFromStore(params: {
       if (key === "unknown" || key === "global") return false;
       return entry?.spawnedBy === spawnedBy;
     })
+    .filter(([, entry]) => {
+      if (!label) return true;
+      return entry?.label === label;
+    })
     .map(([key, entry]) => {
       const updatedAt = entry?.updatedAt ?? null;
       const input = entry?.inputTokens ?? 0;
       const output = entry?.outputTokens ?? 0;
       const total = entry?.totalTokens ?? input + output;
       const parsed = parseGroupKey(key);
-      const provider = entry?.provider ?? parsed?.provider;
+      const channel = entry?.channel ?? parsed?.channel;
       const subject = entry?.subject;
-      const room = entry?.room;
+      const groupChannel = entry?.groupChannel;
       const space = entry?.space;
       const id = parsed?.id;
+      const origin = entry?.origin;
+      const originLabel = origin?.label;
       const displayName =
         entry?.displayName ??
-        (provider
+        (channel
           ? buildGroupDisplayName({
-              provider,
+              provider: channel,
               subject,
-              room,
+              groupChannel,
               space,
               id,
               key,
             })
-          : undefined);
+          : undefined) ??
+        entry?.label ??
+        originLabel;
+      const deliveryFields = normalizeSessionDeliveryFields(entry);
       return {
         key,
+        entry,
         kind: classifySessionKey(key, entry),
+        label: entry?.label,
         displayName,
-        provider,
+        channel,
         subject,
-        room,
+        groupChannel,
         space,
         chatType: entry?.chatType,
+        origin,
         updatedAt,
         sessionId: entry?.sessionId,
         systemSent: entry?.systemSent,
@@ -453,14 +554,24 @@ export function listSessionsFromStore(params: {
         inputTokens: entry?.inputTokens,
         outputTokens: entry?.outputTokens,
         totalTokens: total,
+        responseUsage: entry?.responseUsage,
+        modelProvider: entry?.modelProvider,
         model: entry?.model,
         contextTokens: entry?.contextTokens,
-        lastProvider: entry?.lastProvider,
-        lastTo: entry?.lastTo,
-        lastAccountId: entry?.lastAccountId,
-      } satisfies GatewaySessionRow;
+        deliveryContext: deliveryFields.deliveryContext,
+        lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
+        lastTo: deliveryFields.lastTo ?? entry?.lastTo,
+        lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,
+      };
     })
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+
+  if (search) {
+    sessions = sessions.filter((s) => {
+      const fields = [s.displayName, s.label, s.subject, s.sessionId, s.key];
+      return fields.some((f) => typeof f === "string" && f.toLowerCase().includes(search));
+    });
+  }
 
   if (activeMinutes !== undefined) {
     const cutoff = now - activeMinutes * 60_000;
@@ -472,11 +583,36 @@ export function listSessionsFromStore(params: {
     sessions = sessions.slice(0, limit);
   }
 
+  const finalSessions: GatewaySessionRow[] = sessions.map((s) => {
+    const { entry, ...rest } = s;
+    let derivedTitle: string | undefined;
+    let lastMessagePreview: string | undefined;
+    if (entry?.sessionId) {
+      if (includeDerivedTitles) {
+        const firstUserMsg = readFirstUserMessageFromTranscript(
+          entry.sessionId,
+          storePath,
+          entry.sessionFile,
+        );
+        derivedTitle = deriveSessionTitle(entry, firstUserMsg);
+      }
+      if (includeLastMessage) {
+        const lastMsg = readLastMessagePreviewFromTranscript(
+          entry.sessionId,
+          storePath,
+          entry.sessionFile,
+        );
+        if (lastMsg) lastMessagePreview = lastMsg;
+      }
+    }
+    return { ...rest, derivedTitle, lastMessagePreview } satisfies GatewaySessionRow;
+  });
+
   return {
     ts: now,
     path: storePath,
-    count: sessions.length,
+    count: finalSessions.length,
     defaults: getSessionDefaults(cfg),
-    sessions,
+    sessions: finalSessions,
   };
 }

@@ -1,5 +1,4 @@
-import { getAgentRunContext, onAgentEvent } from "../../infra/agent-events.js";
-import { emitWideEvent } from "../../logging/wide-events.js";
+import { onAgentEvent } from "../../infra/agent-events.js";
 
 const AGENT_RUN_CACHE_TTL_MS = 10 * 60_000;
 const agentRunCache = new Map<string, AgentRunSnapshot>();
@@ -37,9 +36,7 @@ function ensureAgentRunListener() {
     const phase = evt.data?.phase;
     if (phase === "start") {
       const startedAt =
-        typeof evt.data?.startedAt === "number"
-          ? (evt.data.startedAt as number)
-          : undefined;
+        typeof evt.data?.startedAt === "number" ? (evt.data.startedAt as number) : undefined;
       agentRunStarts.set(evt.runId, startedAt ?? Date.now());
       return;
     }
@@ -49,33 +46,9 @@ function ensureAgentRunListener() {
         ? (evt.data.startedAt as number)
         : agentRunStarts.get(evt.runId);
     const endedAt =
-      typeof evt.data?.endedAt === "number"
-        ? (evt.data.endedAt as number)
-        : undefined;
-    const error =
-      typeof evt.data?.error === "string"
-        ? (evt.data.error as string)
-        : undefined;
+      typeof evt.data?.endedAt === "number" ? (evt.data.endedAt as number) : undefined;
+    const error = typeof evt.data?.error === "string" ? (evt.data.error as string) : undefined;
     agentRunStarts.delete(evt.runId);
-    const context = getAgentRunContext(evt.runId);
-    void emitWideEvent({
-      event: {
-        ts: new Date().toISOString(),
-        service: "zee-agent",
-        traceId: context?.traceId ?? evt.runId,
-        requestId: evt.runId,
-        method: "agent.run",
-        sessionId: context?.sessionId,
-        runId: evt.runId,
-        meta: {
-          status: phase === "error" ? "error" : "ok",
-          sessionKey: context?.sessionKey,
-        },
-      },
-      ok: phase !== "error",
-      durationMs: startedAt ? Date.now() - startedAt : 0,
-      error: error ? { message: error } : undefined,
-    });
     recordAgentRunSnapshot({
       runId: evt.runId,
       status: phase === "error" ? "error" : "ok",
@@ -126,13 +99,8 @@ export async function waitForAgentJob(params: {
           ? (evt.data.startedAt as number)
           : agentRunStarts.get(evt.runId);
       const endedAt =
-        typeof evt.data?.endedAt === "number"
-          ? (evt.data.endedAt as number)
-          : undefined;
-      const error =
-        typeof evt.data?.error === "string"
-          ? (evt.data.error as string)
-          : undefined;
+        typeof evt.data?.endedAt === "number" ? (evt.data.endedAt as number) : undefined;
+      const error = typeof evt.data?.error === "string" ? (evt.data.error as string) : undefined;
       const snapshot: AgentRunSnapshot = {
         runId: evt.runId,
         status: phase === "error" ? "error" : "ok",

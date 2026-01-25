@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 
 const formatCommit = (value?: string | null) => {
@@ -37,15 +38,48 @@ const resolveGitHead = (startDir: string) => {
 
 let cachedCommit: string | null | undefined;
 
-export const resolveCommitHash = (
-  options: { cwd?: string; env?: NodeJS.ProcessEnv } = {},
-) => {
+const readCommitFromPackageJson = () => {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require("../../package.json") as {
+      gitHead?: string;
+      githead?: string;
+    };
+    return formatCommit(pkg.gitHead ?? pkg.githead ?? null);
+  } catch {
+    return null;
+  }
+};
+
+const readCommitFromBuildInfo = () => {
+  try {
+    const require = createRequire(import.meta.url);
+    const info = require("../build-info.json") as {
+      commit?: string | null;
+    };
+    return formatCommit(info.commit ?? null);
+  } catch {
+    return null;
+  }
+};
+
+export const resolveCommitHash = (options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) => {
   if (cachedCommit !== undefined) return cachedCommit;
   const env = options.env ?? process.env;
   const envCommit = env.GIT_COMMIT?.trim() || env.GIT_SHA?.trim();
   const normalized = formatCommit(envCommit);
   if (normalized) {
     cachedCommit = normalized;
+    return cachedCommit;
+  }
+  const buildInfoCommit = readCommitFromBuildInfo();
+  if (buildInfoCommit) {
+    cachedCommit = buildInfoCommit;
+    return cachedCommit;
+  }
+  const pkgCommit = readCommitFromPackageJson();
+  if (pkgCommit) {
+    cachedCommit = pkgCommit;
     return cachedCommit;
   }
   try {

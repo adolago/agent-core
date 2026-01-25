@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { resolveFetch } from "../infra/fetch.js";
+
 export type SignalRpcOptions = {
   baseUrl: string;
   timeoutMs?: number;
@@ -35,15 +37,15 @@ function normalizeBaseUrl(url: string): string {
   return `http://${trimmed}`.replace(/\/+$/, "");
 }
 
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-) {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const fetchImpl = resolveFetch();
+  if (!fetchImpl) {
+    throw new Error("fetch is not available");
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetchImpl(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -93,11 +95,7 @@ export async function signalCheck(
 ): Promise<{ ok: boolean; status?: number | null; error?: string | null }> {
   const normalized = normalizeBaseUrl(baseUrl);
   try {
-    const res = await fetchWithTimeout(
-      `${normalized}/api/v1/check`,
-      { method: "GET" },
-      timeoutMs,
-    );
+    const res = await fetchWithTimeout(`${normalized}/api/v1/check`, { method: "GET" }, timeoutMs);
     if (!res.ok) {
       return { ok: false, status: res.status, error: `HTTP ${res.status}` };
     }
@@ -121,15 +119,17 @@ export async function streamSignalEvents(params: {
   const url = new URL(`${baseUrl}/api/v1/events`);
   if (params.account) url.searchParams.set("account", params.account);
 
-  const res = await fetch(url, {
+  const fetchImpl = resolveFetch();
+  if (!fetchImpl) {
+    throw new Error("fetch is not available");
+  }
+  const res = await fetchImpl(url, {
     method: "GET",
     headers: { Accept: "text/event-stream" },
     signal: params.abortSignal,
   });
   if (!res.ok || !res.body) {
-    throw new Error(
-      `Signal SSE failed (${res.status} ${res.statusText || "error"})`,
-    );
+    throw new Error(`Signal SSE failed (${res.status} ${res.statusText || "error"})`);
   }
 
   const reader = res.body.getReader();
@@ -173,9 +173,7 @@ export async function streamSignalEvents(params: {
       if (field === "event") {
         currentEvent.event = value;
       } else if (field === "data") {
-        currentEvent.data = currentEvent.data
-          ? `${currentEvent.data}\n${value}`
-          : value;
+        currentEvent.data = currentEvent.data ? `${currentEvent.data}\n${value}` : value;
       } else if (field === "id") {
         currentEvent.id = value;
       }

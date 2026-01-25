@@ -4,11 +4,13 @@ import type { MockBaileysSocket } from "../../test/mocks/baileys.js";
 import { createMockBaileys } from "../../test/mocks/baileys.js";
 
 // Use globalThis to store the mock config so it survives vi.mock hoisting
-const CONFIG_KEY = Symbol.for("zee:testConfigMock");
+const CONFIG_KEY = Symbol.for("clawdbot:testConfigMock");
 const DEFAULT_CONFIG = {
-  whatsapp: {
-    // Tests can override; default remains open to avoid surprising fixtures
-    allowFrom: ["*"],
+  channels: {
+    whatsapp: {
+      // Tests can override; default remains open to avoid surprising fixtures
+      allowFrom: ["*"],
+    },
   },
   messages: {
     messagePrefix: undefined,
@@ -22,8 +24,7 @@ if (!(globalThis as Record<symbol, unknown>)[CONFIG_KEY]) {
 }
 
 export function setLoadConfigMock(fn: unknown) {
-  (globalThis as Record<symbol, unknown>)[CONFIG_KEY] =
-    typeof fn === "function" ? fn : () => fn;
+  (globalThis as Record<symbol, unknown>)[CONFIG_KEY] = typeof fn === "function" ? fn : () => fn;
 }
 
 export function resetLoadConfigMock() {
@@ -43,19 +44,17 @@ vi.mock("../config/config.js", async (importOriginal) => {
 });
 
 vi.mock("../media/store.js", () => ({
-  saveMediaBuffer: vi
-    .fn()
-    .mockImplementation(async (_buf: Buffer, contentType?: string) => ({
-      id: "mid",
-      path: "/tmp/mid",
-      size: _buf.length,
-      contentType,
-    })),
+  saveMediaBuffer: vi.fn().mockImplementation(async (_buf: Buffer, contentType?: string) => ({
+    id: "mid",
+    path: "/tmp/mid",
+    size: _buf.length,
+    contentType,
+  })),
 }));
 
 vi.mock("@whiskeysockets/baileys", () => {
   const created = createMockBaileys();
-  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("zee:lastSocket")] =
+  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("clawdbot:lastSocket")] =
     created.lastSocket;
   return created.mod;
 });
@@ -65,37 +64,27 @@ vi.mock("qrcode-terminal", () => ({
   generate: vi.fn(),
 }));
 
-export const baileys = (await import(
-  "@whiskeysockets/baileys"
-)) as unknown as typeof import("@whiskeysockets/baileys") & {
-  makeWASocket: ReturnType<typeof vi.fn>;
-  useMultiFileAuthState: ReturnType<typeof vi.fn>;
-  fetchLatestBaileysVersion: ReturnType<typeof vi.fn>;
-  makeCacheableSignalKeyStore: ReturnType<typeof vi.fn>;
-};
+export const baileys =
+  (await import("@whiskeysockets/baileys")) as unknown as typeof import("@whiskeysockets/baileys") & {
+    makeWASocket: ReturnType<typeof vi.fn>;
+    useMultiFileAuthState: ReturnType<typeof vi.fn>;
+    fetchLatestBaileysVersion: ReturnType<typeof vi.fn>;
+    makeCacheableSignalKeyStore: ReturnType<typeof vi.fn>;
+  };
 
 export function resetBaileysMocks() {
   const recreated = createMockBaileys();
-  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("zee:lastSocket")] =
+  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("clawdbot:lastSocket")] =
     recreated.lastSocket;
   baileys.makeWASocket.mockImplementation(recreated.mod.makeWASocket);
-  baileys.useMultiFileAuthState.mockImplementation(
-    recreated.mod.useMultiFileAuthState,
-  );
-  baileys.fetchLatestBaileysVersion.mockImplementation(
-    recreated.mod.fetchLatestBaileysVersion,
-  );
-  baileys.makeCacheableSignalKeyStore.mockImplementation(
-    recreated.mod.makeCacheableSignalKeyStore,
-  );
+  baileys.useMultiFileAuthState.mockImplementation(recreated.mod.useMultiFileAuthState);
+  baileys.fetchLatestBaileysVersion.mockImplementation(recreated.mod.fetchLatestBaileysVersion);
+  baileys.makeCacheableSignalKeyStore.mockImplementation(recreated.mod.makeCacheableSignalKeyStore);
 }
 
 export function getLastSocket(): MockBaileysSocket {
-  const getter = (globalThis as Record<PropertyKey, unknown>)[
-    Symbol.for("zee:lastSocket")
-  ];
-  if (typeof getter === "function")
-    return (getter as () => MockBaileysSocket)();
+  const getter = (globalThis as Record<PropertyKey, unknown>)[Symbol.for("clawdbot:lastSocket")];
+  if (typeof getter === "function") return (getter as () => MockBaileysSocket)();
   if (!getter) throw new Error("Baileys mock not initialized");
   throw new Error("Invalid Baileys socket getter");
 }

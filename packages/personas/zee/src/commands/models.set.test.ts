@@ -5,7 +5,7 @@ const writeConfigFile = vi.fn().mockResolvedValue(undefined);
 const loadConfig = vi.fn().mockReturnValue({});
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH_ZEE: "/tmp/zee.json",
+  CONFIG_PATH_CLAWDBOT: "/tmp/clawdbot.json",
   readConfigFileSnapshot,
   writeConfigFile,
   loadConfig,
@@ -19,7 +19,7 @@ describe("models set + fallbacks", () => {
 
   it("normalizes z.ai provider in models set", async () => {
     readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/zee.json",
+      path: "/tmp/clawdbot.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -35,24 +35,23 @@ describe("models set + fallbacks", () => {
     await modelsSetCommand("z.ai/glm-4.7", runtime);
 
     expect(writeConfigFile).toHaveBeenCalledTimes(1);
-    const written = writeConfigFile.mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
-    expect(written.agent).toEqual({
-      model: { primary: "zai/glm-4.7" },
-      models: { "zai/glm-4.7": {} },
+    const written = writeConfigFile.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(written.agents).toEqual({
+      defaults: {
+        model: { primary: "zai/glm-4.7" },
+        models: { "zai/glm-4.7": {} },
+      },
     });
   });
 
   it("normalizes z-ai provider in models fallbacks add", async () => {
     readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/zee.json",
+      path: "/tmp/clawdbot.json",
       exists: true,
       raw: "{}",
       parsed: {},
       valid: true,
-      config: { agent: { model: { fallbacks: [] } } },
+      config: { agents: { defaults: { model: { fallbacks: [] } } } },
       issues: [],
       legacyIssues: [],
     });
@@ -63,19 +62,18 @@ describe("models set + fallbacks", () => {
     await modelsFallbacksAddCommand("z-ai/glm-4.7", runtime);
 
     expect(writeConfigFile).toHaveBeenCalledTimes(1);
-    const written = writeConfigFile.mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
-    expect(written.agent).toEqual({
-      model: { fallbacks: ["zai/glm-4.7"] },
-      models: { "zai/glm-4.7": {} },
+    const written = writeConfigFile.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(written.agents).toEqual({
+      defaults: {
+        model: { fallbacks: ["zai/glm-4.7"] },
+        models: { "zai/glm-4.7": {} },
+      },
     });
   });
 
   it("normalizes provider casing in models set", async () => {
     readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/zee.json",
+      path: "/tmp/clawdbot.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -91,13 +89,12 @@ describe("models set + fallbacks", () => {
     await modelsSetCommand("Z.AI/glm-4.7", runtime);
 
     expect(writeConfigFile).toHaveBeenCalledTimes(1);
-    const written = writeConfigFile.mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
-    expect(written.agent).toEqual({
-      model: { primary: "zai/glm-4.7" },
-      models: { "zai/glm-4.7": {} },
+    const written = writeConfigFile.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(written.agents).toEqual({
+      defaults: {
+        model: { primary: "zai/glm-4.7" },
+        models: { "zai/glm-4.7": {} },
+      },
     });
   });
 });

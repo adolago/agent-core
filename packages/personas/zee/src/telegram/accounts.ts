@@ -1,34 +1,15 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import type { TelegramAccountConfig } from "../config/types.js";
-import {
-  DEFAULT_ACCOUNT_ID,
-  normalizeAccountId,
-} from "../routing/session-key.js";
+import { isTruthyEnvValue } from "../infra/env.js";
+import { listBoundAccountIds, resolveDefaultAgentBoundAccountId } from "../routing/bindings.js";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 import { resolveTelegramToken } from "./token.js";
 
-/**
- * Check if telegram user mode is enabled
- */
-export function isTelegramUserModeEnabled(cfg: ZeeConfig): boolean {
-  return cfg.telegram?.user?.enabled === true;
-}
-
-/**
- * Get telegram user config
- */
-export function getTelegramUserConfig(cfg: ZeeConfig): {
-  enabled: boolean;
-  phoneNumber: string | null;
-  password: string | null;
-} {
-  const userConfig = cfg.telegram?.user;
-  return {
-    enabled: userConfig?.enabled === true,
-    phoneNumber:
-      userConfig?.phoneNumber || process.env.TELEGRAM_USER_PHONE || null,
-    password: userConfig?.password || process.env.TELEGRAM_USER_2FA || null,
-  };
-}
+const debugAccounts = (...args: unknown[]) => {
+  if (isTruthyEnvValue(process.env.CLAWDBOT_DEBUG_TELEGRAM_ACCOUNTS)) {
+    console.warn("[telegram:accounts]", ...args);
+  }
+};
 
 export type ResolvedTelegramAccount = {
   accountId: string;
@@ -39,66 +20,97 @@ export type ResolvedTelegramAccount = {
   config: TelegramAccountConfig;
 };
 
-function listConfiguredAccountIds(cfg: ZeeConfig): string[] {
-  const accounts = cfg.telegram?.accounts;
+function listConfiguredAccountIds(cfg: ClawdbotConfig): string[] {
+  const accounts = cfg.channels?.telegram?.accounts;
   if (!accounts || typeof accounts !== "object") return [];
-  return Object.keys(accounts).filter(Boolean);
+  const ids = new Set<string>();
+  for (const key of Object.keys(accounts)) {
+    if (!key) continue;
+    ids.add(normalizeAccountId(key));
+  }
+  return [...ids];
 }
 
-export function listTelegramAccountIds(cfg: ZeeConfig): string[] {
-  const ids = listConfiguredAccountIds(cfg);
+export function listTelegramAccountIds(cfg: ClawdbotConfig): string[] {
+  const ids = Array.from(
+    new Set([...listConfiguredAccountIds(cfg), ...listBoundAccountIds(cfg, "telegram")]),
+  );
+  debugAccounts("listTelegramAccountIds", ids);
   if (ids.length === 0) return [DEFAULT_ACCOUNT_ID];
   return ids.sort((a, b) => a.localeCompare(b));
 }
 
-export function resolveDefaultTelegramAccountId(cfg: ZeeConfig): string {
+export function resolveDefaultTelegramAccountId(cfg: ClawdbotConfig): string {
+  const boundDefault = resolveDefaultAgentBoundAccountId(cfg, "telegram");
+  if (boundDefault) return boundDefault;
   const ids = listTelegramAccountIds(cfg);
   if (ids.includes(DEFAULT_ACCOUNT_ID)) return DEFAULT_ACCOUNT_ID;
   return ids[0] ?? DEFAULT_ACCOUNT_ID;
 }
 
 function resolveAccountConfig(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   accountId: string,
 ): TelegramAccountConfig | undefined {
-  const accounts = cfg.telegram?.accounts;
+  const accounts = cfg.channels?.telegram?.accounts;
   if (!accounts || typeof accounts !== "object") return undefined;
-  return accounts[accountId] as TelegramAccountConfig | undefined;
+  const direct = accounts[accountId] as TelegramAccountConfig | undefined;
+  if (direct) return direct;
+  const normalized = normalizeAccountId(accountId);
+  const matchKey = Object.keys(accounts).find((key) => normalizeAccountId(key) === normalized);
+  return matchKey ? (accounts[matchKey] as TelegramAccountConfig | undefined) : undefined;
 }
 
-function mergeTelegramAccountConfig(
-  cfg: ZeeConfig,
-  accountId: string,
-): TelegramAccountConfig {
-  const { accounts: _ignored, ...base } = (cfg.telegram ??
+function mergeTelegramAccountConfig(cfg: ClawdbotConfig, accountId: string): TelegramAccountConfig {
+  const { accounts: _ignored, ...base } = (cfg.channels?.telegram ??
     {}) as TelegramAccountConfig & { accounts?: unknown };
   const account = resolveAccountConfig(cfg, accountId) ?? {};
   return { ...base, ...account };
 }
 
 export function resolveTelegramAccount(params: {
-  cfg: ZeeConfig;
+  cfg: ClawdbotConfig;
   accountId?: string | null;
 }): ResolvedTelegramAccount {
-  const accountId = normalizeAccountId(params.accountId);
-  const baseEnabled = params.cfg.telegram?.enabled !== false;
-  const merged = mergeTelegramAccountConfig(params.cfg, accountId);
-  const accountEnabled = merged.enabled !== false;
-  const enabled = baseEnabled && accountEnabled;
-  const tokenResolution = resolveTelegramToken(params.cfg, { accountId });
-  return {
-    accountId,
-    enabled,
-    name: merged.name?.trim() || undefined,
-    token: tokenResolution.token,
-    tokenSource: tokenResolution.source,
-    config: merged,
+  const hasExplicitAccountId = Boolean(params.accountId?.trim());
+  const baseEnabled = params.cfg.channels?.telegram?.enabled !== false;
+
+  const resolve = (accountId: string) => {
+    const merged = mergeTelegramAccountConfig(params.cfg, accountId);
+    const accountEnabled = merged.enabled !== false;
+    const enabled = baseEnabled && accountEnabled;
+    const tokenResolution = resolveTelegramToken(params.cfg, { accountId });
+    debugAccounts("resolve", {
+      accountId,
+      enabled,
+      tokenSource: tokenResolution.source,
+    });
+    return {
+      accountId,
+      enabled,
+      name: merged.name?.trim() || undefined,
+      token: tokenResolution.token,
+      tokenSource: tokenResolution.source,
+      config: merged,
+    } satisfies ResolvedTelegramAccount;
   };
+
+  const normalized = normalizeAccountId(params.accountId);
+  const primary = resolve(normalized);
+  if (hasExplicitAccountId) return primary;
+  if (primary.tokenSource !== "none") return primary;
+
+  // If accountId is omitted, prefer a configured account token over failing on
+  // the implicit "default" account. This keeps env-based setups working while
+  // making config-only tokens work for things like heartbeats.
+  const fallbackId = resolveDefaultTelegramAccountId(params.cfg);
+  if (fallbackId === primary.accountId) return primary;
+  const fallback = resolve(fallbackId);
+  if (fallback.tokenSource === "none") return primary;
+  return fallback;
 }
 
-export function listEnabledTelegramAccounts(
-  cfg: ZeeConfig,
-): ResolvedTelegramAccount[] {
+export function listEnabledTelegramAccounts(cfg: ClawdbotConfig): ResolvedTelegramAccount[] {
   return listTelegramAccountIds(cfg)
     .map((accountId) => resolveTelegramAccount({ cfg, accountId }))
     .filter((account) => account.enabled);

@@ -1,51 +1,102 @@
 ---
-summary: "Updating Zee safely (npm or source), plus rollback strategy"
+summary: "Updating Clawdbot safely (global install or source), plus rollback strategy"
 read_when:
-  - Updating Zee
+  - Updating Clawdbot
   - Something breaks after an update
 ---
 
 # Updating
 
-Zee is moving fast (pre “1.0”). Treat updates like shipping infra: update → run checks → restart → verify.
+Clawdbot is moving fast (pre “1.0”). Treat updates like shipping infra: update → run checks → restart (or use `clawdbot update`, which restarts) → verify.
+
+## Recommended: re-run the website installer (upgrade in place)
+
+The **preferred** update path is to re-run the installer from the website. It
+detects existing installs, upgrades in place, and runs `clawdbot doctor` when
+needed.
+
+```bash
+curl -fsSL https://clawd.bot/install.sh | bash
+```
+
+Notes:
+- Add `--no-onboard` if you don’t want the onboarding wizard to run again.
+- For **source installs**, use:
+  ```bash
+  curl -fsSL https://clawd.bot/install.sh | bash -s -- --install-method git --no-onboard
+  ```
+  The installer will `git pull --rebase` **only** if the repo is clean.
+- For **global installs**, the script uses `npm install -g clawdbot@latest` under the hood.
 
 ## Before you update
 
-- Know how you installed: **npm** (global) vs **from source** (git clone).
+- Know how you installed: **global** (npm/pnpm) vs **from source** (git clone).
 - Know how your Gateway is running: **foreground terminal** vs **supervised service** (launchd/systemd).
 - Snapshot your tailoring:
-  - Config: `~/.zee/zee.json`
-  - Credentials: `~/.zee/credentials/`
+  - Config: `~/.clawdbot/clawdbot.json`
+  - Credentials: `~/.clawdbot/credentials/`
   - Workspace: `~/clawd`
 
-## Update (npm install)
+## Update (global install)
 
 Global install (pick one):
 
 ```bash
-npm i -g zee@latest
+npm i -g clawdbot@latest
 ```
 
 ```bash
-pnpm add -g zee@latest
+pnpm add -g clawdbot@latest
 ```
+We do **not** recommend Bun for the Gateway runtime (WhatsApp/Telegram bugs).
+
+To switch update channels (git + npm installs):
+
+```bash
+clawdbot update --channel beta
+clawdbot update --channel dev
+clawdbot update --channel stable
+```
+
+Use `--tag <dist-tag|version>` for a one-off install tag/version.
+
+See [Development channels](/install/development-channels) for channel semantics and release notes.
+
+Note: on npm installs, the gateway logs an update hint on startup (checks the current channel tag). Disable via `update.checkOnStart: false`.
 
 Then:
 
 ```bash
-zee doctor
-zee daemon restart
-zee health
+clawdbot doctor
+clawdbot gateway restart
+clawdbot health
 ```
 
 Notes:
-- If your Gateway runs as a service, `zee daemon restart` is preferred over killing PIDs.
+- If your Gateway runs as a service, `clawdbot gateway restart` is preferred over killing PIDs.
 - If you’re pinned to a specific version, see “Rollback / pinning” below.
+
+## Update (`clawdbot update`)
+
+For **source installs** (git checkout), prefer:
+
+```bash
+clawdbot update
+```
+
+It runs a safe-ish update flow:
+- Requires a clean worktree.
+- Switches to the selected channel (tag or branch).
+- Fetches + rebases against the configured upstream (dev channel).
+- Installs deps, builds, builds the Control UI, and runs `clawdbot doctor`.
+- Restarts the gateway by default (use `--no-restart` to skip).
+
+If you installed via **npm/pnpm** (no git metadata), `clawdbot update` will try to update via your package manager. If it can’t detect the install, use “Update (global install)” instead.
 
 ## Update (Control UI / RPC)
 
 The Control UI has **Update & Restart** (RPC: `update.run`). It:
-1) Runs a git update (clean rebase) or package manager update.
+1) Runs the same source-update flow as `clawdbot update` (git checkout only).
 2) Writes a restart sentinel with a structured report (stdout/stderr tail).
 3) Restarts the gateway and pings the last active session with the report.
 
@@ -55,60 +106,85 @@ If the rebase fails, the gateway aborts and restarts without applying the update
 
 From the repo checkout:
 
+Preferred:
+
+```bash
+clawdbot update
+```
+
+Manual (equivalent-ish):
+
 ```bash
 git pull
 pnpm install
 pnpm build
-pnpm ui:install
-pnpm ui:build
-pnpm zee doctor
-pnpm zee health
+pnpm ui:build # auto-installs UI deps on first run
+clawdbot doctor
+clawdbot health
 ```
 
 Notes:
-- `pnpm build` matters when you run the packaged `zee` binary ([`dist/entry.js`](https://github.com/zee/zee/blob/main/dist/entry.js)) or use Node to run `dist/`.
-- If you run directly from TypeScript (`pnpm zee ...` / `bun run zee ...`), a rebuild is usually unnecessary, but **config migrations still apply** → run doctor.
+- `pnpm build` matters when you run the packaged `clawdbot` binary ([`dist/entry.js`](https://github.com/clawdbot/clawdbot/blob/main/dist/entry.js)) or use Node to run `dist/`.
+- If you run from a repo checkout without a global install, use `pnpm clawdbot ...` for CLI commands.
+- If you run directly from TypeScript (`pnpm clawdbot ...`), a rebuild is usually unnecessary, but **config migrations still apply** → run doctor.
+- Switching between global and git installs is easy: install the other flavor, then run `clawdbot doctor` so the gateway service entrypoint is rewritten to the current install.
 
-## Always run: `zee doctor`
+## Always run: `clawdbot doctor`
 
 Doctor is the “safe update” command. It’s intentionally boring: repair + migrate + warn.
+
+Note: if you’re on a **source install** (git checkout), `clawdbot doctor` will offer to run `clawdbot update` first.
 
 Typical things it does:
 - Migrate deprecated config keys / legacy config file locations.
 - Audit DM policies and warn on risky “open” settings.
 - Check Gateway health and can offer to restart.
-- Detect and migrate older gateway services (launchd/systemd; legacy schtasks) to current Zee services.
+- Detect and migrate older gateway services (launchd/systemd; legacy schtasks) to current Clawdbot services.
 - On Linux, ensure systemd user lingering (so the Gateway survives logout).
 
-Details: use `agent-core daemon-status` and `agent-core gateway-status` for health checks.
+Details: [Doctor](/gateway/doctor)
 
 ## Start / stop / restart the Gateway
 
-In agent-core, the Zee gateway is supervised by the agent-core daemon.
+CLI (works regardless of OS):
 
 ```bash
-agent-core daemon-status
-agent-core daemon-stop
-systemctl restart agent-core.service
+clawdbot gateway status
+clawdbot gateway stop
+clawdbot gateway restart
+clawdbot gateway --port 18789
+clawdbot logs --follow
 ```
 
-Runbook: `docs/OPS.md` (agent-core)
+If you’re supervised:
+- macOS launchd (app-bundled LaunchAgent): `launchctl kickstart -k gui/$UID/com.clawdbot.gateway` (use `com.clawdbot.<profile>` if set)
+- Linux systemd user service: `systemctl --user restart clawdbot-gateway[-<profile>].service`
+- Windows (WSL2): `systemctl --user restart clawdbot-gateway[-<profile>].service`
+  - `launchctl`/`systemctl` only work if the service is installed; otherwise run `clawdbot gateway install`.
+
+Runbook + exact service labels: [Gateway runbook](/gateway)
 
 ## Rollback / pinning (when something breaks)
 
-### Pin (npm)
+### Pin (global install)
 
-Install a known-good version:
+Install a known-good version (replace `<version>` with the last working one):
 
 ```bash
-npm i -g zee@2026.1.8
+npm i -g clawdbot@<version>
 ```
+
+```bash
+pnpm add -g clawdbot@<version>
+```
+
+Tip: to see the current published version, run `npm view clawdbot version`.
 
 Then restart + re-run doctor:
 
 ```bash
-zee doctor
-zee daemon restart
+clawdbot doctor
+clawdbot gateway restart
 ```
 
 ### Pin (source) by date
@@ -125,7 +201,7 @@ Then reinstall deps + restart:
 ```bash
 pnpm install
 pnpm build
-zee daemon restart
+clawdbot gateway restart
 ```
 
 If you want to go back to latest later:
@@ -137,6 +213,6 @@ git pull
 
 ## If you’re stuck
 
-- Run `zee doctor` again and read the output carefully (it often tells you the fix).
+- Run `clawdbot doctor` again and read the output carefully (it often tells you the fix).
 - Check: [Troubleshooting](/gateway/troubleshooting)
-- Ask in Discord: https://discord.gg/clawd
+- Ask in Discord: https://channels.discord.gg/clawd

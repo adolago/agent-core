@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import {
   applyOpenAICodexModelDefault,
   OPENAI_CODEX_DEFAULT_MODEL,
@@ -8,33 +8,37 @@ import {
 
 describe("applyOpenAICodexModelDefault", () => {
   it("sets openai-codex default when model is unset", () => {
-    const cfg: ZeeConfig = { agent: {} };
+    const cfg: ClawdbotConfig = { agents: { defaults: {} } };
     const applied = applyOpenAICodexModelDefault(cfg);
     expect(applied.changed).toBe(true);
-    expect(applied.next.agent?.model).toEqual({
+    expect(applied.next.agents?.defaults?.model).toEqual({
       primary: OPENAI_CODEX_DEFAULT_MODEL,
     });
   });
 
   it("sets openai-codex default when model is openai/*", () => {
-    const cfg: ZeeConfig = { agent: { model: "openai/gpt-5.2" } };
+    const cfg: ClawdbotConfig = {
+      agents: { defaults: { model: "openai/gpt-5.2" } },
+    };
     const applied = applyOpenAICodexModelDefault(cfg);
     expect(applied.changed).toBe(true);
-    expect(applied.next.agent?.model).toEqual({
+    expect(applied.next.agents?.defaults?.model).toEqual({
       primary: OPENAI_CODEX_DEFAULT_MODEL,
     });
   });
 
   it("does not override openai-codex/*", () => {
-    const cfg: ZeeConfig = { agent: { model: "openai-codex/gpt-5.2" } };
+    const cfg: ClawdbotConfig = {
+      agents: { defaults: { model: "openai-codex/gpt-5.2" } },
+    };
     const applied = applyOpenAICodexModelDefault(cfg);
     expect(applied.changed).toBe(false);
     expect(applied.next).toEqual(cfg);
   });
 
   it("does not override non-openai models", () => {
-    const cfg: ZeeConfig = {
-      agent: { model: "anthropic/claude-opus-4-5" },
+    const cfg: ClawdbotConfig = {
+      agents: { defaults: { model: "anthropic/claude-opus-4-5" } },
     };
     const applied = applyOpenAICodexModelDefault(cfg);
     expect(applied.changed).toBe(false);

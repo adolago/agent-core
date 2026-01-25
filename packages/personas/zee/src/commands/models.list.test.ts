@@ -1,30 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.fn();
-const resolveZeeAgentDir = vi.fn().mockReturnValue("/tmp/zee-agent");
-const ensureAuthProfileStore = vi
-  .fn()
-  .mockReturnValue({ version: 1, profiles: {} });
+const ensureClawdbotModelsJson = vi.fn().mockResolvedValue(undefined);
+const resolveClawdbotAgentDir = vi.fn().mockReturnValue("/tmp/clawdbot-agent");
+const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {} });
 const listProfilesForProvider = vi.fn().mockReturnValue([]);
-const resolveAuthProfileDisplayLabel = vi.fn(
-  ({ profileId }: { profileId: string }) => profileId,
-);
+const resolveAuthProfileDisplayLabel = vi.fn(({ profileId }: { profileId: string }) => profileId);
 const resolveAuthStorePathForDisplay = vi
   .fn()
-  .mockReturnValue("/tmp/zee-agent/auth-profiles.json");
+  .mockReturnValue("/tmp/clawdbot-agent/auth-profiles.json");
+const resolveProfileUnusableUntilForDisplay = vi.fn().mockReturnValue(null);
 const resolveEnvApiKey = vi.fn().mockReturnValue(undefined);
+const resolveAwsSdkEnvVarName = vi.fn().mockReturnValue(undefined);
 const getCustomProviderApiKey = vi.fn().mockReturnValue(undefined);
 const discoverAuthStorage = vi.fn().mockReturnValue({});
 const discoverModels = vi.fn();
-const loadModelCatalog = vi.fn().mockResolvedValue([]);
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH_ZEE: "/tmp/zee.json",
+  CONFIG_PATH_CLAWDBOT: "/tmp/clawdbot.json",
+  STATE_DIR_CLAWDBOT: "/tmp/clawdbot-state",
   loadConfig,
 }));
 
+vi.mock("../agents/models-config.js", () => ({
+  ensureClawdbotModelsJson,
+}));
+
 vi.mock("../agents/agent-paths.js", () => ({
-  resolveZeeAgentDir,
+  resolveClawdbotAgentDir,
 }));
 
 vi.mock("../agents/auth-profiles.js", () => ({
@@ -32,17 +35,18 @@ vi.mock("../agents/auth-profiles.js", () => ({
   listProfilesForProvider,
   resolveAuthProfileDisplayLabel,
   resolveAuthStorePathForDisplay,
+  resolveProfileUnusableUntilForDisplay,
 }));
 
 vi.mock("../agents/model-auth.js", () => ({
   resolveEnvApiKey,
+  resolveAwsSdkEnvVarName,
   getCustomProviderApiKey,
 }));
 
-vi.mock("../agents/llm-types.js", () => ({
+vi.mock("@mariozechner/pi-coding-agent", () => ({
   discoverAuthStorage,
   discoverModels,
-  loadModelCatalog,
 }));
 
 function makeRuntime() {
@@ -54,7 +58,9 @@ function makeRuntime() {
 
 describe("models list/status", () => {
   it("models status resolves z.ai alias to canonical zai", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const { modelsStatusCommand } = await import("./models/list.js");
@@ -66,7 +72,9 @@ describe("models list/status", () => {
   });
 
   it("models status plain outputs canonical zai model", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const { modelsStatusCommand } = await import("./models/list.js");
@@ -77,7 +85,9 @@ describe("models list/status", () => {
   });
 
   it("models list outputs canonical zai key for configured z.ai model", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const model = {
@@ -103,7 +113,9 @@ describe("models list/status", () => {
   });
 
   it("models list plain outputs canonical zai key", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const model = {
@@ -128,7 +140,9 @@ describe("models list/status", () => {
   });
 
   it("models list provider filter normalizes z.ai alias", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const models = [
@@ -156,10 +170,7 @@ describe("models list/status", () => {
     });
 
     const { modelsListCommand } = await import("./models/list.js");
-    await modelsListCommand(
-      { all: true, provider: "z.ai", json: true },
-      runtime,
-    );
+    await modelsListCommand({ all: true, provider: "z.ai", json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
@@ -168,7 +179,9 @@ describe("models list/status", () => {
   });
 
   it("models list provider filter normalizes Z.AI alias casing", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const models = [
@@ -196,10 +209,7 @@ describe("models list/status", () => {
     });
 
     const { modelsListCommand } = await import("./models/list.js");
-    await modelsListCommand(
-      { all: true, provider: "Z.AI", json: true },
-      runtime,
-    );
+    await modelsListCommand({ all: true, provider: "Z.AI", json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
@@ -208,7 +218,9 @@ describe("models list/status", () => {
   });
 
   it("models list provider filter normalizes z-ai alias", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const models = [
@@ -236,10 +248,7 @@ describe("models list/status", () => {
     });
 
     const { modelsListCommand } = await import("./models/list.js");
-    await modelsListCommand(
-      { all: true, provider: "z-ai", json: true },
-      runtime,
-    );
+    await modelsListCommand({ all: true, provider: "z-ai", json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
@@ -248,7 +257,9 @@ describe("models list/status", () => {
   });
 
   it("models list marks auth as unavailable when ZAI key is missing", async () => {
-    loadConfig.mockReturnValue({ agent: { model: "z.ai/glm-4.7" } });
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
     const runtime = makeRuntime();
 
     const model = {

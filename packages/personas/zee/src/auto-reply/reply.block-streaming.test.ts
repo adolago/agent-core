@@ -1,40 +1,40 @@
-import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { runEmbeddedPiAgent } from "../agents/agent-core-embedded.js";
-import { loadModelCatalog } from "../agents/llm-types.js";
+
+import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
+import { loadModelCatalog } from "../agents/model-catalog.js";
 import { getReplyFromConfig } from "./reply.js";
 
-vi.mock("../agents/agent-core-embedded.js", () => ({
+type RunEmbeddedPiAgent = typeof import("../agents/pi-embedded.js").runEmbeddedPiAgent;
+type RunEmbeddedPiAgentParams = Parameters<RunEmbeddedPiAgent>[0];
+
+const piEmbeddedMock = vi.hoisted(() => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
-  runEmbeddedPiAgent: vi.fn(),
+  runEmbeddedPiAgent: vi.fn<ReturnType<RunEmbeddedPiAgent>, Parameters<RunEmbeddedPiAgent>>(),
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
-  resolveEmbeddedSessionLane: (key: string) =>
-    `session:${key.trim() || "main"}`,
+  resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
 }));
-vi.mock("../agents/llm-types.js", () => ({
+
+vi.mock("/src/agents/pi-embedded.js", () => piEmbeddedMock);
+vi.mock("../agents/pi-embedded.js", () => piEmbeddedMock);
+vi.mock("../agents/model-catalog.js", () => ({
   loadModelCatalog: vi.fn(),
 }));
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  const base = await fs.mkdtemp(path.join(os.tmpdir(), "zee-stream-"));
-  const previousHome = process.env.HOME;
-  process.env.HOME = base;
-  try {
-    return await fn(base);
-  } finally {
-    process.env.HOME = previousHome;
-    await fs.rm(base, { recursive: true, force: true });
-  }
+  return withTempHomeBase(fn, { prefix: "clawdbot-stream-" });
 }
 
 describe("block streaming", () => {
   beforeEach(() => {
-    vi.mocked(runEmbeddedPiAgent).mockReset();
+    piEmbeddedMock.abortEmbeddedPiRun.mockReset().mockReturnValue(false);
+    piEmbeddedMock.queueEmbeddedPiMessage.mockReset().mockReturnValue(false);
+    piEmbeddedMock.isEmbeddedPiRunActive.mockReset().mockReturnValue(false);
+    piEmbeddedMock.isEmbeddedPiRunStreaming.mockReset().mockReturnValue(false);
+    piEmbeddedMock.runEmbeddedPiAgent.mockReset();
     vi.mocked(loadModelCatalog).mockResolvedValue([
       { id: "claude-opus-4-5", name: "Opus 4.5", provider: "anthropic" },
       { id: "gpt-4.1-mini", name: "GPT-4.1 Mini", provider: "openai" },
@@ -42,7 +42,7 @@ describe("block streaming", () => {
   });
 
   async function waitForCalls(fn: () => number, calls: number) {
-    const deadline = Date.now() + 1500;
+    const deadline = Date.now() + 5000;
     while (fn() < calls) {
       if (Date.now() > deadline) {
         throw new Error(`Expected ${calls} call(s), got ${fn()}`);
@@ -60,7 +60,7 @@ describe("block streaming", () => {
       const onReplyStart = vi.fn(() => typingGate);
       const onBlockReply = vi.fn().mockResolvedValue(undefined);
 
-      vi.mocked(runEmbeddedPiAgent).mockImplementation(async (params) => {
+      const impl = async (params: RunEmbeddedPiAgentParams) => {
         void params.onBlockReply?.({ text: "hello" });
         return {
           payloads: [{ text: "hello" }],
@@ -69,7 +69,8 @@ describe("block streaming", () => {
             agentMeta: { sessionId: "s", provider: "p", model: "m" },
           },
         };
-      });
+      };
+      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(impl);
 
       const replyPromise = getReplyFromConfig(
         {
@@ -82,13 +83,16 @@ describe("block streaming", () => {
         {
           onReplyStart,
           onBlockReply,
+          disableBlockStreaming: false,
         },
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "zee"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
-          whatsapp: { allowFrom: ["*"] },
+          channels: { whatsapp: { allowFrom: ["*"] } },
           session: { store: path.join(home, "sessions.json") },
         },
       );
@@ -114,7 +118,7 @@ describe("block streaming", () => {
         seen.push(payload.text ?? "");
       });
 
-      vi.mocked(runEmbeddedPiAgent).mockImplementation(async (params) => {
+      const impl = async (params: RunEmbeddedPiAgentParams) => {
         void params.onBlockReply?.({ text: "first" });
         void params.onBlockReply?.({ text: "second" });
         return {
@@ -124,7 +128,8 @@ describe("block streaming", () => {
             agentMeta: { sessionId: "s", provider: "p", model: "m" },
           },
         };
-      });
+      };
+      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(impl);
 
       const replyPromise = getReplyFromConfig(
         {
@@ -137,13 +142,16 @@ describe("block streaming", () => {
         {
           onReplyStart,
           onBlockReply,
+          disableBlockStreaming: false,
         },
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "zee"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
-          telegram: { allowFrom: ["*"] },
+          channels: { telegram: { allowFrom: ["*"] } },
           session: { store: path.join(home, "sessions.json") },
         },
       );
@@ -153,7 +161,7 @@ describe("block streaming", () => {
 
       const res = await replyPromise;
       expect(res).toBeUndefined();
-      expect(seen).toEqual(["first", "second"]);
+      expect(seen).toEqual(["first\n\nsecond"]);
     });
   });
 
@@ -161,7 +169,7 @@ describe("block streaming", () => {
     await withTempHome(async (home) => {
       const onBlockReply = vi.fn().mockResolvedValue(undefined);
 
-      vi.mocked(runEmbeddedPiAgent).mockImplementation(async (params) => {
+      const impl = async (params: RunEmbeddedPiAgentParams) => {
         void params.onBlockReply?.({ text: "chunk-1" });
         return {
           payloads: [{ text: "chunk-1\nchunk-2" }],
@@ -170,7 +178,8 @@ describe("block streaming", () => {
             agentMeta: { sessionId: "s", provider: "p", model: "m" },
           },
         };
-      });
+      };
+      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(impl);
 
       const res = await getReplyFromConfig(
         {
@@ -182,19 +191,122 @@ describe("block streaming", () => {
         },
         {
           onBlockReply,
+          disableBlockStreaming: false,
         },
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "zee"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
-          whatsapp: { allowFrom: ["*"] },
+          channels: { whatsapp: { allowFrom: ["*"] } },
           session: { store: path.join(home, "sessions.json") },
         },
       );
 
       expect(res).toBeUndefined();
       expect(onBlockReply).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("falls back to final payloads when block reply send times out", async () => {
+    await withTempHome(async (home) => {
+      let sawAbort = false;
+      const onBlockReply = vi.fn((_, context) => {
+        return new Promise<void>((resolve) => {
+          context?.abortSignal?.addEventListener(
+            "abort",
+            () => {
+              sawAbort = true;
+              resolve();
+            },
+            { once: true },
+          );
+        });
+      });
+
+      const impl = async (params: RunEmbeddedPiAgentParams) => {
+        void params.onBlockReply?.({ text: "streamed" });
+        return {
+          payloads: [{ text: "final" }],
+          meta: {
+            durationMs: 5,
+            agentMeta: { sessionId: "s", provider: "p", model: "m" },
+          },
+        };
+      };
+      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(impl);
+
+      const replyPromise = getReplyFromConfig(
+        {
+          Body: "ping",
+          From: "+1004",
+          To: "+2000",
+          MessageSid: "msg-126",
+          Provider: "telegram",
+        },
+        {
+          onBlockReply,
+          blockReplyTimeoutMs: 10,
+          disableBlockStreaming: false,
+        },
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          channels: { telegram: { allowFrom: ["*"] } },
+          session: { store: path.join(home, "sessions.json") },
+        },
+      );
+
+      const res = await replyPromise;
+      expect(res).toMatchObject({ text: "final" });
+      expect(sawAbort).toBe(true);
+    });
+  });
+
+  it("does not enable block streaming for telegram streamMode block", async () => {
+    await withTempHome(async (home) => {
+      const onBlockReply = vi.fn().mockResolvedValue(undefined);
+
+      const impl = async () => ({
+        payloads: [{ text: "final" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+      piEmbeddedMock.runEmbeddedPiAgent.mockImplementation(impl);
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "ping",
+          From: "+1004",
+          To: "+2000",
+          MessageSid: "msg-126",
+          Provider: "telegram",
+        },
+        {
+          onBlockReply,
+        },
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          channels: { telegram: { allowFrom: ["*"], streamMode: "block" } },
+          session: { store: path.join(home, "sessions.json") },
+        },
+      );
+
+      expect(res?.text).toBe("final");
+      expect(onBlockReply).not.toHaveBeenCalled();
     });
   });
 });

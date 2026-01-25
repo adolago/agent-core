@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  browserOpenTab,
-  browserSnapshot,
-  browserStatus,
-  browserTabs,
-} from "./client.js";
+import { browserOpenTab, browserSnapshot, browserStatus, browserTabs } from "./client.js";
 import {
   browserAct,
   browserArmDialog,
@@ -31,16 +26,47 @@ describe("browser client", () => {
 
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(fetchFailed));
 
-    await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(
-      /Start .*gateway/i,
-    );
+    await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(/Start .*gateway/i);
   });
 
   it("adds useful timeout messaging for abort-like failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("aborted")));
-    await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(
-      /timed out/i,
+    await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(/timed out/i);
+  });
+
+  it("adds Authorization when CLAWDBOT_BROWSER_CONTROL_TOKEN is set", async () => {
+    const prev = process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN;
+    process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN = "t1";
+
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url, init });
+        return {
+          ok: true,
+          json: async () => ({
+            enabled: true,
+            controlUrl: "http://127.0.0.1:18791",
+            running: false,
+            pid: null,
+            cdpPort: 18792,
+            chosenBrowser: null,
+            userDataDir: null,
+            color: "#FF0000",
+            headless: true,
+            attachOnly: false,
+          }),
+        } as unknown as Response;
+      }),
     );
+
+    await browserStatus("http://127.0.0.1:18791");
+    const init = calls[0]?.init;
+    const auth = new Headers(init?.headers ?? {}).get("Authorization");
+    expect(auth).toBe("Bearer t1");
+
+    process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN = prev;
   });
 
   it("surfaces non-2xx responses with body text", async () => {
@@ -56,6 +82,70 @@ describe("browser client", () => {
     await expect(
       browserSnapshot("http://127.0.0.1:18791", { format: "aria", limit: 1 }),
     ).rejects.toThrow(/409: conflict/i);
+  });
+
+  it("adds labels + efficient mode query params to snapshots", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            format: "ai",
+            targetId: "t1",
+            url: "https://x",
+            snapshot: "ok",
+          }),
+        } as unknown as Response;
+      }),
+    );
+
+    await expect(
+      browserSnapshot("http://127.0.0.1:18791", {
+        format: "ai",
+        labels: true,
+        mode: "efficient",
+      }),
+    ).resolves.toMatchObject({ ok: true, format: "ai" });
+
+    const snapshotCall = calls.find((url) => url.includes("/snapshot?"));
+    expect(snapshotCall).toBeTruthy();
+    const parsed = new URL(snapshotCall as string);
+    expect(parsed.searchParams.get("labels")).toBe("1");
+    expect(parsed.searchParams.get("mode")).toBe("efficient");
+  });
+
+  it("adds refs=aria to snapshots when requested", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            format: "ai",
+            targetId: "t1",
+            url: "https://x",
+            snapshot: "ok",
+          }),
+        } as unknown as Response;
+      }),
+    );
+
+    await browserSnapshot("http://127.0.0.1:18791", {
+      format: "ai",
+      refs: "aria",
+    });
+
+    const snapshotCall = calls.find((url) => url.includes("/snapshot?"));
+    expect(snapshotCall).toBeTruthy();
+    const parsed = new URL(snapshotCall as string);
+    expect(parsed.searchParams.get("refs")).toBe("aria");
   });
 
   it("uses the expected endpoints + methods for common calls", async () => {
@@ -182,16 +272,12 @@ describe("browser client", () => {
       }),
     );
 
-    await expect(
-      browserStatus("http://127.0.0.1:18791"),
-    ).resolves.toMatchObject({
+    await expect(browserStatus("http://127.0.0.1:18791")).resolves.toMatchObject({
       running: true,
       cdpPort: 18792,
     });
 
-    await expect(browserTabs("http://127.0.0.1:18791")).resolves.toHaveLength(
-      1,
-    );
+    await expect(browserTabs("http://127.0.0.1:18791")).resolves.toHaveLength(1);
     await expect(
       browserOpenTab("http://127.0.0.1:18791", "https://example.com"),
     ).resolves.toMatchObject({ targetId: "t2" });
@@ -217,9 +303,10 @@ describe("browser client", () => {
     await expect(
       browserConsoleMessages("http://127.0.0.1:18791", { level: "error" }),
     ).resolves.toMatchObject({ ok: true, targetId: "t1" });
-    await expect(
-      browserPdfSave("http://127.0.0.1:18791"),
-    ).resolves.toMatchObject({ ok: true, path: "/tmp/a.pdf" });
+    await expect(browserPdfSave("http://127.0.0.1:18791")).resolves.toMatchObject({
+      ok: true,
+      path: "/tmp/a.pdf",
+    });
     await expect(
       browserScreenshotAction("http://127.0.0.1:18791", { fullPage: true }),
     ).resolves.toMatchObject({ ok: true, path: "/tmp/a.png" });

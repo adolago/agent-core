@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
 
 export type RestartSentinelLog = {
@@ -28,11 +29,20 @@ export type RestartSentinelStats = {
 };
 
 export type RestartSentinelPayload = {
-  kind: "config-apply" | "update";
+  kind: "config-apply" | "update" | "restart";
   status: "ok" | "error" | "skipped";
   ts: number;
   sessionKey?: string;
+  /** Delivery context captured at restart time to ensure channel routing survives restart. */
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+  };
+  /** Thread ID for reply threading (e.g., Slack thread_ts). */
+  threadId?: string;
   message?: string | null;
+  doctorHint?: string | null;
   stats?: RestartSentinelStats | null;
 };
 
@@ -43,9 +53,13 @@ export type RestartSentinel = {
 
 const SENTINEL_FILENAME = "restart-sentinel.json";
 
-export function resolveRestartSentinelPath(
-  env: NodeJS.ProcessEnv = process.env,
+export function formatDoctorNonInteractiveHint(
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): string {
+  return `Run: ${formatCliCommand("clawdbot doctor --non-interactive", env)}`;
+}
+
+export function resolveRestartSentinelPath(env: NodeJS.ProcessEnv = process.env): string {
   return path.join(resolveStateDir(env), SENTINEL_FILENAME);
 }
 
@@ -93,15 +107,11 @@ export async function consumeRestartSentinel(
   return parsed;
 }
 
-export function formatRestartSentinelMessage(
-  payload: RestartSentinelPayload,
-): string {
+export function formatRestartSentinelMessage(payload: RestartSentinelPayload): string {
   return `GatewayRestart:\n${JSON.stringify(payload, null, 2)}`;
 }
 
-export function summarizeRestartSentinel(
-  payload: RestartSentinelPayload,
-): string {
+export function summarizeRestartSentinel(payload: RestartSentinelPayload): string {
   const kind = payload.kind;
   const status = payload.status;
   const mode = payload.stats?.mode ? ` (${payload.stats.mode})` : "";

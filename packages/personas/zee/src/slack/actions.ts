@@ -1,8 +1,9 @@
-import { WebClient } from "@slack/web-api";
+import type { WebClient } from "@slack/web-api";
 
 import { loadConfig } from "../config/config.js";
 import { logVerbose } from "../globals.js";
 import { resolveSlackAccount } from "./accounts.js";
+import { createSlackWebClient } from "./client.js";
 import { sendMessageSlack } from "./send.js";
 import { resolveSlackBotToken } from "./token.js";
 
@@ -41,9 +42,7 @@ function resolveToken(explicit?: string, accountId?: string) {
         explicit,
       )} source=${account.botTokenSource ?? "unknown"}`,
     );
-    throw new Error(
-      "SLACK_BOT_TOKEN or slack.botToken is required for Slack actions",
-    );
+    throw new Error("SLACK_BOT_TOKEN or channels.slack.botToken is required for Slack actions");
   }
   return token;
 }
@@ -58,7 +57,7 @@ function normalizeEmoji(raw: string) {
 
 async function getClient(opts: SlackActionClientOpts = {}) {
   const token = resolveToken(opts.token, opts.accountId);
-  return opts.client ?? new WebClient(token);
+  return opts.client ?? createSlackWebClient(token);
 }
 
 async function resolveBotUserId(client: WebClient) {
@@ -151,8 +150,8 @@ export async function sendSlackMessage(
     accountId: opts.accountId,
     token: opts.token,
     mediaUrl: opts.mediaUrl,
-    threadTs: opts.threadTs,
     client: opts.client,
+    threadTs: opts.threadTs,
   });
 }
 
@@ -188,9 +187,29 @@ export async function readSlackMessages(
     limit?: number;
     before?: string;
     after?: string;
+    threadId?: string;
   } = {},
 ): Promise<{ messages: SlackMessageSummary[]; hasMore: boolean }> {
   const client = await getClient(opts);
+
+  // Use conversations.replies for thread messages, conversations.history for channel messages.
+  if (opts.threadId) {
+    const result = await client.conversations.replies({
+      channel: channelId,
+      ts: opts.threadId,
+      limit: opts.limit,
+      latest: opts.before,
+      oldest: opts.after,
+    });
+    return {
+      // conversations.replies includes the parent message; drop it for replies-only reads.
+      messages: (result.messages ?? []).filter(
+        (message) => (message as SlackMessageSummary)?.ts !== opts.threadId,
+      ) as SlackMessageSummary[],
+      hasMore: Boolean(result.has_more),
+    };
+  }
+
   const result = await client.conversations.history({
     channel: channelId,
     limit: opts.limit,
@@ -203,10 +222,7 @@ export async function readSlackMessages(
   };
 }
 
-export async function getSlackMemberInfo(
-  userId: string,
-  opts: SlackActionClientOpts = {},
-) {
+export async function getSlackMemberInfo(userId: string, opts: SlackActionClientOpts = {}) {
   const client = await getClient(opts);
   return await client.users.info({ user: userId });
 }

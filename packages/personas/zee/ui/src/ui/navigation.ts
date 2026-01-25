@@ -1,8 +1,10 @@
+import type { IconName } from "./icons.js";
+
 export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
   {
     label: "Control",
-    tabs: ["overview", "connections", "instances", "sessions", "cron"],
+    tabs: ["overview", "channels", "instances", "sessions", "cron"],
   },
   { label: "Agent", tabs: ["skills", "nodes"] },
   { label: "Settings", tabs: ["config", "debug", "logs"] },
@@ -10,7 +12,7 @@ export const TAB_GROUPS = [
 
 export type Tab =
   | "overview"
-  | "connections"
+  | "channels"
   | "instances"
   | "sessions"
   | "cron"
@@ -23,7 +25,7 @@ export type Tab =
 
 const TAB_PATHS: Record<Tab, string> = {
   overview: "/overview",
-  connections: "/connections",
+  channels: "/channels",
   instances: "/instances",
   sessions: "/sessions",
   cron: "/cron",
@@ -98,12 +100,41 @@ export function inferBasePathFromPathname(pathname: string): string {
   return `/${segments.join("/")}`;
 }
 
+export function iconForTab(tab: Tab): IconName {
+  switch (tab) {
+    case "chat":
+      return "messageSquare";
+    case "overview":
+      return "barChart";
+    case "channels":
+      return "link";
+    case "instances":
+      return "radio";
+    case "sessions":
+      return "fileText";
+    case "cron":
+      return "loader";
+    case "skills":
+      return "zap";
+    case "nodes":
+      return "monitor";
+    case "config":
+      return "settings";
+    case "debug":
+      return "bug";
+    case "logs":
+      return "scrollText";
+    default:
+      return "folder";
+  }
+}
+
 export function titleForTab(tab: Tab) {
   switch (tab) {
     case "overview":
       return "Overview";
-    case "connections":
-      return "Connections";
+    case "channels":
+      return "Channels";
     case "instances":
       return "Instances";
     case "sessions":
@@ -131,8 +162,8 @@ export function subtitleForTab(tab: Tab) {
   switch (tab) {
     case "overview":
       return "Gateway status, entry points, and a fast health read.";
-    case "connections":
-      return "Link providers and keep transport settings in sync.";
+    case "channels":
+      return "Manage channels and settings.";
     case "instances":
       return "Presence beacons from connected clients and nodes.";
     case "sessions":
@@ -146,7 +177,7 @@ export function subtitleForTab(tab: Tab) {
     case "chat":
       return "Direct gateway chat session for quick interventions.";
     case "config":
-      return "Edit ~/.zee/zee.json safely.";
+      return "Edit ~/.clawdbot/clawdbot.json safely.";
     case "debug":
       return "Gateway snapshots, events, and manual RPC calls.";
     case "logs":

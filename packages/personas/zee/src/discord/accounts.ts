@@ -1,9 +1,6 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import type { DiscordAccountConfig } from "../config/types.js";
-import {
-  DEFAULT_ACCOUNT_ID,
-  normalizeAccountId,
-} from "../routing/session-key.js";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 import { resolveDiscordToken } from "./token.js";
 
 export type ResolvedDiscordAccount = {
@@ -15,49 +12,47 @@ export type ResolvedDiscordAccount = {
   config: DiscordAccountConfig;
 };
 
-function listConfiguredAccountIds(cfg: ZeeConfig): string[] {
-  const accounts = cfg.discord?.accounts;
+function listConfiguredAccountIds(cfg: ClawdbotConfig): string[] {
+  const accounts = cfg.channels?.discord?.accounts;
   if (!accounts || typeof accounts !== "object") return [];
   return Object.keys(accounts).filter(Boolean);
 }
 
-export function listDiscordAccountIds(cfg: ZeeConfig): string[] {
+export function listDiscordAccountIds(cfg: ClawdbotConfig): string[] {
   const ids = listConfiguredAccountIds(cfg);
   if (ids.length === 0) return [DEFAULT_ACCOUNT_ID];
   return ids.sort((a, b) => a.localeCompare(b));
 }
 
-export function resolveDefaultDiscordAccountId(cfg: ZeeConfig): string {
+export function resolveDefaultDiscordAccountId(cfg: ClawdbotConfig): string {
   const ids = listDiscordAccountIds(cfg);
   if (ids.includes(DEFAULT_ACCOUNT_ID)) return DEFAULT_ACCOUNT_ID;
   return ids[0] ?? DEFAULT_ACCOUNT_ID;
 }
 
 function resolveAccountConfig(
-  cfg: ZeeConfig,
+  cfg: ClawdbotConfig,
   accountId: string,
 ): DiscordAccountConfig | undefined {
-  const accounts = cfg.discord?.accounts;
+  const accounts = cfg.channels?.discord?.accounts;
   if (!accounts || typeof accounts !== "object") return undefined;
   return accounts[accountId] as DiscordAccountConfig | undefined;
 }
 
-function mergeDiscordAccountConfig(
-  cfg: ZeeConfig,
-  accountId: string,
-): DiscordAccountConfig {
-  const { accounts: _ignored, ...base } = (cfg.discord ??
-    {}) as DiscordAccountConfig & { accounts?: unknown };
+function mergeDiscordAccountConfig(cfg: ClawdbotConfig, accountId: string): DiscordAccountConfig {
+  const { accounts: _ignored, ...base } = (cfg.channels?.discord ?? {}) as DiscordAccountConfig & {
+    accounts?: unknown;
+  };
   const account = resolveAccountConfig(cfg, accountId) ?? {};
   return { ...base, ...account };
 }
 
 export function resolveDiscordAccount(params: {
-  cfg: ZeeConfig;
+  cfg: ClawdbotConfig;
   accountId?: string | null;
 }): ResolvedDiscordAccount {
   const accountId = normalizeAccountId(params.accountId);
-  const baseEnabled = params.cfg.discord?.enabled !== false;
+  const baseEnabled = params.cfg.channels?.discord?.enabled !== false;
   const merged = mergeDiscordAccountConfig(params.cfg, accountId);
   const accountEnabled = merged.enabled !== false;
   const enabled = baseEnabled && accountEnabled;
@@ -72,9 +67,7 @@ export function resolveDiscordAccount(params: {
   };
 }
 
-export function listEnabledDiscordAccounts(
-  cfg: ZeeConfig,
-): ResolvedDiscordAccount[] {
+export function listEnabledDiscordAccounts(cfg: ClawdbotConfig): ResolvedDiscordAccount[] {
   return listDiscordAccountIds(cfg)
     .map((accountId) => resolveDiscordAccount({ cfg, accountId }))
     .filter((account) => account.enabled);

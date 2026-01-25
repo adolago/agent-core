@@ -3,67 +3,60 @@ summary: "WebSocket gateway architecture, components, and client flows"
 read_when:
   - Working on gateway protocol, clients, or transports
 ---
-# Gateway Architecture
+# Gateway architecture
 
-Last updated: 2026-01-05
+Last updated: 2026-01-22
 
 ## Overview
-- A single long-lived **Gateway** process owns all messaging surfaces (WhatsApp via Baileys, Telegram via grammY, Slack via Bolt, Discord via discord.js, Signal via signal-cli, iMessage via imsg, WebChat) and the control/event plane.
-- All clients (macOS app, CLI, web UI, automations) connect to the Gateway over one transport: **WebSocket on the configured bind host** (default `127.0.0.1:18789`; tunnel or VPN for remote).
-- One Gateway per host; it is the only place that is allowed to open a WhatsApp session. All sends/agent runs go through it.
-- By default: the Gateway exposes a Canvas host on `canvasHost.port` (default `18793`), serving `~/clawd/canvas` at `/__zee__/canvas/` with live-reload; disable via `canvasHost.enabled=false` or `ZEE_SKIP_CANVAS_HOST=1`.
 
-## Implementation snapshot (current code)
-
-### TypeScript Gateway ([`src/gateway/server.ts`](https://github.com/zee/zee/blob/main/src/gateway/server.ts))
-- Single HTTP + WebSocket server (default `18789`); bind policy `loopback|lan|tailnet|auto`. Refuses non-loopback binds without auth; Tailscale serve/funnel requires loopback.
-- Handshake: first frame must be a `connect` request; AJV validates request + params against TypeBox schemas; protocol negotiated via `minProtocol`/`maxProtocol`.
-- `hello-ok` includes snapshot (presence/health/stateVersion/uptime/configPath/stateDir), features (methods/events), policy (max payload/buffer/tick), and `canvasHostUrl` when available.
-- Events emitted: `agent`, `chat`, `presence`, `tick`, `health`, `heartbeat`, `cron`, `talk.mode`, `node.pair.requested`, `node.pair.resolved`, `voicewake.changed`, `shutdown`.
-- Idempotency keys are required for `send`, `agent`, `chat.send`, and node invokes; the dedupe cache avoids double-sends on reconnects. Payload sizes are capped per connection.
-- Optional node bridge ([`src/infra/bridge/server.ts`](https://github.com/zee/zee/blob/main/src/infra/bridge/server.ts)): TCP JSONL frames (`hello`, `pair-request`, `req/res`, `event`, `invoke`, `ping`). Used by Android/legacy nodes; connect/disconnect updates presence and flows into the session bus.
-- Control UI + Canvas host: HTTP serves Control UI (base path configurable) and can host the A2UI canvas via [`src/canvas-host/server.ts`](https://github.com/zee/zee/blob/main/src/canvas-host/server.ts) (live reload). Canvas host URL is advertised to nodes + clients.
-
-### iOS node (`apps/ios`)
-- Discovery: `GatewayDiscoveryModel` uses `NWBrowser` Bonjour discovery for `_zee-gateway._tcp`, reading TXT fields for LAN/tailnet host hints plus gateway/canvas ports and TLS pins.
-- Auto-connect: `GatewayConnectionController` uses stored `node.instanceId` + gateway token/password; supports manual host/port and optional TLS pinning.
-- Gateway runtime: `GatewayNodeSession` owns a WebSocket (`GatewayChannel`) session, handles `connect`/`req`/`res`, server `event`s, `node.invoke.request` callbacks, and stores `canvasHostUrl`.
-- Commands: `NodeAppModel` executes `canvas.*`, `canvas.a2ui.*`, `camera.*`, `screen.record`, `location.get`. Canvas/camera/screen are blocked when backgrounded.
-- Canvas + actions: `WKWebView` with A2UI action bridge; accepts actions from local-network or trusted file URLs; intercepts `zee://` deep links and forwards `agent.request` to the gateway.
-- Voice/talk: voice wake sends `voice.transcript` events and syncs triggers via `voicewake.get` + `voicewake.changed`; Talk Mode attaches to the gateway.
-
-### Android node (`apps/android`)
-- Discovery + pairing: `BridgeDiscovery` uses mDNS/NSD to find `_zee-bridge._tcp`, with manual host/port fallback.
-- Auto-connect: `NodeRuntime` restores a stored token, performs `pair-and-hello`, and reconnects to the last discovered or manual bridge.
-- Bridge runtime: `BridgeSession` owns the TCP JSONL session (`hello`/`hello-ok`, ping/pong, `req/res`, `event`, `invoke`); stores `canvasHostUrl`.
-- Commands: `NodeRuntime` executes `canvas.*`, `canvas.a2ui.*`, `camera.*`, and chat/session events; foreground-only for canvas/camera.
+- A single long‑lived **Gateway** owns all messaging surfaces (WhatsApp via
+  Baileys, Telegram via grammY, Slack, Discord, Signal, iMessage, WebChat).
+- Control-plane clients (macOS app, CLI, web UI, automations) connect to the
+  Gateway over **WebSocket** on the configured bind host (default
+  `127.0.0.1:18789`).
+- **Nodes** (macOS/iOS/Android/headless) also connect over **WebSocket**, but
+  declare `role: node` with explicit caps/commands.
+- One Gateway per host; it is the only place that opens a WhatsApp session.
+- A **canvas host** (default `18793`) serves agent‑editable HTML and A2UI.
 
 ## Components and flows
-- **Gateway (daemon)**  
-  - Maintains WhatsApp (Baileys), Telegram (grammY), Slack (Bolt), Discord (discord.js), Signal (signal-cli), and iMessage (imsg) connections.  
-  - Exposes a typed WS API (req/resp + server push events).  
-  - Validates every inbound frame against JSON Schema; rejects anything before a mandatory `connect`.
-- **Clients (mac app / CLI / web admin)**  
-  - One WS connection per client.  
-  - Send requests (`health`, `status`, `send`, `agent`, `system-presence`, toggles) and subscribe to events (`tick`, `agent`, `presence`, `shutdown`).
-  - On macOS, the app can also be invoked via deep links (`zee://agent?...`) which translate into the same Gateway `agent` request path (see [`docs/macos.md`](/platforms/macos)).
-- **Agent process (Pi)**  
-  - Spawned by the Gateway on demand for `agent` calls; streams events back over the same WS connection.
-- **WebChat**  
-  - Serves static assets locally.  
-  - Holds a single WS connection to the Gateway for control/data; all sends/agent runs go through the Gateway WS.  
-  - Remote use goes through the same SSH/Tailscale tunnel as other clients.
+
+### Gateway (daemon)
+- Maintains provider connections.
+- Exposes a typed WS API (requests, responses, server‑push events).
+- Validates inbound frames against JSON Schema.
+- Emits events like `agent`, `chat`, `presence`, `health`, `heartbeat`, `cron`.
+
+### Clients (mac app / CLI / web admin)
+- One WS connection per client.
+- Send requests (`health`, `status`, `send`, `agent`, `system-presence`).
+- Subscribe to events (`tick`, `agent`, `presence`, `shutdown`).
+
+### Nodes (macOS / iOS / Android / headless)
+- Connect to the **same WS server** with `role: node`.
+- Provide a device identity in `connect`; pairing is **device‑based** (role `node`) and
+  approval lives in the device pairing store.
+- Expose commands like `canvas.*`, `camera.*`, `screen.record`, `location.get`.
+
+Protocol details:
+- [Gateway protocol](/gateway/protocol)
+
+### WebChat
+- Static UI that uses the Gateway WS API for chat history and sends.
+- In remote setups, connects through the same SSH/Tailscale tunnel as other
+  clients.
 
 ## Connection lifecycle (single client)
+
 ```
 Client                    Gateway
   |                          |
   |---- req:connect -------->|
   |<------ res (ok) ---------|   (or res error + close)
-  |   (payload=hello-ok carries snapshot: presence + health) 
+  |   (payload=hello-ok carries snapshot: presence + health)
   |                          |
-  |<------ event:presence ---|   (deltas)
-  |<------ event:tick -------|   (keepalive/no-op)
+  |<------ event:presence ---|
+  |<------ event:tick -------|
   |                          |
   |------- req:agent ------->|
   |<------ res:agent --------|   (ack: {runId,status:"accepted"})
@@ -71,44 +64,59 @@ Client                    Gateway
   |<------ res:agent --------|   (final: {runId,status,summary})
   |                          |
 ```
+
 ## Wire protocol (summary)
+
 - Transport: WebSocket, text frames with JSON payloads.
-- First frame must be `req {type:"req", id, method:"connect", params:{minProtocol, maxProtocol, client:{name,version,platform,mode,instanceId}, caps, auth?, locale?, userAgent? } }`.
-- Server replies `res {type:"res", id, ok:true, payload: hello-ok }` or `ok:false` then closes.
-- After handshake:  
-  - Requests: `{type:"req", id, method, params}` → `{type:"res", id, ok, payload|error}`  
-  - Events: `{type:"event", event:"agent"|"presence"|"tick"|"shutdown", payload, seq?, stateVersion?}`
-- If `ZEE_GATEWAY_TOKEN` (or `--token`) is set, `connect.params.auth.token` must match; otherwise the socket closes with policy violation.
-- Presence payload is structured, not free text: `{host, ip, version, mode, lastInputSeconds?, ts, reason?, tags?[], instanceId? }`.
-- Agent runs are acked `{runId,status:"accepted"}` then complete with a final res `{runId,status,summary}`; streamed output arrives as `event:"agent"`.
-- Protocol versions are bumped on breaking changes; clients must match `minClient`; Gateway chooses within client’s min/max.
-- Idempotency keys are required for side-effecting methods (`send`, `agent`) to safely retry; server keeps a short-lived dedupe cache.
-- Policy in `hello-ok` communicates payload/queue limits and tick interval.
+- First frame **must** be `connect`.
+- After handshake:
+  - Requests: `{type:"req", id, method, params}` → `{type:"res", id, ok, payload|error}`
+  - Events: `{type:"event", event, payload, seq?, stateVersion?}`
+- If `CLAWDBOT_GATEWAY_TOKEN` (or `--token`) is set, `connect.params.auth.token`
+  must match or the socket closes.
+- Idempotency keys are required for side‑effecting methods (`send`, `agent`) to
+  safely retry; the server keeps a short‑lived dedupe cache.
+- Nodes must include `role: "node"` plus caps/commands/permissions in `connect`.
 
-## Type system and codegen
-- Source of truth: TypeBox (or ArkType) definitions in `protocol/` on the server.
-- Build step emits JSON Schema.  
-- Clients:
-  - TypeScript: uses the same TypeBox types directly.
-  - Swift: generated `Codable` models via quicktype from the JSON Schema.
-- Validation: AJV on the server for every inbound frame; optional client-side validation for defensive programming.
+## Pairing + local trust
 
-## Invariants
-- Exactly one Gateway controls a single Baileys session per host. No fallbacks to ad-hoc direct Baileys sends.
-- Handshake is mandatory; any non-JSON or non-connect first frame is a hard close.
-- All methods and events are versioned; new fields are additive; breaking changes increment `protocol`.
-- No event replay: on seq gaps, clients must refresh (`health` + `system-presence`) and continue; presence is bounded via TTL/max entries.
+- All WS clients (operators + nodes) include a **device identity** on `connect`.
+- New device IDs require pairing approval; the Gateway issues a **device token**
+  for subsequent connects.
+- **Local** connects (loopback or the gateway host’s own tailnet address) can be
+  auto‑approved to keep same‑host UX smooth.
+- **Non‑local** connects must sign the `connect.challenge` nonce and require
+  explicit approval.
+- Gateway auth (`gateway.auth.*`) still applies to **all** connections, local or
+  remote.
+
+Details: [Gateway protocol](/gateway/protocol), [Pairing](/start/pairing),
+[Security](/gateway/security).
+
+## Protocol typing and codegen
+
+- TypeBox schemas define the protocol.
+- JSON Schema is generated from those schemas.
+- Swift models are generated from the JSON Schema.
 
 ## Remote access
-- Preferred: Tailscale or VPN; alternate: SSH tunnel `ssh -N -L 18789:127.0.0.1:18789 user@host`.
-- Same protocol over the tunnel; same handshake. If a shared token is configured, clients must send it in `connect.params.auth.token` even over the tunnel.
-- Same protocol over the tunnel; same handshake. If a shared token is configured, clients must send it in `connect.params.auth.token` even over the tunnel.
+
+- Preferred: Tailscale or VPN.
+- Alternative: SSH tunnel
+  ```bash
+  ssh -N -L 18789:127.0.0.1:18789 user@host
+  ```
+- The same handshake + auth token apply over the tunnel.
+- TLS + optional pinning can be enabled for WS in remote setups.
 
 ## Operations snapshot
-- Start: `zee gateway` (foreground, logs to stdout).  
-  Supervise with launchd/systemd for restarts.  
-- Health: request `health` over WS; also surfaced in `hello-ok.health`.  
-- Metrics/logging: keep outside this spec; gateway should expose Prometheus text or structured logs separately.
 
-## Migration notes
-- This architecture supersedes the legacy stdin RPC and the ad-hoc TCP control port. New clients should speak only the WS protocol. Legacy compatibility is intentionally dropped.
+- Start: `clawdbot gateway` (foreground, logs to stdout).
+- Health: `health` over WS (also included in `hello-ok`).
+- Supervision: launchd/systemd for auto‑restart.
+
+## Invariants
+
+- Exactly one Gateway controls a single Baileys session per host.
+- Handshake is mandatory; any non‑JSON or non‑connect first frame is a hard close.
+- Events are not replayed; clients must refresh on gaps.

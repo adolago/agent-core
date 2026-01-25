@@ -14,7 +14,7 @@ describe("resolvePythonExecutablePath", () => {
   itUnix(
     "resolves a working python path and caches the result",
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "zee-python-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-python-"));
       const originalPath = process.env.PATH;
       try {
         const realPython = path.join(tmp, "python-real");
@@ -33,9 +33,7 @@ describe("resolvePythonExecutablePath", () => {
 
         process.env.PATH = `${shimDir}${path.delimiter}/usr/bin`;
 
-        const { resolvePythonExecutablePath } = await import(
-          "./gmail-setup-utils.js"
-        );
+        const { resolvePythonExecutablePath } = await import("./gmail-setup-utils.js");
 
         const resolved = await resolvePythonExecutablePath();
         expect(resolved).toBe(realPython);

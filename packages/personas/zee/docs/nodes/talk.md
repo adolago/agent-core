@@ -40,7 +40,7 @@ Supported keys:
 - `seed`, `normalize`, `lang`, `output_format`, `latency_tier`
 - `once`
 
-## Config (zee.json)
+## Config (`~/.clawdbot/clawdbot.json`)
 ```json5
 {
   "talk": {

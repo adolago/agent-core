@@ -1,11 +1,59 @@
-export type ProvidersStatusSnapshot = {
+export type ChannelsStatusSnapshot = {
   ts: number;
-  whatsapp: WhatsAppStatus;
-  telegram: TelegramStatus;
-  discord?: DiscordStatus | null;
-  slack?: SlackStatus | null;
-  signal?: SignalStatus | null;
-  imessage?: IMessageStatus | null;
+  channelOrder: string[];
+  channelLabels: Record<string, string>;
+  channelDetailLabels?: Record<string, string>;
+  channelSystemImages?: Record<string, string>;
+  channelMeta?: ChannelUiMetaEntry[];
+  channels: Record<string, unknown>;
+  channelAccounts: Record<string, ChannelAccountSnapshot[]>;
+  channelDefaultAccountId: Record<string, string>;
+};
+
+export type ChannelUiMetaEntry = {
+  id: string;
+  label: string;
+  detailLabel: string;
+  systemImage?: string;
+};
+
+export const CRON_CHANNEL_LAST = "last";
+
+export type ChannelAccountSnapshot = {
+  accountId: string;
+  name?: string | null;
+  enabled?: boolean | null;
+  configured?: boolean | null;
+  linked?: boolean | null;
+  running?: boolean | null;
+  connected?: boolean | null;
+  reconnectAttempts?: number | null;
+  lastConnectedAt?: number | null;
+  lastError?: string | null;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastInboundAt?: number | null;
+  lastOutboundAt?: number | null;
+  lastProbeAt?: number | null;
+  mode?: string | null;
+  dmPolicy?: string | null;
+  allowFrom?: string[] | null;
+  tokenSource?: string | null;
+  botTokenSource?: string | null;
+  appTokenSource?: string | null;
+  credentialSource?: string | null;
+  audienceType?: string | null;
+  audience?: string | null;
+  webhookPath?: string | null;
+  webhookUrl?: string | null;
+  baseUrl?: string | null;
+  allowUnmentionedGroups?: boolean | null;
+  cliPath?: string | null;
+  dbPath?: string | null;
+  port?: number | null;
+  probe?: unknown;
+  audit?: unknown;
+  application?: unknown;
 };
 
 export type WhatsAppSelf = {
@@ -90,6 +138,28 @@ export type DiscordStatus = {
   lastProbeAt?: number | null;
 };
 
+export type GoogleChatProbe = {
+  ok: boolean;
+  status?: number | null;
+  error?: string | null;
+  elapsedMs?: number | null;
+};
+
+export type GoogleChatStatus = {
+  configured: boolean;
+  credentialSource?: string | null;
+  audienceType?: string | null;
+  audience?: string | null;
+  webhookPath?: string | null;
+  webhookUrl?: string | null;
+  running: boolean;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastError?: string | null;
+  probe?: GoogleChatProbe | null;
+  lastProbeAt?: number | null;
+};
+
 export type SlackBot = {
   id?: string | null;
   name?: string | null;
@@ -157,6 +227,44 @@ export type IMessageStatus = {
   lastProbeAt?: number | null;
 };
 
+export type NostrProfile = {
+  name?: string | null;
+  displayName?: string | null;
+  about?: string | null;
+  picture?: string | null;
+  banner?: string | null;
+  website?: string | null;
+  nip05?: string | null;
+  lud16?: string | null;
+};
+
+export type NostrStatus = {
+  configured: boolean;
+  publicKey?: string | null;
+  running: boolean;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastError?: string | null;
+  profile?: NostrProfile | null;
+};
+
+export type MSTeamsProbe = {
+  ok: boolean;
+  error?: string | null;
+  appId?: string | null;
+};
+
+export type MSTeamsStatus = {
+  configured: boolean;
+  running: boolean;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastError?: string | null;
+  port?: number | null;
+  probe?: MSTeamsProbe | null;
+  lastProbeAt?: number | null;
+};
+
 export type ConfigSnapshotIssue = {
   path: string;
   message: string;
@@ -166,6 +274,7 @@ export type ConfigSnapshot = {
   path?: string | null;
   exists?: boolean | null;
   raw?: string | null;
+  hash?: string | null;
   parsed?: unknown;
   valid?: boolean | null;
   config?: Record<string, unknown> | null;
@@ -212,9 +321,29 @@ export type GatewaySessionsDefaults = {
   contextTokens: number | null;
 };
 
+export type GatewayAgentRow = {
+  id: string;
+  name?: string;
+  identity?: {
+    name?: string;
+    theme?: string;
+    emoji?: string;
+    avatar?: string;
+    avatarUrl?: string;
+  };
+};
+
+export type AgentsListResult = {
+  defaultId: string;
+  mainKey: string;
+  scope: string;
+  agents: GatewayAgentRow[];
+};
+
 export type GatewaySessionRow = {
   key: string;
   kind: "direct" | "group" | "global" | "unknown";
+  label?: string;
   displayName?: string;
   surface?: string;
   subject?: string;
@@ -232,6 +361,7 @@ export type GatewaySessionRow = {
   outputTokens?: number;
   totalTokens?: number;
   model?: string;
+  modelProvider?: string;
   contextTokens?: number;
 };
 
@@ -280,7 +410,8 @@ export type CronPayload =
         | "discord"
         | "slack"
         | "signal"
-        | "imessage";
+        | "imessage"
+        | "msteams";
       to?: string;
       bestEffortDeliver?: boolean;
     };
@@ -300,9 +431,11 @@ export type CronJobState = {
 
 export type CronJob = {
   id: string;
+  agentId?: string;
   name: string;
   description?: string;
   enabled: boolean;
+  deleteAfterRun?: boolean;
   createdAtMs: number;
   updatedAtMs: number;
   schedule: CronSchedule;

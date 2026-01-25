@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import process from "node:process";
 
-declare const __ZEE_VERSION__: string | undefined;
+declare const __CLAWDBOT_VERSION__: string | undefined;
 
 const BUNDLED_VERSION =
-  typeof __ZEE_VERSION__ === "string" ? __ZEE_VERSION__ : "0.0.0";
+  (typeof __CLAWDBOT_VERSION__ === "string" && __CLAWDBOT_VERSION__) ||
+  process.env.CLAWDBOT_BUNDLED_VERSION ||
+  "0.0.0";
 
 function hasFlag(args: string[], flag: string): boolean {
   return args.includes(flag);
@@ -23,18 +25,12 @@ async function main() {
   const args = process.argv.slice(2);
 
   // Swift side expects `--version` to return a plain semver string.
-  if (
-    hasFlag(args, "--version") ||
-    hasFlag(args, "-V") ||
-    hasFlag(args, "-v")
-  ) {
+  if (hasFlag(args, "--version") || hasFlag(args, "-V") || hasFlag(args, "-v")) {
     console.log(BUNDLED_VERSION);
     process.exit(0);
   }
 
-  const { parseRelaySmokeTest, runRelaySmokeTest } = await import(
-    "./relay-smoke.js"
-  );
+  const { parseRelaySmokeTest, runRelaySmokeTest } = await import("./relay-smoke.js");
   const smokeTest = parseRelaySmokeTest(args, process.env);
   if (smokeTest) {
     try {
@@ -51,33 +47,34 @@ async function main() {
   const { loadDotEnv } = await import("../infra/dotenv.js");
   loadDotEnv({ quiet: true });
 
-  const { ensureZeeCliOnPath } = await import("../infra/path-env.js");
-  ensureZeeCliOnPath();
+  const { ensureClawdbotCliOnPath } = await import("../infra/path-env.js");
+  ensureClawdbotCliOnPath();
 
   const { enableConsoleCapture } = await import("../logging.js");
   enableConsoleCapture();
 
   const { assertSupportedRuntime } = await import("../infra/runtime-guard.js");
   assertSupportedRuntime();
-  const { installUnhandledRejectionHandler } = await import(
-    "../infra/unhandled-rejections.js"
-  );
+  const { formatUncaughtError } = await import("../infra/errors.js");
+  const { installUnhandledRejectionHandler } = await import("../infra/unhandled-rejections.js");
 
-  const { isAgentCoreReachable } = await import(
-    "../cli/agent-core-availability.js"
-  );
   const { buildProgram } = await import("../cli/program.js");
-  const enableModelsCli = await isAgentCoreReachable();
-  const program = buildProgram({ enableModelsCli });
+  const program = buildProgram();
 
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
-    console.error("[zee] Uncaught exception:", error.stack ?? error.message);
+    console.error("[clawdbot] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
 
   await program.parseAsync(process.argv);
 }
 
-void main();
+void main().catch((err) => {
+  console.error(
+    "[clawdbot] Relay failed:",
+    err instanceof Error ? (err.stack ?? err.message) : err,
+  );
+  process.exit(1);
+});

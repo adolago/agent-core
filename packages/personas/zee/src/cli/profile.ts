@@ -1,6 +1,8 @@
 import os from "node:os";
 import path from "node:path";
 
+import { isValidProfileName } from "./profile-utils.js";
+
 export type CliProfileParseResult =
   | { ok: true; profile: string | null; argv: string[] }
   | { ok: false; error: string };
@@ -21,29 +23,23 @@ function takeValue(
   return { value: trimmed || null, consumedNext: Boolean(next) };
 }
 
-function isValidProfileName(value: string): boolean {
-  if (!value) return false;
-  // Keep it path-safe + shell-friendly.
-  return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(value);
-}
-
 export function parseCliProfileArgs(argv: string[]): CliProfileParseResult {
   if (argv.length < 2) return { ok: true, profile: null, argv };
 
   const out: string[] = argv.slice(0, 2);
   let profile: string | null = null;
   let sawDev = false;
+  let sawCommand = false;
 
-  let args = argv.slice(2);
-
-  // Strip leading "--" that pnpm/npm pass through (e.g., "pnpm dev -- browser ...")
-  // so Commander doesn't misinterpret it as "stop parsing options".
-  if (args[0] === "--") {
-    args = args.slice(1);
-  }
+  const args = argv.slice(2);
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === undefined) continue;
+
+    if (sawCommand) {
+      out.push(arg);
+      continue;
+    }
 
     if (arg === "--dev") {
       if (profile && profile !== "dev") {
@@ -72,18 +68,21 @@ export function parseCliProfileArgs(argv: string[]): CliProfileParseResult {
       continue;
     }
 
+    if (!arg.startsWith("-")) {
+      sawCommand = true;
+      out.push(arg);
+      continue;
+    }
+
     out.push(arg);
   }
 
   return { ok: true, profile, argv: out };
 }
 
-function resolveProfileStateDir(
-  profile: string,
-  homedir: () => string,
-): string {
+function resolveProfileStateDir(profile: string, homedir: () => string): string {
   const suffix = profile.toLowerCase() === "default" ? "" : `-${profile}`;
-  return path.join(homedir(), `.zee${suffix}`);
+  return path.join(homedir(), `.clawdbot${suffix}`);
 }
 
 export function applyCliProfileEnv(params: {
@@ -97,17 +96,16 @@ export function applyCliProfileEnv(params: {
   if (!profile) return;
 
   // Convenience only: fill defaults, never override explicit env values.
-  env.ZEE_PROFILE = profile;
+  env.CLAWDBOT_PROFILE = profile;
 
-  const stateDir =
-    env.ZEE_STATE_DIR?.trim() || resolveProfileStateDir(profile, homedir);
-  if (!env.ZEE_STATE_DIR?.trim()) env.ZEE_STATE_DIR = stateDir;
+  const stateDir = env.CLAWDBOT_STATE_DIR?.trim() || resolveProfileStateDir(profile, homedir);
+  if (!env.CLAWDBOT_STATE_DIR?.trim()) env.CLAWDBOT_STATE_DIR = stateDir;
 
-  if (!env.ZEE_CONFIG_PATH?.trim()) {
-    env.ZEE_CONFIG_PATH = path.join(stateDir, "zee.json");
+  if (!env.CLAWDBOT_CONFIG_PATH?.trim()) {
+    env.CLAWDBOT_CONFIG_PATH = path.join(stateDir, "clawdbot.json");
   }
 
-  if (profile === "dev" && !env.ZEE_GATEWAY_PORT?.trim()) {
-    env.ZEE_GATEWAY_PORT = "19001";
+  if (profile === "dev" && !env.CLAWDBOT_GATEWAY_PORT?.trim()) {
+    env.CLAWDBOT_GATEWAY_PORT = "19001";
   }
 }

@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ZeeApp } from "./app";
+import { ClawdbotApp } from "./app";
+import "../styles.css";
 
-const originalConnect = ZeeApp.prototype.connect;
+const originalConnect = ClawdbotApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("zee-app") as ZeeApp;
+  const app = document.createElement("clawdbot-app") as ClawdbotApp;
   document.body.append(app);
   return app;
 }
@@ -18,17 +19,17 @@ function nextFrame() {
 }
 
 beforeEach(() => {
-  ZeeApp.prototype.connect = () => {
+  ClawdbotApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
-  window.__ZEE_CONTROL_UI_BASE_PATH__ = undefined;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
 
 afterEach(() => {
-  ZeeApp.prototype.connect = originalConnect;
-  window.__ZEE_CONTROL_UI_BASE_PATH__ = undefined;
+  ClawdbotApp.prototype.connect = originalConnect;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
@@ -52,22 +53,22 @@ describe("control UI routing", () => {
   });
 
   it("infers nested base paths", async () => {
-    const app = mountApp("/apps/zee/cron");
+    const app = mountApp("/apps/clawdbot/cron");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/apps/zee");
+    expect(app.basePath).toBe("/apps/clawdbot");
     expect(app.tab).toBe("cron");
-    expect(window.location.pathname).toBe("/apps/zee/cron");
+    expect(window.location.pathname).toBe("/apps/clawdbot/cron");
   });
 
   it("honors explicit base path overrides", async () => {
-    window.__ZEE_CONTROL_UI_BASE_PATH__ = "/zee";
-    const app = mountApp("/zee/sessions");
+    window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = "/clawdbot";
+    const app = mountApp("/clawdbot/sessions");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/zee");
+    expect(app.basePath).toBe("/clawdbot");
     expect(app.tab).toBe("sessions");
-    expect(window.location.pathname).toBe("/zee/sessions");
+    expect(window.location.pathname).toBe("/clawdbot/sessions");
   });
 
   it("updates the URL when clicking nav items", async () => {
@@ -75,7 +76,7 @@ describe("control UI routing", () => {
     await app.updateComplete;
 
     const link = app.querySelector<HTMLAnchorElement>(
-      'a.nav-item[href="/connections"]',
+      'a.nav-item[href="/channels"]',
     );
     expect(link).not.toBeNull();
     link?.dispatchEvent(
@@ -83,8 +84,36 @@ describe("control UI routing", () => {
     );
 
     await app.updateComplete;
-    expect(app.tab).toBe("connections");
-    expect(window.location.pathname).toBe("/connections");
+    expect(app.tab).toBe("channels");
+    expect(window.location.pathname).toBe("/channels");
+  });
+
+  it("keeps chat and nav usable on narrow viewports", async () => {
+    const app = mountApp("/chat");
+    await app.updateComplete;
+
+    expect(window.matchMedia("(max-width: 768px)").matches).toBe(true);
+
+    const split = app.querySelector(".chat-split-container") as HTMLElement | null;
+    expect(split).not.toBeNull();
+    if (split) {
+      expect(getComputedStyle(split).position).not.toBe("fixed");
+    }
+
+    const chatMain = app.querySelector(".chat-main") as HTMLElement | null;
+    expect(chatMain).not.toBeNull();
+    if (chatMain) {
+      expect(getComputedStyle(chatMain).display).not.toBe("none");
+    }
+
+    if (split) {
+      split.classList.add("chat-split-container--open");
+      await app.updateComplete;
+      expect(getComputedStyle(split).position).toBe("fixed");
+    }
+    if (chatMain) {
+      expect(getComputedStyle(chatMain).display).toBe("none");
+    }
   });
 
   it("auto-scrolls chat history to the latest message", async () => {
@@ -138,15 +167,15 @@ describe("control UI routing", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("strips auth params even when settings already set", async () => {
+  it("hydrates token from URL params even when settings already set", async () => {
     localStorage.setItem(
-      "zee.control.settings.v1",
+      "clawdbot.control.settings.v1",
       JSON.stringify({ token: "existing-token" }),
     );
     const app = mountApp("/ui/overview?token=abc123");
     await app.updateComplete;
 
-    expect(app.settings.token).toBe("existing-token");
+    expect(app.settings.token).toBe("abc123");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });

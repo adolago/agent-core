@@ -7,64 +7,18 @@ import { WIDE_AREA_DISCOVERY_DOMAIN } from "./widearea-dns.js";
 describe("bonjour-discovery", () => {
   it("discovers beacons on darwin across local + wide-area domains", async () => {
     const calls: Array<{ argv: string[]; timeoutMs: number }> = [];
+    const studioInstance = "Peter’s Mac Studio Gateway";
 
-    const run = vi.fn(
-      async (argv: string[], options: { timeoutMs: number }) => {
-        calls.push({ argv, timeoutMs: options.timeoutMs });
-        const domain = argv[3] ?? "";
+    const run = vi.fn(async (argv: string[], options: { timeoutMs: number }) => {
+      calls.push({ argv, timeoutMs: options.timeoutMs });
+      const domain = argv[3] ?? "";
 
-        if (argv[0] === "dns-sd" && argv[1] === "-B") {
-          if (domain === "local.") {
-            return {
-              stdout: [
-                "Add 2 3 local. _zee-gateway._tcp. Studio Gateway",
-                "Add 2 3 local. _zee-gateway._tcp. Laptop Gateway",
-                "",
-              ].join("\n"),
-              stderr: "",
-              code: 0,
-              signal: null,
-              killed: false,
-            };
-          }
-          if (domain === WIDE_AREA_DISCOVERY_DOMAIN) {
-            return {
-              stdout: [
-                `Add 2 3 ${WIDE_AREA_DISCOVERY_DOMAIN} _zee-gateway._tcp. Tailnet Gateway`,
-                "",
-              ].join("\n"),
-              stderr: "",
-              code: 0,
-              signal: null,
-              killed: false,
-            };
-          }
-        }
-
-        if (argv[0] === "dns-sd" && argv[1] === "-L") {
-          const instance = argv[2] ?? "";
-          const host =
-            instance === "Studio Gateway"
-              ? "studio.local"
-              : instance === "Laptop Gateway"
-                ? "laptop.local"
-                : "tailnet.local";
-          const tailnetDns =
-            instance === "Tailnet Gateway" ? "studio.tailnet.ts.net" : "";
-          const txtParts = [
-            "txtvers=1",
-            `displayName=${instance.replace(" Gateway", "")}`,
-            `lanHost=${host}`,
-            "gatewayPort=18789",
-            "bridgePort=18790",
-            "sshPort=22",
-            tailnetDns ? `tailnetDns=${tailnetDns}` : null,
-          ].filter((v): v is string => Boolean(v));
-
+      if (argv[0] === "dns-sd" && argv[1] === "-B") {
+        if (domain === "local.") {
           return {
             stdout: [
-              `${instance}._zee-gateway._tcp. can be reached at ${host}:18789`,
-              txtParts.join(" "),
+              "Add 2 3 local. _clawdbot-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
+              "Add 2 3 local. _clawdbot-gw._tcp. Laptop Gateway",
               "",
             ].join("\n"),
             stderr: "",
@@ -73,10 +27,57 @@ describe("bonjour-discovery", () => {
             killed: false,
           };
         }
+        if (domain === WIDE_AREA_DISCOVERY_DOMAIN) {
+          return {
+            stdout: [
+              `Add 2 3 ${WIDE_AREA_DISCOVERY_DOMAIN} _clawdbot-gw._tcp. Tailnet Gateway`,
+              "",
+            ].join("\n"),
+            stderr: "",
+            code: 0,
+            signal: null,
+            killed: false,
+          };
+        }
+      }
 
-        throw new Error(`unexpected argv: ${argv.join(" ")}`);
-      },
-    );
+      if (argv[0] === "dns-sd" && argv[1] === "-L") {
+        const instance = argv[2] ?? "";
+        const host =
+          instance === studioInstance
+            ? "studio.local"
+            : instance === "Laptop Gateway"
+              ? "laptop.local"
+              : "tailnet.local";
+        const tailnetDns = instance === "Tailnet Gateway" ? "studio.tailnet.ts.net" : "";
+        const displayName =
+          instance === studioInstance
+            ? "Peter’s\\032Mac\\032Studio"
+            : instance.replace(" Gateway", "");
+        const txtParts = [
+          "txtvers=1",
+          `displayName=${displayName}`,
+          `lanHost=${host}`,
+          "gatewayPort=18789",
+          "sshPort=22",
+          tailnetDns ? `tailnetDns=${tailnetDns}` : null,
+        ].filter((v): v is string => Boolean(v));
+
+        return {
+          stdout: [
+            `${instance}._clawdbot-gw._tcp. can be reached at ${host}:18789`,
+            txtParts.join(" "),
+            "",
+          ].join("\n"),
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      throw new Error(`unexpected argv: ${argv.join(" ")}`);
+    });
 
     const beacons = await discoverGatewayBeacons({
       platform: "darwin",
@@ -85,34 +86,127 @@ describe("bonjour-discovery", () => {
     });
 
     expect(beacons).toHaveLength(3);
+    expect(beacons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          instanceName: studioInstance,
+          displayName: "Peter’s Mac Studio",
+        }),
+      ]),
+    );
     expect(beacons.map((b) => b.domain)).toEqual(
       expect.arrayContaining(["local.", WIDE_AREA_DISCOVERY_DOMAIN]),
     );
 
-    const browseCalls = calls.filter(
-      (c) => c.argv[0] === "dns-sd" && c.argv[1] === "-B",
-    );
+    const browseCalls = calls.filter((c) => c.argv[0] === "dns-sd" && c.argv[1] === "-B");
     expect(browseCalls.map((c) => c.argv[3])).toEqual(
       expect.arrayContaining(["local.", WIDE_AREA_DISCOVERY_DOMAIN]),
     );
     expect(browseCalls.every((c) => c.timeoutMs === 1234)).toBe(true);
+  });
 
-    const studio = beacons.find((b) => b.instanceName === "Studio Gateway");
-    expect(studio?.gatewayPort).toBe(18789);
-    expect(studio?.bridgePort).toBe(18790);
+  it("decodes dns-sd octal escapes in TXT displayName", async () => {
+    const run = vi.fn(async (argv: string[], options: { timeoutMs: number }) => {
+      if (options.timeoutMs < 0) throw new Error("invalid timeout");
+
+      const domain = argv[3] ?? "";
+      if (argv[0] === "dns-sd" && argv[1] === "-B" && domain === "local.") {
+        return {
+          stdout: ["Add 2 3 local. _clawdbot-gw._tcp. Studio Gateway", ""].join("\n"),
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      if (argv[0] === "dns-sd" && argv[1] === "-L") {
+        return {
+          stdout: [
+            "Studio Gateway._clawdbot-gw._tcp. can be reached at studio.local:18789",
+            "txtvers=1 displayName=Peter\\226\\128\\153s\\032Mac\\032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
+            "",
+          ].join("\n"),
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      return {
+        stdout: "",
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+      };
+    });
+
+    const beacons = await discoverGatewayBeacons({
+      platform: "darwin",
+      timeoutMs: 800,
+      domains: ["local."],
+      run: run as unknown as typeof runCommandWithTimeout,
+    });
+
+    expect(beacons).toEqual([
+      expect.objectContaining({
+        domain: "local.",
+        instanceName: "Studio Gateway",
+        displayName: "Peter’s Mac Studio",
+        txt: expect.objectContaining({
+          displayName: "Peter’s Mac Studio",
+        }),
+      }),
+    ]);
   });
 
   it("falls back to tailnet DNS probing for wide-area when split DNS is not configured", async () => {
     const calls: Array<{ argv: string[]; timeoutMs: number }> = [];
 
-    const run = vi.fn(
-      async (argv: string[], options: { timeoutMs: number }) => {
-        calls.push({ argv, timeoutMs: options.timeoutMs });
-        const cmd = argv[0];
+    const run = vi.fn(async (argv: string[], options: { timeoutMs: number }) => {
+      calls.push({ argv, timeoutMs: options.timeoutMs });
+      const cmd = argv[0];
 
-        if (cmd === "dns-sd" && argv[1] === "-B") {
+      if (cmd === "dns-sd" && argv[1] === "-B") {
+        return {
+          stdout: "",
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      if (cmd === "tailscale" && argv[1] === "status" && argv[2] === "--json") {
+        return {
+          stdout: JSON.stringify({
+            Self: { TailscaleIPs: ["100.69.232.64"] },
+            Peer: {
+              "peer-1": { TailscaleIPs: ["100.123.224.76"] },
+            },
+          }),
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      if (cmd === "dig") {
+        const at = argv.find((a) => a.startsWith("@")) ?? "";
+        const server = at.replace(/^@/, "");
+        const qname = argv[argv.length - 2] ?? "";
+        const qtype = argv[argv.length - 1] ?? "";
+
+        if (
+          server === "100.123.224.76" &&
+          qtype === "PTR" &&
+          qname === "_clawdbot-gw._tcp.clawdbot.internal"
+        ) {
           return {
-            stdout: "",
+            stdout: `studio-gateway._clawdbot-gw._tcp.clawdbot.internal.\n`,
             stderr: "",
             code: 0,
             signal: null,
@@ -121,17 +215,12 @@ describe("bonjour-discovery", () => {
         }
 
         if (
-          cmd === "tailscale" &&
-          argv[1] === "status" &&
-          argv[2] === "--json"
+          server === "100.123.224.76" &&
+          qtype === "SRV" &&
+          qname === "studio-gateway._clawdbot-gw._tcp.clawdbot.internal"
         ) {
           return {
-            stdout: JSON.stringify({
-              Self: { TailscaleIPs: ["100.69.232.64"] },
-              Peer: {
-                "peer-1": { TailscaleIPs: ["100.123.224.76"] },
-              },
-            }),
+            stdout: `0 0 18789 studio.clawdbot.internal.\n`,
             stderr: "",
             code: 0,
             signal: null,
@@ -139,67 +228,31 @@ describe("bonjour-discovery", () => {
           };
         }
 
-        if (cmd === "dig") {
-          const at = argv.find((a) => a.startsWith("@")) ?? "";
-          const server = at.replace(/^@/, "");
-          const qname = argv[argv.length - 2] ?? "";
-          const qtype = argv[argv.length - 1] ?? "";
-
-          if (
-            server === "100.123.224.76" &&
-            qtype === "PTR" &&
-            qname === "_zee-gateway._tcp.zee.internal"
-          ) {
-            return {
-              stdout: `studio-gateway._zee-gateway._tcp.zee.internal.\n`,
-              stderr: "",
-              code: 0,
-              signal: null,
-              killed: false,
-            };
-          }
-
-          if (
-            server === "100.123.224.76" &&
-            qtype === "SRV" &&
-            qname === "studio-gateway._zee-gateway._tcp.zee.internal"
-          ) {
-            return {
-              stdout: `0 0 18789 studio.zee.internal.\n`,
-              stderr: "",
-              code: 0,
-              signal: null,
-              killed: false,
-            };
-          }
-
-          if (
-            server === "100.123.224.76" &&
-            qtype === "TXT" &&
-            qname === "studio-gateway._zee-gateway._tcp.zee.internal"
-          ) {
-            return {
-              stdout: [
-                `"displayName=Studio"`,
-                `"transport=gateway"`,
-                `"gatewayPort=18789"`,
-                `"bridgePort=18790"`,
-                `"sshPort=22"`,
-                `"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net"`,
-                `"cliPath=/opt/homebrew/bin/zee"`,
-                "",
-              ].join(" "),
-              stderr: "",
-              code: 0,
-              signal: null,
-              killed: false,
-            };
-          }
+        if (
+          server === "100.123.224.76" &&
+          qtype === "TXT" &&
+          qname === "studio-gateway._clawdbot-gw._tcp.clawdbot.internal"
+        ) {
+          return {
+            stdout: [
+              `"displayName=Studio"`,
+              `"gatewayPort=18789"`,
+              `"transport=gateway"`,
+              `"sshPort=22"`,
+              `"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net"`,
+              `"cliPath=/opt/homebrew/bin/clawdbot"`,
+              "",
+            ].join(" "),
+            stderr: "",
+            code: 0,
+            signal: null,
+            killed: false,
+          };
         }
+      }
 
-        throw new Error(`unexpected argv: ${argv.join(" ")}`);
-      },
-    );
+      throw new Error(`unexpected argv: ${argv.join(" ")}`);
+    });
 
     const beacons = await discoverGatewayBeacons({
       platform: "darwin",
@@ -213,19 +266,16 @@ describe("bonjour-discovery", () => {
         domain: WIDE_AREA_DISCOVERY_DOMAIN,
         instanceName: "studio-gateway",
         displayName: "Studio",
-        host: "studio.zee.internal",
+        host: "studio.clawdbot.internal",
         port: 18789,
         tailnetDns: "peters-mac-studio-1.sheep-coho.ts.net",
-        bridgePort: 18790,
         gatewayPort: 18789,
         sshPort: 22,
-        cliPath: "/opt/homebrew/bin/zee",
+        cliPath: "/opt/homebrew/bin/clawdbot",
       }),
     ]);
 
-    expect(
-      calls.some((c) => c.argv[0] === "tailscale" && c.argv[1] === "status"),
-    ).toBe(true);
+    expect(calls.some((c) => c.argv[0] === "tailscale" && c.argv[1] === "status")).toBe(true);
     expect(calls.some((c) => c.argv[0] === "dig")).toBe(true);
   });
 
@@ -245,12 +295,12 @@ describe("bonjour-discovery", () => {
     await discoverGatewayBeacons({
       platform: "darwin",
       timeoutMs: 1,
-      domains: ["local", "zee.internal"],
+      domains: ["local", "clawdbot.internal"],
       run: run as unknown as typeof runCommandWithTimeout,
     });
 
     expect(calls.filter((c) => c[1] === "-B").map((c) => c[3])).toEqual(
-      expect.arrayContaining(["local.", "zee.internal."]),
+      expect.arrayContaining(["local.", "clawdbot.internal."]),
     );
 
     calls.length = 0;

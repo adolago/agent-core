@@ -1,14 +1,14 @@
 ---
-summary: "Default Zee agent instructions and skills roster for the personal assistant setup"
+summary: "Default Clawdbot agent instructions and skills roster for the personal assistant setup"
 read_when:
-  - Starting a new Zee agent session
+  - Starting a new Clawdbot agent session
   - Enabling or auditing default skills
 ---
-# AGENTS.md — Zee Personal Assistant (default)
+# AGENTS.md — Clawdbot Personal Assistant (default)
 
 ## First run (recommended)
 
-Zee uses a dedicated workspace directory for the agent. Default: `~/clawd` (configurable via `agent.workspace`).
+Clawdbot uses a dedicated workspace directory for the agent. Default: `~/clawd` (configurable via `agents.defaults.workspace`).
 
 1) Create the workspace (if it doesn’t already exist):
 
@@ -30,13 +30,11 @@ cp docs/reference/templates/TOOLS.md ~/clawd/TOOLS.md
 cp docs/reference/AGENTS.default.md ~/clawd/AGENTS.md
 ```
 
-4) Optional: choose a different workspace by setting `agent.workspace` (supports `~`):
+4) Optional: choose a different workspace by setting `agents.defaults.workspace` (supports `~`):
 
 ```json5
 {
-  agent: {
-    workspace: "~/clawd"
-  }
+  agents: { defaults: { workspace: "~/clawd" } }
 }
 ```
 
@@ -80,21 +78,20 @@ git commit -m "Add Clawd workspace"
 # Optional: add a private remote + push
 ```
 
-## What Zee Does
+## What Clawdbot Does
 - Runs WhatsApp gateway + Pi coding agent so the assistant can read/write chats, fetch context, and run skills via the host Mac.
-- macOS app manages permissions (screen recording, notifications, microphone) and exposes the `zee` CLI via its bundled binary.
-- Direct chats collapse into the agent's `main` session by default; groups stay isolated as `agent:<agentId>:<provider>:group:<id>` (rooms/channels: `agent:<agentId>:<provider>:channel:<id>`); heartbeats keep background tasks alive.
+- macOS app manages permissions (screen recording, notifications, microphone) and exposes the `clawdbot` CLI via its bundled binary.
+- Direct chats collapse into the agent's `main` session by default; groups stay isolated as `agent:<agentId>:<channel>:group:<id>` (rooms/channels: `agent:<agentId>:<channel>:channel:<id>`); heartbeats keep background tasks alive.
 
 ## Core Skills (enable in Settings → Skills)
 - **mcporter** — Tool server runtime/CLI for managing external skill backends.
 - **Peekaboo** — Fast macOS screenshots with optional AI vision analysis.
 - **camsnap** — Capture frames, clips, or motion alerts from RTSP/ONVIF security cams.
 - **oracle** — OpenAI-ready agent CLI with session replay and browser control.
-- **qmd** — Hybrid markdown search (BM25 + vectors + rerank) with a local server for agents.
 - **eightctl** — Control your sleep, from the terminal.
 - **imsg** — Send, read, stream iMessage & SMS.
 - **wacli** — WhatsApp CLI: sync, search, send.
-- **discord** — Discord actions: react, stickers, polls.
+- **discord** — Discord actions: react, stickers, polls. Use `user:<id>` or `channel:<id>` targets (bare numeric ids are ambiguous).
 - **gog** — Google Suite CLI: Gmail, Calendar, Drive, Contacts.
 - **spotify-player** — Terminal Spotify client to search/queue/control playback.
 - **sag** — ElevenLabs speech with mac-style say UX; streams to speakers by default.
@@ -107,10 +104,10 @@ git commit -m "Add Clawd workspace"
 - **agent-tools** — Utility toolkit for automations and helper scripts.
 
 ## Usage Notes
-- Prefer the `zee` CLI for scripting; mac app handles permissions.
+- Prefer the `clawdbot` CLI for scripting; mac app handles permissions.
 - Run installs from the Skills tab; it hides the button if a binary is already present.
 - Keep heartbeats enabled so the assistant can schedule reminders, monitor inboxes, and trigger camera captures.
 - Canvas UI runs full-screen with native overlays. Avoid placing critical controls in the top-left/top-right/bottom edges; add explicit gutters in the layout and don’t rely on safe-area insets.
-- For browser-driven verification, use `zee browser` (tabs/status/screenshot) with the clawd-managed Chrome profile.
-- For DOM inspection, use `zee browser eval|query|dom|snapshot` (and `--json`/`--out` when you need machine output).
-- For interactions, use `zee browser click|type|hover|drag|select|upload|press|wait|navigate|back|evaluate|run` (click/type require snapshot refs; use `evaluate` for CSS selectors).
+- For browser-driven verification, use `clawdbot browser` (tabs/status/screenshot) with the clawd-managed Chrome profile.
+- For DOM inspection, use `clawdbot browser eval|query|dom|snapshot` (and `--json`/`--out` when you need machine output).
+- For interactions, use `clawdbot browser click|type|hover|drag|select|upload|press|wait|navigate|back|evaluate|run` (click/type require snapshot refs; use `evaluate` for CSS selectors).

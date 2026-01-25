@@ -4,13 +4,11 @@ import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import { sliceUtf16Safe } from "../utils.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
 import { killProcessTree } from "./shell-utils.js";
 
 const CHUNK_LIMIT = 8 * 1024;
-const DEFAULT_PATH =
-  process.env.PATH ??
-  "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
 export type BashSandboxConfig = {
   containerName: string;
@@ -20,12 +18,13 @@ export type BashSandboxConfig = {
 };
 
 export function buildSandboxEnv(params: {
+  defaultPath: string;
   paramsEnv?: Record<string, string>;
   sandboxEnv?: Record<string, string>;
   containerWorkdir: string;
 }) {
   const env: Record<string, string> = {
-    PATH: DEFAULT_PATH,
+    PATH: params.defaultPath,
     HOME: params.containerWorkdir,
   };
   for (const [key, value] of Object.entries(params.sandboxEnv ?? {})) {
@@ -61,7 +60,12 @@ export function buildDockerExecArgs(params: {
   for (const [key, value] of Object.entries(params.env)) {
     args.push("-e", `${key}=${value}`);
   }
-  args.push(params.containerName, "sh", "-lc", params.command);
+  // Login shell (-l) sources /etc/profile which resets PATH to a minimal set,
+  // overriding both Docker ENV and -e PATH=... environment variables.
+  // Prepend custom PATH after profile sourcing to ensure custom tools are accessible
+  // while preserving system paths that /etc/profile may have added.
+  const pathExport = params.env.PATH ? `export PATH="${params.env.PATH}:$PATH"; ` : "";
+  args.push(params.containerName, "sh", "-lc", `${pathExport}${params.command}`);
   return args;
 }
 
@@ -99,10 +103,7 @@ export async function resolveSandboxWorkdir(params: {
   }
 }
 
-export function killSession(session: {
-  pid?: number;
-  child?: ChildProcessWithoutNullStreams;
-}) {
+export function killSession(session: { pid?: number; child?: ChildProcessWithoutNullStreams }) {
   const pid = session.pid ?? session.child?.pid;
   if (pid) {
     killProcessTree(pid);
@@ -118,10 +119,17 @@ export function resolveWorkdir(workdir: string, warnings: string[]) {
   } catch {
     // ignore, fallback below
   }
-  warnings.push(
-    `Warning: workdir "${workdir}" is unavailable; using "${fallback}".`,
-  );
+  warnings.push(`Warning: workdir "${workdir}" is unavailable; using "${fallback}".`);
   return fallback;
+}
+
+function safeCwd() {
+  try {
+    const cwd = process.cwd();
+    return existsSync(cwd) ? cwd : null;
+  } catch {
+    return null;
+  }
 }
 
 export function clampNumber(
@@ -152,7 +160,7 @@ export function chunkString(input: string, limit = CHUNK_LIMIT) {
 export function truncateMiddle(str: string, max: number) {
   if (str.length <= max) return str;
   const half = Math.floor((max - 3) / 2);
-  return `${str.slice(0, half)}...${str.slice(str.length - half)}`;
+  return `${sliceUtf16Safe(str, 0, half)}...${sliceUtf16Safe(str, -half)}`;
 }
 
 export function sliceLogLines(
@@ -169,9 +177,7 @@ export function sliceLogLines(
   const totalLines = lines.length;
   const totalChars = text.length;
   let start =
-    typeof offset === "number" && Number.isFinite(offset)
-      ? Math.max(0, Math.floor(offset))
-      : 0;
+    typeof offset === "number" && Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0;
   if (limit !== undefined && offset === undefined) {
     const tailCount = Math.max(0, Math.floor(limit));
     start = Math.max(totalLines - tailCount, 0);
@@ -194,32 +200,8 @@ export function deriveSessionName(command: string): string | undefined {
   return `${stripQuotes(verb)} ${cleaned}`;
 }
 
-export function formatDuration(ms: number) {
-  if (ms < 1000) return `${ms}ms`;
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rem = seconds % 60;
-  return `${minutes}m${rem.toString().padStart(2, "0")}s`;
-}
-
-export function pad(str: string, width: number) {
-  if (str.length >= width) return str;
-  return str + " ".repeat(width - str.length);
-}
-
-function safeCwd() {
-  try {
-    const cwd = process.cwd();
-    return existsSync(cwd) ? cwd : null;
-  } catch {
-    return null;
-  }
-}
-
 function tokenizeCommand(command: string): string[] {
-  const matches =
-    command.match(/(?:[^\s"']+|"(?:\\.|[^"])*"|'(?:\\.|[^'])*')+/g) ?? [];
+  const matches = command.match(/(?:[^\s"']+|"(?:\\.|[^"])*"|'(?:\\.|[^'])*')+/g) ?? [];
   return matches.map((token) => stripQuotes(token)).filter(Boolean);
 }
 
@@ -232,4 +214,18 @@ function stripQuotes(value: string): string {
     return trimmed.slice(1, -1);
   }
   return trimmed;
+}
+
+export function formatDuration(ms: number) {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rem = seconds % 60;
+  return `${minutes}m${rem.toString().padStart(2, "0")}s`;
+}
+
+export function pad(str: string, width: number) {
+  if (str.length >= width) return str;
+  return str + " ".repeat(width - str.length);
 }

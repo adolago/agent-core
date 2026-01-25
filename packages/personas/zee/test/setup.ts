@@ -1,40 +1,162 @@
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { afterAll, afterEach, beforeEach, vi } from "vitest";
 
-const originalHome = process.env.HOME;
-const originalUserProfile = process.env.USERPROFILE;
-const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
-const originalXdgDataHome = process.env.XDG_DATA_HOME;
-const originalXdgStateHome = process.env.XDG_STATE_HOME;
-const originalXdgCacheHome = process.env.XDG_CACHE_HOME;
-const originalTestHome = process.env.ZEE_TEST_HOME;
+// Ensure Vitest environment is properly set
+process.env.VITEST = "true";
 
-const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "zee-test-home-"));
-process.env.HOME = tempHome;
-process.env.USERPROFILE = tempHome;
-process.env.ZEE_TEST_HOME = tempHome;
-process.env.XDG_CONFIG_HOME = path.join(tempHome, ".config");
-process.env.XDG_DATA_HOME = path.join(tempHome, ".local", "share");
-process.env.XDG_STATE_HOME = path.join(tempHome, ".local", "state");
-process.env.XDG_CACHE_HOME = path.join(tempHome, ".cache");
+import type {
+  ChannelId,
+  ChannelOutboundAdapter,
+  ChannelPlugin,
+} from "../src/channels/plugins/types.js";
+import type { ClawdbotConfig } from "../src/config/config.js";
+import type { OutboundSendDeps } from "../src/infra/outbound/deliver.js";
+import { installProcessWarningFilter } from "../src/infra/warnings.js";
+import { setActivePluginRegistry } from "../src/plugins/runtime.js";
+import { createTestRegistry } from "../src/test-utils/channel-plugins.js";
+import { withIsolatedTestHome } from "./test-env";
 
-const restoreEnv = (key: string, value: string | undefined) => {
-  if (value === undefined) delete process.env[key];
-  else process.env[key] = value;
+installProcessWarningFilter();
+
+const testEnv = withIsolatedTestHome();
+afterAll(() => testEnv.cleanup());
+const pickSendFn = (id: ChannelId, deps?: OutboundSendDeps) => {
+  switch (id) {
+    case "discord":
+      return deps?.sendDiscord;
+    case "slack":
+      return deps?.sendSlack;
+    case "telegram":
+      return deps?.sendTelegram;
+    case "whatsapp":
+      return deps?.sendWhatsApp;
+    case "signal":
+      return deps?.sendSignal;
+    case "imessage":
+      return deps?.sendIMessage;
+    default:
+      return undefined;
+  }
 };
 
-process.on("exit", () => {
-  restoreEnv("HOME", originalHome);
-  restoreEnv("USERPROFILE", originalUserProfile);
-  restoreEnv("XDG_CONFIG_HOME", originalXdgConfigHome);
-  restoreEnv("XDG_DATA_HOME", originalXdgDataHome);
-  restoreEnv("XDG_STATE_HOME", originalXdgStateHome);
-  restoreEnv("XDG_CACHE_HOME", originalXdgCacheHome);
-  restoreEnv("ZEE_TEST_HOME", originalTestHome);
-  try {
-    fs.rmSync(tempHome, { recursive: true, force: true });
-  } catch {
-    // ignore cleanup errors
-  }
+const createStubOutbound = (
+  id: ChannelId,
+  deliveryMode: ChannelOutboundAdapter["deliveryMode"] = "direct",
+): ChannelOutboundAdapter => ({
+  deliveryMode,
+  sendText: async ({ deps, to, text }) => {
+    const send = pickSendFn(id, deps);
+    if (send) {
+      const result = await send(to, text, {});
+      return { channel: id, ...result };
+    }
+    return { channel: id, messageId: "test" };
+  },
+  sendMedia: async ({ deps, to, text, mediaUrl }) => {
+    const send = pickSendFn(id, deps);
+    if (send) {
+      const result = await send(to, text, { mediaUrl });
+      return { channel: id, ...result };
+    }
+    return { channel: id, messageId: "test" };
+  },
+});
+
+const createStubPlugin = (params: {
+  id: ChannelId;
+  label?: string;
+  aliases?: string[];
+  deliveryMode?: ChannelOutboundAdapter["deliveryMode"];
+  preferSessionLookupForAnnounceTarget?: boolean;
+}): ChannelPlugin => ({
+  id: params.id,
+  meta: {
+    id: params.id,
+    label: params.label ?? String(params.id),
+    selectionLabel: params.label ?? String(params.id),
+    docsPath: `/channels/${params.id}`,
+    blurb: "test stub.",
+    aliases: params.aliases,
+    preferSessionLookupForAnnounceTarget: params.preferSessionLookupForAnnounceTarget,
+  },
+  capabilities: { chatTypes: ["direct", "group"] },
+  config: {
+    listAccountIds: (cfg: ClawdbotConfig) => {
+      const channels = cfg.channels as Record<string, unknown> | undefined;
+      const entry = channels?.[params.id];
+      if (!entry || typeof entry !== "object") return [];
+      const accounts = (entry as { accounts?: Record<string, unknown> }).accounts;
+      const ids = accounts ? Object.keys(accounts).filter(Boolean) : [];
+      return ids.length > 0 ? ids : ["default"];
+    },
+    resolveAccount: (cfg: ClawdbotConfig, accountId: string) => {
+      const channels = cfg.channels as Record<string, unknown> | undefined;
+      const entry = channels?.[params.id];
+      if (!entry || typeof entry !== "object") return {};
+      const accounts = (entry as { accounts?: Record<string, unknown> }).accounts;
+      const match = accounts?.[accountId];
+      return (match && typeof match === "object") || typeof match === "string" ? match : entry;
+    },
+    isConfigured: async (_account, cfg: ClawdbotConfig) => {
+      const channels = cfg.channels as Record<string, unknown> | undefined;
+      return Boolean(channels?.[params.id]);
+    },
+  },
+  outbound: createStubOutbound(params.id, params.deliveryMode),
+});
+
+const createDefaultRegistry = () =>
+  createTestRegistry([
+    {
+      pluginId: "discord",
+      plugin: createStubPlugin({ id: "discord", label: "Discord" }),
+      source: "test",
+    },
+    {
+      pluginId: "slack",
+      plugin: createStubPlugin({ id: "slack", label: "Slack" }),
+      source: "test",
+    },
+    {
+      pluginId: "telegram",
+      plugin: {
+        ...createStubPlugin({ id: "telegram", label: "Telegram" }),
+        status: {
+          buildChannelSummary: async () => ({
+            configured: false,
+            tokenSource: process.env.TELEGRAM_BOT_TOKEN ? "env" : "none",
+          }),
+        },
+      },
+      source: "test",
+    },
+    {
+      pluginId: "whatsapp",
+      plugin: createStubPlugin({
+        id: "whatsapp",
+        label: "WhatsApp",
+        deliveryMode: "gateway",
+        preferSessionLookupForAnnounceTarget: true,
+      }),
+      source: "test",
+    },
+    {
+      pluginId: "signal",
+      plugin: createStubPlugin({ id: "signal", label: "Signal" }),
+      source: "test",
+    },
+    {
+      pluginId: "imessage",
+      plugin: createStubPlugin({ id: "imessage", label: "iMessage", aliases: ["imsg"] }),
+      source: "test",
+    },
+  ]);
+
+beforeEach(() => {
+  setActivePluginRegistry(createDefaultRegistry());
+});
+
+afterEach(() => {
+  setActivePluginRegistry(createDefaultRegistry());
+  // Guard against leaked fake timers across test files/workers.
+  vi.useRealTimers();
 });

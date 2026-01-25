@@ -1,146 +1,139 @@
-import { describe, expect, it } from "vitest";
-
-import type { ZeeConfig } from "../config/config.js";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
+import { describe, it, expect, vi } from "vitest";
 import {
-  normalizeProviderId,
+  parseModelRef,
+  resolveModelRefFromString,
   resolveConfiguredModelRef,
+  buildModelAliasIndex,
+  normalizeProviderId,
+  modelKey,
 } from "./model-selection.js";
+import type { ClawdbotConfig } from "../config/config.js";
 
-describe("resolveConfiguredModelRef", () => {
-  it("parses provider/model from agent.model.primary", () => {
-    const cfg = {
-      agent: { model: { primary: "openai/gpt-4.1-mini" } },
-    } satisfies ZeeConfig;
-
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
-
-    expect(resolved).toEqual({ provider: "openai", model: "gpt-4.1-mini" });
-  });
-
-  it("falls back to anthropic when agent.model.primary omits provider", () => {
-    const cfg = {
-      agent: { model: { primary: "claude-opus-4-5" } },
-    } satisfies ZeeConfig;
-
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
-
-    expect(resolved).toEqual({
-      provider: "anthropic",
-      model: "claude-opus-4-5",
+describe("model-selection", () => {
+  describe("normalizeProviderId", () => {
+    it("should normalize provider names", () => {
+      expect(normalizeProviderId("Anthropic")).toBe("anthropic");
+      expect(normalizeProviderId("Z.ai")).toBe("zai");
+      expect(normalizeProviderId("z-ai")).toBe("zai");
+      expect(normalizeProviderId("OpenCode-Zen")).toBe("opencode");
+      expect(normalizeProviderId("qwen")).toBe("qwen-portal");
     });
   });
 
-  it("falls back to defaults when agent.model is missing", () => {
-    const cfg = {} satisfies ZeeConfig;
-
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
+  describe("parseModelRef", () => {
+    it("should parse full model refs", () => {
+      expect(parseModelRef("anthropic/claude-3-5-sonnet", "openai")).toEqual({
+        provider: "anthropic",
+        model: "claude-3-5-sonnet",
+      });
     });
 
-    expect(resolved).toEqual({
-      provider: DEFAULT_PROVIDER,
-      model: DEFAULT_MODEL,
+    it("should use default provider if none specified", () => {
+      expect(parseModelRef("claude-3-5-sonnet", "anthropic")).toEqual({
+        provider: "anthropic",
+        model: "claude-3-5-sonnet",
+      });
+    });
+
+    it("should return null for empty strings", () => {
+      expect(parseModelRef("", "anthropic")).toBeNull();
+      expect(parseModelRef("  ", "anthropic")).toBeNull();
+    });
+
+    it("should handle invalid slash usage", () => {
+      expect(parseModelRef("/", "anthropic")).toBeNull();
+      expect(parseModelRef("anthropic/", "anthropic")).toBeNull();
+      expect(parseModelRef("/model", "anthropic")).toBeNull();
     });
   });
 
-  it("resolves agent.model aliases when configured", () => {
-    const cfg = {
-      agent: {
-        model: { primary: "Opus" },
-        models: {
-          "anthropic/claude-opus-4-5": { alias: "Opus" },
+  describe("buildModelAliasIndex", () => {
+    it("should build alias index from config", () => {
+      const cfg: Partial<ClawdbotConfig> = {
+        agents: {
+          defaults: {
+            models: {
+              "anthropic/claude-3-5-sonnet": { alias: "fast" },
+              "openai/gpt-4o": { alias: "smart" },
+            },
+          },
         },
-      },
-    } satisfies ZeeConfig;
+      };
 
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
+      const index = buildModelAliasIndex({
+        cfg: cfg as ClawdbotConfig,
+        defaultProvider: "anthropic",
+      });
 
-    expect(resolved).toEqual({
-      provider: "anthropic",
-      model: "claude-opus-4-5",
+      expect(index.byAlias.get("fast")?.ref).toEqual({
+        provider: "anthropic",
+        model: "claude-3-5-sonnet",
+      });
+      expect(index.byAlias.get("smart")?.ref).toEqual({ provider: "openai", model: "gpt-4o" });
+      expect(index.byKey.get(modelKey("anthropic", "claude-3-5-sonnet"))).toEqual(["fast"]);
     });
   });
 
-  it("normalizes z.ai provider in agent.model", () => {
-    const cfg = {
-      agent: { model: "z.ai/glm-4.7" },
-    } satisfies ZeeConfig;
+  describe("resolveModelRefFromString", () => {
+    it("should resolve from string with alias", () => {
+      const index = {
+        byAlias: new Map([
+          ["fast", { alias: "fast", ref: { provider: "anthropic", model: "sonnet" } }],
+        ]),
+        byKey: new Map(),
+      };
 
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
+      const resolved = resolveModelRefFromString({
+        raw: "fast",
+        defaultProvider: "openai",
+        aliasIndex: index,
+      });
+
+      expect(resolved?.ref).toEqual({ provider: "anthropic", model: "sonnet" });
+      expect(resolved?.alias).toBe("fast");
     });
 
-    expect(resolved).toEqual({ provider: "zai", model: "glm-4.7" });
+    it("should resolve direct ref if no alias match", () => {
+      const resolved = resolveModelRefFromString({
+        raw: "openai/gpt-4",
+        defaultProvider: "anthropic",
+      });
+      expect(resolved?.ref).toEqual({ provider: "openai", model: "gpt-4" });
+    });
   });
 
-  it("normalizes z-ai provider in agent.model", () => {
-    const cfg = {
-      agent: { model: "z-ai/glm-4.7" },
-    } satisfies ZeeConfig;
+  describe("resolveConfiguredModelRef", () => {
+    it("should fall back to anthropic and warn if provider is missing for non-alias", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const cfg: Partial<ClawdbotConfig> = {
+        agents: {
+          defaults: {
+            model: "claude-3-5-sonnet",
+          },
+        },
+      };
 
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
+      const result = resolveConfiguredModelRef({
+        cfg: cfg as ClawdbotConfig,
+        defaultProvider: "google",
+        defaultModel: "gemini-pro",
+      });
+
+      expect(result).toEqual({ provider: "anthropic", model: "claude-3-5-sonnet" });
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Falling back to "anthropic/claude-3-5-sonnet"'),
+      );
+      warnSpy.mockRestore();
     });
 
-    expect(resolved).toEqual({ provider: "zai", model: "glm-4.7" });
-  });
-
-  it("normalizes provider casing in agent.model", () => {
-    const cfg = {
-      agent: { model: "OpenAI/gpt-4.1-mini" },
-    } satisfies ZeeConfig;
-
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
+    it("should use default provider/model if config is empty", () => {
+      const cfg: Partial<ClawdbotConfig> = {};
+      const result = resolveConfiguredModelRef({
+        cfg: cfg as ClawdbotConfig,
+        defaultProvider: "openai",
+        defaultModel: "gpt-4",
+      });
+      expect(result).toEqual({ provider: "openai", model: "gpt-4" });
     });
-
-    expect(resolved).toEqual({ provider: "openai", model: "gpt-4.1-mini" });
-  });
-
-  it("normalizes z.ai casing in agent.model", () => {
-    const cfg = {
-      agent: { model: "Z.AI/glm-4.7" },
-    } satisfies ZeeConfig;
-
-    const resolved = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
-
-    expect(resolved).toEqual({ provider: "zai", model: "glm-4.7" });
-  });
-});
-
-describe("normalizeProviderId", () => {
-  it("normalizes z.ai aliases to canonical zai", () => {
-    expect(normalizeProviderId("z.ai")).toBe("zai");
-    expect(normalizeProviderId("z-ai")).toBe("zai");
-  });
-
-  it("normalizes provider casing", () => {
-    expect(normalizeProviderId("OpenAI")).toBe("openai");
-    expect(normalizeProviderId("Z.AI")).toBe("zai");
   });
 });

@@ -30,24 +30,26 @@ read_when:
 - Markdown parse errors are not retried; they fall back to plain text.
 
 ## Configuration
-Set retry policy per provider in `~/.zee/zee.json`:
+Set retry policy per provider in `~/.clawdbot/clawdbot.json`:
 
 ```json5
 {
-  telegram: {
-    retry: {
-      attempts: 3,
-      minDelayMs: 400,
-      maxDelayMs: 30000,
-      jitter: 0.1
-    }
-  },
-  discord: {
-    retry: {
-      attempts: 3,
-      minDelayMs: 500,
-      maxDelayMs: 30000,
-      jitter: 0.1
+  channels: {
+    telegram: {
+      retry: {
+        attempts: 3,
+        minDelayMs: 400,
+        maxDelayMs: 30000,
+        jitter: 0.1
+      }
+    },
+    discord: {
+      retry: {
+        attempts: 3,
+        minDelayMs: 500,
+        maxDelayMs: 30000,
+        jitter: 0.1
+      }
     }
   }
 }

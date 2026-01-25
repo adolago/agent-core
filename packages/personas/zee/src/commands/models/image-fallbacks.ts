@@ -1,8 +1,6 @@
-import {
-  buildModelAliasIndex,
-  resolveModelRefFromString,
-} from "../../agents/model-selection.js";
-import { CONFIG_PATH_ZEE, loadConfig } from "../../config/config.js";
+import { buildModelAliasIndex, resolveModelRefFromString } from "../../agents/model-selection.js";
+import { loadConfig } from "../../config/config.js";
+import { logConfigUpdated } from "../../config/logging.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import {
   DEFAULT_PROVIDER,
@@ -18,7 +16,7 @@ export async function modelsImageFallbacksListCommand(
 ) {
   ensureFlagCompatibility(opts);
   const cfg = loadConfig();
-  const fallbacks = cfg.agent?.imageModel?.fallbacks ?? [];
+  const fallbacks = cfg.agents?.defaults?.imageModel?.fallbacks ?? [];
 
   if (opts.json) {
     runtime.log(JSON.stringify({ fallbacks }, null, 2));
@@ -37,20 +35,17 @@ export async function modelsImageFallbacksListCommand(
   for (const entry of fallbacks) runtime.log(`- ${entry}`);
 }
 
-export async function modelsImageFallbacksAddCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsImageFallbacksAddCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
-    const nextModels = { ...cfg.agent?.models };
+    const nextModels = { ...cfg.agents?.defaults?.models };
     if (!nextModels[targetKey]) nextModels[targetKey] = {};
     const aliasIndex = buildModelAliasIndex({
       cfg,
       defaultProvider: DEFAULT_PROVIDER,
     });
-    const existing = cfg.agent?.imageModel?.fallbacks ?? [];
+    const existing = cfg.agents?.defaults?.imageModel?.fallbacks ?? [];
     const existingKeys = existing
       .map((entry) =>
         resolveModelRefFromString({
@@ -64,35 +59,33 @@ export async function modelsImageFallbacksAddCommand(
 
     if (existingKeys.includes(targetKey)) return cfg;
 
-    const existingModel = cfg.agent?.imageModel as
+    const existingModel = cfg.agents?.defaults?.imageModel as
       | { primary?: string; fallbacks?: string[] }
       | undefined;
 
     return {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        imageModel: {
-          ...(existingModel?.primary
-            ? { primary: existingModel.primary }
-            : undefined),
-          fallbacks: [...existing, targetKey],
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          imageModel: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: [...existing, targetKey],
+          },
+          models: nextModels,
         },
-        models: nextModels,
       },
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
+  logConfigUpdated(runtime);
   runtime.log(
-    `Image fallbacks: ${(updated.agent?.imageModel?.fallbacks ?? []).join(", ")}`,
+    `Image fallbacks: ${(updated.agents?.defaults?.imageModel?.fallbacks ?? []).join(", ")}`,
   );
 }
 
-export async function modelsImageFallbacksRemoveCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsImageFallbacksRemoveCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
@@ -100,7 +93,7 @@ export async function modelsImageFallbacksRemoveCommand(
       cfg,
       defaultProvider: DEFAULT_PROVIDER,
     });
-    const existing = cfg.agent?.imageModel?.fallbacks ?? [];
+    const existing = cfg.agents?.defaults?.imageModel?.fallbacks ?? [];
     const filtered = existing.filter((entry) => {
       const resolvedEntry = resolveModelRefFromString({
         raw: String(entry ?? ""),
@@ -108,59 +101,58 @@ export async function modelsImageFallbacksRemoveCommand(
         aliasIndex,
       });
       if (!resolvedEntry) return true;
-      return (
-        modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !==
-        targetKey
-      );
+      return modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !== targetKey;
     });
 
     if (filtered.length === existing.length) {
       throw new Error(`Image fallback not found: ${targetKey}`);
     }
 
-    const existingModel = cfg.agent?.imageModel as
+    const existingModel = cfg.agents?.defaults?.imageModel as
       | { primary?: string; fallbacks?: string[] }
       | undefined;
 
     return {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        imageModel: {
-          ...(existingModel?.primary
-            ? { primary: existingModel.primary }
-            : undefined),
-          fallbacks: filtered,
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          imageModel: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: filtered,
+          },
         },
       },
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
+  logConfigUpdated(runtime);
   runtime.log(
-    `Image fallbacks: ${(updated.agent?.imageModel?.fallbacks ?? []).join(", ")}`,
+    `Image fallbacks: ${(updated.agents?.defaults?.imageModel?.fallbacks ?? []).join(", ")}`,
   );
 }
 
 export async function modelsImageFallbacksClearCommand(runtime: RuntimeEnv) {
   await updateConfig((cfg) => {
-    const existingModel = cfg.agent?.imageModel as
+    const existingModel = cfg.agents?.defaults?.imageModel as
       | { primary?: string; fallbacks?: string[] }
       | undefined;
     return {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        imageModel: {
-          ...(existingModel?.primary
-            ? { primary: existingModel.primary }
-            : undefined),
-          fallbacks: [],
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          imageModel: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: [],
+          },
         },
       },
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
+  logConfigUpdated(runtime);
   runtime.log("Image fallback list cleared.");
 }

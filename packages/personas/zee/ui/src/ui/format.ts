@@ -1,3 +1,5 @@
+import { stripReasoningTagsFromText } from "../../../src/shared/text/reasoning-tags.js";
+
 export function formatMs(ms?: number | null): string {
   if (!ms && ms !== 0) return "n/a";
   return new Date(ms).toLocaleString();
@@ -65,4 +67,8 @@ export function parseList(input: string): string[] {
     .split(/[,\n]/)
     .map((v) => v.trim())
     .filter((v) => v.length > 0);
+}
+
+export function stripThinkingTags(value: string): string {
+  return stripReasoningTagsFromText(value, { mode: "preserve", trim: "start" });
 }

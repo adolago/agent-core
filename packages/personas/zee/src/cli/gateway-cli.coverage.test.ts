@@ -12,6 +12,8 @@ const forceFreePortAndWait = vi.fn(async () => ({
   escalatedToSigkill: false,
 }));
 const serviceIsLoaded = vi.fn().mockResolvedValue(true);
+const discoverGatewayBeacons = vi.fn(async () => []);
+const gatewayStatusCommand = vi.fn(async () => {});
 
 const runtimeLogs: string[] = [];
 const runtimeErrors: string[] = [];
@@ -51,8 +53,7 @@ vi.mock("../gateway/call.js", () => ({
 }));
 
 vi.mock("../gateway/server.js", () => ({
-  startGatewayServer: (port: number, opts?: unknown) =>
-    startGatewayServer(port, opts),
+  startGatewayServer: (port: number, opts?: unknown) => startGatewayServer(port, opts),
 }));
 
 vi.mock("../globals.js", () => ({
@@ -90,8 +91,16 @@ vi.mock("../daemon/program-args.js", () => ({
   }),
 }));
 
+vi.mock("../infra/bonjour-discovery.js", () => ({
+  discoverGatewayBeacons: (opts: unknown) => discoverGatewayBeacons(opts),
+}));
+
+vi.mock("../commands/gateway-status.js", () => ({
+  gatewayStatusCommand: (opts: unknown) => gatewayStatusCommand(opts),
+}));
+
 describe("gateway-cli coverage", () => {
-  it("registers call/health/status commands and routes to callGateway", async () => {
+  it("registers call/health commands and routes to callGateway", async () => {
     runtimeLogs.length = 0;
     runtimeErrors.length = 0;
     callGateway.mockClear();
@@ -101,13 +110,114 @@ describe("gateway-cli coverage", () => {
     program.exitOverride();
     registerGatewayCli(program);
 
-    await program.parseAsync(
-      ["gateway", "call", "health", "--params", '{"x":1}'],
-      { from: "user" },
-    );
+    await program.parseAsync(["gateway", "call", "health", "--params", '{"x":1}', "--json"], {
+      from: "user",
+    });
 
     expect(callGateway).toHaveBeenCalledTimes(1);
     expect(runtimeLogs.join("\n")).toContain('"ok": true');
+  }, 30_000);
+
+  it("registers gateway probe and routes to gatewayStatusCommand", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    gatewayStatusCommand.mockClear();
+
+    const { registerGatewayCli } = await import("./gateway-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerGatewayCli(program);
+
+    await program.parseAsync(["gateway", "probe", "--json"], { from: "user" });
+
+    expect(gatewayStatusCommand).toHaveBeenCalledTimes(1);
+  }, 30_000);
+
+  it("registers gateway discover and prints JSON", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    discoverGatewayBeacons.mockReset();
+    discoverGatewayBeacons.mockResolvedValueOnce([
+      {
+        instanceName: "Studio (Clawdbot)",
+        displayName: "Studio",
+        domain: "local.",
+        host: "studio.local",
+        lanHost: "studio.local",
+        tailnetDns: "studio.tailnet.ts.net",
+        gatewayPort: 18789,
+        sshPort: 22,
+      },
+    ]);
+
+    const { registerGatewayCli } = await import("./gateway-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerGatewayCli(program);
+
+    await program.parseAsync(["gateway", "discover", "--json"], {
+      from: "user",
+    });
+
+    expect(discoverGatewayBeacons).toHaveBeenCalledTimes(1);
+    expect(runtimeLogs.join("\n")).toContain('"beacons"');
+    expect(runtimeLogs.join("\n")).toContain('"wsUrl"');
+    expect(runtimeLogs.join("\n")).toContain("ws://");
+  });
+
+  it("registers gateway discover and prints human output with details on new lines", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    discoverGatewayBeacons.mockReset();
+    discoverGatewayBeacons.mockResolvedValueOnce([
+      {
+        instanceName: "Studio (Clawdbot)",
+        displayName: "Studio",
+        domain: "clawdbot.internal.",
+        host: "studio.clawdbot.internal",
+        lanHost: "studio.local",
+        tailnetDns: "studio.tailnet.ts.net",
+        gatewayPort: 18789,
+        sshPort: 22,
+      },
+    ]);
+
+    const { registerGatewayCli } = await import("./gateway-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerGatewayCli(program);
+
+    await program.parseAsync(["gateway", "discover", "--timeout", "1"], {
+      from: "user",
+    });
+
+    const out = runtimeLogs.join("\n");
+    expect(out).toContain("Gateway Discovery");
+    expect(out).toContain("Found 1 gateway(s)");
+    expect(out).toContain("- Studio clawdbot.internal.");
+    expect(out).toContain("  tailnet: studio.tailnet.ts.net");
+    expect(out).toContain("  host: studio.clawdbot.internal");
+    expect(out).toContain("  ws: ws://studio.tailnet.ts.net:18789");
+  });
+
+  it("validates gateway discover timeout", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    discoverGatewayBeacons.mockReset();
+
+    const { registerGatewayCli } = await import("./gateway-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerGatewayCli(program);
+
+    await expect(
+      program.parseAsync(["gateway", "discover", "--timeout", "0"], {
+        from: "user",
+      }),
+    ).rejects.toThrow("__exit__:1");
+
+    expect(runtimeErrors.join("\n")).toContain("gateway discover failed:");
+    expect(discoverGatewayBeacons).not.toHaveBeenCalled();
   });
 
   it("fails gateway call on invalid params JSON", async () => {
@@ -121,10 +231,7 @@ describe("gateway-cli coverage", () => {
     registerGatewayCli(program);
 
     await expect(
-      program.parseAsync(
-        ["gateway", "call", "status", "--params", "not-json"],
-        { from: "user" },
-      ),
+      program.parseAsync(["gateway", "call", "status", "--params", "not-json"], { from: "user" }),
     ).rejects.toThrow("__exit__:1");
 
     expect(callGateway).not.toHaveBeenCalled();
@@ -169,18 +276,15 @@ describe("gateway-cli coverage", () => {
     const beforeSigterm = new Set(process.listeners("SIGTERM"));
     const beforeSigint = new Set(process.listeners("SIGINT"));
     await expect(
-      programStartFail.parseAsync(
-        ["gateway", "--port", "18789", "--allow-unconfigured"],
-        { from: "user" },
-      ),
+      programStartFail.parseAsync(["gateway", "--port", "18789", "--allow-unconfigured"], {
+        from: "user",
+      }),
     ).rejects.toThrow("__exit__:1");
     for (const listener of process.listeners("SIGTERM")) {
-      if (!beforeSigterm.has(listener))
-        process.removeListener("SIGTERM", listener);
+      if (!beforeSigterm.has(listener)) process.removeListener("SIGTERM", listener);
     }
     for (const listener of process.listeners("SIGINT")) {
-      if (!beforeSigint.has(listener))
-        process.removeListener("SIGINT", listener);
+      if (!beforeSigint.has(listener)) process.removeListener("SIGINT", listener);
     }
   });
 
@@ -207,11 +311,11 @@ describe("gateway-cli coverage", () => {
 
     expect(startGatewayServer).toHaveBeenCalled();
     expect(runtimeErrors.join("\n")).toContain("Gateway failed to start:");
-    expect(runtimeErrors.join("\n")).toContain("zee daemon stop");
+    expect(runtimeErrors.join("\n")).toContain("clawdbot gateway stop");
   });
 
   it("uses env/config port when --port is omitted", async () => {
-    await withEnvOverride({ ZEE_GATEWAY_PORT: "19001" }, async () => {
+    await withEnvOverride({ CLAWDBOT_GATEWAY_PORT: "19001" }, async () => {
       runtimeLogs.length = 0;
       runtimeErrors.length = 0;
       startGatewayServer.mockClear();

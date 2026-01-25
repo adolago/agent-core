@@ -42,12 +42,19 @@ export async function loadSessions(state: SessionsState) {
 export async function patchSession(
   state: SessionsState,
   key: string,
-  patch: { thinkingLevel?: string | null; verboseLevel?: string | null },
+  patch: {
+    label?: string | null;
+    thinkingLevel?: string | null;
+    verboseLevel?: string | null;
+    reasoningLevel?: string | null;
+  },
 ) {
   if (!state.client || !state.connected) return;
   const params: Record<string, unknown> = { key };
+  if ("label" in patch) params.label = patch.label;
   if ("thinkingLevel" in patch) params.thinkingLevel = patch.thinkingLevel;
   if ("verboseLevel" in patch) params.verboseLevel = patch.verboseLevel;
+  if ("reasoningLevel" in patch) params.reasoningLevel = patch.reasoningLevel;
   try {
     await state.client.request("sessions.patch", params);
     await loadSessions(state);
@@ -56,3 +63,21 @@ export async function patchSession(
   }
 }
 
+export async function deleteSession(state: SessionsState, key: string) {
+  if (!state.client || !state.connected) return;
+  if (state.sessionsLoading) return;
+  const confirmed = window.confirm(
+    `Delete session "${key}"?\n\nDeletes the session entry and archives its transcript.`,
+  );
+  if (!confirmed) return;
+  state.sessionsLoading = true;
+  state.sessionsError = null;
+  try {
+    await state.client.request("sessions.delete", { key, deleteTranscript: true });
+    await loadSessions(state);
+  } catch (err) {
+    state.sessionsError = String(err);
+  } finally {
+    state.sessionsLoading = false;
+  }
+}

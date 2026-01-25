@@ -1,21 +1,30 @@
-// Lazy-load agent-core model metadata so we can infer context windows when
-// the agent reports a model id.
+// Lazy-load pi-coding-agent model metadata so we can infer context windows when
+// the agent reports a model id. This includes custom models.json entries.
 
-import { loadModelCatalog } from "./llm-types.js";
+import { loadConfig } from "../config/config.js";
+import { resolveClawdbotAgentDir } from "./agent-paths.js";
+import { ensureClawdbotModelsJson } from "./models-config.js";
+
+type ModelEntry = { id: string; contextWindow?: number };
 
 const MODEL_CACHE = new Map<string, number>();
 const loadPromise = (async () => {
   try {
-    const catalog = await loadModelCatalog({ useCache: true });
-    for (const entry of catalog) {
-      if (!entry?.id) continue;
-      if (typeof entry.contextWindow === "number" && entry.contextWindow > 0) {
-        MODEL_CACHE.set(entry.id, entry.contextWindow);
-        MODEL_CACHE.set(`${entry.provider}/${entry.id}`, entry.contextWindow);
+    const { discoverAuthStorage, discoverModels } = await import("@mariozechner/pi-coding-agent");
+    const cfg = loadConfig();
+    await ensureClawdbotModelsJson(cfg);
+    const agentDir = resolveClawdbotAgentDir();
+    const authStorage = discoverAuthStorage(agentDir);
+    const modelRegistry = discoverModels(authStorage, agentDir);
+    const models = modelRegistry.getAll() as ModelEntry[];
+    for (const m of models) {
+      if (!m?.id) continue;
+      if (typeof m.contextWindow === "number" && m.contextWindow > 0) {
+        MODEL_CACHE.set(m.id, m.contextWindow);
       }
     }
   } catch {
-    // If agent-core isn't available, leave cache empty; lookup will fall back.
+    // If pi-ai isn't available, leave cache empty; lookup will fall back.
   }
 })();
 
@@ -23,9 +32,5 @@ export function lookupContextTokens(modelId?: string): number | undefined {
   if (!modelId) return undefined;
   // Best-effort: kick off loading, but don't block.
   void loadPromise;
-  const direct = MODEL_CACHE.get(modelId);
-  if (direct !== undefined) return direct;
-  const slash = modelId.indexOf("/");
-  if (slash === -1) return undefined;
-  return MODEL_CACHE.get(modelId.slice(slash + 1));
+  return MODEL_CACHE.get(modelId);
 }

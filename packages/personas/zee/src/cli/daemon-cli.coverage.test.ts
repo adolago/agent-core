@@ -35,8 +35,7 @@ vi.mock("../gateway/call.js", () => ({
 }));
 
 vi.mock("../daemon/program-args.js", () => ({
-  resolveGatewayProgramArguments: (opts: unknown) =>
-    resolveGatewayProgramArguments(opts),
+  resolveGatewayProgramArguments: (opts: unknown) => resolveGatewayProgramArguments(opts),
 }));
 
 vi.mock("../daemon/service.js", () => ({
@@ -54,9 +53,13 @@ vi.mock("../daemon/service.js", () => ({
   }),
 }));
 
+vi.mock("../daemon/legacy.js", () => ({
+  findLegacyGatewayServices: async () => [],
+}));
+
 vi.mock("../daemon/inspect.js", () => ({
-  findExtraGatewayServices: (env: unknown, opts?: unknown) =>
-    findExtraGatewayServices(env, opts),
+  findExtraGatewayServices: (env: unknown, opts?: unknown) => findExtraGatewayServices(env, opts),
+  renderGatewayServiceCleanupHints: () => [],
 }));
 
 vi.mock("../infra/ports.js", () => ({
@@ -72,38 +75,42 @@ vi.mock("./deps.js", () => ({
   createDefaultDeps: () => {},
 }));
 
+vi.mock("./progress.js", () => ({
+  withProgress: async (_opts: unknown, fn: () => Promise<unknown>) => await fn(),
+}));
+
 describe("daemon-cli coverage", () => {
   const originalEnv = {
-    ZEE_STATE_DIR: process.env.ZEE_STATE_DIR,
-    ZEE_CONFIG_PATH: process.env.ZEE_CONFIG_PATH,
-    ZEE_GATEWAY_PORT: process.env.ZEE_GATEWAY_PORT,
-    ZEE_PROFILE: process.env.ZEE_PROFILE,
+    CLAWDBOT_STATE_DIR: process.env.CLAWDBOT_STATE_DIR,
+    CLAWDBOT_CONFIG_PATH: process.env.CLAWDBOT_CONFIG_PATH,
+    CLAWDBOT_GATEWAY_PORT: process.env.CLAWDBOT_GATEWAY_PORT,
+    CLAWDBOT_PROFILE: process.env.CLAWDBOT_PROFILE,
   };
 
   beforeEach(() => {
-    process.env.ZEE_STATE_DIR = "/tmp/zee-cli-state";
-    process.env.ZEE_CONFIG_PATH = "/tmp/zee-cli-state/zee.json";
-    delete process.env.ZEE_GATEWAY_PORT;
-    delete process.env.ZEE_PROFILE;
+    process.env.CLAWDBOT_STATE_DIR = "/tmp/clawdbot-cli-state";
+    process.env.CLAWDBOT_CONFIG_PATH = "/tmp/clawdbot-cli-state/clawdbot.json";
+    delete process.env.CLAWDBOT_GATEWAY_PORT;
+    delete process.env.CLAWDBOT_PROFILE;
     serviceReadCommand.mockResolvedValue(null);
   });
 
   afterEach(() => {
-    if (originalEnv.ZEE_STATE_DIR !== undefined)
-      process.env.ZEE_STATE_DIR = originalEnv.ZEE_STATE_DIR;
-    else delete process.env.ZEE_STATE_DIR;
+    if (originalEnv.CLAWDBOT_STATE_DIR !== undefined)
+      process.env.CLAWDBOT_STATE_DIR = originalEnv.CLAWDBOT_STATE_DIR;
+    else delete process.env.CLAWDBOT_STATE_DIR;
 
-    if (originalEnv.ZEE_CONFIG_PATH !== undefined)
-      process.env.ZEE_CONFIG_PATH = originalEnv.ZEE_CONFIG_PATH;
-    else delete process.env.ZEE_CONFIG_PATH;
+    if (originalEnv.CLAWDBOT_CONFIG_PATH !== undefined)
+      process.env.CLAWDBOT_CONFIG_PATH = originalEnv.CLAWDBOT_CONFIG_PATH;
+    else delete process.env.CLAWDBOT_CONFIG_PATH;
 
-    if (originalEnv.ZEE_GATEWAY_PORT !== undefined)
-      process.env.ZEE_GATEWAY_PORT = originalEnv.ZEE_GATEWAY_PORT;
-    else delete process.env.ZEE_GATEWAY_PORT;
+    if (originalEnv.CLAWDBOT_GATEWAY_PORT !== undefined)
+      process.env.CLAWDBOT_GATEWAY_PORT = originalEnv.CLAWDBOT_GATEWAY_PORT;
+    else delete process.env.CLAWDBOT_GATEWAY_PORT;
 
-    if (originalEnv.ZEE_PROFILE !== undefined)
-      process.env.ZEE_PROFILE = originalEnv.ZEE_PROFILE;
-    else delete process.env.ZEE_PROFILE;
+    if (originalEnv.CLAWDBOT_PROFILE !== undefined)
+      process.env.CLAWDBOT_PROFILE = originalEnv.CLAWDBOT_PROFILE;
+    else delete process.env.CLAWDBOT_PROFILE;
   });
 
   it("probes gateway status by default", async () => {
@@ -119,12 +126,10 @@ describe("daemon-cli coverage", () => {
     await program.parseAsync(["daemon", "status"], { from: "user" });
 
     expect(callGateway).toHaveBeenCalledTimes(1);
-    expect(callGateway).toHaveBeenCalledWith(
-      expect.objectContaining({ method: "status" }),
-    );
+    expect(callGateway).toHaveBeenCalledWith(expect.objectContaining({ method: "status" }));
     expect(findExtraGatewayServices).toHaveBeenCalled();
     expect(inspectPortUsage).toHaveBeenCalled();
-  });
+  }, 20_000);
 
   it("derives probe URL from service args + env (json)", async () => {
     runtimeLogs.length = 0;
@@ -135,12 +140,12 @@ describe("daemon-cli coverage", () => {
     serviceReadCommand.mockResolvedValueOnce({
       programArguments: ["/bin/node", "cli", "gateway", "--port", "19001"],
       environment: {
-        ZEE_PROFILE: "dev",
-        ZEE_STATE_DIR: "/tmp/zee-daemon-state",
-        ZEE_CONFIG_PATH: "/tmp/zee-daemon-state/zee.json",
-        ZEE_GATEWAY_PORT: "19001",
+        CLAWDBOT_PROFILE: "dev",
+        CLAWDBOT_STATE_DIR: "/tmp/clawdbot-daemon-state",
+        CLAWDBOT_CONFIG_PATH: "/tmp/clawdbot-daemon-state/clawdbot.json",
+        CLAWDBOT_GATEWAY_PORT: "19001",
       },
-      sourcePath: "/tmp/com.zee.gateway.plist",
+      sourcePath: "/tmp/com.clawdbot.gateway.plist",
     });
 
     const { registerDaemonCli } = await import("./daemon-cli.js");
@@ -158,7 +163,8 @@ describe("daemon-cli coverage", () => {
     );
     expect(inspectPortUsage).toHaveBeenCalledWith(19001);
 
-    const parsed = JSON.parse(runtimeLogs[0] ?? "{}") as {
+    const jsonLine = runtimeLogs.find((line) => line.trim().startsWith("{"));
+    const parsed = JSON.parse(jsonLine ?? "{}") as {
       gateway?: { port?: number; portSource?: string; probeUrl?: string };
       config?: { mismatch?: boolean };
       rpc?: { url?: string; ok?: boolean };
@@ -169,7 +175,7 @@ describe("daemon-cli coverage", () => {
     expect(parsed.config?.mismatch).toBe(true);
     expect(parsed.rpc?.url).toBe("ws://127.0.0.1:19001");
     expect(parsed.rpc?.ok).toBe(true);
-  });
+  }, 20_000);
 
   it("passes deep scan flag for daemon status", async () => {
     findExtraGatewayServices.mockClear();
@@ -203,6 +209,32 @@ describe("daemon-cli coverage", () => {
     expect(serviceInstall).toHaveBeenCalledTimes(1);
   });
 
+  it("installs the daemon with json output", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    serviceIsLoaded.mockResolvedValueOnce(false);
+    serviceInstall.mockClear();
+
+    const { registerDaemonCli } = await import("./daemon-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerDaemonCli(program);
+
+    await program.parseAsync(["daemon", "install", "--port", "18789", "--json"], {
+      from: "user",
+    });
+
+    const jsonLine = runtimeLogs.find((line) => line.trim().startsWith("{"));
+    const parsed = JSON.parse(jsonLine ?? "{}") as {
+      ok?: boolean;
+      action?: string;
+      result?: string;
+    };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.action).toBe("install");
+    expect(parsed.result).toBe("installed");
+  });
+
   it("starts and stops the daemon via service helpers", async () => {
     serviceRestart.mockClear();
     serviceStop.mockClear();
@@ -218,5 +250,26 @@ describe("daemon-cli coverage", () => {
 
     expect(serviceRestart).toHaveBeenCalledTimes(1);
     expect(serviceStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("emits json for daemon start/stop", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    serviceRestart.mockClear();
+    serviceStop.mockClear();
+    serviceIsLoaded.mockResolvedValue(true);
+
+    const { registerDaemonCli } = await import("./daemon-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerDaemonCli(program);
+
+    await program.parseAsync(["daemon", "start", "--json"], { from: "user" });
+    await program.parseAsync(["daemon", "stop", "--json"], { from: "user" });
+
+    const jsonLines = runtimeLogs.filter((line) => line.trim().startsWith("{"));
+    const parsed = jsonLines.map((line) => JSON.parse(line) as { action?: string; ok?: boolean });
+    expect(parsed.some((entry) => entry.action === "start" && entry.ok === true)).toBe(true);
+    expect(parsed.some((entry) => entry.action === "stop" && entry.ok === true)).toBe(true);
   });
 });

@@ -3,12 +3,7 @@ import fsSync from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetLogger, setLoggerOverride } from "../logging.js";
-import {
-  baileys,
-  getLastSocket,
-  resetBaileysMocks,
-  resetLoadConfigMock,
-} from "./test-helpers.js";
+import { baileys, getLastSocket, resetBaileysMocks, resetLoadConfigMock } from "./test-helpers.js";
 
 const { createWaSocket, formatError, logWebSelfId, waitForWaConnection } =
   await import("./session.js");
@@ -33,15 +28,11 @@ describe("web session", () => {
       expect.objectContaining({ printQRInTerminal: false }),
     );
     const passed = makeWASocket.mock.calls[0][0];
-    const passedLogger = (
-      passed as { logger?: { level?: string; trace?: unknown } }
-    ).logger;
+    const passedLogger = (passed as { logger?: { level?: string; trace?: unknown } }).logger;
     expect(passedLogger?.level).toBe("silent");
     expect(typeof passedLogger?.trace).toBe("function");
     const sock = getLastSocket();
-    const saveCreds = (
-      await baileys.useMultiFileAuthState.mock.results[0].value
-    ).saveCreds;
+    const saveCreds = (await baileys.useMultiFileAuthState.mock.results[0].value).saveCreds;
     // trigger creds.update listener
     sock.ev.emit("creds.update", {});
     await new Promise<void>((resolve) => setImmediate(resolve));
@@ -89,9 +80,7 @@ describe("web session", () => {
     logWebSelfId("/tmp/wa-creds", runtime as never, true);
 
     expect(runtime.log).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "Web Provider: +12345 (jid 12345@s.whatsapp.net)",
-      ),
+      expect.stringContaining("Web Channel: +12345 (jid 12345@s.whatsapp.net)"),
     );
     existsSpy.mockRestore();
     readSpy.mockRestore();
@@ -117,17 +106,9 @@ describe("web session", () => {
   });
 
   it("does not clobber creds backup when creds.json is corrupted", async () => {
-    const credsSuffix = path.join(
-      ".zee",
-      "credentials",
-      "whatsapp",
-      "default",
-      "creds.json",
-    );
+    const credsSuffix = path.join(".clawdbot", "credentials", "whatsapp", "default", "creds.json");
 
-    const copySpy = vi
-      .spyOn(fsSync, "copyFileSync")
-      .mockImplementation(() => {});
+    const copySpy = vi.spyOn(fsSync, "copyFileSync").mockImplementation(() => {});
     const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
       if (typeof p !== "string") return false;
       return p.endsWith(credsSuffix);
@@ -147,9 +128,7 @@ describe("web session", () => {
 
     await createWaSocket(false, false);
     const sock = getLastSocket();
-    const saveCreds = (
-      await baileys.useMultiFileAuthState.mock.results[0].value
-    ).saveCreds;
+    const saveCreds = (await baileys.useMultiFileAuthState.mock.results[0].value).saveCreds;
 
     sock.ev.emit("creds.update", {});
     await new Promise<void>((resolve) => setImmediate(resolve));
@@ -203,24 +182,16 @@ describe("web session", () => {
   });
 
   it("rotates creds backup when creds.json is valid JSON", async () => {
-    const credsSuffix = path.join(
-      ".zee",
-      "credentials",
-      "whatsapp",
-      "default",
-      "creds.json",
-    );
+    const credsSuffix = path.join(".clawdbot", "credentials", "whatsapp", "default", "creds.json");
     const backupSuffix = path.join(
-      ".zee",
+      ".clawdbot",
       "credentials",
       "whatsapp",
       "default",
       "creds.json.bak",
     );
 
-    const copySpy = vi
-      .spyOn(fsSync, "copyFileSync")
-      .mockImplementation(() => {});
+    const copySpy = vi.spyOn(fsSync, "copyFileSync").mockImplementation(() => {});
     const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
       if (typeof p !== "string") return false;
       return p.endsWith(credsSuffix);
@@ -240,9 +211,7 @@ describe("web session", () => {
 
     await createWaSocket(false, false);
     const sock = getLastSocket();
-    const saveCreds = (
-      await baileys.useMultiFileAuthState.mock.results[0].value
-    ).saveCreds;
+    const saveCreds = (await baileys.useMultiFileAuthState.mock.results[0].value).saveCreds;
 
     sock.ev.emit("creds.update", {});
     await new Promise<void>((resolve) => setImmediate(resolve));

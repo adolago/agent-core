@@ -6,18 +6,18 @@ read_when:
 ---
 # RPC adapters
 
-Zee integrates external CLIs via JSON-RPC. Two patterns are used today.
+Clawdbot integrates external CLIs via JSON-RPC. Two patterns are used today.
 
 ## Pattern A: HTTP daemon (signal-cli)
 - `signal-cli` runs as a daemon with JSON-RPC over HTTP.
 - Event stream is SSE (`/api/v1/events`).
 - Health probe: `/api/v1/check`.
-- Zee owns lifecycle when `signal.autoStart=true`.
+- Clawdbot owns lifecycle when `channels.signal.autoStart=true`.
 
-See [`docs/signal.md`](/providers/signal) for setup and endpoints.
+See [Signal](/channels/signal) for setup and endpoints.
 
 ## Pattern B: stdio child process (imsg)
-- Zee spawns `imsg rpc` as a child process.
+- Clawdbot spawns `imsg rpc` as a child process.
 - JSON-RPC is line-delimited over stdin/stdout (one JSON object per line).
 - No TCP port, no daemon required.
 
@@ -27,7 +27,7 @@ Core methods used:
 - `send`
 - `chats.list` (probe/diagnostics)
 
-See [`docs/imessage.md`](/providers/imessage) for setup and addressing (`chat_id` preferred).
+See [iMessage](/channels/imessage) for setup and addressing (`chat_id` preferred).
 
 ## Adapter guidelines
 - Gateway owns the process (start/stop tied to provider lifecycle).

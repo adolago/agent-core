@@ -1,89 +1,48 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
-import {
-  queueEmbeddedPiMessage,
-  runEmbeddedPiAgent,
-} from "../../agents/agent-core-embedded.js";
-import {
-  DEFAULT_CONTEXT_TOKENS,
-  lookupContextTokens,
-} from "../../agents/defaults.js";
-import { runWithModelFallback } from "../../agents/model-fallback.js";
+import { lookupContextTokens } from "../../agents/context.js";
+import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
+import { resolveModelAuthMode } from "../../agents/model-auth.js";
+import { isCliProvider } from "../../agents/model-selection.js";
+import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
 import { hasNonzeroUsage } from "../../agents/usage.js";
 import {
-  canShowThinking,
-  resolveProviderCapabilities,
-} from "../../config/provider-capabilities.js";
-import {
-  loadSessionStore,
+  resolveAgentIdFromSessionKey,
+  resolveSessionFilePath,
   resolveSessionTranscriptPath,
   type SessionEntry,
-  saveSessionStore,
+  updateSessionStore,
+  updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import type { TypingMode } from "../../config/types.js";
-import { logVerbose } from "../../globals.js";
-import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
-import { stripHeartbeatToken } from "../heartbeat.js";
+import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
 import type { OriginatingChannelType, TemplateContext } from "../templating.js";
-import { normalizeVerboseLevel, type VerboseLevel } from "../thinking.js";
-import { SILENT_REPLY_TOKEN } from "../tokens.js";
+import { resolveResponseUsageMode, type VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
-import { extractAudioTag } from "./audio-tags.js";
+import { runAgentTurnWithFallback } from "./agent-runner-execution.js";
+import {
+  createShouldEmitToolOutput,
+  createShouldEmitToolResult,
+  finalizeWithFollowup,
+  isAudioPayload,
+  signalTypingIfNeeded,
+} from "./agent-runner-helpers.js";
+import { runMemoryFlushIfNeeded } from "./agent-runner-memory.js";
+import { buildReplyPayloads } from "./agent-runner-payloads.js";
+import { appendUsageLine, formatResponseUsageLine } from "./agent-runner-utils.js";
+import { createAudioAsVoiceBuffer, createBlockReplyPipeline } from "./block-reply-pipeline.js";
+import { resolveBlockStreamingCoalescing } from "./block-streaming.js";
 import { createFollowupRunner } from "./followup-runner.js";
-import {
-  enqueueFollowupRun,
-  type FollowupRun,
-  type QueueSettings,
-  scheduleFollowupDrain,
-} from "./queue.js";
-import {
-  applyReplyTagsToPayload,
-  applyReplyThreading,
-  filterMessagingToolDuplicates,
-  isRenderablePayload,
-  shouldSuppressMessagingToolReplies,
-} from "./reply-payloads.js";
-import {
-  createReplyToModeFilter,
-  resolveReplyToMode,
-} from "./reply-threading.js";
+import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queue.js";
+import { createReplyToModeFilterForChannel, resolveReplyToMode } from "./reply-threading.js";
+import { persistSessionUsageUpdate } from "./session-usage.js";
 import { incrementCompactionCount } from "./session-updates.js";
 import type { TypingController } from "./typing.js";
 import { createTypingSignaler } from "./typing-mode.js";
+import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 
-const BUN_FETCH_SOCKET_ERROR_RE = /socket connection was closed unexpectedly/i;
 const BLOCK_REPLY_SEND_TIMEOUT_MS = 15_000;
-
-const isBunFetchSocketError = (message?: string) =>
-  Boolean(message && BUN_FETCH_SOCKET_ERROR_RE.test(message));
-
-const formatBunFetchSocketError = (message: string) => {
-  const trimmed = message.trim();
-  return [
-    "⚠️ LLM connection failed. This could be due to server issues, network problems, or context length exceeded (e.g., with local LLMs like LM Studio). Original error:",
-    "```",
-    trimmed || "Unknown error",
-    "```",
-  ].join("\n");
-};
-
-const withTimeout = async <T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  timeoutError: Error,
-): Promise<T> => {
-  if (!timeoutMs || timeoutMs <= 0) return promise;
-  let timer: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(timeoutError), timeoutMs);
-  });
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-};
 
 export async function runReplyAgent(params: {
   commandBody: string;
@@ -100,7 +59,7 @@ export async function runReplyAgent(params: {
   sessionStore?: Record<string, SessionEntry>;
   sessionKey?: string;
   storePath?: string;
-  defaultModel?: string;
+  defaultModel: string;
   agentCfgContextTokens?: number;
   resolvedVerboseLevel: VerboseLevel;
   isNewSession: boolean;
@@ -142,6 +101,10 @@ export async function runReplyAgent(params: {
     typingMode,
   } = params;
 
+  let activeSessionEntry = sessionEntry;
+  const activeSessionStore = sessionStore;
+  let activeIsNewSession = isNewSession;
+
   const isHeartbeat = opts?.isHeartbeat === true;
   const typingSignals = createTypingSignaler({
     typing,
@@ -149,51 +112,20 @@ export async function runReplyAgent(params: {
     isHeartbeat,
   });
 
-  const shouldEmitToolResult = () => {
-    if (!sessionKey || !storePath) {
-      return resolvedVerboseLevel === "on";
-    }
-    try {
-      const store = loadSessionStore(storePath);
-      const entry = store[sessionKey];
-      const current = normalizeVerboseLevel(entry?.verboseLevel);
-      if (current) return current === "on";
-    } catch {
-      // ignore store read failures
-    }
-    return resolvedVerboseLevel === "on";
-  };
+  const shouldEmitToolResult = createShouldEmitToolResult({
+    sessionKey,
+    storePath,
+    resolvedVerboseLevel,
+  });
+  const shouldEmitToolOutput = createShouldEmitToolOutput({
+    sessionKey,
+    storePath,
+    resolvedVerboseLevel,
+  });
 
-  const streamedPayloadKeys = new Set<string>();
-  const pendingStreamedPayloadKeys = new Set<string>();
-  const pendingBlockTasks = new Set<Promise<void>>();
   const pendingToolTasks = new Set<Promise<void>>();
-  let blockReplyChain: Promise<void> = Promise.resolve();
-  let blockReplyAborted = false;
-  let didLogBlockReplyAbort = false;
-  let didStreamBlockReply = false;
+  const blockReplyTimeoutMs = opts?.blockReplyTimeoutMs ?? BLOCK_REPLY_SEND_TIMEOUT_MS;
 
-  // Buffer audio blocks to apply [[audio_as_voice]] tag that may come later
-  const bufferedAudioBlocks: ReplyPayload[] = [];
-  let seenAudioAsVoice = false;
-
-  const AUDIO_EXTENSIONS = /\.(opus|mp3|m4a|wav|ogg|aac|flac)$/i;
-  const hasAudioMedia = (urls?: string[]): boolean =>
-    Boolean(urls?.some((u) => AUDIO_EXTENSIONS.test(u)));
-
-  const buildPayloadKey = (payload: ReplyPayload) => {
-    const text = payload.text?.trim() ?? "";
-    const mediaList = payload.mediaUrls?.length
-      ? payload.mediaUrls
-      : payload.mediaUrl
-        ? [payload.mediaUrl]
-        : [];
-    return JSON.stringify({
-      text,
-      mediaList,
-      replyToId: payload.replyToId ?? null,
-    });
-  };
   const replyToChannel =
     sessionCtx.OriginatingChannel ??
     ((sessionCtx.Surface ?? sessionCtx.Provider)?.toLowerCase() as
@@ -202,20 +134,43 @@ export async function runReplyAgent(params: {
   const replyToMode = resolveReplyToMode(
     followupRun.run.config,
     replyToChannel,
+    sessionCtx.AccountId,
+    sessionCtx.ChatType,
   );
-  const applyReplyToMode = createReplyToModeFilter(replyToMode);
+  const applyReplyToMode = createReplyToModeFilterForChannel(replyToMode, replyToChannel);
+  const cfg = followupRun.run.config;
+  const blockReplyCoalescing =
+    blockStreamingEnabled && opts?.onBlockReply
+      ? resolveBlockStreamingCoalescing(
+          cfg,
+          sessionCtx.Provider,
+          sessionCtx.AccountId,
+          blockReplyChunking,
+        )
+      : undefined;
+  const blockReplyPipeline =
+    blockStreamingEnabled && opts?.onBlockReply
+      ? createBlockReplyPipeline({
+          onBlockReply: opts.onBlockReply,
+          timeoutMs: blockReplyTimeoutMs,
+          coalescing: blockReplyCoalescing,
+          buffer: createAudioAsVoiceBuffer({ isAudioPayload }),
+        })
+      : null;
 
   if (shouldSteer && isStreaming) {
-    const steered = await queueEmbeddedPiMessage(
-      followupRun.run.sessionId,
-      followupRun.prompt,
-    );
+    const steered = queueEmbeddedPiMessage(followupRun.run.sessionId, followupRun.prompt);
     if (steered && !shouldFollowup) {
-      if (sessionEntry && sessionStore && sessionKey) {
-        sessionEntry.updatedAt = Date.now();
-        sessionStore[sessionKey] = sessionEntry;
+      if (activeSessionEntry && activeSessionStore && sessionKey) {
+        const updatedAt = Date.now();
+        activeSessionEntry.updatedAt = updatedAt;
+        activeSessionStore[sessionKey] = activeSessionEntry;
         if (storePath) {
-          await saveSessionStore(storePath, sessionStore);
+          await updateSessionStoreEntry({
+            storePath,
+            sessionKey,
+            update: async () => ({ updatedAt }),
+          });
         }
       }
       typing.cleanup();
@@ -225,574 +180,335 @@ export async function runReplyAgent(params: {
 
   if (isActive && (shouldFollowup || resolvedQueue.mode === "steer")) {
     enqueueFollowupRun(queueKey, followupRun, resolvedQueue);
-    if (sessionEntry && sessionStore && sessionKey) {
-      sessionEntry.updatedAt = Date.now();
-      sessionStore[sessionKey] = sessionEntry;
+    if (activeSessionEntry && activeSessionStore && sessionKey) {
+      const updatedAt = Date.now();
+      activeSessionEntry.updatedAt = updatedAt;
+      activeSessionStore[sessionKey] = activeSessionEntry;
       if (storePath) {
-        await saveSessionStore(storePath, sessionStore);
+        await updateSessionStoreEntry({
+          storePath,
+          sessionKey,
+          update: async () => ({ updatedAt }),
+        });
       }
     }
     typing.cleanup();
     return undefined;
   }
 
+  await typingSignals.signalRunStart();
+
+  activeSessionEntry = await runMemoryFlushIfNeeded({
+    cfg,
+    followupRun,
+    sessionCtx,
+    opts,
+    defaultModel,
+    agentCfgContextTokens,
+    resolvedVerboseLevel,
+    sessionEntry: activeSessionEntry,
+    sessionStore: activeSessionStore,
+    sessionKey,
+    storePath,
+    isHeartbeat,
+  });
+
   const runFollowupTurn = createFollowupRunner({
     opts,
     typing,
     typingMode,
-    sessionEntry,
-    sessionStore,
+    sessionEntry: activeSessionEntry,
+    sessionStore: activeSessionStore,
     sessionKey,
     storePath,
     defaultModel,
     agentCfgContextTokens,
   });
 
-  const finalizeWithFollowup = <T>(value: T): T => {
-    scheduleFollowupDrain(queueKey, runFollowupTurn);
-    return value;
+  let responseUsageLine: string | undefined;
+  type SessionResetOptions = {
+    failureLabel: string;
+    buildLogMessage: (nextSessionId: string) => string;
+    cleanupTranscripts?: boolean;
   };
-
-  let didLogHeartbeatStrip = false;
-  let autoCompactionCompleted = false;
-  try {
-    const runId = crypto.randomUUID();
-    if (sessionKey) {
-      registerAgentRunContext(runId, { sessionKey });
-    }
-    let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
-    let fallbackProvider = followupRun.run.provider;
-    let fallbackModel = followupRun.run.model;
+  const resetSession = async ({
+    failureLabel,
+    buildLogMessage,
+    cleanupTranscripts,
+  }: SessionResetOptions): Promise<boolean> => {
+    if (!sessionKey || !activeSessionStore || !storePath) return false;
+    const prevEntry = activeSessionStore[sessionKey] ?? activeSessionEntry;
+    if (!prevEntry) return false;
+    const prevSessionId = cleanupTranscripts ? prevEntry.sessionId : undefined;
+    const nextSessionId = crypto.randomUUID();
+    const nextEntry: SessionEntry = {
+      ...prevEntry,
+      sessionId: nextSessionId,
+      updatedAt: Date.now(),
+      systemSent: false,
+      abortedLastRun: false,
+    };
+    const agentId = resolveAgentIdFromSessionKey(sessionKey);
+    const nextSessionFile = resolveSessionTranscriptPath(
+      nextSessionId,
+      agentId,
+      sessionCtx.MessageThreadId,
+    );
+    nextEntry.sessionFile = nextSessionFile;
+    activeSessionStore[sessionKey] = nextEntry;
     try {
-      const messageProvider = sessionCtx.Provider?.trim().toLowerCase();
-      const messageProviderCapabilities =
-        resolveProviderCapabilities({
-          cfg: followupRun.run.config,
-          provider: messageProvider,
-          accountId: sessionCtx.AccountId,
-        }) ?? (messageProvider ? [] : undefined);
-      const allowPartialStream = !(
-        followupRun.run.reasoningLevel === "stream" && opts?.onReasoningStream
-      );
-      const fallbackResult = await runWithModelFallback({
-        cfg: followupRun.run.config,
-        provider: followupRun.run.provider,
-        model: followupRun.run.model,
-        run: (provider, model) =>
-          runEmbeddedPiAgent({
-            sessionId: followupRun.run.sessionId,
-            sessionKey,
-            messageProvider: messageProvider || undefined,
-            messageProviderCapabilities,
-            agentAccountId: sessionCtx.AccountId,
-            sessionFile: followupRun.run.sessionFile,
-            workspaceDir: followupRun.run.workspaceDir,
-            agentDir: followupRun.run.agentDir,
-            config: followupRun.run.config,
-            skillsSnapshot: followupRun.run.skillsSnapshot,
-            prompt: commandBody,
-            extraSystemPrompt: followupRun.run.extraSystemPrompt,
-            ownerNumbers: followupRun.run.ownerNumbers,
-            enforceFinalTag: followupRun.run.enforceFinalTag,
-            provider,
-            model,
-            persona: followupRun.run.persona,
-            authProfileId: followupRun.run.authProfileId,
-            thinkLevel: followupRun.run.thinkLevel,
-            verboseLevel: followupRun.run.verboseLevel,
-            reasoningLevel: followupRun.run.reasoningLevel,
-            bashElevated: followupRun.run.bashElevated,
-            timeoutMs: followupRun.run.timeoutMs,
-            runId,
-            blockReplyBreak: resolvedBlockStreamingBreak,
-            blockReplyChunking,
-            onPartialReply:
-              opts?.onPartialReply && allowPartialStream
-                ? async (payload) => {
-                    let text = payload.text;
-                    if (!isHeartbeat && text?.includes("HEARTBEAT_OK")) {
-                      const stripped = stripHeartbeatToken(text, {
-                        mode: "message",
-                      });
-                      if (stripped.didStrip && !didLogHeartbeatStrip) {
-                        didLogHeartbeatStrip = true;
-                        logVerbose(
-                          "Stripped stray HEARTBEAT_OK token from reply",
-                        );
-                      }
-                      if (
-                        stripped.shouldSkip &&
-                        (payload.mediaUrls?.length ?? 0) === 0
-                      ) {
-                        return;
-                      }
-                      text = stripped.text;
-                    }
-                    await typingSignals.signalTextDelta(text);
-                    await opts.onPartialReply?.({
-                      text,
-                      mediaUrls: payload.mediaUrls,
-                    });
-                  }
-                : undefined,
-            onReasoningStream:
-              typingSignals.shouldStartOnReasoning || opts?.onReasoningStream
-                ? async (payload) => {
-                    // Typing signals always work (shows "thinking" activity)
-                    await typingSignals.signalReasoningDelta();
-                    // Only send reasoning text if surface allows showing thinking (not messaging platforms)
-                    if (canShowThinking(messageProvider)) {
-                      await opts?.onReasoningStream?.({
-                        text: payload.text,
-                        mediaUrls: payload.mediaUrls,
-                      });
-                    }
-                  }
-                : undefined,
-            onAgentEvent: (evt) => {
-              // Trigger typing when tools start executing
-              if (evt.stream === "tool") {
-                const phase =
-                  typeof evt.data.phase === "string" ? evt.data.phase : "";
-                if (phase === "start") {
-                  void typingSignals.signalToolStart();
-                }
-              }
-              // Track auto-compaction completion
-              if (evt.stream === "compaction") {
-                const phase =
-                  typeof evt.data.phase === "string" ? evt.data.phase : "";
-                const willRetry = Boolean(evt.data.willRetry);
-                if (phase === "end" && !willRetry) {
-                  autoCompactionCompleted = true;
-                }
-              }
-            },
-            onBlockReply:
-              blockStreamingEnabled && opts?.onBlockReply
-                ? async (payload) => {
-                    let text = payload.text;
-                    if (!isHeartbeat && text?.includes("HEARTBEAT_OK")) {
-                      const stripped = stripHeartbeatToken(text, {
-                        mode: "message",
-                      });
-                      if (stripped.didStrip && !didLogHeartbeatStrip) {
-                        didLogHeartbeatStrip = true;
-                        logVerbose(
-                          "Stripped stray HEARTBEAT_OK token from reply",
-                        );
-                      }
-                      const hasMedia = (payload.mediaUrls?.length ?? 0) > 0;
-                      if (stripped.shouldSkip && !hasMedia) return;
-                      text = stripped.text;
-                    }
-                    const taggedPayload = applyReplyTagsToPayload(
-                      {
-                        text,
-                        mediaUrls: payload.mediaUrls,
-                        mediaUrl: payload.mediaUrls?.[0],
-                      },
-                      sessionCtx.MessageSid,
-                    );
-                    // Let through payloads with audioAsVoice flag even if empty (need to track it)
-                    if (
-                      !isRenderablePayload(taggedPayload) &&
-                      !payload.audioAsVoice
-                    )
-                      return;
-                    const audioTagResult = extractAudioTag(taggedPayload.text);
-                    const cleaned = audioTagResult.cleaned || undefined;
-                    const hasMedia =
-                      Boolean(taggedPayload.mediaUrl) ||
-                      (taggedPayload.mediaUrls?.length ?? 0) > 0;
-                    // Skip empty payloads unless they have audioAsVoice flag (need to track it)
-                    if (!cleaned && !hasMedia && !payload.audioAsVoice) return;
-                    if (cleaned?.trim() === SILENT_REPLY_TOKEN && !hasMedia)
-                      return;
-
-                    // Track if we've seen [[audio_as_voice]] from payload or text extraction
-                    if (payload.audioAsVoice || audioTagResult.audioAsVoice) {
-                      seenAudioAsVoice = true;
-                    }
-
-                    const blockPayload: ReplyPayload = applyReplyToMode({
-                      ...taggedPayload,
-                      text: cleaned,
-                      audioAsVoice:
-                        audioTagResult.audioAsVoice || payload.audioAsVoice,
-                    });
-
-                    // Buffer audio blocks to apply [[audio_as_voice]] that may come later
-                    const isAudioBlock = hasAudioMedia(taggedPayload.mediaUrls);
-                    if (isAudioBlock) {
-                      bufferedAudioBlocks.push(blockPayload);
-                      return; // Don't send immediately - wait for potential [[audio_as_voice]] tag
-                    }
-
-                    const payloadKey = buildPayloadKey(blockPayload);
-                    if (
-                      streamedPayloadKeys.has(payloadKey) ||
-                      pendingStreamedPayloadKeys.has(payloadKey)
-                    ) {
-                      return;
-                    }
-                    if (blockReplyAborted) return;
-                    pendingStreamedPayloadKeys.add(payloadKey);
-                    void typingSignals
-                      .signalTextDelta(taggedPayload.text)
-                      .catch((err) => {
-                        logVerbose(
-                          `block reply typing signal failed: ${String(err)}`,
-                        );
-                      });
-                    const timeoutError = new Error(
-                      `block reply delivery timed out after ${BLOCK_REPLY_SEND_TIMEOUT_MS}ms`,
-                    );
-                    blockReplyChain = blockReplyChain
-                      .then(async () => {
-                        if (blockReplyAborted) return false;
-                        await withTimeout(
-                          opts.onBlockReply?.(blockPayload) ??
-                            Promise.resolve(),
-                          BLOCK_REPLY_SEND_TIMEOUT_MS,
-                          timeoutError,
-                        );
-                        return true;
-                      })
-                      .then((didSend) => {
-                        if (!didSend) return;
-                        streamedPayloadKeys.add(payloadKey);
-                        didStreamBlockReply = true;
-                      })
-                      .catch((err) => {
-                        if (err === timeoutError) {
-                          blockReplyAborted = true;
-                          if (!didLogBlockReplyAbort) {
-                            didLogBlockReplyAbort = true;
-                            logVerbose(
-                              `block reply delivery timed out after ${BLOCK_REPLY_SEND_TIMEOUT_MS}ms; skipping remaining block replies to preserve ordering`,
-                            );
-                          }
-                          return;
-                        }
-                        logVerbose(
-                          `block reply delivery failed: ${String(err)}`,
-                        );
-                      })
-                      .finally(() => {
-                        pendingStreamedPayloadKeys.delete(payloadKey);
-                      });
-                    const task = blockReplyChain;
-                    pendingBlockTasks.add(task);
-                    void task.finally(() => pendingBlockTasks.delete(task));
-                  }
-                : undefined,
-            shouldEmitToolResult,
-            onToolResult: opts?.onToolResult
-              ? (payload: ReplyPayload) => {
-                  // `subscribeEmbeddedPiSession` may invoke tool callbacks without awaiting them.
-                  // If a tool callback starts typing after the run finalized, we can end up with
-                  // a typing loop that never sees a matching markRunComplete(). Track and drain.
-                  const task = (async () => {
-                    let text = payload.text;
-                    if (!isHeartbeat && text?.includes("HEARTBEAT_OK")) {
-                      const stripped = stripHeartbeatToken(text, {
-                        mode: "message",
-                      });
-                      if (stripped.didStrip && !didLogHeartbeatStrip) {
-                        didLogHeartbeatStrip = true;
-                        logVerbose(
-                          "Stripped stray HEARTBEAT_OK token from reply",
-                        );
-                      }
-                      if (
-                        stripped.shouldSkip &&
-                        (payload.mediaUrls?.length ?? 0) === 0
-                      ) {
-                        return;
-                      }
-                      text = stripped.text;
-                    }
-                    await typingSignals.signalTextDelta(text);
-                    await opts.onToolResult?.({
-                      text,
-                      mediaUrls: payload.mediaUrls,
-                    });
-                  })()
-                    .catch((err) => {
-                      logVerbose(`tool result delivery failed: ${String(err)}`);
-                    })
-                    .finally(() => {
-                      pendingToolTasks.delete(task);
-                    });
-                  pendingToolTasks.add(task);
-                }
-              : undefined,
-          }),
+      await updateSessionStore(storePath, (store) => {
+        store[sessionKey] = nextEntry;
       });
-      runResult = fallbackResult.result;
-      fallbackProvider = fallbackResult.provider;
-      fallbackModel = fallbackResult.model;
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      const isContextOverflow =
-        /context.*overflow|too large|context window/i.test(message);
-      const isSessionCorruption =
-        /function call turn comes immediately after/i.test(message);
-
-      // Auto-recover from Gemini session corruption by resetting the session
-      if (isSessionCorruption && sessionKey && sessionStore && storePath) {
-        const corruptedSessionId = sessionEntry?.sessionId;
-        defaultRuntime.error(
-          `Session history corrupted (Gemini function call ordering). Resetting session: ${sessionKey}`,
-        );
-
-        try {
-          // Delete transcript file if it exists
-          if (corruptedSessionId) {
-            const transcriptPath =
-              resolveSessionTranscriptPath(corruptedSessionId);
-            try {
-              fs.unlinkSync(transcriptPath);
-            } catch {
-              // Ignore if file doesn't exist
-            }
-          }
-
-          // Remove session entry from store
-          delete sessionStore[sessionKey];
-          await saveSessionStore(storePath, sessionStore);
-        } catch (cleanupErr) {
-          defaultRuntime.error(
-            `Failed to reset corrupted session ${sessionKey}: ${String(cleanupErr)}`,
-          );
-        }
-
-        return finalizeWithFollowup({
-          text: "⚠️ Session history was corrupted. I've reset the conversation - please try again!",
-        });
-      }
-
-      defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
-      return finalizeWithFollowup({
-        text: isContextOverflow
-          ? "⚠️ Context overflow - conversation too long. Starting fresh might help!"
-          : `⚠️ Agent failed before reply: ${message}. Check gateway logs for details.`,
-      });
+      defaultRuntime.error(
+        `Failed to persist session reset after ${failureLabel} (${sessionKey}): ${String(err)}`,
+      );
     }
+    followupRun.run.sessionId = nextSessionId;
+    followupRun.run.sessionFile = nextSessionFile;
+    activeSessionEntry = nextEntry;
+    activeIsNewSession = true;
+    defaultRuntime.error(buildLogMessage(nextSessionId));
+    if (cleanupTranscripts && prevSessionId) {
+      const transcriptCandidates = new Set<string>();
+      const resolved = resolveSessionFilePath(prevSessionId, prevEntry, { agentId });
+      if (resolved) transcriptCandidates.add(resolved);
+      transcriptCandidates.add(resolveSessionTranscriptPath(prevSessionId, agentId));
+      for (const candidate of transcriptCandidates) {
+        try {
+          fs.unlinkSync(candidate);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    }
+    return true;
+  };
+  const resetSessionAfterCompactionFailure = async (reason: string): Promise<boolean> =>
+    resetSession({
+      failureLabel: "compaction failure",
+      buildLogMessage: (nextSessionId) =>
+        `Auto-compaction failed (${reason}). Restarting session ${sessionKey} -> ${nextSessionId} and retrying.`,
+    });
+  const resetSessionAfterRoleOrderingConflict = async (reason: string): Promise<boolean> =>
+    resetSession({
+      failureLabel: "role ordering conflict",
+      buildLogMessage: (nextSessionId) =>
+        `Role ordering conflict (${reason}). Restarting session ${sessionKey} -> ${nextSessionId}.`,
+      cleanupTranscripts: true,
+    });
+  try {
+    const runStartedAt = Date.now();
+    const runOutcome = await runAgentTurnWithFallback({
+      commandBody,
+      followupRun,
+      sessionCtx,
+      opts,
+      typingSignals,
+      blockReplyPipeline,
+      blockStreamingEnabled,
+      blockReplyChunking,
+      resolvedBlockStreamingBreak,
+      applyReplyToMode,
+      shouldEmitToolResult,
+      shouldEmitToolOutput,
+      pendingToolTasks,
+      resetSessionAfterCompactionFailure,
+      resetSessionAfterRoleOrderingConflict,
+      isHeartbeat,
+      sessionKey,
+      getActiveSessionEntry: () => activeSessionEntry,
+      activeSessionStore,
+      storePath,
+      resolvedVerboseLevel,
+    });
+
+    if (runOutcome.kind === "final") {
+      return finalizeWithFollowup(runOutcome.payload, queueKey, runFollowupTurn);
+    }
+
+    const { runResult, fallbackProvider, fallbackModel, directlySentBlockKeys } = runOutcome;
+    let { didLogHeartbeatStrip, autoCompactionCompleted } = runOutcome;
 
     if (
       shouldInjectGroupIntro &&
-      sessionEntry &&
-      sessionStore &&
+      activeSessionEntry &&
+      activeSessionStore &&
       sessionKey &&
-      sessionEntry.groupActivationNeedsSystemIntro
+      activeSessionEntry.groupActivationNeedsSystemIntro
     ) {
-      sessionEntry.groupActivationNeedsSystemIntro = false;
-      sessionEntry.updatedAt = Date.now();
-      sessionStore[sessionKey] = sessionEntry;
+      const updatedAt = Date.now();
+      activeSessionEntry.groupActivationNeedsSystemIntro = false;
+      activeSessionEntry.updatedAt = updatedAt;
+      activeSessionStore[sessionKey] = activeSessionEntry;
       if (storePath) {
-        await saveSessionStore(storePath, sessionStore);
+        await updateSessionStoreEntry({
+          storePath,
+          sessionKey,
+          update: async () => ({
+            groupActivationNeedsSystemIntro: false,
+            updatedAt,
+          }),
+        });
       }
     }
 
     const payloadArray = runResult.payloads ?? [];
-    if (pendingBlockTasks.size > 0) {
-      await Promise.allSettled(pendingBlockTasks);
+
+    if (blockReplyPipeline) {
+      await blockReplyPipeline.flush({ force: true });
+      blockReplyPipeline.stop();
     }
     if (pendingToolTasks.size > 0) {
       await Promise.allSettled(pendingToolTasks);
     }
 
-    // Flush buffered audio blocks now that we know if [[audio_as_voice]] was seen
-    if (bufferedAudioBlocks.length > 0 && opts?.onBlockReply) {
-      for (const audioPayload of bufferedAudioBlocks) {
-        const finalPayload = seenAudioAsVoice
-          ? { ...audioPayload, audioAsVoice: true }
-          : audioPayload;
-        const payloadKey = buildPayloadKey(finalPayload);
-        if (
-          streamedPayloadKeys.has(payloadKey) ||
-          pendingStreamedPayloadKeys.has(payloadKey)
-        ) {
-          continue;
-        }
-        pendingStreamedPayloadKeys.add(payloadKey);
-        try {
-          await typingSignals.signalTextDelta(finalPayload.text);
-          await opts.onBlockReply(finalPayload);
-          streamedPayloadKeys.add(payloadKey);
-          didStreamBlockReply = true;
-        } catch (err) {
-          logVerbose(`buffered audio block reply failed: ${String(err)}`);
-        } finally {
-          pendingStreamedPayloadKeys.delete(payloadKey);
-        }
-      }
-      bufferedAudioBlocks.length = 0; // Clear after flushing
-    }
+    const usage = runResult.meta.agentMeta?.usage;
+    const modelUsed = runResult.meta.agentMeta?.model ?? fallbackModel ?? defaultModel;
+    const providerUsed =
+      runResult.meta.agentMeta?.provider ?? fallbackProvider ?? followupRun.run.provider;
+    const cliSessionId = isCliProvider(providerUsed, cfg)
+      ? runResult.meta.agentMeta?.sessionId?.trim()
+      : undefined;
+    const contextTokensUsed =
+      agentCfgContextTokens ??
+      lookupContextTokens(modelUsed) ??
+      activeSessionEntry?.contextTokens ??
+      DEFAULT_CONTEXT_TOKENS;
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage,
+      modelUsed,
+      providerUsed,
+      contextTokensUsed,
+      systemPromptReport: runResult.meta.systemPromptReport,
+      cliSessionId,
+    });
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".
     // Otherwise, a late typing trigger (e.g. from a tool callback) can outlive the run and
     // keep the typing indicator stuck.
-    if (payloadArray.length === 0) return finalizeWithFollowup(undefined);
+    if (payloadArray.length === 0)
+      return finalizeWithFollowup(undefined, queueKey, runFollowupTurn);
 
-    const sanitizedPayloads = isHeartbeat
-      ? payloadArray
-      : payloadArray.flatMap((payload) => {
-          let text = payload.text;
-
-          if (payload.isError && text && isBunFetchSocketError(text)) {
-            text = formatBunFetchSocketError(text);
-          }
-
-          if (!text || !text.includes("HEARTBEAT_OK"))
-            return [{ ...payload, text }];
-          const stripped = stripHeartbeatToken(text, { mode: "message" });
-          if (stripped.didStrip && !didLogHeartbeatStrip) {
-            didLogHeartbeatStrip = true;
-            logVerbose("Stripped stray HEARTBEAT_OK token from reply");
-          }
-          const hasMedia =
-            Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0;
-          if (stripped.shouldSkip && !hasMedia) return [];
-          return [{ ...payload, text: stripped.text }];
-        });
-
-    const replyTaggedPayloads: ReplyPayload[] = applyReplyThreading({
-      payloads: sanitizedPayloads,
-      applyReplyToMode,
-      currentMessageId: sessionCtx.MessageSid,
-    })
-      .map((payload) => {
-        const audioTagResult = extractAudioTag(payload.text);
-        return {
-          ...payload,
-          text: audioTagResult.cleaned ? audioTagResult.cleaned : undefined,
-          audioAsVoice: audioTagResult.audioAsVoice,
-        };
-      })
-      .filter(isRenderablePayload);
-
-    // Drop final payloads only when block streaming succeeded end-to-end.
-    // If streaming aborted (e.g., timeout), fall back to final payloads.
-    const shouldDropFinalPayloads =
-      blockStreamingEnabled && didStreamBlockReply && !blockReplyAborted;
-    const messagingToolSentTexts = runResult.messagingToolSentTexts ?? [];
-    const messagingToolSentTargets = runResult.messagingToolSentTargets ?? [];
-    const suppressMessagingToolReplies = shouldSuppressMessagingToolReplies({
+    const payloadResult = buildReplyPayloads({
+      payloads: payloadArray,
+      isHeartbeat,
+      didLogHeartbeatStrip,
+      blockStreamingEnabled,
+      blockReplyPipeline,
+      directlySentBlockKeys,
+      replyToMode,
+      replyToChannel,
+      currentMessageId: sessionCtx.MessageSidFull ?? sessionCtx.MessageSid,
       messageProvider: followupRun.run.messageProvider,
-      messagingToolSentTargets,
+      messagingToolSentTexts: runResult.messagingToolSentTexts,
+      messagingToolSentTargets: runResult.messagingToolSentTargets,
       originatingTo: sessionCtx.OriginatingTo ?? sessionCtx.To,
       accountId: sessionCtx.AccountId,
     });
-    const dedupedPayloads = filterMessagingToolDuplicates({
-      payloads: replyTaggedPayloads,
-      sentTexts: messagingToolSentTexts,
-    });
-    const filteredPayloads = shouldDropFinalPayloads
-      ? []
-      : blockStreamingEnabled
-        ? dedupedPayloads.filter(
-            (payload) => !streamedPayloadKeys.has(buildPayloadKey(payload)),
-          )
-        : dedupedPayloads;
-    const replyPayloads = suppressMessagingToolReplies ? [] : filteredPayloads;
+    const { replyPayloads } = payloadResult;
+    didLogHeartbeatStrip = payloadResult.didLogHeartbeatStrip;
 
-    if (replyPayloads.length === 0) return finalizeWithFollowup(undefined);
+    if (replyPayloads.length === 0)
+      return finalizeWithFollowup(undefined, queueKey, runFollowupTurn);
 
-    const shouldSignalTyping = replyPayloads.some((payload) => {
-      const trimmed = payload.text?.trim();
-      if (trimmed && trimmed !== SILENT_REPLY_TOKEN) return true;
-      if (payload.mediaUrl) return true;
-      if (payload.mediaUrls && payload.mediaUrls.length > 0) return true;
-      return false;
-    });
-    if (shouldSignalTyping) {
-      await typingSignals.signalRunStart();
+    await signalTypingIfNeeded(replyPayloads, typingSignals);
+
+    if (isDiagnosticsEnabled(cfg) && hasNonzeroUsage(usage)) {
+      const input = usage.input ?? 0;
+      const output = usage.output ?? 0;
+      const cacheRead = usage.cacheRead ?? 0;
+      const cacheWrite = usage.cacheWrite ?? 0;
+      const promptTokens = input + cacheRead + cacheWrite;
+      const totalTokens = usage.total ?? promptTokens + output;
+      const costConfig = resolveModelCostConfig({
+        provider: providerUsed,
+        model: modelUsed,
+        config: cfg,
+      });
+      const costUsd = estimateUsageCost({ usage, cost: costConfig });
+      emitDiagnosticEvent({
+        type: "model.usage",
+        sessionKey,
+        sessionId: followupRun.run.sessionId,
+        channel: replyToChannel,
+        provider: providerUsed,
+        model: modelUsed,
+        usage: {
+          input,
+          output,
+          cacheRead,
+          cacheWrite,
+          promptTokens,
+          total: totalTokens,
+        },
+        context: {
+          limit: contextTokensUsed,
+          used: totalTokens,
+        },
+        costUsd,
+        durationMs: Date.now() - runStartedAt,
+      });
     }
 
-    if (sessionStore && sessionKey) {
-      const usage = runResult.meta.agentMeta?.usage;
-      const modelUsed =
-        runResult.meta.agentMeta?.model ?? fallbackModel ?? defaultModel;
-      const providerUsed =
-        runResult.meta.agentMeta?.provider ??
-        fallbackProvider ??
-        followupRun.run.provider;
-      const contextTokensUsed =
-        agentCfgContextTokens ??
-        lookupContextTokens(modelUsed) ??
-        sessionEntry?.contextTokens ??
-        DEFAULT_CONTEXT_TOKENS;
-
-      if (hasNonzeroUsage(usage)) {
-        const entry = sessionEntry ?? sessionStore[sessionKey];
-        if (entry) {
-          const input = usage.input ?? 0;
-          const output = usage.output ?? 0;
-          const promptTokens =
-            input + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0);
-          const nextEntry = {
-            ...entry,
-            inputTokens: input,
-            outputTokens: output,
-            totalTokens:
-              promptTokens > 0 ? promptTokens : (usage.total ?? input),
-            modelProvider: providerUsed,
+    const responseUsageRaw =
+      activeSessionEntry?.responseUsage ??
+      (sessionKey ? activeSessionStore?.[sessionKey]?.responseUsage : undefined);
+    const responseUsageMode = resolveResponseUsageMode(responseUsageRaw);
+    if (responseUsageMode !== "off" && hasNonzeroUsage(usage)) {
+      const authMode = resolveModelAuthMode(providerUsed, cfg);
+      const showCost = authMode === "api-key";
+      const costConfig = showCost
+        ? resolveModelCostConfig({
+            provider: providerUsed,
             model: modelUsed,
-            contextTokens: contextTokensUsed ?? entry.contextTokens,
-            updatedAt: Date.now(),
-          };
-          sessionStore[sessionKey] = nextEntry;
-          if (storePath) {
-            await saveSessionStore(storePath, sessionStore);
-          }
-        }
-      } else if (modelUsed || contextTokensUsed) {
-        const entry = sessionEntry ?? sessionStore[sessionKey];
-        if (entry) {
-          sessionStore[sessionKey] = {
-            ...entry,
-            modelProvider: providerUsed ?? entry.modelProvider,
-            model: modelUsed ?? entry.model,
-            contextTokens: contextTokensUsed ?? entry.contextTokens,
-          };
-          if (storePath) {
-            await saveSessionStore(storePath, sessionStore);
-          }
-        }
+            config: cfg,
+          })
+        : undefined;
+      let formatted = formatResponseUsageLine({
+        usage,
+        showCost,
+        costConfig,
+      });
+      if (formatted && responseUsageMode === "full" && sessionKey) {
+        formatted = `${formatted} · session ${sessionKey}`;
       }
+      if (formatted) responseUsageLine = formatted;
     }
 
     // If verbose is enabled and this is a new session, prepend a session hint.
     let finalPayloads = replyPayloads;
+    const verboseEnabled = resolvedVerboseLevel !== "off";
     if (autoCompactionCompleted) {
       const count = await incrementCompactionCount({
-        sessionEntry,
-        sessionStore,
+        sessionEntry: activeSessionEntry,
+        sessionStore: activeSessionStore,
         sessionKey,
         storePath,
       });
-      if (resolvedVerboseLevel === "on") {
+      if (verboseEnabled) {
         const suffix = typeof count === "number" ? ` (count ${count})` : "";
-        finalPayloads = [
-          { text: `🧹 Auto-compaction complete${suffix}.` },
-          ...finalPayloads,
-        ];
+        finalPayloads = [{ text: `🧹 Auto-compaction complete${suffix}.` }, ...finalPayloads];
       }
     }
-    if (resolvedVerboseLevel === "on" && isNewSession) {
-      finalPayloads = [
-        { text: `🧭 New session: ${followupRun.run.sessionId}` },
-        ...finalPayloads,
-      ];
+    if (verboseEnabled && activeIsNewSession) {
+      finalPayloads = [{ text: `🧭 New session: ${followupRun.run.sessionId}` }, ...finalPayloads];
+    }
+    if (responseUsageLine) {
+      finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
     }
 
     return finalizeWithFollowup(
       finalPayloads.length === 1 ? finalPayloads[0] : finalPayloads,
+      queueKey,
+      runFollowupTurn,
     );
   } finally {
+    blockReplyPipeline?.stop();
     typing.markRunComplete();
   }
 }

@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { listChannelPlugins } from "../channels/plugins/index.js";
+import type { ChannelPlugin } from "../channels/plugins/types.js";
+import { setActivePluginRegistry } from "../plugins/runtime.js";
+import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import {
   buildGatewayReloadPlan,
   diffConfigPaths,
@@ -14,14 +18,60 @@ describe("diffConfigPaths", () => {
   });
 
   it("captures array changes", () => {
-    const prev = { routing: { groupChat: { mentionPatterns: ["a"] } } };
-    const next = { routing: { groupChat: { mentionPatterns: ["b"] } } };
+    const prev = { messages: { groupChat: { mentionPatterns: ["a"] } } };
+    const next = { messages: { groupChat: { mentionPatterns: ["b"] } } };
     const paths = diffConfigPaths(prev, next);
-    expect(paths).toContain("routing.groupChat.mentionPatterns");
+    expect(paths).toContain("messages.groupChat.mentionPatterns");
   });
 });
 
 describe("buildGatewayReloadPlan", () => {
+  const emptyRegistry = createTestRegistry([]);
+  const telegramPlugin: ChannelPlugin = {
+    id: "telegram",
+    meta: {
+      id: "telegram",
+      label: "Telegram",
+      selectionLabel: "Telegram",
+      docsPath: "/channels/telegram",
+      blurb: "test",
+    },
+    capabilities: { chatTypes: ["direct"] },
+    config: {
+      listAccountIds: () => [],
+      resolveAccount: () => ({}),
+    },
+    reload: { configPrefixes: ["channels.telegram"] },
+  };
+  const whatsappPlugin: ChannelPlugin = {
+    id: "whatsapp",
+    meta: {
+      id: "whatsapp",
+      label: "WhatsApp",
+      selectionLabel: "WhatsApp",
+      docsPath: "/channels/whatsapp",
+      blurb: "test",
+    },
+    capabilities: { chatTypes: ["direct"] },
+    config: {
+      listAccountIds: () => [],
+      resolveAccount: () => ({}),
+    },
+    reload: { configPrefixes: ["web"], noopPrefixes: ["channels.whatsapp"] },
+  };
+  const registry = createTestRegistry([
+    { pluginId: "telegram", plugin: telegramPlugin, source: "test" },
+    { pluginId: "whatsapp", plugin: whatsappPlugin, source: "test" },
+  ]);
+
+  beforeEach(() => {
+    setActivePluginRegistry(registry);
+  });
+
+  afterEach(() => {
+    setActivePluginRegistry(emptyRegistry);
+  });
+
   it("marks gateway changes as restart required", () => {
     const plan = buildGatewayReloadPlan(["gateway.port"]);
     expect(plan.restartGateway).toBe(true);
@@ -35,11 +85,21 @@ describe("buildGatewayReloadPlan", () => {
     expect(plan.reloadHooks).toBe(true);
   });
 
-  it("restarts providers for web/telegram changes", () => {
-    const plan = buildGatewayReloadPlan(["web.enabled", "telegram.botToken"]);
+  it("restarts providers when provider config prefixes change", () => {
+    const changedPaths = ["web.enabled", "channels.telegram.botToken"];
+    const plan = buildGatewayReloadPlan(changedPaths);
     expect(plan.restartGateway).toBe(false);
-    expect(plan.restartProviders.has("whatsapp")).toBe(true);
-    expect(plan.restartProviders.has("telegram")).toBe(true);
+    const expected = new Set(
+      listChannelPlugins()
+        .filter((plugin) =>
+          (plugin.reload?.configPrefixes ?? []).some((prefix) =>
+            changedPaths.some((path) => path === prefix || path.startsWith(`${prefix}.`)),
+          ),
+        )
+        .map((plugin) => plugin.id),
+    );
+    expect(expected.size).toBeGreaterThan(0);
+    expect(plan.restartChannels).toEqual(expected);
   });
 
   it("treats gateway.remote as no-op", () => {

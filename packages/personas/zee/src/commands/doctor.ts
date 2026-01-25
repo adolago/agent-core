@@ -1,56 +1,60 @@
-import path from "node:path";
-import { intro, note, outro } from "@clack/prompts";
-import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
-import type { ZeeConfig } from "../config/config.js";
+import fs from "node:fs";
+
+import { intro as clackIntro, outro as clackOutro } from "@clack/prompts";
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
+import { loadModelCatalog } from "../agents/model-catalog.js";
 import {
-  CONFIG_PATH_ZEE,
-  migrateLegacyConfig,
-  readConfigFileSnapshot,
-  resolveGatewayPort,
-  writeConfigFile,
-} from "../config/config.js";
-import { GATEWAY_LAUNCH_AGENT_LABEL } from "../daemon/constants.js";
-import { readLastGatewayErrorLine } from "../daemon/diagnostics.js";
-import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
+  getModelRefStatus,
+  resolveConfiguredModelRef,
+  resolveHooksGmailModel,
+} from "../agents/model-selection.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import type { ClawdbotConfig } from "../config/config.js";
+import { CONFIG_PATH_CLAWDBOT, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
+import { logConfigUpdated } from "../config/logging.js";
 import { resolveGatewayService } from "../daemon/service.js";
+import { resolveGatewayAuth } from "../gateway/auth.js";
 import { buildGatewayConnectionDetails } from "../gateway/call.js";
-import { formatPortDiagnostics, inspectPortUsage } from "../infra/ports.js";
+import { resolveClawdbotPackageRoot } from "../infra/clawdbot-root.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
-import { resolveUserPath, sleep } from "../utils.js";
+import { note } from "../terminal/note.js";
+import { stylePromptTitle } from "../terminal/prompt-style.js";
+import { shortenHomePath } from "../utils.js";
+import { maybeRepairAnthropicOAuthProfileId, noteAuthProfileHealth } from "./doctor-auth.js";
+import { loadAndMaybeMigrateDoctorConfig } from "./doctor-config-flow.js";
+import { maybeRepairGatewayDaemon } from "./doctor-gateway-daemon-flow.js";
+import { checkGatewayHealth } from "./doctor-gateway-health.js";
 import {
-  DEFAULT_GATEWAY_DAEMON_RUNTIME,
-  GATEWAY_DAEMON_RUNTIME_OPTIONS,
-  type GatewayDaemonRuntime,
-} from "./daemon-runtime.js";
-import { maybeRepairAnthropicOAuthProfileId } from "./doctor-auth.js";
+  maybeMigrateLegacyGatewayService,
+  maybeRepairGatewayServiceConfig,
+  maybeScanExtraGatewayServices,
+} from "./doctor-gateway-services.js";
+import { noteSourceInstallIssues } from "./doctor-install.js";
 import {
-  buildGatewayRuntimeHints,
-  formatGatewayRuntimeSummary,
-} from "./doctor-format.js";
+  noteMacLaunchAgentOverrides,
+  noteMacLaunchctlGatewayEnvOverrides,
+} from "./doctor-platform-notes.js";
 import { createDoctorPrompter, type DoctorOptions } from "./doctor-prompter.js";
-import {
-  maybeRepairSandboxImages,
-  noteSandboxScopeWarnings,
-} from "./doctor-sandbox.js";
+import { maybeRepairSandboxImages, noteSandboxScopeWarnings } from "./doctor-sandbox.js";
 import { noteSecurityWarnings } from "./doctor-security.js";
-import {
-  noteStateIntegrity,
-  noteWorkspaceBackupTip,
-} from "./doctor-state-integrity.js";
+import { noteStateIntegrity, noteWorkspaceBackupTip } from "./doctor-state-integrity.js";
 import {
   detectLegacyStateMigrations,
   runLegacyStateMigrations,
 } from "./doctor-state-migrations.js";
-import { healthCommand } from "./health.js";
-import {
-  applyWizardMetadata,
-  DEFAULT_WORKSPACE,
-  printWizardHeader,
-} from "./onboard-helpers.js";
+import { maybeRepairUiProtocolFreshness } from "./doctor-ui.js";
+import { maybeOfferUpdateBeforeDoctor } from "./doctor-update.js";
+import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "./doctor-workspace.js";
+import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
+import { applyWizardMetadata, printWizardHeader, randomToken } from "./onboard-helpers.js";
 import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
 
-function resolveMode(cfg: ZeeConfig): "local" | "remote" {
+const intro = (message: string) => clackIntro(stylePromptTitle(message) ?? message);
+const outro = (message: string) => clackOutro(stylePromptTitle(message) ?? message);
+
+function resolveMode(cfg: ClawdbotConfig): "local" | "remote" {
   return cfg.gateway?.mode === "remote" ? "remote" : "local";
 }
 
@@ -60,56 +64,103 @@ export async function doctorCommand(
 ) {
   const prompter = createDoctorPrompter({ runtime, options });
   printWizardHeader(runtime);
-  intro("Zee doctor");
+  intro("Clawdbot doctor");
 
-  const snapshot = await readConfigFileSnapshot();
-  let cfg: ZeeConfig = snapshot.valid ? snapshot.config : {};
-  if (
-    snapshot.exists &&
-    !snapshot.valid &&
-    snapshot.legacyIssues.length === 0
-  ) {
-    note("Config invalid; doctor will run with defaults.", "Config");
-  }
+  const root = await resolveClawdbotPackageRoot({
+    moduleUrl: import.meta.url,
+    argv1: process.argv[1],
+    cwd: process.cwd(),
+  });
 
-  if (snapshot.legacyIssues.length > 0) {
-    note(
-      snapshot.legacyIssues
-        .map((issue) => `- ${issue.path}: ${issue.message}`)
-        .join("\n"),
-      "Legacy config keys detected",
-    );
-    const migrate = await prompter.confirm({
-      message: "Migrate legacy config entries now?",
-      initialValue: true,
-    });
-    if (migrate) {
-      // Legacy migration (2026-01-02, commit: 16420e5b) — normalize per-provider allowlists; move WhatsApp gating into whatsapp.allowFrom.
-      const { config: migrated, changes } = migrateLegacyConfig(
-        snapshot.parsed,
-      );
-      if (changes.length > 0) {
-        note(changes.join("\n"), "Doctor changes");
-      }
-      if (migrated) {
-        cfg = migrated;
-      }
+  const updateResult = await maybeOfferUpdateBeforeDoctor({
+    runtime,
+    options,
+    root,
+    confirm: (p) => prompter.confirm(p),
+    outro,
+  });
+  if (updateResult.handled) return;
+
+  await maybeRepairUiProtocolFreshness(runtime, prompter);
+  noteSourceInstallIssues(root);
+
+  const configResult = await loadAndMaybeMigrateDoctorConfig({
+    options,
+    confirm: (p) => prompter.confirm(p),
+  });
+  let cfg: ClawdbotConfig = configResult.cfg;
+
+  const configPath = configResult.path ?? CONFIG_PATH_CLAWDBOT;
+  if (!cfg.gateway?.mode) {
+    const lines = [
+      "gateway.mode is unset; gateway start will be blocked.",
+      `Fix: run ${formatCliCommand("clawdbot configure")} and set Gateway mode (local/remote).`,
+      `Or set directly: ${formatCliCommand("clawdbot config set gateway.mode local")}`,
+    ];
+    if (!fs.existsSync(configPath)) {
+      lines.push(`Missing config: run ${formatCliCommand("clawdbot setup")} first.`);
     }
+    note(lines.join("\n"), "Gateway");
   }
 
   cfg = await maybeRepairAnthropicOAuthProfileId(cfg, prompter);
+  await noteAuthProfileHealth({
+    cfg,
+    prompter,
+    allowKeychainPrompt: options.nonInteractive !== true && Boolean(process.stdin.isTTY),
+  });
   const gatewayDetails = buildGatewayConnectionDetails({ config: cfg });
   if (gatewayDetails.remoteFallbackNote) {
     note(gatewayDetails.remoteFallbackNote, "Gateway");
+  }
+  if (resolveMode(cfg) === "local") {
+    const auth = resolveGatewayAuth({
+      authConfig: cfg.gateway?.auth,
+      tailscaleMode: cfg.gateway?.tailscale?.mode ?? "off",
+    });
+    const needsToken = auth.mode !== "password" && (auth.mode !== "token" || !auth.token);
+    if (needsToken) {
+      note(
+        "Gateway auth is off or missing a token. Token auth is now the recommended default (including loopback).",
+        "Gateway auth",
+      );
+      const shouldSetToken =
+        options.generateGatewayToken === true
+          ? true
+          : options.nonInteractive === true
+            ? false
+            : await prompter.confirmRepair({
+                message: "Generate and configure a gateway token now?",
+                initialValue: true,
+              });
+      if (shouldSetToken) {
+        const nextToken = randomToken();
+        cfg = {
+          ...cfg,
+          gateway: {
+            ...cfg.gateway,
+            auth: {
+              ...cfg.gateway?.auth,
+              mode: "token",
+              token: nextToken,
+            },
+          },
+        };
+        note("Gateway token configured.", "Gateway auth");
+      }
+    }
   }
 
   const legacyState = await detectLegacyStateMigrations({ cfg });
   if (legacyState.preview.length > 0) {
     note(legacyState.preview.join("\n"), "Legacy state detected");
-    const migrate = await prompter.confirm({
-      message: "Migrate legacy state (sessions/agent/WhatsApp auth) now?",
-      initialValue: true,
-    });
+    const migrate =
+      options.nonInteractive === true
+        ? true
+        : await prompter.confirm({
+            message: "Migrate legacy state (sessions/agent/WhatsApp auth) now?",
+            initialValue: true,
+          });
     if (migrate) {
       const migrated = await runLegacyStateMigrations({
         detected: legacyState,
@@ -123,12 +174,56 @@ export async function doctorCommand(
     }
   }
 
-  await noteStateIntegrity(cfg, prompter);
+  await noteStateIntegrity(cfg, prompter, configResult.path ?? CONFIG_PATH_CLAWDBOT);
 
   cfg = await maybeRepairSandboxImages(cfg, runtime, prompter);
   noteSandboxScopeWarnings(cfg);
 
+  await maybeMigrateLegacyGatewayService(cfg, resolveMode(cfg), runtime, prompter);
+  await maybeScanExtraGatewayServices(options);
+  await maybeRepairGatewayServiceConfig(cfg, resolveMode(cfg), runtime, prompter);
+  await noteMacLaunchAgentOverrides();
+  await noteMacLaunchctlGatewayEnvOverrides(cfg);
+
   await noteSecurityWarnings(cfg);
+
+  if (cfg.hooks?.gmail?.model?.trim()) {
+    const hooksModelRef = resolveHooksGmailModel({
+      cfg,
+      defaultProvider: DEFAULT_PROVIDER,
+    });
+    if (!hooksModelRef) {
+      note(`- hooks.gmail.model "${cfg.hooks.gmail.model}" could not be resolved`, "Hooks");
+    } else {
+      const { provider: defaultProvider, model: defaultModel } = resolveConfiguredModelRef({
+        cfg,
+        defaultProvider: DEFAULT_PROVIDER,
+        defaultModel: DEFAULT_MODEL,
+      });
+      const catalog = await loadModelCatalog({ config: cfg });
+      const status = getModelRefStatus({
+        cfg,
+        catalog,
+        ref: hooksModelRef,
+        defaultProvider,
+        defaultModel,
+      });
+      const warnings: string[] = [];
+      if (!status.allowed) {
+        warnings.push(
+          `- hooks.gmail.model "${status.key}" not in agents.defaults.models allowlist (will use primary instead)`,
+        );
+      }
+      if (!status.inCatalog) {
+        warnings.push(
+          `- hooks.gmail.model "${status.key}" not in the model catalog (may fail at runtime)`,
+        );
+      }
+      if (warnings.length > 0) {
+        note(warnings.join("\n"), "Hooks");
+      }
+    }
+  }
 
   if (
     options.nonInteractive !== true &&
@@ -156,176 +251,50 @@ export async function doctorCommand(
     }
   }
 
-  const workspaceDir = resolveUserPath(
-    cfg.agent?.workspace ?? DEFAULT_WORKSPACE,
-  );
-  const skillsReport = buildWorkspaceSkillStatus(workspaceDir, { config: cfg });
-  note(
-    [
-      `Eligible: ${skillsReport.skills.filter((s) => s.eligible).length}`,
-      `Missing requirements: ${
-        skillsReport.skills.filter(
-          (s) => !s.eligible && !s.disabled && !s.blockedByAllowlist,
-        ).length
-      }`,
-      `Blocked by allowlist: ${
-        skillsReport.skills.filter((s) => s.blockedByAllowlist).length
-      }`,
-    ].join("\n"),
-    "Skills status",
-  );
+  noteWorkspaceStatus(cfg);
 
-  let healthOk = false;
-  try {
-    await healthCommand({ json: false, timeoutMs: 10_000 }, runtime);
-    healthOk = true;
-  } catch (err) {
-    const message = String(err);
-    if (message.includes("gateway closed")) {
-      note("Gateway not running.", "Gateway");
-      note(gatewayDetails.message, "Gateway connection");
-    } else {
-      runtime.error(`Health check failed: ${message}`);
+  const { healthOk } = await checkGatewayHealth({
+    runtime,
+    cfg,
+    timeoutMs: options.nonInteractive === true ? 3000 : 10_000,
+  });
+  await maybeRepairGatewayDaemon({
+    cfg,
+    runtime,
+    prompter,
+    options,
+    gatewayDetailsMessage: gatewayDetails.message,
+    healthOk,
+  });
+
+  const shouldWriteConfig = prompter.shouldRepair || configResult.shouldWriteConfig;
+  if (shouldWriteConfig) {
+    cfg = applyWizardMetadata(cfg, { command: "doctor", mode: resolveMode(cfg) });
+    await writeConfigFile(cfg);
+    logConfigUpdated(runtime);
+    const backupPath = `${CONFIG_PATH_CLAWDBOT}.bak`;
+    if (fs.existsSync(backupPath)) {
+      runtime.log(`Backup: ${shortenHomePath(backupPath)}`);
     }
+  } else {
+    runtime.log(`Run "${formatCliCommand("clawdbot doctor --fix")}" to apply changes.`);
   }
-
-  if (!healthOk) {
-    const service = resolveGatewayService();
-    let loaded = false;
-    try {
-      loaded = await service.isLoaded({ env: process.env });
-    } catch {
-      loaded = false;
-    }
-    let serviceRuntime:
-      | Awaited<ReturnType<typeof service.readRuntime>>
-      | undefined;
-    if (loaded) {
-      serviceRuntime = await service
-        .readRuntime(process.env)
-        .catch(() => undefined);
-    }
-    if (resolveMode(cfg) === "local") {
-      const port = resolveGatewayPort(cfg, process.env);
-      const diagnostics = await inspectPortUsage(port);
-      if (diagnostics.status === "busy") {
-        note(formatPortDiagnostics(diagnostics).join("\n"), "Gateway port");
-      } else if (loaded && serviceRuntime?.status === "running") {
-        const lastError = await readLastGatewayErrorLine(process.env);
-        if (lastError) {
-          note(`Last gateway error: ${lastError}`, "Gateway");
-        }
-      }
-    }
-    if (!loaded) {
-      note("Gateway daemon not installed.", "Gateway");
-      if (resolveMode(cfg) === "local") {
-        const install = await prompter.confirmSkipInNonInteractive({
-          message: "Install gateway daemon now?",
-          initialValue: true,
-        });
-        if (install) {
-          const daemonRuntime = await prompter.select<GatewayDaemonRuntime>(
-            {
-              message: "Gateway daemon runtime",
-              options: GATEWAY_DAEMON_RUNTIME_OPTIONS,
-              initialValue: DEFAULT_GATEWAY_DAEMON_RUNTIME,
-            },
-            DEFAULT_GATEWAY_DAEMON_RUNTIME,
-          );
-          const devMode =
-            process.argv[1]?.includes(`${path.sep}src${path.sep}`) &&
-            process.argv[1]?.endsWith(".ts");
-          const port = resolveGatewayPort(cfg, process.env);
-          const { programArguments, workingDirectory } =
-            await resolveGatewayProgramArguments({
-              port,
-              dev: devMode,
-              runtime: daemonRuntime,
-            });
-          const environment: Record<string, string | undefined> = {
-            PATH: process.env.PATH,
-            ZEE_PROFILE: process.env.ZEE_PROFILE,
-            ZEE_STATE_DIR: process.env.ZEE_STATE_DIR,
-            ZEE_CONFIG_PATH: process.env.ZEE_CONFIG_PATH,
-            ZEE_GATEWAY_PORT: String(port),
-            ZEE_GATEWAY_TOKEN:
-              cfg.gateway?.auth?.token ?? process.env.ZEE_GATEWAY_TOKEN,
-            ZEE_LAUNCHD_LABEL:
-              process.platform === "darwin"
-                ? GATEWAY_LAUNCH_AGENT_LABEL
-                : undefined,
-          };
-          await service.install({
-            env: process.env,
-            stdout: process.stdout,
-            programArguments,
-            workingDirectory,
-            environment,
-          });
-        }
-      }
-    } else {
-      const summary = formatGatewayRuntimeSummary(serviceRuntime);
-      const hints = buildGatewayRuntimeHints(serviceRuntime, {
-        platform: process.platform,
-        env: process.env,
-      });
-      if (summary || hints.length > 0) {
-        const lines = [];
-        if (summary) lines.push(`Runtime: ${summary}`);
-        lines.push(...hints);
-        note(lines.join("\n"), "Gateway");
-      }
-      if (serviceRuntime?.status !== "running") {
-        const start = await prompter.confirmSkipInNonInteractive({
-          message: "Start gateway daemon now?",
-          initialValue: true,
-        });
-        if (start) {
-          await service.restart({ stdout: process.stdout });
-          await sleep(1500);
-        }
-      }
-      if (process.platform === "darwin") {
-        note(
-          `LaunchAgent loaded; stopping requires "zee daemon stop" or launchctl bootout gui/$UID/${GATEWAY_LAUNCH_AGENT_LABEL}.`,
-          "Gateway",
-        );
-      }
-      if (serviceRuntime?.status === "running") {
-        const restart = await prompter.confirmSkipInNonInteractive({
-          message: "Restart gateway daemon now?",
-          initialValue: true,
-        });
-        if (restart) {
-          await service.restart({ stdout: process.stdout });
-          await sleep(1500);
-          try {
-            await healthCommand({ json: false, timeoutMs: 10_000 }, runtime);
-          } catch (err) {
-            const message = String(err);
-            if (message.includes("gateway closed")) {
-              note("Gateway not running.", "Gateway");
-              note(gatewayDetails.message, "Gateway connection");
-            } else {
-              runtime.error(`Health check failed: ${message}`);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  cfg = applyWizardMetadata(cfg, { command: "doctor", mode: resolveMode(cfg) });
-  await writeConfigFile(cfg);
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
 
   if (options.workspaceSuggestions !== false) {
-    const workspaceDir = resolveUserPath(
-      cfg.agent?.workspace ?? DEFAULT_WORKSPACE,
-    );
+    const workspaceDir = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
     noteWorkspaceBackupTip(workspaceDir);
+    if (await shouldSuggestMemorySystem(workspaceDir)) {
+      note(MEMORY_SYSTEM_PROMPT, "Workspace");
+    }
+  }
+
+  const finalSnapshot = await readConfigFileSnapshot();
+  if (finalSnapshot.exists && !finalSnapshot.valid) {
+    runtime.error("Invalid config:");
+    for (const issue of finalSnapshot.issues) {
+      const path = issue.path || "<root>";
+      runtime.error(`- ${path}: ${issue.message}`);
+    }
   }
 
   outro("Doctor complete.");

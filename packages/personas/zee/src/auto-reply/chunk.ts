@@ -2,81 +2,224 @@
 // unintentionally breaking on newlines. Using [\s\S] keeps newlines inside
 // the chunk so messages are only split when they truly exceed the limit.
 
-import type { ZeeConfig } from "../config/config.js";
-import {
-  findFenceSpanAt,
-  isSafeFenceBreak,
-  parseFenceSpans,
-} from "../markdown/fences.js";
+import type { ChannelId } from "../channels/plugins/types.js";
+import type { ClawdbotConfig } from "../config/config.js";
+import { findFenceSpanAt, isSafeFenceBreak, parseFenceSpans } from "../markdown/fences.js";
 import { normalizeAccountId } from "../routing/session-key.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
 
-export type TextChunkProvider =
-  | "whatsapp"
-  | "telegram"
-  | "discord"
-  | "slack"
-  | "signal"
-  | "imessage"
-  | "webchat";
+export type TextChunkProvider = ChannelId | typeof INTERNAL_MESSAGE_CHANNEL;
 
-const DEFAULT_CHUNK_LIMIT_BY_PROVIDER: Record<TextChunkProvider, number> = {
-  whatsapp: 4000,
-  telegram: 4000,
-  discord: 2000,
-  slack: 4000,
-  signal: 4000,
-  imessage: 4000,
-  webchat: 4000,
+/**
+ * Chunking mode for outbound messages:
+ * - "length": Split only when exceeding textChunkLimit (default)
+ * - "newline": Split on every newline, with fallback to length-based for long lines
+ */
+export type ChunkMode = "length" | "newline";
+
+const DEFAULT_CHUNK_LIMIT = 4000;
+const DEFAULT_CHUNK_MODE: ChunkMode = "length";
+
+type ProviderChunkConfig = {
+  textChunkLimit?: number;
+  chunkMode?: ChunkMode;
+  accounts?: Record<string, { textChunkLimit?: number; chunkMode?: ChunkMode }>;
 };
 
+function resolveChunkLimitForProvider(
+  cfgSection: ProviderChunkConfig | undefined,
+  accountId?: string | null,
+): number | undefined {
+  if (!cfgSection) return undefined;
+  const normalizedAccountId = normalizeAccountId(accountId);
+  const accounts = cfgSection.accounts;
+  if (accounts && typeof accounts === "object") {
+    const direct = accounts[normalizedAccountId];
+    if (typeof direct?.textChunkLimit === "number") {
+      return direct.textChunkLimit;
+    }
+    const matchKey = Object.keys(accounts).find(
+      (key) => key.toLowerCase() === normalizedAccountId.toLowerCase(),
+    );
+    const match = matchKey ? accounts[matchKey] : undefined;
+    if (typeof match?.textChunkLimit === "number") {
+      return match.textChunkLimit;
+    }
+  }
+  return cfgSection.textChunkLimit;
+}
+
 export function resolveTextChunkLimit(
-  cfg: ZeeConfig | undefined,
+  cfg: ClawdbotConfig | undefined,
   provider?: TextChunkProvider,
   accountId?: string | null,
+  opts?: { fallbackLimit?: number },
 ): number {
+  const fallback =
+    typeof opts?.fallbackLimit === "number" && opts.fallbackLimit > 0
+      ? opts.fallbackLimit
+      : DEFAULT_CHUNK_LIMIT;
   const providerOverride = (() => {
-    if (!provider) return undefined;
-    const normalizedAccountId = normalizeAccountId(accountId);
-    if (provider === "whatsapp") {
-      return cfg?.whatsapp?.textChunkLimit;
-    }
-    if (provider === "telegram") {
-      return (
-        cfg?.telegram?.accounts?.[normalizedAccountId]?.textChunkLimit ??
-        cfg?.telegram?.textChunkLimit
-      );
-    }
-    if (provider === "discord") {
-      return (
-        cfg?.discord?.accounts?.[normalizedAccountId]?.textChunkLimit ??
-        cfg?.discord?.textChunkLimit
-      );
-    }
-    if (provider === "slack") {
-      return (
-        cfg?.slack?.accounts?.[normalizedAccountId]?.textChunkLimit ??
-        cfg?.slack?.textChunkLimit
-      );
-    }
-    if (provider === "signal") {
-      return (
-        cfg?.signal?.accounts?.[normalizedAccountId]?.textChunkLimit ??
-        cfg?.signal?.textChunkLimit
-      );
-    }
-    if (provider === "imessage") {
-      return (
-        cfg?.imessage?.accounts?.[normalizedAccountId]?.textChunkLimit ??
-        cfg?.imessage?.textChunkLimit
-      );
-    }
-    return undefined;
+    if (!provider || provider === INTERNAL_MESSAGE_CHANNEL) return undefined;
+    const channelsConfig = cfg?.channels as Record<string, unknown> | undefined;
+    const providerConfig = (channelsConfig?.[provider] ??
+      (cfg as Record<string, unknown> | undefined)?.[provider]) as ProviderChunkConfig | undefined;
+    return resolveChunkLimitForProvider(providerConfig, accountId);
   })();
   if (typeof providerOverride === "number" && providerOverride > 0) {
     return providerOverride;
   }
-  if (provider) return DEFAULT_CHUNK_LIMIT_BY_PROVIDER[provider];
-  return 4000;
+  return fallback;
+}
+
+function resolveChunkModeForProvider(
+  cfgSection: ProviderChunkConfig | undefined,
+  accountId?: string | null,
+): ChunkMode | undefined {
+  if (!cfgSection) return undefined;
+  const normalizedAccountId = normalizeAccountId(accountId);
+  const accounts = cfgSection.accounts;
+  if (accounts && typeof accounts === "object") {
+    const direct = accounts[normalizedAccountId];
+    if (direct?.chunkMode) {
+      return direct.chunkMode;
+    }
+    const matchKey = Object.keys(accounts).find(
+      (key) => key.toLowerCase() === normalizedAccountId.toLowerCase(),
+    );
+    const match = matchKey ? accounts[matchKey] : undefined;
+    if (match?.chunkMode) {
+      return match.chunkMode;
+    }
+  }
+  return cfgSection.chunkMode;
+}
+
+export function resolveChunkMode(
+  cfg: ClawdbotConfig | undefined,
+  provider?: TextChunkProvider,
+  accountId?: string | null,
+): ChunkMode {
+  if (!provider || provider === INTERNAL_MESSAGE_CHANNEL) return DEFAULT_CHUNK_MODE;
+  const channelsConfig = cfg?.channels as Record<string, unknown> | undefined;
+  const providerConfig = (channelsConfig?.[provider] ??
+    (cfg as Record<string, unknown> | undefined)?.[provider]) as ProviderChunkConfig | undefined;
+  const mode = resolveChunkModeForProvider(providerConfig, accountId);
+  return mode ?? DEFAULT_CHUNK_MODE;
+}
+
+/**
+ * Split text on newlines, trimming line whitespace.
+ * Blank lines are folded into the next non-empty line as leading "\n" prefixes.
+ * Long lines can be split by length (default) or kept intact via splitLongLines:false.
+ */
+export function chunkByNewline(
+  text: string,
+  maxLineLength: number,
+  opts?: {
+    splitLongLines?: boolean;
+    trimLines?: boolean;
+    isSafeBreak?: (index: number) => boolean;
+  },
+): string[] {
+  if (!text) return [];
+  if (maxLineLength <= 0) return text.trim() ? [text] : [];
+  const splitLongLines = opts?.splitLongLines !== false;
+  const trimLines = opts?.trimLines !== false;
+  const lines = splitByNewline(text, opts?.isSafeBreak);
+  const chunks: string[] = [];
+  let pendingBlankLines = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      pendingBlankLines += 1;
+      continue;
+    }
+
+    const maxPrefix = Math.max(0, maxLineLength - 1);
+    const cappedBlankLines = pendingBlankLines > 0 ? Math.min(pendingBlankLines, maxPrefix) : 0;
+    const prefix = cappedBlankLines > 0 ? "\n".repeat(cappedBlankLines) : "";
+    pendingBlankLines = 0;
+
+    const lineValue = trimLines ? trimmed : line;
+    if (!splitLongLines || lineValue.length + prefix.length <= maxLineLength) {
+      chunks.push(prefix + lineValue);
+      continue;
+    }
+
+    const firstLimit = Math.max(1, maxLineLength - prefix.length);
+    const first = lineValue.slice(0, firstLimit);
+    chunks.push(prefix + first);
+    const remaining = lineValue.slice(firstLimit);
+    if (remaining) {
+      chunks.push(...chunkText(remaining, maxLineLength));
+    }
+  }
+
+  if (pendingBlankLines > 0 && chunks.length > 0) {
+    chunks[chunks.length - 1] += "\n".repeat(pendingBlankLines);
+  }
+
+  return chunks;
+}
+
+/**
+ * Unified chunking function that dispatches based on mode.
+ */
+export function chunkTextWithMode(text: string, limit: number, mode: ChunkMode): string[] {
+  if (mode === "newline") {
+    const chunks: string[] = [];
+    const lineChunks = chunkByNewline(text, limit, { splitLongLines: false });
+    for (const line of lineChunks) {
+      const nested = chunkText(line, limit);
+      if (!nested.length && line) {
+        chunks.push(line);
+        continue;
+      }
+      chunks.push(...nested);
+    }
+    return chunks;
+  }
+  return chunkText(text, limit);
+}
+
+export function chunkMarkdownTextWithMode(text: string, limit: number, mode: ChunkMode): string[] {
+  if (mode === "newline") {
+    const spans = parseFenceSpans(text);
+    const chunks: string[] = [];
+    const lineChunks = chunkByNewline(text, limit, {
+      splitLongLines: false,
+      trimLines: false,
+      isSafeBreak: (index) => isSafeFenceBreak(spans, index),
+    });
+    for (const line of lineChunks) {
+      const nested = chunkMarkdownText(line, limit);
+      if (!nested.length && line) {
+        chunks.push(line);
+        continue;
+      }
+      chunks.push(...nested);
+    }
+    return chunks;
+  }
+  return chunkMarkdownText(text, limit);
+}
+
+function splitByNewline(
+  text: string,
+  isSafeBreak: (index: number) => boolean = () => true,
+): string[] {
+  const lines: string[] = [];
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "\n" && isSafeBreak(i)) {
+      lines.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  lines.push(text.slice(start));
+  return lines;
 }
 
 export function chunkText(text: string, limit: number): string[] {
@@ -91,23 +234,7 @@ export function chunkText(text: string, limit: number): string[] {
     const window = remaining.slice(0, limit);
 
     // 1) Prefer a newline break inside the window (outside parentheses).
-    let lastNewline = -1;
-    let lastWhitespace = -1;
-    let depth = 0;
-    for (let i = 0; i < window.length; i++) {
-      const char = window[i];
-      if (char === "(") {
-        depth += 1;
-        continue;
-      }
-      if (char === ")" && depth > 0) {
-        depth -= 1;
-        continue;
-      }
-      if (depth !== 0) continue;
-      if (char === "\n") lastNewline = i;
-      else if (/\s/.test(char)) lastWhitespace = i;
-    }
+    const { lastNewline, lastWhitespace } = scanParenAwareBreakpoints(window);
 
     // 2) Otherwise prefer the last whitespace (word boundary) inside the window.
     let breakIdx = lastNewline > 0 ? lastNewline : lastWhitespace;
@@ -122,12 +249,8 @@ export function chunkText(text: string, limit: number): string[] {
     }
 
     // If we broke on whitespace/newline, skip that separator; for hard breaks keep it.
-    const brokeOnSeparator =
-      breakIdx < remaining.length && /\s/.test(remaining[breakIdx]);
-    const nextStart = Math.min(
-      remaining.length,
-      breakIdx + (brokeOnSeparator ? 1 : 0),
-    );
+    const brokeOnSeparator = breakIdx < remaining.length && /\s/.test(remaining[breakIdx]);
+    const nextStart = Math.min(remaining.length, breakIdx + (brokeOnSeparator ? 1 : 0));
     remaining = remaining.slice(nextStart).trimStart();
   }
 
@@ -171,10 +294,7 @@ export function chunkMarkdownText(text: string, limit: number): string[] {
         const maxIdxIfAlreadyNewline = limit - closeLine.length;
 
         let pickedNewline = false;
-        let lastNewline = remaining.lastIndexOf(
-          "\n",
-          Math.max(0, maxIdxIfAlreadyNewline - 1),
-        );
+        let lastNewline = remaining.lastIndexOf("\n", Math.max(0, maxIdxIfAlreadyNewline - 1));
         while (lastNewline !== -1) {
           const candidateBreak = lastNewline + 1;
           if (candidateBreak < minProgressIdx) break;
@@ -199,27 +319,19 @@ export function chunkMarkdownText(text: string, limit: number): string[] {
 
       const fenceAtBreak = findFenceSpanAt(spans, breakIdx);
       fenceToSplit =
-        fenceAtBreak && fenceAtBreak.start === initialFence.start
-          ? fenceAtBreak
-          : undefined;
+        fenceAtBreak && fenceAtBreak.start === initialFence.start ? fenceAtBreak : undefined;
     }
 
     let rawChunk = remaining.slice(0, breakIdx);
     if (!rawChunk) break;
 
-    const brokeOnSeparator =
-      breakIdx < remaining.length && /\s/.test(remaining[breakIdx]);
-    const nextStart = Math.min(
-      remaining.length,
-      breakIdx + (brokeOnSeparator ? 1 : 0),
-    );
+    const brokeOnSeparator = breakIdx < remaining.length && /\s/.test(remaining[breakIdx]);
+    const nextStart = Math.min(remaining.length, breakIdx + (brokeOnSeparator ? 1 : 0));
     let next = remaining.slice(nextStart);
 
     if (fenceToSplit) {
       const closeLine = `${fenceToSplit.indent}${fenceToSplit.marker}`;
-      rawChunk = rawChunk.endsWith("\n")
-        ? `${rawChunk}${closeLine}`
-        : `${rawChunk}\n${closeLine}`;
+      rawChunk = rawChunk.endsWith("\n") ? `${rawChunk}${closeLine}` : `${rawChunk}\n${closeLine}`;
       next = `${fenceToSplit.openLine}\n${next}`;
     } else {
       next = stripLeadingNewlines(next);
@@ -239,16 +351,26 @@ function stripLeadingNewlines(value: string): string {
   return i > 0 ? value.slice(i) : value;
 }
 
-function pickSafeBreakIndex(
+function pickSafeBreakIndex(window: string, spans: ReturnType<typeof parseFenceSpans>): number {
+  const { lastNewline, lastWhitespace } = scanParenAwareBreakpoints(window, (index) =>
+    isSafeFenceBreak(spans, index),
+  );
+
+  if (lastNewline > 0) return lastNewline;
+  if (lastWhitespace > 0) return lastWhitespace;
+  return -1;
+}
+
+function scanParenAwareBreakpoints(
   window: string,
-  spans: ReturnType<typeof parseFenceSpans>,
-): number {
+  isAllowed: (index: number) => boolean = () => true,
+): { lastNewline: number; lastWhitespace: number } {
   let lastNewline = -1;
   let lastWhitespace = -1;
   let depth = 0;
 
   for (let i = 0; i < window.length; i++) {
-    if (!isSafeFenceBreak(spans, i)) continue;
+    if (!isAllowed(i)) continue;
     const char = window[i];
     if (char === "(") {
       depth += 1;
@@ -263,7 +385,5 @@ function pickSafeBreakIndex(
     else if (/\s/.test(char)) lastWhitespace = i;
   }
 
-  if (lastNewline > 0) return lastNewline;
-  if (lastWhitespace > 0) return lastWhitespace;
-  return -1;
+  return { lastNewline, lastWhitespace };
 }

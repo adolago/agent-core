@@ -3,12 +3,7 @@ import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { WebSocketServer } from "ws";
 import { rawDataToString } from "../infra/ws.js";
-import {
-  createTargetViaCdp,
-  evaluateJavaScript,
-  normalizeCdpWsUrl,
-  snapshotAria,
-} from "./cdp.js";
+import { createTargetViaCdp, evaluateJavaScript, normalizeCdpWsUrl, snapshotAria } from "./cdp.js";
 
 describe("cdp", () => {
   let httpServer: ReturnType<typeof createServer> | null = null;
@@ -63,9 +58,7 @@ describe("cdp", () => {
       res.end("not found");
     });
 
-    await new Promise<void>((resolve) =>
-      httpServer?.listen(0, "127.0.0.1", resolve),
-    );
+    await new Promise<void>((resolve) => httpServer?.listen(0, "127.0.0.1", resolve));
     const httpPort = (httpServer.address() as { port: number }).port;
 
     const created = await createTargetViaCdp({
@@ -171,5 +164,21 @@ describe("cdp", () => {
       "http://example.com:9222",
     );
     expect(normalized).toBe("ws://example.com:9222/devtools/browser/ABC");
+  });
+
+  it("propagates auth and query params onto normalized websocket URLs", () => {
+    const normalized = normalizeCdpWsUrl(
+      "ws://127.0.0.1:9222/devtools/browser/ABC",
+      "https://user:pass@example.com?token=abc",
+    );
+    expect(normalized).toBe("wss://user:pass@example.com/devtools/browser/ABC?token=abc");
+  });
+
+  it("upgrades ws to wss when CDP uses https", () => {
+    const normalized = normalizeCdpWsUrl(
+      "ws://production-sfo.browserless.io",
+      "https://production-sfo.browserless.io?token=abc",
+    );
+    expect(normalized).toBe("wss://production-sfo.browserless.io/?token=abc");
   });
 });

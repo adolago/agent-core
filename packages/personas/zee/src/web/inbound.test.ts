@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  extractLocationData,
-  extractMediaPlaceholder,
-  extractText,
-} from "./inbound.js";
+import { extractLocationData, extractMediaPlaceholder, extractText } from "./inbound.js";
 
 describe("web inbound helpers", () => {
   it("prefers the main conversation body", () => {
@@ -26,6 +22,154 @@ describe("web inbound helpers", () => {
       documentMessage: { caption: " doc " },
     } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
     expect(body).toBe("doc");
+  });
+
+  it("extracts WhatsApp contact cards", () => {
+    const body = extractText({
+      contactMessage: {
+        displayName: "Ada Lovelace",
+        vcard: [
+          "BEGIN:VCARD",
+          "VERSION:3.0",
+          "FN:Ada Lovelace",
+          "TEL;TYPE=CELL:+15555550123",
+          "END:VCARD",
+        ].join("\n"),
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe("<contact: Ada Lovelace, +15555550123>");
+  });
+
+  it("prefers FN over N in WhatsApp vcards", () => {
+    const body = extractText({
+      contactMessage: {
+        vcard: [
+          "BEGIN:VCARD",
+          "VERSION:3.0",
+          "N:Lovelace;Ada;;;",
+          "FN:Ada Lovelace",
+          "TEL;TYPE=CELL:+15555550123",
+          "END:VCARD",
+        ].join("\n"),
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe("<contact: Ada Lovelace, +15555550123>");
+  });
+
+  it("normalizes tel: prefixes in WhatsApp vcards", () => {
+    const body = extractText({
+      contactMessage: {
+        vcard: [
+          "BEGIN:VCARD",
+          "VERSION:3.0",
+          "FN:Ada Lovelace",
+          "TEL;TYPE=CELL:tel:+15555550123",
+          "END:VCARD",
+        ].join("\n"),
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe("<contact: Ada Lovelace, +15555550123>");
+  });
+
+  it("trims and skips empty WhatsApp vcard phones", () => {
+    const body = extractText({
+      contactMessage: {
+        vcard: [
+          "BEGIN:VCARD",
+          "VERSION:3.0",
+          "FN:Ada Lovelace",
+          "TEL;TYPE=CELL:  +15555550123  ",
+          "TEL;TYPE=HOME:   ",
+          "TEL;TYPE=WORK:+15555550124",
+          "END:VCARD",
+        ].join("\n"),
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe("<contact: Ada Lovelace, +15555550123 (+1 more)>");
+  });
+
+  it("extracts multiple WhatsApp contact cards", () => {
+    const body = extractText({
+      contactsArrayMessage: {
+        contacts: [
+          {
+            displayName: "Alice",
+            vcard: [
+              "BEGIN:VCARD",
+              "VERSION:3.0",
+              "FN:Alice",
+              "TEL;TYPE=CELL:+15555550101",
+              "END:VCARD",
+            ].join("\n"),
+          },
+          {
+            displayName: "Bob",
+            vcard: [
+              "BEGIN:VCARD",
+              "VERSION:3.0",
+              "FN:Bob",
+              "TEL;TYPE=CELL:+15555550102",
+              "END:VCARD",
+            ].join("\n"),
+          },
+          {
+            displayName: "Charlie",
+            vcard: [
+              "BEGIN:VCARD",
+              "VERSION:3.0",
+              "FN:Charlie",
+              "TEL;TYPE=CELL:+15555550103",
+              "TEL;TYPE=HOME:+15555550104",
+              "END:VCARD",
+            ].join("\n"),
+          },
+          {
+            displayName: "Dana",
+            vcard: [
+              "BEGIN:VCARD",
+              "VERSION:3.0",
+              "FN:Dana",
+              "TEL;TYPE=CELL:+15555550105",
+              "END:VCARD",
+            ].join("\n"),
+          },
+        ],
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe(
+      "<contacts: Alice, +15555550101, Bob, +15555550102, Charlie, +15555550103 (+1 more), Dana, +15555550105>",
+    );
+  });
+
+  it("counts empty WhatsApp contact cards in array summaries", () => {
+    const body = extractText({
+      contactsArrayMessage: {
+        contacts: [
+          {
+            displayName: "Alice",
+            vcard: [
+              "BEGIN:VCARD",
+              "VERSION:3.0",
+              "FN:Alice",
+              "TEL;TYPE=CELL:+15555550101",
+              "END:VCARD",
+            ].join("\n"),
+          },
+          {},
+          {},
+        ],
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe("<contacts: Alice, +15555550101 +2 more>");
+  });
+
+  it("summarizes empty WhatsApp contact cards with a count", () => {
+    const body = extractText({
+      contactsArrayMessage: {
+        contacts: [{}, {}],
+      },
+    } as unknown as import("@whiskeysockets/baileys").proto.IMessage);
+    expect(body).toBe("<contacts: 2 contacts>");
   });
 
   it("unwraps view-once v2 extension messages", () => {

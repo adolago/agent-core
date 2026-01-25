@@ -1,35 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ZeeApp } from "./app";
+import { ClawdbotApp } from "./app";
 
-const originalConnect = ZeeApp.prototype.connect;
+const originalConnect = ClawdbotApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("zee-app") as ZeeApp;
+  const app = document.createElement("clawdbot-app") as ClawdbotApp;
   document.body.append(app);
   return app;
 }
 
 beforeEach(() => {
-  ZeeApp.prototype.connect = () => {
+  ClawdbotApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
-  window.__ZEE_CONTROL_UI_BASE_PATH__ = undefined;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
+  localStorage.clear();
   document.body.innerHTML = "";
 });
 
 afterEach(() => {
-  ZeeApp.prototype.connect = originalConnect;
-  window.__ZEE_CONTROL_UI_BASE_PATH__ = undefined;
+  ClawdbotApp.prototype.connect = originalConnect;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
+  localStorage.clear();
   document.body.innerHTML = "";
 });
 
 describe("chat markdown rendering", () => {
-  it("renders markdown inside tool result cards", async () => {
+  it("renders markdown inside tool output sidebar", async () => {
     const app = mountApp("/chat");
     await app.updateComplete;
 
+    const timestamp = Date.now();
     app.chatMessages = [
       {
         role: "assistant",
@@ -37,14 +40,24 @@ describe("chat markdown rendering", () => {
           { type: "toolcall", name: "noop", arguments: {} },
           { type: "toolresult", name: "noop", text: "Hello **world**" },
         ],
-        timestamp: Date.now(),
+        timestamp,
       },
     ];
 
     await app.updateComplete;
 
-    const strong = app.querySelector(".chat-tool-card__output strong");
+    const toolCards = Array.from(
+      app.querySelectorAll<HTMLElement>(".chat-tool-card"),
+    );
+    const toolCard = toolCards.find((card) =>
+      card.querySelector(".chat-tool-card__preview, .chat-tool-card__inline"),
+    );
+    expect(toolCard).not.toBeUndefined();
+    toolCard?.click();
+
+    await app.updateComplete;
+
+    const strong = app.querySelector(".sidebar-markdown strong");
     expect(strong?.textContent).toBe("world");
   });
 });
-

@@ -1,8 +1,6 @@
-import {
-  buildModelAliasIndex,
-  resolveModelRefFromString,
-} from "../../agents/model-selection.js";
-import { CONFIG_PATH_ZEE, loadConfig } from "../../config/config.js";
+import { buildModelAliasIndex, resolveModelRefFromString } from "../../agents/model-selection.js";
+import { loadConfig } from "../../config/config.js";
+import { logConfigUpdated } from "../../config/logging.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import {
   DEFAULT_PROVIDER,
@@ -18,7 +16,7 @@ export async function modelsFallbacksListCommand(
 ) {
   ensureFlagCompatibility(opts);
   const cfg = loadConfig();
-  const fallbacks = cfg.agent?.model?.fallbacks ?? [];
+  const fallbacks = cfg.agents?.defaults?.model?.fallbacks ?? [];
 
   if (opts.json) {
     runtime.log(JSON.stringify({ fallbacks }, null, 2));
@@ -37,20 +35,17 @@ export async function modelsFallbacksListCommand(
   for (const entry of fallbacks) runtime.log(`- ${entry}`);
 }
 
-export async function modelsFallbacksAddCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsFallbacksAddCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
-    const nextModels = { ...cfg.agent?.models };
+    const nextModels = { ...cfg.agents?.defaults?.models };
     if (!nextModels[targetKey]) nextModels[targetKey] = {};
     const aliasIndex = buildModelAliasIndex({
       cfg,
       defaultProvider: DEFAULT_PROVIDER,
     });
-    const existing = cfg.agent?.model?.fallbacks ?? [];
+    const existing = cfg.agents?.defaults?.model?.fallbacks ?? [];
     const existingKeys = existing
       .map((entry) =>
         resolveModelRefFromString({
@@ -64,35 +59,31 @@ export async function modelsFallbacksAddCommand(
 
     if (existingKeys.includes(targetKey)) return cfg;
 
-    const existingModel = cfg.agent?.model as
+    const existingModel = cfg.agents?.defaults?.model as
       | { primary?: string; fallbacks?: string[] }
       | undefined;
 
     return {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        model: {
-          ...(existingModel?.primary
-            ? { primary: existingModel.primary }
-            : undefined),
-          fallbacks: [...existing, targetKey],
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          model: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: [...existing, targetKey],
+          },
+          models: nextModels,
         },
-        models: nextModels,
       },
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
-  runtime.log(
-    `Fallbacks: ${(updated.agent?.model?.fallbacks ?? []).join(", ")}`,
-  );
+  logConfigUpdated(runtime);
+  runtime.log(`Fallbacks: ${(updated.agents?.defaults?.model?.fallbacks ?? []).join(", ")}`);
 }
 
-export async function modelsFallbacksRemoveCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsFallbacksRemoveCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
@@ -100,7 +91,7 @@ export async function modelsFallbacksRemoveCommand(
       cfg,
       defaultProvider: DEFAULT_PROVIDER,
     });
-    const existing = cfg.agent?.model?.fallbacks ?? [];
+    const existing = cfg.agents?.defaults?.model?.fallbacks ?? [];
     const filtered = existing.filter((entry) => {
       const resolvedEntry = resolveModelRefFromString({
         raw: String(entry ?? ""),
@@ -108,59 +99,56 @@ export async function modelsFallbacksRemoveCommand(
         aliasIndex,
       });
       if (!resolvedEntry) return true;
-      return (
-        modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !==
-        targetKey
-      );
+      return modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !== targetKey;
     });
 
     if (filtered.length === existing.length) {
       throw new Error(`Fallback not found: ${targetKey}`);
     }
 
-    const existingModel = cfg.agent?.model as
+    const existingModel = cfg.agents?.defaults?.model as
       | { primary?: string; fallbacks?: string[] }
       | undefined;
 
     return {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        model: {
-          ...(existingModel?.primary
-            ? { primary: existingModel.primary }
-            : undefined),
-          fallbacks: filtered,
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          model: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: filtered,
+          },
         },
       },
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
-  runtime.log(
-    `Fallbacks: ${(updated.agent?.model?.fallbacks ?? []).join(", ")}`,
-  );
+  logConfigUpdated(runtime);
+  runtime.log(`Fallbacks: ${(updated.agents?.defaults?.model?.fallbacks ?? []).join(", ")}`);
 }
 
 export async function modelsFallbacksClearCommand(runtime: RuntimeEnv) {
   await updateConfig((cfg) => {
-    const existingModel = cfg.agent?.model as
+    const existingModel = cfg.agents?.defaults?.model as
       | { primary?: string; fallbacks?: string[] }
       | undefined;
     return {
       ...cfg,
-      agent: {
-        ...cfg.agent,
-        model: {
-          ...(existingModel?.primary
-            ? { primary: existingModel.primary }
-            : undefined),
-          fallbacks: [],
+      agents: {
+        ...cfg.agents,
+        defaults: {
+          ...cfg.agents?.defaults,
+          model: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: [],
+          },
         },
       },
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_ZEE}`);
+  logConfigUpdated(runtime);
   runtime.log("Fallback list cleared.");
 }

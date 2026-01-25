@@ -1,8 +1,10 @@
 import { execFile, spawn } from "node:child_process";
+import path from "node:path";
 import { promisify } from "node:util";
 
 import { danger, shouldLogVerbose } from "../globals.js";
 import { logDebug, logError } from "../logger.js";
+import { resolveCommandStdio } from "./spawn-utils.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -48,6 +50,7 @@ export type CommandOptions = {
   cwd?: string;
   input?: string;
   env?: NodeJS.ProcessEnv;
+  windowsVerbatimArguments?: boolean;
 };
 
 export async function runCommandWithTimeout(
@@ -55,27 +58,47 @@ export async function runCommandWithTimeout(
   optionsOrTimeout: number | CommandOptions,
 ): Promise<SpawnResult> {
   const options: CommandOptions =
-    typeof optionsOrTimeout === "number"
-      ? { timeoutMs: optionsOrTimeout }
-      : optionsOrTimeout;
+    typeof optionsOrTimeout === "number" ? { timeoutMs: optionsOrTimeout } : optionsOrTimeout;
   const { timeoutMs, cwd, input, env } = options;
+  const { windowsVerbatimArguments } = options;
+  const hasInput = input !== undefined;
 
+  const shouldSuppressNpmFund = (() => {
+    const cmd = path.basename(argv[0] ?? "");
+    if (cmd === "npm" || cmd === "npm.cmd" || cmd === "npm.exe") return true;
+    if (cmd === "node" || cmd === "node.exe") {
+      const script = argv[1] ?? "";
+      return script.includes("npm-cli.js");
+    }
+    return false;
+  })();
+
+  const resolvedEnv = env ? { ...process.env, ...env } : { ...process.env };
+  if (shouldSuppressNpmFund) {
+    if (resolvedEnv.NPM_CONFIG_FUND == null) resolvedEnv.NPM_CONFIG_FUND = "false";
+    if (resolvedEnv.npm_config_fund == null) resolvedEnv.npm_config_fund = "false";
+  }
+
+  const stdio = resolveCommandStdio({ hasInput, preferInherit: true });
+  const child = spawn(argv[0], argv.slice(1), {
+    stdio,
+    cwd,
+    env: resolvedEnv,
+    windowsVerbatimArguments,
+  });
   // Spawn with inherited stdin (TTY) so tools like `pi` stay interactive when needed.
   return await new Promise((resolve, reject) => {
-    const child = spawn(argv[0], argv.slice(1), {
-      stdio: [input ? "pipe" : "inherit", "pipe", "pipe"],
-      cwd,
-      env: env ? { ...process.env, ...env } : process.env,
-    });
     let stdout = "";
     let stderr = "";
     let settled = false;
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
+      if (typeof child.kill === "function") {
+        child.kill("SIGKILL");
+      }
     }, timeoutMs);
 
-    if (input && child.stdin) {
-      child.stdin.write(input);
+    if (hasInput && child.stdin) {
+      child.stdin.write(input ?? "");
       child.stdin.end();
     }
 

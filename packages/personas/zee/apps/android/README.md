@@ -1,6 +1,6 @@
-## Zee Node (Android) (internal)
+## Clawdbot Node (Android) (internal)
 
-Modern Android node app: connects to the **Gateway-owned bridge** (`_zee-bridge._tcp`) over TCP and exposes **Canvas + Chat + Camera**.
+Modern Android node app: connects to the **Gateway WebSocket** (`_clawdbot-gw._tcp`) and exposes **Canvas + Chat + Camera**.
 
 Notes:
 - The node keeps the connection alive via a **foreground service** (persistent notification with a Disconnect action).
@@ -25,20 +25,20 @@ cd apps/android
 
 1) Start the gateway (on your “master” machine):
 ```bash
-pnpm zee gateway --port 18789 --verbose
+pnpm clawdbot gateway --port 18789 --verbose
 ```
 
 2) In the Android app:
 - Open **Settings**
-- Either select a discovered bridge under **Discovered Bridges**, or use **Advanced → Manual Bridge** (host + port).
+- Either select a discovered gateway under **Discovered Gateways**, or use **Advanced → Manual Gateway** (host + port).
 
 3) Approve pairing (on the gateway machine):
 ```bash
-zee nodes pending
-zee nodes approve <requestId>
+clawdbot nodes pending
+clawdbot nodes approve <requestId>
 ```
 
-More details: `docs/android/connect.md`.
+More details: `docs/platforms/android.md`.
 
 ## Permissions
 

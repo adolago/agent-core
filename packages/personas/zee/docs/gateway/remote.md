@@ -5,15 +5,62 @@ read_when:
 ---
 # Remote access (SSH, tunnels, and tailnets)
 
-This repo supports “remote over SSH” by keeping a single Gateway (the master) running on a host (e.g., your Mac Studio) and connecting clients to it.
+This repo supports “remote over SSH” by keeping a single Gateway (the master) running on a dedicated host (desktop/server) and connecting clients to it.
 
 - For **operators (you / the macOS app)**: SSH tunneling is the universal fallback.
-- For **nodes**: iOS connects directly to the Gateway WebSocket when reachable; Android/macOS node mode use the Gateway **Bridge** when on the same LAN/tailnet (see [Discovery + transports](/gateway/discovery)).
+- For **nodes (iOS/Android and future devices)**: connect to the Gateway **WebSocket** (LAN/tailnet or SSH tunnel as needed).
 
 ## The core idea
 
 - The Gateway WebSocket binds to **loopback** on your configured port (defaults to 18789).
 - For remote use, you forward that loopback port over SSH (or use a tailnet/VPN and tunnel less).
+
+## Common VPN/tailnet setups (where the agent lives)
+
+Think of the **Gateway host** as “where the agent lives.” It owns sessions, auth profiles, channels, and state.
+Your laptop/desktop (and nodes) connect to that host.
+
+### 1) Always-on Gateway in your tailnet (VPS or home server)
+
+Run the Gateway on a persistent host and reach it via **Tailscale** or SSH.
+
+- **Best UX:** keep `gateway.bind: "loopback"` and use **Tailscale Serve** for the Control UI.
+- **Fallback:** keep loopback + SSH tunnel from any machine that needs access.
+- **Examples:** [exe.dev](/platforms/exe-dev) (easy VM) or [Hetzner](/platforms/hetzner) (production VPS).
+
+This is ideal when your laptop sleeps often but you want the agent always-on.
+
+### 2) Home desktop runs the Gateway, laptop is remote control
+
+The laptop does **not** run the agent. It connects remotely:
+
+- Use the macOS app’s **Remote over SSH** mode (Settings → General → “Clawdbot runs”).
+- The app opens and manages the tunnel, so WebChat + health checks “just work.”
+
+Runbook: [macOS remote access](/platforms/mac/remote).
+
+### 3) Laptop runs the Gateway, remote access from other machines
+
+Keep the Gateway local but expose it safely:
+
+- SSH tunnel to the laptop from other machines, or
+- Tailscale Serve the Control UI and keep the Gateway loopback-only.
+
+Guide: [Tailscale](/gateway/tailscale) and [Web overview](/web).
+
+## Command flow (what runs where)
+
+One gateway service owns state + channels. Nodes are peripherals.
+
+Flow example (Telegram → node):
+- Telegram message arrives at the **Gateway**.
+- Gateway runs the **agent** and decides whether to call a node tool.
+- Gateway calls the **node** over the Gateway WebSocket (`node.*` RPC).
+- Node returns the result; Gateway replies back out to Telegram.
+
+Notes:
+- **Nodes do not run the gateway service.** Only one gateway should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
+- macOS app “node mode” is just a node client over the Gateway WebSocket.
 
 ## SSH tunnel (CLI + tools)
 
@@ -24,10 +71,10 @@ ssh -N -L 18789:127.0.0.1:18789 user@host
 ```
 
 With the tunnel up:
-- `zee health` and `zee status --deep` now reach the remote gateway via `ws://127.0.0.1:18789`.
-- `zee gateway {status,health,send,agent,call}` can also target the forwarded URL via `--url` when needed.
+- `clawdbot health` and `clawdbot status --deep` now reach the remote gateway via `ws://127.0.0.1:18789`.
+- `clawdbot gateway {status,health,send,agent,call}` can also target the forwarded URL via `--url` when needed.
 
-Note: replace `18789` with your configured `gateway.port` (or `--port`/`ZEE_GATEWAY_PORT`).
+Note: replace `18789` with your configured `gateway.port` (or `--port`/`CLAWDBOT_GATEWAY_PORT`).
 
 ## CLI remote defaults
 
@@ -58,4 +105,18 @@ WebChat no longer uses a separate HTTP port. The SwiftUI chat UI connects direct
 
 The macOS menu bar app can drive the same setup end-to-end (remote status checks, WebChat, and Voice Wake forwarding).
 
-Runbook: [`docs/mac/remote.md`](/platforms/mac/remote).
+Runbook: [macOS remote access](/platforms/mac/remote).
+
+## Security rules (remote/VPN)
+
+Short version: **keep the Gateway loopback-only** unless you’re sure you need a bind.
+
+- **Loopback + SSH/Tailscale Serve** is the safest default (no public exposure).
+- **Non-loopback binds** (`lan`/`tailnet`/`custom`, or `auto` when loopback is unavailable) must use auth tokens/passwords.
+- `gateway.remote.token` is **only** for remote CLI calls — it does **not** enable local auth.
+- `gateway.remote.tlsFingerprint` pins the remote TLS cert when using `wss://`.
+- **Tailscale Serve** can authenticate via identity headers when `gateway.auth.allowTailscale: true`.
+  Set it to `false` if you want tokens/passwords instead.
+- Treat `browser.controlUrl` like an admin API: tailnet-only + token auth.
+
+Deep dive: [Security](/gateway/security).

@@ -1,18 +1,21 @@
 import { type RunOptions, run } from "@grammyjs/runner";
-import type { ZeeConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
+import { resolveAgentMaxConcurrent } from "../config/agent-limits.js";
 import { computeBackoff, sleepWithAbort } from "../infra/backoff.js";
 import { formatDurationMs } from "../infra/format-duration.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { resolveTelegramAccount } from "./accounts.js";
+import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { createTelegramBot } from "./bot.js";
 import { makeProxyFetch } from "./proxy.js";
+import { readTelegramUpdateOffset, writeTelegramUpdateOffset } from "./update-offset-store.js";
 import { startTelegramWebhook } from "./webhook.js";
 
 export type MonitorTelegramOpts = {
   token?: string;
   accountId?: string;
-  config?: ZeeConfig;
+  config?: ClawdbotConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
   useWebhook?: boolean;
@@ -23,17 +26,17 @@ export type MonitorTelegramOpts = {
   webhookUrl?: string;
 };
 
-export function createTelegramRunnerOptions(
-  cfg: ZeeConfig,
-): RunOptions<unknown> {
+export function createTelegramRunnerOptions(cfg: ClawdbotConfig): RunOptions<unknown> {
   return {
     sink: {
-      concurrency: cfg.agent?.maxConcurrent ?? 1,
+      concurrency: resolveAgentMaxConcurrent(cfg),
     },
     runner: {
       fetch: {
         // Match grammY defaults
         timeout: 30,
+        // Request reactions without dropping default update types.
+        allowed_updates: resolveTelegramAllowedUpdates(),
       },
       // Suppress grammY getUpdates stack traces; we log concise errors ourselves.
       silent: true,
@@ -75,15 +78,31 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
   const token = opts.token?.trim() || account.token;
   if (!token) {
     throw new Error(
-      `Telegram bot token missing for account "${account.accountId}" (set telegram.accounts.${account.accountId}.botToken/tokenFile or TELEGRAM_BOT_TOKEN for default).`,
+      `Telegram bot token missing for account "${account.accountId}" (set channels.telegram.accounts.${account.accountId}.botToken/tokenFile or TELEGRAM_BOT_TOKEN for default).`,
     );
   }
 
   const proxyFetch =
     opts.proxyFetch ??
-    (account.config.proxy
-      ? makeProxyFetch(account.config.proxy as string)
-      : undefined);
+    (account.config.proxy ? makeProxyFetch(account.config.proxy as string) : undefined);
+
+  let lastUpdateId = await readTelegramUpdateOffset({
+    accountId: account.accountId,
+  });
+  const persistUpdateId = async (updateId: number) => {
+    if (lastUpdateId !== null && updateId <= lastUpdateId) return;
+    lastUpdateId = updateId;
+    try {
+      await writeTelegramUpdateOffset({
+        accountId: account.accountId,
+        updateId,
+      });
+    } catch (err) {
+      (opts.runtime?.error ?? console.error)(
+        `telegram: failed to persist update offset: ${String(err)}`,
+      );
+    }
+  };
 
   const bot = createTelegramBot({
     token,
@@ -91,11 +110,17 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
     proxyFetch,
     config: cfg,
     accountId: account.accountId,
+    updateOffset: {
+      lastUpdateId,
+      onUpdateId: persistUpdateId,
+    },
   });
 
   if (opts.useWebhook) {
     await startTelegramWebhook({
       token,
+      accountId: account.accountId,
+      config: cfg,
       path: opts.webhookPath,
       port: opts.webhookPort,
       secret: opts.webhookSecret,
@@ -131,13 +156,8 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
         throw err;
       }
       restartAttempts += 1;
-      const delayMs = computeBackoff(
-        TELEGRAM_POLL_RESTART_POLICY,
-        restartAttempts,
-      );
-      log(
-        `Telegram getUpdates conflict; retrying in ${formatDurationMs(delayMs)}.`,
-      );
+      const delayMs = computeBackoff(TELEGRAM_POLL_RESTART_POLICY, restartAttempts);
+      log(`Telegram getUpdates conflict; retrying in ${formatDurationMs(delayMs)}.`);
       try {
         await sleepWithAbort(delayMs, opts.abortSignal);
       } catch (sleepErr) {
