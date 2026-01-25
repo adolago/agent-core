@@ -398,31 +398,6 @@ export function Session() {
 
   const command = useCommandDialog()
   command.register(() => [
-    ...(sync.data.config.share !== "disabled"
-      ? [
-          {
-            title: "Share session",
-            value: "session.share",
-            keybind: "session_share" as const,
-            category: "Session",
-            enabled: !session()?.share?.url,
-            onSelect: async (dialog: DialogContext) => {
-              await sdk.client.session
-                .share({
-                  sessionID: route.sessionID,
-                })
-                .then((res) =>
-                  Clipboard.copy(res.data!.share!.url).catch(() =>
-                    toast.show({ message: "Failed to copy URL to clipboard", variant: "error" }),
-                  ),
-                )
-                .then(() => toast.show({ message: "Share URL copied to clipboard!", variant: "success" }))
-                .catch(() => toast.show({ message: "Failed to share session", variant: "error" }))
-              dialog.clear()
-            },
-          },
-        ]
-      : []),
     {
       title: "Rename session",
       value: "session.rename",
@@ -508,22 +483,25 @@ export function Session() {
       },
     },
     {
-      title: "Unshare session",
-      value: "session.unshare",
-      keybind: "session_unshare",
+      title: "Delete session",
+      value: "session.delete",
       category: "Session",
-      enabled: !!session()?.share?.url,
-      slash: {
-        name: "unshare",
-      },
       onSelect: async (dialog) => {
+        const confirmed = await DialogConfirm.show(
+          dialog,
+          "Delete session?",
+          "This will permanently delete this session and all its messages.",
+        )
+        if (!confirmed) return
         await sdk.client.session
-          .unshare({
+          .delete({
             sessionID: route.sessionID,
           })
-          .then(() => toast.show({ message: "Session unshared successfully", variant: "success" }))
-          .catch(() => toast.show({ message: "Failed to unshare session", variant: "error" }))
-        dialog.clear()
+          .then(() => {
+            toast.show({ message: "Session deleted", variant: "success" })
+            navigate({ type: "home" })
+          })
+          .catch(() => toast.show({ message: "Failed to delete session", variant: "error" }))
       },
     },
     {
