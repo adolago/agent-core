@@ -43,7 +43,22 @@ function bundlePersonas(distRoot: string) {
     dereference: true,
     filter: (srcPath) => {
       const base = path.basename(srcPath)
-      return base !== ".git" && base !== ".venv" && base !== "venv"
+      if (base === ".git" || base === ".venv" || base === "venv") return false
+      // Skip broken symlinks (e.g., skills -> absolute path that doesn't exist in CI)
+      try {
+        const stats = fs.lstatSync(srcPath)
+        if (stats.isSymbolicLink()) {
+          const target = fs.readlinkSync(srcPath)
+          // Skip absolute symlinks (they won't work in dist)
+          if (path.isAbsolute(target)) return false
+          // Check if relative symlink target exists
+          const resolvedTarget = path.resolve(path.dirname(srcPath), target)
+          if (!fs.existsSync(resolvedTarget)) return false
+        }
+      } catch {
+        return false
+      }
+      return true
     },
   })
 }
