@@ -43,8 +43,8 @@ function ttsUsage(): ReplyPayload {
       "⚙️ Usage: /tts <off|always|inbound|tagged|status|provider|limit|summary|audio> [value]" +
       "\nExamples:\n" +
       "/tts always\n" +
+      "/tts provider minimax\n" +
       "/tts provider openai\n" +
-      "/tts provider edge\n" +
       "/tts limit 2000\n" +
       "/tts summary off\n" +
       "/tts audio Hello from Zee",
@@ -149,6 +149,7 @@ export const handleTtsCommands: CommandHandler = async (params, allowTextCommand
       const fallback = resolveTtsProviderOrder(currentProvider)
         .slice(1)
         .filter((provider) => isTtsProviderConfigured(config, provider));
+      const hasMinimax = Boolean(resolveTtsApiKey(config, "minimax"));
       const hasOpenAI = Boolean(resolveTtsApiKey(config, "openai"));
       const hasElevenLabs = Boolean(resolveTtsApiKey(config, "elevenlabs"));
       const hasEdge = isTtsProviderConfigured(config, "edge");
@@ -159,16 +160,17 @@ export const handleTtsCommands: CommandHandler = async (params, allowTextCommand
             `🎙️ TTS provider\n` +
             `Primary: ${currentProvider}\n` +
             `Fallbacks: ${fallback.join(", ") || "none"}\n` +
+            `MiniMax key: ${hasMinimax ? "✅" : "❌"}\n` +
             `OpenAI key: ${hasOpenAI ? "✅" : "❌"}\n` +
             `ElevenLabs key: ${hasElevenLabs ? "✅" : "❌"}\n` +
             `Edge enabled: ${hasEdge ? "✅" : "❌"}\n` +
-            `Usage: /tts provider openai | elevenlabs | edge`,
+            `Usage: /tts provider minimax | openai | elevenlabs | edge`,
         },
       };
     }
 
     const requested = args.trim().toLowerCase();
-    if (requested !== "openai" && requested !== "elevenlabs" && requested !== "edge") {
+    if (requested !== "minimax" && requested !== "openai" && requested !== "elevenlabs" && requested !== "edge") {
       return { shouldContinue: false, reply: ttsUsage() };
     }
 
