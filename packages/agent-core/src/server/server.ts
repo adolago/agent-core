@@ -103,7 +103,8 @@ export namespace Server {
             else status = 500
             return c.json(err.toObject(), { status })
           }
-          const message = err instanceof Error && err.stack ? err.stack : err.toString()
+          // Sentinel: Prevent stack trace leakage in API responses
+          const message = err instanceof Error ? err.message : String(err)
           return c.json(new NamedError.Unknown({ message }).toObject(), {
             status: 500,
           })
