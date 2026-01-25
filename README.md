@@ -7,8 +7,8 @@ Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, 
 
 ## Release
 
-- **Version:** v0.1.0-20260114
-- **Prebuilt targets:** Linux x64, macOS arm64 (Apple Silicon)
+- **Version:** 0.1.1-alpha
+- **Prebuilt targets:** Linux x64
 - **Other platforms:** build from source
 
 ## Quick Start
@@ -18,33 +18,53 @@ Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, 
 - [Bun](https://bun.sh) (v1.1+)
 - [Qdrant](https://qdrant.tech) (local or cloud) for semantic memory
 - API key for your model provider (Anthropic, OpenAI, Google, etc.)
+- Python 3.8+ (for Stanley persona)
 
-### Install (prebuilt)
-
-Prebuilt binaries are published to npm for Linux x64 and macOS arm64:
+### Install from npm
 
 ```bash
-npm install -g @adolago/agent-core@0.1.0-20260114
+npm install -g @adolago/agent-core
 ```
 
-### Install (from source)
+### Install Stanley (optional, for investing features)
+
+Stanley is the investing persona. Install it from GitHub:
+
+```bash
+# Clone Stanley
+git clone https://github.com/adolago/stanley ~/.local/src/stanley
+cd ~/.local/src/stanley
+
+# Install Python dependencies
+pip install -e .
+# Or with all optional dependencies:
+pip install -e ".[all]"
+
+# Set environment variable
+export STANLEY_REPO=~/.local/src/stanley
+```
+
+Add to your shell profile (`~/.bashrc` or `~/.zshrc`):
+```bash
+export STANLEY_REPO=~/.local/src/stanley
+```
+
+### Install from source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/agent-core.git
+git clone https://github.com/adolago/agent-core.git
+cd agent-core
 
 # Install dependencies
-cd agent-core
 bun install
 
 # Build the project
 cd packages/agent-core
 bun run build
 
-# Install the binary (optional)
+# Install the binary
 cp dist/agent-core-linux-x64/bin/agent-core ~/bin/agent-core
-# macOS arm64:
-# cp dist/agent-core-darwin-arm64/bin/agent-core ~/bin/agent-core
 ```
 
 ### Configuration
