@@ -1,4 +1,7 @@
 research
 dist
-gen
+/gen
 app.log
+# Allow SDK generated files
+!src/pkg/sdk/gen/
+!src/pkg/sdk/v2/gen/
