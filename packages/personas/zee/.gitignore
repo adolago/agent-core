@@ -55,8 +55,9 @@ apps/ios/*.mobileprovision
 **/zeedis-gateway.service
 **/zee.service
 
-# Ignore the entire iOS app directory (local user preference)
-apps/ios/
+# iOS build artifacts (keep source files tracked)
+apps/ios/build/
+apps/ios/DerivedData/
 Peekaboo/
 Swabble/
 .agent-core/

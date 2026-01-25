@@ -1,0 +1,134 @@
+name: Zeebot
+options:
+  bundleIdPrefix: com.zeebot
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+
+packages:
+  ZeebotKit:
+    path: ../shared/ZeebotKit
+  Swabble:
+    path: ../../Swabble
+
+schemes:
+  Zeebot:
+    shared: true
+    build:
+      targets:
+        Zeebot: all
+    test:
+      targets:
+        - ZeebotTests
+
+targets:
+  Zeebot:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    dependencies:
+      - package: ZeebotKit
+      - package: ZeebotKit
+        product: ZeebotChatUI
+      - package: ZeebotKit
+        product: ZeebotProtocol
+      - package: Swabble
+        product: SwabbleKit
+      - sdk: AppIntents.framework
+    preBuildScripts:
+      - name: SwiftFormat (lint)
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            echo "error: swiftformat not found (brew install swiftformat)" >&2
+            exit 1
+          fi
+          swiftformat --lint --config "$SRCROOT/../../.swiftformat" \
+            --filelist "$SRCROOT/SwiftSources.input.xcfilelist"
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            echo "error: swiftlint not found (brew install swiftlint)" >&2
+            exit 1
+          fi
+          swiftlint lint --config "$SRCROOT/.swiftlint.yml" --use-script-input-file-lists
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: Y5PE65HELJ
+        PRODUCT_BUNDLE_IDENTIFIER: com.zeebot.ios
+        PROVISIONING_PROFILE_SPECIFIER: "com.zeebot.ios Development"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_APPINTENTS_METADATA: NO
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Zeebot
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: "2026.1.24"
+        CFBundleVersion: "20260124"
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - audio
+        NSLocalNetworkUsageDescription: Zeebot discovers and connects to your Zeebot gateway on the local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsInWebContent: true
+        NSBonjourServices:
+          - _zeebot-gw._tcp
+        NSCameraUsageDescription: Zeebot can capture photos or short video clips when requested via the gateway.
+        NSLocationWhenInUseUsageDescription: Zeebot uses your location when you allow location sharing.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Zeebot can share your location in the background when you enable Always.
+        NSMicrophoneUsageDescription: Zeebot needs microphone access for voice wake.
+        NSSpeechRecognitionUsageDescription: Zeebot uses on-device speech recognition for voice wake.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+  ZeebotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Zeebot
+      - package: Swabble
+        product: SwabbleKit
+      - sdk: AppIntents.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zeebot.ios.tests
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Zeebot.app/Zeebot"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    info:
+      path: Tests/Info.plist
+      properties:
+        CFBundleDisplayName: ZeebotTests
+        CFBundleShortVersionString: "2026.1.24"
+        CFBundleVersion: "20260124"
