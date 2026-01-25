@@ -61,6 +61,11 @@ export function renderChat(props: ChatProps) {
             class="btn"
             ?disabled=${props.loading || !props.connected}
             @click=${props.onRefresh}
+            title=${props.loading
+              ? "Refreshing chat history..."
+              : !props.connected
+                ? "Connect to gateway to refresh"
+                : "Refresh chat history"}
           >
             ${props.loading ? "Loading…" : "Refresh"}
           </button>
@@ -121,6 +126,11 @@ export function renderChat(props: ChatProps) {
             class="btn"
             ?disabled=${!props.connected || props.sending}
             @click=${props.onNewSession}
+            title=${!props.connected
+              ? "Connect to gateway to start a new session"
+              : props.sending
+                ? "Please wait for message to send"
+                : "Start a new session (/new)"}
           >
             New session
           </button>
@@ -128,6 +138,11 @@ export function renderChat(props: ChatProps) {
             class="btn primary"
             ?disabled=${!props.connected || props.sending}
             @click=${props.onSend}
+            title=${!props.connected
+              ? "Connect to gateway to send message"
+              : props.sending
+                ? "Sending message..."
+                : "Send message (⌘+Enter)"}
           >
             ${props.sending ? "Sending…" : "Send"}
           </button>

@@ -7,3 +7,7 @@
 ## 2024-05-23 - Accessibility of Icon-Only Buttons
 **Learning:** The `IconButton` component in this SolidJS-based UI library relies on `Kobalte` but does not enforce or automatically generate accessible names. Developers must manually add `aria-label` or `title` to ensure screen reader accessibility.
 **Action:** When using `IconButton` (or any icon-only interactive element), always verify that an `aria-label` is provided. In the future, we could add a prop type check or a linter rule to enforce this.
+
+## 2025-02-14 - Disabled State Accessibility
+**Learning:** Buttons in the chat interface rely on the `disabled` attribute without providing context to the user. This is confusing for users who don't know why an action is unavailable (e.g., "Disconnected").
+**Action:** Always add a dynamic `title` attribute to disabled buttons to explain the reason for the disabled state (e.g., "Connect to gateway to send message").
