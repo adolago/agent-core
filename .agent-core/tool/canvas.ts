@@ -146,7 +146,9 @@ type WeztermListEntry = {
   paneId?: number
   paneID?: number
   pane?: number
+  tab_id?: number
   is_active?: boolean
+  cwd?: string
 }
 
 async function getWeztermList(): Promise<WeztermListEntry[]> {
@@ -192,15 +194,53 @@ async function paneExists(paneId: string): Promise<boolean> {
   }
 }
 
+function normalizeCwd(cwd: string | undefined): string | undefined {
+  if (!cwd) return undefined
+  // WezTerm returns file:// URLs for cwd
+  if (cwd.startsWith("file://")) {
+    // Format: file://hostname/path - extract the path part
+    const match = cwd.match(/^file:\/\/[^/]*(.+)$/)
+    return match?.[1]
+  }
+  return cwd
+}
+
+function getPaneId(entry: WeztermListEntry): string | undefined {
+  const paneId = entry?.pane_id ?? entry?.paneId ?? entry?.paneID ?? entry?.pane
+  return paneId === undefined || paneId === null ? undefined : String(paneId)
+}
+
 async function resolveTargetPaneId(): Promise<string | undefined> {
+  // 1. Explicit configuration takes priority
   const configured = process.env.AGENT_CORE_CANVAS_PANE_ID?.trim()
   if (configured) return configured
+
+  // 2. Environment variable from WezTerm (set when running in WezTerm terminal)
   const envPane = process.env.WEZTERM_PANE?.trim()
   if (envPane) return envPane
+
+  // 3. Find a pane in the same working directory (same project/tab)
   const list = await getWeztermList()
+  const cwd = process.cwd()
+
+  // Filter panes that match our current working directory
+  const cwdMatches = list.filter((entry) => {
+    const paneCwd = normalizeCwd(entry.cwd)
+    return paneCwd && (paneCwd === cwd || paneCwd.startsWith(cwd + "/") || cwd.startsWith(paneCwd + "/"))
+  })
+
+  if (cwdMatches.length > 0) {
+    // Prefer the active pane within matching cwd, otherwise take the first match
+    const activeInCwd = cwdMatches.find((x) => x.is_active)
+    const target = activeInCwd ?? cwdMatches[0]
+    const paneId = getPaneId(target)
+    if (paneId) return paneId
+  }
+
+  // 4. Last resort: use globally active pane (may be in wrong tab)
+  // This maintains backwards compatibility but will likely open in wrong tab
   const active = list.find((x) => x.is_active) ?? list[0]
-  const paneId = active?.pane_id ?? active?.paneId ?? active?.paneID ?? active?.pane
-  return paneId === undefined || paneId === null ? undefined : String(paneId)
+  return getPaneId(active)
 }
 
 function safeString(input: unknown): string | undefined {
