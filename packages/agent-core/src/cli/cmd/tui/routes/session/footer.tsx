@@ -21,6 +21,14 @@ export function Footer() {
     if (route.data.type !== "session") return []
     return sync.data.permission[route.data.sessionID] ?? []
   })
+  // Stream health indicator for current session
+  const streamHealth = createMemo(() => {
+    if (route.data.type !== "session") return undefined
+    const status = sync.data.session_status?.[route.data.sessionID]
+    if (!status || status.type !== "busy") return undefined
+    // Access streamHealth using bracket notation to avoid TS error with SDK types
+    return (status as { streamHealth?: { isStalled: boolean; timeSinceLastEventMs: number } }).streamHealth
+  })
   const directory = useDirectory()
   const connected = useConnected()
 
@@ -71,6 +79,11 @@ export function Footer() {
               <text fg={theme.warning}>
                 <span style={{ fg: theme.warning }}>△</span> {permissions().length} Permission
                 {permissions().length > 1 ? "s" : ""}
+              </text>
+            </Show>
+            <Show when={streamHealth()?.isStalled}>
+              <text fg={theme.error}>
+                <span style={{ fg: theme.error }}>⚠</span> Stream stalled ({Math.round((streamHealth()?.timeSinceLastEventMs ?? 0) / 1000)}s)
               </text>
             </Show>
             <text fg={theme.text}>

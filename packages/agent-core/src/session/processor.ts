@@ -20,6 +20,7 @@ import { addWideEventFields, finishWideEvent, runWithWideEventContext } from "@/
 import { Flag } from "@/flag/flag"
 import { withTimeout } from "@/util/timeout"
 import * as UsageTracker from "@/usage/tracker"
+import { StreamHealth } from "./stream-health"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -78,6 +79,13 @@ export namespace SessionProcessor {
           log.info("process")
           needsCompaction = false
           const shouldBreak = (await Config.get()).experimental?.continue_loop_on_deny !== true
+          // Initialize stream health monitor for diagnostics (declared at this scope for error handling)
+          const healthMonitor = Flag.AGENT_CORE_STREAM_DIAGNOSTICS
+            ? StreamHealth.getOrCreate({
+                sessionID: input.sessionID,
+                messageID: input.assistantMessage.id,
+              })
+            : undefined
           while (true) {
             try {
               let currentText: MessageV2.TextPart | undefined
@@ -187,8 +195,13 @@ export namespace SessionProcessor {
 	                const iterator = stream.fullStream[Symbol.asyncIterator]()
 	                while (true) {
 	                  const result = await Promise.race([iterator.next(), abortPromise])
-	                  if (result.done) break
+	                  if (result.done) {
+	                    healthMonitor?.complete()
+	                    break
+	                  }
 	                  const value = result.value
+	                  // Record event for health monitoring
+	                  healthMonitor?.recordEvent(value.type)
 	                  if (!streamStartTimerCleared) {
 	                    streamStartTimerCleared = true
 	                    clearTimeout(streamStartTimer)
@@ -506,6 +519,7 @@ export namespace SessionProcessor {
 	                    continue
 	                }
 	                  if (needsCompaction) {
+	                    healthMonitor?.complete()
 	                    await iterator.return?.()
 	                    break
 	                  }
@@ -515,6 +529,8 @@ export namespace SessionProcessor {
 	                removeAbortListener?.()
 	              }
 	            } catch (e: any) {
+	              // Record stream failure for diagnostics
+	              healthMonitor?.fail(e)
 	              log.error("process", {
 	                error: e,
 	                stack: JSON.stringify(e.stack),
@@ -573,6 +589,12 @@ export namespace SessionProcessor {
             input.assistantMessage.time.completed = Date.now()
             await Session.updateMessage(input.assistantMessage)
             const error = input.assistantMessage.error
+            // Get stream health report for telemetry
+            const streamReport = healthMonitor?.getReport()
+            // Clean up health monitor
+            if (healthMonitor) {
+              StreamHealth.remove(input.sessionID, input.assistantMessage.id)
+            }
             await finishWideEvent({
               ok: !error,
               error: error
@@ -588,6 +610,14 @@ export namespace SessionProcessor {
                 toolErrors: toolStats.errors,
                 toolNames:
                   toolStats.names.size <= 12 ? Array.from(toolStats.names) : Array.from(toolStats.names).slice(0, 12),
+                streamHealth: streamReport
+                  ? {
+                      status: streamReport.status,
+                      durationMs: streamReport.timing.durationMs,
+                      eventsReceived: streamReport.progress.eventsReceived,
+                      stallWarnings: streamReport.stallWarnings,
+                    }
+                  : undefined,
               },
             })
             if (needsCompaction) return "compact"

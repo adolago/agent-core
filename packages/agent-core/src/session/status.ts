@@ -4,6 +4,17 @@ import { Instance } from "@/project/instance"
 import z from "zod"
 
 export namespace SessionStatus {
+  /**
+   * Stream health information for busy sessions.
+   */
+  export const StreamHealth = z.object({
+    isStalled: z.boolean(),
+    timeSinceLastEventMs: z.number(),
+    eventsReceived: z.number(),
+    stallWarnings: z.number(),
+  })
+  export type StreamHealth = z.infer<typeof StreamHealth>
+
   export const Info = z
     .union([
       z.object({
@@ -17,6 +28,7 @@ export namespace SessionStatus {
       }),
       z.object({
         type: z.literal("busy"),
+        streamHealth: StreamHealth.optional(),
       }),
     ])
     .meta({
