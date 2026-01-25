@@ -34,7 +34,13 @@ export function parseCliProfileArgs(argv: string[]): CliProfileParseResult {
   let profile: string | null = null;
   let sawDev = false;
 
-  const args = argv.slice(2);
+  let args = argv.slice(2);
+
+  // Strip leading "--" that pnpm/npm pass through (e.g., "pnpm dev -- browser ...")
+  // so Commander doesn't misinterpret it as "stop parsing options".
+  if (args[0] === "--") {
+    args = args.slice(1);
+  }
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === undefined) continue;

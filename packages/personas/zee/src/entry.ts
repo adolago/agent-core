@@ -12,9 +12,10 @@ if (!parsed.ok) {
 
 if (parsed.profile) {
   applyCliProfileEnv({ profile: parsed.profile });
-  // Keep Commander and ad-hoc argv checks consistent.
-  process.argv = parsed.argv;
 }
 
+// Always use the sanitized argv (strips leading "--" from pnpm, removes profile flags).
+process.argv = parsed.argv;
+
 const { runCli } = await import("./cli/run-main.js");
-await runCli(process.argv);
+await runCli(parsed.argv);

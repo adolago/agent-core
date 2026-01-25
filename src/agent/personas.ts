@@ -109,6 +109,8 @@ export const STANLEY_AGENT_CONFIG: AgentConfig = {
     "stanley:research": true,
     "stanley:sec-filings": true,
     "stanley:nautilus": true,
+    // Browser automation via Zee gateway
+    browser: true,
   },
   options: {
     // Extended thinking for complex analysis
@@ -150,7 +152,7 @@ When analyzing:
     "~/.stanley/knowledge/sec-forms.md",
     "~/.stanley/knowledge/trading-concepts.md",
   ],
-  mcpServers: ["openbb", "nautilus", "zed-editor"],
+  mcpServers: ["openbb", "nautilus", "zed-editor", "personas-browser"],
 };
 
 // =============================================================================
@@ -218,6 +220,8 @@ export const ZEE_AGENT_CONFIG: AgentConfig = {
     "zee:contacts": true,
     "zee:splitwise": true,
     "zee:codexbar": true,
+    // Browser automation via Zee gateway
+    browser: true,
   },
   options: {},
   maxSteps: 30,
@@ -256,7 +260,7 @@ When responding:
     "~/.clawd/IDENTITY.md",
     "~/.clawd/SOUL.md",
   ],
-  mcpServers: ["tiara", "personas-calendar"],
+  mcpServers: ["tiara", "personas-calendar", "personas-browser"],
 };
 
 // =============================================================================
@@ -322,6 +326,8 @@ export const JOHNY_AGENT_CONFIG: AgentConfig = {
     "johny:concepts": true,
     "johny:problems": true,
     "johny:progress": true,
+    // Browser automation via Zee gateway
+    browser: true,
   },
   options: {
     // Extended thinking for problem solving
@@ -365,7 +371,7 @@ When teaching:
     "~/.johny/knowledge/math-concepts.md",
     "~/.johny/knowledge/cs-fundamentals.md",
   ],
-  mcpServers: ["tiara"],
+  mcpServers: ["tiara", "personas-browser"],
 };
 
 // =============================================================================
