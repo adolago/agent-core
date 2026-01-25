@@ -2,16 +2,10 @@
 description: Learning system - study, knowledge graph, spaced repetition
 color: "#DC2626"
 theme: johny
-model: google/antigravity-claude-opus-4-5-thinking
+model: anthropic/claude-opus-4-5-latest
 fallback: google/gemini-3-pro-preview
 temperature: 0.5
-# Note: top_p omitted - Claude thinking models require >= 0.95 or unset
 skill: johny
-options:
-  # Max thinking for Claude Opus 4.5 via Antigravity (uses Google API)
-  thinkingConfig:
-    includeThoughts: true
-    thinkingBudget: 64000
 ---
 
 # Johny - Learning System
