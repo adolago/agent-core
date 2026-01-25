@@ -22,6 +22,13 @@ const mockCoordinationManager = {
 } as any;
 const mockAgentManager = {
   getHealthStatus: jest.fn().mockResolvedValue({ healthy: true, metrics: {} }),
+  getSystemStats: jest.fn().mockReturnValue({
+    totalAgents: 0,
+    activeAgents: 0,
+    healthyAgents: 0,
+    averageHealth: 1.0,
+    resourceUtilization: { cpu: 0, memory: 0, disk: 0 },
+  }),
 } as any;
 const mockResourceManager = {} as any;
 
