@@ -138,4 +138,6 @@ export const TIPS = [
   "Use {highlight}:rename{/highlight} to rename the current session.",
   "Press {highlight}Ctrl+Z{/highlight} to suspend the terminal and return to your shell.",
   "Press {highlight}Tab{/highlight}/{highlight}Shift+Tab{/highlight} to switch between Zee, Stanley, and Johny.",
+  "Press {highlight}Ctrl+X{/highlight} (leader key) to see all available keybindings in a which-key popup.",
+  "Press {highlight}Shift+G{/highlight} to jump to the most recent message (vim-style).",
 ]

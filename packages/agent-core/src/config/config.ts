@@ -692,7 +692,7 @@ export namespace Config {
   export const Keybinds = z
     .object({
       leader: z.string().optional().default("ctrl+x").describe("Leader key for keybind combinations"),
-      app_exit: z.string().optional().default("ctrl+c,ctrl+d,<leader>q").describe("Exit the application"),
+      app_exit: z.string().optional().default("ctrl+c,<leader>q").describe("Exit the application"),
       editor_open: z.string().optional().default("<leader>e").describe("Open external editor"),
       theme_list: z.string().optional().default("<leader>t").describe("List available themes"),
       sidebar_toggle: z.string().optional().default("<leader>b").describe("Toggle sidebar"),
@@ -705,7 +705,7 @@ export namespace Config {
       session_rename: z.string().optional().default("ctrl+r").describe("Rename session"),
       session_delete: z.string().optional().default("<leader>d").describe("Delete session"),
       stash_delete: z.string().optional().default("ctrl+d").describe("Delete stash entry"),
-      model_provider_list: z.string().optional().default("ctrl+a").describe("Open provider list from model dialog"),
+      model_provider_list: z.string().optional().default("<leader>p").describe("Open provider list from model dialog"),
       session_delegate: z.string().optional().default("<leader>shift+d").describe("Delegate to another persona"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
       session_compact: z.string().optional().default("<leader>c").describe("Compact the session"),
@@ -724,7 +724,7 @@ export namespace Config {
         .default("ctrl+alt+d")
         .describe("Scroll messages down by half page"),
       messages_first: z.string().optional().default("ctrl+g,home").describe("Navigate to first message"),
-      messages_last: z.string().optional().default("ctrl+alt+g,end").describe("Navigate to last message"),
+      messages_last: z.string().optional().default("shift+g,end").describe("Navigate to last message"),
       messages_copy: z.string().optional().default("<leader>y").describe("Copy message"),
       messages_undo: z.string().optional().default("<leader>u").describe("Undo message"),
       messages_redo: z.string().optional().default("<leader>r").describe("Redo message"),
@@ -742,7 +742,7 @@ export namespace Config {
       agent_cycle: z.string().optional().default("tab").describe("Next agent"),
       agent_cycle_reverse: z.string().optional().default("shift+tab").describe("Previous agent"),
       mode_toggle: z.string().optional().default("<leader>h").describe("Toggle hold/release mode"),
-      variant_cycle: z.string().optional().default("ctrl+t").describe("Cycle model variants"),
+      variant_cycle: z.string().optional().default("<leader>v").describe("Cycle model variants"),
       input_clear: z.string().optional().default("ctrl+c").describe("Clear input field"),
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
       input_submit: z.string().optional().default("return").describe("Submit input"),
