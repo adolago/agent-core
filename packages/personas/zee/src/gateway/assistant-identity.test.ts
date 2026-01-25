@@ -34,11 +34,11 @@ describe("resolveAssistantIdentity avatar normalization", () => {
     const cfg: ZeeConfig = {
       ui: {
         assistant: {
-          avatar: "avatars/clawd.png",
+          avatar: "avatars/zee.png",
         },
       },
     };
 
-    expect(resolveAssistantIdentity({ cfg, workspaceDir: "" }).avatar).toBe("avatars/clawd.png");
+    expect(resolveAssistantIdentity({ cfg, workspaceDir: "" }).avatar).toBe("avatars/zee.png");
   });
 });

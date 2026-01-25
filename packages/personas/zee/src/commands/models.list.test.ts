@@ -17,8 +17,8 @@ const discoverAuthStorage = vi.fn().mockReturnValue({});
 const discoverModels = vi.fn();
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH_CLAWDBOT: "/tmp/zee.json",
-  STATE_DIR_CLAWDBOT: "/tmp/zee-state",
+  CONFIG_PATH_ZEEBOT: "/tmp/zee.json",
+  STATE_DIR_ZEEBOT: "/tmp/zee-state",
   loadConfig,
 }));
 

@@ -1,16 +1,16 @@
 ---
-summary: "CLI reference for `clawdbot sessions` (list stored sessions + usage)"
+summary: "CLI reference for `zee sessions` (list stored sessions + usage)"
 read_when:
   - You want to list stored sessions and see recent activity
 ---
 
-# `clawdbot sessions`
+# `zee sessions`
 
 List stored conversation sessions.
 
 ```bash
-clawdbot sessions
-clawdbot sessions --active 120
-clawdbot sessions --json
+zee sessions
+zee sessions --active 120
+zee sessions --json
 ```
 

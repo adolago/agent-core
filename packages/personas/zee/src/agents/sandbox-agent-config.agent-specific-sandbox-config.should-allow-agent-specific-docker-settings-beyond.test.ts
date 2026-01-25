@@ -75,7 +75,7 @@ describe("Agent-specific sandbox config", () => {
         list: [
           {
             id: "work",
-            workspace: "~/clawd-work",
+            workspace: "~/zee-work",
             sandbox: {
               mode: "all",
               scope: "agent",
@@ -113,7 +113,7 @@ describe("Agent-specific sandbox config", () => {
         list: [
           {
             id: "main",
-            workspace: "~/clawd",
+            workspace: "~/zee",
             sandbox: {
               mode: "off", // Agent override
             },
@@ -144,7 +144,7 @@ describe("Agent-specific sandbox config", () => {
         list: [
           {
             id: "family",
-            workspace: "~/clawd-family",
+            workspace: "~/zee-family",
             sandbox: {
               mode: "all", // Agent override
               scope: "agent",
@@ -177,7 +177,7 @@ describe("Agent-specific sandbox config", () => {
         list: [
           {
             id: "work",
-            workspace: "~/clawd-work",
+            workspace: "~/zee-work",
             sandbox: {
               mode: "all",
               scope: "agent", // Agent override

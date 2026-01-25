@@ -143,7 +143,7 @@ export function resolveAgentWorkspaceDir(cfg: ZeeConfig, agentId: string) {
     if (fallback) return resolveUserPath(fallback);
     return DEFAULT_AGENT_WORKSPACE_DIR;
   }
-  return path.join(os.homedir(), `clawd-${id}`);
+  return path.join(os.homedir(), `zee-${id}`);
 }
 
 export function resolveAgentDir(cfg: ZeeConfig, agentId: string) {

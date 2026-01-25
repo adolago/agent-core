@@ -57,12 +57,12 @@
 - Never commit or publish real phone numbers, videos, or live configuration values. Use obviously fake placeholders in docs, tests, and examples.
 
 ## Troubleshooting
-- Rebrand/migration issues (Clawdis → Zee) or legacy config/service warnings: run `zee doctor` (see `docs/gateway/doctor.md`).
+- Rebrand/migration issues (Zeedis → Zee) or legacy config/service warnings: run `zee doctor` (see `docs/gateway/doctor.md`).
 
 ## Agent-Specific Notes
 - Vocabulary: "makeup" = "mac app".
 - Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the Zee Mac app or `scripts/restart-mac.sh`; to verify/kill use `launchctl print gui/$UID | grep zee` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
-- macOS logs: use `./scripts/clawlog.sh` (aka `vtlog`) to query unified logs for the Zee subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
+- macOS logs: use `./scripts/zeelog.sh` (aka `vtlog`) to query unified logs for the Zee subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
 - If shared guardrails are available locally, review them; otherwise follow this repo's guidance.
 - SwiftUI state management (iOS/macOS): prefer the `Observation` framework (`@Observable`, `@Bindable`) over `ObservableObject`/`@StateObject`; don’t introduce new `ObservableObject` unless required for compatibility, and migrate existing usages when touching related code.
 - Connection providers: when adding a new connection, update every UI surface and docs (macOS app, web UI, mobile if applicable, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.

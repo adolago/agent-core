@@ -2,7 +2,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
-  CONFIG_PATH_CLAWDBOT,
+  CONFIG_PATH_ZEEBOT,
   type HookMappingConfig,
   type HooksConfig,
 } from "../config/config.js";
@@ -111,7 +111,7 @@ export function resolveHookMappings(hooks?: HooksConfig): HookMappingResolved[] 
   }
   if (mappings.length === 0) return [];
 
-  const configDir = path.dirname(CONFIG_PATH_CLAWDBOT);
+  const configDir = path.dirname(CONFIG_PATH_ZEEBOT);
   const transformsDir = hooks?.transformsDir
     ? resolvePath(configDir, hooks.transformsDir)
     : configDir;

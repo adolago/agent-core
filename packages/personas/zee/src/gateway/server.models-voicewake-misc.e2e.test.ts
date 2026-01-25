@@ -145,7 +145,7 @@ describe("gateway server models + voicewake", () => {
 
       const initial = await rpcReq<{ triggers: string[] }>(ws, "voicewake.get");
       expect(initial.ok).toBe(true);
-      expect(initial.payload?.triggers).toEqual(["clawd", "claude", "computer"]);
+      expect(initial.payload?.triggers).toEqual(["zee", "claude", "computer"]);
 
       const changedP = onceMessage<{
         type: "event";
@@ -203,7 +203,7 @@ describe("gateway server models + voicewake", () => {
     const first = await firstEventP;
     expect(first.event).toBe("voicewake.changed");
     expect((first.payload as { triggers?: unknown } | undefined)?.triggers).toEqual([
-      "clawd",
+      "zee",
       "claude",
       "computer",
     ]);
@@ -213,14 +213,14 @@ describe("gateway server models + voicewake", () => {
       (o) => o.type === "event" && o.event === "voicewake.changed",
     );
     const setRes = await rpcReq<{ triggers: string[] }>(ws, "voicewake.set", {
-      triggers: ["clawd", "computer"],
+      triggers: ["zee", "computer"],
     });
     expect(setRes.ok).toBe(true);
 
     const broadcast = await broadcastP;
     expect(broadcast.event).toBe("voicewake.changed");
     expect((broadcast.payload as { triggers?: unknown } | undefined)?.triggers).toEqual([
-      "clawd",
+      "zee",
       "computer",
     ]);
 

@@ -2,10 +2,10 @@
 set -e
 
 TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-BACKUP_DIR="$HOME/.backup/clawdbot/$TIMESTAMP"
-CONFIG_FILE="$HOME/.clawdbot/clawdbot.json"
+BACKUP_DIR="$HOME/.backup/zeebot/$TIMESTAMP"
+CONFIG_FILE="$HOME/.zeebot/zeebot.json"
 
-echo "📦 Creating complete Clawdbot backup..."
+echo "📦 Creating complete Zeebot backup..."
 echo "Timestamp: $TIMESTAMP"
 echo "Target: $BACKUP_DIR"
 echo ""
@@ -14,10 +14,10 @@ echo ""
 mkdir -p "$BACKUP_DIR"
 
 echo "=== Core State Directory ==="
-echo "📁 Backing up: $HOME/.clawdbot"
-rsync -a "$HOME/.clawdbot/" "$BACKUP_DIR/.clawdbot/" 2>/dev/null
-size=$(du -sh "$BACKUP_DIR/.clawdbot" 2>/dev/null | cut -f1)
-echo "  ✅ $size - .clawdbot (complete)"
+echo "📁 Backing up: $HOME/.zeebot"
+rsync -a "$HOME/.zeebot/" "$BACKUP_DIR/.zeebot/" 2>/dev/null
+size=$(du -sh "$BACKUP_DIR/.zeebot" 2>/dev/null | cut -f1)
+echo "  ✅ $size - .zeebot (complete)"
 
 echo ""
 echo "=== Workspace Directories ==="
@@ -47,7 +47,7 @@ if [ -f "$CONFIG_FILE" ]; then
 fi
 
 # Also check for common workspace locations
-for common_ws in "$HOME/clawd" "$HOME/projects/clawd"; do
+for common_ws in "$HOME/zee" "$HOME/projects/zee"; do
   if [ -d "$common_ws" ]; then
     dir_name=$(basename "$common_ws")
     backup_path="$BACKUP_DIR/$dir_name"
@@ -66,24 +66,24 @@ done
 
 echo ""
 echo "=== Agent Summary ==="
-if [ -d "$HOME/.clawdbot/agents" ]; then
-  for agent_dir in "$HOME/.clawdbot/agents"/*; do
+if [ -d "$HOME/.zeebot/agents" ]; then
+  for agent_dir in "$HOME/.zeebot/agents"/*; do
     agent_name=$(basename "$agent_dir")
     session_count=0
     if [ -d "$agent_dir/sessions" ]; then
       session_count=$(find "$agent_dir/sessions" -type f 2>/dev/null | wc -l | tr -d ' ')
     fi
     
-    workspace=$(jq -r ".routing.agents.\"$agent_name\".workspace // \"~/.clawdbot/agents/$agent_name/agent\"" "$CONFIG_FILE" 2>/dev/null)
+    workspace=$(jq -r ".routing.agents.\"$agent_name\".workspace // \"~/.zeebot/agents/$agent_name/agent\"" "$CONFIG_FILE" 2>/dev/null)
     echo "🤖 $agent_name: $session_count sessions → $workspace"
   done
 fi
 
 echo ""
 echo "=== Sandbox Summary ==="
-if [ -d "$HOME/.clawdbot/sandboxes" ]; then
-  sandbox_count=$(find "$HOME/.clawdbot/sandboxes" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
-  echo "🐳 $sandbox_count sandbox workspace(s) (included in .clawdbot backup)"
+if [ -d "$HOME/.zeebot/sandboxes" ]; then
+  sandbox_count=$(find "$HOME/.zeebot/sandboxes" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+  echo "🐳 $sandbox_count sandbox workspace(s) (included in .zeebot backup)"
 fi
 
 echo ""
@@ -106,10 +106,10 @@ echo "💾 Location: $BACKUP_DIR"
 echo ""
 echo "🔄 Restore Commands:"
 echo "  # State & config:"
-echo "  rsync -a $BACKUP_DIR/.clawdbot/ ~/.clawdbot/"
+echo "  rsync -a $BACKUP_DIR/.zeebot/ ~/.zeebot/"
 echo ""
 echo "  # Workspaces:"
-for ws in "$BACKUP_DIR"/clawd*; do
+for ws in "$BACKUP_DIR"/zee*; do
   if [ -d "$ws" ]; then
     ws_name=$(basename "$ws")
     echo "  rsync -a $BACKUP_DIR/$ws_name/ ~/$ws_name/"

@@ -2,7 +2,7 @@
 
 Small persona swap hook for Zee.
 
-Docs: https://docs.clawd.bot/hooks/soul-evil
+Docs: https://docs.zee.bot/hooks/soul-evil
 
 ## Setup
 

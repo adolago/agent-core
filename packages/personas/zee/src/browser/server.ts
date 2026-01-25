@@ -39,7 +39,7 @@ export async function startBrowserControlServerFromConfig(): Promise<BrowserServ
     const s = app.listen(port, "127.0.0.1", () => resolve(s));
     s.once("error", reject);
   }).catch((err) => {
-    logServer.error(`clawd browser server failed to bind 127.0.0.1:${port}: ${String(err)}`);
+    logServer.error(`zee browser server failed to bind 127.0.0.1:${port}: ${String(err)}`);
     return null;
   });
 
@@ -86,7 +86,7 @@ export async function stopBrowserControlServer(): Promise<void> {
       }
     }
   } catch (err) {
-    logServer.warn(`clawd browser stop failed: ${String(err)}`);
+    logServer.warn(`zee browser stop failed: ${String(err)}`);
   }
 
   await new Promise<void>((resolve) => {

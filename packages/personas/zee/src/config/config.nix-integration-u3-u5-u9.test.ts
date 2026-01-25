@@ -35,55 +35,55 @@ describe("Nix integration (U3, U5, U9)", () => {
   });
 
   describe("U5: CONFIG_PATH and STATE_DIR env var overrides", () => {
-    it("STATE_DIR_CLAWDBOT defaults to ~/.zee when env not set", async () => {
+    it("STATE_DIR_ZEEBOT defaults to ~/.zee when env not set", async () => {
       await withEnvOverride({ ZEE_STATE_DIR: undefined }, async () => {
-        const { STATE_DIR_CLAWDBOT } = await import("./config.js");
-        expect(STATE_DIR_CLAWDBOT).toMatch(/\.zee$/);
+        const { STATE_DIR_ZEEBOT } = await import("./config.js");
+        expect(STATE_DIR_ZEEBOT).toMatch(/\.zee$/);
       });
     });
 
-    it("STATE_DIR_CLAWDBOT respects ZEE_STATE_DIR override", async () => {
+    it("STATE_DIR_ZEEBOT respects ZEE_STATE_DIR override", async () => {
       await withEnvOverride({ ZEE_STATE_DIR: "/custom/state/dir" }, async () => {
-        const { STATE_DIR_CLAWDBOT } = await import("./config.js");
-        expect(STATE_DIR_CLAWDBOT).toBe(path.resolve("/custom/state/dir"));
+        const { STATE_DIR_ZEEBOT } = await import("./config.js");
+        expect(STATE_DIR_ZEEBOT).toBe(path.resolve("/custom/state/dir"));
       });
     });
 
-    it("CONFIG_PATH_CLAWDBOT defaults to ~/.zee/zee.json when env not set", async () => {
+    it("CONFIG_PATH_ZEEBOT defaults to ~/.zee/zee.json when env not set", async () => {
       await withEnvOverride(
         { ZEE_CONFIG_PATH: undefined, ZEE_STATE_DIR: undefined },
         async () => {
-          const { CONFIG_PATH_CLAWDBOT } = await import("./config.js");
-          expect(CONFIG_PATH_CLAWDBOT).toMatch(/\.zee[\\/]zee\.json$/);
+          const { CONFIG_PATH_ZEEBOT } = await import("./config.js");
+          expect(CONFIG_PATH_ZEEBOT).toMatch(/\.zee[\\/]zee\.json$/);
         },
       );
     });
 
-    it("CONFIG_PATH_CLAWDBOT respects ZEE_CONFIG_PATH override", async () => {
+    it("CONFIG_PATH_ZEEBOT respects ZEE_CONFIG_PATH override", async () => {
       await withEnvOverride({ ZEE_CONFIG_PATH: "/nix/store/abc/zee.json" }, async () => {
-        const { CONFIG_PATH_CLAWDBOT } = await import("./config.js");
-        expect(CONFIG_PATH_CLAWDBOT).toBe(path.resolve("/nix/store/abc/zee.json"));
+        const { CONFIG_PATH_ZEEBOT } = await import("./config.js");
+        expect(CONFIG_PATH_ZEEBOT).toBe(path.resolve("/nix/store/abc/zee.json"));
       });
     });
 
-    it("CONFIG_PATH_CLAWDBOT expands ~ in ZEE_CONFIG_PATH override", async () => {
+    it("CONFIG_PATH_ZEEBOT expands ~ in ZEE_CONFIG_PATH override", async () => {
       await withTempHome(async (home) => {
         await withEnvOverride({ ZEE_CONFIG_PATH: "~/.zee/custom.json" }, async () => {
-          const { CONFIG_PATH_CLAWDBOT } = await import("./config.js");
-          expect(CONFIG_PATH_CLAWDBOT).toBe(path.join(home, ".zee", "custom.json"));
+          const { CONFIG_PATH_ZEEBOT } = await import("./config.js");
+          expect(CONFIG_PATH_ZEEBOT).toBe(path.join(home, ".zee", "custom.json"));
         });
       });
     });
 
-    it("CONFIG_PATH_CLAWDBOT uses STATE_DIR_CLAWDBOT when only state dir is overridden", async () => {
+    it("CONFIG_PATH_ZEEBOT uses STATE_DIR_ZEEBOT when only state dir is overridden", async () => {
       await withEnvOverride(
         {
           ZEE_CONFIG_PATH: undefined,
           ZEE_STATE_DIR: "/custom/state",
         },
         async () => {
-          const { CONFIG_PATH_CLAWDBOT } = await import("./config.js");
-          expect(CONFIG_PATH_CLAWDBOT).toBe(
+          const { CONFIG_PATH_ZEEBOT } = await import("./config.js");
+          expect(CONFIG_PATH_ZEEBOT).toBe(
             path.join(path.resolve("/custom/state"), "zee.json"),
           );
         },

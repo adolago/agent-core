@@ -89,7 +89,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -132,7 +132,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -156,7 +156,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -179,7 +179,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           session: { store: path.join(home, "sessions.json") },
@@ -203,7 +203,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           session: { store: storePath },
@@ -229,7 +229,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
               thinkingDefault: "high",
             },
           },
@@ -254,7 +254,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           session: { store: path.join(home, "sessions.json") },

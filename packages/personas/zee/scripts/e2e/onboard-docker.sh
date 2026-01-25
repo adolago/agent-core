@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-IMAGE_NAME="clawdbot-onboard-e2e"
+IMAGE_NAME="zeebot-onboard-e2e"
 
 echo "Building Docker image..."
 docker build -t "$IMAGE_NAME" -f "$ROOT_DIR/scripts/e2e/Dockerfile" "$ROOT_DIR"
@@ -14,9 +14,9 @@ docker run --rm -t "$IMAGE_NAME" bash -lc '
   export TERM=xterm-256color
 
   # Provide a minimal trash shim to avoid noisy "missing trash" logs in containers.
-  export PATH="/tmp/clawdbot-bin:$PATH"
-  mkdir -p /tmp/clawdbot-bin
-  cat > /tmp/clawdbot-bin/trash <<'"'"'TRASH'"'"'
+  export PATH="/tmp/zeebot-bin:$PATH"
+  mkdir -p /tmp/zeebot-bin
+  cat > /tmp/zeebot-bin/trash <<'"'"'TRASH'"'"'
 #!/usr/bin/env bash
 set -euo pipefail
 trash_dir="$HOME/.Trash"
@@ -31,7 +31,7 @@ for target in "$@"; do
   mv "$target" "$dest"
 done
 TRASH
-  chmod +x /tmp/clawdbot-bin/trash
+  chmod +x /tmp/zeebot-bin/trash
 
   send() {
     local payload="$1"
@@ -76,7 +76,7 @@ TRASH
     export HOME="$home_dir"
     mkdir -p "$HOME"
 
-    input_fifo="$(mktemp -u "/tmp/clawdbot-onboard-${case_name}.XXXXXX")"
+    input_fifo="$(mktemp -u "/tmp/zeebot-onboard-${case_name}.XXXXXX")"
     mkfifo "$input_fifo"
     # Run under script to keep an interactive TTY for clack prompts.
     script -q -c "$command" /dev/null < "$input_fifo" &
@@ -108,7 +108,7 @@ TRASH
   }
 
   make_home() {
-    mktemp -d "/tmp/clawdbot-e2e-$1.XXXXXX"
+    mktemp -d "/tmp/zeebot-e2e-$1.XXXXXX"
   }
 
   assert_file() {
@@ -213,9 +213,9 @@ TRASH
     run_wizard local-basic "$home_dir" send_local_basic
 
     # Assert config + workspace scaffolding.
-    workspace_dir="$HOME/clawd"
-    config_path="$HOME/.clawdbot/clawdbot.json"
-    sessions_dir="$HOME/.clawdbot/sessions"
+    workspace_dir="$HOME/zee"
+    config_path="$HOME/.zeebot/zeebot.json"
+    sessions_dir="$HOME/.zeebot/sessions"
 
     assert_file "$config_path"
     assert_dir "$sessions_dir"
@@ -302,7 +302,7 @@ NODE
       --skip-skills \
       --skip-health
 
-    config_path="$HOME/.clawdbot/clawdbot.json"
+    config_path="$HOME/.zeebot/zeebot.json"
     assert_file "$config_path"
 
     CONFIG_PATH="$config_path" node --input-type=module - <<'"'"'NODE'"'"'
@@ -336,9 +336,9 @@ NODE
     local home_dir
     home_dir="$(make_home reset-config)"
     export HOME="$home_dir"
-    mkdir -p "$HOME/.clawdbot"
+    mkdir -p "$HOME/.zeebot"
     # Seed a remote config to exercise reset path.
-    cat > "$HOME/.clawdbot/clawdbot.json" <<'"'"'JSON'"'"'
+    cat > "$HOME/.zeebot/zeebot.json" <<'"'"'JSON'"'"'
 {
   "agent": { "workspace": "/root/old" },
   "gateway": {
@@ -350,7 +350,7 @@ JSON
 
     run_wizard reset-config "$home_dir" send_reset_config_only
 
-    config_path="$HOME/.clawdbot/clawdbot.json"
+    config_path="$HOME/.zeebot/zeebot.json"
     assert_file "$config_path"
 
     CONFIG_PATH="$config_path" node --input-type=module - <<'"'"'NODE'"'"'
@@ -383,7 +383,7 @@ NODE
     # Providers-only configure flow.
     run_wizard_cmd providers "$home_dir" "node dist/index.js configure" send_providers_flow
 
-    config_path="$HOME/.clawdbot/clawdbot.json"
+    config_path="$HOME/.zeebot/zeebot.json"
     assert_file "$config_path"
 
     CONFIG_PATH="$config_path" node --input-type=module - <<'"'"'NODE'"'"'
@@ -420,9 +420,9 @@ NODE
     local home_dir
     home_dir="$(make_home skills)"
     export HOME="$home_dir"
-    mkdir -p "$HOME/.clawdbot"
+    mkdir -p "$HOME/.zeebot"
     # Seed skills config to ensure it survives the wizard.
-    cat > "$HOME/.clawdbot/clawdbot.json" <<'"'"'JSON'"'"'
+    cat > "$HOME/.zeebot/zeebot.json" <<'"'"'JSON'"'"'
 {
   "skills": {
     "allowBundled": ["__none__"],
@@ -433,7 +433,7 @@ JSON
 
     run_wizard_cmd skills "$home_dir" "node dist/index.js configure" send_skills_flow
 
-    config_path="$HOME/.clawdbot/clawdbot.json"
+    config_path="$HOME/.zeebot/zeebot.json"
     assert_file "$config_path"
 
     CONFIG_PATH="$config_path" node --input-type=module - <<'"'"'NODE'"'"'

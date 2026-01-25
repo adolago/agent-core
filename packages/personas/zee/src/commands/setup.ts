@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import JSON5 from "json5";
 
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../agents/workspace.js";
-import { type ZeeConfig, CONFIG_PATH_CLAWDBOT, writeConfigFile } from "../config/config.js";
+import { type ZeeConfig, CONFIG_PATH_ZEEBOT, writeConfigFile } from "../config/config.js";
 import { formatConfigPath, logConfigUpdated } from "../config/logging.js";
 import { resolveSessionTranscriptsDir } from "../config/sessions.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -15,7 +15,7 @@ async function readConfigFileRaw(): Promise<{
   parsed: ZeeConfig;
 }> {
   try {
-    const raw = await fs.readFile(CONFIG_PATH_CLAWDBOT, "utf-8");
+    const raw = await fs.readFile(CONFIG_PATH_ZEEBOT, "utf-8");
     const parsed = JSON5.parse(raw);
     if (parsed && typeof parsed === "object") {
       return { exists: true, parsed: parsed as ZeeConfig };

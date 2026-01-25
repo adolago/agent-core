@@ -68,7 +68,7 @@ ${formatHelpExamples([
   ],
 ])}
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.clawd.bot/cli/agent")}`,
+${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.zee.bot/cli/agent")}`,
     )
     .action(async (opts) => {
       const verboseLevel = typeof opts.verbose === "string" ? opts.verbose.toLowerCase() : "";
@@ -86,7 +86,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.clawd.bot/cli/agent
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/agents", "docs.clawd.bot/cli/agents")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/agents", "docs.zee.bot/cli/agents")}\n`,
     );
 
   agents
@@ -155,11 +155,11 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.clawd.bot/cli/agent
         `
 ${theme.heading("Examples:")}
 ${formatHelpExamples([
-  ['zee agents set-identity --agent main --name "Clawd" --emoji "🦞"', "Set name + emoji."],
-  ["zee agents set-identity --agent main --avatar avatars/clawd.png", "Set avatar path."],
-  ["zee agents set-identity --workspace ~/clawd --from-identity", "Load from IDENTITY.md."],
+  ['zee agents set-identity --agent main --name "Zee" --emoji "🦞"', "Set name + emoji."],
+  ["zee agents set-identity --agent main --avatar avatars/zee.png", "Set avatar path."],
+  ["zee agents set-identity --workspace ~/zee --from-identity", "Load from IDENTITY.md."],
   [
-    "zee agents set-identity --identity-file ~/clawd/IDENTITY.md --agent main",
+    "zee agents set-identity --identity-file ~/zee/IDENTITY.md --agent main",
     "Use a specific IDENTITY.md.",
   ],
 ])}

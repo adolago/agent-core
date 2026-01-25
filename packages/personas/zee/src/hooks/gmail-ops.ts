@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 
 import {
   type ZeeConfig,
-  CONFIG_PATH_CLAWDBOT,
+  CONFIG_PATH_ZEEBOT,
   loadConfig,
   readConfigFileSnapshot,
   resolveGatewayPort,
@@ -99,7 +99,7 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
 
   const configSnapshot = await readConfigFileSnapshot();
   if (!configSnapshot.valid) {
-    throw new Error(`Config invalid: ${CONFIG_PATH_CLAWDBOT}`);
+    throw new Error(`Config invalid: ${CONFIG_PATH_ZEEBOT}`);
   }
 
   const baseConfig = configSnapshot.config;
@@ -277,7 +277,7 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
   defaultRuntime.log(`- subscription: ${subscription}`);
   defaultRuntime.log(`- push endpoint: ${pushEndpoint}`);
   defaultRuntime.log(`- hook url: ${hookUrl}`);
-  defaultRuntime.log(`- config: ${displayPath(CONFIG_PATH_CLAWDBOT)}`);
+  defaultRuntime.log(`- config: ${displayPath(CONFIG_PATH_ZEEBOT)}`);
   defaultRuntime.log(`Next: ${formatCliCommand("zee webhooks gmail run")}`);
 }
 

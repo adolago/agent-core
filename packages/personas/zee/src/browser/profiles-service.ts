@@ -5,7 +5,7 @@ import type { BrowserProfileConfig, ZeeConfig } from "../config/config.js";
 import { loadConfig, writeConfigFile } from "../config/config.js";
 import { deriveDefaultBrowserCdpPortRange } from "../config/port-defaults.js";
 import { DEFAULT_BROWSER_DEFAULT_PROFILE_NAME } from "./constants.js";
-import { resolveClawdUserDataDir } from "./chrome.js";
+import { resolveZeeUserDataDir } from "./chrome.js";
 import { parseHttpUrl, resolveProfile } from "./config.js";
 import {
   allocateCdpPort,
@@ -21,7 +21,7 @@ export type CreateProfileParams = {
   name: string;
   color?: string;
   cdpUrl?: string;
-  driver?: "clawd" | "extension";
+  driver?: "zee" | "extension";
 };
 
 export type CreateProfileResult = {
@@ -153,7 +153,7 @@ export function createBrowserProfilesService(ctx: BrowserRouteContext) {
         // ignore
       }
 
-      const userDataDir = resolveClawdUserDataDir(name);
+      const userDataDir = resolveZeeUserDataDir(name);
       const profileDir = path.dirname(userDataDir);
       if (fs.existsSync(profileDir)) {
         await movePathToTrash(profileDir);

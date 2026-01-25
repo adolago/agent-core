@@ -66,7 +66,7 @@ function makeCfg(
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: path.join(home, "clawd"),
+        workspace: path.join(home, "zee"),
       },
     },
     session: { store: storePath, mainKey: "main" },

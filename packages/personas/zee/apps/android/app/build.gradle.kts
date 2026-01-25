@@ -8,17 +8,17 @@ plugins {
 }
 
 android {
-  namespace = "com.clawdbot.android"
+  namespace = "com.zee.android"
   compileSdk = 36
 
   sourceSets {
     getByName("main") {
-      assets.srcDir(file("../../shared/ClawdbotKit/Sources/ClawdbotKit/Resources"))
+      assets.srcDir(file("../../shared/ZeeKit/Sources/ZeeKit/Resources"))
     }
   }
 
   defaultConfig {
-    applicationId = "com.clawdbot.android"
+    applicationId = "com.zee.android"
     minSdk = 31
     targetSdk = 36
     versionCode = 202601240
@@ -65,7 +65,7 @@ androidComponents {
         val versionName = output.versionName.orNull ?: "0"
         val buildType = variant.buildType
 
-        val outputFileName = "clawdbot-${versionName}-${buildType}.apk"
+        val outputFileName = "zee-${versionName}-${buildType}.apk"
         output.outputFileName = outputFileName
       }
   }

@@ -1,5 +1,5 @@
 ---
-summary: "Use OpenCode Zen (curated models) with Clawdbot"
+summary: "Use OpenCode Zen (curated models) with Zee"
 read_when:
   - You want OpenCode Zen for model access
   - You want a curated list of coding-friendly models
@@ -13,9 +13,9 @@ Zen is currently in beta.
 ## CLI setup
 
 ```bash
-clawdbot onboard --auth-choice opencode-zen
+zee onboard --auth-choice opencode-zen
 # or non-interactive
-clawdbot onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
+zee onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
 ```
 
 ## Config snippet

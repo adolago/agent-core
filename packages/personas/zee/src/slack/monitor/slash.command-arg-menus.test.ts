@@ -68,7 +68,7 @@ function createHarness() {
     groupPolicy: "open",
     useAccessGroups: false,
     channelsConfig: undefined,
-    slashCommand: { enabled: true, name: "clawd", ephemeral: true, sessionPrefix: "slack:slash" },
+    slashCommand: { enabled: true, name: "zee", ephemeral: true, sessionPrefix: "slack:slash" },
     textLimit: 4000,
     app,
     isChannelAllowed: () => true,

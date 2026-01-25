@@ -18,9 +18,9 @@ agent (with a session switcher for other sessions).
 - Manual: Lobster menu → “Open Chat”.
 - Auto‑open for testing:
   ```bash
-  dist/Clawdbot.app/Contents/MacOS/Clawdbot --webchat
+  dist/Zee.app/Contents/MacOS/Zee --webchat
   ```
-- Logs: `./scripts/clawlog.sh` (subsystem `com.clawdbot`, category `WebChatSwiftUI`).
+- Logs: `./scripts/clawlog.sh` (subsystem `com.zee`, category `WebChatSwiftUI`).
 
 ## How it’s wired
 

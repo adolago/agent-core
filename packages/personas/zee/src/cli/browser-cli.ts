@@ -20,7 +20,7 @@ import { registerBrowserStateCommands } from "./browser-cli-state.js";
 export function registerBrowserCli(program: Command) {
   const browser = program
     .command("browser")
-    .description("Manage clawd's dedicated browser (Chrome/Chromium)")
+    .description("Manage zee's dedicated browser (Chrome/Chromium)")
     .option("--url <url>", "Override browser control URL (default from ~/.zee/zee.json)")
     .option("--browser-profile <name>", "Browser profile name (default from config)")
     .option("--json", "Output machine-readable JSON", false)
@@ -32,7 +32,7 @@ export function registerBrowserCli(program: Command) {
           true,
         )}\n\n${theme.muted("Docs:")} ${formatDocsLink(
           "/cli/browser",
-          "docs.clawd.bot/cli/browser",
+          "docs.zee.bot/cli/browser",
         )}\n`,
     )
     .action(() => {

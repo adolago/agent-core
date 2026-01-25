@@ -70,9 +70,9 @@ export function resolveZeeMetadata(
   try {
     const parsed = JSON5.parse(raw) as { zee?: unknown };
     if (!parsed || typeof parsed !== "object") return undefined;
-    // Support both "zee" (new) and "clawdbot" (legacy) keys
-    const zeeData = (parsed as { zee?: unknown; clawdbot?: unknown }).zee ??
-                    (parsed as { zee?: unknown; clawdbot?: unknown }).clawdbot;
+    // Support both "zee" (new) and "zeebot" (legacy) keys
+    const zeeData = (parsed as { zee?: unknown; zeebot?: unknown }).zee ??
+                    (parsed as { zee?: unknown; zeebot?: unknown }).zeebot;
     if (!zeeData || typeof zeeData !== "object") return undefined;
     const zeeObj = zeeData as Record<string, unknown>;
     const requiresRaw =

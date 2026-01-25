@@ -129,7 +129,7 @@ export function registerBrowserBasicRoutes(app: express.Express, ctx: BrowserRou
     const color = toStringOrEmpty((req.body as { color?: unknown })?.color);
     const cdpUrl = toStringOrEmpty((req.body as { cdpUrl?: unknown })?.cdpUrl);
     const driver = toStringOrEmpty((req.body as { driver?: unknown })?.driver) as
-      | "clawd"
+      | "zee"
       | "extension"
       | "";
 

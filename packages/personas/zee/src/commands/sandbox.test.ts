@@ -31,9 +31,9 @@ const NOW = Date.now();
 
 function createContainer(overrides: Partial<SandboxContainerInfo> = {}): SandboxContainerInfo {
   return {
-    containerName: "clawd-sandbox-test",
+    containerName: "zee-sandbox-test",
     sessionKey: "test-session",
-    image: "clawd/sandbox:latest",
+    image: "zee/sandbox:latest",
     imageMatch: true,
     running: true,
     createdAtMs: NOW - 3600000,
@@ -44,9 +44,9 @@ function createContainer(overrides: Partial<SandboxContainerInfo> = {}): Sandbox
 
 function createBrowser(overrides: Partial<SandboxBrowserInfo> = {}): SandboxBrowserInfo {
   return {
-    containerName: "clawd-browser-test",
+    containerName: "zee-browser-test",
     sessionKey: "test-session",
-    image: "clawd/browser:latest",
+    image: "zee/browser:latest",
     imageMatch: true,
     running: true,
     createdAtMs: NOW - 3600000,

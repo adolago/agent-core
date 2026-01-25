@@ -1,6 +1,6 @@
 # Backup Script
 
-Complete backup solution for Clawdbot including all workspaces, agents, and sandboxes.
+Complete backup solution for Zeebot including all workspaces, agents, and sandboxes.
 
 ## Usage
 
@@ -10,10 +10,10 @@ Complete backup solution for Clawdbot including all workspaces, agents, and sand
 
 ## What Gets Backed Up
 
-The script creates a comprehensive backup in `~/.backup/clawdbot/<timestamp>/`:
+The script creates a comprehensive backup in `~/.backup/zeebot/<timestamp>/`:
 
 ### Core State
-- `~/.clawdbot/` - Complete state directory including:
+- `~/.zeebot/` - Complete state directory including:
   - Agent configurations
   - Session history (all agents)
   - Sandbox workspaces
@@ -28,18 +28,18 @@ All configured agent workspaces are backed up with their original directory name
 The script automatically discovers workspaces by parsing `routing.agents.*.workspace` in your config.
 
 ### Docker Volumes (optional)
-If Docker is running, the script will also export all `clawdbot-*` Docker volumes as `.tar.gz` files.
+If Docker is running, the script will also export all `zeebot-*` Docker volumes as `.tar.gz` files.
 
 ## Backup Structure
 
 ```
-~/.backup/clawdbot/20260108125916/
-├── .clawdbot/                    # Complete state
-├── clawd/                        # Workspace 1
-├── clawd-agent2/                 # Workspace 2
-├── clawd-agent3/                 # Workspace 3
+~/.backup/zeebot/20260108125916/
+├── .zeebot/                    # Complete state
+├── zee/                        # Workspace 1
+├── zee-agent2/                 # Workspace 2
+├── zee-agent3/                 # Workspace 3
 └── docker-volumes/               # Docker volumes (if available)
-    └── clawdbot-sandbox.tar.gz
+    └── zeebot-sandbox.tar.gz
 ```
 
 ## Restore
@@ -48,10 +48,10 @@ The script provides restore commands at the end of the backup. Example:
 
 ```bash
 # Restore everything
-rsync -a ~/.backup/clawdbot/<timestamp>/.clawdbot/ ~/.clawdbot/
+rsync -a ~/.backup/zeebot/<timestamp>/.zeebot/ ~/.zeebot/
 
 # Restore specific workspace
-rsync -a ~/.backup/clawdbot/<timestamp>/clawd/ ~/clawd/
+rsync -a ~/.backup/zeebot/<timestamp>/zee/ ~/zee/
 ```
 
 ## Features
@@ -66,40 +66,40 @@ rsync -a ~/.backup/clawdbot/<timestamp>/clawd/ ~/clawd/
 ## Output Example
 
 ```
-📦 Creating complete Clawdbot backup...
+📦 Creating complete Zeebot backup...
 Timestamp: 20260108125916
-Target: /Users/user/.backup/clawdbot/20260108125916
+Target: /Users/user/.backup/zeebot/20260108125916
 
 === Core State Directory ===
-📁 Backing up: /Users/user/.clawdbot
-  ✅ 120M - .clawdbot (complete)
+📁 Backing up: /Users/user/.zeebot
+  ✅ 120M - .zeebot (complete)
 
 === Workspace Directories ===
-📁 clawd
-   Source: /Users/user/clawd
+📁 zee
+   Source: /Users/user/zee
    ✅ 3.1M (114 files)
-📁 clawd-agent2
-   Source: /Users/user/clawd-agent2
+📁 zee-agent2
+   Source: /Users/user/zee-agent2
    ✅  28K (7 files)
-📁 clawd-agent3
-   Source: /Users/user/clawd-agent3
+📁 zee-agent3
+   Source: /Users/user/zee-agent3
    ✅ 2.3M (24 files)
 
 === Agent Summary ===
-🤖 agent1: 47 sessions → /Users/user/clawd
-🤖 agent2: 2 sessions → /Users/user/clawd-agent2
-🤖 agent3: 2 sessions → /Users/user/clawd-agent3
+🤖 agent1: 47 sessions → /Users/user/zee
+🤖 agent2: 2 sessions → /Users/user/zee-agent2
+🤖 agent3: 2 sessions → /Users/user/zee-agent3
 
 === Sandbox Summary ===
-🐳 6 sandbox workspace(s) (included in .clawdbot backup)
+🐳 6 sandbox workspace(s) (included in .zeebot backup)
 
 ✅ Backup complete!
 
 📊 Backup Structure:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  clawd/                                  3.1M (114 files)
-  clawd-agent2/                            28K (7 files)
-  clawd-agent3/                           2.3M (24 files)
+  zee/                                  3.1M (114 files)
+  zee-agent2/                            28K (7 files)
+  zee-agent3/                           2.3M (24 files)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Total: 125M
 ```

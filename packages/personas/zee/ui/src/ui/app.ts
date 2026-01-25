@@ -81,7 +81,7 @@ import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./contro
 
 declare global {
   interface Window {
-    __CLAWDBOT_CONTROL_UI_BASE_PATH__?: string;
+    __ZEEBOT_CONTROL_UI_BASE_PATH__?: string;
   }
 }
 
@@ -96,8 +96,8 @@ function resolveOnboardingMode(): boolean {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
-@customElement("clawdbot-app")
-export class ClawdbotApp extends LitElement {
+@customElement("zeebot-app")
+export class ZeebotApp extends LitElement {
   @state() settings: UiSettings = loadSettings();
   @state() password = "";
   @state() tab: Tab = "chat";

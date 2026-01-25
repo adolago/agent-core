@@ -1,6 +1,6 @@
 import { startBrowserBridgeServer, stopBrowserBridgeServer } from "../../browser/bridge-server.js";
 import { type ResolvedBrowserConfig, resolveProfile } from "../../browser/config.js";
-import { DEFAULT_CLAWD_BROWSER_COLOR } from "../../browser/constants.js";
+import { DEFAULT_ZEE_BROWSER_COLOR } from "../../browser/constants.js";
 import { BROWSER_BRIDGES } from "./browser-bridges.js";
 import { DEFAULT_SANDBOX_BROWSER_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
 import {
@@ -53,14 +53,14 @@ function buildSandboxBrowserResolvedConfig(params: {
     cdpIsLoopback: true,
     remoteCdpTimeoutMs: 1500,
     remoteCdpHandshakeTimeoutMs: 3000,
-    color: DEFAULT_CLAWD_BROWSER_COLOR,
+    color: DEFAULT_ZEE_BROWSER_COLOR,
     executablePath: undefined,
     headless: params.headless,
     noSandbox: false,
     attachOnly: true,
-    defaultProfile: "clawd",
+    defaultProfile: "zee",
     profiles: {
-      clawd: { cdpPort: params.cdpPort, color: DEFAULT_CLAWD_BROWSER_COLOR },
+      zee: { cdpPort: params.cdpPort, color: DEFAULT_ZEE_BROWSER_COLOR },
     },
   };
 }
@@ -135,7 +135,7 @@ export async function ensureSandboxBrowser(params: {
       : null;
 
   const existing = BROWSER_BRIDGES.get(params.scopeKey);
-  const existingProfile = existing ? resolveProfile(existing.bridge.state.resolved, "clawd") : null;
+  const existingProfile = existing ? resolveProfile(existing.bridge.state.resolved, "zee") : null;
   const shouldReuse =
     existing && existing.containerName === containerName && existingProfile?.cdpPort === mappedCdp;
   if (existing && !shouldReuse) {

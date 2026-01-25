@@ -12,7 +12,7 @@ A **node** is a companion device (macOS/iOS/Android/headless) that connects to t
 
 Legacy transport: [Bridge protocol](/gateway/bridge-protocol) (TCP JSONL; deprecated/removed for current nodes).
 
-macOS can also run in **node mode**: the menubar app connects to the Gateway’s WS server and exposes its local canvas/camera commands as a node (so `clawdbot nodes …` works against this Mac).
+macOS can also run in **node mode**: the menubar app connects to the Gateway’s WS server and exposes its local canvas/camera commands as a node (so `zee nodes …` works against this Mac).
 
 Notes:
 - Nodes are **peripherals**, not gateways. They don’t run the gateway service.
@@ -26,16 +26,16 @@ creates a device pairing request for `role: node`. Approve via the devices CLI (
 Quick CLI:
 
 ```bash
-clawdbot devices list
-clawdbot devices approve <requestId>
-clawdbot devices reject <requestId>
-clawdbot nodes status
-clawdbot nodes describe --node <idOrNameOrIp>
+zee devices list
+zee devices approve <requestId>
+zee devices reject <requestId>
+zee nodes status
+zee nodes describe --node <idOrNameOrIp>
 ```
 
 Notes:
 - `nodes status` marks a node as **paired** when its device pairing role includes `node`.
-- `node.pair.*` (CLI: `clawdbot nodes pending/approve/reject`) is a separate gateway-owned
+- `node.pair.*` (CLI: `zee nodes pending/approve/reject`) is a separate gateway-owned
   node pairing store; it does **not** gate the WS `connect` handshake.
 
 ## Remote node host (system.run)
@@ -47,21 +47,21 @@ forwards `exec` calls to the **node host** when `host=node` is selected.
 ### What runs where
 - **Gateway host**: receives messages, runs the model, routes tool calls.
 - **Node host**: executes `system.run`/`system.which` on the node machine.
-- **Approvals**: enforced on the node host via `~/.clawdbot/exec-approvals.json`.
+- **Approvals**: enforced on the node host via `~/.zee/exec-approvals.json`.
 
 ### Start a node host (foreground)
 
 On the node machine:
 
 ```bash
-clawdbot node run --host <gateway-host> --port 18789 --display-name "Build Node"
+zee node run --host <gateway-host> --port 18789 --display-name "Build Node"
 ```
 
 ### Start a node host (service)
 
 ```bash
-clawdbot node install --host <gateway-host> --port 18789 --display-name "Build Node"
-clawdbot node restart
+zee node install --host <gateway-host> --port 18789 --display-name "Build Node"
+zee node restart
 ```
 
 ### Pair + name
@@ -69,34 +69,34 @@ clawdbot node restart
 On the gateway host:
 
 ```bash
-clawdbot nodes pending
-clawdbot nodes approve <requestId>
-clawdbot nodes list
+zee nodes pending
+zee nodes approve <requestId>
+zee nodes list
 ```
 
 Naming options:
-- `--display-name` on `clawdbot node run` / `clawdbot node install` (persists in `~/.clawdbot/node.json` on the node).
-- `clawdbot nodes rename --node <id|name|ip> --name "Build Node"` (gateway override).
+- `--display-name` on `zee node run` / `zee node install` (persists in `~/.zee/node.json` on the node).
+- `zee nodes rename --node <id|name|ip> --name "Build Node"` (gateway override).
 
 ### Allowlist the commands
 
 Exec approvals are **per node host**. Add allowlist entries from the gateway:
 
 ```bash
-clawdbot approvals allowlist add --node <id|name|ip> "/usr/bin/uname"
-clawdbot approvals allowlist add --node <id|name|ip> "/usr/bin/sw_vers"
+zee approvals allowlist add --node <id|name|ip> "/usr/bin/uname"
+zee approvals allowlist add --node <id|name|ip> "/usr/bin/sw_vers"
 ```
 
-Approvals live on the node host at `~/.clawdbot/exec-approvals.json`.
+Approvals live on the node host at `~/.zee/exec-approvals.json`.
 
 ### Point exec at the node
 
 Configure defaults (gateway config):
 
 ```bash
-clawdbot config set tools.exec.host node
-clawdbot config set tools.exec.security allowlist
-clawdbot config set tools.exec.node "<id-or-name>"
+zee config set tools.exec.host node
+zee config set tools.exec.security allowlist
+zee config set tools.exec.node "<id-or-name>"
 ```
 
 Or per session:
@@ -118,7 +118,7 @@ Related:
 Low-level (raw RPC):
 
 ```bash
-clawdbot nodes invoke --node <idOrNameOrIp> --command canvas.eval --params '{"javaScript":"location.href"}'
+zee nodes invoke --node <idOrNameOrIp> --command canvas.eval --params '{"javaScript":"location.href"}'
 ```
 
 Higher-level helpers exist for the common “give the agent a MEDIA attachment” workflows.
@@ -130,17 +130,17 @@ If the node is showing the Canvas (WebView), `canvas.snapshot` returns `{ format
 CLI helper (writes to a temp file and prints `MEDIA:<path>`):
 
 ```bash
-clawdbot nodes canvas snapshot --node <idOrNameOrIp> --format png
-clawdbot nodes canvas snapshot --node <idOrNameOrIp> --format jpg --max-width 1200 --quality 0.9
+zee nodes canvas snapshot --node <idOrNameOrIp> --format png
+zee nodes canvas snapshot --node <idOrNameOrIp> --format jpg --max-width 1200 --quality 0.9
 ```
 
 ### Canvas controls
 
 ```bash
-clawdbot nodes canvas present --node <idOrNameOrIp> --target https://example.com
-clawdbot nodes canvas hide --node <idOrNameOrIp>
-clawdbot nodes canvas navigate https://example.com --node <idOrNameOrIp>
-clawdbot nodes canvas eval --node <idOrNameOrIp> --js "document.title"
+zee nodes canvas present --node <idOrNameOrIp> --target https://example.com
+zee nodes canvas hide --node <idOrNameOrIp>
+zee nodes canvas navigate https://example.com --node <idOrNameOrIp>
+zee nodes canvas eval --node <idOrNameOrIp> --js "document.title"
 ```
 
 Notes:
@@ -150,9 +150,9 @@ Notes:
 ### A2UI (Canvas)
 
 ```bash
-clawdbot nodes canvas a2ui push --node <idOrNameOrIp> --text "Hello"
-clawdbot nodes canvas a2ui push --node <idOrNameOrIp> --jsonl ./payload.jsonl
-clawdbot nodes canvas a2ui reset --node <idOrNameOrIp>
+zee nodes canvas a2ui push --node <idOrNameOrIp> --text "Hello"
+zee nodes canvas a2ui push --node <idOrNameOrIp> --jsonl ./payload.jsonl
+zee nodes canvas a2ui reset --node <idOrNameOrIp>
 ```
 
 Notes:
@@ -163,16 +163,16 @@ Notes:
 Photos (`jpg`):
 
 ```bash
-clawdbot nodes camera list --node <idOrNameOrIp>
-clawdbot nodes camera snap --node <idOrNameOrIp>            # default: both facings (2 MEDIA lines)
-clawdbot nodes camera snap --node <idOrNameOrIp> --facing front
+zee nodes camera list --node <idOrNameOrIp>
+zee nodes camera snap --node <idOrNameOrIp>            # default: both facings (2 MEDIA lines)
+zee nodes camera snap --node <idOrNameOrIp> --facing front
 ```
 
 Video clips (`mp4`):
 
 ```bash
-clawdbot nodes camera clip --node <idOrNameOrIp> --duration 10s
-clawdbot nodes camera clip --node <idOrNameOrIp> --duration 3000 --no-audio
+zee nodes camera clip --node <idOrNameOrIp> --duration 10s
+zee nodes camera clip --node <idOrNameOrIp> --duration 3000 --no-audio
 ```
 
 Notes:
@@ -185,8 +185,8 @@ Notes:
 Nodes expose `screen.record` (mp4). Example:
 
 ```bash
-clawdbot nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10
-clawdbot nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10 --no-audio
+zee nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10
+zee nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10 --no-audio
 ```
 
 Notes:
@@ -203,8 +203,8 @@ Nodes expose `location.get` when Location is enabled in settings.
 CLI helper:
 
 ```bash
-clawdbot nodes location get --node <idOrNameOrIp>
-clawdbot nodes location get --node <idOrNameOrIp> --accuracy precise --max-age 15000 --location-timeout 10000
+zee nodes location get --node <idOrNameOrIp>
+zee nodes location get --node <idOrNameOrIp> --accuracy precise --max-age 15000 --location-timeout 10000
 ```
 
 Notes:
@@ -219,7 +219,7 @@ Android nodes can expose `sms.send` when the user grants **SMS** permission and 
 Low-level invoke:
 
 ```bash
-clawdbot nodes invoke --node <idOrNameOrIp> --command sms.send --params '{"to":"+15555550123","message":"Hello from Clawdbot"}'
+zee nodes invoke --node <idOrNameOrIp> --command sms.send --params '{"to":"+15555550123","message":"Hello from Zee"}'
 ```
 
 Notes:
@@ -234,8 +234,8 @@ The headless node host exposes `system.run`, `system.which`, and `system.execApp
 Examples:
 
 ```bash
-clawdbot nodes run --node <idOrNameOrIp> -- echo "Hello from mac node"
-clawdbot nodes notify --node <idOrNameOrIp> --title "Ping" --body "Gateway ready"
+zee nodes run --node <idOrNameOrIp> -- echo "Hello from mac node"
+zee nodes notify --node <idOrNameOrIp> --title "Ping" --body "Gateway ready"
 ```
 
 Notes:
@@ -246,7 +246,7 @@ Notes:
 - macOS nodes drop `PATH` overrides; headless node hosts only accept `PATH` when it prepends the node host PATH.
 - On macOS node mode, `system.run` is gated by exec approvals in the macOS app (Settings → Exec approvals).
   Ask/allowlist/full behave the same as the headless node host; denied prompts return `SYSTEM_RUN_DENIED`.
-- On headless node host, `system.run` is gated by exec approvals (`~/.clawdbot/exec-approvals.json`).
+- On headless node host, `system.run` is gated by exec approvals (`~/.zee/exec-approvals.json`).
 
 ## Exec node binding
 
@@ -256,21 +256,21 @@ This sets the default node for `exec host=node` (and can be overridden per agent
 Global default:
 
 ```bash
-clawdbot config set tools.exec.node "node-id-or-name"
+zee config set tools.exec.node "node-id-or-name"
 ```
 
 Per-agent override:
 
 ```bash
-clawdbot config get agents.list
-clawdbot config set agents.list[0].tools.exec.node "node-id-or-name"
+zee config get agents.list
+zee config set agents.list[0].tools.exec.node "node-id-or-name"
 ```
 
 Unset to allow any node:
 
 ```bash
-clawdbot config unset tools.exec.node
-clawdbot config unset agents.list[0].tools.exec.node
+zee config unset tools.exec.node
+zee config unset agents.list[0].tools.exec.node
 ```
 
 ## Permissions map
@@ -279,27 +279,27 @@ Nodes may include a `permissions` map in `node.list` / `node.describe`, keyed by
 
 ## Headless node host (cross-platform)
 
-Clawdbot can run a **headless node host** (no UI) that connects to the Gateway
+Zee can run a **headless node host** (no UI) that connects to the Gateway
 WebSocket and exposes `system.run` / `system.which`. This is useful on Linux/Windows
 or for running a minimal node alongside a server.
 
 Start it:
 
 ```bash
-clawdbot node run --host <gateway-host> --port 18789
+zee node run --host <gateway-host> --port 18789
 ```
 
 Notes:
 - Pairing is still required (the Gateway will show a node approval prompt).
-- The node host stores its node id, token, display name, and gateway connection info in `~/.clawdbot/node.json`.
-- Exec approvals are enforced locally via `~/.clawdbot/exec-approvals.json`
+- The node host stores its node id, token, display name, and gateway connection info in `~/.zee/node.json`.
+- Exec approvals are enforced locally via `~/.zee/exec-approvals.json`
   (see [Exec approvals](/tools/exec-approvals)).
 - On macOS, the headless node host prefers the companion app exec host when reachable and falls
-  back to local execution if the app is unavailable. Set `CLAWDBOT_NODE_EXEC_HOST=app` to require
-  the app, or `CLAWDBOT_NODE_EXEC_FALLBACK=0` to disable fallback.
+  back to local execution if the app is unavailable. Set `ZEE_NODE_EXEC_HOST=app` to require
+  the app, or `ZEE_NODE_EXEC_FALLBACK=0` to disable fallback.
 - Add `--tls` / `--tls-fingerprint` when the Gateway WS uses TLS.
 
 ## Mac node mode
 
-- The macOS menubar app connects to the Gateway WS server as a node (so `clawdbot nodes …` works against this Mac).
+- The macOS menubar app connects to the Gateway WS server as a node (so `zee nodes …` works against this Mac).
 - In remote mode, the app opens an SSH tunnel for the Gateway port and connects to `localhost`.

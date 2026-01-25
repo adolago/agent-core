@@ -60,7 +60,7 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/clawd",
+          workspace: "/tmp/zee",
         },
       },
       session: { store: "/tmp/zee-sessions.json" },
@@ -129,7 +129,7 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/clawd",
+          workspace: "/tmp/zee",
         },
       },
       session: { store: "/tmp/zee-sessions.json" },
@@ -208,7 +208,7 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/clawd",
+          workspace: "/tmp/zee",
         },
       },
       session: { store: "/tmp/zee-sessions.json" },
@@ -298,7 +298,7 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/clawd",
+          workspace: "/tmp/zee",
         },
       },
       session: { store: "/tmp/zee-sessions.json" },
@@ -389,7 +389,7 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/clawd",
+          workspace: "/tmp/zee",
         },
       },
       session: { store: "/tmp/zee-sessions.json" },
@@ -473,7 +473,7 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/clawd",
+          workspace: "/tmp/zee",
         },
       },
       session: { store: "/tmp/zee-sessions.json" },

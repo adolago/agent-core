@@ -52,7 +52,7 @@ apps/ios/*.mobileprovision
 .local/
 
 # Legacy systemd units (avoid accidental upstream diffs)
-**/clawdis-gateway.service
+**/zeedis-gateway.service
 **/zee.service
 
 # Ignore the entire iOS app directory (local user preference)

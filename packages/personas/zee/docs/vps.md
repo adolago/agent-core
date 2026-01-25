@@ -1,5 +1,5 @@
 ---
-summary: "VPS hosting hub for Clawdbot (Railway/Fly/Hetzner/exe.dev)"
+summary: "VPS hosting hub for Zee (Railway/Fly/Hetzner/exe.dev)"
 read_when:
   - You want to run the Gateway in the cloud
   - You need a quick map of VPS/hosting guides

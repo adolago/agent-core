@@ -351,7 +351,7 @@ describe("monitorSlackProvider tool results", () => {
     slackTestState.config = {
       messages: {
         responsePrefix: "PFX",
-        groupChat: { mentionPatterns: ["\\bclawd\\b"] },
+        groupChat: { mentionPatterns: ["\\bzee\\b"] },
       },
       channels: {
         slack: {
@@ -377,7 +377,7 @@ describe("monitorSlackProvider tool results", () => {
       event: {
         type: "message",
         user: "U1",
-        text: "clawd: hello",
+        text: "zee: hello",
         ts: "123",
         channel: "C1",
         channel_type: "channel",
@@ -396,7 +396,7 @@ describe("monitorSlackProvider tool results", () => {
     slackTestState.config = {
       messages: {
         responsePrefix: "PFX",
-        groupChat: { mentionPatterns: ["\\bclawd\\b"] },
+        groupChat: { mentionPatterns: ["\\bzee\\b"] },
       },
       channels: {
         slack: {
@@ -422,7 +422,7 @@ describe("monitorSlackProvider tool results", () => {
       event: {
         type: "message",
         user: "U1",
-        text: "clawd: hello <@U2>",
+        text: "zee: hello <@U2>",
         ts: "123",
         channel: "C1",
         channel_type: "channel",

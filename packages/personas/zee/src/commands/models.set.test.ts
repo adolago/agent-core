@@ -5,7 +5,7 @@ const writeConfigFile = vi.fn().mockResolvedValue(undefined);
 const loadConfig = vi.fn().mockReturnValue({});
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH_CLAWDBOT: "/tmp/zee.json",
+  CONFIG_PATH_ZEEBOT: "/tmp/zee.json",
   readConfigFileSnapshot,
   writeConfigFile,
   loadConfig,

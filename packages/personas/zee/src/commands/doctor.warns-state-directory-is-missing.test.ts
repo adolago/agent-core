@@ -180,7 +180,7 @@ vi.mock("../config/config.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    CONFIG_PATH_CLAWDBOT: "/tmp/zee.json",
+    CONFIG_PATH_ZEEBOT: "/tmp/zee.json",
     createConfigIO,
     readConfigFileSnapshot,
     writeConfigFile,

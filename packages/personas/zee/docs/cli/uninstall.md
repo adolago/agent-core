@@ -1,17 +1,17 @@
 ---
-summary: "CLI reference for `clawdbot uninstall` (remove gateway service + local data)"
+summary: "CLI reference for `zee uninstall` (remove gateway service + local data)"
 read_when:
   - You want to remove the gateway service and/or local state
   - You want a dry-run first
 ---
 
-# `clawdbot uninstall`
+# `zee uninstall`
 
 Uninstall the gateway service + local data (CLI remains).
 
 ```bash
-clawdbot uninstall
-clawdbot uninstall --all --yes
-clawdbot uninstall --dry-run
+zee uninstall
+zee uninstall --all --yes
+zee uninstall --dry-run
 ```
 

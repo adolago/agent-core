@@ -4,11 +4,11 @@ import {
   deriveDefaultBrowserControlPort,
 } from "../config/port-defaults.js";
 import {
-  DEFAULT_CLAWD_BROWSER_COLOR,
-  DEFAULT_CLAWD_BROWSER_CONTROL_URL,
-  DEFAULT_CLAWD_BROWSER_ENABLED,
+  DEFAULT_ZEE_BROWSER_COLOR,
+  DEFAULT_ZEE_BROWSER_CONTROL_URL,
+  DEFAULT_ZEE_BROWSER_ENABLED,
   DEFAULT_BROWSER_DEFAULT_PROFILE_NAME,
-  DEFAULT_CLAWD_BROWSER_PROFILE_NAME,
+  DEFAULT_ZEE_BROWSER_PROFILE_NAME,
 } from "./constants.js";
 import { CDP_PORT_RANGE_START, getUsedPorts } from "./profiles.js";
 
@@ -39,7 +39,7 @@ export type ResolvedBrowserProfile = {
   cdpHost: string;
   cdpIsLoopback: boolean;
   color: string;
-  driver: "clawd" | "extension";
+  driver: "zee" | "extension";
 };
 
 function isLoopbackHost(host: string) {
@@ -57,9 +57,9 @@ function isLoopbackHost(host: string) {
 
 function normalizeHexColor(raw: string | undefined) {
   const value = (raw ?? "").trim();
-  if (!value) return DEFAULT_CLAWD_BROWSER_COLOR;
+  if (!value) return DEFAULT_ZEE_BROWSER_COLOR;
   const normalized = value.startsWith("#") ? value : `#${value}`;
-  if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) return DEFAULT_CLAWD_BROWSER_COLOR;
+  if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) return DEFAULT_ZEE_BROWSER_COLOR;
   return normalized.toUpperCase();
 }
 
@@ -94,7 +94,7 @@ export function parseHttpUrl(raw: string, label: string) {
 }
 
 /**
- * Ensure the default "clawd" profile exists in the profiles map.
+ * Ensure the default "zee" profile exists in the profiles map.
  * Auto-creates it with the legacy CDP port (from browser.cdpUrl) or first port if missing.
  */
 function ensureDefaultProfile(
@@ -104,8 +104,8 @@ function ensureDefaultProfile(
   derivedDefaultCdpPort?: number,
 ): Record<string, BrowserProfileConfig> {
   const result = { ...profiles };
-  if (!result[DEFAULT_CLAWD_BROWSER_PROFILE_NAME]) {
-    result[DEFAULT_CLAWD_BROWSER_PROFILE_NAME] = {
+  if (!result[DEFAULT_ZEE_BROWSER_PROFILE_NAME]) {
+    result[DEFAULT_ZEE_BROWSER_PROFILE_NAME] = {
       cdpPort: legacyCdpPort ?? derivedDefaultCdpPort ?? CDP_PORT_RANGE_START,
       color: defaultColor,
     };
@@ -128,7 +128,7 @@ function ensureDefaultChromeExtensionProfile(
   const relayPort = controlPort + 1;
   if (!Number.isFinite(relayPort) || relayPort <= 0 || relayPort > 65535) return result;
   // Avoid adding the built-in profile if the derived relay port is already used by another profile
-  // (legacy single-profile configs may use controlPort+1 for clawd CDP).
+  // (legacy single-profile configs may use controlPort+1 for zee CDP).
   if (getUsedPorts(result).has(relayPort)) return result;
   result.chrome = {
     driver: "extension",
@@ -138,7 +138,7 @@ function ensureDefaultChromeExtensionProfile(
   return result;
 }
 export function resolveBrowserConfig(cfg: BrowserConfig | undefined): ResolvedBrowserConfig {
-  const enabled = cfg?.enabled ?? DEFAULT_CLAWD_BROWSER_ENABLED;
+  const enabled = cfg?.enabled ?? DEFAULT_ZEE_BROWSER_ENABLED;
   const envControlUrl = process.env.ZEE_BROWSER_CONTROL_URL?.trim();
   const controlToken = cfg?.controlToken?.trim() || undefined;
   const derivedControlPort = (() => {
@@ -151,7 +151,7 @@ export function resolveBrowserConfig(cfg: BrowserConfig | undefined): ResolvedBr
   const derivedControlUrl = derivedControlPort ? `http://127.0.0.1:${derivedControlPort}` : null;
 
   const controlInfo = parseHttpUrl(
-    cfg?.controlUrl ?? envControlUrl ?? derivedControlUrl ?? DEFAULT_CLAWD_BROWSER_CONTROL_URL,
+    cfg?.controlUrl ?? envControlUrl ?? derivedControlUrl ?? DEFAULT_ZEE_BROWSER_CONTROL_URL,
     "browser.controlUrl",
   );
   const controlPort = controlInfo.port;
@@ -207,7 +207,7 @@ export function resolveBrowserConfig(cfg: BrowserConfig | undefined): ResolvedBr
     defaultProfileFromConfig ??
     (profiles[DEFAULT_BROWSER_DEFAULT_PROFILE_NAME]
       ? DEFAULT_BROWSER_DEFAULT_PROFILE_NAME
-      : DEFAULT_CLAWD_BROWSER_PROFILE_NAME);
+      : DEFAULT_ZEE_BROWSER_PROFILE_NAME);
 
   return {
     enabled,
@@ -245,7 +245,7 @@ export function resolveProfile(
   let cdpHost = resolved.cdpHost;
   let cdpPort = profile.cdpPort ?? 0;
   let cdpUrl = "";
-  const driver = profile.driver === "extension" ? "extension" : "clawd";
+  const driver = profile.driver === "extension" ? "extension" : "zee";
 
   if (rawProfileUrl) {
     const parsed = parseHttpUrl(rawProfileUrl, `browser.profiles.${profileName}.cdpUrl`);

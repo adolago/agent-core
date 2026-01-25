@@ -6,7 +6,7 @@ describe("buildInboundLine", () => {
   it("prefixes group messages with sender", () => {
     const line = buildInboundLine({
       cfg: {
-        agents: { defaults: { workspace: "/tmp/clawd" } },
+        agents: { defaults: { workspace: "/tmp/zee" } },
         channels: { whatsapp: { messagePrefix: "" } },
       } as never,
       agentId: "main",

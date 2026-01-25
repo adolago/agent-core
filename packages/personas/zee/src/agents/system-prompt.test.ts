@@ -4,7 +4,7 @@ import { buildAgentSystemPrompt, buildRuntimeLine } from "./system-prompt.js";
 describe("buildAgentSystemPrompt", () => {
   it("includes owner numbers when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       ownerNumbers: ["+123", " +456 ", ""],
     });
 
@@ -16,7 +16,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("omits owner section when numbers are missing", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
     });
 
     expect(prompt).not.toContain("## User Identity");
@@ -25,14 +25,14 @@ describe("buildAgentSystemPrompt", () => {
 
   it("omits extended sections in minimal prompt mode", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       promptMode: "minimal",
       ownerNumbers: ["+123"],
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
       heartbeatPrompt: "ping",
       toolNames: ["message", "memory_search"],
-      docsPath: "/tmp/clawd/docs",
+      docsPath: "/tmp/zee/docs",
       extraSystemPrompt: "Subagent details",
       ttsHint: "Voice (TTS) is enabled.",
     });
@@ -53,7 +53,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes voice hint when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       ttsHint: "Voice (TTS) is enabled.",
     });
 
@@ -63,7 +63,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("adds reasoning tag hint when enabled", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       reasoningTagHint: true,
     });
 
@@ -74,7 +74,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes a CLI quick reference section", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
     });
 
     expect(prompt).toContain("## Zee CLI Quick Reference");
@@ -84,7 +84,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("lists available tools when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       toolNames: ["exec", "sessions_list", "sessions_history", "sessions_send"],
     });
 
@@ -96,11 +96,11 @@ describe("buildAgentSystemPrompt", () => {
 
   it("preserves tool casing in the prompt", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       toolNames: ["Read", "Exec", "process"],
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
-      docsPath: "/tmp/clawd/docs",
+      docsPath: "/tmp/zee/docs",
     });
 
     expect(prompt).toContain("- Read: Read file contents");
@@ -108,7 +108,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain(
       "- If exactly one skill clearly applies: read its SKILL.md at <location> with `Read`, then follow it.",
     );
-    expect(prompt).toContain("Zee docs: /tmp/clawd/docs");
+    expect(prompt).toContain("Zee docs: /tmp/zee/docs");
     expect(prompt).toContain(
       "For Zee behavior, commands, config, or architecture: consult local docs first.",
     );
@@ -116,12 +116,12 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes docs guidance when docsPath is provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
-      docsPath: "/tmp/clawd/docs",
+      workspaceDir: "/tmp/zee",
+      docsPath: "/tmp/zee/docs",
     });
 
     expect(prompt).toContain("## Documentation");
-    expect(prompt).toContain("Zee docs: /tmp/clawd/docs");
+    expect(prompt).toContain("Zee docs: /tmp/zee/docs");
     expect(prompt).toContain(
       "For Zee behavior, commands, config, or architecture: consult local docs first.",
     );
@@ -129,7 +129,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes workspace notes when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       workspaceNotes: ["Reminder: commit your changes in this workspace after edits."],
     });
 
@@ -138,7 +138,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes user timezone when provided (12-hour)", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       userTimezone: "America/Chicago",
       userTime: "Monday, January 5th, 2026 — 3:26 PM",
       userTimeFormat: "12",
@@ -150,7 +150,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes user timezone when provided (24-hour)", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       userTimezone: "America/Chicago",
       userTime: "Monday, January 5th, 2026 — 15:26",
       userTimeFormat: "24",
@@ -162,7 +162,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("shows timezone when only timezone is provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       userTimezone: "America/Chicago",
       userTimeFormat: "24",
     });
@@ -173,7 +173,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes model alias guidance when aliases are provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       modelAliasLines: [
         "- Opus: anthropic/claude-opus-4-5",
         "- Sonnet: anthropic/claude-sonnet-4-5",
@@ -187,7 +187,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("adds ClaudeBot self-update guidance when gateway tool is available", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       toolNames: ["gateway", "exec"],
     });
 
@@ -198,7 +198,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes skills guidance when skills prompt is present", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
     });
@@ -211,7 +211,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("appends available skills when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
     });
@@ -222,7 +222,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("omits skills section when no skills prompt is provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
     });
 
     expect(prompt).not.toContain("## Skills");
@@ -231,7 +231,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("renders project context files when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       contextFiles: [
         { path: "AGENTS.md", content: "Alpha" },
         { path: "IDENTITY.md", content: "Bravo" },
@@ -247,7 +247,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("adds SOUL guidance when a soul file is present", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       contextFiles: [
         { path: "./SOUL.md", content: "Persona" },
         { path: "dir\[zee\]SOUL.md", content: "Persona Windows" },
@@ -261,7 +261,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("summarizes the message tool when available", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       toolNames: ["message"],
     });
 
@@ -272,7 +272,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes runtime provider capabilities when present", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       runtimeInfo: {
         channel: "telegram",
         capabilities: ["inlineButtons"],
@@ -285,7 +285,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes agent id in runtime when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       runtimeInfo: {
         agentId: "work",
         host: "host",
@@ -301,7 +301,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes reasoning visibility hint", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       reasoningLevel: "off",
     });
 
@@ -341,7 +341,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("describes sandboxed runtime and elevated when allowed", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       sandboxInfo: {
         enabled: true,
         workspaceDir: "/tmp/sandbox",
@@ -359,7 +359,7 @@ describe("buildAgentSystemPrompt", () => {
 
   it("includes reaction guidance when provided", () => {
     const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/clawd",
+      workspaceDir: "/tmp/zee",
       reactionGuidance: {
         level: "minimal",
         channel: "Telegram",

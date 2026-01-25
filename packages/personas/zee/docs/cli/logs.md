@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `clawdbot logs` (tail gateway logs via RPC)"
+summary: "CLI reference for `zee logs` (tail gateway logs via RPC)"
 read_when:
   - You need to tail Gateway logs remotely (without SSH)
   - You want JSON log lines for tooling
 ---
 
-# `clawdbot logs`
+# `zee logs`
 
 Tail Gateway file logs over RPC (works in remote mode).
 
@@ -15,9 +15,9 @@ Related:
 ## Examples
 
 ```bash
-clawdbot logs
-clawdbot logs --follow
-clawdbot logs --json
-clawdbot logs --limit 500
+zee logs
+zee logs --follow
+zee logs --json
+zee logs --limit 500
 ```
 

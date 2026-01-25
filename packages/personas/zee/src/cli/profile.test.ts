@@ -120,8 +120,8 @@ describe("formatCliCommand", () => {
   });
 
   it("trims whitespace from profile", () => {
-    expect(formatCliCommand("zee doctor --fix", { ZEE_PROFILE: "  jbclawd  " })).toBe(
-      "zee --profile jbclawd doctor --fix",
+    expect(formatCliCommand("zee doctor --fix", { ZEE_PROFILE: "  jbzee  " })).toBe(
+      "zee --profile jbzee doctor --fix",
     );
   });
 

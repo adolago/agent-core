@@ -54,7 +54,7 @@ function buildSlackManifest(botName: string) {
       },
       slash_commands: [
         {
-          command: "/clawd",
+          command: "/zee",
           description: "Send a message to Zee",
           should_escape: false,
         },

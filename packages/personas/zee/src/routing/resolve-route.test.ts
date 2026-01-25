@@ -214,7 +214,7 @@ describe("resolveAgentRoute", () => {
   test("defaultAgentId is used when no binding matches", () => {
     const cfg: ZeeConfig = {
       agents: {
-        list: [{ id: "home", default: true, workspace: "~/clawd-home" }],
+        list: [{ id: "home", default: true, workspace: "~/zee-home" }],
       },
     };
     const route = resolveAgentRoute({

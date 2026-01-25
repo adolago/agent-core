@@ -14,7 +14,7 @@ describe("Agent-specific tool filtering", () => {
         list: [
           {
             id: "main",
-            workspace: "~/clawd",
+            workspace: "~/zee",
           },
         ],
       },
@@ -43,7 +43,7 @@ describe("Agent-specific tool filtering", () => {
         list: [
           {
             id: "main",
-            workspace: "~/clawd",
+            workspace: "~/zee",
             tools: {
               elevated: {
                 enabled: true,
@@ -104,7 +104,7 @@ describe("Agent-specific tool filtering", () => {
         list: [
           {
             id: "restricted",
-            workspace: "~/clawd-restricted",
+            workspace: "~/zee-restricted",
             tools: {
               allow: ["read"], // Agent override: only read
               deny: ["exec", "write", "edit"],
@@ -188,12 +188,12 @@ describe("Agent-specific tool filtering", () => {
         list: [
           {
             id: "main",
-            workspace: "~/clawd",
+            workspace: "~/zee",
             // No tools restriction - all tools available
           },
           {
             id: "family",
-            workspace: "~/clawd-family",
+            workspace: "~/zee-family",
             tools: {
               allow: ["read"],
               deny: ["exec", "write", "edit", "process"],
@@ -329,7 +329,7 @@ describe("Agent-specific tool filtering", () => {
         list: [
           {
             id: "work",
-            workspace: "~/clawd-work",
+            workspace: "~/zee-work",
             tools: {
               deny: ["exec", "process"], // Agent deny (override)
             },
@@ -365,7 +365,7 @@ describe("Agent-specific tool filtering", () => {
         list: [
           {
             id: "restricted",
-            workspace: "~/clawd-restricted",
+            workspace: "~/zee-restricted",
             sandbox: {
               mode: "all",
               scope: "agent",

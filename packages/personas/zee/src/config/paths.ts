@@ -41,7 +41,7 @@ function resolveUserPath(input: string): string {
 
 export const STATE_DIR_ZEE = resolveStateDir();
 /** @deprecated Use STATE_DIR_ZEE */
-export const STATE_DIR_CLAWDBOT = STATE_DIR_ZEE;
+export const STATE_DIR_ZEEBOT = STATE_DIR_ZEE;
 
 /**
  * Config file path (JSON5).
@@ -59,7 +59,7 @@ export function resolveConfigPath(
 
 export const CONFIG_PATH_ZEE = resolveConfigPath();
 /** @deprecated Use CONFIG_PATH_ZEE */
-export const CONFIG_PATH_CLAWDBOT = CONFIG_PATH_ZEE;
+export const CONFIG_PATH_ZEEBOT = CONFIG_PATH_ZEE;
 
 export const DEFAULT_GATEWAY_PORT = 18789;
 

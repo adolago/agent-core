@@ -71,7 +71,7 @@ describe("gateway tool", () => {
     expect(tool).toBeDefined();
     if (!tool) throw new Error("missing gateway tool");
 
-    const raw = '{\n  agents: { defaults: { workspace: "~/clawd" } }\n}\n';
+    const raw = '{\n  agents: { defaults: { workspace: "~/zee" } }\n}\n';
     await tool.execute("call2", {
       action: "config.apply",
       raw,

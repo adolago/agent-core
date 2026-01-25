@@ -11,7 +11,7 @@ import {
 } from "../agents/model-selection.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { ZeeConfig } from "../config/config.js";
-import { CONFIG_PATH_CLAWDBOT, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
+import { CONFIG_PATH_ZEEBOT, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
@@ -90,7 +90,7 @@ export async function doctorCommand(
   });
   let cfg: ZeeConfig = configResult.cfg;
 
-  const configPath = configResult.path ?? CONFIG_PATH_CLAWDBOT;
+  const configPath = configResult.path ?? CONFIG_PATH_ZEEBOT;
   if (!cfg.gateway?.mode) {
     const lines = [
       "gateway.mode is unset; gateway start will be blocked.",
@@ -174,7 +174,7 @@ export async function doctorCommand(
     }
   }
 
-  await noteStateIntegrity(cfg, prompter, configResult.path ?? CONFIG_PATH_CLAWDBOT);
+  await noteStateIntegrity(cfg, prompter, configResult.path ?? CONFIG_PATH_ZEEBOT);
 
   cfg = await maybeRepairSandboxImages(cfg, runtime, prompter);
   noteSandboxScopeWarnings(cfg);
@@ -272,7 +272,7 @@ export async function doctorCommand(
     cfg = applyWizardMetadata(cfg, { command: "doctor", mode: resolveMode(cfg) });
     await writeConfigFile(cfg);
     logConfigUpdated(runtime);
-    const backupPath = `${CONFIG_PATH_CLAWDBOT}.bak`;
+    const backupPath = `${CONFIG_PATH_ZEEBOT}.bak`;
     if (fs.existsSync(backupPath)) {
       runtime.log(`Backup: ${shortenHomePath(backupPath)}`);
     }

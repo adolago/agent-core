@@ -7,7 +7,7 @@ let getTelegramSequentialKey: typeof import("./bot.js").getTelegramSequentialKey
 let resetInboundDedupe: typeof import("../auto-reply/reply/inbound-dedupe.js").resetInboundDedupe;
 
 const { sessionStorePath } = vi.hoisted(() => ({
-  sessionStorePath: `/tmp/clawdbot-telegram-throttler-${Math.random().toString(16).slice(2)}.json`,
+  sessionStorePath: `/tmp/zeebot-telegram-throttler-${Math.random().toString(16).slice(2)}.json`,
 }));
 const { loadWebMedia } = vi.hoisted(() => ({
   loadWebMedia: vi.fn(),
@@ -288,7 +288,7 @@ describe("createTelegramBot", () => {
           message_id: 10,
         },
       },
-      me: { username: "clawdbot_bot" },
+      me: { username: "zeebot_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -322,7 +322,7 @@ describe("createTelegramBot", () => {
       };
       await handler({
         message,
-        me: { username: "clawdbot_bot" },
+        me: { username: "zeebot_bot" },
         getFile: async () => ({ download: async () => new Uint8Array() }),
       });
 
@@ -365,7 +365,7 @@ describe("createTelegramBot", () => {
         date: 1736380800,
         from: { id: 999, username: "random" },
       },
-      me: { username: "clawdbot_bot" },
+      me: { username: "zeebot_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -402,12 +402,12 @@ describe("createTelegramBot", () => {
 
     await handler({
       message,
-      me: { username: "clawdbot_bot" },
+      me: { username: "zeebot_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
     await handler({
       message: { ...message, text: "hello again" },
-      me: { username: "clawdbot_bot" },
+      me: { username: "zeebot_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -422,7 +422,7 @@ describe("createTelegramBot", () => {
     const handler = getOnHandler("message") as (ctx: Record<string, unknown>) => Promise<void>;
     await handler({
       message: { chat: { id: 42, type: "private" }, text: "hi" },
-      me: { username: "clawdbot_bot" },
+      me: { username: "zeebot_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 

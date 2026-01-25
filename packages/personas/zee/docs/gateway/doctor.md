@@ -6,44 +6,44 @@ read_when:
 ---
 # Doctor
 
-`clawdbot doctor` is the repair + migration tool for Clawdbot. It fixes stale
+`zee doctor` is the repair + migration tool for Zee. It fixes stale
 config/state, checks health, and provides actionable repair steps.
 
 ## Quick start
 
 ```bash
-clawdbot doctor
+zee doctor
 ```
 
 ### Headless / automation
 
 ```bash
-clawdbot doctor --yes
+zee doctor --yes
 ```
 
 Accept defaults without prompting (including restart/service/sandbox repair steps when applicable).
 
 ```bash
-clawdbot doctor --repair
+zee doctor --repair
 ```
 
 Apply recommended repairs without prompting (repairs + restarts where safe).
 
 ```bash
-clawdbot doctor --repair --force
+zee doctor --repair --force
 ```
 
 Apply aggressive repairs too (overwrites custom supervisor configs).
 
 ```bash
-clawdbot doctor --non-interactive
+zee doctor --non-interactive
 ```
 
 Run without prompts and only apply safe migrations (config normalization + on-disk state moves). Skips restart/service/sandbox actions that require human confirmation.
 Legacy state migrations run automatically when detected.
 
 ```bash
-clawdbot doctor --deep
+zee doctor --deep
 ```
 
 Scan system services for extra gateway installs (launchd/systemd/schtasks).
@@ -51,7 +51,7 @@ Scan system services for extra gateway installs (launchd/systemd/schtasks).
 If you want to review changes before writing, open the config file first:
 
 ```bash
-cat ~/.clawdbot/clawdbot.json
+cat ~/.zee/zee.json
 ```
 
 ## What it does (summary)
@@ -65,7 +65,7 @@ cat ~/.clawdbot/clawdbot.json
 - State integrity and permissions checks (sessions, transcripts, state dir).
 - Config file permission checks (chmod 600) when running locally.
 - Model auth health: checks OAuth expiry, can refresh expiring tokens, and reports auth-profile cooldown/disabled states.
-- Extra workspace dir detection (`~/clawdbot`).
+- Extra workspace dir detection (`~/zee`).
 - Sandbox image repair when sandboxing is enabled.
 - Legacy service migration and extra gateway detection.
 - Gateway runtime checks (service installed but not running; cached launchd label).
@@ -92,12 +92,12 @@ schema.
 
 ### 2) Legacy config key migrations
 When the config contains deprecated keys, other commands refuse to run and ask
-you to run `clawdbot doctor`.
+you to run `zee doctor`.
 
 Doctor will:
 - Explain which legacy keys were found.
 - Show the migration it applied.
-- Rewrite `~/.clawdbot/clawdbot.json` with the updated schema.
+- Rewrite `~/.zee/zee.json` with the updated schema.
 
 The Gateway also auto-runs doctor migrations on startup when it detects a
 legacy config format, so stale configs are repaired without manual intervention.
@@ -127,18 +127,18 @@ remove the override and restore per-model API routing + costs.
 ### 3) Legacy state migrations (disk layout)
 Doctor can migrate older on-disk layouts into the current structure:
 - Sessions store + transcripts:
-  - from `~/.clawdbot/sessions/` to `~/.clawdbot/agents/<agentId>/sessions/`
+  - from `~/.zee/sessions/` to `~/.zee/agents/<agentId>/sessions/`
 - Agent dir:
-  - from `~/.clawdbot/agent/` to `~/.clawdbot/agents/<agentId>/agent/`
+  - from `~/.zee/agent/` to `~/.zee/agents/<agentId>/agent/`
 - WhatsApp auth state (Baileys):
-  - from legacy `~/.clawdbot/credentials/*.json` (except `oauth.json`)
-  - to `~/.clawdbot/credentials/whatsapp/<accountId>/...` (default account id: `default`)
+  - from legacy `~/.zee/credentials/*.json` (except `oauth.json`)
+  - to `~/.zee/credentials/whatsapp/<accountId>/...` (default account id: `default`)
 
 These migrations are best-effort and idempotent; doctor will emit warnings when
 it leaves any legacy folders behind as backups. The Gateway/CLI also auto-migrates
 the legacy sessions + agent dir on startup so history/auth/models land in the
 per-agent path without a manual doctor run. WhatsApp auth is intentionally only
-migrated via `clawdbot doctor`.
+migrated via `zee doctor`.
 
 ### 4) State integrity checks (session persistence, routing, and safety)
 The state directory is the operational brainstem. If it vanishes, you lose
@@ -155,12 +155,12 @@ Doctor checks:
   transcript files.
 - **Main session “1-line JSONL”**: flags when the main transcript has only one
   line (history is not accumulating).
-- **Multiple state dirs**: warns when multiple `~/.clawdbot` folders exist across
-  home directories or when `CLAWDBOT_STATE_DIR` points elsewhere (history can
+- **Multiple state dirs**: warns when multiple `~/.zee` folders exist across
+  home directories or when `ZEE_STATE_DIR` points elsewhere (history can
   split between installs).
 - **Remote mode reminder**: if `gateway.mode=remote`, doctor reminds you to run
   it on the remote host (the state lives there).
-- **Config file permissions**: warns if `~/.clawdbot/clawdbot.json` is
+- **Config file permissions**: warns if `~/.zee/zee.json` is
   group/world readable and offers to tighten to `600`.
 
 ### 5) Model auth health (OAuth expiry)
@@ -184,9 +184,9 @@ switch to legacy names if the current image is missing.
 
 ### 8) Gateway service migrations and cleanup hints
 Doctor detects legacy gateway services (launchd/systemd/schtasks) and
-offers to remove them and install the Clawdbot service using the current gateway
+offers to remove them and install the Zee service using the current gateway
 port. It can also scan for extra gateway-like services and print cleanup hints.
-Profile-named Clawdbot gateway services are considered first-class and are not
+Profile-named Zee gateway services are considered first-class and are not
 flagged as "extra."
 
 ### 9) Security warnings
@@ -203,7 +203,7 @@ workspace.
 
 ### 12) Gateway auth checks (local token)
 Doctor warns when `gateway.auth` is missing on a local gateway and offers to
-generate a token. Use `clawdbot doctor --generate-gateway-token` to force token
+generate a token. Use `zee doctor --generate-gateway-token` to force token
 creation in automation.
 
 ### 13) Gateway health check + restart
@@ -221,11 +221,11 @@ restart delay). When it finds a mismatch, it recommends an update and can
 rewrite the service file/task to the current defaults.
 
 Notes:
-- `clawdbot doctor` prompts before rewriting supervisor config.
-- `clawdbot doctor --yes` accepts the default repair prompts.
-- `clawdbot doctor --repair` applies recommended fixes without prompts.
-- `clawdbot doctor --repair --force` overwrites custom supervisor configs.
-- You can always force a full rewrite via `clawdbot gateway install --force`.
+- `zee doctor` prompts before rewriting supervisor config.
+- `zee doctor --yes` accepts the default repair prompts.
+- `zee doctor --repair` applies recommended fixes without prompts.
+- `zee doctor --repair --force` overwrites custom supervisor configs.
+- You can always force a full rewrite via `zee gateway install --force`.
 
 ### 16) Gateway runtime + port diagnostics
 Doctor inspects the service runtime (PID, last exit status) and warns when the

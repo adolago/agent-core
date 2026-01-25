@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ClawdbotApp } from "./app";
+import { ZeebotApp } from "./app";
 import "../styles.css";
 
-const originalConnect = ClawdbotApp.prototype.connect;
+const originalConnect = ZeebotApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("clawdbot-app") as ClawdbotApp;
+  const app = document.createElement("zeebot-app") as ZeebotApp;
   document.body.append(app);
   return app;
 }
@@ -19,17 +19,17 @@ function nextFrame() {
 }
 
 beforeEach(() => {
-  ClawdbotApp.prototype.connect = () => {
+  ZeebotApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
-  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
+  window.__ZEEBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
 
 afterEach(() => {
-  ClawdbotApp.prototype.connect = originalConnect;
-  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
+  ZeebotApp.prototype.connect = originalConnect;
+  window.__ZEEBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
@@ -53,22 +53,22 @@ describe("control UI routing", () => {
   });
 
   it("infers nested base paths", async () => {
-    const app = mountApp("/apps/clawdbot/cron");
+    const app = mountApp("/apps/zeebot/cron");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/apps/clawdbot");
+    expect(app.basePath).toBe("/apps/zeebot");
     expect(app.tab).toBe("cron");
-    expect(window.location.pathname).toBe("/apps/clawdbot/cron");
+    expect(window.location.pathname).toBe("/apps/zeebot/cron");
   });
 
   it("honors explicit base path overrides", async () => {
-    window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = "/clawdbot";
-    const app = mountApp("/clawdbot/sessions");
+    window.__ZEEBOT_CONTROL_UI_BASE_PATH__ = "/zeebot";
+    const app = mountApp("/zeebot/sessions");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/clawdbot");
+    expect(app.basePath).toBe("/zeebot");
     expect(app.tab).toBe("sessions");
-    expect(window.location.pathname).toBe("/clawdbot/sessions");
+    expect(window.location.pathname).toBe("/zeebot/sessions");
   });
 
   it("updates the URL when clicking nav items", async () => {
@@ -169,7 +169,7 @@ describe("control UI routing", () => {
 
   it("hydrates token from URL params even when settings already set", async () => {
     localStorage.setItem(
-      "clawdbot.control.settings.v1",
+      "zeebot.control.settings.v1",
       JSON.stringify({ token: "existing-token" }),
     );
     const app = mountApp("/ui/overview?token=abc123");

@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
 import { handleReset } from "../../commands/onboard-helpers.js";
-import { CONFIG_PATH_CLAWDBOT, writeConfigFile } from "../../config/config.js";
+import { CONFIG_PATH_ZEEBOT, writeConfigFile } from "../../config/config.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveUserPath, shortenHomePath } from "../../utils.js";
 
@@ -89,7 +89,7 @@ export async function ensureDevGatewayConfig(opts: { reset?: boolean }) {
     await handleReset("full", workspace, defaultRuntime);
   }
 
-  const configExists = fs.existsSync(CONFIG_PATH_CLAWDBOT);
+  const configExists = fs.existsSync(CONFIG_PATH_ZEEBOT);
   if (!opts.reset && configExists) return;
 
   await writeConfigFile({
@@ -117,6 +117,6 @@ export async function ensureDevGatewayConfig(opts: { reset?: boolean }) {
     },
   });
   await ensureDevWorkspace(workspace);
-  defaultRuntime.log(`Dev config ready: ${shortenHomePath(CONFIG_PATH_CLAWDBOT)}`);
+  defaultRuntime.log(`Dev config ready: ${shortenHomePath(CONFIG_PATH_ZEEBOT)}`);
   defaultRuntime.log(`Dev workspace ready: ${shortenHomePath(resolveUserPath(workspace))}`);
 }

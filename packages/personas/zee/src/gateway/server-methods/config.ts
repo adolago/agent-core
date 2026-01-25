@@ -1,6 +1,6 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
-  CONFIG_PATH_CLAWDBOT,
+  CONFIG_PATH_ZEEBOT,
   loadConfig,
   parseConfigJson5,
   readConfigFileSnapshot,
@@ -186,7 +186,7 @@ export const configHandlers: GatewayRequestHandlers = {
       true,
       {
         ok: true,
-        path: CONFIG_PATH_CLAWDBOT,
+        path: CONFIG_PATH_ZEEBOT,
         config: validated.config,
       },
       undefined,
@@ -284,7 +284,7 @@ export const configHandlers: GatewayRequestHandlers = {
       doctorHint: formatDoctorNonInteractiveHint(),
       stats: {
         mode: "config.patch",
-        root: CONFIG_PATH_CLAWDBOT,
+        root: CONFIG_PATH_ZEEBOT,
       },
     };
     let sentinelPath: string | null = null;
@@ -301,7 +301,7 @@ export const configHandlers: GatewayRequestHandlers = {
       true,
       {
         ok: true,
-        path: CONFIG_PATH_CLAWDBOT,
+        path: CONFIG_PATH_ZEEBOT,
         config: validated.config,
         restart,
         sentinel: {
@@ -381,7 +381,7 @@ export const configHandlers: GatewayRequestHandlers = {
       doctorHint: formatDoctorNonInteractiveHint(),
       stats: {
         mode: "config.apply",
-        root: CONFIG_PATH_CLAWDBOT,
+        root: CONFIG_PATH_ZEEBOT,
       },
     };
     let sentinelPath: string | null = null;
@@ -398,7 +398,7 @@ export const configHandlers: GatewayRequestHandlers = {
       true,
       {
         ok: true,
-        path: CONFIG_PATH_CLAWDBOT,
+        path: CONFIG_PATH_ZEEBOT,
         config: validated.config,
         restart,
         sentinel: {

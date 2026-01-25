@@ -56,11 +56,11 @@ describe("sessions", () => {
       buildGroupDisplayName({
         provider: "discord",
         groupChannel: "#general",
-        space: "friends-of-clawd",
+        space: "friends-of-zee",
         id: "123",
         key: "discord:group:123",
       }),
-    ).toBe("discord:friends-of-clawd#general");
+    ).toBe("discord:friends-of-zee#general");
   });
 
   it("collapses direct chats to main by default", () => {

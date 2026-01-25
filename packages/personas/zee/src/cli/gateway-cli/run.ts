@@ -3,7 +3,7 @@ import fs from "node:fs";
 import type { Command } from "commander";
 import type { GatewayAuthMode } from "../../config/config.js";
 import {
-  CONFIG_PATH_CLAWDBOT,
+  CONFIG_PATH_ZEEBOT,
   loadConfig,
   readConfigFileSnapshot,
   resolveGatewayPort,
@@ -157,7 +157,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   const passwordRaw = toOptionString(opts.password);
   const tokenRaw = toOptionString(opts.token);
 
-  const configExists = fs.existsSync(CONFIG_PATH_CLAWDBOT);
+  const configExists = fs.existsSync(CONFIG_PATH_ZEEBOT);
   const mode = cfg.gateway?.mode;
   if (!opts.allowUnconfigured && mode !== "local") {
     if (!configExists) {

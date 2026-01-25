@@ -35,23 +35,23 @@ function enhanceBrowserFetchError(url: string, err: unknown, timeoutMs: number):
 
   if (code === "ECONNREFUSED") {
     return new Error(
-      `Can't reach the clawd browser control server at ${url} (connection refused). ${hint}`,
+      `Can't reach the zee browser control server at ${url} (connection refused). ${hint}`,
     );
   }
   if (code === "ETIMEDOUT" || code === "UND_ERR_CONNECT_TIMEOUT") {
     return new Error(
-      `Can't reach the clawd browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
+      `Can't reach the zee browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
     );
   }
 
   const msg = formatErrorMessage(err);
   if (msg.toLowerCase().includes("abort")) {
     return new Error(
-      `Can't reach the clawd browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
+      `Can't reach the zee browser control server at ${url} (timed out after ${timeoutMs}ms). ${hint}`,
     );
   }
 
-  return new Error(`Can't reach the clawd browser control server at ${url}. ${hint} (${msg})`);
+  return new Error(`Can't reach the zee browser control server at ${url}. ${hint} (${msg})`);
 }
 
 export async function fetchBrowserJson<T>(

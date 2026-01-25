@@ -180,7 +180,7 @@ vi.mock("../config/config.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    CONFIG_PATH_CLAWDBOT: "/tmp/zee.json",
+    CONFIG_PATH_ZEEBOT: "/tmp/zee.json",
     createConfigIO,
     readConfigFileSnapshot,
     writeConfigFile,
@@ -342,7 +342,7 @@ describe("doctor command", () => {
           list: [
             {
               id: "work",
-              workspace: "~/clawd-work",
+              workspace: "~/zee-work",
               sandbox: {
                 mode: "all",
                 scope: "shared",
@@ -389,7 +389,7 @@ describe("doctor command", () => {
       parsed: {},
       valid: true,
       config: {
-        agents: { defaults: { workspace: "/Users/steipete/clawd" } },
+        agents: { defaults: { workspace: "/Users/steipete/zee" } },
       },
       issues: [],
       legacyIssues: [],

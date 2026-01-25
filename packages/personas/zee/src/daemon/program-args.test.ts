@@ -23,7 +23,7 @@ afterEach(() => {
 
 describe("resolveGatewayProgramArguments", () => {
   it("uses realpath-resolved dist entry when running via npx shim", async () => {
-    const argv1 = path.resolve("/tmp/.npm/_npx/63c3/node_modules/.bin/clawdbot");
+    const argv1 = path.resolve("/tmp/.npm/_npx/63c3/node_modules/.bin/zeebot");
     const entryPath = path.resolve("/tmp/.npm/_npx/63c3/node_modules/zee/dist/entry.js");
     process.argv = ["node", argv1];
     fsMocks.realpath.mockResolvedValue(entryPath);
@@ -46,8 +46,8 @@ describe("resolveGatewayProgramArguments", () => {
   });
 
   it("prefers symlinked path over realpath for stable service config", async () => {
-    // Simulates pnpm global install where node_modules/clawdbot is a symlink
-    // to .pnpm/clawdbot@X.Y.Z/node_modules/clawdbot
+    // Simulates pnpm global install where node_modules/zeebot is a symlink
+    // to .pnpm/zeebot@X.Y.Z/node_modules/zeebot
     const symlinkPath = path.resolve(
       "/Users/test/Library/pnpm/global/5/node_modules/zee/dist/entry.js",
     );
@@ -66,7 +66,7 @@ describe("resolveGatewayProgramArguments", () => {
   });
 
   it("falls back to node_modules package dist when .bin path is not resolved", async () => {
-    const argv1 = path.resolve("/tmp/.npm/_npx/63c3/node_modules/.bin/clawdbot");
+    const argv1 = path.resolve("/tmp/.npm/_npx/63c3/node_modules/.bin/zeebot");
     const indexPath = path.resolve("/tmp/.npm/_npx/63c3/node_modules/zee/dist/index.js");
     process.argv = ["node", argv1];
     fsMocks.realpath.mockRejectedValue(new Error("no realpath"));

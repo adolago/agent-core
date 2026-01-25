@@ -1,4 +1,4 @@
-Fork — This is a fork of [clawdbot/clawdbot](https://github.com/clawdbot/clawdbot) with customizations. All credit goes to the brilliant [Clawdbot](https://github.com/clawdbot) maintainers and contributors for building such a fantastic experience. Please use the [upstream](https://github.com/clawdbot/clawdbot) repository for official releases and support. Use this fork at your own risk.
+Fork — This is a fork of [zeebot/zeebot](https://github.com/zeebot/zeebot) with customizations. All credit goes to the brilliant [Zeebot](https://github.com/zeebot) maintainers and contributors for building such a fantastic experience. Please use the [upstream](https://github.com/zeebot/zeebot) repository for official releases and support. Use this fork at your own risk.
 
 <p align="center">
   <a href="https://github.com/adolago/zee/releases/tag/v0.1.0-20260114"><img src="https://img.shields.io/badge/version-0.1.0-20260114-blue?style=for-the-badge" alt="Version"></a>
@@ -46,11 +46,11 @@ Default behavior on Telegram/WhatsApp/Signal/iMessage/Discord/Slack:
 Run `zee doctor` to surface risky/misconfigured DM policies.
 
 ### Tools + automation
-- [Browser control](https://docs.clawd.bot/browser): dedicated clawd Chrome/Chromium, snapshots, actions, uploads, profiles.
-- [Canvas](https://docs.clawd.bot/mac/canvas): [A2UI](https://docs.clawd.bot/mac/canvas#canvas-a2ui) push/reset, eval, snapshot.
-- [Nodes](https://docs.clawd.bot/nodes): camera snap/clip, screen record, [location.get](https://docs.clawd.bot/location-command), notifications.
-- [Cron + wakeups](https://docs.clawd.bot/cron); [webhooks](https://docs.clawd.bot/webhook); [Gmail Pub/Sub](https://docs.clawd.bot/gmail-pubsub).
-- [Skills platform](https://docs.clawd.bot/skills): bundled, managed, and workspace skills with install gating + UI.
+- [Browser control](https://docs.zee.bot/browser): dedicated zee Chrome/Chromium, snapshots, actions, uploads, profiles.
+- [Canvas](https://docs.zee.bot/mac/canvas): [A2UI](https://docs.zee.bot/mac/canvas#canvas-a2ui) push/reset, eval, snapshot.
+- [Nodes](https://docs.zee.bot/nodes): camera snap/clip, screen record, [location.get](https://docs.zee.bot/location-command), notifications.
+- [Cron + wakeups](https://docs.zee.bot/cron); [webhooks](https://docs.zee.bot/webhook); [Gmail Pub/Sub](https://docs.zee.bot/gmail-pubsub).
+- [Skills platform](https://docs.zee.bot/skills): bundled, managed, and workspace skills with install gating + UI.
 
 ## How it works (short)
 
@@ -73,12 +73,12 @@ WhatsApp / Telegram / Slack / Discord / Signal / iMessage / WebChat
 
 ## Key subsystems
 
-- **[Gateway WebSocket network](https://docs.clawd.bot/architecture)** — single WS control plane for clients, tools, and events (plus ops: [Gateway runbook](https://docs.clawd.bot/gateway)).
-- **[Tailscale exposure](https://docs.clawd.bot/tailscale)** — Serve/Funnel for the Gateway dashboard + WS (remote access: [Remote](https://docs.clawd.bot/remote)).
-- **[Browser control](https://docs.clawd.bot/browser)** — clawd‑managed Chrome/Chromium with CDP control.
-- **[Canvas + A2UI](https://docs.clawd.bot/mac/canvas)** — agent‑driven visual workspace (A2UI host: [Canvas/A2UI](https://docs.clawd.bot/mac/canvas#canvas-a2ui)).
-- **[Voice Wake](https://docs.clawd.bot/voicewake) + [Talk Mode](https://docs.clawd.bot/talk)** — always‑on speech and continuous conversation.
-- **[Nodes](https://docs.clawd.bot/nodes)** — Canvas, camera snap/clip, screen record, `location.get`, notifications, plus macOS‑only `system.run`/`system.notify`.
+- **[Gateway WebSocket network](https://docs.zee.bot/architecture)** — single WS control plane for clients, tools, and events (plus ops: [Gateway runbook](https://docs.zee.bot/gateway)).
+- **[Tailscale exposure](https://docs.zee.bot/tailscale)** — Serve/Funnel for the Gateway dashboard + WS (remote access: [Remote](https://docs.zee.bot/remote)).
+- **[Browser control](https://docs.zee.bot/browser)** — zee‑managed Chrome/Chromium with CDP control.
+- **[Canvas + A2UI](https://docs.zee.bot/mac/canvas)** — agent‑driven visual workspace (A2UI host: [Canvas/A2UI](https://docs.zee.bot/mac/canvas#canvas-a2ui)).
+- **[Voice Wake](https://docs.zee.bot/voicewake) + [Talk Mode](https://docs.zee.bot/talk)** — always‑on speech and continuous conversation.
+- **[Nodes](https://docs.zee.bot/nodes)** — Canvas, camera snap/clip, screen record, `location.get`, notifications, plus macOS‑only `system.run`/`system.notify`.
 
 ## Tailscale access (Gateway dashboard)
 
@@ -94,7 +94,7 @@ Notes:
 - Funnel refuses to start unless `gateway.auth.mode: "password"` is set.
 - Optional: `gateway.tailscale.resetOnExit` to undo Serve/Funnel on shutdown.
 
-Details: [Tailscale guide](https://docs.clawd.bot/tailscale) · [Web surfaces](https://docs.clawd.bot/web)
+Details: [Tailscale guide](https://docs.zee.bot/tailscale) · [Web surfaces](https://docs.zee.bot/web)
 
 ## Remote Gateway (Linux is great)
 
@@ -104,7 +104,7 @@ It’s perfectly fine to run the Gateway on a small Linux instance. Clients (mac
 - **Device nodes** run device‑local actions (`system.run`, camera, screen recording, notifications) via `node.invoke`.
 In short: bash runs where the Gateway lives; device actions run where the device lives.
 
-Details: [Remote access](https://docs.clawd.bot/remote) · [Nodes](https://docs.clawd.bot/nodes) · [Security](https://docs.clawd.bot/security)
+Details: [Remote access](https://docs.zee.bot/remote) · [Nodes](https://docs.zee.bot/nodes) · [Security](https://docs.zee.bot/security)
 
 ## Agent to Agent (sessions_* tools)
 
@@ -113,13 +113,13 @@ Details: [Remote access](https://docs.clawd.bot/remote) · [Nodes](https://docs.
 - `sessions_history` — fetch transcript logs for a session.
 - `sessions_send` — message another session; optional reply‑back ping‑pong + announce step (`REPLY_SKIP`, `ANNOUNCE_SKIP`).
 
-Details: [Session tools](https://docs.clawd.bot/session-tool)
+Details: [Session tools](https://docs.zee.bot/session-tool)
 
-## Skills registry (ClawdHub)
+## Skills registry (ZeeHub)
 
-ClawdHub is a minimal skill registry. With ClawdHub enabled, the agent can search for skills automatically and pull in new ones as needed.
+ZeeHub is a minimal skill registry. With ZeeHub enabled, the agent can search for skills automatically and pull in new ones as needed.
 
-[ClawdHub](https://ClawdHub.com)
+[ZeeHub](https://ZeeHub.com)
 
 ## Chat commands
 
@@ -139,10 +139,10 @@ Send these in WhatsApp/Telegram/Slack/WebChat (group commands are owner-only):
 - Voice trigger forwarding + Canvas surface.
 - Controlled via `zee nodes …`.
 
-Runbook: [iOS connect](https://docs.clawd.bot/ios).
+Runbook: [iOS connect](https://docs.zee.bot/ios).
 
 ### Android node (optional)
 
 - Bridge + pairing (Android only).
 - Exposes Canvas, Camera, and Screen capture commands.
-- Runbook: [Android connect](https://docs.clawd.bot/android).
+- Runbook: [Android connect](https://docs.zee.bot/android).

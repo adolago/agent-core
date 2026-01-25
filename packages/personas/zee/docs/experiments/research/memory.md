@@ -1,14 +1,14 @@
 ---
-summary: "Research notes: offline memory system for Clawd workspaces (Markdown source-of-truth + derived index)"
+summary: "Research notes: offline memory system for Zee workspaces (Markdown source-of-truth + derived index)"
 read_when:
-  - Designing workspace memory (~/clawd) beyond daily Markdown logs
-  - Deciding: standalone CLI vs deep Clawdbot integration
+  - Designing workspace memory (~/zee) beyond daily Markdown logs
+  - Deciding: standalone CLI vs deep Zee integration
   - Adding offline recall + reflection (retain/recall/reflect)
 ---
 
 # Workspace Memory v2 (offline): research notes
 
-Target: Clawd-style workspace (`agents.defaults.workspace`, default `~/clawd`) where “memory” is stored as one Markdown file per day (`memory/YYYY-MM-DD.md`) plus a small set of stable files (e.g. `memory.md`, `SOUL.md`).
+Target: Zee-style workspace (`agents.defaults.workspace`, default `~/zee`) where “memory” is stored as one Markdown file per day (`memory/YYYY-MM-DD.md`) plus a small set of stable files (e.g. `memory.md`, `SOUL.md`).
 
 This doc proposes an **offline-first** memory architecture that keeps Markdown as the canonical, reviewable source of truth, but adds **structured recall** (search, entity summaries, confidence updates) via a derived index.
 
@@ -53,12 +53,12 @@ Two pieces to blend:
 
 ### Canonical store (git-friendly)
 
-Keep `~/clawd` as canonical human-readable memory.
+Keep `~/zee` as canonical human-readable memory.
 
 Suggested workspace layout:
 
 ```
-~/clawd/
+~/zee/
   memory.md                    # small: durable facts + preferences (core-ish)
   memory/
     YYYY-MM-DD.md              # daily log (append; narrative)
@@ -76,14 +76,14 @@ Suggested workspace layout:
 Notes:
 - **Daily log stays daily log**. No need to turn it into JSON.
 - The `bank/` files are **curated**, produced by reflection jobs, and can still be edited by hand.
-- `memory.md` remains “small + core-ish”: the things you want Clawd to see every session.
+- `memory.md` remains “small + core-ish”: the things you want Zee to see every session.
 
 ### Derived store (machine recall)
 
 Add a derived index under the workspace (not necessarily git tracked):
 
 ```
-~/clawd/.memory/index.sqlite
+~/zee/.memory/index.sqlite
 ```
 
 Back it with:
@@ -155,16 +155,16 @@ Opinion evolution (simple, explainable):
 
 ## CLI integration: standalone vs deep integration
 
-Recommendation: **deep integration in Clawdbot**, but keep a separable core library.
+Recommendation: **deep integration in Zee**, but keep a separable core library.
 
-### Why integrate into Clawdbot?
-- Clawdbot already knows:
+### Why integrate into Zee?
+- Zee already knows:
   - the workspace path (`agents.defaults.workspace`)
   - the session model + heartbeats
   - logging + troubleshooting patterns
 - You want the agent itself to call the tools:
-  - `clawdbot memory recall "…" --k 25 --since 30d`
-  - `clawdbot memory reflect --since 7d`
+  - `zee memory recall "…" --k 25 --since 30d`
+  - `zee memory reflect --since 7d`
 
 ### Why still split a library?
 - keep memory logic testable without gateway/runtime
@@ -177,7 +177,7 @@ The memory tooling is intended to be a small CLI + library layer, but this is ex
 
 If “S-Collide” refers to **SuCo (Subspace Collision)**: it’s an ANN retrieval approach that targets strong recall/latency tradeoffs by using learned/structured collisions in subspaces (paper: arXiv 2411.14754, 2024).
 
-Pragmatic take for `~/clawd`:
+Pragmatic take for `~/zee`:
 - **don’t start** with SuCo.
 - start with SQLite FTS + (optional) simple embeddings; you’ll get most UX wins immediately.
 - consider SuCo/HNSW/ScaNN-class solutions only once:

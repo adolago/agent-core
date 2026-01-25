@@ -66,7 +66,7 @@ describe("gateway server auth/connect", () => {
     });
 
     test("connect (req) handshake returns hello-ok payload", async () => {
-      const { CONFIG_PATH_CLAWDBOT, STATE_DIR_CLAWDBOT } = await import("../config/config.js");
+      const { CONFIG_PATH_ZEEBOT, STATE_DIR_ZEEBOT } = await import("../config/config.js");
       const ws = await openWs(port);
 
       const res = await connectReq(ws);
@@ -78,8 +78,8 @@ describe("gateway server auth/connect", () => {
           }
         | undefined;
       expect(payload?.type).toBe("hello-ok");
-      expect(payload?.snapshot?.configPath).toBe(CONFIG_PATH_CLAWDBOT);
-      expect(payload?.snapshot?.stateDir).toBe(STATE_DIR_CLAWDBOT);
+      expect(payload?.snapshot?.configPath).toBe(CONFIG_PATH_ZEEBOT);
+      expect(payload?.snapshot?.stateDir).toBe(STATE_DIR_ZEEBOT);
 
       ws.close();
     });

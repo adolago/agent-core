@@ -4,9 +4,9 @@ import { appendCdpPath, createTargetViaCdp, getHeadersWithAuth, normalizeCdpWsUr
 import {
   isChromeCdpReady,
   isChromeReachable,
-  launchClawdChrome,
-  resolveClawdUserDataDir,
-  stopClawdChrome,
+  launchZeeChrome,
+  resolveZeeUserDataDir,
+  stopZeeChrome,
 } from "./chrome.js";
 import type { ResolvedBrowserProfile } from "./config.js";
 import { resolveProfile } from "./config.js";
@@ -301,7 +301,7 @@ function createProfileContext(
             : `Browser attachOnly is enabled and profile "${profile.name}" is not running.`,
         );
       }
-      const launched = await launchClawdChrome(current.resolved, profile);
+      const launched = await launchZeeChrome(current.resolved, profile);
       attachRunning(launched);
       return;
     }
@@ -330,10 +330,10 @@ function createProfileContext(
       );
     }
 
-    await stopClawdChrome(profileState.running);
+    await stopZeeChrome(profileState.running);
     setProfileRunning(null);
 
-    const relaunched = await launchClawdChrome(current.resolved, profile);
+    const relaunched = await launchZeeChrome(current.resolved, profile);
     attachRunning(relaunched);
 
     if (!(await isReachable(600))) {
@@ -464,7 +464,7 @@ function createProfileContext(
     }
     const profileState = getProfileState();
     if (!profileState.running) return { stopped: false };
-    await stopClawdChrome(profileState.running);
+    await stopZeeChrome(profileState.running);
     setProfileRunning(null);
     return { stopped: true };
   };
@@ -479,7 +479,7 @@ function createProfileContext(
         `reset-profile is only supported for local profiles (profile "${profile.name}" is remote).`,
       );
     }
-    const userDataDir = resolveClawdUserDataDir(profile.name);
+    const userDataDir = resolveZeeUserDataDir(profile.name);
     const profileState = getProfileState();
 
     const httpReachable = await isHttpReachable(300);

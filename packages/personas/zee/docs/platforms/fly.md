@@ -1,11 +1,11 @@
 ---
 title: Fly.io
-description: Deploy Clawdbot on Fly.io
+description: Deploy Zee on Fly.io
 ---
 
 # Fly.io Deployment
 
-**Goal:** Clawdbot Gateway running on a [Fly.io](https://fly.io) machine with persistent storage, automatic HTTPS, and Discord/channel access.
+**Goal:** Zee Gateway running on a [Fly.io](https://fly.io) machine with persistent storage, automatic HTTPS, and Discord/channel access.
 
 ## What you need
 
@@ -25,14 +25,14 @@ description: Deploy Clawdbot on Fly.io
 
 ```bash
 # Clone the repo
-git clone https://github.com/clawdbot/clawdbot.git
-cd clawdbot
+git clone https://github.com/zee/zee.git
+cd zee
 
 # Create a new Fly app (pick your own name)
-fly apps create my-clawdbot
+fly apps create my-zee
 
 # Create a persistent volume (1GB is usually enough)
-fly volumes create clawdbot_data --size 1 --region iad
+fly volumes create zee_data --size 1 --region iad
 ```
 
 **Tip:** Choose a region close to you. Common options: `lhr` (London), `iad` (Virginia), `sjc` (San Jose).
@@ -42,7 +42,7 @@ fly volumes create clawdbot_data --size 1 --region iad
 Edit `fly.toml` to match your app name and requirements:
 
 ```toml
-app = "my-clawdbot"  # Your app name
+app = "my-zee"  # Your app name
 primary_region = "iad"
 
 [build]
@@ -50,8 +50,8 @@ primary_region = "iad"
 
 [env]
   NODE_ENV = "production"
-  CLAWDBOT_PREFER_PNPM = "1"
-  CLAWDBOT_STATE_DIR = "/data"
+  ZEE_PREFER_PNPM = "1"
+  ZEE_STATE_DIR = "/data"
   NODE_OPTIONS = "--max-old-space-size=1536"
 
 [processes]
@@ -70,7 +70,7 @@ primary_region = "iad"
   memory = "2048mb"
 
 [mounts]
-  source = "clawdbot_data"
+  source = "zee_data"
   destination = "/data"
 ```
 
@@ -80,15 +80,15 @@ primary_region = "iad"
 |---------|-----|
 | `--bind lan` | Binds to `0.0.0.0` so Fly's proxy can reach the gateway |
 | `--allow-unconfigured` | Starts without a config file (you'll create one after) |
-| `internal_port = 3000` | Must match `--port 3000` (or `CLAWDBOT_GATEWAY_PORT`) for Fly health checks |
+| `internal_port = 3000` | Must match `--port 3000` (or `ZEE_GATEWAY_PORT`) for Fly health checks |
 | `memory = "2048mb"` | 512MB is too small; 2GB recommended |
-| `CLAWDBOT_STATE_DIR = "/data"` | Persists state on the volume |
+| `ZEE_STATE_DIR = "/data"` | Persists state on the volume |
 
 ## 3) Set secrets
 
 ```bash
 # Required: Gateway token (for non-loopback binding)
-fly secrets set CLAWDBOT_GATEWAY_TOKEN=$(openssl rand -hex 32)
+fly secrets set ZEE_GATEWAY_TOKEN=$(openssl rand -hex 32)
 
 # Model provider API keys
 fly secrets set ANTHROPIC_API_KEY=sk-ant-...
@@ -102,7 +102,7 @@ fly secrets set DISCORD_BOT_TOKEN=MTQ...
 ```
 
 **Notes:**
-- Non-loopback binds (`--bind lan`) require `CLAWDBOT_GATEWAY_TOKEN` for security.
+- Non-loopback binds (`--bind lan`) require `ZEE_GATEWAY_TOKEN` for security.
 - Treat these tokens like passwords.
 
 ## 4) Deploy
@@ -136,7 +136,7 @@ fly ssh console
 Create the config directory and file:
 ```bash
 mkdir -p /data
-cat > /data/clawdbot.json << 'EOF'
+cat > /data/zee.json << 'EOF'
 {
   "agents": {
     "defaults": {
@@ -188,7 +188,7 @@ cat > /data/clawdbot.json << 'EOF'
 EOF
 ```
 
-**Note:** With `CLAWDBOT_STATE_DIR=/data`, the config path is `/data/clawdbot.json`.
+**Note:** With `ZEE_STATE_DIR=/data`, the config path is `/data/zee.json`.
 
 **Note:** The Discord token can come from either:
 - Environment variable: `DISCORD_BOT_TOKEN` (recommended for secrets)
@@ -211,9 +211,9 @@ Open in browser:
 fly open
 ```
 
-Or visit `https://my-clawdbot.fly.dev/`
+Or visit `https://my-zee.fly.dev/`
 
-Paste your gateway token (the one from `CLAWDBOT_GATEWAY_TOKEN`) to authenticate.
+Paste your gateway token (the one from `ZEE_GATEWAY_TOKEN`) to authenticate.
 
 ### Logs
 
@@ -240,7 +240,7 @@ The gateway is binding to `127.0.0.1` instead of `0.0.0.0`.
 
 Fly can't reach the gateway on the configured port.
 
-**Fix:** Ensure `internal_port` matches the gateway port (set `--port 3000` or `CLAWDBOT_GATEWAY_PORT=3000`).
+**Fix:** Ensure `internal_port` matches the gateway port (set `--port 3000` or `ZEE_GATEWAY_PORT=3000`).
 
 ### OOM / Memory Issues
 
@@ -275,11 +275,11 @@ The lock file is at `/data/gateway.*.lock` (not in a subdirectory).
 
 ### Config Not Being Read
 
-If using `--allow-unconfigured`, the gateway creates a minimal config. Your custom config at `/data/clawdbot.json` should be read on restart.
+If using `--allow-unconfigured`, the gateway creates a minimal config. Your custom config at `/data/zee.json` should be read on restart.
 
 Verify the config exists:
 ```bash
-fly ssh console --command "cat /data/clawdbot.json"
+fly ssh console --command "cat /data/zee.json"
 ```
 
 ### Writing Config via SSH
@@ -288,23 +288,23 @@ The `fly ssh console -C` command doesn't support shell redirection. To write a c
 
 ```bash
 # Use echo + tee (pipe from local to remote)
-echo '{"your":"config"}' | fly ssh console -C "tee /data/clawdbot.json"
+echo '{"your":"config"}' | fly ssh console -C "tee /data/zee.json"
 
 # Or use sftp
 fly sftp shell
-> put /local/path/config.json /data/clawdbot.json
+> put /local/path/config.json /data/zee.json
 ```
 
 **Note:** `fly sftp` may fail if the file already exists. Delete first:
 ```bash
-fly ssh console --command "rm /data/clawdbot.json"
+fly ssh console --command "rm /data/zee.json"
 ```
 
 ### State Not Persisting
 
 If you lose credentials or sessions after a restart, the state dir is writing to the container filesystem.
 
-**Fix:** Ensure `CLAWDBOT_STATE_DIR=/data` is set in `fly.toml` and redeploy.
+**Fix:** Ensure `ZEE_STATE_DIR=/data` is set in `fly.toml` and redeploy.
 
 ## Updates
 

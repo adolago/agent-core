@@ -21,11 +21,11 @@ vi.mock("./trash.js", () => ({
 }));
 
 vi.mock("./chrome.js", () => ({
-  resolveClawdUserDataDir: vi.fn(() => "/tmp/clawd-test/clawd/user-data"),
+  resolveZeeUserDataDir: vi.fn(() => "/tmp/zee-test/zee/user-data"),
 }));
 
 import { loadConfig, writeConfigFile } from "../config/config.js";
-import { resolveClawdUserDataDir } from "./chrome.js";
+import { resolveZeeUserDataDir } from "./chrome.js";
 import { movePathToTrash } from "./trash.js";
 
 function createCtx(resolved: BrowserServerState["resolved"]) {
@@ -106,9 +106,9 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(loadConfig).mockReturnValue({
       browser: {
-        defaultProfile: "clawd",
+        defaultProfile: "zee",
         profiles: {
-          clawd: { cdpPort: 18800, color: "#FF4500" },
+          zee: { cdpPort: 18800, color: "#FF4500" },
           remote: { cdpUrl: "http://10.0.0.42:9222", color: "#0066CC" },
         },
       },
@@ -133,18 +133,18 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(loadConfig).mockReturnValue({
       browser: {
-        defaultProfile: "clawd",
+        defaultProfile: "zee",
         profiles: {
-          clawd: { cdpPort: 18800, color: "#FF4500" },
+          zee: { cdpPort: 18800, color: "#FF4500" },
           work: { cdpPort: 18801, color: "#0066CC" },
         },
       },
     });
 
-    const tempDir = fs.mkdtempSync(path.join("/tmp", "clawd-profile-"));
+    const tempDir = fs.mkdtempSync(path.join("/tmp", "zee-profile-"));
     const userDataDir = path.join(tempDir, "work", "user-data");
     fs.mkdirSync(path.dirname(userDataDir), { recursive: true });
-    vi.mocked(resolveClawdUserDataDir).mockReturnValue(userDataDir);
+    vi.mocked(resolveZeeUserDataDir).mockReturnValue(userDataDir);
 
     const service = createBrowserProfilesService(ctx);
     const result = await service.deleteProfile("work");

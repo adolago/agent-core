@@ -1,8 +1,8 @@
 ---
-summary: "Use OpenRouter's unified API to access many models in Clawdbot"
+summary: "Use OpenRouter's unified API to access many models in Zee"
 read_when:
   - You want a single API key for many LLMs
-  - You want to run models via OpenRouter in Clawdbot
+  - You want to run models via OpenRouter in Zee
 ---
 # OpenRouter
 
@@ -12,7 +12,7 @@ endpoint and API key. It is OpenAI-compatible, so most OpenAI SDKs work by switc
 ## CLI setup
 
 ```bash
-clawdbot onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
+zee onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
 ```
 
 ## Config snippet

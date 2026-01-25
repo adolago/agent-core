@@ -11,29 +11,29 @@ Manage Docker-based sandbox containers for isolated agent execution.
 
 ## Overview
 
-Clawdbot can run agents in isolated Docker containers for security. The `sandbox` commands help you manage these containers, especially after updates or configuration changes.
+Zee can run agents in isolated Docker containers for security. The `sandbox` commands help you manage these containers, especially after updates or configuration changes.
 
 ## Commands
 
-### `clawdbot sandbox explain`
+### `zee sandbox explain`
 
 Inspect the **effective** sandbox mode/scope/workspace access, sandbox tool policy, and elevated gates (with fix-it config key paths).
 
 ```bash
-clawdbot sandbox explain
-clawdbot sandbox explain --session agent:main:main
-clawdbot sandbox explain --agent work
-clawdbot sandbox explain --json
+zee sandbox explain
+zee sandbox explain --session agent:main:main
+zee sandbox explain --agent work
+zee sandbox explain --json
 ```
 
-### `clawdbot sandbox list`
+### `zee sandbox list`
 
 List all sandbox containers with their status and configuration.
 
 ```bash
-clawdbot sandbox list
-clawdbot sandbox list --browser  # List only browser containers
-clawdbot sandbox list --json     # JSON output
+zee sandbox list
+zee sandbox list --browser  # List only browser containers
+zee sandbox list --json     # JSON output
 ```
 
 **Output includes:**
@@ -43,16 +43,16 @@ clawdbot sandbox list --json     # JSON output
 - Idle time (time since last use)
 - Associated session/agent
 
-### `clawdbot sandbox recreate`
+### `zee sandbox recreate`
 
 Remove sandbox containers to force recreation with updated images/config.
 
 ```bash
-clawdbot sandbox recreate --all                # Recreate all containers
-clawdbot sandbox recreate --session main       # Specific session
-clawdbot sandbox recreate --agent mybot        # Specific agent
-clawdbot sandbox recreate --browser            # Only browser containers
-clawdbot sandbox recreate --all --force        # Skip confirmation
+zee sandbox recreate --all                # Recreate all containers
+zee sandbox recreate --session main       # Specific session
+zee sandbox recreate --agent mybot        # Specific agent
+zee sandbox recreate --browser            # Only browser containers
+zee sandbox recreate --all --force        # Skip confirmation
 ```
 
 **Options:**
@@ -70,14 +70,14 @@ clawdbot sandbox recreate --all --force        # Skip confirmation
 
 ```bash
 # Pull new image
-docker pull clawdbot-sandbox:latest
-docker tag clawdbot-sandbox:latest clawdbot-sandbox:bookworm-slim
+docker pull zee-sandbox:latest
+docker tag zee-sandbox:latest zee-sandbox:bookworm-slim
 
 # Update config to use new image
 # Edit config: agents.defaults.sandbox.docker.image (or agents.list[].sandbox.docker.image)
 
 # Recreate containers
-clawdbot sandbox recreate --all
+zee sandbox recreate --all
 ```
 
 ### After changing sandbox configuration
@@ -86,15 +86,15 @@ clawdbot sandbox recreate --all
 # Edit config: agents.defaults.sandbox.* (or agents.list[].sandbox.*)
 
 # Recreate to apply new config
-clawdbot sandbox recreate --all
+zee sandbox recreate --all
 ```
 
 ### After changing setupCommand
 
 ```bash
-clawdbot sandbox recreate --all
+zee sandbox recreate --all
 # or just one agent:
-clawdbot sandbox recreate --agent family
+zee sandbox recreate --agent family
 ```
 
 
@@ -102,7 +102,7 @@ clawdbot sandbox recreate --agent family
 
 ```bash
 # Update only one agent's containers
-clawdbot sandbox recreate --agent alfred
+zee sandbox recreate --agent alfred
 ```
 
 ## Why is this needed?
@@ -112,14 +112,14 @@ clawdbot sandbox recreate --agent alfred
 - Containers are only pruned after 24h of inactivity
 - Regularly-used agents keep old containers running indefinitely
 
-**Solution:** Use `clawdbot sandbox recreate` to force removal of old containers. They'll be recreated automatically with current settings when next needed.
+**Solution:** Use `zee sandbox recreate` to force removal of old containers. They'll be recreated automatically with current settings when next needed.
 
-Tip: prefer `clawdbot sandbox recreate` over manual `docker rm`. It uses the
+Tip: prefer `zee sandbox recreate` over manual `docker rm`. It uses the
 Gateway’s container naming and avoids mismatches when scope/session keys change.
 
 ## Configuration
 
-Sandbox settings live in `~/.clawdbot/clawdbot.json` under `agents.defaults.sandbox` (per-agent overrides go in `agents.list[].sandbox`):
+Sandbox settings live in `~/.zee/zee.json` under `agents.defaults.sandbox` (per-agent overrides go in `agents.list[].sandbox`):
 
 ```jsonc
 {
@@ -129,8 +129,8 @@ Sandbox settings live in `~/.clawdbot/clawdbot.json` under `agents.defaults.sand
         "mode": "all",                    // off, non-main, all
         "scope": "agent",                 // session, agent, shared
         "docker": {
-          "image": "clawdbot-sandbox:bookworm-slim",
-          "containerPrefix": "clawdbot-sbx-"
+          "image": "zee-sandbox:bookworm-slim",
+          "containerPrefix": "zee-sbx-"
           // ... more Docker options
         },
         "prune": {

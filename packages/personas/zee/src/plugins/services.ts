@@ -1,5 +1,5 @@
 import type { ZeeConfig } from "../config/config.js";
-import { STATE_DIR_CLAWDBOT } from "../config/paths.js";
+import { STATE_DIR_ZEEBOT } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginRegistry } from "./registry.js";
 
@@ -25,7 +25,7 @@ export async function startPluginServices(params: {
       await service.start({
         config: params.config,
         workspaceDir: params.workspaceDir,
-        stateDir: STATE_DIR_CLAWDBOT,
+        stateDir: STATE_DIR_ZEEBOT,
         logger: {
           info: (msg) => log.info(msg),
           warn: (msg) => log.warn(msg),
@@ -40,7 +40,7 @@ export async function startPluginServices(params: {
               service.stop?.({
                 config: params.config,
                 workspaceDir: params.workspaceDir,
-                stateDir: STATE_DIR_CLAWDBOT,
+                stateDir: STATE_DIR_ZEEBOT,
                 logger: {
                   info: (msg) => log.info(msg),
                   warn: (msg) => log.warn(msg),

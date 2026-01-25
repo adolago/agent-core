@@ -1,18 +1,18 @@
 // swift-tools-version: 6.2
-// Package manifest for the Clawdbot macOS companion (menu bar app + IPC library).
+// Package manifest for the Zee macOS companion (menu bar app + IPC library).
 
 import PackageDescription
 
 let package = Package(
-    name: "Clawdbot",
+    name: "Zee",
     platforms: [
         .macOS(.v15),
     ],
     products: [
-        .library(name: "ClawdbotIPC", targets: ["ClawdbotIPC"]),
-        .library(name: "ClawdbotDiscovery", targets: ["ClawdbotDiscovery"]),
-        .executable(name: "Clawdbot", targets: ["Clawdbot"]),
-        .executable(name: "clawdbot-mac", targets: ["ClawdbotMacCLI"]),
+        .library(name: "ZeeIPC", targets: ["ZeeIPC"]),
+        .library(name: "ZeeDiscovery", targets: ["ZeeDiscovery"]),
+        .executable(name: "Zee", targets: ["Zee"]),
+        .executable(name: "zee-mac", targets: ["ZeeMacCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/orchetect/MenuBarExtraAccess", exact: "1.2.2"),
@@ -20,33 +20,33 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.8.0"),
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.8.1"),
         .package(url: "https://github.com/steipete/Peekaboo.git", branch: "main"),
-        .package(path: "../shared/ClawdbotKit"),
+        .package(path: "../shared/ZeeKit"),
         .package(path: "../../Swabble"),
     ],
     targets: [
         .target(
-            name: "ClawdbotIPC",
+            name: "ZeeIPC",
             dependencies: [],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .target(
-            name: "ClawdbotDiscovery",
+            name: "ZeeDiscovery",
             dependencies: [
-                .product(name: "ClawdbotKit", package: "ClawdbotKit"),
+                .product(name: "ZeeKit", package: "ZeeKit"),
             ],
-            path: "Sources/ClawdbotDiscovery",
+            path: "Sources/ZeeDiscovery",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .executableTarget(
-            name: "Clawdbot",
+            name: "Zee",
             dependencies: [
-                "ClawdbotIPC",
-                "ClawdbotDiscovery",
-                .product(name: "ClawdbotKit", package: "ClawdbotKit"),
-                .product(name: "ClawdbotChatUI", package: "ClawdbotKit"),
-                .product(name: "ClawdbotProtocol", package: "ClawdbotKit"),
+                "ZeeIPC",
+                "ZeeDiscovery",
+                .product(name: "ZeeKit", package: "ZeeKit"),
+                .product(name: "ZeeChatUI", package: "ZeeKit"),
+                .product(name: "ZeeProtocol", package: "ZeeKit"),
                 .product(name: "SwabbleKit", package: "swabble"),
                 .product(name: "MenuBarExtraAccess", package: "MenuBarExtraAccess"),
                 .product(name: "Subprocess", package: "swift-subprocess"),
@@ -59,30 +59,30 @@ let package = Package(
                 "Resources/Info.plist",
             ],
             resources: [
-                .copy("Resources/Clawdbot.icns"),
+                .copy("Resources/Zee.icns"),
                 .copy("Resources/DeviceModels"),
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .executableTarget(
-            name: "ClawdbotMacCLI",
+            name: "ZeeMacCLI",
             dependencies: [
-                "ClawdbotDiscovery",
-                .product(name: "ClawdbotKit", package: "ClawdbotKit"),
-                .product(name: "ClawdbotProtocol", package: "ClawdbotKit"),
+                "ZeeDiscovery",
+                .product(name: "ZeeKit", package: "ZeeKit"),
+                .product(name: "ZeeProtocol", package: "ZeeKit"),
             ],
-            path: "Sources/ClawdbotMacCLI",
+            path: "Sources/ZeeMacCLI",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .testTarget(
-            name: "ClawdbotIPCTests",
+            name: "ZeeIPCTests",
             dependencies: [
-                "ClawdbotIPC",
-                "Clawdbot",
-                "ClawdbotDiscovery",
-                .product(name: "ClawdbotProtocol", package: "ClawdbotKit"),
+                "ZeeIPC",
+                "Zee",
+                "ZeeDiscovery",
+                .product(name: "ZeeProtocol", package: "ZeeKit"),
                 .product(name: "SwabbleKit", package: "swabble"),
             ],
             swiftSettings: [

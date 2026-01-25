@@ -92,9 +92,9 @@ vi.mock("../config/config.js", async (importOriginal) => {
         color: "#FF4500",
         attachOnly: cfgAttachOnly,
         headless: true,
-        defaultProfile: "clawd",
+        defaultProfile: "zee",
         profiles: {
-          clawd: { cdpPort: testPort + 1, color: "#FF4500" },
+          zee: { cdpPort: testPort + 1, color: "#FF4500" },
         },
       },
     }),
@@ -106,20 +106,20 @@ const launchCalls = vi.hoisted(() => [] as Array<{ port: number }>);
 vi.mock("./chrome.js", () => ({
   isChromeCdpReady: vi.fn(async () => reachable),
   isChromeReachable: vi.fn(async () => reachable),
-  launchClawdChrome: vi.fn(async (_resolved: unknown, profile: { cdpPort: number }) => {
+  launchZeeChrome: vi.fn(async (_resolved: unknown, profile: { cdpPort: number }) => {
     launchCalls.push({ port: profile.cdpPort });
     reachable = true;
     return {
       pid: 123,
       exe: { kind: "chrome", path: "/fake/chrome" },
-      userDataDir: "/tmp/clawd",
+      userDataDir: "/tmp/zee",
       cdpPort: profile.cdpPort,
       startedAt: Date.now(),
       proc,
     };
   }),
-  resolveClawdUserDataDir: vi.fn(() => "/tmp/clawd"),
-  stopClawdChrome: vi.fn(async () => {
+  resolveZeeUserDataDir: vi.fn(() => "/tmp/zee"),
+  stopZeeChrome: vi.fn(async () => {
     reachable = false;
   }),
 }));
@@ -331,11 +331,11 @@ describe("profile CRUD endpoints", () => {
     await startBrowserControlServerFromConfig();
     const base = `http://127.0.0.1:${testPort}`;
 
-    // "clawd" already exists as the default profile
+    // "zee" already exists as the default profile
     const result = await realFetch(`${base}/profiles/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "clawd" }),
+      body: JSON.stringify({ name: "zee" }),
     });
     expect(result.status).toBe(409);
     const body = (await result.json()) as { error: string };
@@ -396,8 +396,8 @@ describe("profile CRUD endpoints", () => {
     await startBrowserControlServerFromConfig();
     const base = `http://127.0.0.1:${testPort}`;
 
-    // clawd is the default profile
-    const result = await realFetch(`${base}/profiles/clawd`, {
+    // zee is the default profile
+    const result = await realFetch(`${base}/profiles/zee`, {
       method: "DELETE",
     });
     expect(result.status).toBe(400);

@@ -49,7 +49,7 @@ describe("gateway config.apply", () => {
           id,
           method: "config.apply",
           params: {
-            raw: '{ "agents": { "list": [{ "id": "main", "workspace": "~/clawd" }] } }',
+            raw: '{ "agents": { "list": [{ "id": "main", "workspace": "~/zee" }] } }',
             sessionKey: "agent:main:whatsapp:dm:+15555550123",
             restartDelayMs: 0,
           },

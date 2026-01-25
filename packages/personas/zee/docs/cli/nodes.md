@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `clawdbot nodes` (list/status/approve/invoke, camera/canvas/screen)"
+summary: "CLI reference for `zee nodes` (list/status/approve/invoke, camera/canvas/screen)"
 read_when:
   - You’re managing paired nodes (cameras, screen, canvas)
   - You need to approve requests or invoke node commands
 ---
 
-# `clawdbot nodes`
+# `zee nodes`
 
 Manage paired nodes (devices) and invoke node capabilities.
 
@@ -20,14 +20,14 @@ Common options:
 ## Common commands
 
 ```bash
-clawdbot nodes list
-clawdbot nodes list --connected
-clawdbot nodes list --last-connected 24h
-clawdbot nodes pending
-clawdbot nodes approve <requestId>
-clawdbot nodes status
-clawdbot nodes status --connected
-clawdbot nodes status --last-connected 24h
+zee nodes list
+zee nodes list --connected
+zee nodes list --last-connected 24h
+zee nodes pending
+zee nodes approve <requestId>
+zee nodes status
+zee nodes status --connected
+zee nodes status --last-connected 24h
 ```
 
 `nodes list` prints pending/paired tables. Paired rows include the most recent connect age (Last Connect).
@@ -37,10 +37,10 @@ filter to nodes that connected within a duration (e.g. `24h`, `7d`).
 ## Invoke / run
 
 ```bash
-clawdbot nodes invoke --node <id|name|ip> --command <command> --params <json>
-clawdbot nodes run --node <id|name|ip> <command...>
-clawdbot nodes run --raw "git status"
-clawdbot nodes run --agent main --node <id|name|ip> --raw "git status"
+zee nodes invoke --node <id|name|ip> --command <command> --params <json>
+zee nodes run --node <id|name|ip> <command...>
+zee nodes run --raw "git status"
+zee nodes run --agent main --node <id|name|ip> --raw "git status"
 ```
 
 Invoke flags:

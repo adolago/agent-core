@@ -6,26 +6,26 @@ read_when:
 ---
 # Tailscale (Gateway dashboard)
 
-Clawdbot can auto-configure Tailscale **Serve** (tailnet) or **Funnel** (public) for the
+Zee can auto-configure Tailscale **Serve** (tailnet) or **Funnel** (public) for the
 Gateway dashboard and WebSocket port. This keeps the Gateway bound to loopback while
 Tailscale provides HTTPS, routing, and (for Serve) identity headers.
 
 ## Modes
 
 - `serve`: Tailnet-only Serve via `tailscale serve`. The gateway stays on `127.0.0.1`.
-- `funnel`: Public HTTPS via `tailscale funnel`. Clawdbot requires a shared password.
+- `funnel`: Public HTTPS via `tailscale funnel`. Zee requires a shared password.
 - `off`: Default (no Tailscale automation).
 
 ## Auth
 
 Set `gateway.auth.mode` to control the handshake:
 
-- `token` (default when `CLAWDBOT_GATEWAY_TOKEN` is set)
-- `password` (shared secret via `CLAWDBOT_GATEWAY_PASSWORD` or config)
+- `token` (default when `ZEE_GATEWAY_TOKEN` is set)
+- `password` (shared secret via `ZEE_GATEWAY_PASSWORD` or config)
 
 When `tailscale.mode = "serve"` and `gateway.auth.allowTailscale` is `true`,
 valid Serve proxy requests can authenticate via Tailscale identity headers
-(`tailscale-user-login`) without supplying a token/password. Clawdbot only
+(`tailscale-user-login`) without supplying a token/password. Zee only
 treats a request as Serve when it arrives from loopback with Tailscale’s
 `x-forwarded-for`, `x-forwarded-proto`, and `x-forwarded-host` headers.
 To require explicit credentials, set `gateway.auth.allowTailscale: false` or
@@ -77,20 +77,20 @@ Note: loopback (`http://127.0.0.1:18789`) will **not** work in this mode.
 }
 ```
 
-Prefer `CLAWDBOT_GATEWAY_PASSWORD` over committing a password to disk.
+Prefer `ZEE_GATEWAY_PASSWORD` over committing a password to disk.
 
 ## CLI examples
 
 ```bash
-clawdbot gateway --tailscale serve
-clawdbot gateway --tailscale funnel --auth password
+zee gateway --tailscale serve
+zee gateway --tailscale funnel --auth password
 ```
 
 ## Notes
 
 - Tailscale Serve/Funnel requires the `tailscale` CLI to be installed and logged in.
 - `tailscale.mode: "funnel"` refuses to start unless auth mode is `password` to avoid public exposure.
-- Set `gateway.tailscale.resetOnExit` if you want Clawdbot to undo `tailscale serve`
+- Set `gateway.tailscale.resetOnExit` if you want Zee to undo `tailscale serve`
   or `tailscale funnel` configuration on shutdown.
 - `gateway.bind: "tailnet"` is a direct Tailnet bind (no HTTPS, no Serve/Funnel).
 - `gateway.bind: "auto"` prefers loopback; use `tailnet` if you want Tailnet-only.
@@ -104,7 +104,7 @@ and publish it through Tailscale **Serve** (tailnet-only):
 
 ```bash
 # on the machine that runs Chrome
-clawdbot browser serve --bind 127.0.0.1 --port 18791 --token <token>
+zee browser serve --bind 127.0.0.1 --port 18791 --token <token>
 tailscale serve https / http://127.0.0.1:18791
 ```
 
@@ -122,7 +122,7 @@ Then point the Gateway config at the HTTPS URL:
 And authenticate from the Gateway with the same token (prefer env):
 
 ```bash
-export CLAWDBOT_BROWSER_CONTROL_TOKEN="<token>"
+export ZEE_BROWSER_CONTROL_TOKEN="<token>"
 ```
 
 Avoid Funnel for browser control endpoints unless you explicitly want public exposure.

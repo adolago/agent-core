@@ -30,7 +30,7 @@ const baseParams = () => ({
   replyToMode: "off" as const,
   slashCommand: {
     enabled: false,
-    name: "clawd",
+    name: "zee",
     sessionPrefix: "slack:slash",
     ephemeral: true,
   },

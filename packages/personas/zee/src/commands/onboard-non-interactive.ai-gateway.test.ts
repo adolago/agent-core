@@ -56,8 +56,8 @@ describe("onboard (non-interactive): Vercel AI Gateway", () => {
         runtime,
       );
 
-      const { CONFIG_PATH_CLAWDBOT } = await import("../config/config.js");
-      const cfg = JSON.parse(await fs.readFile(CONFIG_PATH_CLAWDBOT, "utf8")) as {
+      const { CONFIG_PATH_ZEEBOT } = await import("../config/config.js");
+      const cfg = JSON.parse(await fs.readFile(CONFIG_PATH_ZEEBOT, "utf8")) as {
         auth?: {
           profiles?: Record<string, { provider?: string; mode?: string }>;
         };

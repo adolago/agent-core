@@ -1,13 +1,13 @@
 ---
 summary: "Plugin manifest + JSON schema requirements (strict config validation)"
 read_when:
-  - You are building a Clawdbot plugin
+  - You are building a Zee plugin
   - You need to ship a plugin config schema or debug plugin validation errors
 ---
-# Plugin manifest (clawdbot.plugin.json)
+# Plugin manifest (zee.plugin.json)
 
-Every plugin **must** ship a `clawdbot.plugin.json` file in the **plugin root**.
-Clawdbot uses this manifest to validate configuration **without executing plugin
+Every plugin **must** ship a `zee.plugin.json` file in the **plugin root**.
+Zee uses this manifest to validate configuration **without executing plugin
 code**. Missing or invalid manifests are treated as plugin errors and block
 config validation.
 
