@@ -9,7 +9,10 @@ type AuthConfig = {
 }
 
 export function getAuthConfig(): AuthConfig {
-  const disabled = Flag.AGENT_CORE_DISABLE_SERVER_AUTH || Flag.OPENCODE_DISABLE_SERVER_AUTH
+  // Auth is disabled by default for personal use. Set AGENT_CORE_ENABLE_SERVER_AUTH=1 to enable.
+  const explicitlyEnabled = Flag.AGENT_CORE_ENABLE_SERVER_AUTH || Flag.OPENCODE_ENABLE_SERVER_AUTH
+  const explicitlyDisabled = Flag.AGENT_CORE_DISABLE_SERVER_AUTH || Flag.OPENCODE_DISABLE_SERVER_AUTH
+  const disabled = !explicitlyEnabled || explicitlyDisabled
   const password = Flag.AGENT_CORE_SERVER_PASSWORD ?? Flag.OPENCODE_SERVER_PASSWORD
   const username = Flag.AGENT_CORE_SERVER_USERNAME ?? Flag.OPENCODE_SERVER_USERNAME ?? DEFAULT_USERNAME
   return { disabled, password, username }

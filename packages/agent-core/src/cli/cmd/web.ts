@@ -5,8 +5,6 @@ import { withNetworkOptions, resolveNetworkOptions } from "../network"
 import open from "open"
 import { networkInterfaces } from "os"
 import { normalizeHttpUrl } from "../../util/net"
-import { getAuthConfig } from "../../server/auth"
-
 function getNetworkIPs() {
   const nets = networkInterfaces()
   const results: string[] = []
@@ -34,15 +32,6 @@ export const WebCommand = cmd({
   builder: (yargs) => withNetworkOptions(yargs),
   describe: "start agent-core server and open web interface",
   handler: async (args) => {
-    const authConfig = getAuthConfig()
-    if (authConfig.disabled) {
-      UI.println(UI.Style.TEXT_WARNING_BOLD + "!  " + "Server auth is disabled via AGENT_CORE_DISABLE_SERVER_AUTH.")
-    } else if (!authConfig.password) {
-      UI.error(
-        "AGENT_CORE_SERVER_PASSWORD is not set. Set it (or OPENCODE_SERVER_PASSWORD) or set AGENT_CORE_DISABLE_SERVER_AUTH=1.",
-      )
-      process.exit(1)
-    }
     const opts = await resolveNetworkOptions(args)
     const server = Server.listen(opts)
     UI.empty()

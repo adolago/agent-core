@@ -154,13 +154,7 @@ export namespace Server {
             await next()
             return
           }
-          const authConfig = getAuthConfig()
-          if (!authConfig.disabled && !authConfig.password) {
-            return c.text(
-              "Server auth is enabled but no password is configured. Set AGENT_CORE_SERVER_PASSWORD or AGENT_CORE_DISABLE_SERVER_AUTH=1.",
-              500,
-            )
-          }
+          // Auth disabled by default. Enable with AGENT_CORE_ENABLE_SERVER_AUTH=1 + AGENT_CORE_SERVER_PASSWORD
           if (!isAuthorized(c.req.header("Authorization"))) {
             c.header("WWW-Authenticate", 'Basic realm="agent-core"')
             return c.text("Unauthorized", 401)

@@ -20,7 +20,7 @@ import net from "net"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
 import { Zee } from "../../paths"
-import { getAuthConfig, createAuthorizedFetch } from "../../server/auth"
+import { createAuthorizedFetch } from "../../server/auth"
 
 const log = Log.create({ service: "daemon" })
 
@@ -822,16 +822,6 @@ export const DaemonCommand = cmd({
         UI.error(`Failed to stop daemon: ${e}`)
         process.exit(1)
       }
-    }
-
-    const authConfig = getAuthConfig()
-    if (authConfig.disabled) {
-      UI.warn("Server auth is disabled via AGENT_CORE_DISABLE_SERVER_AUTH.")
-    } else if (!authConfig.password) {
-      UI.error(
-        "AGENT_CORE_SERVER_PASSWORD is not set. Set it (or OPENCODE_SERVER_PASSWORD) or set AGENT_CORE_DISABLE_SERVER_AUTH=1.",
-      )
-      process.exit(1)
     }
 
     try {
