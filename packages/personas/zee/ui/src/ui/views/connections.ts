@@ -266,6 +266,7 @@ function renderProvider(
           <div class="row" style="margin-top: 14px; flex-wrap: wrap;">
             <button
               class="btn primary"
+              aria-label="Show QR code for WhatsApp"
               ?disabled=${props.whatsappBusy}
               @click=${() => props.onWhatsAppStart(false)}
             >
@@ -273,6 +274,7 @@ function renderProvider(
             </button>
             <button
               class="btn"
+              aria-label="Relink WhatsApp connection"
               ?disabled=${props.whatsappBusy}
               @click=${() => props.onWhatsAppStart(true)}
             >
@@ -280,6 +282,7 @@ function renderProvider(
             </button>
             <button
               class="btn"
+              aria-label="Wait for WhatsApp QR scan"
               ?disabled=${props.whatsappBusy}
               @click=${() => props.onWhatsAppWait()}
             >
@@ -287,12 +290,17 @@ function renderProvider(
             </button>
             <button
               class="btn danger"
+              aria-label="Logout from WhatsApp"
               ?disabled=${props.whatsappBusy}
               @click=${() => props.onWhatsAppLogout()}
             >
               Logout
             </button>
-            <button class="btn" @click=${() => props.onRefresh(true)}>
+            <button
+              class="btn"
+              aria-label="Refresh WhatsApp status"
+              @click=${() => props.onRefresh(true)}
+            >
               Refresh
             </button>
           </div>
@@ -441,12 +449,17 @@ function renderProvider(
           <div class="row" style="margin-top: 14px;">
             <button
               class="btn primary"
+              aria-label="Save Telegram configuration"
               ?disabled=${props.telegramSaving}
               @click=${() => props.onTelegramSave()}
             >
               ${props.telegramSaving ? "Saving…" : "Save"}
             </button>
-            <button class="btn" @click=${() => props.onRefresh(true)}>
+            <button
+              class="btn"
+              aria-label="Probe Telegram connection"
+              @click=${() => props.onRefresh(true)}
+            >
               Probe
             </button>
           </div>
@@ -964,12 +977,17 @@ function renderProvider(
           <div class="row" style="margin-top: 14px;">
             <button
               class="btn primary"
+              aria-label="Save Discord configuration"
               ?disabled=${props.discordSaving}
               @click=${() => props.onDiscordSave()}
             >
               ${props.discordSaving ? "Saving…" : "Save"}
             </button>
-            <button class="btn" @click=${() => props.onRefresh(true)}>
+            <button
+              class="btn"
+              aria-label="Probe Discord connection"
+              @click=${() => props.onRefresh(true)}
+            >
               Probe
             </button>
           </div>
@@ -1347,12 +1365,17 @@ function renderProvider(
           <div class="row" style="margin-top: 14px;">
             <button
               class="btn primary"
+              aria-label="Save Slack configuration"
               ?disabled=${props.slackSaving}
               @click=${() => props.onSlackSave()}
             >
               ${props.slackSaving ? "Saving…" : "Save"}
             </button>
-            <button class="btn" @click=${() => props.onRefresh(true)}>
+            <button
+              class="btn"
+              aria-label="Probe Slack connection"
+              @click=${() => props.onRefresh(true)}
+            >
               Probe
             </button>
           </div>
@@ -1576,12 +1599,17 @@ function renderProvider(
           <div class="row" style="margin-top: 14px;">
             <button
               class="btn primary"
+              aria-label="Save Signal configuration"
               ?disabled=${props.signalSaving}
               @click=${() => props.onSignalSave()}
             >
               ${props.signalSaving ? "Saving…" : "Save"}
             </button>
-            <button class="btn" @click=${() => props.onRefresh(true)}>
+            <button
+              class="btn"
+              aria-label="Probe Signal connection"
+              @click=${() => props.onRefresh(true)}
+            >
               Probe
             </button>
           </div>
@@ -1749,12 +1777,17 @@ function renderProvider(
           <div class="row" style="margin-top: 14px;">
             <button
               class="btn primary"
+              aria-label="Save iMessage configuration"
               ?disabled=${props.imessageSaving}
               @click=${() => props.onIMessageSave()}
             >
               ${props.imessageSaving ? "Saving…" : "Save"}
             </button>
-            <button class="btn" @click=${() => props.onRefresh(true)}>
+            <button
+              class="btn"
+              aria-label="Probe iMessage connection"
+              @click=${() => props.onRefresh(true)}
+            >
               Probe
             </button>
           </div>
