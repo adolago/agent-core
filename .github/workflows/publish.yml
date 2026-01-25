@@ -50,6 +50,8 @@ jobs:
         run: |
           cd packages/agent-core
           npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
