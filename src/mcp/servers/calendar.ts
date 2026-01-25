@@ -17,7 +17,7 @@ import { registerCalendarTools } from "./calendar-tools.js";
 
 // Create server
 const server = new McpServer({
-  name: "personas-calendar",
+  name: "calendar",
   version: "1.0.0",
 });
 

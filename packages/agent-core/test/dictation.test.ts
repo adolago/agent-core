@@ -7,10 +7,12 @@ describe("Dictation.resolveConfig", () => {
   let authGetSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
-    delete process.env.INWORLD_API_KEY
-    delete process.env.INWORLD_STT_ENDPOINT
-    delete process.env.OPENCODE_INWORLD_API_KEY
-    delete process.env.OPENCODE_INWORLD_STT_ENDPOINT
+    delete process.env.GOOGLE_STT_API_KEY
+    delete process.env.OPENCODE_GOOGLE_STT_API_KEY
+    delete process.env.GOOGLE_CLIENT_EMAIL
+    delete process.env.GOOGLE_PRIVATE_KEY
+    delete process.env.GOOGLE_PRIVATE_KEY_ID
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS
     authGetSpy = spyOn(Auth, "get").mockImplementation(async () => undefined)
   })
 
@@ -18,187 +20,182 @@ describe("Dictation.resolveConfig", () => {
     authGetSpy.mockRestore()
   })
 
-  it("should return undefined when disabled", async () => {
+  it("returns undefined when disabled", async () => {
     const result = await Dictation.resolveConfig({ enabled: false })
     expect(result).toBeUndefined()
   })
 
-  it("should return undefined when no credentials available", async () => {
+  it("returns undefined when no credentials are available", async () => {
     const result = await Dictation.resolveConfig({})
     expect(result).toBeUndefined()
   })
 
-  it("should use config values when provided", async () => {
-    const result = await Dictation.resolveConfig({
-      endpoint: "https://test.inworld.ai/graph:start",
-      api_key: "dGVzdC1rZXk=", // base64 "test-key"
-    })
-    expect(result).toBeDefined()
-    expect(result?.endpoint).toBe("https://test.inworld.ai/graph:start")
-    expect(result?.apiKey).toBe("dGVzdC1rZXk=")
-  })
-
-  it("should use environment variables as fallback", async () => {
-    process.env.INWORLD_API_KEY = "env-key"
-    process.env.INWORLD_STT_ENDPOINT = "https://env.inworld.ai/graph:start"
-
+  it("uses GOOGLE_STT_API_KEY when present", async () => {
+    process.env.GOOGLE_STT_API_KEY = "  test-key  "
     const result = await Dictation.resolveConfig({})
     expect(result).toBeDefined()
-    expect(result?.endpoint).toBe("https://env.inworld.ai/graph:start")
-    expect(result?.apiKey).toBe("env-key")
+    expect(result?.provider).toBe("google")
+    expect(result?.google.apiKey).toBe("test-key")
   })
 
-  it("should use OPENCODE_ prefixed env vars as fallback", async () => {
-    process.env.OPENCODE_INWORLD_API_KEY = "opencode-key"
-    process.env.OPENCODE_INWORLD_STT_ENDPOINT = "https://opencode.inworld.ai/graph:start"
-
+  it("uses OPENCODE_GOOGLE_STT_API_KEY when present", async () => {
+    process.env.OPENCODE_GOOGLE_STT_API_KEY = "opencode-key"
     const result = await Dictation.resolveConfig({})
     expect(result).toBeDefined()
-    expect(result?.endpoint).toBe("https://opencode.inworld.ai/graph:start")
-    expect(result?.apiKey).toBe("opencode-key")
+    expect(result?.google.apiKey).toBe("opencode-key")
   })
 
-  it("should read from stored auth when env/config not available", async () => {
+  it("uses service account env vars when present", async () => {
+    process.env.GOOGLE_CLIENT_EMAIL = "robot@example.iam.gserviceaccount.com"
+    process.env.GOOGLE_PRIVATE_KEY = "line1\\nline2"
+    process.env.GOOGLE_PRIVATE_KEY_ID = "key-id"
+    const result = await Dictation.resolveConfig({})
+    expect(result).toBeDefined()
+    expect(result?.google.credentials).toBeDefined()
+    expect(result?.google.credentials?.client_email).toBe("robot@example.iam.gserviceaccount.com")
+    expect(result?.google.credentials?.private_key).toBe("line1\nline2")
+    expect(result?.google.credentials?.private_key_id).toBe("key-id")
+  })
+
+  it("treats GOOGLE_APPLICATION_CREDENTIALS as configured (ADC)", async () => {
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/fake-google.json"
+    const result = await Dictation.resolveConfig({})
+    expect(result).toBeDefined()
+    expect(result?.google.apiKey).toBeUndefined()
+    expect(result?.google.credentials).toBeUndefined()
+  })
+
+  it("reads service account JSON from stored google-vertex auth", async () => {
     authGetSpy.mockImplementation(async (providerID: string) => {
-      if (providerID === "inworld") {
-        return {
-          type: "api",
-          key: JSON.stringify({
-            apiKey: "stored-api-key",
-            endpoint: "https://stored.inworld.ai/graph:start",
-          }),
-        }
+      if (providerID !== "google-vertex") return
+      return {
+        type: "api",
+        key: JSON.stringify({
+          client_email: "stored@example.iam.gserviceaccount.com",
+          private_key: "stored-private-key",
+          private_key_id: "stored-key-id",
+          project_id: "stored-project",
+        }),
       }
-      return undefined
     })
 
     const result = await Dictation.resolveConfig({})
     expect(result).toBeDefined()
-    expect(result?.endpoint).toBe("https://stored.inworld.ai/graph:start")
-    expect(result?.apiKey).toBe("stored-api-key")
+    expect(result?.google.credentials?.client_email).toBe("stored@example.iam.gserviceaccount.com")
+    expect(result?.google.credentials?.private_key).toBe("stored-private-key")
+    expect(result?.google.credentials?.private_key_id).toBe("stored-key-id")
   })
 
-  it("should prefer config over stored auth", async () => {
+  it("falls back to google-stt auth when google-vertex is missing", async () => {
     authGetSpy.mockImplementation(async (providerID: string) => {
-      if (providerID === "inworld") {
-        return {
-          type: "api",
-          key: JSON.stringify({
-            apiKey: "stored-api-key",
-            endpoint: "https://stored.inworld.ai/graph:start",
-          }),
-        }
+      if (providerID !== "google-stt") return
+      return {
+        type: "api",
+        key: "stored-api-key",
       }
-      return undefined
     })
 
-    const result = await Dictation.resolveConfig({
-      endpoint: "https://config.inworld.ai/graph:start",
-      api_key: "config-api-key",
-    })
+    const result = await Dictation.resolveConfig({})
     expect(result).toBeDefined()
-    expect(result?.endpoint).toBe("https://config.inworld.ai/graph:start")
-    expect(result?.apiKey).toBe("config-api-key")
+    expect(result?.google.apiKey).toBe("stored-api-key")
   })
 
-  it("should use default values for optional fields", async () => {
-    const result = await Dictation.resolveConfig({
-      endpoint: "https://test.inworld.ai/graph:start",
-      api_key: "test-key",
+  it("prefers env vars over stored auth", async () => {
+    process.env.GOOGLE_STT_API_KEY = "env-key"
+    authGetSpy.mockImplementation(async (providerID: string) => {
+      if (providerID !== "google-vertex") return
+      return { type: "api", key: "stored-key" }
     })
+
+    const result = await Dictation.resolveConfig({})
     expect(result).toBeDefined()
-    expect(result?.inputKey).toBe("__root__")
+    expect(result?.google.apiKey).toBe("env-key")
+  })
+
+  it("applies defaults for optional fields", async () => {
+    process.env.GOOGLE_STT_API_KEY = "test-key"
+    const result = await Dictation.resolveConfig({})
+    expect(result).toBeDefined()
+    expect(result?.language).toBe("en-US")
+    expect(result?.alternativeLanguages).toEqual(["pt-BR", "es-ES", "de-DE"])
     expect(result?.sampleRate).toBe(16000)
     expect(result?.autoSubmit).toBe(false)
-    expect(result?.runtimeMode).toBe("auto")
+    expect(result?.maxDuration).toBe(30)
   })
 
-  it("should respect custom optional field values", async () => {
+  it("respects provided optional field values", async () => {
+    process.env.GOOGLE_STT_API_KEY = "test-key"
     const result = await Dictation.resolveConfig({
-      endpoint: "https://test.inworld.ai/graph:start",
-      api_key: "test-key",
-      input_key: "custom_audio",
-      sample_rate: 44100,
+      language: "de-DE",
+      alternative_languages: ["en-US", "pt-PT"],
+      sample_rate: 8000,
       auto_submit: true,
-      response_path: "data.text",
-      runtime_mode: "force",
+      max_duration: 12,
+      record_command: ["arecord", "-q"],
     })
     expect(result).toBeDefined()
-    expect(result?.inputKey).toBe("custom_audio")
-    expect(result?.sampleRate).toBe(44100)
+    expect(result?.language).toBe("de-DE")
+    expect(result?.alternativeLanguages).toEqual(["en-US", "pt-PT"])
+    expect(result?.sampleRate).toBe(8000)
     expect(result?.autoSubmit).toBe(true)
-    expect(result?.responsePath).toBe("data.text")
-    expect(result?.runtimeMode).toBe("force")
+    expect(result?.maxDuration).toBe(12)
+    expect(result?.recordCommand).toEqual(["arecord", "-q"])
   })
 })
 
 describe("Dictation.transcribe", () => {
-  it("sends GraphTypes.Audio payload from WAV PCM data", async () => {
+  it("sends Google Speech-to-Text recognize request from WAV PCM data", async () => {
     const wav = buildWav(new Int16Array([0, 32767]), 8000)
-    let seenBody: any
-    const fetcher = (async (_url: string, init?: RequestInit) => {
-      seenBody = JSON.parse(String(init?.body ?? "{}"))
-      return new Response(JSON.stringify({ text: "ok" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      })
+    let seenUrl: string | undefined
+    let seenInit: RequestInit | undefined
+
+    const fetcher = (async (url: string, init?: RequestInit) => {
+      seenUrl = url
+      seenInit = init
+      return new Response(
+        JSON.stringify({
+          results: [{ alternatives: [{ transcript: "hello" }] }, { alternatives: [{ transcript: "world" }] }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      )
     }) as typeof fetch
 
     const result = await Dictation.transcribe({
       config: {
-        endpoint: "https://example.test/graph:start",
-        apiKey: "test-key",
-        inputKey: "__root__",
+        provider: "google",
+        model: "default",
+        region: "us-central1",
+        language: "en-US",
+        alternativeLanguages: ["pt-BR"],
         sampleRate: 16000,
         autoSubmit: false,
-        runtimeMode: "auto",
         maxDuration: 30,
+        google: { apiKey: "test-key" },
       },
       audio: wav,
       fetcher,
     })
 
-    expect(result).toBe("ok")
-    expect(seenBody.input.type).toBe("Audio")
-    expect(seenBody.input._iw_type).toBe("Audio")
-    expect(seenBody.input.data.sampleRate).toBe(8000)
-    expect(seenBody.input.data.data).toHaveLength(2)
-    expect(seenBody.input.data.data[0]).toBeCloseTo(0, 6)
-    expect(seenBody.input.data.data[1]).toBeCloseTo(0.99997, 4)
-  })
+    expect(result).toBe("hello world")
+    expect(seenUrl).toBeDefined()
+    const url = new URL(seenUrl!)
+    expect(url.origin).toBe("https://speech.googleapis.com")
+    expect(url.pathname).toBe("/v1/speech:recognize")
+    expect(url.searchParams.get("key")).toBe("test-key")
 
-  it("supports nested input keys for audio payloads", async () => {
-    const wav = buildWav(new Int16Array([0, 32767]), 8000)
-    let seenBody: any
-    const fetcher = (async (_url: string, init?: RequestInit) => {
-      seenBody = JSON.parse(String(init?.body ?? "{}"))
-      return new Response(JSON.stringify({ text: "ok" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      })
-    }) as typeof fetch
+    const headers = (seenInit?.headers ?? {}) as Record<string, string>
+    expect(headers["Content-Type"]).toBe("application/json")
+    expect(headers.Authorization).toBeUndefined()
 
-    const result = await Dictation.transcribe({
-      config: {
-        endpoint: "https://example.test/graph:start",
-        apiKey: "test-key",
-        inputKey: "audio",
-        sampleRate: 16000,
-        autoSubmit: false,
-        runtimeMode: "auto",
-        maxDuration: 30,
-      },
-      audio: wav,
-      fetcher,
-    })
+    const body = JSON.parse(String(seenInit?.body ?? "{}")) as any
+    expect(body.config.encoding).toBe("LINEAR16")
+    expect(body.config.sampleRateHertz).toBe(8000)
+    expect(body.config.languageCode).toBe("en-US")
+    expect(body.config.alternativeLanguageCodes).toEqual(["pt-BR"])
+    expect(body.config.enableAutomaticPunctuation).toBe(true)
 
-    expect(result).toBe("ok")
-    expect(seenBody.input.audio.type).toBe("Audio")
-    expect(seenBody.input.audio._iw_type).toBe("Audio")
-    expect(seenBody.input.audio.data.sampleRate).toBe(8000)
-    expect(seenBody.input.audio.data.data).toHaveLength(2)
-    expect(seenBody.input.audio.data.data[0]).toBeCloseTo(0, 6)
-    expect(seenBody.input.audio.data.data[1]).toBeCloseTo(0.99997, 4)
+    const pcmBytes = Buffer.from(String(body.audio.content), "base64")
+    expect(new Uint8Array(pcmBytes)).toEqual(new Uint8Array([0, 0, 255, 127]))
   })
 })
 

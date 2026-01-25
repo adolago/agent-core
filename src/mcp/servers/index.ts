@@ -1,10 +1,10 @@
 /**
  * Personas MCP Servers
  *
- * Three MCP servers exposing persona capabilities to external tools:
- * - personas-memory: Qdrant-backed semantic memory
- * - personas-calendar: Google Calendar integration
- * - personas-portfolio: Financial tools via Stanley
+ * MCP servers exposing persona capabilities to external tools:
+ * - memory: Qdrant-backed semantic memory
+ * - calendar: Google Calendar integration
+ * - portfolio: Financial tools via Stanley
  *
  * Each server runs as a separate process using stdio transport.
  * Register them in your agent-core config as local MCP servers.
@@ -13,15 +13,15 @@
  * ```json
  * {
  *   "mcp": {
- *     "personas-memory": {
+ *     "memory": {
  *       "type": "local",
  *       "command": ["npx", "tsx", "src/mcp/servers/memory.ts"]
  *     },
- *     "personas-calendar": {
+ *     "calendar": {
  *       "type": "local",
  *       "command": ["npx", "tsx", "src/mcp/servers/calendar.ts"]
  *     },
- *     "personas-portfolio": {
+ *     "portfolio": {
  *       "type": "local",
  *       "command": ["npx", "tsx", "src/mcp/servers/portfolio.ts"]
  *     }
@@ -39,27 +39,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * MCP server configurations for personas
  */
 export const PERSONA_MCP_SERVERS = {
-  "personas-memory": {
+  "memory": {
     type: "local" as const,
     command: ["bun", "run", join(__dirname, "memory.ts")],
     description: "Semantic memory storage and search via Qdrant",
   },
-  "personas-calendar": {
+  "calendar": {
     type: "local" as const,
     command: ["bun", "run", join(__dirname, "calendar.ts")],
     description: "Google Calendar integration for scheduling",
   },
-  "personas-portfolio": {
+  "portfolio": {
     type: "local" as const,
     command: ["bun", "run", join(__dirname, "portfolio.ts")],
     description: "Financial tools: portfolio, market data, SEC filings",
   },
-  "personas-consciousness": {
+  "consciousness": {
     type: "local" as const,
     command: ["bun", "run", join(__dirname, "consciousness.ts")],
     description: "IIT consciousness tools: Phi calculation, evolution, reasoning",
   },
-  "personas-browser": {
+  "browser": {
     type: "local" as const,
     command: ["bun", "run", join(__dirname, "browser.ts")],
     description: "Browser automation via Zee gateway (profiles, tabs, actions)",

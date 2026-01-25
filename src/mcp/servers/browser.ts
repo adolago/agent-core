@@ -76,7 +76,7 @@ function errorResult(error: unknown) {
 
 // Create server
 const server = new McpServer({
-  name: "personas-browser",
+  name: "browser",
   version: "1.0.0",
 });
 

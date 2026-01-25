@@ -12,9 +12,7 @@ import { errors } from "../error"
 
 const log = Log.create({ service: "server:model" })
 
-const SERVICE_PROVIDER_NAMES: Record<string, string> = {
-  inworld: "Inworld AI",
-}
+const SERVICE_PROVIDER_NAMES: Record<string, string> = {}
 
 const resolveDefaultModels = (providers: Record<string, Provider.Info>) => {
   const defaults: Record<string, string> = {}

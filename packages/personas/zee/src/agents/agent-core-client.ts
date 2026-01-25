@@ -179,7 +179,7 @@ async function getAgentCoreClient() {
   return agentCoreInstance;
 }
 
-export async function transcribeInworldAudio(input: {
+export async function transcribeGoogleAudio(input: {
   audio: Uint8Array;
   timeoutMs?: number;
 }): Promise<string | undefined> {
@@ -189,7 +189,7 @@ export async function transcribeInworldAudio(input: {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(`${url}/stt/inworld`, {
+    const response = await fetch(`${url}/stt/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,

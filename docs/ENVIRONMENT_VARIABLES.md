@@ -48,13 +48,13 @@ Maturity and ownership for experimental flags are tracked in
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `INWORLD_API_KEY` | - | Base64 runtime API key for Inworld STT/TTS |
-| `INWORLD_STT_ENDPOINT` | - | Inworld runtime graph endpoint for STT (`.../graph:start`) |
-| `INWORLD_TTS_ENDPOINT` | - | Inworld runtime graph endpoint for TTS (`.../graph:start`) |
-| `OPENCODE_INWORLD_API_KEY` | - | Legacy alias for `INWORLD_API_KEY` |
-| `OPENCODE_INWORLD_STT_ENDPOINT` | - | Legacy alias for `INWORLD_STT_ENDPOINT` |
-| `OPENCODE_INWORLD_TTS_ENDPOINT` | - | Legacy alias for `INWORLD_TTS_ENDPOINT` |
-| `OPENCODE_DICTATION_RECORD_COMMAND` | - | Legacy override for the dictation recorder command |
+| `GOOGLE_APPLICATION_CREDENTIALS` | - | Path to Google Cloud service account JSON (recommended for dictation) |
+| `GOOGLE_CLIENT_EMAIL` | - | Service account client email (alternative to `GOOGLE_APPLICATION_CREDENTIALS`) |
+| `GOOGLE_PRIVATE_KEY` | - | Service account private key (alternative to `GOOGLE_APPLICATION_CREDENTIALS`) |
+| `GOOGLE_PRIVATE_KEY_ID` | - | Optional private key id (when using `GOOGLE_PRIVATE_KEY`) |
+| `GOOGLE_STT_API_KEY` | - | Optional API key for Google Speech-to-Text (project-dependent) |
+| `OPENCODE_GOOGLE_STT_API_KEY` | - | Alternate name for `GOOGLE_STT_API_KEY` |
+| `OPENCODE_DICTATION_RECORD_COMMAND` | - | Override for the dictation recorder command |
 
 ### Network & Proxy
 

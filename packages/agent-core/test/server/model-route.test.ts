@@ -11,9 +11,9 @@ const originalProviderList = Provider.list
 const originalAuthMethods = ProviderAuth.methods
 
 ModelsDev.get = async () => ({
-  inworld: {
-    id: "inworld",
-    name: "Inworld AI",
+  "test-service": {
+    id: "test-service",
+    name: "Test Service",
     env: [],
     models: {},
   },
@@ -44,7 +44,7 @@ describe("model route", () => {
         const response = await ModelRoute.request("/provider")
         expect(response.status).toBe(200)
         const data = await response.json()
-        expect(data.default.inworld).toBeUndefined()
+        expect(data.default["test-service"]).toBeUndefined()
       },
     })
   })

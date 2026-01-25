@@ -158,9 +158,8 @@ export namespace SessionPrompt {
   function resolveMemoryMcpName(status: Record<string, MCP.Status>): string {
     const preferred = process.env.AGENT_CORE_MEMORY_MCP
     if (preferred && status[preferred]) return preferred
-    if (status["personas-memory"]) return "personas-memory"
     if (status["memory"]) return "memory"
-    return preferred ?? "personas-memory"
+    return preferred ?? "memory"
   }
 
   async function ensureRequiredMemory(sessionID: string): Promise<void> {
@@ -172,8 +171,7 @@ export namespace SessionPrompt {
     let memoryServer = resolveMemoryMcpName(status)
 
     if (!status[memoryServer]) {
-      if (mcpConfig["personas-memory"]) memoryServer = "personas-memory"
-      else if (mcpConfig["memory"]) memoryServer = "memory"
+      if (mcpConfig["memory"]) memoryServer = "memory"
     }
 
     let memoryStatus = status[memoryServer]

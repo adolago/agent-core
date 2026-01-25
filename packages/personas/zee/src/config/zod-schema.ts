@@ -135,14 +135,14 @@ const TranscribeAudioCommandSchema = z.object({
   timeoutSeconds: z.number().int().positive().optional(),
 });
 
-const TranscribeAudioInworldSchema = z.object({
-  provider: z.literal("inworld"),
+const TranscribeAudioGoogleSchema = z.object({
+  provider: z.literal("google"),
   timeoutSeconds: z.number().int().positive().optional(),
   sampleRate: z.number().int().positive().optional(),
 });
 
 const TranscribeAudioSchema = z
-  .union([TranscribeAudioCommandSchema, TranscribeAudioInworldSchema])
+  .union([TranscribeAudioCommandSchema, TranscribeAudioGoogleSchema])
   .optional();
 
 const HexColorSchema = z

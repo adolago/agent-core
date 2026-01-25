@@ -221,7 +221,7 @@ export namespace MCP {
 
     // Try to find the server file in source directories
     const roots = [Global.Path.source, agentCoreRoot]
-    // Server name might be prefixed (e.g., "personas-memory" -> "memory.ts")
+    // Backwards compat: strip legacy "personas-" prefix if present
     const baseName = serverName.replace(/^personas-/, "")
     const candidates = [serverName, baseName]
 

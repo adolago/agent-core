@@ -1,36 +1,45 @@
 import { platform } from "os"
 import path from "path"
-import { createRequire } from "module"
-import { promisify } from "node:util"
-import { fileURLToPath } from "url"
 import { Auth } from "@/auth"
 
+type GoogleServiceAccountCredentials = {
+  client_email: string
+  private_key: string
+  private_key_id?: string
+}
+
 export namespace Dictation {
-  export type RuntimeMode = "auto" | "force" | "disable"
+  export type Provider = "google"
+  export type Model = "default" | "chirp_2"
 
   export type Config = {
     enabled?: boolean
-    endpoint?: string
-    api_key?: string
-    input_key?: string
+    provider?: Provider
+    model?: Model
+    region?: string
+    language?: string
+    alternative_languages?: string[]
     sample_rate?: number
     auto_submit?: boolean
-    response_path?: string
-    record_command?: string | string[]
-    runtime_mode?: RuntimeMode
     max_duration?: number
+    record_command?: string | string[]
   }
 
   export type RuntimeConfig = {
-    endpoint: string
-    apiKey: string
-    inputKey: string
+    provider: Provider
+    model: Model
+    region: string
+    language: string
+    alternativeLanguages: string[]
     sampleRate: number
     autoSubmit: boolean
-    responsePath?: string
-    recordCommand?: string | string[]
-    runtimeMode: RuntimeMode
     maxDuration: number
+    recordCommand?: string | string[]
+    google: {
+      apiKey?: string
+      credentials?: GoogleServiceAccountCredentials
+      projectId?: string
+    }
   }
 
   export type TranscribeState = "sending" | "receiving"
@@ -46,53 +55,40 @@ export namespace Dictation {
     cancel: () => Promise<void>
   }
 
-  type DecodedAudio = {
-    data: number[]
+  type DecodedPcm16Wav = {
+    pcm: Uint8Array
     sampleRate: number
   }
 
   const DEFAULT_SAMPLE_RATE = 16_000
-  const DEFAULT_INPUT_KEY = "__root__"
-  const DEFAULT_RUNTIME_MODE: RuntimeMode = "auto"
-  const DEFAULT_MAX_DURATION = 30 // seconds - prevents 413 payload too large errors
-  const TEXT_KEYS = new Set(["text", "transcript", "utterance", "output", "result"])
-  const GRAPH_MISMATCH_CACHE = new Set<string>()
-  let runtimeSttBindings: Promise<{ expose: Record<string, unknown> }> | null = null
+  const DEFAULT_MAX_DURATION = 30
+  const DEFAULT_LANGUAGE = "en-US"
+  const DEFAULT_ALTERNATIVE_LANGUAGES = ["pt-BR", "es-ES", "de-DE"]
+  const DEFAULT_REGION = "us-central1"
 
   export async function resolveConfig(input?: Config): Promise<RuntimeConfig | undefined> {
     if (input?.enabled === false) return
-    const envEndpoint = process.env["INWORLD_STT_ENDPOINT"] ?? process.env["OPENCODE_INWORLD_STT_ENDPOINT"]
-    const envApiKey = process.env["INWORLD_API_KEY"] ?? process.env["OPENCODE_INWORLD_API_KEY"]
+    const provider: Provider = input?.provider ?? "google"
+    if (provider !== "google") return
 
-    let endpoint = input?.endpoint ?? envEndpoint
-    let apiKey = input?.api_key ?? envApiKey
+    const model: Model = input?.model ?? "default"
+    const google = await resolveGoogleAuth()
+    const hasAdc =
+      Boolean(process.env["GOOGLE_APPLICATION_CREDENTIALS"]) ||
+      (Boolean(process.env["GOOGLE_CLIENT_EMAIL"]) && Boolean(process.env["GOOGLE_PRIVATE_KEY"]))
+    if (!google.apiKey && !google.credentials && !hasAdc) return
 
-    if (!endpoint || !apiKey) {
-      const storedAuth = await Auth.get("inworld")
-      if (storedAuth?.type === "api" && storedAuth.key) {
-        try {
-          const parsed = JSON.parse(storedAuth.key) as { apiKey?: string; endpoint?: string }
-          if (parsed.apiKey && parsed.endpoint) {
-            endpoint = endpoint ?? parsed.endpoint
-            apiKey = apiKey ?? parsed.apiKey
-          }
-        } catch {
-          // Key is not JSON, ignore
-        }
-      }
-    }
-    if (!endpoint || !apiKey) return
     return {
-      endpoint,
-      apiKey,
-      inputKey: input?.input_key ?? DEFAULT_INPUT_KEY,
+      provider,
+      model,
+      region: input?.region ?? DEFAULT_REGION,
+      language: input?.language ?? DEFAULT_LANGUAGE,
+      alternativeLanguages: input?.alternative_languages ?? DEFAULT_ALTERNATIVE_LANGUAGES,
       sampleRate: input?.sample_rate ?? DEFAULT_SAMPLE_RATE,
       autoSubmit: input?.auto_submit ?? false,
-      responsePath: input?.response_path,
-      recordCommand: input?.record_command,
-      runtimeMode:
-        input?.runtime_mode === "force" || input?.runtime_mode === "disable" ? input.runtime_mode : DEFAULT_RUNTIME_MODE,
       maxDuration: input?.max_duration ?? DEFAULT_MAX_DURATION,
+      recordCommand: input?.record_command,
+      google,
     }
   }
 
@@ -112,40 +108,11 @@ export namespace Dictation {
     const sox = Bun.which("sox")
 
     const recCommand = rec
-      ? [
-          rec,
-          "-q",
-          "-r",
-          String(input.sampleRate),
-          "-c",
-          "1",
-          "-b",
-          "16",
-          "-e",
-          "signed-integer",
-          "-t",
-          "wav",
-          "-",
-        ]
+      ? [rec, "-q", "-r", String(input.sampleRate), "-c", "1", "-b", "16", "-e", "signed-integer", "-t", "wav", "-"]
       : undefined
 
     const soxCommand = sox
-      ? [
-          sox,
-          "-q",
-          "-d",
-          "-r",
-          String(input.sampleRate),
-          "-c",
-          "1",
-          "-b",
-          "16",
-          "-e",
-          "signed-integer",
-          "-t",
-          "wav",
-          "-",
-        ]
+      ? [sox, "-q", "-d", "-r", String(input.sampleRate), "-c", "1", "-b", "16", "-e", "signed-integer", "-t", "wav", "-"]
       : undefined
 
     if (os === "linux") {
@@ -268,99 +235,247 @@ export namespace Dictation {
   }): Promise<string | undefined> {
     const fetcher = input.fetcher ?? fetch
     input.onState?.("sending")
-    let decoded = decodeWav(input.audio)
+
+    const decoded = decodeWavPcm16(input.audio)
     if (!decoded) {
-      throw new Error(
-        "Dictation expects 16-bit PCM WAV audio. Update tui.dictation.record_command to output WAV.",
-      )
+      throw new Error("Dictation expects 16-bit PCM WAV audio. Update tui.dictation.record_command to output WAV.")
     }
-    // Truncate audio to max duration to avoid 413 payload too large errors
-    const maxSamples = input.config.maxDuration * decoded.sampleRate
-    if (decoded.data.length > maxSamples) {
-      decoded = { data: decoded.data.slice(0, maxSamples), sampleRate: decoded.sampleRate }
+
+    const truncated = truncatePcm16(decoded, input.config.maxDuration)
+    const base64Audio = Buffer.from(truncated.pcm).toString("base64")
+
+    // Use Chirp 2 with V2 API or default V1 API
+    if (input.config.model === "chirp_2") {
+      return transcribeChirp2(input, truncated, base64Audio, fetcher)
     }
-    const runtimeMode = input.config.runtimeMode ?? DEFAULT_RUNTIME_MODE
-    if (runtimeMode === "force" || (runtimeMode === "auto" && GRAPH_MISMATCH_CACHE.has(input.config.endpoint))) {
-      return await transcribeWithRuntime({
-        config: input.config,
-        decoded,
-        onState: input.onState,
-      })
-    }
-    const audioInput = {
-      type: "Audio",
-      _iw_type: "Audio",
-      data: {
-        data: decoded.data,
-        sampleRate: decoded.sampleRate,
+
+    // Default: V1 API
+    const body = {
+      config: {
+        encoding: "LINEAR16",
+        sampleRateHertz: truncated.sampleRate,
+        languageCode: input.config.language,
+        alternativeLanguageCodes: input.config.alternativeLanguages,
+        enableAutomaticPunctuation: true,
       },
-    }
-    const inputKey = input.config.inputKey?.trim()
-    const payload = {
-      input: !inputKey || inputKey === DEFAULT_INPUT_KEY ? audioInput : { [inputKey]: audioInput },
+      audio: { content: base64Audio },
     }
 
-    try {
-      const response = await fetcher(input.config.endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${input.config.apiKey}`,
+    const url = new URL("https://speech.googleapis.com/v1/speech:recognize")
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+
+    if (input.config.google.apiKey) {
+      url.searchParams.set("key", input.config.google.apiKey)
+    } else {
+      headers.Authorization = `Bearer ${await getGoogleAccessToken(input.config.google.credentials)}`
+    }
+
+    const response = await fetcher(url.toString(), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    })
+
+    input.onState?.("receiving")
+    if (!response.ok) {
+      const text = await response.text().catch(() => "")
+      throw new Error(`Dictation request failed (${response.status}): ${text || response.statusText}`)
+    }
+
+    const payload = await response.json().catch(() => null)
+    return parseGoogleTranscript(payload)
+  }
+
+  async function transcribeChirp2(
+    input: {
+      config: RuntimeConfig
+      onState?: (state: TranscribeState) => void
+    },
+    truncated: DecodedPcm16Wav,
+    base64Audio: string,
+    fetcher: typeof fetch
+  ): Promise<string | undefined> {
+    // Chirp 2 uses Speech-to-Text V2 API
+    // Endpoint: https://{region}-speech.googleapis.com/v2/projects/{project}/locations/{region}:recognize
+    const region = input.config.region
+    const projectId = input.config.google.projectId ?? (await getGoogleProjectId(input.config.google.credentials))
+
+    if (!projectId) {
+      throw new Error("Chirp 2 requires a Google Cloud project ID. Set GOOGLE_CLOUD_PROJECT or use a service account key.")
+    }
+
+    const url = `https://${region}-speech.googleapis.com/v2/projects/${projectId}/locations/${region}:recognize`
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${await getGoogleAccessToken(input.config.google.credentials)}`,
+    }
+
+    // V2 API request format for Chirp 2
+    const body = {
+      config: {
+        model: "chirp_2",
+        languageCodes: input.config.language === "auto" ? ["auto"] : [input.config.language],
+        features: {
+          enableAutomaticPunctuation: true,
         },
-        body: JSON.stringify(payload),
-      })
-      input.onState?.("receiving")
+        explicitDecodingConfig: {
+          encoding: "LINEAR16",
+          sampleRateHertz: truncated.sampleRate,
+          audioChannelCount: 1,
+        },
+      },
+      content: base64Audio,
+    }
 
-      if (!response.ok) {
-        const text = await response.text().catch(() => "")
-        throw new Error(`Dictation request failed (${response.status}): ${text || response.statusText}`)
-      }
+    const response = await fetcher(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    })
 
-      const contentType = response.headers.get("content-type") ?? ""
-      const isNdjson = contentType.includes("application/x-ndjson") || contentType.includes("application/ndjson")
-      if (isNdjson) {
-        const text = await response.text().catch(() => "")
-        return parseNdjsonTranscript(text, input.config.responsePath)
-      }
-      if (!contentType.includes("application/json")) {
-        const text = await response.text()
-        return text.trim() || undefined
-      }
+    input.onState?.("receiving")
+    if (!response.ok) {
+      const text = await response.text().catch(() => "")
+      throw new Error(`Chirp 2 transcription failed (${response.status}): ${text || response.statusText}`)
+    }
 
-      const data = await response.json()
-      if (input.config.responsePath) {
-        const resolved = getByPath(data, input.config.responsePath)
-        if (typeof resolved === "string") return resolved
+    const payload = await response.json().catch(() => null)
+    return parseChirp2Transcript(payload)
+  }
+
+  function parseChirp2Transcript(value: unknown): string | undefined {
+    // V2 API response format
+    if (!value || typeof value !== "object") return
+    const results = (value as Record<string, unknown>).results
+    if (!Array.isArray(results)) return
+    const parts: string[] = []
+    for (const result of results) {
+      if (!result || typeof result !== "object") continue
+      const alternatives = (result as Record<string, unknown>).alternatives
+      if (!Array.isArray(alternatives) || alternatives.length === 0) continue
+      const first = alternatives[0]
+      if (first && typeof first === "object") {
+        const transcript = (first as Record<string, unknown>).transcript
+        if (typeof transcript === "string" && transcript.trim()) parts.push(transcript.trim())
       }
-      return findTranscript(data)
-    } catch (error) {
-      if (runtimeMode === "auto" && isInputMismatchError(error)) {
-        GRAPH_MISMATCH_CACHE.add(input.config.endpoint)
-        try {
-          return await transcribeWithRuntime({
-            config: input.config,
-            decoded,
-            onState: input.onState,
-          })
-        } catch (runtimeError) {
-          const baseMessage = error instanceof Error ? error.message : String(error)
-          const runtimeMessage = runtimeError instanceof Error ? runtimeError.message : String(runtimeError)
-          throw new Error(
-            `Dictation failed via graph endpoint (${baseMessage}) and runtime fallback failed (${runtimeMessage}).`,
-          )
-        }
+    }
+    return parts.join(" ").trim() || undefined
+  }
+
+  function parseGoogleTranscript(value: unknown): string | undefined {
+    if (!value || typeof value !== "object") return
+    const results = (value as Record<string, unknown>).results
+    if (!Array.isArray(results)) return
+    const parts: string[] = []
+    for (const result of results) {
+      if (!result || typeof result !== "object") continue
+      const alternatives = (result as Record<string, unknown>).alternatives
+      if (!Array.isArray(alternatives) || alternatives.length === 0) continue
+      const first = alternatives[0]
+      if (first && typeof first === "object") {
+        const transcript = (first as Record<string, unknown>).transcript
+        if (typeof transcript === "string" && transcript.trim()) parts.push(transcript.trim())
       }
-      throw error
+    }
+    return parts.join(" ").trim() || undefined
+  }
+
+  async function resolveGoogleAuth(): Promise<{ apiKey?: string; credentials?: GoogleServiceAccountCredentials }> {
+    const envApiKey = process.env["GOOGLE_STT_API_KEY"] ?? process.env["OPENCODE_GOOGLE_STT_API_KEY"]
+    if (envApiKey) return { apiKey: envApiKey.trim() }
+
+    const envClientEmail = process.env["GOOGLE_CLIENT_EMAIL"]
+    const envPrivateKey = process.env["GOOGLE_PRIVATE_KEY"]
+    const envPrivateKeyId = process.env["GOOGLE_PRIVATE_KEY_ID"]
+    if (envClientEmail && envPrivateKey) {
+      return {
+        credentials: {
+          client_email: envClientEmail,
+          private_key: envPrivateKey.replace(/\\n/g, "\n"),
+          ...(envPrivateKeyId ? { private_key_id: envPrivateKeyId } : {}),
+        },
+      }
+    }
+
+    const stored = (await Auth.get("google-vertex")) ?? (await Auth.get("google-stt"))
+    if (stored?.type === "api" && stored.key) {
+      const parsed = parseGoogleServiceAccountKey(stored.key)
+      if (parsed) return { credentials: parsed }
+      return { apiKey: stored.key.trim() }
+    }
+
+    return {}
+  }
+
+  function parseGoogleServiceAccountKey(value: string): GoogleServiceAccountCredentials | undefined {
+    const trimmed = value.trim()
+    if (!trimmed.startsWith("{")) return
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>
+      const clientEmail = parsed["client_email"]
+      const privateKey = parsed["private_key"]
+      if (typeof clientEmail !== "string" || !clientEmail.trim()) return
+      if (typeof privateKey !== "string" || !privateKey.trim()) return
+      const privateKeyId = parsed["private_key_id"]
+      return {
+        client_email: clientEmail,
+        private_key: privateKey,
+        ...(typeof privateKeyId === "string" && privateKeyId.trim() ? { private_key_id: privateKeyId } : {}),
+      }
+    } catch {
+      return
     }
   }
 
-  function decodeWav(input: Uint8Array): DecodedAudio | undefined {
+  async function getGoogleAccessToken(credentials?: GoogleServiceAccountCredentials): Promise<string> {
+    const { GoogleAuth } = await import("google-auth-library")
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+      ...(credentials ? { credentials } : {}),
+    })
+    const client = await auth.getClient()
+    const token = await client.getAccessToken()
+    if (token?.token) return token.token
+    throw new Error(
+      "Unable to obtain Google access token. Set GOOGLE_APPLICATION_CREDENTIALS, or connect google-vertex with a service-account JSON key.",
+    )
+  }
+
+  async function getGoogleProjectId(credentials?: GoogleServiceAccountCredentials): Promise<string | undefined> {
+    // Try environment variables first
+    const envProjectId = process.env["GOOGLE_CLOUD_PROJECT"] ?? process.env["GCLOUD_PROJECT"] ?? process.env["GCP_PROJECT"]
+    if (envProjectId) return envProjectId
+
+    // Try to extract from service account credentials
+    if (credentials) {
+      const { GoogleAuth } = await import("google-auth-library")
+      const auth = new GoogleAuth({ credentials })
+      const projectId = await auth.getProjectId().catch(() => undefined)
+      if (projectId) return projectId
+    }
+
+    // Try ADC
+    try {
+      const { GoogleAuth } = await import("google-auth-library")
+      const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] })
+      const projectId = await auth.getProjectId()
+      if (projectId) return projectId
+    } catch {
+      // ignore
+    }
+
+    return undefined
+  }
+
+  function decodeWavPcm16(input: Uint8Array): DecodedPcm16Wav | undefined {
     if (input.byteLength < 44) return
     const view = new DataView(input.buffer, input.byteOffset, input.byteLength)
     if (readTag(view, 0) !== "RIFF" || readTag(view, 8) !== "WAVE") return
 
     let offset = 12
-    let format: { audioFormat: number; channels: number; sampleRate: number; bitsPerSample: number } | undefined
+    let format:
+      | { audioFormat: number; channels: number; sampleRate: number; bitsPerSample: number }
+      | undefined
     let dataOffset: number | undefined
     let dataSize: number | undefined
 
@@ -381,12 +496,9 @@ export namespace Dictation {
         if (chunkSize % 2 === 1) offset += 1
       } else if (chunkId === "data") {
         dataOffset = offset
-        // For streaming WAV, chunkSize may be a placeholder (0x80000000).
-        // Use remaining bytes in buffer as actual data size.
         dataSize = Math.min(chunkSize, input.byteLength - offset)
-        break // data chunk is last, stop parsing
+        break
       } else {
-        // Skip unknown chunks
         if (offset + chunkSize > input.byteLength) break
         offset += chunkSize
         if (chunkSize % 2 === 1) offset += 1
@@ -394,31 +506,44 @@ export namespace Dictation {
     }
 
     if (!format || dataOffset === undefined || dataSize === undefined) return
+    if (format.audioFormat !== 1 || format.bitsPerSample !== 16) return
     if (format.channels < 1) return
-    const bytesPerSample = format.bitsPerSample / 8
-    if (!Number.isInteger(bytesPerSample) || bytesPerSample <= 0) return
+
+    const bytesPerSample = 2
     const frameSize = bytesPerSample * format.channels
-    if (frameSize <= 0) return
-
     const available = Math.min(dataSize, input.byteLength - dataOffset)
-    const sampleCount = Math.floor(available / frameSize)
-    const data = new Array<number>(sampleCount)
-    const dataView = new DataView(input.buffer, input.byteOffset + dataOffset, available)
+    const frameCount = Math.floor(available / frameSize)
+    if (frameCount <= 0) return
 
-    if (format.audioFormat === 1 && format.bitsPerSample === 16) {
-      for (let i = 0; i < sampleCount; i += 1) {
-        const sample = dataView.getInt16(i * frameSize, true)
-        data[i] = sample / 32768
+    if (format.channels === 1) {
+      const pcmByteLength = frameCount * bytesPerSample
+      return {
+        pcm: input.slice(dataOffset, dataOffset + pcmByteLength),
+        sampleRate: format.sampleRate,
       }
-    } else if (format.audioFormat === 3 && format.bitsPerSample === 32) {
-      for (let i = 0; i < sampleCount; i += 1) {
-        data[i] = dataView.getFloat32(i * frameSize, true)
-      }
-    } else {
-      return
     }
 
-    return { data, sampleRate: format.sampleRate }
+    const dv = new DataView(input.buffer, input.byteOffset + dataOffset, frameCount * frameSize)
+    const buffer = Buffer.allocUnsafe(frameCount * bytesPerSample)
+    for (let i = 0; i < frameCount; i++) {
+      let sum = 0
+      for (let c = 0; c < format.channels; c++) {
+        sum += dv.getInt16(i * frameSize + c * bytesPerSample, true)
+      }
+      const avg = Math.round(sum / format.channels)
+      buffer.writeInt16LE(Math.max(-32768, Math.min(32767, avg)), i * bytesPerSample)
+    }
+
+    return { pcm: new Uint8Array(buffer), sampleRate: format.sampleRate }
+  }
+
+  function truncatePcm16(input: DecodedPcm16Wav, maxDurationSeconds: number): DecodedPcm16Wav {
+    if (!Number.isFinite(maxDurationSeconds) || maxDurationSeconds <= 0) return input
+    const maxSamples = Math.floor(maxDurationSeconds * input.sampleRate)
+    if (maxSamples <= 0) return input
+    const maxBytes = maxSamples * 2
+    if (input.pcm.byteLength <= maxBytes) return input
+    return { pcm: input.pcm.slice(0, maxBytes), sampleRate: input.sampleRate }
   }
 
   function readTag(view: DataView, offset: number): string {
@@ -430,357 +555,31 @@ export namespace Dictation {
     )
   }
 
-  function findTranscript(value: unknown): string | undefined {
-    if (!value || typeof value !== "object") return
-    if (Array.isArray(value)) {
-      for (const entry of value) {
-        const found = findTranscript(entry)
-        if (found) return found
-      }
-      return
-    }
-
-    for (const [key, entry] of Object.entries(value)) {
-      if (TEXT_KEYS.has(key.toLowerCase()) && typeof entry === "string") {
-        return entry
-      }
-    }
-    for (const entry of Object.values(value)) {
-      const found = findTranscript(entry)
-      if (found) return found
-    }
-    return
-  }
-
-  function getByPath(value: unknown, path: string): unknown {
-    const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean)
-    let current: unknown = value
-    for (const part of parts) {
-      if (current && typeof current === "object") {
-        if (Array.isArray(current)) {
-          const idx = Number(part)
-          if (Number.isNaN(idx)) return
-          current = current[idx]
-        } else {
-          current = (current as Record<string, unknown>)[part]
-        }
-      } else {
-        return
-      }
-    }
-    return current
-  }
-
-  function parseNdjsonTranscript(text: string, responsePath?: string): string | undefined {
-    if (!text) return
-    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-    let lastTranscript: string | undefined
-    for (const line of lines) {
-      let entry: unknown
-      try {
-        entry = JSON.parse(line)
-      } catch {
-        continue
-      }
-      if (entry && typeof entry === "object") {
-        const error = (entry as Record<string, unknown>).error
-        if (typeof error === "string" && error.trim()) {
-          throw new Error(error)
-        }
-      }
-      if (responsePath) {
-        const resolved = getByPath(entry, responsePath)
-        if (typeof resolved === "string" && resolved.trim()) return resolved.trim()
-      }
-      const found = findTranscript(entry)
-      if (found) lastTranscript = found
-    }
-    return lastTranscript?.trim() || undefined
-  }
-
-  function isInputMismatchError(error: unknown): boolean {
-    if (!(error instanceof Error)) return false
-    return /input type mismatch|missing required input/i.test(error.message)
-  }
-
-  async function transcribeWithRuntime(input: {
-    config: RuntimeConfig
-    decoded: DecodedAudio
-    onState?: (state: TranscribeState) => void
-  }): Promise<string | undefined> {
-    let expose: Record<string, unknown> | undefined
-    try {
-      ;({ expose } = await ensureRuntimeSttBindings())
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      throw new Error(`@inworld/runtime is required for dictation fallback: ${message}`)
-    }
-
-    input.onState?.("sending")
-    const sttFactory = expose?.STTFactoryFunctions as
-      | { new: () => unknown; delete: (ptr: unknown) => void }
-      | undefined
-    const sttInterface = expose?.STTInterfaceFunctions as
-      | {
-          createRemote: (factory: unknown, config: unknown) => Promise<unknown>
-          isOK: (ptr: unknown) => boolean
-          get: (ptr: unknown) => unknown
-          delete: (ptr: unknown) => void
-          deleteInterface?: (ptr: unknown) => void
-          recognizeSpeech: (stt: unknown, audio: unknown, config: unknown) => Promise<unknown>
-        }
-      | undefined
-    const remoteConfig = expose?.RemoteSTTConfigFunctions as
-      | { new: () => unknown; delete: (ptr: unknown) => void; setApiKey: (ptr: unknown, key: string) => void }
-      | undefined
-    const speechConfig = expose?.SpeechRecognitionConfigFunctions as
-      | { new: () => unknown; delete: (ptr: unknown) => void }
-      | undefined
-    const audioChunk = expose?.AudioChunkFunctions as
-      | {
-          new: () => unknown
-          delete: (ptr: unknown) => void
-          setData: (ptr: unknown, data: unknown) => void
-          setSampleRate: (ptr: unknown, rate: number) => void
-        }
-      | undefined
-    const vectorFloat = expose?.VectorFloatFunctions as
-      | {
-          new: () => unknown
-          pushBack: (ptr: unknown, value: number) => void
-        }
-      | undefined
-    const inputStream = expose?.InputStreamFunctions as
-      | {
-          isOK: (ptr: unknown) => boolean
-          get: (ptr: unknown) => unknown
-          delete: (ptr: unknown) => void
-          deleteStream: (ptr: unknown) => void
-          hasNext: (ptr: unknown) => Promise<boolean>
-          read: (ptr: unknown) => Promise<unknown>
-        }
-      | undefined
-    const inworldString = expose?.InworldStringFunctions as
-      | { isOK: (ptr: unknown) => boolean; get: (ptr: unknown) => string }
-      | undefined
-
-    if (
-      !sttFactory ||
-      !sttInterface ||
-      !remoteConfig ||
-      !speechConfig ||
-      !audioChunk ||
-      !vectorFloat ||
-      !inputStream ||
-      !inworldString
-    ) {
-      throw new Error("@inworld/runtime STT bindings are unavailable")
-    }
-
-    let factoryPtr: unknown
-    let configPtr: unknown
-    let sttPtr: unknown
-    let audioPtr: unknown
-    let speechPtr: unknown
-    let statusOrStream: unknown
-    let streamPtr: unknown
-
-    try {
-      factoryPtr = sttFactory.new()
-      configPtr = remoteConfig.new()
-      remoteConfig.setApiKey(configPtr, input.config.apiKey)
-      const statusOrStt = await sttInterface.createRemote(factoryPtr, configPtr)
-      if (!sttInterface.isOK(statusOrStt)) {
-        throw new Error("Failed to create runtime STT instance")
-      }
-      sttPtr = sttInterface.get(statusOrStt)
-      sttInterface.delete(statusOrStt)
-      statusOrStream = undefined
-
-      const vectorPtr = vectorFloat.new()
-      for (const sample of input.decoded.data) {
-        vectorFloat.pushBack(vectorPtr, sample)
-      }
-
-      audioPtr = audioChunk.new()
-      audioChunk.setData(audioPtr, vectorPtr)
-      audioChunk.setSampleRate(audioPtr, input.decoded.sampleRate)
-
-      speechPtr = speechConfig.new()
-      statusOrStream = await sttInterface.recognizeSpeech(sttPtr, audioPtr, speechPtr)
-      if (!inputStream.isOK(statusOrStream)) {
-        throw new Error("Failed to recognize speech via runtime STT")
-      }
-
-      streamPtr = inputStream.get(statusOrStream)
-      input.onState?.("receiving")
-
-      let text = ""
-      while (await inputStream.hasNext(streamPtr)) {
-        const statusOrText = await inputStream.read(streamPtr)
-        if (!inworldString.isOK(statusOrText)) {
-          throw new Error("Failed to read STT stream output")
-        }
-        const chunk = inworldString.get(statusOrText)
-        if (chunk) text += chunk
-      }
-
-      return text.trim() || undefined
-    } finally {
-      if (streamPtr) inputStream.deleteStream(streamPtr)
-      if (statusOrStream) inputStream.delete(statusOrStream)
-      if (audioPtr) audioChunk.delete(audioPtr)
-      if (speechPtr) speechConfig.delete(speechPtr)
-      if (sttPtr && sttInterface.deleteInterface) sttInterface.deleteInterface(sttPtr)
-      if (configPtr) remoteConfig.delete(configPtr)
-      if (factoryPtr) sttFactory.delete(factoryPtr)
-    }
-  }
-
-  async function ensureRuntimeSttBindings(): Promise<{ expose: Record<string, unknown> }> {
-    if (runtimeSttBindings) return runtimeSttBindings
-    runtimeSttBindings = (async () => {
-      let runtimeDir: string
-      try {
-        const runtimeEntry = await import.meta.resolve("@inworld/runtime")
-        const runtimeEntryPath = fileURLToPath(runtimeEntry)
-        runtimeDir = path.dirname(runtimeEntryPath)
-      } catch {
-        // Fallback for bundled binary: check common locations for @inworld/runtime
-        const { existsSync } = await import("fs")
-        const { homedir } = await import("os")
-        const home = homedir()
-        const candidates = [
-          // Standard source location
-          path.join(home, ".local", "src", "agent-core", "node_modules", "@inworld", "runtime"),
-          path.join(home, ".local", "src", "agent-core", "packages", "agent-core", "node_modules", "@inworld", "runtime"),
-          // Environment variable override
-          process.env.AGENT_CORE_SOURCE && path.join(process.env.AGENT_CORE_SOURCE, "node_modules", "@inworld", "runtime"),
-          // Global bun modules
-          path.join(home, ".bun", "install", "global", "node_modules", "@inworld", "runtime"),
-          // Current working directory
-          path.join(process.cwd(), "node_modules", "@inworld", "runtime"),
-        ].filter(Boolean) as string[]
-        const found = candidates.find((p) => existsSync(path.join(p, "package.json")))
-        if (!found) {
-          throw new Error(
-            `Cannot find module '@inworld/runtime' - install it with: bun add @inworld/runtime (checked: ${candidates.join(", ")})`
-          )
-        }
-        runtimeDir = found
-      }
-      // Create require relative to the runtime directory, not the bundled binary
-      const { pathToFileURL } = await import("url")
-      const require = createRequire(pathToFileURL(path.join(runtimeDir, "package.json")).href)
-      const expose = require("./expose_binary.js") as Record<string, unknown>
-
-      const hasSttBindings =
-        Boolean(expose.RemoteSTTConfigFunctions) &&
-        Boolean(expose.STTFactoryFunctions) &&
-        Boolean(expose.STTInterfaceFunctions) &&
-        Boolean(expose.SpeechRecognitionConfigFunctions)
-      if (hasSttBindings) return { expose }
-
-      const platformDetection = require("./common/platform_detection.js") as {
-        getBinaryPath?: (baseDir: string) => string
-      }
-      if (typeof platformDetection.getBinaryPath !== "function") {
-        throw new Error("Unable to resolve Inworld runtime binary path")
-      }
-      const koffiModule = await import("koffi")
-      const koffi = (koffiModule as { default?: typeof import("koffi") }).default ?? koffiModule
-      const libPath = platformDetection.getBinaryPath(path.join(runtimeDir, "..", "bin"))
-      const inworld = koffi.load(libPath)
-
-      const asyncFn = (name: string, ret: string, args: string[]) =>
-        promisify(inworld.func(name, ret, args).async)
-      const syncFn = (name: string, ret: string, args: string[]) => inworld.func(name, ret, args)
-
-      if (!expose.RemoteSTTConfigFunctions) {
-        expose.RemoteSTTConfigFunctions = {
-          new: syncFn("inworld_RemoteSTTConfig_new", "void *", []),
-          delete: syncFn("inworld_RemoteSTTConfig_delete", "void", ["void *"]),
-          setApiKey: syncFn("inworld_RemoteSTTConfig_api_key_set", "void", ["void *", "str"]),
-        }
-      }
-
-      if (!expose.LocalSTTConfigFunctions) {
-        expose.LocalSTTConfigFunctions = {
-          new: syncFn("inworld_LocalSTTConfig_new", "void *", []),
-          delete: syncFn("inworld_LocalSTTConfig_delete", "void", ["void *"]),
-          setModelPath: syncFn("inworld_LocalSTTConfig_model_path_set", "void", ["void *", "str"]),
-          setDevice: syncFn("inworld_LocalSTTConfig_device_set", "void", ["void *", "void *"]),
-        }
-      }
-
-      if (!expose.SpeechRecognitionConfigFunctions) {
-        expose.SpeechRecognitionConfigFunctions = {
-          new: syncFn("inworld_SpeechRecognitionConfig_new", "void *", []),
-          delete: syncFn("inworld_SpeechRecognitionConfig_delete", "void", ["void *"]),
-        }
-      }
-
-      if (!expose.STTFactoryFunctions) {
-        expose.STTFactoryFunctions = {
-          new: syncFn("inworld_STTFactory_new", "void *", []),
-          delete: syncFn("inworld_STTFactory_delete", "void", ["void *"]),
-        }
-      }
-
-      if (!expose.STTInterfaceFunctions) {
-        expose.STTInterfaceFunctions = {
-          createRemote: asyncFn("inworld_STTFactory_CreateSTT_rcinworld_RemoteSTTConfig", "void *", [
-            "void *",
-            "void *",
-          ]),
-          createLocal: asyncFn("inworld_STTFactory_CreateSTT_rcinworld_LocalSTTConfig", "void *", [
-            "void *",
-            "void *",
-          ]),
-          isOK: syncFn("inworld_StatusOr_STTInterface_ok", "bool", ["void *"]),
-          get: syncFn("inworld_StatusOr_STTInterface_value", "void *", ["void *"]),
-          delete: syncFn("inworld_StatusOr_STTInterface_delete", "void", ["void *"]),
-          recognizeSpeech: asyncFn("inworld_STTInterface_RecognizeSpeech", "void *", [
-            "void *",
-            "void *",
-            "void *",
-          ]),
-          deleteInterface: syncFn("inworld_STTInterface_delete", "void", ["void *"]),
-        }
-      }
-
-      return { expose }
-    })()
-
-    return runtimeSttBindings
-  }
-
-
   async function readAll(stream?: ReadableStream<Uint8Array> | null): Promise<Uint8Array> {
     if (!stream) return new Uint8Array()
     const reader = stream.getReader()
     const chunks: Uint8Array[] = []
-    let total = 0
+    let size = 0
     while (true) {
-      const { value, done } = await reader.read()
+      const { done, value } = await reader.read()
       if (done) break
       if (value) {
         chunks.push(value)
-        total += value.length
+        size += value.length
       }
     }
-    const result = new Uint8Array(total)
+    const output = new Uint8Array(size)
     let offset = 0
     for (const chunk of chunks) {
-      result.set(chunk, offset)
+      output.set(chunk, offset)
       offset += chunk.length
     }
-    return result
+    return output
   }
 
   async function readAllText(stream?: ReadableStream<Uint8Array> | null): Promise<string> {
-    const data = await readAll(stream)
-    if (data.length === 0) return ""
-    return new TextDecoder().decode(data).trim()
+    const bytes = await readAll(stream)
+    return new TextDecoder().decode(bytes)
   }
 }
+

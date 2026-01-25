@@ -766,8 +766,8 @@ export type TranscribeAudioConfig =
       timeoutSeconds?: number;
     }
   | {
-      // Use agent-core's Inworld Runtime STT configuration.
-      provider: "inworld";
+      // Use agent-core's Google Cloud STT configuration.
+      provider: "google";
       timeoutSeconds?: number;
       sampleRate?: number;
     };

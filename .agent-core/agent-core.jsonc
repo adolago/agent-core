@@ -1,17 +1,17 @@
 {
   "$schema": "agent-core",
   "default_agent": "zee",
-  "model": "nebius/zai-org/glm-4.5-air",
-  "small_model": "nebius/zai-org/glm-4.5-air",
+  "model": "zai-coding-plan/glm-4.7",
+  "small_model": "zai-coding-plan/glm-4.7",
   "instructions": ["STYLE_GUIDE.md"],
   "mcp": {
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp"
     },
-    "personas-memory": { "enabled": true },
-    "personas-calendar": { "enabled": true },
-    "personas-portfolio": { "enabled": true }
+    "memory": { "enabled": true },
+    "calendar": { "enabled": true },
+    "portfolio": { "enabled": true }
   },
   "memory": {
     "required": true,
@@ -44,11 +44,21 @@
     "github-triage": false,
     "github-pr-search": false
   },
+  "tui": {
+    "dictation": {
+      "enabled": true,
+      "model": "chirp_2",
+      "region": "us-central1",
+      "language": "en-US",
+      "alternative_languages": ["pt-BR", "es-ES", "de-DE"]
+    }
+  },
   "agent": {
     "zee": {
       "description": "Personal assistant for life admin, memory, messaging, and calendar",
       "mode": "primary",
-      "color": "#5c9cf5"
+      "color": "#5c9cf5",
+      "model": "zai-coding-plan/glm-4.7"
     },
     "stanley": {
       "description": "Investing and financial research assistant",
@@ -61,12 +71,12 @@
       "color": "#7fd88c"
     },
     "title": {
-      "model": "nebius/zai-org/glm-4.5-air",
+      "model": "zai-coding-plan/glm-4.7",
       "temperature": 0.5,
       "hidden": true
     },
     "compaction": {
-      "model": "nebius/zai-org/glm-4.5-air",
+      "model": "zai-coding-plan/glm-4.7",
       "temperature": 0.3,
       "hidden": true
     }

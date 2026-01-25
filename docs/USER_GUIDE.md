@@ -78,7 +78,7 @@ When enabled, prompts fail fast if the memory backend or memory MCP is unavailab
 
 ### Dictation (TUI)
 
-Configure Inworld STT and a keybind in `agent-core.jsonc`:
+Configure Google Speech-to-Text and a keybind in `agent-core.jsonc`:
 
 ```json
 {
@@ -87,19 +87,22 @@ Configure Inworld STT and a keybind in `agent-core.jsonc`:
   },
   "tui": {
     "dictation": {
-      "endpoint": "https://api.inworld.ai/cloud/workspaces/<workspace>/graphs/<graph>/v1/graph:start",
-      "api_key": "<BASE64_API_KEY>",
+      "provider": "google",
+      "language": "en-US",
+      "alternative_languages": ["pt-BR", "es-ES", "de-DE"],
       "sample_rate": 16000,
+      "max_duration": 30,
       "auto_submit": false
     }
   }
 }
 ```
 
-You can also set `INWORLD_API_KEY` and `INWORLD_STT_ENDPOINT` as environment variables instead of storing secrets in config.
+Dictation uses Google Cloud credentials. Recommended options:
+- Connect `google-vertex` via `:connect` and paste a service-account JSON key (can be reused for Vertex models).
+- Or set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON file path.
+
 Use `tui.dictation.record_command` to override the recorder command if `arecord` is unavailable.
-The dictation payload is sent as `GraphTypes.Audio` with a float PCM array (`data`) and `sampleRate`; by default it is sent as the root input (`input_key: "__root__"`). Set `tui.dictation.input_key` if your graph expects a nested key.
-Use `tui.dictation.runtime_mode` to control runtime fallback: `auto` (default) tries the graph then falls back to runtime STT on input mismatch, `force` skips the graph and uses runtime STT, and `disable` turns off the fallback.
 
 Example recorder commands:
 

@@ -152,7 +152,7 @@ When analyzing:
     "~/.stanley/knowledge/sec-forms.md",
     "~/.stanley/knowledge/trading-concepts.md",
   ],
-  mcpServers: ["openbb", "nautilus", "zed-editor", "personas-browser"],
+  mcpServers: ["openbb", "nautilus", "zed-editor", "browser"],
 };
 
 // =============================================================================
@@ -260,7 +260,7 @@ When responding:
     "~/.clawd/IDENTITY.md",
     "~/.clawd/SOUL.md",
   ],
-  mcpServers: ["tiara", "personas-calendar", "personas-browser"],
+  mcpServers: ["tiara", "calendar", "browser"],
 };
 
 // =============================================================================
@@ -371,7 +371,7 @@ When teaching:
     "~/.johny/knowledge/math-concepts.md",
     "~/.johny/knowledge/cs-fundamentals.md",
   ],
-  mcpServers: ["tiara", "personas-browser"],
+  mcpServers: ["tiara", "browser"],
 };
 
 // =============================================================================

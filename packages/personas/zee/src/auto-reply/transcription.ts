@@ -3,14 +3,14 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { transcribeInworldAudio } from "../agents/agent-core-client.js";
+import { transcribeGoogleAudio } from "../agents/agent-core-client.js";
 import type { ZeeConfig } from "../config/config.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { runExec } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { applyTemplate, type MsgContext } from "./templating.js";
 
-const DEFAULT_INWORLD_SAMPLE_RATE = 16000;
+const DEFAULT_GOOGLE_SAMPLE_RATE = 16000;
 
 export function isAudio(mediaType?: string | null) {
   return Boolean(mediaType?.startsWith("audio"));
@@ -44,15 +44,15 @@ export async function transcribeInboundAudio(
     }
     if (!mediaPath) return undefined;
 
-    if ("provider" in transcriber && transcriber.provider === "inworld") {
+    if ("provider" in transcriber && transcriber.provider === "google") {
       const wavBuffer = await resolveWavBuffer(
         mediaPath,
         timeoutMs,
-        transcriber.sampleRate ?? DEFAULT_INWORLD_SAMPLE_RATE,
+        transcriber.sampleRate ?? DEFAULT_GOOGLE_SAMPLE_RATE,
         runtime,
       );
       if (!wavBuffer) return undefined;
-      const text = await transcribeInworldAudio({ audio: wavBuffer, timeoutMs });
+      const text = await transcribeGoogleAudio({ audio: wavBuffer, timeoutMs });
       if (!text) return undefined;
       return { text };
     }
@@ -95,7 +95,7 @@ async function resolveWavBuffer(
   const converted = await convertToWav(mediaPath, timeoutMs, sampleRate);
   if (!converted && runtime.error) {
     runtime.error(
-      "Inworld transcription requires WAV audio; install ffmpeg or sox or provide a WAV file.",
+      "Google STT transcription requires WAV audio; install ffmpeg or sox or provide a WAV file.",
     );
   }
   return converted;

@@ -14,11 +14,10 @@ const repoRoot = path.resolve(dir, "..", "..")
 process.chdir(dir)
 
 import pkg from "../package.json"
-import { Script } from "@opencode-ai/script"
+import { Script } from "../src/pkg/script"
 
 const personasRoot = path.resolve(repoRoot, "packages", "personas")
 const zeeRoot = path.join(personasRoot, "zee")
-const stanleyRoot = path.join(personasRoot, "stanley")
 const tiaraRoot = path.resolve(repoRoot, "packages", "tiara")
 const agentCoreAssetsRoot = path.join(repoRoot, ".agent-core")
 const claudeSkillsRoot = path.join(repoRoot, ".claude", "skills")
@@ -31,163 +30,22 @@ async function ensureZeeDependencies() {
   await $`pnpm install --prod --ignore-scripts`.cwd(zeeRoot)
 }
 
-function resolveStanleyRuntime(): string | undefined {
-  const configured = process.env.STANLEY_PYTHON_RUNTIME
-  if (configured && fs.existsSync(configured)) return configured
-  const pyenvRoot = process.env.PYENV_ROOT
-  const pyenvVersion = process.env.PYENV_VERSION
-  if (pyenvRoot && pyenvVersion) {
-    const candidate = path.join(pyenvRoot, "versions", pyenvVersion)
-    if (fs.existsSync(candidate)) return candidate
-  }
-  return undefined
-}
-
-function resolveStanleyPythonBinary(): string {
-  const runtimeRoot = resolveStanleyRuntime()
-  if (!runtimeRoot) return "python3"
-  const candidates = ["python3.12", "python3.13", "python3"]
-  for (const candidate of candidates) {
-    const python = path.join(runtimeRoot, "bin", candidate)
-    if (fs.existsSync(python)) return python
-  }
-  return "python3"
-}
-
-async function getPythonVersion(pythonBin: string): Promise<string | undefined> {
-  const version = await $`${pythonBin} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
-    .quiet()
-    .nothrow()
-    .text()
-    .then((v) => v.trim())
-  return version || undefined
-}
-
-async function ensureStanleyRuntime() {
-  const runtimeRoot = resolveStanleyRuntime()
-  if (!runtimeRoot) return
-  const destRoot = path.join(stanleyRoot, ".python-runtime")
-  if (fs.existsSync(destRoot)) {
-    const srcPython = resolveStanleyPythonBinary()
-    const destPythonCandidates = ["python3.12", "python3.13", "python3"].map((candidate) =>
-      path.join(destRoot, "bin", candidate),
-    )
-    const destPython = destPythonCandidates.find((candidate) => fs.existsSync(candidate))
-    if (!destPython) {
-      fs.rmSync(destRoot, { recursive: true, force: true })
-    } else {
-      const [srcVersion, destVersion] = await Promise.all([
-        getPythonVersion(srcPython),
-        getPythonVersion(destPython),
-      ])
-      if (srcVersion && destVersion && srcVersion !== destVersion) {
-        fs.rmSync(destRoot, { recursive: true, force: true })
-      } else {
-        return
-      }
-    }
-  }
-  console.log("bundling stanley python runtime")
-  fs.cpSync(runtimeRoot, destRoot, {
-    recursive: true,
-    dereference: true,
-  })
-}
-
-function getStanleyRequirementsFile(): string | undefined {
-  const locked = path.join(stanleyRoot, "requirements-lock.txt")
-  if (fs.existsSync(locked)) return locked
-  const fallback = path.join(stanleyRoot, "requirements.txt")
-  if (fs.existsSync(fallback)) return fallback
-  return undefined
-}
-
-function readStanleyDepsStamp(
-  stampPath: string,
-): { requirements: string; mtimeMs: number; depsKey?: string } | null {
-  try {
-    const raw = fs.readFileSync(stampPath, "utf-8")
-    return JSON.parse(raw) as { requirements: string; mtimeMs: number }
-  } catch {
-    return null
-  }
-}
-
-async function ensureStanleyDependencies() {
-  const requirementsFile = getStanleyRequirementsFile()
-  if (!requirementsFile) return
-  const pythonBin = resolveStanleyPythonBinary()
-  const pythonDepsRoot = path.join(stanleyRoot, ".python")
-  const stampPath = path.join(pythonDepsRoot, ".stanley-deps.json")
-  const constraintsPath = path.join(pythonDepsRoot, ".stanley-constraints.txt")
-  const requirementsStat = fs.statSync(requirementsFile)
-  fs.mkdirSync(pythonDepsRoot, { recursive: true })
-  const pythonVersion = await $`${pythonBin} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`
-    .cwd(stanleyRoot)
-    .quiet()
-    .nothrow()
-    .text()
-    .then((v) => v.trim())
-  const [major, minor] = pythonVersion.split(".").map((v) => Number(v))
-  const supportsOpenbb =
-    Number.isFinite(major) && Number.isFinite(minor) ? major < 3 || (major === 3 && minor < 14) : true
-  const deps = supportsOpenbb
-    ? ["openbb==4.6.0", "yfinance==0.2.66", "dbnomics==1.2.0", "nautilus_trader==1.222.0"]
-    : ["yfinance==0.2.66", "dbnomics==1.2.0", "nautilus_trader==1.222.0"]
-  const depsKey = deps.join("|")
-  const stamp = readStanleyDepsStamp(stampPath)
-  if (stamp && stamp.requirements === requirementsFile && stamp.mtimeMs === requirementsStat.mtimeMs && stamp.depsKey === depsKey) {
-    return
-  }
-  if (
-    (
-      await $`PYTHONPATH=${pythonDepsRoot} ${pythonBin} -c "import openbb, yfinance, dbnomics, nautilus_trader"`
-        .cwd(stanleyRoot)
-        .quiet()
-        .nothrow()
-    ).exitCode === 0
-  ) {
-    fs.writeFileSync(
-      stampPath,
-      JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs, depsKey }),
-    )
-    return
-  }
-
-  fs.writeFileSync(constraintsPath, deps.join("\n"))
-  console.log("installing minimal stanley dependencies for bundling")
-  await $`${pythonBin} -m pip install --only-binary=:all: --target ${pythonDepsRoot} -r ${constraintsPath}`.cwd(
-    stanleyRoot,
-  )
-  fs.writeFileSync(
-    stampPath,
-    JSON.stringify({ requirements: requirementsFile, mtimeMs: requirementsStat.mtimeMs, depsKey }),
-  )
-}
-
 function bundlePersonas(distRoot: string) {
   if (!fs.existsSync(personasRoot)) return
   const destRoot = path.join(distRoot, "packages", "personas")
   fs.mkdirSync(destRoot, { recursive: true })
-  for (const entry of fs.readdirSync(personasRoot, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue
-    const src = path.join(personasRoot, entry.name)
-    const dest = path.join(destRoot, entry.name)
-    fs.cpSync(src, dest, {
-      recursive: true,
-      dereference: true,
-      filter: (srcPath) => {
-        const base = path.basename(srcPath)
-        if (entry.name === "zee") {
-          return base !== ".git" && base !== ".venv" && base !== "venv"
-        }
-        if (entry.name === "stanley") {
-          return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
-        }
-        return base !== ".git" && base !== "node_modules" && base !== ".venv" && base !== "venv"
-      },
-    })
-  }
+  // Only bundle Zee - Stanley is external (STANLEY_REPO env var), Johny is in agent-core
+  const src = path.join(personasRoot, "zee")
+  if (!fs.existsSync(src)) return
+  const dest = path.join(destRoot, "zee")
+  fs.cpSync(src, dest, {
+    recursive: true,
+    dereference: true,
+    filter: (srcPath) => {
+      const base = path.basename(srcPath)
+      return base !== ".git" && base !== ".venv" && base !== "venv"
+    },
+  })
 }
 
 function bundleTiara(distRoot: string) {
@@ -343,6 +201,7 @@ const targetsFilter = (() => {
   }
 })()
 
+// Default to linux-x64 only for solo development
 const targets = targetsFilter
   ? allTargets.filter(targetsFilter)
   : singleFlag
@@ -350,28 +209,17 @@ const targets = targetsFilter
         if (item.os !== process.platform || item.arch !== process.arch) {
           return false
         }
-
-        // When building for the current platform, prefer a single native binary by default.
-        // Baseline binaries require additional Bun artifacts and can be flaky to download.
         if (item.avx2 === false) {
           return baselineFlag
         }
-
-        // also skip abi-specific builds for the same reason
         if (item.abi !== undefined) {
           return false
         }
-
         return true
       })
     : allTargets.filter((item) => {
-        if (item.os === "linux" && item.arch === "x64" && item.abi === undefined && item.avx2 !== false) {
-          return true
-        }
-        if (item.os === "darwin" && item.arch === "arm64" && item.abi === undefined && item.avx2 !== false) {
-          return true
-        }
-        return false
+        // Solo development: linux-x64 only by default
+        return item.os === "linux" && item.arch === "x64" && item.abi === undefined && item.avx2 !== false
       })
 
 await $`rm -rf dist`
@@ -383,10 +231,6 @@ if (!skipInstall) {
 }
 if (fs.existsSync(zeeRoot)) {
   await ensureZeeDependencies()
-}
-if (fs.existsSync(stanleyRoot)) {
-  await ensureStanleyDependencies()
-  await ensureStanleyRuntime()
 }
 
 for (const item of targets) {

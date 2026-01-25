@@ -182,6 +182,22 @@ You can always check:
 
 No generic "build" or "plan" agents. Every interaction goes through a persona with domain expertise. The personas share orchestration (tiara) and memory (Qdrant) but have distinct purposes.
 
+## Simplified Package Structure
+
+This is a consolidated monolith with just 3 packages:
+
+```
+packages/
+├── agent-core/      # Core TUI, daemon, SDK, utils (all merged)
+├── tiara/           # Orchestration (SPARC methodology)
+└── personas/zee/    # Messaging gateway only
+```
+
+**Personas:**
+- **Zee**: Messaging gateway in `packages/personas/zee/`
+- **Stanley**: External Python repo (set `STANLEY_REPO` env var)
+- **Johny**: TypeScript implementation in `src/personas/johny/`
+
 ## Key Directories
 
 ```
@@ -190,13 +206,22 @@ agent-core/
 │   ├── johny/               # Study assistant
 │   ├── stanley/             # Trading assistant
 │   └── zee/                 # Personal assistant
+├── packages/
+│   ├── agent-core/          # Core engine
+│   │   └── src/pkg/         # Merged packages (sdk, plugin, util, script)
+│   ├── tiara/               # Orchestration
+│   └── personas/zee/        # Messaging gateway
 ├── src/
 │   ├── domain/              # Domain-specific tools
-│   │   ├── stanley/         # 5 financial tools
+│   │   ├── johny/           # 5 learning tools
+│   │   ├── stanley/         # 5 financial tools (CLI bridge)
 │   │   └── zee/             # 6 personal tools
 │   ├── personas/
-│   │   └── johny/
-│   │       └── knowledge-graph/  # MathAcademy-inspired learning system
+│   │   └── johny/           # TypeScript learning system
+│   │       ├── knowledge-graph.ts  # Topic DAG
+│   │       ├── mastery.ts          # Mastery tracking
+│   │       ├── review.ts           # Spaced repetition
+│   │       └── practice.ts         # Practice sessions
 │   └── memory/              # Qdrant vector storage types
 └── docs/
     └── SKILLS.md            # Skills documentation
@@ -219,7 +244,7 @@ Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
 1. **Skills go in `.claude/skills/`** - Follow Anthropic Agent Skills standard
 2. **Domain tools go in `src/domain/`** - TypeScript implementations
 3. **Persona logic goes in `src/personas/`** - Knowledge graphs, strategies
-4. **Keep upstream sync** - This repo tracks upstream changes
+4. **No upstream sync** - This is a standalone monolith for solo development
 
 ## Experimental Features
 
@@ -229,11 +254,22 @@ This system has experimental features enabled:
 - Semantic memory via Qdrant
 - All experimental flags active
 
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `STANLEY_REPO` | Path to external Stanley Python repo (required for Stanley tools) |
+| `JOHNY_DATA_DIR` | Directory for Johny data files (default: `~/.zee/johny`) |
+| `AGENT_CORE_ROOT` | Path to agent-core installation (for bundled binaries) |
+
 ## State Management
 
 | Data              | Location                        |
 | ----------------- | ------------------------------- |
-| Johny profile     | `~/.zee/johny/profile.json`     |
+| Johny knowledge   | `~/.zee/johny/knowledge-graph.json` |
+| Johny mastery     | `~/.zee/johny/mastery.json`     |
+| Johny reviews     | `~/.zee/johny/reviews.json`     |
+| Johny practice    | `~/.zee/johny/practice.json`    |
 | Stanley portfolio | `~/.zee/stanley/portfolio.json` |
 | Zee memories      | `~/.zee/zee/memories.json`      |
 | Credentials       | `~/.zee/credentials/`           |

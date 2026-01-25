@@ -107,6 +107,40 @@ export namespace Provider {
     options?: Record<string, any>
   }>
 
+  type GoogleServiceAccountCredentials = {
+    client_email: string
+    private_key: string
+    private_key_id?: string
+  }
+
+  function parseGoogleServiceAccountKey(
+    value: string,
+  ): { credentials: GoogleServiceAccountCredentials; project?: string } | undefined {
+    const trimmed = value.trim()
+    if (!trimmed.startsWith("{")) return
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>
+      const clientEmail = parsed["client_email"]
+      const privateKey = parsed["private_key"]
+      if (typeof clientEmail !== "string" || !clientEmail.trim()) return
+      if (typeof privateKey !== "string" || !privateKey.trim()) return
+
+      const privateKeyId = parsed["private_key_id"]
+      const projectId = parsed["project_id"]
+
+      return {
+        credentials: {
+          client_email: clientEmail,
+          private_key: privateKey.replace(/\\n/g, "\n"),
+          ...(typeof privateKeyId === "string" && privateKeyId.trim() ? { private_key_id: privateKeyId } : {}),
+        },
+        ...(typeof projectId === "string" && projectId.trim() ? { project: projectId } : {}),
+      }
+    } catch {
+      return
+    }
+  }
+
   const CUSTOM_LOADERS: Record<string, CustomLoader> = {
     async anthropic() {
       return {
@@ -359,8 +393,19 @@ export namespace Provider {
       }
     },
     "google-vertex": async () => {
-      const project = Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT")
-      const location = Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? "us-east5"
+      const auth = await Auth.get("google-vertex")
+      const serviceAccount =
+        auth?.type === "api" && auth.key ? parseGoogleServiceAccountKey(auth.key) : undefined
+
+      const project =
+        Env.get("GOOGLE_CLOUD_PROJECT") ??
+        Env.get("GCP_PROJECT") ??
+        Env.get("GCLOUD_PROJECT") ??
+        Env.get("GOOGLE_VERTEX_PROJECT") ??
+        serviceAccount?.project
+
+      const location =
+        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "us-east5"
       const autoload = Boolean(project)
       if (!autoload) return { autoload: false }
       return {
@@ -368,6 +413,7 @@ export namespace Provider {
         options: {
           project,
           location,
+          ...(serviceAccount?.credentials ? { googleAuthOptions: { credentials: serviceAccount.credentials } } : {}),
         },
         async getModel(sdk: any, modelID: string) {
           const id = String(modelID).trim()
@@ -376,8 +422,19 @@ export namespace Provider {
       }
     },
     "google-vertex-anthropic": async () => {
-      const project = Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT")
-      const location = Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? "global"
+      const auth = await Auth.get("google-vertex")
+      const serviceAccount =
+        auth?.type === "api" && auth.key ? parseGoogleServiceAccountKey(auth.key) : undefined
+
+      const project =
+        Env.get("GOOGLE_CLOUD_PROJECT") ??
+        Env.get("GCP_PROJECT") ??
+        Env.get("GCLOUD_PROJECT") ??
+        Env.get("GOOGLE_VERTEX_PROJECT") ??
+        serviceAccount?.project
+
+      const location =
+        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "global"
       const autoload = Boolean(project)
       if (!autoload) return { autoload: false }
       return {
@@ -385,6 +442,7 @@ export namespace Provider {
         options: {
           project,
           location,
+          ...(serviceAccount?.credentials ? { googleAuthOptions: { credentials: serviceAccount.credentials } } : {}),
         },
         async getModel(sdk: any, modelID) {
           const id = String(modelID).trim()

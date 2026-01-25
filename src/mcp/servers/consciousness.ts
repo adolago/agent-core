@@ -18,7 +18,7 @@ import { z } from "zod";
 
 // Create server
 const server = new McpServer({
-  name: "personas-consciousness",
+  name: "consciousness",
   version: "1.0.0",
 });
 
@@ -526,7 +526,7 @@ server.tool(
           text: JSON.stringify(
             {
               success: true,
-              server: "personas-consciousness",
+              server: "consciousness",
               version: "1.0.0",
               theory: "Integrated Information Theory (IIT)",
               capabilities: [

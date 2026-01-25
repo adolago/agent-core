@@ -1,104 +1,27 @@
 /**
  * Johny Domain Tools
  *
- * Learning and study tools powered by:
+ * Learning and study tools powered by TypeScript implementation:
  * - Knowledge graph with topic prerequisites (DAG)
  * - Spaced repetition with Ebbinghaus decay modeling
  * - FIRe (Fractional Implicit Repetition) for implicit review credit
  * - Mastery tracking across 6 levels
  */
 
-import { z } from "zod";
-import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import type { ToolDefinition, ToolExecutionResult } from "../../mcp/types";
-import { getSafeEnv } from "../../util/safe-env";
-
-type JohnyResult = {
-  ok: boolean;
-  command?: string;
-  data?: unknown;
-  error?: string;
-};
-
-function resolvePersonaRepo(name: string): string {
-  const root = process.env.AGENT_CORE_ROOT;
-  if (root) return join(root, "vendor", "personas", name);
-  return join(homedir(), ".local", "src", "agent-core", "vendor", "personas", name);
-}
-
-function resolveJohnyCli(): { python: string; cliPath: string } {
-  const repo = process.env.JOHNY_REPO || resolvePersonaRepo("johny");
-  const cliPath = process.env.JOHNY_CLI || join(repo, "scripts", "johny_cli.py");
-  const venvPython = join(repo, ".venv", "bin", "python");
-  const python = process.env.JOHNY_PYTHON || (existsSync(venvPython) ? venvPython : "python3");
-  return { python, cliPath };
-}
-
-function runJohnyCli(args: string[]): JohnyResult {
-  const { python, cliPath } = resolveJohnyCli();
-  if (!existsSync(cliPath)) {
-    return {
-      ok: false,
-      error: `Johny CLI not found at ${cliPath}. Set JOHNY_REPO or JOHNY_CLI.`,
-    };
-  }
-
-  const result = spawnSync(python, [cliPath, ...args], {
-    encoding: "utf-8",
-    env: getSafeEnv(["JOHNY_REPO", "JOHNY_CLI", "JOHNY_PYTHON"]),
-    timeout: 30000,
-  });
-
-  if (result.error) {
-    return { ok: false, error: result.error.message };
-  }
-
-  const stdout = result.stdout.trim();
-  if (!stdout) {
-    const stderr = result.stderr.trim();
-    return { ok: false, error: stderr || "Johny CLI returned no output." };
-  }
-
-  try {
-    return JSON.parse(stdout) as JohnyResult;
-  } catch {
-    return { ok: false, error: stdout };
-  }
-}
-
-function renderOutput(title: string, result: JohnyResult): ToolExecutionResult {
-  if (!result.ok) {
-    return {
-      title,
-      metadata: { ok: false },
-      output: result.error || "Johny CLI failed.",
-    };
-  }
-
-  return {
-    title,
-    metadata: { ok: true },
-    output: JSON.stringify(result.data ?? result, null, 2),
-  };
-}
+import { z } from "zod"
+import type { ToolDefinition, ToolExecutionResult } from "../../mcp/types"
+import * as johny from "../../personas/johny"
 
 // =============================================================================
 // Study Session Tool
 // =============================================================================
 
 const StudyParams = z.object({
-  action: z.enum(["start", "end", "status", "pause", "resume"]).default("status")
-    .describe("Study session action"),
-  domain: z.string().optional()
-    .describe("Learning domain (math, cs, etc.)"),
-  minutes: z.number().optional()
-    .describe("Session duration in minutes"),
-  sessionId: z.string().optional()
-    .describe("Session ID for end/pause/resume actions"),
-});
+  action: z.enum(["start", "end", "status", "pause", "resume"]).default("status").describe("Study session action"),
+  domain: z.string().optional().describe("Learning domain (math, cs, etc.)"),
+  minutes: z.number().optional().describe("Session duration in minutes"),
+  sessionId: z.string().optional().describe("Session ID for end/pause/resume actions"),
+})
 
 export const studyTool: ToolDefinition = {
   id: "johny:study",
@@ -117,44 +40,104 @@ Examples:
 - End session: { action: "end", sessionId: "session-123" }`,
     parameters: StudyParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, domain, minutes, sessionId } = args;
-      ctx.metadata({ title: `Study: ${action}` });
+      const { action, domain, minutes, sessionId } = args
+      ctx.metadata({ title: `Study: ${action}` })
 
-      const cliArgs = ["session", action];
-      if (domain) cliArgs.push("--domain", domain);
-      if (minutes) cliArgs.push("--minutes", String(minutes));
-      if (sessionId) cliArgs.push("--session-id", sessionId);
-
-      const result = runJohnyCli(cliArgs);
-      return renderOutput(`Study Session: ${action}`, result);
+      try {
+        switch (action) {
+          case "start": {
+            const session = johny.startSession(domain, minutes)
+            return {
+              title: "Session Started",
+              metadata: { ok: true },
+              output: JSON.stringify(session, null, 2),
+            }
+          }
+          case "end": {
+            if (!sessionId) {
+              const status = johny.getSessionStatus()
+              if (!status.active) {
+                return { title: "No Active Session", metadata: { ok: false }, output: "No active session to end." }
+              }
+              const session = johny.endSession(status.active.id)
+              return {
+                title: "Session Ended",
+                metadata: { ok: true },
+                output: JSON.stringify(session, null, 2),
+              }
+            }
+            const session = johny.endSession(sessionId)
+            return {
+              title: "Session Ended",
+              metadata: { ok: true },
+              output: session ? JSON.stringify(session, null, 2) : "Session not found.",
+            }
+          }
+          case "status": {
+            const status = johny.getSessionStatus()
+            return {
+              title: "Session Status",
+              metadata: { ok: true },
+              output: JSON.stringify(status, null, 2),
+            }
+          }
+          case "pause": {
+            const status = johny.getSessionStatus()
+            const id = sessionId || status.active?.id
+            if (!id) {
+              return { title: "No Session", metadata: { ok: false }, output: "No session to pause." }
+            }
+            const session = johny.pauseSession(id)
+            return {
+              title: "Session Paused",
+              metadata: { ok: true },
+              output: session ? JSON.stringify(session, null, 2) : "Could not pause session.",
+            }
+          }
+          case "resume": {
+            if (!sessionId) {
+              return { title: "Error", metadata: { ok: false }, output: "Session ID required for resume." }
+            }
+            const session = johny.resumeSession(sessionId)
+            return {
+              title: "Session Resumed",
+              metadata: { ok: true },
+              output: session ? JSON.stringify(session, null, 2) : "Could not resume session.",
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          title: `Study: ${action}`,
+          metadata: { ok: false },
+          output: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
     },
   }),
-};
+}
 
 // =============================================================================
 // Knowledge Graph Tool
 // =============================================================================
 
 const KnowledgeParams = z.object({
-  action: z.enum(["topics", "prerequisites", "path", "add-topic", "add-prereq", "search"])
-    .describe("Knowledge graph action"),
-  domain: z.string().optional()
-    .describe("Filter by domain (math, cs, etc.)"),
-  topicId: z.string().optional()
-    .describe("Topic ID for queries"),
-  targetId: z.string().optional()
-    .describe("Target topic ID for path finding"),
-  query: z.string().optional()
-    .describe("Search query for topics"),
-  topic: z.object({
-    id: z.string(),
-    name: z.string(),
-    domain: z.string(),
-    description: z.string().optional(),
-  }).optional().describe("Topic to add"),
-  prerequisiteId: z.string().optional()
-    .describe("Prerequisite topic ID to add"),
-});
+  action: z.enum(["topics", "prerequisites", "path", "add-topic", "add-prereq", "search"]).describe("Knowledge graph action"),
+  domain: z.string().optional().describe("Filter by domain (math, cs, etc.)"),
+  topicId: z.string().optional().describe("Topic ID for queries"),
+  targetId: z.string().optional().describe("Target topic ID for path finding"),
+  query: z.string().optional().describe("Search query for topics"),
+  topic: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      domain: z.string(),
+      description: z.string().optional(),
+    })
+    .optional()
+    .describe("Topic to add"),
+  prerequisiteId: z.string().optional().describe("Prerequisite topic ID to add"),
+})
 
 export const knowledgeTool: ToolDefinition = {
   id: "johny:knowledge",
@@ -177,39 +160,97 @@ Examples:
 - Path to integration: { action: "path", targetId: "integration" }`,
     parameters: KnowledgeParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, domain, topicId, targetId, query, topic, prerequisiteId } = args;
-      ctx.metadata({ title: `Knowledge: ${action}` });
+      const { action, domain, topicId, targetId, query, topic, prerequisiteId } = args
+      ctx.metadata({ title: `Knowledge: ${action}` })
 
-      const cliArgs = ["knowledge", action];
-      if (domain) cliArgs.push("--domain", domain);
-      if (topicId) cliArgs.push("--topic", topicId);
-      if (targetId) cliArgs.push("--target", targetId);
-      if (query) cliArgs.push("--query", query);
-      if (topic) cliArgs.push("--topic-json", JSON.stringify(topic));
-      if (prerequisiteId) cliArgs.push("--prereq", prerequisiteId);
-
-      const result = runJohnyCli(cliArgs);
-      return renderOutput(`Knowledge Graph: ${action}`, result);
+      try {
+        switch (action) {
+          case "topics": {
+            const topics = johny.listTopics(domain)
+            return {
+              title: "Topics",
+              metadata: { ok: true, count: topics.length },
+              output: JSON.stringify(topics, null, 2),
+            }
+          }
+          case "prerequisites": {
+            if (!topicId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId required" }
+            }
+            const prereqs = johny.getPrerequisites(topicId)
+            return {
+              title: "Prerequisites",
+              metadata: { ok: true, count: prereqs.length },
+              output: JSON.stringify(prereqs, null, 2),
+            }
+          }
+          case "path": {
+            if (!targetId) {
+              return { title: "Error", metadata: { ok: false }, output: "targetId required" }
+            }
+            const path = johny.getLearningPath(targetId)
+            return {
+              title: "Learning Path",
+              metadata: { ok: true, count: path.length },
+              output: JSON.stringify(path, null, 2),
+            }
+          }
+          case "add-topic": {
+            if (!topic) {
+              return { title: "Error", metadata: { ok: false }, output: "topic object required" }
+            }
+            const newTopic = johny.addTopic(topic)
+            return {
+              title: "Topic Added",
+              metadata: { ok: true },
+              output: JSON.stringify(newTopic, null, 2),
+            }
+          }
+          case "add-prereq": {
+            if (!topicId || !prerequisiteId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId and prerequisiteId required" }
+            }
+            const success = johny.addPrerequisite(topicId, prerequisiteId)
+            return {
+              title: success ? "Prerequisite Added" : "Failed",
+              metadata: { ok: success },
+              output: success ? `Added ${prerequisiteId} as prerequisite of ${topicId}` : "Failed to add prerequisite (topic not found or would create cycle)",
+            }
+          }
+          case "search": {
+            if (!query) {
+              return { title: "Error", metadata: { ok: false }, output: "query required" }
+            }
+            const results = johny.searchTopics(query, domain)
+            return {
+              title: "Search Results",
+              metadata: { ok: true, count: results.length },
+              output: JSON.stringify(results, null, 2),
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          title: `Knowledge: ${action}`,
+          metadata: { ok: false },
+          output: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
     },
   }),
-};
+}
 
 // =============================================================================
 // Mastery Tool
 // =============================================================================
 
 const MasteryParams = z.object({
-  action: z.enum(["status", "update", "history", "decay", "summary"])
-    .describe("Mastery tracking action"),
-  topicId: z.string().optional()
-    .describe("Topic ID"),
-  domain: z.string().optional()
-    .describe("Filter by domain"),
-  level: z.enum(["unknown", "introduced", "developing", "proficient", "mastered", "fluent"]).optional()
-    .describe("Mastery level to set"),
-  score: z.number().min(0).max(1).optional()
-    .describe("Practice score (0-1) for implicit level update"),
-});
+  action: z.enum(["status", "update", "history", "decay", "summary"]).describe("Mastery tracking action"),
+  topicId: z.string().optional().describe("Topic ID"),
+  domain: z.string().optional().describe("Filter by domain"),
+  level: z.enum(["unknown", "introduced", "developing", "proficient", "mastered", "fluent"]).optional().describe("Mastery level to set"),
+  score: z.number().min(0).max(1).optional().describe("Practice score (0-1) for implicit level update"),
+})
 
 export const masteryTool: ToolDefinition = {
   id: "johny:mastery",
@@ -237,37 +278,91 @@ Examples:
 - Domain summary: { action: "summary", domain: "math" }`,
     parameters: MasteryParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, topicId, domain, level, score } = args;
-      ctx.metadata({ title: `Mastery: ${action}` });
+      const { action, topicId, domain, score } = args
+      ctx.metadata({ title: `Mastery: ${action}` })
 
-      const cliArgs = ["mastery", action];
-      if (topicId) cliArgs.push("--topic", topicId);
-      if (domain) cliArgs.push("--domain", domain);
-      if (level) cliArgs.push("--level", level);
-      if (score !== undefined) cliArgs.push("--score", String(score));
-
-      const result = runJohnyCli(cliArgs);
-      return renderOutput(`Mastery: ${action}`, result);
+      try {
+        switch (action) {
+          case "status": {
+            if (topicId) {
+              const mastery = johny.getMastery(topicId)
+              return {
+                title: "Mastery Status",
+                metadata: { ok: true },
+                output: JSON.stringify(mastery, null, 2),
+              }
+            }
+            const summary = johny.getMasterySummary(domain)
+            return {
+              title: "Mastery Summary",
+              metadata: { ok: true },
+              output: JSON.stringify(summary, null, 2),
+            }
+          }
+          case "update": {
+            if (!topicId || score === undefined) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId and score required" }
+            }
+            const mastery = johny.updateMastery(topicId, score)
+            return {
+              title: "Mastery Updated",
+              metadata: { ok: true },
+              output: JSON.stringify(mastery, null, 2),
+            }
+          }
+          case "history": {
+            if (!topicId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId required" }
+            }
+            const history = johny.getMasteryHistory(topicId)
+            return {
+              title: "Mastery History",
+              metadata: { ok: true, count: history.length },
+              output: JSON.stringify(history, null, 2),
+            }
+          }
+          case "decay": {
+            if (!topicId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId required" }
+            }
+            const retention = johny.calculateRetention(topicId)
+            return {
+              title: "Retention",
+              metadata: { ok: true },
+              output: `Current retention for ${topicId}: ${(retention * 100).toFixed(1)}%`,
+            }
+          }
+          case "summary": {
+            const summary = johny.getMasterySummary(domain)
+            return {
+              title: "Mastery Summary",
+              metadata: { ok: true },
+              output: JSON.stringify(summary, null, 2),
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          title: `Mastery: ${action}`,
+          metadata: { ok: false },
+          output: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
     },
   }),
-};
+}
 
 // =============================================================================
 // Review Tool (Spaced Repetition)
 // =============================================================================
 
 const ReviewParams = z.object({
-  action: z.enum(["due", "schedule", "complete", "stats", "optimize"])
-    .describe("Review action"),
-  topicId: z.string().optional()
-    .describe("Topic ID"),
-  domain: z.string().optional()
-    .describe("Filter by domain"),
-  score: z.number().min(0).max(1).optional()
-    .describe("Review score (0-1)"),
-  limit: z.number().optional()
-    .describe("Max items to return"),
-});
+  action: z.enum(["due", "schedule", "complete", "stats", "optimize"]).describe("Review action"),
+  topicId: z.string().optional().describe("Topic ID"),
+  domain: z.string().optional().describe("Filter by domain"),
+  score: z.number().min(0).max(1).optional().describe("Review score (0-1)"),
+  limit: z.number().optional().describe("Max items to return"),
+})
 
 export const reviewTool: ToolDefinition = {
   id: "johny:review",
@@ -298,41 +393,82 @@ Examples:
 - Complete review: { action: "complete", topicId: "derivatives", score: 0.9 }`,
     parameters: ReviewParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, topicId, domain, score, limit } = args;
-      ctx.metadata({ title: `Review: ${action}` });
+      const { action, topicId, domain, score, limit } = args
+      ctx.metadata({ title: `Review: ${action}` })
 
-      const cliArgs = ["review", action];
-      if (topicId) cliArgs.push("--topic", topicId);
-      if (domain) cliArgs.push("--domain", domain);
-      if (score !== undefined) cliArgs.push("--score", String(score));
-      if (limit) cliArgs.push("--limit", String(limit));
-
-      const result = runJohnyCli(cliArgs);
-      return renderOutput(`Review: ${action}`, result);
+      try {
+        switch (action) {
+          case "due": {
+            const due = johny.getDueReviews(limit || 10, domain)
+            return {
+              title: "Due Reviews",
+              metadata: { ok: true, count: due.length },
+              output: JSON.stringify(due, null, 2),
+            }
+          }
+          case "schedule": {
+            if (!topicId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId required" }
+            }
+            const schedule = johny.scheduleReview(topicId)
+            return {
+              title: "Review Scheduled",
+              metadata: { ok: true },
+              output: JSON.stringify(schedule, null, 2),
+            }
+          }
+          case "complete": {
+            if (!topicId || score === undefined) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId and score required" }
+            }
+            const schedule = johny.completeReview(topicId, score)
+            return {
+              title: "Review Completed",
+              metadata: { ok: true },
+              output: JSON.stringify(schedule, null, 2),
+            }
+          }
+          case "stats": {
+            const stats = johny.getReviewStats()
+            return {
+              title: "Review Stats",
+              metadata: { ok: true },
+              output: JSON.stringify(stats, null, 2),
+            }
+          }
+          case "optimize": {
+            const suggestions = johny.getOptimalSchedule(limit || 10)
+            return {
+              title: "Optimization Suggestions",
+              metadata: { ok: true, count: suggestions.length },
+              output: JSON.stringify(suggestions, null, 2),
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          title: `Review: ${action}`,
+          metadata: { ok: false },
+          output: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
     },
   }),
-};
+}
 
 // =============================================================================
 // Practice Tool
 // =============================================================================
 
 const PracticeParams = z.object({
-  action: z.enum(["next", "generate", "complete", "skip", "hint"])
-    .describe("Practice action"),
-  topicId: z.string().optional()
-    .describe("Topic ID for practice"),
-  domain: z.string().optional()
-    .describe("Domain for practice"),
-  difficulty: z.enum(["easy", "medium", "hard", "adaptive"]).optional()
-    .describe("Problem difficulty"),
-  problemId: z.string().optional()
-    .describe("Problem ID for complete/skip/hint"),
-  score: z.number().min(0).max(1).optional()
-    .describe("Score for completion"),
-  type: z.enum(["concept", "calculation", "proof", "application"]).optional()
-    .describe("Problem type"),
-});
+  action: z.enum(["next", "generate", "complete", "skip", "hint"]).describe("Practice action"),
+  topicId: z.string().optional().describe("Topic ID for practice"),
+  domain: z.string().optional().describe("Domain for practice"),
+  difficulty: z.enum(["easy", "medium", "hard", "adaptive"]).optional().describe("Problem difficulty"),
+  problemId: z.string().optional().describe("Problem ID for complete/skip/hint"),
+  score: z.number().min(0).max(1).optional().describe("Score for completion"),
+  type: z.enum(["concept", "calculation", "proof", "application"]).optional().describe("Problem type"),
+})
 
 export const practiceTool: ToolDefinition = {
   id: "johny:practice",
@@ -360,37 +496,99 @@ Examples:
 - Complete problem: { action: "complete", problemId: "prob-123", score: 1.0 }`,
     parameters: PracticeParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { action, topicId, domain, difficulty, problemId, score, type } = args;
-      ctx.metadata({ title: `Practice: ${action}` });
+      const { action, topicId, domain, difficulty, score, type } = args
+      ctx.metadata({ title: `Practice: ${action}` })
 
-      const cliArgs = ["practice", action];
-      if (topicId) cliArgs.push("--topic", topicId);
-      if (domain) cliArgs.push("--domain", domain);
-      if (difficulty) cliArgs.push("--difficulty", difficulty);
-      if (problemId) cliArgs.push("--problem", problemId);
-      if (score !== undefined) cliArgs.push("--score", String(score));
-      if (type) cliArgs.push("--type", type);
-
-      const result = runJohnyCli(cliArgs);
-      return renderOutput(`Practice: ${action}`, result);
+      try {
+        switch (action) {
+          case "next": {
+            const problem = johny.getNextProblem(domain)
+            if (!problem) {
+              return {
+                title: "No Problems",
+                metadata: { ok: false },
+                output: "No topics available. Add topics to the knowledge graph first.",
+              }
+            }
+            return {
+              title: "Next Problem",
+              metadata: { ok: true },
+              output: JSON.stringify(problem, null, 2),
+            }
+          }
+          case "generate": {
+            if (!topicId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId required" }
+            }
+            const problem = johny.generatePractice(
+              topicId,
+              type,
+              difficulty === "adaptive" ? undefined : difficulty
+            )
+            if (!problem) {
+              return {
+                title: "Topic Not Found",
+                metadata: { ok: false },
+                output: `Topic ${topicId} not found in knowledge graph.`,
+              }
+            }
+            return {
+              title: "Generated Problem",
+              metadata: { ok: true },
+              output: JSON.stringify(problem, null, 2),
+            }
+          }
+          case "complete": {
+            if (!topicId || score === undefined) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId and score required" }
+            }
+            johny.completeProblem(topicId, score)
+            return {
+              title: "Problem Completed",
+              metadata: { ok: true },
+              output: `Recorded score ${score} for ${topicId}`,
+            }
+          }
+          case "skip": {
+            if (!topicId) {
+              return { title: "Error", metadata: { ok: false }, output: "topicId required" }
+            }
+            johny.skipProblem(topicId)
+            return {
+              title: "Problem Skipped",
+              metadata: { ok: true },
+              output: `Skipped problem for ${topicId}`,
+            }
+          }
+          case "hint": {
+            return {
+              title: "Hint",
+              metadata: { ok: true },
+              output: "Hints are generated contextually. Ask Johny for help with the specific problem.",
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          title: `Practice: ${action}`,
+          metadata: { ok: false },
+          output: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
     },
   }),
-};
+}
 
 // =============================================================================
 // Exports
 // =============================================================================
 
-export const JOHNY_TOOLS = [
-  studyTool,
-  knowledgeTool,
-  masteryTool,
-  reviewTool,
-  practiceTool,
-];
+export const JOHNY_TOOLS = [studyTool, knowledgeTool, masteryTool, reviewTool, practiceTool]
 
-export function registerJohnyTools(registry: { register: (tool: ToolDefinition, options: { source: string }) => void }): void {
+export function registerJohnyTools(registry: {
+  register: (tool: ToolDefinition, options: { source: string }) => void
+}): void {
   for (const tool of JOHNY_TOOLS) {
-    registry.register(tool, { source: "domain" });
+    registry.register(tool, { source: "domain" })
   }
 }

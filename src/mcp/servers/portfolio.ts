@@ -74,7 +74,7 @@ function runStanleyCli(args: string[]): StanleyResult {
 
 // Create server
 const server = new McpServer({
-  name: "personas-portfolio",
+  name: "portfolio",
   version: "1.0.0",
 });
 

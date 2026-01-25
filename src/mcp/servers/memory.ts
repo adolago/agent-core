@@ -28,7 +28,7 @@ const MEMORY_CATEGORIES = [
 
 // Create server
 const server = new McpServer({
-  name: "personas-memory",
+  name: "memory",
   version: "1.0.0",
 });
 

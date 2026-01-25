@@ -169,7 +169,8 @@ export function Prompt(props: PromptProps) {
     if (!config) {
       toast.show({
         variant: "warning",
-        message: "Dictation is not configured. Connect Inworld AI in Settings or set INWORLD_API_KEY and INWORLD_STT_ENDPOINT.",
+        message:
+          "Dictation is not configured. Connect google-vertex via :connect (service account JSON), or set GOOGLE_APPLICATION_CREDENTIALS.",
       })
       return
     }

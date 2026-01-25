@@ -15,7 +15,7 @@ vi.mock("../process/exec.js", () => ({
 }));
 
 vi.mock("../agents/agent-core-client.js", () => ({
-  transcribeInworldAudio: vi.fn(),
+  transcribeGoogleAudio: vi.fn(),
 }));
 
 const runtime = {
@@ -75,13 +75,13 @@ describe("transcribeInboundAudio", () => {
     expect(res).toBeUndefined();
   });
 
-  it("uses agent-core Inworld transcription when configured", async () => {
+  it("uses agent-core Google transcription when configured", async () => {
     const wav = buildWav(new Int16Array([0, 32767]), 16000);
     const tmpFile = path.join(os.tmpdir(), `zee-audio-${Date.now()}.wav`);
     await fs.writeFile(tmpFile, wav);
 
     const agentCoreModule = await import("../agents/agent-core-client.js");
-    vi.mocked(agentCoreModule.transcribeInworldAudio).mockResolvedValue(
+    vi.mocked(agentCoreModule.transcribeGoogleAudio).mockResolvedValue(
       "hello",
     );
 
@@ -90,7 +90,7 @@ describe("transcribeInboundAudio", () => {
       {
         routing: {
           transcribeAudio: {
-            provider: "inworld",
+            provider: "google",
             timeoutSeconds: 5,
           },
         },
@@ -99,7 +99,7 @@ describe("transcribeInboundAudio", () => {
       runtime as never,
     );
     expect(result?.text).toBe("hello");
-    expect(agentCoreModule.transcribeInworldAudio).toHaveBeenCalled();
+    expect(agentCoreModule.transcribeGoogleAudio).toHaveBeenCalled();
 
     await fs.unlink(tmpFile);
   });
