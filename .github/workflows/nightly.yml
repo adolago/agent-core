@@ -68,7 +68,7 @@ jobs:
         id: version
         run: |
           DATE=$(date +%Y%m%d)
-          VERSION="0.2.0-nightly.${DATE}"
+          VERSION="0.2.0-alpha.nightly.${DATE}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
           # Update package.json versions using sed (npm version fails on catalog: refs)
