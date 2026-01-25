@@ -36,6 +36,7 @@ describe("security fix", () => {
             imessage: { groupPolicy: "open" },
           },
           logging: { redactSensitive: "off" },
+          plugins: { slots: { memory: "none" } },
         },
         null,
         2,
@@ -106,6 +107,7 @@ describe("security fix", () => {
               },
             },
           },
+          plugins: { slots: { memory: "none" } },
         },
         null,
         2,
@@ -152,6 +154,7 @@ describe("security fix", () => {
           channels: {
             whatsapp: { groupPolicy: "open", allowFrom: ["+15552223333"] },
           },
+          plugins: { slots: { memory: "none" } },
         },
         null,
         2,
@@ -222,7 +225,7 @@ describe("security fix", () => {
     const configPath = path.join(stateDir, "zee.json");
     await fs.writeFile(
       configPath,
-      `{ "$include": "./includes/extra.json5", channels: { whatsapp: { groupPolicy: "open" } } }\n`,
+      `{ "$include": "./includes/extra.json5", channels: { whatsapp: { groupPolicy: "open" } }, plugins: { slots: { memory: "none" } } }\n`,
       "utf-8",
     );
     await fs.chmod(configPath, 0o644);

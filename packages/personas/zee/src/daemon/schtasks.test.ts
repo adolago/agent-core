@@ -9,7 +9,7 @@ import { parseSchtasksQuery, readScheduledTaskCommand, resolveTaskScriptPath } f
 describe("schtasks runtime parsing", () => {
   it("parses status and last run info", () => {
     const output = [
-      "TaskName: \[zee\]Zee Gateway",
+      "TaskName: \\Zee Gateway",
       "Status: Ready",
       "Last Run Time: 1/8/2026 1:23:45 AM",
       "Last Run Result: 0x0",
@@ -23,7 +23,7 @@ describe("schtasks runtime parsing", () => {
 
   it("parses running status", () => {
     const output = [
-      "TaskName: \[zee\]Zee Gateway",
+      "TaskName: \\Zee Gateway",
       "Status: Running",
       "Last Run Time: 1/8/2026 1:23:45 AM",
       "Last Run Result: 0x0",
@@ -38,53 +38,53 @@ describe("schtasks runtime parsing", () => {
 
 describe("resolveTaskScriptPath", () => {
   it("uses default path when ZEE_PROFILE is default", () => {
-    const env = { USERPROFILE: "C:\[zee\]Users\[zee\]test", ZEE_PROFILE: "default" };
+    const env = { USERPROFILE: "C:\\Users\\test", ZEE_PROFILE: "default" };
     expect(resolveTaskScriptPath(env)).toBe(
-      path.join("C:\[zee\]Users\[zee\]test", ".zee", "gateway.cmd"),
+      path.join("C:\\Users\\test", ".zee", "gateway.cmd"),
     );
   });
 
   it("uses default path when ZEE_PROFILE is unset", () => {
-    const env = { USERPROFILE: "C:\[zee\]Users\[zee\]test" };
+    const env = { USERPROFILE: "C:\\Users\\test" };
     expect(resolveTaskScriptPath(env)).toBe(
-      path.join("C:\[zee\]Users\[zee\]test", ".zee", "gateway.cmd"),
+      path.join("C:\\Users\\test", ".zee", "gateway.cmd"),
     );
   });
 
   it("uses profile-specific path when ZEE_PROFILE is set to a custom value", () => {
-    const env = { USERPROFILE: "C:\[zee\]Users\[zee\]test", ZEE_PROFILE: "jbphoenix" };
+    const env = { USERPROFILE: "C:\\Users\\test", ZEE_PROFILE: "jbphoenix" };
     expect(resolveTaskScriptPath(env)).toBe(
-      path.join("C:\[zee\]Users\[zee\]test", ".zee-jbphoenix", "gateway.cmd"),
+      path.join("C:\\Users\\test", ".zee-jbphoenix", "gateway.cmd"),
     );
   });
 
   it("prefers ZEE_STATE_DIR over profile-derived defaults", () => {
     const env = {
-      USERPROFILE: "C:\[zee\]Users\[zee\]test",
+      USERPROFILE: "C:\\Users\\test",
       ZEE_PROFILE: "rescue",
-      ZEE_STATE_DIR: "C:\[zee\]State\[zee\]zee",
+      ZEE_STATE_DIR: "C:\\State\\zee",
     };
-    expect(resolveTaskScriptPath(env)).toBe(path.join("C:\[zee\]State\[zee\]zee", "gateway.cmd"));
+    expect(resolveTaskScriptPath(env)).toBe(path.join("C:\\State\\zee", "gateway.cmd"));
   });
 
   it("handles case-insensitive 'Default' profile", () => {
-    const env = { USERPROFILE: "C:\[zee\]Users\[zee\]test", ZEE_PROFILE: "Default" };
+    const env = { USERPROFILE: "C:\\Users\\test", ZEE_PROFILE: "Default" };
     expect(resolveTaskScriptPath(env)).toBe(
-      path.join("C:\[zee\]Users\[zee\]test", ".zee", "gateway.cmd"),
+      path.join("C:\\Users\\test", ".zee", "gateway.cmd"),
     );
   });
 
   it("handles case-insensitive 'DEFAULT' profile", () => {
-    const env = { USERPROFILE: "C:\[zee\]Users\[zee\]test", ZEE_PROFILE: "DEFAULT" };
+    const env = { USERPROFILE: "C:\\Users\\test", ZEE_PROFILE: "DEFAULT" };
     expect(resolveTaskScriptPath(env)).toBe(
-      path.join("C:\[zee\]Users\[zee\]test", ".zee", "gateway.cmd"),
+      path.join("C:\\Users\\test", ".zee", "gateway.cmd"),
     );
   });
 
   it("trims whitespace from ZEE_PROFILE", () => {
-    const env = { USERPROFILE: "C:\[zee\]Users\[zee\]test", ZEE_PROFILE: "  myprofile  " };
+    const env = { USERPROFILE: "C:\\Users\\test", ZEE_PROFILE: "  myprofile  " };
     expect(resolveTaskScriptPath(env)).toBe(
-      path.join("C:\[zee\]Users\[zee\]test", ".zee-myprofile", "gateway.cmd"),
+      path.join("C:\\Users\\test", ".zee-myprofile", "gateway.cmd"),
     );
   });
 
@@ -123,7 +123,7 @@ describe("readScheduledTaskCommand", () => {
       await fs.mkdir(path.dirname(scriptPath), { recursive: true });
       await fs.writeFile(
         scriptPath,
-        ["@echo off", "cd /d C:\[zee\]Projects\[zee\]zee", "node gateway.js"].join("\r\n"),
+        ["@echo off", "cd /d C:\\Projects\\zee", "node gateway.js"].join("\r\n"),
         "utf8",
       );
 
@@ -131,7 +131,7 @@ describe("readScheduledTaskCommand", () => {
       const result = await readScheduledTaskCommand(env);
       expect(result).toEqual({
         programArguments: ["node", "gateway.js"],
-        workingDirectory: "C:\[zee\]Projects\[zee\]zee",
+        workingDirectory: "C:\\Projects\\zee",
       });
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
@@ -225,7 +225,7 @@ describe("readScheduledTaskCommand", () => {
         [
           "@echo off",
           "rem Zee Gateway",
-          "cd /d C:\[zee\]Projects\[zee\]zee",
+          "cd /d C:\\Projects\\zee",
           "set NODE_ENV=production",
           "set ZEE_PORT=18789",
           "node gateway.js --verbose",
@@ -237,7 +237,7 @@ describe("readScheduledTaskCommand", () => {
       const result = await readScheduledTaskCommand(env);
       expect(result).toEqual({
         programArguments: ["node", "gateway.js", "--verbose"],
-        workingDirectory: "C:\[zee\]Projects\[zee\]zee",
+        workingDirectory: "C:\\Projects\\zee",
         environment: {
           NODE_ENV: "production",
           ZEE_PORT: "18789",

@@ -31,7 +31,7 @@ describe("resolveGatewayStateDir", () => {
   });
 
   it("preserves Windows absolute paths without HOME", () => {
-    const env = { ZEE_STATE_DIR: "C:\[zee\]State\[zee\]zee" };
-    expect(resolveGatewayStateDir(env)).toBe("C:\[zee\]State\[zee\]zee");
+    const env = { ZEE_STATE_DIR: "C:\\State\\zee" };
+    expect(resolveGatewayStateDir(env)).toBe("C:\\State\\zee");
   });
 });

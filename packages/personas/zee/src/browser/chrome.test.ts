@@ -59,7 +59,7 @@ describe("browser chrome profile decoration", () => {
         path.join(userDataDir, ".zee-profile-decorated"),
         "utf-8",
       );
-      expect(marker.trim()).toMatch(/^\[zee\]+$/);
+      expect(marker.trim()).toMatch(/^\\+$/);
     } finally {
       await fsp.rm(userDataDir, { recursive: true, force: true });
     }
@@ -157,13 +157,13 @@ describe("browser chrome helpers", () => {
   });
 
   it("picks the first existing Chrome candidate on Windows", () => {
-    vi.stubEnv("LOCALAPPDATA", "C:\[zee\]Users\[zee\]Test\[zee\]AppData\[zee\]Local");
+    vi.stubEnv("LOCALAPPDATA", "C:\\Users\\Test\\AppData\\Local");
     const exists = vi.spyOn(fs, "existsSync").mockImplementation((p) => {
       const pathStr = String(p);
       return (
-        pathStr.includes("Google\[zee\]Chrome\[zee\]Application\[zee\]chrome.exe") ||
-        pathStr.includes("BraveSoftware\[zee\]Brave-Browser\[zee\]Application\[zee\]brave.exe") ||
-        pathStr.includes("Microsoft\[zee\]Edge\[zee\]Application\[zee\]msedge.exe")
+        pathStr.includes("Google\\Chrome\\Application\\chrome.exe") ||
+        pathStr.includes("BraveSoftware\\Brave-Browser\\Application\\brave.exe") ||
+        pathStr.includes("Microsoft\\Edge\\Application\\msedge.exe")
       );
     });
     const exe = findChromeExecutableWindows();
@@ -189,8 +189,8 @@ describe("browser chrome helpers", () => {
 
   it("resolves Windows executables without LOCALAPPDATA", () => {
     vi.stubEnv("LOCALAPPDATA", "");
-    vi.stubEnv("ProgramFiles", "C:\[zee\]Program Files");
-    vi.stubEnv("ProgramFiles(x86)", "C:\[zee\]Program Files (x86)");
+    vi.stubEnv("ProgramFiles", "C:\\Program Files");
+    vi.stubEnv("ProgramFiles(x86)", "C:\\Program Files (x86)");
     const marker = path.win32.join(
       "Program Files",
       "Google",
