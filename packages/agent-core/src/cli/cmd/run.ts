@@ -326,19 +326,6 @@ export const RunCommand = cmd({
         process.exit(1)
       }
 
-      const cfgResult = await sdk.config.get()
-      if (cfgResult.data && (cfgResult.data.share === "auto" || Flag.OPENCODE_AUTO_SHARE || args.share)) {
-        const shareResult = await sdk.session.share({ sessionID }).catch((error) => {
-          if (error instanceof Error && error.message.includes("disabled")) {
-            UI.println(UI.Style.TEXT_DANGER_BOLD + "!  " + error.message)
-          }
-          return { error }
-        })
-        if (!shareResult.error && "data" in shareResult && shareResult.data?.share?.url) {
-          UI.println(UI.Style.TEXT_INFO_BOLD + "~  " + shareResult.data.share.url)
-        }
-      }
-
       // In attach mode, skip local agent validation - server will validate
       return await execute(sdk, eventClient, sessionID, args.agent)
     }
@@ -380,19 +367,6 @@ export const RunCommand = cmd({
       if (!sessionID) {
         UI.error("Session not found")
         process.exit(1)
-      }
-
-      const cfgResult = await sdk.config.get()
-      if (cfgResult.data && (cfgResult.data.share === "auto" || Flag.OPENCODE_AUTO_SHARE || args.share)) {
-        const shareResult = await sdk.session.share({ sessionID }).catch((error) => {
-          if (error instanceof Error && error.message.includes("disabled")) {
-            UI.println(UI.Style.TEXT_DANGER_BOLD + "!  " + error.message)
-          }
-          return { error }
-        })
-        if (!shareResult.error && "data" in shareResult && shareResult.data?.share?.url) {
-          UI.println(UI.Style.TEXT_INFO_BOLD + "~  " + shareResult.data.share.url)
-        }
       }
 
       // Validate agent if specified (only in bootstrap mode where Instance context exists)

@@ -506,32 +506,6 @@ export const SessionRoute = new Hono()
       return c.json(true)
     },
   )
-  .post(
-    "/session/:sessionID/share",
-    describeRoute({
-      summary: "Share session",
-      description: "Create a shareable link for a session, allowing others to view the conversation.",
-      operationId: "session.share",
-      responses: {
-        200: {
-          description: "Successfully shared session",
-          content: {
-            "application/json": {
-              schema: resolver(Session.Info),
-            },
-          },
-        },
-        ...errors(400, 404),
-      },
-    }),
-    validator("param", z.object({ sessionID: z.string() })),
-    async (c) => {
-      const sessionID = c.req.valid("param").sessionID
-      await Session.share(sessionID)
-      const session = await Session.get(sessionID)
-      return c.json(session)
-    },
-  )
   .get(
     "/session/:sessionID/diff",
     describeRoute({
@@ -596,32 +570,6 @@ export const SessionRoute = new Hono()
     async (c) => {
       const diff = await Session.diff(c.req.valid("param").sessionID)
       return c.json(diff)
-    },
-  )
-  .delete(
-    "/session/:sessionID/share",
-    describeRoute({
-      summary: "Unshare session",
-      description: "Remove the shareable link for a session, making it private again.",
-      operationId: "session.unshare",
-      responses: {
-        200: {
-          description: "Successfully unshared session",
-          content: {
-            "application/json": {
-              schema: resolver(Session.Info),
-            },
-          },
-        },
-        ...errors(400, 404),
-      },
-    }),
-    validator("param", z.object({ sessionID: Session.unshare.schema })),
-    async (c) => {
-      const sessionID = c.req.valid("param").sessionID
-      await Session.unshare(sessionID)
-      const session = await Session.get(sessionID)
-      return c.json(session)
     },
   )
   .post(

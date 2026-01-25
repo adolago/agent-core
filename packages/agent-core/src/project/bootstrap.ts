@@ -1,5 +1,4 @@
 import { Plugin } from "../plugin"
-import { Share } from "../share/share"
 import { Format } from "../format"
 import { LSP } from "../lsp"
 import { FileWatcher } from "../file/watcher"
@@ -10,15 +9,12 @@ import { Command } from "../command"
 import { Instance } from "./instance"
 import { Vcs } from "./vcs"
 import { Log } from "@/util/log"
-import { ShareNext } from "@/share/share-next"
 import { Snapshot } from "../snapshot"
 import { Truncate } from "../tool/truncation"
 
 export async function InstanceBootstrap() {
   Log.Default.info("bootstrapping", { directory: Instance.directory })
   await Plugin.init()
-  Share.init()
-  ShareNext.init()
   Format.init()
   await LSP.init()
   FileWatcher.init()

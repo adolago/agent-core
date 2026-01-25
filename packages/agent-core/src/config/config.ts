@@ -194,19 +194,11 @@ export namespace Config {
 
     if (!result.username) result.username = os.userInfo().username
 
-    // Handle migration from autoshare to share field
-    if (result.autoshare === true && !result.share) {
-      result.share = "auto"
-    }
-
     if (!result.keybinds) result.keybinds = Info.shape.keybinds.parse({})
 
     // Apply flag overrides for compaction settings
     if (Flag.OPENCODE_DISABLE_AUTOCOMPACT) {
       result.compaction = { ...result.compaction, auto: false }
-    }
-    if (Flag.OPENCODE_DISABLE_PRUNE) {
-      result.compaction = { ...result.compaction, prune: false }
     }
 
     result.plugin = deduplicatePlugins(result.plugin ?? [])

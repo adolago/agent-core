@@ -1,3 +1,6 @@
+// Flags for agent-core (personal use configuration)
+// Most features are hardcoded ON/OFF - only essential config is exposed
+
 function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "true" || value === "1"
@@ -11,63 +14,73 @@ function number(key: string) {
 }
 
 function computeFlags() {
-  // For personal use: experimental features ON, sharing OFF, auth OFF
-  const EXPERIMENTAL = true // Always enabled for personal use
-
   return {
-    // Sharing disabled for personal use (no cloud sync)
-    OPENCODE_AUTO_SHARE: false,
+    // ═══════════════════════════════════════════════════════════════════════
+    // ESSENTIAL CONFIG (user can set via environment)
+    // ═══════════════════════════════════════════════════════════════════════
 
-    // Paths
-    OPENCODE_GIT_BASH_PATH: process.env["OPENCODE_GIT_BASH_PATH"],
+    // Config paths
     OPENCODE_CONFIG: process.env["OPENCODE_CONFIG"],
     OPENCODE_CONFIG_DIR: process.env["OPENCODE_CONFIG_DIR"],
     OPENCODE_CONFIG_CONTENT: process.env["OPENCODE_CONFIG_CONTENT"],
+    OPENCODE_GIT_BASH_PATH: process.env["OPENCODE_GIT_BASH_PATH"], // Windows
 
-    // Disabled for personal use (no auto-update, no prune, no models fetch)
-    OPENCODE_DISABLE_AUTOUPDATE: true,
-    OPENCODE_DISABLE_PRUNE: true,
-    OPENCODE_DISABLE_TERMINAL_TITLE: truthy("OPENCODE_DISABLE_TERMINAL_TITLE"),
+    // Permission override
     OPENCODE_PERMISSION: process.env["OPENCODE_PERMISSION"],
-    OPENCODE_DISABLE_DEFAULT_PLUGINS: false,
-    OPENCODE_DISABLE_LSP_DOWNLOAD: false,
-    OPENCODE_ENABLE_EXPERIMENTAL_MODELS: true,
-    OPENCODE_DISABLE_AUTOCOMPACT: truthy("OPENCODE_DISABLE_AUTOCOMPACT"),
-    OPENCODE_DISABLE_MODELS_FETCH: true,
 
-    // Claude Code features always enabled
+    // Auth (disabled by default, enable with AGENT_CORE_ENABLE_SERVER_AUTH=1)
+    AGENT_CORE_SERVER_PASSWORD: process.env["AGENT_CORE_SERVER_PASSWORD"],
+    AGENT_CORE_SERVER_USERNAME: process.env["AGENT_CORE_SERVER_USERNAME"],
+    AGENT_CORE_ENABLE_SERVER_AUTH: truthy("AGENT_CORE_ENABLE_SERVER_AUTH"),
+    OPENCODE_SERVER_PASSWORD: process.env["OPENCODE_SERVER_PASSWORD"], // Legacy
+    OPENCODE_SERVER_USERNAME: process.env["OPENCODE_SERVER_USERNAME"], // Legacy
+    OPENCODE_ENABLE_SERVER_AUTH: truthy("OPENCODE_ENABLE_SERVER_AUTH"), // Legacy
+    AGENT_CORE_DISABLE_SERVER_AUTH: truthy("AGENT_CORE_DISABLE_SERVER_AUTH"),
+    OPENCODE_DISABLE_SERVER_AUTH: truthy("OPENCODE_DISABLE_SERVER_AUTH"),
+
+    // Tuning (optional overrides)
+    OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS: number("OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
+    OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS: number("OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS"),
+    OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: number("OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
+    OPENCODE_EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH: number("OPENCODE_EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH"),
+
+    // Client identifier
+    OPENCODE_CLIENT: process.env["OPENCODE_CLIENT"] ?? "cli",
+
+    // Testing
+    OPENCODE_FAKE_VCS: process.env["OPENCODE_FAKE_VCS"],
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HARDCODED (personal use defaults, not configurable)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Disabled features
+    OPENCODE_AUTO_SHARE: false,              // No cloud sync
+    OPENCODE_DISABLE_AUTOUPDATE: true,       // Manual updates via nightly
+    OPENCODE_DISABLE_PRUNE: true,            // Keep all sessions
+    OPENCODE_DISABLE_MODELS_FETCH: true,     // Use bundled models
+    OPENCODE_DISABLE_TERMINAL_TITLE: false,
+    OPENCODE_DISABLE_AUTOCOMPACT: false,     // Allow autocompact
+
+    // Enabled features
+    OPENCODE_DISABLE_DEFAULT_PLUGINS: false, // Load default plugins
+    OPENCODE_DISABLE_LSP_DOWNLOAD: false,    // Download LSP servers
+    OPENCODE_ENABLE_EXPERIMENTAL_MODELS: true,
     OPENCODE_DISABLE_CLAUDE_CODE: false,
     OPENCODE_DISABLE_CLAUDE_CODE_PROMPT: false,
     OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: false,
 
-    OPENCODE_FAKE_VCS: process.env["OPENCODE_FAKE_VCS"],
-    OPENCODE_CLIENT: process.env["OPENCODE_CLIENT"] ?? "cli",
-
-    // Auth (disabled by default)
-    AGENT_CORE_SERVER_PASSWORD: process.env["AGENT_CORE_SERVER_PASSWORD"],
-    AGENT_CORE_SERVER_USERNAME: process.env["AGENT_CORE_SERVER_USERNAME"],
-    OPENCODE_SERVER_PASSWORD: process.env["OPENCODE_SERVER_PASSWORD"],
-    OPENCODE_SERVER_USERNAME: process.env["OPENCODE_SERVER_USERNAME"],
-    AGENT_CORE_DISABLE_SERVER_AUTH: truthy("AGENT_CORE_DISABLE_SERVER_AUTH"),
-    OPENCODE_DISABLE_SERVER_AUTH: truthy("OPENCODE_DISABLE_SERVER_AUTH"),
-    AGENT_CORE_ENABLE_SERVER_AUTH: truthy("AGENT_CORE_ENABLE_SERVER_AUTH"),
-    OPENCODE_ENABLE_SERVER_AUTH: truthy("OPENCODE_ENABLE_SERVER_AUTH"),
-
-    // Experimental features always ON for personal use
-    OPENCODE_EXPERIMENTAL: EXPERIMENTAL,
-    OPENCODE_EXPERIMENTAL_FILEWATCHER: EXPERIMENTAL,
+    // All experimental features ON
+    OPENCODE_EXPERIMENTAL: true,
+    OPENCODE_EXPERIMENTAL_FILEWATCHER: true,
     OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: false,
-    OPENCODE_EXPERIMENTAL_ICON_DISCOVERY: EXPERIMENTAL,
+    OPENCODE_EXPERIMENTAL_ICON_DISCOVERY: true,
     OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT: false,
-    OPENCODE_ENABLE_EXA: EXPERIMENTAL,
-    OPENCODE_EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH: number("OPENCODE_EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH"),
-    OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS: number("OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
-    OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS: number("OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS"),
-    OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: number("OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
-    OPENCODE_EXPERIMENTAL_OXFMT: EXPERIMENTAL,
-    OPENCODE_EXPERIMENTAL_LSP_TY: EXPERIMENTAL,
-    OPENCODE_EXPERIMENTAL_LSP_TOOL: EXPERIMENTAL,
-    OPENCODE_EXPERIMENTAL_PLAN_MODE: EXPERIMENTAL,
+    OPENCODE_ENABLE_EXA: true,
+    OPENCODE_EXPERIMENTAL_OXFMT: true,
+    OPENCODE_EXPERIMENTAL_LSP_TY: true,
+    OPENCODE_EXPERIMENTAL_LSP_TOOL: true,
+    OPENCODE_EXPERIMENTAL_PLAN_MODE: true,
   }
 }
 

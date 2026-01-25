@@ -72,39 +72,15 @@ const FlagsCommand = cmd({
   async handler(args) {
     const { Flag } = await import("../../../flag/flag")
 
-    // List known flag names (extracted from Flag namespace)
+    // Essential configurable flags (most are hardcoded for personal use)
     const flagNames = [
-      "AUTO_SHARE",
-      "GIT_BASH_PATH",
       "CONFIG",
       "CONFIG_DIR",
-      "CONFIG_CONTENT",
-      "DISABLE_AUTOUPDATE",
-      "DISABLE_PRUNE",
-      "DISABLE_TERMINAL_TITLE",
       "PERMISSION",
-      "DISABLE_DEFAULT_PLUGINS",
-      "DISABLE_LSP_DOWNLOAD",
-      "ENABLE_EXPERIMENTAL_MODELS",
-      "DISABLE_AUTOCOMPACT",
-      "DISABLE_MODELS_FETCH",
-      "DISABLE_CLAUDE_CODE",
-      "DISABLE_CLAUDE_CODE_PROMPT",
-      "DISABLE_CLAUDE_CODE_SKILLS",
-      "FAKE_VCS",
+      "GIT_BASH_PATH",
       "CLIENT",
-      "EXPERIMENTAL",
-      "EXPERIMENTAL_FILEWATCHER",
-      "EXPERIMENTAL_DISABLE_FILEWATCHER",
-      "EXPERIMENTAL_ICON_DISCOVERY",
-      "EXPERIMENTAL_DISABLE_COPY_ON_SELECT",
-      "ENABLE_EXA",
-      "EXPERIMENTAL_BASH_MAX_OUTPUT_LENGTH",
       "EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS",
       "EXPERIMENTAL_OUTPUT_TOKEN_MAX",
-      "EXPERIMENTAL_OXFMT",
-      "EXPERIMENTAL_LSP_TY",
-      "EXPERIMENTAL_LSP_TOOL",
     ]
 
     const flags = flagNames.map((name) => {

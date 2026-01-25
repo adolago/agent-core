@@ -533,13 +533,7 @@ export const GithubRunCommand = cmd({
         if (share === true && !shareBaseUrl) {
           console.log("Share enabled but SHARE_BASE_URL is not set; skipping share links.")
         }
-        shareId = await (async () => {
-          if (!shareBaseUrl) return
-          if (share === false) return
-          if (!share && repoData.data.private) return
-          await Session.share(session.id)
-          return session.id.slice(-8)
-        })()
+        shareId = undefined // Sharing disabled for personal use
         console.log("agent-core session", session.id)
 
         // Handle event types:

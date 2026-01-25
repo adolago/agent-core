@@ -225,17 +225,6 @@ export namespace Session {
     Bus.publish(Event.Created, {
       info: result,
     })
-    const cfg = await Config.get()
-    if (!result.parentID && (Flag.OPENCODE_AUTO_SHARE || cfg.share === "auto"))
-      share(result.id)
-        .then((share) => {
-          update(result.id, (draft) => {
-            draft.share = share
-          })
-        })
-        .catch(() => {
-          // Silently ignore sharing errors during session creation
-        })
     Bus.publish(Event.Updated, {
       info: result,
     })
@@ -252,34 +241,6 @@ export namespace Session {
   export const get = fn(Identifier.schema("session"), async (id) => {
     const read = await Storage.read<Info>(["session", Instance.project.id, id])
     return read as Info
-  })
-
-  export const getShare = fn(Identifier.schema("session"), async (id) => {
-    return Storage.read<ShareInfo>(["share", id])
-  })
-
-  export const share = fn(Identifier.schema("session"), async (id) => {
-    const cfg = await Config.get()
-    if (cfg.share === "disabled") {
-      throw new Error("Sharing is disabled in configuration")
-    }
-    const { ShareNext } = await import("@/share/share-next")
-    const share = await ShareNext.create(id)
-    await update(id, (draft) => {
-      draft.share = {
-        url: share.url,
-      }
-    }, { touch: false })
-    return share
-  })
-
-  export const unshare = fn(Identifier.schema("session"), async (id) => {
-    // Use ShareNext to remove the share (same as share function uses ShareNext to create)
-    const { ShareNext } = await import("@/share/share-next")
-    await ShareNext.remove(id)
-    await update(id, (draft) => {
-      draft.share = undefined
-    }, { touch: false })
   })
 
   export async function update(id: string, editor: (session: Info) => void, options?: { touch?: boolean }) {
@@ -342,7 +303,6 @@ export namespace Session {
       for (const child of await children(sessionID)) {
         await remove(child.id)
       }
-      await unshare(sessionID).catch(() => {})
       for (const msg of await Storage.list(["message", sessionID])) {
         const messageID = msg.at(-1)
         if (!messageID) continue
