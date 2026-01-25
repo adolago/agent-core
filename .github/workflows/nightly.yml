@@ -71,13 +71,12 @@ jobs:
           VERSION="0.2.0-nightly.${DATE}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-          # Update package.json versions
-          cd packages/agent-core
-          npm version ${VERSION} --no-git-tag-version --allow-same-version
-          cd ../..
+          # Update package.json versions using sed (npm version fails on catalog: refs)
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" packages/agent-core/package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" package.json
 
-          # Update root package.json
-          sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" package.json
+          echo "Updated versions to ${VERSION}"
+          grep '"version"' packages/agent-core/package.json
 
       - name: Build
         if: steps.changes.outputs.has_changes == 'true'
