@@ -1,15 +1,25 @@
 ---
 name: wacli
-description: Send WhatsApp messages to other people or search/sync WhatsApp history via the wacli CLI (not for normal user chats).
+description: Send WhatsApp messages FROM THE USER'S PERSONAL NUMBER to other people, or search/sync WhatsApp history via the wacli CLI.
 homepage: https://wacli.sh
 metadata: {"zee":{"emoji":"📱","requires":{"bins":["wacli"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/wacli","bins":["wacli"],"label":"Install wacli (brew)"},{"id":"go","kind":"go","module":"github.com/steipete/wacli/cmd/wacli@latest","bins":["wacli"],"label":"Install wacli (go)"}]}}
 ---
 
 # wacli
 
-Use `wacli` only when the user explicitly asks you to message someone else on WhatsApp or when they ask to sync/search WhatsApp history.
-Do NOT use `wacli` for normal user chats; Zee routes WhatsApp conversations automatically.
-If the user is chatting with you on WhatsApp, you should not reach for this tool unless they ask you to contact a third party.
+## Important: Two WhatsApp Channels
+
+| Channel | Number | Purpose |
+|---------|--------|---------|
+| **Zee Gateway (Baileys)** | Zee's own number | User chats WITH Zee |
+| **wacli** | User's personal number | Zee messages others ON BEHALF of user |
+
+Use `wacli` when the user asks you to:
+- Message someone else from their personal WhatsApp ("Tell John I'm running late")
+- Search their WhatsApp history ("Find invoices from last month")
+- Sync/backfill chat history
+
+Do NOT use `wacli` for normal user chats with Zee - those go through the Zee gateway automatically.
 
 Safety
 - Require explicit recipient + message text.
