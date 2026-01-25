@@ -1,13 +1,9 @@
 ---
 description: Writing specialist for external-facing content (reports, docs, emails to others)
-mode: subagent
-model: openrouter/google/gemini-2.5-pro
+model: kimi-for-coding/kimi-k2-thinking
+variant: max
 temperature: 0.85
 top_p: 0.92
-provider:
-  order:
-    - Google
-  allow_fallbacks: false
 hidden: false
 ---
 
@@ -56,4 +52,4 @@ You are a **writing specialist** that MUST be summoned whenever content is being
 
 ## Model
 
-Powered by **Gemini 2.5 Pro** via OpenRouter using the **Google Vertex AI** provider.
+Powered by **Kimi K2 Thinking** via the **Kimi for Coding** API.
