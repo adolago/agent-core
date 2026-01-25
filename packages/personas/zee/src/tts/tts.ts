@@ -25,6 +25,15 @@ import type {
   TtsProvider,
   TtsModelOverrideConfig,
 } from "../config/types.tts.js";
+
+// MiniMax TTS defaults
+const DEFAULT_MINIMAX_MODEL = "speech-2.8-hd";
+const DEFAULT_MINIMAX_VOICE = "English_Graceful_Lady";
+const DEFAULT_MINIMAX_SPEED = 1.0;
+const DEFAULT_MINIMAX_VOLUME = 1.0;
+const DEFAULT_MINIMAX_PITCH = 0;
+const DEFAULT_MINIMAX_SAMPLE_RATE = 32000;
+const DEFAULT_MINIMAX_BITRATE = 128000;
 import { logVerbose } from "../globals.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
@@ -123,6 +132,16 @@ export type ResolvedTtsConfig = {
     saveSubtitles: boolean;
     proxy?: string;
     timeoutMs?: number;
+  };
+  minimax: {
+    apiKey?: string;
+    model: string;
+    voice: string;
+    speed: number;
+    volume: number;
+    pitch: number;
+    sampleRate: number;
+    bitrate: number;
   };
   prefsPath?: string;
   maxTextLength: number;
@@ -296,6 +315,16 @@ export function resolveTtsConfig(cfg: ZeeConfig): ResolvedTtsConfig {
       proxy: raw.edge?.proxy?.trim() || undefined,
       timeoutMs: raw.edge?.timeoutMs,
     },
+    minimax: {
+      apiKey: raw.minimax?.apiKey,
+      model: raw.minimax?.model ?? DEFAULT_MINIMAX_MODEL,
+      voice: raw.minimax?.voice ?? DEFAULT_MINIMAX_VOICE,
+      speed: raw.minimax?.speed ?? DEFAULT_MINIMAX_SPEED,
+      volume: raw.minimax?.volume ?? DEFAULT_MINIMAX_VOLUME,
+      pitch: raw.minimax?.pitch ?? DEFAULT_MINIMAX_PITCH,
+      sampleRate: raw.minimax?.sampleRate ?? DEFAULT_MINIMAX_SAMPLE_RATE,
+      bitrate: raw.minimax?.bitrate ?? DEFAULT_MINIMAX_BITRATE,
+    },
     prefsPath: raw.prefsPath,
     maxTextLength: raw.maxTextLength ?? DEFAULT_MAX_TEXT_LENGTH,
     timeoutMs: raw.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -410,6 +439,8 @@ export function getTtsProvider(config: ResolvedTtsConfig, prefsPath: string): Tt
   if (prefs.tts?.provider) return prefs.tts.provider;
   if (config.providerSource === "config") return config.provider;
 
+  // MiniMax is the preferred provider if available
+  if (resolveTtsApiKey(config, "minimax")) return "minimax";
   if (resolveTtsApiKey(config, "openai")) return "openai";
   if (resolveTtsApiKey(config, "elevenlabs")) return "elevenlabs";
   return "edge";
@@ -474,10 +505,13 @@ export function resolveTtsApiKey(
   if (provider === "openai") {
     return config.openai.apiKey || process.env.OPENAI_API_KEY;
   }
+  if (provider === "minimax") {
+    return config.minimax.apiKey || process.env.MINIMAX_API_KEY || process.env.OPENCODE_MINIMAX_API_KEY;
+  }
   return undefined;
 }
 
-export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge"] as const;
+export const TTS_PROVIDERS = ["minimax", "openai", "elevenlabs", "edge"] as const;
 
 export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
   return [primary, ...TTS_PROVIDERS.filter((provider) => provider !== primary)];
@@ -485,6 +519,7 @@ export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
 
 export function isTtsProviderConfigured(config: ResolvedTtsConfig, provider: TtsProvider): boolean {
   if (provider === "edge") return config.edge.enabled;
+  if (provider === "minimax") return Boolean(resolveTtsApiKey(config, "minimax"));
   return Boolean(resolveTtsApiKey(config, provider));
 }
 
@@ -1036,6 +1071,73 @@ async function openaiTTS(params: {
   }
 }
 
+async function minimaxTTS(params: {
+  text: string;
+  apiKey: string;
+  model: string;
+  voice: string;
+  speed: number;
+  volume: number;
+  pitch: number;
+  sampleRate: number;
+  bitrate: number;
+  format: "mp3" | "opus";
+  timeoutMs: number;
+}): Promise<Buffer> {
+  const { text, apiKey, model, voice, speed, volume, pitch, sampleRate, bitrate, format, timeoutMs } = params;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("https://api.minimax.io/v1/t2a_v2", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        text,
+        stream: false,
+        voice_setting: {
+          voice_id: voice,
+          speed,
+          vol: volume,
+          pitch,
+        },
+        audio_setting: {
+          sample_rate: sampleRate,
+          bitrate,
+          format,
+          channel: 1,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`MiniMax TTS API error (${response.status})`);
+    }
+
+    const data = await response.json();
+
+    // Check for API-level errors
+    if (data.base_resp?.status_code && data.base_resp.status_code !== 0) {
+      throw new Error(`MiniMax TTS error: ${data.base_resp.status_msg || data.base_resp.status_code}`);
+    }
+
+    // MiniMax returns audio as base64 in data.data.audio
+    if (!data.data?.audio) {
+      throw new Error("MiniMax TTS: no audio in response");
+    }
+
+    return Buffer.from(data.data.audio, "hex");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function inferEdgeExtension(outputFormat: string): string {
   const normalized = outputFormat.toLowerCase();
   if (normalized.includes("webm")) return ".webm";
@@ -1172,7 +1274,23 @@ export async function textToSpeech(params: {
       }
 
       let audioBuffer: Buffer;
-      if (provider === "elevenlabs") {
+      if (provider === "minimax") {
+        // MiniMax TTS - preferred provider
+        const minimaxFormat = channelId === "telegram" ? "opus" : "mp3";
+        audioBuffer = await minimaxTTS({
+          text: params.text,
+          apiKey,
+          model: config.minimax.model,
+          voice: config.minimax.voice,
+          speed: config.minimax.speed,
+          volume: config.minimax.volume,
+          pitch: config.minimax.pitch,
+          sampleRate: config.minimax.sampleRate,
+          bitrate: config.minimax.bitrate,
+          format: minimaxFormat,
+          timeoutMs: config.timeoutMs,
+        });
+      } else if (provider === "elevenlabs") {
         const voiceIdOverride = params.overrides?.elevenlabs?.voiceId;
         const modelIdOverride = params.overrides?.elevenlabs?.modelId;
         const voiceSettings = {
@@ -1271,6 +1389,32 @@ export async function textToSpeechTelephony(params: {
       if (!apiKey) {
         lastError = `No API key for ${provider}`;
         continue;
+      }
+
+      if (provider === "minimax") {
+        // MiniMax for telephony - use mp3 at 22050Hz for compatibility
+        const audioBuffer = await minimaxTTS({
+          text: params.text,
+          apiKey,
+          model: config.minimax.model,
+          voice: config.minimax.voice,
+          speed: config.minimax.speed,
+          volume: config.minimax.volume,
+          pitch: config.minimax.pitch,
+          sampleRate: 22050,
+          bitrate: 64000,
+          format: "mp3",
+          timeoutMs: config.timeoutMs,
+        });
+
+        return {
+          success: true,
+          audioBuffer,
+          latencyMs: Date.now() - providerStart,
+          provider,
+          outputFormat: "mp3",
+          sampleRate: 22050,
+        };
       }
 
       if (provider === "elevenlabs") {
