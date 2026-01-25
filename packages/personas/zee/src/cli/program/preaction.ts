@@ -13,8 +13,8 @@ function setProcessTitleForCommand(actionCommand: Command) {
     current = current.parent;
   }
   const name = current.name();
-  if (!name || name === "clawdbot") return;
-  process.title = `clawdbot-${name}`;
+  if (!name || name === "zee") return;
+  process.title = `zee-${name}`;
 }
 
 // Commands that need channel plugins loaded
@@ -27,7 +27,7 @@ export function registerPreActionHooks(program: Command, programVersion: string)
     if (hasHelpOrVersion(argv)) return;
     const commandPath = getCommandPath(argv, 2);
     const hideBanner =
-      isTruthyEnvValue(process.env.CLAWDBOT_HIDE_BANNER) ||
+      isTruthyEnvValue(process.env.ZEE_HIDE_BANNER) ||
       commandPath[0] === "update" ||
       (commandPath[0] === "plugins" && commandPath[1] === "update");
     if (!hideBanner) {

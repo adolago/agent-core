@@ -1,6 +1,6 @@
 import type { ChannelId } from "../channels/plugins/types.js";
 import { normalizeAccountId } from "../routing/session-key.js";
-import type { ClawdbotConfig } from "./config.js";
+import type { ZeeConfig } from "./config.js";
 import type { GroupToolPolicyConfig } from "./types.tools.js";
 
 export type GroupPolicyChannel = ChannelId;
@@ -20,7 +20,7 @@ export type ChannelGroupPolicy = {
 type ChannelGroups = Record<string, ChannelGroupConfig>;
 
 function resolveChannelGroups(
-  cfg: ClawdbotConfig,
+  cfg: ZeeConfig,
   channel: GroupPolicyChannel,
   accountId?: string | null,
 ): ChannelGroups | undefined {
@@ -43,7 +43,7 @@ function resolveChannelGroups(
 }
 
 export function resolveChannelGroupPolicy(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;
@@ -68,7 +68,7 @@ export function resolveChannelGroupPolicy(params: {
 }
 
 export function resolveChannelGroupRequireMention(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;
@@ -95,7 +95,7 @@ export function resolveChannelGroupRequireMention(params: {
 }
 
 export function resolveChannelGroupToolsPolicy(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;

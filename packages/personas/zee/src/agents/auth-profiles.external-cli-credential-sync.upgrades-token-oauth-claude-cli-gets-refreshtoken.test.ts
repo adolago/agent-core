@@ -11,7 +11,7 @@ import {
 
 describe("external CLI credential sync", () => {
   it("upgrades token to oauth when Claude Code CLI gets refreshToken", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-cli-upgrade-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-cli-upgrade-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -54,14 +54,14 @@ describe("external CLI credential sync", () => {
           expect((cliProfile as { access: string }).access).toBe("new-oauth-access");
           expect((cliProfile as { refresh: string }).refresh).toBe("new-refresh-token");
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });
   it("syncs Codex CLI credentials into openai-codex:codex-cli", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-codex-sync-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-codex-sync-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -94,7 +94,7 @@ describe("external CLI credential sync", () => {
             "codex-access-token",
           );
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });

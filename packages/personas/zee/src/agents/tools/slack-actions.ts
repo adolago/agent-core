@@ -1,6 +1,6 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { resolveSlackAccount } from "../../slack/accounts.js";
 import {
   deleteSlackMessage,
@@ -73,7 +73,7 @@ function resolveThreadTsFromContext(
 
 export async function handleSlackAction(
   params: Record<string, unknown>,
-  cfg: ClawdbotConfig,
+  cfg: ZeeConfig,
   context?: SlackActionContext,
 ): Promise<AgentToolResult<unknown>> {
   const resolveChannelId = () =>

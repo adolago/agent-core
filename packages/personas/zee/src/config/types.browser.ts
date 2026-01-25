@@ -20,7 +20,7 @@ export type BrowserConfig = {
    * Shared token for the browser control server.
    * If set, clients must send `Authorization: Bearer <token>`.
    *
-   * Prefer `CLAWDBOT_BROWSER_CONTROL_TOKEN` env for ephemeral setups; use this for "works after reboot".
+   * Prefer `ZEE_BROWSER_CONTROL_TOKEN` env for ephemeral setups; use this for "works after reboot".
    */
   controlToken?: string;
   /** Base URL of the CDP endpoint. Default: controlUrl with port + 1. */

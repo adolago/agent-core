@@ -34,9 +34,9 @@ describe("browser client", () => {
     await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(/timed out/i);
   });
 
-  it("adds Authorization when CLAWDBOT_BROWSER_CONTROL_TOKEN is set", async () => {
-    const prev = process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN;
-    process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN = "t1";
+  it("adds Authorization when ZEE_BROWSER_CONTROL_TOKEN is set", async () => {
+    const prev = process.env.ZEE_BROWSER_CONTROL_TOKEN;
+    process.env.ZEE_BROWSER_CONTROL_TOKEN = "t1";
 
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     vi.stubGlobal(
@@ -66,7 +66,7 @@ describe("browser client", () => {
     const auth = new Headers(init?.headers ?? {}).get("Authorization");
     expect(auth).toBe("Bearer t1");
 
-    process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN = prev;
+    process.env.ZEE_BROWSER_CONTROL_TOKEN = prev;
   });
 
   it("surfaces non-2xx responses with body text", async () => {

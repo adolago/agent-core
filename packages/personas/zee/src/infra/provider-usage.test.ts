@@ -253,7 +253,7 @@ describe("provider usage loading", () => {
     await withTempHome(
       async (tempHome) => {
         const agentDir = path.join(
-          process.env.CLAWDBOT_STATE_DIR ?? path.join(tempHome, ".clawdbot"),
+          process.env.ZEE_STATE_DIR ?? path.join(tempHome, ".zee"),
           "agents",
           "main",
           "agent",
@@ -328,9 +328,9 @@ describe("provider usage loading", () => {
       },
       {
         env: {
-          CLAWDBOT_STATE_DIR: (home) => path.join(home, ".clawdbot"),
+          ZEE_STATE_DIR: (home) => path.join(home, ".zee"),
         },
-        prefix: "clawdbot-provider-usage-",
+        prefix: "zee-provider-usage-",
       },
     );
   });
@@ -338,8 +338,8 @@ describe("provider usage loading", () => {
   it("prefers claude-cli token for Anthropic usage snapshots", async () => {
     await withTempHome(
       async () => {
-        const stateDir = process.env.CLAWDBOT_STATE_DIR;
-        if (!stateDir) throw new Error("Missing CLAWDBOT_STATE_DIR");
+        const stateDir = process.env.ZEE_STATE_DIR;
+        if (!stateDir) throw new Error("Missing ZEE_STATE_DIR");
         const agentDir = path.join(stateDir, "agents", "main", "agent");
         fs.mkdirSync(agentDir, { recursive: true, mode: 0o700 });
         fs.writeFileSync(
@@ -406,7 +406,7 @@ describe("provider usage loading", () => {
         expect(summary.providers[0]?.windows[0]?.label).toBe("5h");
         expect(mockFetch).toHaveBeenCalled();
       },
-      { prefix: "clawdbot-provider-usage-" },
+      { prefix: "zee-provider-usage-" },
     );
   });
 

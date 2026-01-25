@@ -4,7 +4,7 @@ import { Type } from "@sinclair/typebox";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../config/config.js";
 import { isTruthyEnvValue } from "../infra/env.js";
-import { resolveClawdbotAgentDir } from "./agent-paths.js";
+import { resolveZeeAgentDir } from "./agent-paths.js";
 import {
   collectAnthropicApiKeys,
   isAnthropicBillingError,
@@ -12,12 +12,12 @@ import {
 } from "./live-auth-keys.js";
 import { isModernModelRef } from "./live-model-filter.js";
 import { getApiKeyForModel, requireApiKey } from "./model-auth.js";
-import { ensureClawdbotModelsJson } from "./models-config.js";
+import { ensureZeeModelsJson } from "./models-config.js";
 import { isRateLimitErrorMessage } from "./pi-embedded-helpers/errors.js";
 
-const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.CLAWDBOT_LIVE_TEST);
-const DIRECT_ENABLED = Boolean(process.env.CLAWDBOT_LIVE_MODELS?.trim());
-const REQUIRE_PROFILE_KEYS = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_REQUIRE_PROFILE_KEYS);
+const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.ZEE_LIVE_TEST);
+const DIRECT_ENABLED = Boolean(process.env.ZEE_LIVE_MODELS?.trim());
+const REQUIRE_PROFILE_KEYS = isTruthyEnvValue(process.env.ZEE_LIVE_REQUIRE_PROFILE_KEYS);
 
 const describeLive = LIVE ? describe : describe.skip;
 
@@ -49,15 +49,15 @@ function isGoogleModelNotFoundError(err: unknown): boolean {
   const msg = String(err);
   if (!/not found/i.test(msg)) return false;
   if (/models\/.+ is not found for api version/i.test(msg)) return true;
-  if (/"status"\\s*:\\s*"NOT_FOUND"/.test(msg)) return true;
-  if (/"code"\\s*:\\s*404/.test(msg)) return true;
+  if (/"status"\[zee\]s*:\[zee\]s*"NOT_FOUND"/.test(msg)) return true;
+  if (/"code"\[zee\]s*:\[zee\]s*404/.test(msg)) return true;
   return false;
 }
 
 function isModelNotFoundErrorMessage(raw: string): boolean {
   const msg = raw.trim();
   if (!msg) return false;
-  if (/\b404\b/.test(msg) && /not[_-]?found/i.test(msg)) return true;
+  if (/\[zee\]404\[zee\]/.test(msg) && /not[_-]?found/i.test(msg)) return true;
   if (/not_found_error/i.test(msg)) return true;
   if (/model:\s*[a-z0-9._-]+/i.test(msg) && /not[_-]?found/i.test(msg)) return true;
   return false;
@@ -151,10 +151,10 @@ describeLive("live models (profile keys)", () => {
     "completes across selected models",
     async () => {
       const cfg = loadConfig();
-      await ensureClawdbotModelsJson(cfg);
+      await ensureZeeModelsJson(cfg);
       if (!DIRECT_ENABLED) {
         logProgress(
-          "[live-models] skipping (set CLAWDBOT_LIVE_MODELS=modern|all|<list>; all=modern)",
+          "[live-models] skipping (set ZEE_LIVE_MODELS=modern|all|<list>; all=modern)",
         );
         return;
       }
@@ -164,18 +164,18 @@ describeLive("live models (profile keys)", () => {
         logProgress(`[live-models] anthropic keys loaded: ${anthropicKeys.length}`);
       }
 
-      const agentDir = resolveClawdbotAgentDir();
+      const agentDir = resolveZeeAgentDir();
       const authStorage = discoverAuthStorage(agentDir);
       const modelRegistry = discoverModels(authStorage, agentDir);
       const models = modelRegistry.getAll() as Array<Model<Api>>;
 
-      const rawModels = process.env.CLAWDBOT_LIVE_MODELS?.trim();
+      const rawModels = process.env.ZEE_LIVE_MODELS?.trim();
       const useModern = rawModels === "modern" || rawModels === "all";
       const useExplicit = Boolean(rawModels) && !useModern;
       const filter = useExplicit ? parseModelFilter(rawModels) : null;
       const allowNotFoundSkip = useModern;
-      const providers = parseProviderFilter(process.env.CLAWDBOT_LIVE_PROVIDERS);
-      const perModelTimeoutMs = toInt(process.env.CLAWDBOT_LIVE_MODEL_TIMEOUT_MS, 30_000);
+      const providers = parseProviderFilter(process.env.ZEE_LIVE_PROVIDERS);
+      const perModelTimeoutMs = toInt(process.env.ZEE_LIVE_MODEL_TIMEOUT_MS, 30_000);
 
       const failures: Array<{ model: string; error: string }> = [];
       const skipped: Array<{ model: string; reason: string }> = [];

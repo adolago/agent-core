@@ -33,7 +33,7 @@ export async function installChromeExtension(opts?: {
 }): Promise<{ path: string }> {
   const src = opts?.sourceDir ?? bundledExtensionRootDir();
   if (!hasManifest(src)) {
-    throw new Error("Bundled Chrome extension is missing. Reinstall Clawdbot and try again.");
+    throw new Error("Bundled Chrome extension is missing. Reinstall Zee and try again.");
   }
 
   const stateDir = opts?.stateDir ?? STATE_DIR_CLAWDBOT;
@@ -88,7 +88,7 @@ export function registerBrowserExtensionCommands(
             "Next:",
             `- Chrome → chrome://extensions → enable “Developer mode”`,
             `- “Load unpacked” → select: ${displayPath}`,
-            `- Pin “Clawdbot Browser Relay”, then click it on the tab (badge shows ON)`,
+            `- Pin “Zee Browser Relay”, then click it on the tab (badge shows ON)`,
             "",
             `${theme.muted("Docs:")} ${formatDocsLink("/tools/chrome-extension", "docs.clawd.bot/tools/chrome-extension")}`,
           ].join("\n"),
@@ -106,7 +106,7 @@ export function registerBrowserExtensionCommands(
         defaultRuntime.error(
           danger(
             [
-              `Chrome extension is not installed. Run: "${formatCliCommand("clawdbot browser extension install")}"`,
+              `Chrome extension is not installed. Run: "${formatCliCommand("zee browser extension install")}"`,
               `Docs: ${formatDocsLink("/tools/chrome-extension", "docs.clawd.bot/tools/chrome-extension")}`,
             ].join("\n"),
           ),

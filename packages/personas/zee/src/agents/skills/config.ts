@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ClawdbotConfig, SkillConfig } from "../../config/config.js";
+import type { ZeeConfig, SkillConfig } from "../../config/config.js";
 import { resolveSkillKey } from "./frontmatter.js";
 import type { SkillEligibilityContext, SkillEntry } from "./types.js";
 
@@ -16,7 +16,7 @@ function isTruthy(value: unknown): boolean {
   return true;
 }
 
-export function resolveConfigPath(config: ClawdbotConfig | undefined, pathStr: string) {
+export function resolveConfigPath(config: ZeeConfig | undefined, pathStr: string) {
   const parts = pathStr.split(".").filter(Boolean);
   let current: unknown = config;
   for (const part of parts) {
@@ -26,7 +26,7 @@ export function resolveConfigPath(config: ClawdbotConfig | undefined, pathStr: s
   return current;
 }
 
-export function isConfigPathTruthy(config: ClawdbotConfig | undefined, pathStr: string): boolean {
+export function isConfigPathTruthy(config: ZeeConfig | undefined, pathStr: string): boolean {
   const value = resolveConfigPath(config, pathStr);
   if (value === undefined && pathStr in DEFAULT_CONFIG_VALUES) {
     return DEFAULT_CONFIG_VALUES[pathStr] === true;
@@ -35,7 +35,7 @@ export function isConfigPathTruthy(config: ClawdbotConfig | undefined, pathStr: 
 }
 
 export function resolveSkillConfig(
-  config: ClawdbotConfig | undefined,
+  config: ZeeConfig | undefined,
   skillKey: string,
 ): SkillConfig | undefined {
   const skills = config?.skills?.entries;
@@ -57,10 +57,10 @@ function normalizeAllowlist(input: unknown): string[] | undefined {
 }
 
 function isBundledSkill(entry: SkillEntry): boolean {
-  return entry.skill.source === "clawdbot-bundled";
+  return entry.skill.source === "zee-bundled";
 }
 
-export function resolveBundledAllowlist(config?: ClawdbotConfig): string[] | undefined {
+export function resolveBundledAllowlist(config?: ZeeConfig): string[] | undefined {
   return normalizeAllowlist(config?.skills?.allowBundled);
 }
 
@@ -88,14 +88,14 @@ export function hasBinary(bin: string): boolean {
 
 export function shouldIncludeSkill(params: {
   entry: SkillEntry;
-  config?: ClawdbotConfig;
+  config?: ZeeConfig;
   eligibility?: SkillEligibilityContext;
 }): boolean {
   const { entry, config, eligibility } = params;
   const skillKey = resolveSkillKey(entry.skill, entry);
   const skillConfig = resolveSkillConfig(config, skillKey);
   const allowBundled = normalizeAllowlist(config?.skills?.allowBundled);
-  const osList = entry.clawdbot?.os ?? [];
+  const osList = entry.zee?.os ?? [];
   const remotePlatforms = eligibility?.remote?.platforms ?? [];
 
   if (skillConfig?.enabled === false) return false;
@@ -107,11 +107,11 @@ export function shouldIncludeSkill(params: {
   ) {
     return false;
   }
-  if (entry.clawdbot?.always === true) {
+  if (entry.zee?.always === true) {
     return true;
   }
 
-  const requiredBins = entry.clawdbot?.requires?.bins ?? [];
+  const requiredBins = entry.zee?.requires?.bins ?? [];
   if (requiredBins.length > 0) {
     for (const bin of requiredBins) {
       if (hasBinary(bin)) continue;
@@ -119,7 +119,7 @@ export function shouldIncludeSkill(params: {
       return false;
     }
   }
-  const requiredAnyBins = entry.clawdbot?.requires?.anyBins ?? [];
+  const requiredAnyBins = entry.zee?.requires?.anyBins ?? [];
   if (requiredAnyBins.length > 0) {
     const anyFound =
       requiredAnyBins.some((bin) => hasBinary(bin)) ||
@@ -127,19 +127,19 @@ export function shouldIncludeSkill(params: {
     if (!anyFound) return false;
   }
 
-  const requiredEnv = entry.clawdbot?.requires?.env ?? [];
+  const requiredEnv = entry.zee?.requires?.env ?? [];
   if (requiredEnv.length > 0) {
     for (const envName of requiredEnv) {
       if (process.env[envName]) continue;
       if (skillConfig?.env?.[envName]) continue;
-      if (skillConfig?.apiKey && entry.clawdbot?.primaryEnv === envName) {
+      if (skillConfig?.apiKey && entry.zee?.primaryEnv === envName) {
         continue;
       }
       return false;
     }
   }
 
-  const requiredConfig = entry.clawdbot?.requires?.config ?? [];
+  const requiredConfig = entry.zee?.requires?.config ?? [];
   if (requiredConfig.length > 0) {
     for (const configPath of requiredConfig) {
       if (!isConfigPathTruthy(config, configPath)) return false;

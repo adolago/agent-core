@@ -15,16 +15,16 @@ describe("normalizeLegacyConfigValues", () => {
   };
 
   beforeEach(() => {
-    previousOauthDir = process.env.CLAWDBOT_OAUTH_DIR;
-    tempOauthDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-oauth-"));
-    process.env.CLAWDBOT_OAUTH_DIR = tempOauthDir;
+    previousOauthDir = process.env.ZEE_OAUTH_DIR;
+    tempOauthDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-oauth-"));
+    process.env.ZEE_OAUTH_DIR = tempOauthDir;
   });
 
   afterEach(() => {
     if (previousOauthDir === undefined) {
-      delete process.env.CLAWDBOT_OAUTH_DIR;
+      delete process.env.ZEE_OAUTH_DIR;
     } else {
-      process.env.CLAWDBOT_OAUTH_DIR = previousOauthDir;
+      process.env.ZEE_OAUTH_DIR = previousOauthDir;
     }
     if (tempOauthDir) {
       fs.rmSync(tempOauthDir, { recursive: true, force: true });
@@ -94,7 +94,7 @@ describe("normalizeLegacyConfigValues", () => {
   });
 
   it("copies legacy ack reaction when authDir override exists", () => {
-    const customDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-wa-auth-"));
+    const customDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-wa-auth-"));
     try {
       writeCreds(customDir);
 

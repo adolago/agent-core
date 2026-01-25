@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildModelAliasIndex } from "../../agents/model-selection.js";
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "../../infra/system-events.js";
 import { initSessionState } from "./session.js";
 import { applyResetModelOverride } from "./session-reset-model.js";
@@ -38,7 +38,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
     });
   }
 
-  function makeCfg(params: { storePath: string; allowFrom: string[] }): ClawdbotConfig {
+  function makeCfg(params: { storePath: string; allowFrom: string[] }): ZeeConfig {
     return {
       session: { store: params.storePath, idleMinutes: 999 },
       channels: {
@@ -47,11 +47,11 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
           groupPolicy: "open",
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
   }
 
   it("Reset trigger /new works for authorized sender in WhatsApp group", async () => {
-    const storePath = await createStorePath("clawdbot-group-reset-");
+    const storePath = await createStorePath("zee-group-reset-");
     const sessionKey = "agent:main:whatsapp:group:120363406150318674@g.us";
     const existingSessionId = "existing-session-123";
     await seedSessionStore({
@@ -66,7 +66,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
     });
 
     const groupMessageCtx = {
-      Body: `[Chat messages since your last reply - for context]\\n[WhatsApp 120363406150318674@g.us 2026-01-13T07:45Z] Someone: hello\\n\\n[Current message - respond to this]\\n[WhatsApp 120363406150318674@g.us 2026-01-13T07:45Z] Peschiño: /new\\n[from: Peschiño (+41796666864)]`,
+      Body: `[Chat messages since your last reply - for context]\[zee\]n[WhatsApp 120363406150318674@g.us 2026-01-13T07:45Z] Someone: hello\[zee\]n\[zee\]n[Current message - respond to this]\[zee\]n[WhatsApp 120363406150318674@g.us 2026-01-13T07:45Z] Peschiño: /new\[zee\]n[from: Peschiño (+41796666864)]`,
       RawBody: "/new",
       CommandBody: "/new",
       From: "120363406150318674@g.us",
@@ -93,7 +93,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
   });
 
   it("Reset trigger /new blocked for unauthorized sender in existing session", async () => {
-    const storePath = await createStorePath("clawdbot-group-reset-unauth-");
+    const storePath = await createStorePath("zee-group-reset-unauth-");
     const sessionKey = "agent:main:whatsapp:group:120363406150318674@g.us";
     const existingSessionId = "existing-session-123";
 
@@ -109,7 +109,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
     });
 
     const groupMessageCtx = {
-      Body: `[Context]\\n[WhatsApp ...] OtherPerson: /new\\n[from: OtherPerson (+1555123456)]`,
+      Body: `[Context]\[zee\]n[WhatsApp ...] OtherPerson: /new\[zee\]n[from: OtherPerson (+1555123456)]`,
       RawBody: "/new",
       CommandBody: "/new",
       From: "120363406150318674@g.us",
@@ -135,7 +135,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
   });
 
   it("Reset trigger works when RawBody is clean but Body has wrapped context", async () => {
-    const storePath = await createStorePath("clawdbot-group-rawbody-");
+    const storePath = await createStorePath("zee-group-rawbody-");
     const sessionKey = "agent:main:whatsapp:group:g1";
     const existingSessionId = "existing-session-123";
     await seedSessionStore({
@@ -174,7 +174,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
   });
 
   it("Reset trigger /new works when SenderId is LID but SenderE164 is authorized", async () => {
-    const storePath = await createStorePath("clawdbot-group-reset-lid-");
+    const storePath = await createStorePath("zee-group-reset-lid-");
     const sessionKey = "agent:main:whatsapp:group:120363406150318674@g.us";
     const existingSessionId = "existing-session-123";
     await seedSessionStore({
@@ -216,7 +216,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
   });
 
   it("Reset trigger /new blocked when SenderId is LID but SenderE164 is unauthorized", async () => {
-    const storePath = await createStorePath("clawdbot-group-reset-lid-unauth-");
+    const storePath = await createStorePath("zee-group-reset-lid-unauth-");
     const sessionKey = "agent:main:whatsapp:group:120363406150318674@g.us";
     const existingSessionId = "existing-session-123";
     await seedSessionStore({
@@ -259,7 +259,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
 
 describe("applyResetModelOverride", () => {
   it("selects a model hint and strips it from the body", async () => {
-    const cfg = {} as ClawdbotConfig;
+    const cfg = {} as ZeeConfig;
     const aliasIndex = buildModelAliasIndex({ cfg, defaultProvider: "openai" });
     const sessionEntry = {
       sessionId: "s1",
@@ -289,7 +289,7 @@ describe("applyResetModelOverride", () => {
   });
 
   it("clears auth profile overrides when reset applies a model", async () => {
-    const cfg = {} as ClawdbotConfig;
+    const cfg = {} as ZeeConfig;
     const aliasIndex = buildModelAliasIndex({ cfg, defaultProvider: "openai" });
     const sessionEntry = {
       sessionId: "s1",
@@ -322,7 +322,7 @@ describe("applyResetModelOverride", () => {
   });
 
   it("skips when resetTriggered is false", async () => {
-    const cfg = {} as ClawdbotConfig;
+    const cfg = {} as ZeeConfig;
     const aliasIndex = buildModelAliasIndex({ cfg, defaultProvider: "openai" });
     const sessionEntry = {
       sessionId: "s1",
@@ -363,7 +363,7 @@ describe("prependSystemEvents", () => {
     enqueueSystemEvent("Model switched.", { sessionKey: "agent:main:main" });
 
     const result = await prependSystemEvents({
-      cfg: {} as ClawdbotConfig,
+      cfg: {} as ZeeConfig,
       sessionKey: "agent:main:main",
       isMainSession: false,
       isNewSession: false,

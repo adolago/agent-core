@@ -7,7 +7,7 @@ import { CLAUDE_CLI_PROFILE_ID, ensureAuthProfileStore } from "./auth-profiles.j
 
 describe("external CLI credential sync", () => {
   it("syncs Claude Code CLI OAuth credentials into anthropic:claude-cli", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-cli-sync-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-cli-sync-"));
     try {
       // Create a temp home with Claude Code CLI credentials
       await withTempHome(
@@ -53,14 +53,14 @@ describe("external CLI credential sync", () => {
           expect((cliProfile as { refresh: string }).refresh).toBe("fresh-refresh-token");
           expect((cliProfile as { expires: number }).expires).toBeGreaterThan(Date.now());
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });
   it("syncs Claude Code CLI credentials without refreshToken as token type", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-cli-token-sync-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-cli-token-sync-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -87,7 +87,7 @@ describe("external CLI credential sync", () => {
           expect(cliProfile.type).toBe("token");
           expect((cliProfile as { token: string }).token).toBe("access-only-token");
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });

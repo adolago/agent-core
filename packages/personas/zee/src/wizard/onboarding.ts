@@ -27,7 +27,7 @@ import type {
   ResetScope,
 } from "../commands/onboard-types.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import {
   DEFAULT_GATEWAY_PORT,
   readConfigFileSnapshot,
@@ -53,7 +53,7 @@ async function requireRiskAcknowledgement(params: {
     [
       "Please read: https://docs.clawd.bot/security",
       "",
-      "Clawdbot agents can run commands, read/write files, and act through any tools you enable. They can only send messages on channels you configure (for example, an account you log in on this machine, or a bot account like Slack/Discord).",
+      "Zee agents can run commands, read/write files, and act through any tools you enable. They can only send messages on channels you configure (for example, an account you log in on this machine, or a bot account like Slack/Discord).",
       "",
       "If you’re new to this, start with the sandbox and least privilege. It helps limit what an agent can do if it’s tricked or makes a mistake.",
       "Learn more: https://docs.clawd.bot/sandboxing",
@@ -76,11 +76,11 @@ export async function runOnboardingWizard(
   prompter: WizardPrompter,
 ) {
   printWizardHeader(runtime);
-  await prompter.intro("Clawdbot onboarding");
+  await prompter.intro("Zee onboarding");
   await requireRiskAcknowledgement({ opts, prompter });
 
   const snapshot = await readConfigFileSnapshot();
-  let baseConfig: ClawdbotConfig = snapshot.valid ? snapshot.config : {};
+  let baseConfig: ZeeConfig = snapshot.valid ? snapshot.config : {};
 
   if (snapshot.exists && !snapshot.valid) {
     await prompter.note(summarizeExistingConfig(baseConfig), "Invalid config");
@@ -95,13 +95,13 @@ export async function runOnboardingWizard(
       );
     }
     await prompter.outro(
-      `Config invalid. Run \`${formatCliCommand("clawdbot doctor")}\` to repair it, then re-run onboarding.`,
+      `Config invalid. Run \`${formatCliCommand("zee doctor")}\` to repair it, then re-run onboarding.`,
     );
     runtime.exit(1);
     return;
   }
 
-  const quickstartHint = `Configure details later via ${formatCliCommand("clawdbot configure")}.`;
+  const quickstartHint = `Configure details later via ${formatCliCommand("zee configure")}.`;
   const manualHint = "Configure port, network, Tailscale, and auth options.";
   const explicitFlowRaw = opts.flow?.trim();
   const normalizedExplicitFlow = explicitFlowRaw === "manual" ? "advanced" : explicitFlowRaw;
@@ -265,8 +265,8 @@ export async function runOnboardingWizard(
   const localUrl = `ws://127.0.0.1:${localPort}`;
   const localProbe = await probeGatewayReachable({
     url: localUrl,
-    token: baseConfig.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
-    password: baseConfig.gateway?.auth?.password ?? process.env.CLAWDBOT_GATEWAY_PASSWORD,
+    token: baseConfig.gateway?.auth?.token ?? process.env.ZEE_GATEWAY_TOKEN,
+    password: baseConfig.gateway?.auth?.password ?? process.env.ZEE_GATEWAY_PASSWORD,
   });
   const remoteUrl = baseConfig.gateway?.remote?.url?.trim() ?? "";
   const remoteProbe = remoteUrl
@@ -322,7 +322,7 @@ export async function runOnboardingWizard(
 
   const workspaceDir = resolveUserPath(workspaceInput.trim() || DEFAULT_WORKSPACE);
 
-  let nextConfig: ClawdbotConfig = {
+  let nextConfig: ZeeConfig = {
     ...baseConfig,
     agents: {
       ...baseConfig.agents,

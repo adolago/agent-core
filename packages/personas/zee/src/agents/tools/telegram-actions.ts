@@ -1,5 +1,5 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
 import {
   deleteMessageTelegram,
@@ -66,7 +66,7 @@ export function readTelegramButtons(
 
 export async function handleTelegramAction(
   params: Record<string, unknown>,
-  cfg: ClawdbotConfig,
+  cfg: ZeeConfig,
 ): Promise<AgentToolResult<unknown>> {
   const action = readStringParam(params, "action", { required: true });
   const accountId = readStringParam(params, "accountId");

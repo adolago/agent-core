@@ -37,7 +37,7 @@ import {
   supportsXHighThinking,
 } from "../../auto-reply/thinking.js";
 import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { resolveSessionTranscriptPath, updateSessionStore } from "../../config/sessions.js";
 import type { AgentDefaultsConfig } from "../../config/types.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
@@ -78,7 +78,7 @@ export type RunCronAgentTurnResult = {
 };
 
 export async function runCronIsolatedAgentTurn(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   deps: CliDeps;
   job: CronJob;
   message: string;
@@ -109,7 +109,7 @@ export async function runCronIsolatedAgentTurn(params: {
   } else if (overrideModel) {
     agentCfg.model = overrideModel;
   }
-  const cfgWithAgentDefaults: ClawdbotConfig = {
+  const cfgWithAgentDefaults: ZeeConfig = {
     ...params.cfg,
     agents: Object.assign({}, params.cfg.agents, { defaults: agentCfg }),
   };

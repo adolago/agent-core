@@ -18,7 +18,7 @@ export async function startGatewayDiscovery(params: {
 }) {
   let bonjourStop: (() => Promise<void>) | null = null;
   const bonjourEnabled =
-    process.env.CLAWDBOT_DISABLE_BONJOUR !== "1" &&
+    process.env.ZEE_DISABLE_BONJOUR !== "1" &&
     process.env.NODE_ENV !== "test" &&
     !process.env.VITEST;
   const tailscaleEnabled = params.tailscaleMode !== "off";
@@ -26,7 +26,7 @@ export async function startGatewayDiscovery(params: {
   const tailnetDns = needsTailnetDns
     ? await resolveTailnetDnsHint({ enabled: tailscaleEnabled })
     : undefined;
-  const sshPortEnv = process.env.CLAWDBOT_SSH_PORT?.trim();
+  const sshPortEnv = process.env.ZEE_SSH_PORT?.trim();
   const sshPortParsed = sshPortEnv ? Number.parseInt(sshPortEnv, 10) : NaN;
   const sshPort = Number.isFinite(sshPortParsed) && sshPortParsed > 0 ? sshPortParsed : undefined;
 

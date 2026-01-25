@@ -5,7 +5,7 @@ import {
   createWriteTool,
   readTool,
 } from "@mariozechner/pi-coding-agent";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
 import { resolveGatewayMessageChannel } from "../utils/message-channel.js";
 import { createApplyPatchTool } from "./apply-patch.js";
@@ -16,7 +16,7 @@ import {
   type ProcessToolDefaults,
 } from "./bash-tools.js";
 import { listChannelAgentTools } from "./channel-tools.js";
-import { createClawdbotTools } from "./clawdbot-tools.js";
+import { createZeeTools } from "./zee-tools.js";
 import type { ModelAuthMode } from "./model-auth.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
 import {
@@ -29,7 +29,7 @@ import {
 import {
   assertRequiredParams,
   CLAUDE_PARAM_GROUPS,
-  createClawdbotReadTool,
+  createZeeReadTool,
   createSandboxedEditTool,
   createSandboxedReadTool,
   createSandboxedWriteTool,
@@ -78,7 +78,7 @@ function isApplyPatchAllowedForModel(params: {
   });
 }
 
-function resolveExecConfig(cfg: ClawdbotConfig | undefined) {
+function resolveExecConfig(cfg: ZeeConfig | undefined) {
   const globalExec = cfg?.tools?.exec;
   return {
     host: globalExec?.host,
@@ -103,7 +103,7 @@ export const __testing = {
   assertRequiredParams,
 } as const;
 
-export function createClawdbotCodingTools(options?: {
+export function createZeeCodingTools(options?: {
   exec?: ExecToolDefaults & ProcessToolDefaults;
   messageProvider?: string;
   agentAccountId?: string;
@@ -113,7 +113,7 @@ export function createClawdbotCodingTools(options?: {
   sessionKey?: string;
   agentDir?: string;
   workspaceDir?: string;
-  config?: ClawdbotConfig;
+  config?: ZeeConfig;
   abortSignal?: AbortSignal;
   /**
    * Provider of the currently selected model (used for provider-specific tool quirks).
@@ -210,7 +210,7 @@ export function createClawdbotCodingTools(options?: {
         return [createSandboxedReadTool(sandboxRoot)];
       }
       const freshReadTool = createReadTool(workspaceRoot);
-      return [createClawdbotReadTool(freshReadTool)];
+      return [createZeeReadTool(freshReadTool)];
     }
     if (tool.name === "bash" || tool.name === execToolName) return [];
     if (tool.name === "write") {
@@ -278,7 +278,7 @@ export function createClawdbotCodingTools(options?: {
     processTool as unknown as AnyAgentTool,
     // Channel docking: include channel-defined agent tools (login, etc.).
     ...listChannelAgentTools({ cfg: options?.config }),
-    ...createClawdbotTools({
+    ...createZeeTools({
       browserControlUrl: sandbox?.browser?.controlUrl,
       allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
       allowedControlUrls: sandbox?.browserAllowedControlUrls,

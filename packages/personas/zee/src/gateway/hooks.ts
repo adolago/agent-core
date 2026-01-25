@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import type { ChannelId } from "../channels/plugins/types.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { type HookMappingResolved, resolveHookMappings } from "./hooks-mapping.js";
 
@@ -16,7 +16,7 @@ export type HooksConfigResolved = {
   mappings: HookMappingResolved[];
 };
 
-export function resolveHooksConfig(cfg: ClawdbotConfig): HooksConfigResolved | null {
+export function resolveHooksConfig(cfg: ZeeConfig): HooksConfigResolved | null {
   if (cfg.hooks?.enabled !== true) return null;
   const token = cfg.hooks?.token?.trim();
   if (!token) {
@@ -49,8 +49,8 @@ export function extractHookToken(req: IncomingMessage, url: URL): string | undef
     if (token) return token;
   }
   const headerToken =
-    typeof req.headers["x-clawdbot-token"] === "string"
-      ? req.headers["x-clawdbot-token"].trim()
+    typeof req.headers["x-zee-token"] === "string"
+      ? req.headers["x-zee-token"].trim()
       : "";
   if (headerToken) return headerToken;
   const queryToken = url.searchParams.get("token");

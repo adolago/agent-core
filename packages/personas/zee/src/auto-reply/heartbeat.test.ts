@@ -124,7 +124,7 @@ describe("isHeartbeatContentEffectivelyEmpty", () => {
     expect(isHeartbeatContentEffectivelyEmpty("   ")).toBe(true);
     expect(isHeartbeatContentEffectivelyEmpty("\n\n\n")).toBe(true);
     expect(isHeartbeatContentEffectivelyEmpty("  \n  \n  ")).toBe(true);
-    expect(isHeartbeatContentEffectivelyEmpty("\t\t")).toBe(true);
+    expect(isHeartbeatContentEffectivelyEmpty("\[zee\]\[zee\]")).toBe(true);
   });
 
   it("returns true for header-only content", () => {

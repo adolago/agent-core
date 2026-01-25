@@ -7,7 +7,7 @@ import { CODEX_CLI_PROFILE_ID, ensureAuthProfileStore } from "./auth-profiles.js
 
 describe("external CLI credential sync", () => {
   it("skips codex-cli sync when credentials already exist in another openai-codex profile", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-codex-dedup-skip-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-codex-dedup-skip-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -47,7 +47,7 @@ describe("external CLI credential sync", () => {
           expect(store.profiles[CODEX_CLI_PROFILE_ID]).toBeUndefined();
           expect(store.profiles["openai-codex:my-custom-profile"]).toBeDefined();
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });
@@ -55,7 +55,7 @@ describe("external CLI credential sync", () => {
   });
 
   it("creates codex-cli profile when credentials differ from existing openai-codex profiles", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-codex-dedup-create-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-codex-dedup-create-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -98,7 +98,7 @@ describe("external CLI credential sync", () => {
           );
           expect(store.profiles["openai-codex:my-custom-profile"]).toBeDefined();
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });
@@ -106,7 +106,7 @@ describe("external CLI credential sync", () => {
   });
 
   it("removes codex-cli profile when it duplicates another openai-codex profile", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-codex-dedup-remove-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-codex-dedup-remove-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -157,7 +157,7 @@ describe("external CLI credential sync", () => {
           expect(saved.profiles?.[CODEX_CLI_PROFILE_ID]).toBeUndefined();
           expect(saved.profiles?.["openai-codex:my-custom-profile"]).toBeDefined();
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });

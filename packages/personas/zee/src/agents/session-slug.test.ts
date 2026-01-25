@@ -20,7 +20,7 @@ describe("session slug", () => {
 
   it("falls back to three words when collisions persist", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
-    const slug = createSessionSlug((id) => /^amber-atlas(-\d+)?$/.test(id));
+    const slug = createSessionSlug((id) => /^amber-atlas(-\[zee\]+)?$/.test(id));
     expect(slug).toBe("amber-atlas-atlas");
   });
 });

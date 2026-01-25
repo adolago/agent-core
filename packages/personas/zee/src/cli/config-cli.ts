@@ -173,7 +173,7 @@ async function loadValidConfig() {
   for (const issue of snapshot.issues) {
     defaultRuntime.error(`- ${issue.path || "<root>"}: ${issue.message}`);
   }
-  defaultRuntime.error(`Run \`${formatCliCommand("clawdbot doctor")}\` to repair, then retry.`);
+  defaultRuntime.error(`Run \`${formatCliCommand("zee doctor")}\` to repair, then retry.`);
   defaultRuntime.exit(1);
   return snapshot;
 }

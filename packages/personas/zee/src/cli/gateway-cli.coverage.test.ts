@@ -139,7 +139,7 @@ describe("gateway-cli coverage", () => {
     discoverGatewayBeacons.mockReset();
     discoverGatewayBeacons.mockResolvedValueOnce([
       {
-        instanceName: "Studio (Clawdbot)",
+        instanceName: "Studio (Zee)",
         displayName: "Studio",
         domain: "local.",
         host: "studio.local",
@@ -171,10 +171,10 @@ describe("gateway-cli coverage", () => {
     discoverGatewayBeacons.mockReset();
     discoverGatewayBeacons.mockResolvedValueOnce([
       {
-        instanceName: "Studio (Clawdbot)",
+        instanceName: "Studio (Zee)",
         displayName: "Studio",
-        domain: "clawdbot.internal.",
-        host: "studio.clawdbot.internal",
+        domain: "zee.internal.",
+        host: "studio.zee.internal",
         lanHost: "studio.local",
         tailnetDns: "studio.tailnet.ts.net",
         gatewayPort: 18789,
@@ -194,9 +194,9 @@ describe("gateway-cli coverage", () => {
     const out = runtimeLogs.join("\n");
     expect(out).toContain("Gateway Discovery");
     expect(out).toContain("Found 1 gateway(s)");
-    expect(out).toContain("- Studio clawdbot.internal.");
+    expect(out).toContain("- Studio zee.internal.");
     expect(out).toContain("  tailnet: studio.tailnet.ts.net");
-    expect(out).toContain("  host: studio.clawdbot.internal");
+    expect(out).toContain("  host: studio.zee.internal");
     expect(out).toContain("  ws: ws://studio.tailnet.ts.net:18789");
   });
 
@@ -311,11 +311,11 @@ describe("gateway-cli coverage", () => {
 
     expect(startGatewayServer).toHaveBeenCalled();
     expect(runtimeErrors.join("\n")).toContain("Gateway failed to start:");
-    expect(runtimeErrors.join("\n")).toContain("clawdbot gateway stop");
+    expect(runtimeErrors.join("\n")).toContain("zee gateway stop");
   });
 
   it("uses env/config port when --port is omitted", async () => {
-    await withEnvOverride({ CLAWDBOT_GATEWAY_PORT: "19001" }, async () => {
+    await withEnvOverride({ ZEE_GATEWAY_PORT: "19001" }, async () => {
       runtimeLogs.length = 0;
       runtimeErrors.length = 0;
       startGatewayServer.mockClear();

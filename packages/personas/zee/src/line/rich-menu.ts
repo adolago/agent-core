@@ -121,7 +121,7 @@ export async function uploadRichMenuImage(
   const imageData = await readFile(imagePath);
   const contentType = imagePath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
 
-  await blobClient.setRichMenuImage(richMenuId, new Blob([imageData], { type: contentType }));
+  await blobClient.setRichMenuImage(richMenuId, new Blob([new Uint8Array(imageData)], { type: contentType }));
 
   if (opts.verbose) {
     logVerbose(`line: uploaded image to rich menu ${richMenuId}`);

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ClawdbotConfig } from "../../../config/config.js";
+import type { ZeeConfig } from "../../../config/config.js";
 import { telegramMessageActions } from "./telegram.js";
 
 const handleTelegramAction = vi.fn(async () => ({ ok: true }));
@@ -12,7 +12,7 @@ vi.mock("../../../agents/tools/telegram-actions.js", () => ({
 describe("telegramMessageActions", () => {
   it("allows media-only sends and passes asVoice", async () => {
     handleTelegramAction.mockClear();
-    const cfg = { channels: { telegram: { botToken: "tok" } } } as ClawdbotConfig;
+    const cfg = { channels: { telegram: { botToken: "tok" } } } as ZeeConfig;
 
     await telegramMessageActions.handleAction({
       action: "send",

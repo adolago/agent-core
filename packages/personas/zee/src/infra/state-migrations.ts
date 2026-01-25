@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveOAuthDir, resolveStateDir } from "../config/paths.js";
 import type { SessionEntry } from "../config/sessions.js";
 import type { SessionScope } from "../config/sessions/types.js";
@@ -268,7 +268,7 @@ export function resetAutoMigrateLegacyAgentDirForTest() {
 }
 
 export async function detectLegacyStateMigrations(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   env?: NodeJS.ProcessEnv;
   homedir?: () => string;
 }): Promise<LegacyStateDetection> {
@@ -559,7 +559,7 @@ export async function runLegacyStateMigrations(params: {
 }
 
 export async function autoMigrateLegacyAgentDir(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   env?: NodeJS.ProcessEnv;
   homedir?: () => string;
   log?: MigrationLogger;
@@ -574,7 +574,7 @@ export async function autoMigrateLegacyAgentDir(params: {
 }
 
 export async function autoMigrateLegacyState(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   env?: NodeJS.ProcessEnv;
   homedir?: () => string;
   log?: MigrationLogger;
@@ -591,7 +591,7 @@ export async function autoMigrateLegacyState(params: {
   autoMigrateChecked = true;
 
   const env = params.env ?? process.env;
-  if (env.CLAWDBOT_AGENT_DIR?.trim() || env.PI_CODING_AGENT_DIR?.trim()) {
+  if (env.ZEE_AGENT_DIR?.trim() || env.PI_CODING_AGENT_DIR?.trim()) {
     return { migrated: false, skipped: true, changes: [], warnings: [] };
   }
 

@@ -6,7 +6,7 @@ import {
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
 import {
-  type ClawdbotConfig,
+  type ZeeConfig,
   readConfigFileSnapshot,
   writeConfigFile,
 } from "../../config/config.js";
@@ -31,8 +31,8 @@ export const formatMs = (value?: number | null) => {
 };
 
 export async function updateConfig(
-  mutator: (cfg: ClawdbotConfig) => ClawdbotConfig,
-): Promise<ClawdbotConfig> {
+  mutator: (cfg: ZeeConfig) => ZeeConfig,
+): Promise<ZeeConfig> {
   const snapshot = await readConfigFileSnapshot();
   if (!snapshot.valid) {
     const issues = snapshot.issues.map((issue) => `- ${issue.path}: ${issue.message}`).join("\n");
@@ -43,7 +43,7 @@ export async function updateConfig(
   return next;
 }
 
-export function resolveModelTarget(params: { raw: string; cfg: ClawdbotConfig }): {
+export function resolveModelTarget(params: { raw: string; cfg: ZeeConfig }): {
   provider: string;
   model: string;
 } {
@@ -62,7 +62,7 @@ export function resolveModelTarget(params: { raw: string; cfg: ClawdbotConfig })
   return resolved.ref;
 }
 
-export function buildAllowlistSet(cfg: ClawdbotConfig): Set<string> {
+export function buildAllowlistSet(cfg: ZeeConfig): Set<string> {
   const allowed = new Set<string>();
   const models = cfg.agents?.defaults?.models ?? {};
   for (const raw of Object.keys(models)) {

@@ -64,25 +64,25 @@ export function extractGatewayMiskeys(parsed: unknown): {
 }
 
 export function renderGatewayServiceStopHints(env: NodeJS.ProcessEnv = process.env): string[] {
-  const profile = env.CLAWDBOT_PROFILE;
+  const profile = env.ZEE_PROFILE;
   switch (process.platform) {
     case "darwin":
       return [
-        `Tip: ${formatCliCommand("clawdbot gateway stop")}`,
+        `Tip: ${formatCliCommand("zee gateway stop")}`,
         `Or: launchctl bootout gui/$UID/${resolveGatewayLaunchAgentLabel(profile)}`,
       ];
     case "linux":
       return [
-        `Tip: ${formatCliCommand("clawdbot gateway stop")}`,
+        `Tip: ${formatCliCommand("zee gateway stop")}`,
         `Or: systemctl --user stop ${resolveGatewaySystemdServiceName(profile)}.service`,
       ];
     case "win32":
       return [
-        `Tip: ${formatCliCommand("clawdbot gateway stop")}`,
+        `Tip: ${formatCliCommand("zee gateway stop")}`,
         `Or: schtasks /End /TN "${resolveGatewayWindowsTaskName(profile)}"`,
       ];
     default:
-      return [`Tip: ${formatCliCommand("clawdbot gateway stop")}`];
+      return [`Tip: ${formatCliCommand("zee gateway stop")}`];
   }
 }
 

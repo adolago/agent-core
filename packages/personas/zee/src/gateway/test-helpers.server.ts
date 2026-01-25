@@ -78,22 +78,22 @@ export async function writeSessionStore(params: {
 async function setupGatewayTestHome() {
   previousHome = process.env.HOME;
   previousUserProfile = process.env.USERPROFILE;
-  previousStateDir = process.env.CLAWDBOT_STATE_DIR;
-  previousConfigPath = process.env.CLAWDBOT_CONFIG_PATH;
-  previousSkipBrowserControl = process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER;
-  previousSkipGmailWatcher = process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
-  previousSkipCanvasHost = process.env.CLAWDBOT_SKIP_CANVAS_HOST;
-  tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gateway-home-"));
+  previousStateDir = process.env.ZEE_STATE_DIR;
+  previousConfigPath = process.env.ZEE_CONFIG_PATH;
+  previousSkipBrowserControl = process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER;
+  previousSkipGmailWatcher = process.env.ZEE_SKIP_GMAIL_WATCHER;
+  previousSkipCanvasHost = process.env.ZEE_SKIP_CANVAS_HOST;
+  tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "zee.*gateway-home-"));
   process.env.HOME = tempHome;
   process.env.USERPROFILE = tempHome;
-  process.env.CLAWDBOT_STATE_DIR = path.join(tempHome, ".clawdbot");
-  delete process.env.CLAWDBOT_CONFIG_PATH;
+  process.env.ZEE_STATE_DIR = path.join(tempHome, ".zee");
+  delete process.env.ZEE_CONFIG_PATH;
 }
 
 function applyGatewaySkipEnv() {
-  process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = "1";
-  process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
-  process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
+  process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER = "1";
+  process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
+  process.env.ZEE_SKIP_CANVAS_HOST = "1";
 }
 
 async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
@@ -105,8 +105,8 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
   }
   applyGatewaySkipEnv();
   tempConfigRoot = options.uniqueConfigRoot
-    ? await fs.mkdtemp(path.join(tempHome, "clawdbot-test-"))
-    : path.join(tempHome, ".clawdbot-test");
+    ? await fs.mkdtemp(path.join(tempHome, "zee-test-"))
+    : path.join(tempHome, ".zee-test");
   setTestConfigRoot(tempConfigRoot);
   sessionStoreSaveDelayMs.value = 0;
   testTailnetIPv4.value = undefined;
@@ -152,17 +152,17 @@ async function cleanupGatewayTestHome(options: { restoreEnv: boolean }) {
     else process.env.HOME = previousHome;
     if (previousUserProfile === undefined) delete process.env.USERPROFILE;
     else process.env.USERPROFILE = previousUserProfile;
-    if (previousStateDir === undefined) delete process.env.CLAWDBOT_STATE_DIR;
-    else process.env.CLAWDBOT_STATE_DIR = previousStateDir;
-    if (previousConfigPath === undefined) delete process.env.CLAWDBOT_CONFIG_PATH;
-    else process.env.CLAWDBOT_CONFIG_PATH = previousConfigPath;
+    if (previousStateDir === undefined) delete process.env.ZEE_STATE_DIR;
+    else process.env.ZEE_STATE_DIR = previousStateDir;
+    if (previousConfigPath === undefined) delete process.env.ZEE_CONFIG_PATH;
+    else process.env.ZEE_CONFIG_PATH = previousConfigPath;
     if (previousSkipBrowserControl === undefined)
-      delete process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER;
-    else process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = previousSkipBrowserControl;
-    if (previousSkipGmailWatcher === undefined) delete process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
-    else process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = previousSkipGmailWatcher;
-    if (previousSkipCanvasHost === undefined) delete process.env.CLAWDBOT_SKIP_CANVAS_HOST;
-    else process.env.CLAWDBOT_SKIP_CANVAS_HOST = previousSkipCanvasHost;
+      delete process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER;
+    else process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER = previousSkipBrowserControl;
+    if (previousSkipGmailWatcher === undefined) delete process.env.ZEE_SKIP_GMAIL_WATCHER;
+    else process.env.ZEE_SKIP_GMAIL_WATCHER = previousSkipGmailWatcher;
+    if (previousSkipCanvasHost === undefined) delete process.env.ZEE_SKIP_CANVAS_HOST;
+    else process.env.ZEE_SKIP_CANVAS_HOST = previousSkipCanvasHost;
   }
   if (options.restoreEnv && tempHome) {
     await fs.rm(tempHome, {
@@ -259,11 +259,11 @@ export async function startGatewayServer(port: number, opts?: GatewayServerOptio
 
 export async function startServerWithClient(token?: string, opts?: GatewayServerOptions) {
   let port = await getFreePort();
-  const prev = process.env.CLAWDBOT_GATEWAY_TOKEN;
+  const prev = process.env.ZEE_GATEWAY_TOKEN;
   if (token === undefined) {
-    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    delete process.env.ZEE_GATEWAY_TOKEN;
   } else {
-    process.env.CLAWDBOT_GATEWAY_TOKEN = token;
+    process.env.ZEE_GATEWAY_TOKEN = token;
   }
 
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;

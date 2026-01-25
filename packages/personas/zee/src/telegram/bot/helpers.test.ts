@@ -65,8 +65,8 @@ describe("normalizeForwardedContext", () => {
   it("handles legacy forwards with signatures", () => {
     const ctx = normalizeForwardedContext({
       forward_from_chat: {
-        title: "Clawdbot Updates",
-        username: "clawdbot",
+        title: "Zee Updates",
+        username: "zee",
         id: 99,
         type: "channel",
       },
@@ -74,11 +74,11 @@ describe("normalizeForwardedContext", () => {
       forward_date: 789,
     } as any);
     expect(ctx).not.toBeNull();
-    expect(ctx?.from).toBe("Clawdbot Updates (Stan)");
+    expect(ctx?.from).toBe("Zee Updates (Stan)");
     expect(ctx?.fromType).toBe("legacy_channel");
     expect(ctx?.fromId).toBe("99");
-    expect(ctx?.fromUsername).toBe("clawdbot");
-    expect(ctx?.fromTitle).toBe("Clawdbot Updates");
+    expect(ctx?.fromUsername).toBe("zee");
+    expect(ctx?.fromTitle).toBe("Zee Updates");
     expect(ctx?.fromSignature).toBe("Stan");
     expect(ctx?.date).toBe(789);
   });

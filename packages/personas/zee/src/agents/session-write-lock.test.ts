@@ -12,7 +12,7 @@ describe("acquireSessionWriteLock", () => {
       return;
     }
 
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-lock-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-lock-"));
     try {
       const realDir = path.join(root, "real");
       const linkDir = path.join(root, "link");

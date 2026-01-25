@@ -113,7 +113,7 @@ describe("getMinimalServicePathParts - Linux user directories", () => {
   it("does not include Linux user directories on Windows", () => {
     const result = getMinimalServicePathParts({
       platform: "win32",
-      home: "C:\\Users\\testuser",
+      home: "C:\[zee\]Users\[zee\]testuser",
     });
 
     // Windows returns empty array (uses existing PATH)
@@ -138,10 +138,10 @@ describe("buildMinimalServicePath", () => {
 
   it("returns PATH as-is on Windows", () => {
     const result = buildMinimalServicePath({
-      env: { PATH: "C:\\\\Windows\\\\System32" },
+      env: { PATH: "C:\[zee\]\[zee\]Windows\[zee\]\[zee\]System32" },
       platform: "win32",
     });
-    expect(result).toBe("C:\\\\Windows\\\\System32");
+    expect(result).toBe("C:\[zee\]\[zee\]Windows\[zee\]\[zee\]System32");
   });
 
   it("includes Linux user directories when HOME is set in env", () => {
@@ -223,25 +223,25 @@ describe("buildServiceEnvironment", () => {
     } else {
       expect(env.PATH).toContain("/usr/bin");
     }
-    expect(env.CLAWDBOT_GATEWAY_PORT).toBe("18789");
-    expect(env.CLAWDBOT_GATEWAY_TOKEN).toBe("secret");
-    expect(env.CLAWDBOT_SERVICE_MARKER).toBe("clawdbot");
-    expect(env.CLAWDBOT_SERVICE_KIND).toBe("gateway");
-    expect(typeof env.CLAWDBOT_SERVICE_VERSION).toBe("string");
-    expect(env.CLAWDBOT_SYSTEMD_UNIT).toBe("clawdbot-gateway.service");
+    expect(env.ZEE_GATEWAY_PORT).toBe("18789");
+    expect(env.ZEE_GATEWAY_TOKEN).toBe("secret");
+    expect(env.ZEE_SERVICE_MARKER).toBe("zee");
+    expect(env.ZEE_SERVICE_KIND).toBe("gateway");
+    expect(typeof env.ZEE_SERVICE_VERSION).toBe("string");
+    expect(env.ZEE_SYSTEMD_UNIT).toBe("zee-gateway.service");
     if (process.platform === "darwin") {
-      expect(env.CLAWDBOT_LAUNCHD_LABEL).toBe("com.clawdbot.gateway");
+      expect(env.ZEE_LAUNCHD_LABEL).toBe("com.zee.gateway");
     }
   });
 
   it("uses profile-specific unit and label", () => {
     const env = buildServiceEnvironment({
-      env: { HOME: "/home/user", CLAWDBOT_PROFILE: "work" },
+      env: { HOME: "/home/user", ZEE_PROFILE: "work" },
       port: 18789,
     });
-    expect(env.CLAWDBOT_SYSTEMD_UNIT).toBe("clawdbot-gateway-work.service");
+    expect(env.ZEE_SYSTEMD_UNIT).toBe("zee.*gateway-work.service");
     if (process.platform === "darwin") {
-      expect(env.CLAWDBOT_LAUNCHD_LABEL).toBe("com.clawdbot.work");
+      expect(env.ZEE_LAUNCHD_LABEL).toBe("com.zee.work");
     }
   });
 });

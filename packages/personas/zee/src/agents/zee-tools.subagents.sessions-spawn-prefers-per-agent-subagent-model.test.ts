@@ -22,10 +22,10 @@ vi.mock("../config/config.js", async (importOriginal) => {
 });
 
 import "./test-helpers/fast-core-tools.js";
-import { createClawdbotTools } from "./clawdbot-tools.js";
+import { createZeeTools } from "./zee-tools.js";
 import { resetSubagentRegistryForTests } from "./subagent-registry.js";
 
-describe("clawdbot-tools: subagents", () => {
+describe("zee-tools: subagents", () => {
   beforeEach(() => {
     configOverride = {
       session: {
@@ -59,7 +59,7 @@ describe("clawdbot-tools: subagents", () => {
       return {};
     });
 
-    const tool = createClawdbotTools({
+    const tool = createZeeTools({
       agentSessionKey: "agent:research:main",
       agentChannel: "discord",
     }).find((candidate) => candidate.name === "sessions_spawn");
@@ -108,7 +108,7 @@ describe("clawdbot-tools: subagents", () => {
       return {};
     });
 
-    const tool = createClawdbotTools({
+    const tool = createZeeTools({
       agentSessionKey: "main",
       agentChannel: "whatsapp",
     }).find((candidate) => candidate.name === "sessions_spawn");
@@ -143,7 +143,7 @@ describe("clawdbot-tools: subagents", () => {
       return {};
     });
 
-    const tool = createClawdbotTools({
+    const tool = createZeeTools({
       agentSessionKey: "main",
       agentChannel: "whatsapp",
     }).find((candidate) => candidate.name === "sessions_spawn");

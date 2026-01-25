@@ -17,10 +17,10 @@ describe("config identity defaults", () => {
 
   it("does not derive mentionPatterns when identity is set", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             agents: {
@@ -54,10 +54,10 @@ describe("config identity defaults", () => {
 
   it("defaults ackReactionScope without setting ackReaction", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             agents: {
@@ -91,10 +91,10 @@ describe("config identity defaults", () => {
 
   it("keeps ackReaction unset when identity is missing", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             messages: {},
@@ -116,10 +116,10 @@ describe("config identity defaults", () => {
 
   it("does not override explicit values", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             agents: {
@@ -156,14 +156,14 @@ describe("config identity defaults", () => {
 
   it("supports provider textChunkLimit config", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             messages: {
-              messagePrefix: "[clawdbot]",
+              messagePrefix: "[zee]",
               responsePrefix: "🦞",
             },
             channels: {
@@ -202,10 +202,10 @@ describe("config identity defaults", () => {
 
   it("accepts blank model provider apiKey values", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             models: {
@@ -251,10 +251,10 @@ describe("config identity defaults", () => {
 
   it("respects empty responsePrefix to disable identity defaults", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             agents: {
@@ -287,10 +287,10 @@ describe("config identity defaults", () => {
 
   it("does not synthesize agent list/session when absent", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             messages: {},
@@ -316,10 +316,10 @@ describe("config identity defaults", () => {
 
   it("does not derive responsePrefix from identity emoji", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".clawdbot");
+      const configDir = path.join(home, ".zee");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "clawdbot.json"),
+        path.join(configDir, "zee.json"),
         JSON.stringify(
           {
             agents: {

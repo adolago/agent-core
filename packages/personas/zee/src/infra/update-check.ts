@@ -302,7 +302,7 @@ export async function fetchNpmTagVersion(params: {
   const tag = params.tag;
   try {
     const res = await fetchWithTimeout(
-      `https://registry.npmjs.org/clawdbot/${encodeURIComponent(tag)}`,
+      `https://registry.npmjs.org/zee/${encodeURIComponent(tag)}`,
       timeoutMs,
     );
     if (!res.ok) {

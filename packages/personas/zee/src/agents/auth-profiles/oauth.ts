@@ -1,7 +1,7 @@
 import { getOAuthApiKey, type OAuthCredentials, type OAuthProvider } from "@mariozechner/pi-ai";
 import lockfile from "proper-lockfile";
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { refreshChutesTokens } from "../chutes-oauth.js";
 import { refreshQwenPortalCredentials } from "../../providers/qwen-portal-oauth.js";
 import { writeClaudeCliCredentials } from "../cli-credentials.js";
@@ -73,7 +73,7 @@ async function refreshOAuthTokenWithLock(params: {
     saveAuthProfileStore(store, params.agentDir);
 
     // Sync refreshed credentials back to Claude Code CLI if this is the claude-cli profile
-    // This ensures Claude Code continues to work after ClawdBot refreshes the token
+    // This ensures Claude Code continues to work after Zee refreshes the token
     if (params.profileId === CLAUDE_CLI_PROFILE_ID && cred.provider === "anthropic") {
       writeClaudeCliCredentials(result.newCredentials);
     }
@@ -91,7 +91,7 @@ async function refreshOAuthTokenWithLock(params: {
 }
 
 async function tryResolveOAuthProfile(params: {
-  cfg?: ClawdbotConfig;
+  cfg?: ZeeConfig;
   store: AuthProfileStore;
   profileId: string;
   agentDir?: string;
@@ -124,7 +124,7 @@ async function tryResolveOAuthProfile(params: {
 }
 
 export async function resolveApiKeyForProfile(params: {
-  cfg?: ClawdbotConfig;
+  cfg?: ZeeConfig;
   store: AuthProfileStore;
   profileId: string;
   agentDir?: string;

@@ -33,9 +33,9 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
     },
     {
       env: {
-        CLAWDBOT_BUNDLED_SKILLS_DIR: (home) => path.join(home, "bundled-skills"),
+        ZEE_BUNDLED_SKILLS_DIR: (home) => path.join(home, "bundled-skills"),
       },
-      prefix: "clawdbot-media-note-",
+      prefix: "zee-media-note-",
     },
   );
 }

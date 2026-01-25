@@ -15,30 +15,30 @@ type CommandOptions = Record<string, unknown>;
 
 const SANDBOX_EXAMPLES = {
   main: [
-    ["clawdbot sandbox list", "List all sandbox containers."],
-    ["clawdbot sandbox list --browser", "List only browser containers."],
-    ["clawdbot sandbox recreate --all", "Recreate all containers."],
-    ["clawdbot sandbox recreate --session main", "Recreate a specific session."],
-    ["clawdbot sandbox recreate --agent mybot", "Recreate agent containers."],
-    ["clawdbot sandbox explain", "Explain effective sandbox config."],
+    ["zee sandbox list", "List all sandbox containers."],
+    ["zee sandbox list --browser", "List only browser containers."],
+    ["zee sandbox recreate --all", "Recreate all containers."],
+    ["zee sandbox recreate --session main", "Recreate a specific session."],
+    ["zee sandbox recreate --agent mybot", "Recreate agent containers."],
+    ["zee sandbox explain", "Explain effective sandbox config."],
   ],
   list: [
-    ["clawdbot sandbox list", "List all sandbox containers."],
-    ["clawdbot sandbox list --browser", "List only browser containers."],
-    ["clawdbot sandbox list --json", "JSON output."],
+    ["zee sandbox list", "List all sandbox containers."],
+    ["zee sandbox list --browser", "List only browser containers."],
+    ["zee sandbox list --json", "JSON output."],
   ],
   recreate: [
-    ["clawdbot sandbox recreate --all", "Recreate all containers."],
-    ["clawdbot sandbox recreate --session main", "Recreate a specific session."],
-    ["clawdbot sandbox recreate --agent mybot", "Recreate a specific agent (includes sub-agents)."],
-    ["clawdbot sandbox recreate --browser --all", "Recreate only browser containers."],
-    ["clawdbot sandbox recreate --all --force", "Skip confirmation."],
+    ["zee sandbox recreate --all", "Recreate all containers."],
+    ["zee sandbox recreate --session main", "Recreate a specific session."],
+    ["zee sandbox recreate --agent mybot", "Recreate a specific agent (includes sub-agents)."],
+    ["zee sandbox recreate --browser --all", "Recreate only browser containers."],
+    ["zee sandbox recreate --all --force", "Skip confirmation."],
   ],
   explain: [
-    ["clawdbot sandbox explain", "Show effective sandbox config."],
-    ["clawdbot sandbox explain --session agent:main:main", "Explain a specific session."],
-    ["clawdbot sandbox explain --agent work", "Explain an agent sandbox."],
-    ["clawdbot sandbox explain --json", "JSON output."],
+    ["zee sandbox explain", "Show effective sandbox config."],
+    ["zee sandbox explain --session agent:main:main", "Explain a specific session."],
+    ["zee sandbox explain --agent work", "Explain an agent sandbox."],
+    ["zee sandbox explain --json", "JSON output."],
   ],
 } as const;
 

@@ -1,12 +1,12 @@
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 
 export type PluginEnableResult = {
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   enabled: boolean;
   reason?: string;
 };
 
-function ensureAllowlisted(cfg: ClawdbotConfig, pluginId: string): ClawdbotConfig {
+function ensureAllowlisted(cfg: ZeeConfig, pluginId: string): ZeeConfig {
   const allow = cfg.plugins?.allow;
   if (!Array.isArray(allow) || allow.includes(pluginId)) return cfg;
   return {
@@ -18,7 +18,7 @@ function ensureAllowlisted(cfg: ClawdbotConfig, pluginId: string): ClawdbotConfi
   };
 }
 
-export function enablePluginInConfig(cfg: ClawdbotConfig, pluginId: string): PluginEnableResult {
+export function enablePluginInConfig(cfg: ZeeConfig, pluginId: string): PluginEnableResult {
   if (cfg.plugins?.enabled === false) {
     return { config: cfg, enabled: false, reason: "plugins disabled" };
   }
@@ -33,7 +33,7 @@ export function enablePluginInConfig(cfg: ClawdbotConfig, pluginId: string): Plu
       enabled: true,
     },
   };
-  let next: ClawdbotConfig = {
+  let next: ZeeConfig = {
     ...cfg,
     plugins: {
       ...cfg.plugins,

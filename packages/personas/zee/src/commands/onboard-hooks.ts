@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { buildWorkspaceHookStatus } from "../hooks/hooks-status.js";
@@ -6,10 +6,10 @@ import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent
 import { formatCliCommand } from "../cli/command-format.js";
 
 export async function setupInternalHooks(
-  cfg: ClawdbotConfig,
+  cfg: ZeeConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
-): Promise<ClawdbotConfig> {
+): Promise<ZeeConfig> {
   await prompter.note(
     [
       "Hooks let you automate actions when agent commands are issued.",
@@ -58,7 +58,7 @@ export async function setupInternalHooks(
     entries[name] = { enabled: true };
   }
 
-  const next: ClawdbotConfig = {
+  const next: ZeeConfig = {
     ...cfg,
     hooks: {
       ...cfg.hooks,
@@ -74,9 +74,9 @@ export async function setupInternalHooks(
       `Enabled ${selected.length} hook${selected.length > 1 ? "s" : ""}: ${selected.join(", ")}`,
       "",
       "You can manage hooks later with:",
-      `  ${formatCliCommand("clawdbot hooks list")}`,
-      `  ${formatCliCommand("clawdbot hooks enable <name>")}`,
-      `  ${formatCliCommand("clawdbot hooks disable <name>")}`,
+      `  ${formatCliCommand("zee hooks list")}`,
+      `  ${formatCliCommand("zee hooks enable <name>")}`,
+      `  ${formatCliCommand("zee hooks disable <name>")}`,
     ].join("\n"),
     "Hooks Configured",
   );

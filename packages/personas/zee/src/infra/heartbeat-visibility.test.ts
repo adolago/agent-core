@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveHeartbeatVisibility } from "./heartbeat-visibility.js";
 
 describe("resolveHeartbeatVisibility", () => {
   it("returns default values when no config is provided", () => {
-    const cfg = {} as ClawdbotConfig;
+    const cfg = {} as ZeeConfig;
     const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
 
     expect(result).toEqual({
@@ -25,7 +25,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
 
@@ -52,7 +52,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
 
@@ -88,7 +88,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({
       cfg,
@@ -120,7 +120,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({
       cfg,
@@ -151,7 +151,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({ cfg, channel: "telegram" });
 
@@ -174,7 +174,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({
       cfg,
@@ -195,7 +195,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({ cfg, channel: "whatsapp" });
 
@@ -215,7 +215,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({ cfg, channel: "discord" });
 
@@ -237,7 +237,7 @@ describe("resolveHeartbeatVisibility", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ZeeConfig;
 
     const result = resolveHeartbeatVisibility({ cfg, channel: "slack" });
 

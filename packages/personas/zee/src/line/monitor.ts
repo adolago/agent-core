@@ -1,7 +1,7 @@
 import type { WebhookRequestBody } from "@line/bot-sdk";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import crypto from "node:crypto";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { danger, logVerbose } from "../globals.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { createLineBot } from "./bot.js";
@@ -33,7 +33,7 @@ export interface MonitorLineProviderOptions {
   channelAccessToken: string;
   channelSecret: string;
   accountId?: string;
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   runtime: RuntimeEnv;
   abortSignal?: AbortSignal;
   webhookUrl?: string;

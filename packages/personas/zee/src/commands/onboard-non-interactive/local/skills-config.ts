@@ -1,9 +1,9 @@
-import type { ClawdbotConfig } from "../../../config/config.js";
+import type { ZeeConfig } from "../../../config/config.js";
 import type { RuntimeEnv } from "../../../runtime.js";
 import type { OnboardOptions } from "../../onboard-types.js";
 
 export function applyNonInteractiveSkillsConfig(params: {
-  nextConfig: ClawdbotConfig;
+  nextConfig: ZeeConfig;
   opts: OnboardOptions;
   runtime: RuntimeEnv;
 }) {

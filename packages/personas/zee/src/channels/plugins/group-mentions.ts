@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import {
   resolveChannelGroupRequireMention,
   resolveChannelGroupToolsPolicy,
@@ -8,7 +8,7 @@ import type { GroupToolPolicyConfig } from "../../config/types.tools.js";
 import { resolveSlackAccount } from "../../slack/accounts.js";
 
 type GroupMentionParams = {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   groupId?: string | null;
   groupChannel?: string | null;
   groupSpace?: string | null;
@@ -53,7 +53,7 @@ function parseTelegramGroupId(value?: string | null) {
 }
 
 function resolveTelegramRequireMention(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   chatId?: string;
   topicId?: string;
 }): boolean | undefined {

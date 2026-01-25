@@ -1,4 +1,4 @@
-const warningFilterKey = Symbol.for("clawdbot.warning-filter");
+const warningFilterKey = Symbol.for("zee.warning-filter");
 
 type Warning = Error & {
   code?: string;

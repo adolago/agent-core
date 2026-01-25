@@ -46,12 +46,12 @@ export function registerBrowserServeCommands(
       const host = (opts.bind ?? "127.0.0.1").trim();
       const port = parsePort(opts.port) ?? resolved.controlPort;
 
-      const envToken = process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN?.trim();
+      const envToken = process.env.ZEE_BROWSER_CONTROL_TOKEN?.trim();
       const authToken = (opts.token ?? envToken ?? resolved.controlToken)?.trim();
       if (!isLoopbackBindHost(host) && !authToken) {
         defaultRuntime.error(
           danger(
-            `Refusing to bind browser control on ${host} without --token (or CLAWDBOT_BROWSER_CONTROL_TOKEN, or browser.controlToken).`,
+            `Refusing to bind browser control on ${host} without --token (or ZEE_BROWSER_CONTROL_TOKEN, or browser.controlToken).`,
           ),
         );
         defaultRuntime.exit(1);
@@ -82,7 +82,7 @@ export function registerBrowserServeCommands(
             `🦞 Browser control listening on ${bridge.baseUrl}/`,
             authToken ? "Auth: Bearer token required." : "Auth: off (loopback only).",
             "",
-            "Paste on the Gateway (clawdbot.json):",
+            "Paste on the Gateway (zee.json):",
             JSON.stringify(
               {
                 browser: {
@@ -98,7 +98,7 @@ export function registerBrowserServeCommands(
               ? [
                   "",
                   "Or use env on the Gateway (instead of controlToken in config):",
-                  `export CLAWDBOT_BROWSER_CONTROL_TOKEN=${JSON.stringify(authToken)}`,
+                  `export ZEE_BROWSER_CONTROL_TOKEN=${JSON.stringify(authToken)}`,
                 ]
               : []),
           ].join("\n"),

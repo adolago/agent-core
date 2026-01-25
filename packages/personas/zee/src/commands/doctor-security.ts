@@ -1,14 +1,14 @@
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import type { ChannelId } from "../channels/plugins/types.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
 import { note } from "../terminal/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
 
-export async function noteSecurityWarnings(cfg: ClawdbotConfig) {
+export async function noteSecurityWarnings(cfg: ZeeConfig) {
   const warnings: string[] = [];
-  const auditHint = `- Run: ${formatCliCommand("clawdbot security audit --deep")}`;
+  const auditHint = `- Run: ${formatCliCommand("zee security audit --deep")}`;
 
   const warnDmPolicy = async (params: {
     label: string;

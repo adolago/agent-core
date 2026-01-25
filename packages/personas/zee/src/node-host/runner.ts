@@ -36,7 +36,7 @@ import { loadConfig } from "../config/config.js";
 import { resolveBrowserConfig, shouldStartLocalBrowserServer } from "../browser/config.js";
 import { detectMime } from "../media/mime.js";
 import { resolveAgentConfig } from "../agents/agent-scope.js";
-import { ensureClawdbotCliOnPath } from "../infra/path-env.js";
+import { ensureZeeCliOnPath } from "../infra/path-env.js";
 import { VERSION } from "../version.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 
@@ -146,9 +146,9 @@ const OUTPUT_EVENT_TAIL = 20_000;
 const DEFAULT_NODE_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 const BROWSER_PROXY_MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-const execHostEnforced = process.env.CLAWDBOT_NODE_EXEC_HOST?.trim().toLowerCase() === "app";
+const execHostEnforced = process.env.ZEE_NODE_EXEC_HOST?.trim().toLowerCase() === "app";
 const execHostFallbackAllowed =
-  process.env.CLAWDBOT_NODE_EXEC_FALLBACK?.trim().toLowerCase() !== "0";
+  process.env.ZEE_NODE_EXEC_FALLBACK?.trim().toLowerCase() !== "0";
 
 const blockedEnvKeys = new Set([
   "NODE_OPTIONS",
@@ -414,7 +414,7 @@ function resolveEnvPath(env?: Record<string, string>): string[] {
 }
 
 function ensureNodePathEnv(): string {
-  ensureClawdbotCliOnPath({ pathEnv: process.env.PATH ?? "" });
+  ensureZeeCliOnPath({ pathEnv: process.env.PATH ?? "" });
   const current = process.env.PATH ?? "";
   if (current.trim()) return current;
   process.env.PATH = DEFAULT_NODE_PATH;
@@ -495,10 +495,10 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
     shouldStartLocalBrowserServer(resolvedBrowser);
   const isRemoteMode = cfg.gateway?.mode === "remote";
   const token =
-    process.env.CLAWDBOT_GATEWAY_TOKEN?.trim() ||
+    process.env.ZEE_GATEWAY_TOKEN?.trim() ||
     (isRemoteMode ? cfg.gateway?.remote?.token : cfg.gateway?.auth?.token);
   const password =
-    process.env.CLAWDBOT_GATEWAY_PASSWORD?.trim() ||
+    process.env.ZEE_GATEWAY_PASSWORD?.trim() ||
     (isRemoteMode ? cfg.gateway?.remote?.password : cfg.gateway?.auth?.password);
 
   const host = gateway.host ?? "127.0.0.1";
@@ -711,7 +711,7 @@ async function handleInvoke(
         bodyJson = JSON.stringify(body);
       }
       const token =
-        process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN?.trim() || resolved.controlToken?.trim();
+        process.env.ZEE_BROWSER_CONTROL_TOKEN?.trim() || resolved.controlToken?.trim();
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
       }

@@ -49,7 +49,7 @@ export type TalkConfig = {
 export type GatewayControlUiConfig = {
   /** If false, the Gateway will not serve the Control UI (default /). */
   enabled?: boolean;
-  /** Optional base path prefix for the Control UI (e.g. "/clawdbot"). */
+  /** Optional base path prefix for the Control UI (e.g. "/zee"). */
   basePath?: string;
   /** Allow token-only auth over insecure HTTP (default: false). */
   allowInsecureAuth?: boolean;

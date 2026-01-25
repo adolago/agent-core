@@ -125,8 +125,8 @@ export function resolveGatewayAuth(params: {
 }): ResolvedGatewayAuth {
   const authConfig = params.authConfig ?? {};
   const env = params.env ?? process.env;
-  const token = authConfig.token ?? env.CLAWDBOT_GATEWAY_TOKEN ?? undefined;
-  const password = authConfig.password ?? env.CLAWDBOT_GATEWAY_PASSWORD ?? undefined;
+  const token = authConfig.token ?? env.ZEE_GATEWAY_TOKEN ?? undefined;
+  const password = authConfig.password ?? env.ZEE_GATEWAY_PASSWORD ?? undefined;
   const mode: ResolvedGatewayAuth["mode"] =
     authConfig.mode ?? (password ? "password" : token ? "token" : "none");
   const allowTailscale =
@@ -142,7 +142,7 @@ export function resolveGatewayAuth(params: {
 export function assertGatewayAuthConfigured(auth: ResolvedGatewayAuth): void {
   if (auth.mode === "token" && !auth.token) {
     throw new Error(
-      "gateway auth mode is token, but no token was configured (set gateway.auth.token or CLAWDBOT_GATEWAY_TOKEN)",
+      "gateway auth mode is token, but no token was configured (set gateway.auth.token or ZEE_GATEWAY_TOKEN)",
     );
   }
   if (auth.mode === "password" && !auth.password) {

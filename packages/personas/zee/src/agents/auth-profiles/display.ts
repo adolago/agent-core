@@ -1,8 +1,8 @@
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import type { AuthProfileStore } from "./types.js";
 
 export function resolveAuthProfileDisplayLabel(params: {
-  cfg?: ClawdbotConfig;
+  cfg?: ZeeConfig;
   store: AuthProfileStore;
   profileId: string;
 }): string {

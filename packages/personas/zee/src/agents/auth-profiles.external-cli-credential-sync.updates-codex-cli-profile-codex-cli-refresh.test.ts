@@ -7,7 +7,7 @@ import { CODEX_CLI_PROFILE_ID, ensureAuthProfileStore } from "./auth-profiles.js
 
 describe("external CLI credential sync", () => {
   it("updates codex-cli profile when Codex CLI refresh token changes", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-codex-refresh-sync-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-codex-refresh-sync-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -47,7 +47,7 @@ describe("external CLI credential sync", () => {
             "new-refresh",
           );
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });

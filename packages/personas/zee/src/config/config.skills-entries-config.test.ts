@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ClawdbotSchema } from "./zod-schema.js";
+import { ZeeSchema } from "./zod-schema.js";
 
 describe("skills entries config schema", () => {
   it("accepts custom fields under config", () => {
-    const res = ClawdbotSchema.safeParse({
+    const res = ZeeSchema.safeParse({
       skills: {
         entries: {
           "custom-skill": {
@@ -22,7 +22,7 @@ describe("skills entries config schema", () => {
   });
 
   it("rejects unknown top-level fields", () => {
-    const res = ClawdbotSchema.safeParse({
+    const res = ZeeSchema.safeParse({
       skills: {
         entries: {
           "custom-skill": {

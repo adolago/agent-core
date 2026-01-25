@@ -295,7 +295,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "restart",
       nativeName: "restart",
-      description: "Restart Clawdbot.",
+      description: "Restart Zee.",
       textAlias: "/restart",
     }),
     defineChatCommand({

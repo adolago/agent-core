@@ -16,7 +16,7 @@ async function findPackageRoot(startDir: string, maxDepth = 12): Promise<string 
   let current = path.resolve(startDir);
   for (let i = 0; i < maxDepth; i += 1) {
     const name = await readPackageName(current);
-    if (name === "clawdbot") return current;
+    if (name === "zee") return current;
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
@@ -37,7 +37,7 @@ function candidateDirsFromArgv1(argv1: string): string[] {
   return candidates;
 }
 
-export async function resolveClawdbotPackageRoot(opts: {
+export async function resolveZeePackageRoot(opts: {
   cwd?: string;
   argv1?: string;
   moduleUrl?: string;

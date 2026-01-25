@@ -8,7 +8,7 @@ import { withTempHome } from "../../test/helpers/temp-home.js";
 
 describe("ensureAuthProfileStore", () => {
   it("migrates legacy auth.json and deletes it (PR #368)", () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-profiles-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-auth-profiles-"));
     try {
       const legacyPath = path.join(agentDir, "auth.json");
       fs.writeFileSync(
@@ -49,8 +49,8 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("merges main auth profiles into agent store and keeps agent overrides", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-merge-"));
-    const previousAgentDir = process.env.CLAWDBOT_AGENT_DIR;
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "zee-auth-merge-"));
+    const previousAgentDir = process.env.ZEE_AGENT_DIR;
     const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
     try {
       const mainDir = path.join(root, "main-agent");
@@ -58,7 +58,7 @@ describe("ensureAuthProfileStore", () => {
       fs.mkdirSync(mainDir, { recursive: true });
       fs.mkdirSync(agentDir, { recursive: true });
 
-      process.env.CLAWDBOT_AGENT_DIR = mainDir;
+      process.env.ZEE_AGENT_DIR = mainDir;
       process.env.PI_CODING_AGENT_DIR = mainDir;
 
       const mainStore = {
@@ -111,9 +111,9 @@ describe("ensureAuthProfileStore", () => {
       });
     } finally {
       if (previousAgentDir === undefined) {
-        delete process.env.CLAWDBOT_AGENT_DIR;
+        delete process.env.ZEE_AGENT_DIR;
       } else {
-        process.env.CLAWDBOT_AGENT_DIR = previousAgentDir;
+        process.env.ZEE_AGENT_DIR = previousAgentDir;
       }
       if (previousPiAgentDir === undefined) {
         delete process.env.PI_CODING_AGENT_DIR;
@@ -126,8 +126,8 @@ describe("ensureAuthProfileStore", () => {
 
   it("drops codex-cli from merged store when a custom openai-codex profile matches", async () => {
     await withTempHome(async (tempHome) => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-dedup-merge-"));
-      const previousAgentDir = process.env.CLAWDBOT_AGENT_DIR;
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "zee-auth-dedup-merge-"));
+      const previousAgentDir = process.env.ZEE_AGENT_DIR;
       const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
       try {
         const mainDir = path.join(root, "main-agent");
@@ -135,7 +135,7 @@ describe("ensureAuthProfileStore", () => {
         fs.mkdirSync(mainDir, { recursive: true });
         fs.mkdirSync(agentDir, { recursive: true });
 
-        process.env.CLAWDBOT_AGENT_DIR = mainDir;
+        process.env.ZEE_AGENT_DIR = mainDir;
         process.env.PI_CODING_AGENT_DIR = mainDir;
         process.env.HOME = tempHome;
 
@@ -186,9 +186,9 @@ describe("ensureAuthProfileStore", () => {
         expect(store.profiles["openai-codex:my-custom-profile"]).toBeDefined();
       } finally {
         if (previousAgentDir === undefined) {
-          delete process.env.CLAWDBOT_AGENT_DIR;
+          delete process.env.ZEE_AGENT_DIR;
         } else {
-          process.env.CLAWDBOT_AGENT_DIR = previousAgentDir;
+          process.env.ZEE_AGENT_DIR = previousAgentDir;
         }
         if (previousPiAgentDir === undefined) {
           delete process.env.PI_CODING_AGENT_DIR;

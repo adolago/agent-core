@@ -18,7 +18,7 @@ import {
   writeRestartSentinel,
 } from "../../infra/restart-sentinel.js";
 import { listChannelPlugins } from "../../channels/plugins/index.js";
-import { loadClawdbotPlugins } from "../../plugins/loader.js";
+import { loadZeePlugins } from "../../plugins/loader.js";
 import {
   ErrorCodes,
   errorShape,
@@ -112,7 +112,7 @@ export const configHandlers: GatewayRequestHandlers = {
     }
     const cfg = loadConfig();
     const workspaceDir = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
-    const pluginRegistry = loadClawdbotPlugins({
+    const pluginRegistry = loadZeePlugins({
       config: cfg,
       workspaceDir,
       logger: {

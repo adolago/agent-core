@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 
-import type { ClawdbotConfig, MemorySearchConfig } from "../config/config.js";
+import type { ZeeConfig, MemorySearchConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { clampInt, clampNumber, resolveUserPath } from "../utils.js";
 import { resolveAgentConfig } from "./agent-scope.js";
@@ -267,7 +267,7 @@ function mergeConfig(
 }
 
 export function resolveMemorySearchConfig(
-  cfg: ClawdbotConfig,
+  cfg: ZeeConfig,
   agentId: string,
 ): ResolvedMemorySearchConfig | null {
   const defaults = cfg.agents?.defaults?.memorySearch;

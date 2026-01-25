@@ -28,7 +28,7 @@ describe("browser chrome profile decoration", () => {
   });
 
   it("writes expected name + signed ARGB seed to Chrome prefs", async () => {
-    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "clawdbot-chrome-test-"));
+    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "zee-chrome-test-"));
     try {
       decorateClawdProfile(userDataDir, { color: DEFAULT_CLAWD_BROWSER_COLOR });
 
@@ -59,14 +59,14 @@ describe("browser chrome profile decoration", () => {
         path.join(userDataDir, ".clawd-profile-decorated"),
         "utf-8",
       );
-      expect(marker.trim()).toMatch(/^\d+$/);
+      expect(marker.trim()).toMatch(/^\[zee\]+$/);
     } finally {
       await fsp.rm(userDataDir, { recursive: true, force: true });
     }
   });
 
   it("best-effort writes name when color is invalid", async () => {
-    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "clawdbot-chrome-test-"));
+    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "zee-chrome-test-"));
     try {
       decorateClawdProfile(userDataDir, { color: "lobster-orange" });
       const localState = await readJson(path.join(userDataDir, "Local State"));
@@ -82,7 +82,7 @@ describe("browser chrome profile decoration", () => {
   });
 
   it("recovers from missing/invalid preference files", async () => {
-    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "clawdbot-chrome-test-"));
+    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "zee-chrome-test-"));
     try {
       await fsp.mkdir(path.join(userDataDir, "Default"), { recursive: true });
       await fsp.writeFile(path.join(userDataDir, "Local State"), "{", "utf-8"); // invalid JSON
@@ -105,7 +105,7 @@ describe("browser chrome profile decoration", () => {
   });
 
   it("writes clean exit prefs to avoid restore prompts", async () => {
-    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "clawdbot-chrome-test-"));
+    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "zee-chrome-test-"));
     try {
       ensureProfileCleanExit(userDataDir);
       const prefs = await readJson(path.join(userDataDir, "Default", "Preferences"));
@@ -117,7 +117,7 @@ describe("browser chrome profile decoration", () => {
   });
 
   it("is idempotent when rerun on an existing profile", async () => {
-    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "clawdbot-chrome-test-"));
+    const userDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), "zee-chrome-test-"));
     try {
       decorateClawdProfile(userDataDir, { color: DEFAULT_CLAWD_BROWSER_COLOR });
       decorateClawdProfile(userDataDir, { color: DEFAULT_CLAWD_BROWSER_COLOR });
@@ -157,13 +157,13 @@ describe("browser chrome helpers", () => {
   });
 
   it("picks the first existing Chrome candidate on Windows", () => {
-    vi.stubEnv("LOCALAPPDATA", "C:\\Users\\Test\\AppData\\Local");
+    vi.stubEnv("LOCALAPPDATA", "C:\[zee\]Users\[zee\]Test\[zee\]AppData\[zee\]Local");
     const exists = vi.spyOn(fs, "existsSync").mockImplementation((p) => {
       const pathStr = String(p);
       return (
-        pathStr.includes("Google\\Chrome\\Application\\chrome.exe") ||
-        pathStr.includes("BraveSoftware\\Brave-Browser\\Application\\brave.exe") ||
-        pathStr.includes("Microsoft\\Edge\\Application\\msedge.exe")
+        pathStr.includes("Google\[zee\]Chrome\[zee\]Application\[zee\]chrome.exe") ||
+        pathStr.includes("BraveSoftware\[zee\]Brave-Browser\[zee\]Application\[zee\]brave.exe") ||
+        pathStr.includes("Microsoft\[zee\]Edge\[zee\]Application\[zee\]msedge.exe")
       );
     });
     const exe = findChromeExecutableWindows();
@@ -189,8 +189,8 @@ describe("browser chrome helpers", () => {
 
   it("resolves Windows executables without LOCALAPPDATA", () => {
     vi.stubEnv("LOCALAPPDATA", "");
-    vi.stubEnv("ProgramFiles", "C:\\Program Files");
-    vi.stubEnv("ProgramFiles(x86)", "C:\\Program Files (x86)");
+    vi.stubEnv("ProgramFiles", "C:\[zee\]Program Files");
+    vi.stubEnv("ProgramFiles(x86)", "C:\[zee\]Program Files (x86)");
     const marker = path.win32.join(
       "Program Files",
       "Google",

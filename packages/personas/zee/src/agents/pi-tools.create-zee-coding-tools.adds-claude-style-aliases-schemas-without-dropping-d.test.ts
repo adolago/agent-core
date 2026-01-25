@@ -4,16 +4,16 @@ import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
-import { createClawdbotCodingTools } from "./pi-tools.js";
+import { createZeeCodingTools } from "./pi-tools.js";
 
-const defaultTools = createClawdbotCodingTools();
+const defaultTools = createZeeCodingTools();
 
-describe("createClawdbotCodingTools", () => {
+describe("createZeeCodingTools", () => {
   it("keeps read tool image metadata intact", async () => {
     const readTool = defaultTools.find((tool) => tool.name === "read");
     expect(readTool).toBeDefined();
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-read-"));
     try {
       const imagePath = path.join(tmpDir, "sample.png");
       const png = await sharp({
@@ -46,14 +46,14 @@ describe("createClawdbotCodingTools", () => {
     }
   });
   it("returns text content without image blocks for text files", async () => {
-    const tools = createClawdbotCodingTools();
+    const tools = createZeeCodingTools();
     const readTool = tools.find((tool) => tool.name === "read");
     expect(readTool).toBeDefined();
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-read-"));
     try {
       const textPath = path.join(tmpDir, "sample.txt");
-      const contents = "Hello from clawdbot read tool.";
+      const contents = "Hello from zee read tool.";
       await fs.writeFile(textPath, contents, "utf8");
 
       const result = await readTool?.execute("tool-2", {
@@ -75,14 +75,14 @@ describe("createClawdbotCodingTools", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "sandbox:test",
-      workspaceDir: path.join(os.tmpdir(), "clawdbot-sandbox"),
-      agentWorkspaceDir: path.join(os.tmpdir(), "clawdbot-workspace"),
+      workspaceDir: path.join(os.tmpdir(), "zee-sandbox"),
+      agentWorkspaceDir: path.join(os.tmpdir(), "zee-workspace"),
       workspaceAccess: "none",
-      containerName: "clawdbot-sbx-test",
+      containerName: "zee-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "clawdbot-sandbox:bookworm-slim",
-        containerPrefix: "clawdbot-sbx-",
+        image: "zee-sandbox:bookworm-slim",
+        containerPrefix: "zee-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: [],
@@ -97,7 +97,7 @@ describe("createClawdbotCodingTools", () => {
       },
       browserAllowHostControl: false,
     };
-    const tools = createClawdbotCodingTools({ sandbox });
+    const tools = createZeeCodingTools({ sandbox });
     expect(tools.some((tool) => tool.name === "exec")).toBe(true);
     expect(tools.some((tool) => tool.name === "read")).toBe(false);
     expect(tools.some((tool) => tool.name === "browser")).toBe(false);
@@ -106,14 +106,14 @@ describe("createClawdbotCodingTools", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "sandbox:test",
-      workspaceDir: path.join(os.tmpdir(), "clawdbot-sandbox"),
-      agentWorkspaceDir: path.join(os.tmpdir(), "clawdbot-workspace"),
+      workspaceDir: path.join(os.tmpdir(), "zee-sandbox"),
+      agentWorkspaceDir: path.join(os.tmpdir(), "zee-workspace"),
       workspaceAccess: "ro",
-      containerName: "clawdbot-sbx-test",
+      containerName: "zee-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "clawdbot-sandbox:bookworm-slim",
-        containerPrefix: "clawdbot-sbx-",
+        image: "zee-sandbox:bookworm-slim",
+        containerPrefix: "zee-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: [],
@@ -128,13 +128,13 @@ describe("createClawdbotCodingTools", () => {
       },
       browserAllowHostControl: false,
     };
-    const tools = createClawdbotCodingTools({ sandbox });
+    const tools = createZeeCodingTools({ sandbox });
     expect(tools.some((tool) => tool.name === "read")).toBe(true);
     expect(tools.some((tool) => tool.name === "write")).toBe(false);
     expect(tools.some((tool) => tool.name === "edit")).toBe(false);
   });
   it("filters tools by agent tool policy even without sandbox", () => {
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: { tools: { deny: ["browser"] } },
     });
     expect(tools.some((tool) => tool.name === "exec")).toBe(true);

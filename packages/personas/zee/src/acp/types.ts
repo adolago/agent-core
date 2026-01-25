@@ -24,7 +24,7 @@ export type AcpServerOptions = {
 };
 
 export const ACP_AGENT_INFO = {
-  name: "clawdbot-acp",
-  title: "Clawdbot ACP Gateway",
+  name: "zee-acp",
+  title: "Zee ACP Gateway",
   version: VERSION,
 };

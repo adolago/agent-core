@@ -158,7 +158,7 @@ export async function fetchWithGuard(params: {
 
       const response = await fetch(parsedUrl, {
         signal: controller.signal,
-        headers: { "User-Agent": "Clawdbot-Gateway/1.0" },
+        headers: { "User-Agent": "Zee-Gateway/1.0" },
         redirect: "manual",
       });
 

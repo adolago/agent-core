@@ -77,8 +77,8 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/clawd",
     });
 
-    expect(prompt).toContain("## Clawdbot CLI Quick Reference");
-    expect(prompt).toContain("clawdbot gateway restart");
+    expect(prompt).toContain("## Zee CLI Quick Reference");
+    expect(prompt).toContain("zee gateway restart");
     expect(prompt).toContain("Do not invent commands");
   });
 
@@ -108,9 +108,9 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain(
       "- If exactly one skill clearly applies: read its SKILL.md at <location> with `Read`, then follow it.",
     );
-    expect(prompt).toContain("Clawdbot docs: /tmp/clawd/docs");
+    expect(prompt).toContain("Zee docs: /tmp/clawd/docs");
     expect(prompt).toContain(
-      "For Clawdbot behavior, commands, config, or architecture: consult local docs first.",
+      "For Zee behavior, commands, config, or architecture: consult local docs first.",
     );
   });
 
@@ -121,9 +121,9 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## Documentation");
-    expect(prompt).toContain("Clawdbot docs: /tmp/clawd/docs");
+    expect(prompt).toContain("Zee docs: /tmp/clawd/docs");
     expect(prompt).toContain(
-      "For Clawdbot behavior, commands, config, or architecture: consult local docs first.",
+      "For Zee behavior, commands, config, or architecture: consult local docs first.",
     );
   });
 
@@ -191,7 +191,7 @@ describe("buildAgentSystemPrompt", () => {
       toolNames: ["gateway", "exec"],
     });
 
-    expect(prompt).toContain("## Clawdbot Self-Update");
+    expect(prompt).toContain("## Zee Self-Update");
     expect(prompt).toContain("config.apply");
     expect(prompt).toContain("update.run");
   });
@@ -250,7 +250,7 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/clawd",
       contextFiles: [
         { path: "./SOUL.md", content: "Persona" },
-        { path: "dir\\SOUL.md", content: "Persona Windows" },
+        { path: "dir\[zee\]SOUL.md", content: "Persona Windows" },
       ],
     });
 

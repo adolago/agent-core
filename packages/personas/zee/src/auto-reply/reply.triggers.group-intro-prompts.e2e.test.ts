@@ -64,12 +64,12 @@ vi.mock("../web/session.js", () => webMocks);
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
   return withTempHomeBase(
     async (home) => {
-      await mkdir(join(home, ".clawdbot", "agents", "main", "sessions"), { recursive: true });
+      await mkdir(join(home, ".zee", "agents", "main", "sessions"), { recursive: true });
       vi.mocked(runEmbeddedPiAgent).mockClear();
       vi.mocked(abortEmbeddedPiRun).mockClear();
       return await fn(home);
     },
-    { prefix: "clawdbot-triggers-" },
+    { prefix: "zee-triggers-" },
   );
 }
 
@@ -96,7 +96,7 @@ afterEach(() => {
 
 describe("group intro prompts", () => {
   const groupParticipationNote =
-    "Be a good group participant: mostly lurk and follow the conversation; reply only when directly addressed or you can add clear value. Emoji reactions are welcome when available. Write like a human. Avoid Markdown tables. Don't type literal \\n sequences; use real line breaks sparingly.";
+    "Be a good group participant: mostly lurk and follow the conversation; reply only when directly addressed or you can add clear value. Emoji reactions are welcome when available. Write like a human. Avoid Markdown tables. Don't type literal \[zee\]n sequences; use real line breaks sparingly.";
 
   it("labels Discord groups using the surface metadata", async () => {
     await withTempHome(async (home) => {

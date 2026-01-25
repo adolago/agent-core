@@ -29,7 +29,7 @@ function extractCronChannels(schema: SchemaLike): string[] {
 
 const UI_FILES = ["ui/src/ui/types.ts", "ui/src/ui/ui-types.ts", "ui/src/ui/views/cron.ts"];
 
-const SWIFT_FILES = ["apps/macos/Sources/Clawdbot/GatewayConnection.swift"];
+const SWIFT_FILES = ["apps/macos/Sources/Zee/GatewayConnection.swift"];
 
 describe("cron protocol conformance", () => {
   it("ui + swift include all cron providers from gateway schema", async () => {
@@ -47,7 +47,7 @@ describe("cron protocol conformance", () => {
     for (const relPath of SWIFT_FILES) {
       const content = await fs.readFile(path.join(cwd, relPath), "utf-8");
       for (const channel of channels) {
-        const pattern = new RegExp(`\\bcase\\s+${channel}\\b`);
+        const pattern = new RegExp(`\[zee\]bcase\[zee\]s+${channel}\[zee\]b`);
         expect(pattern.test(content), `${relPath} missing case ${channel}`).toBe(true);
       }
     }
@@ -61,7 +61,7 @@ describe("cron protocol conformance", () => {
     expect(uiTypes.includes("jobCount")).toBe(false);
 
     const swift = await fs.readFile(
-      path.join(cwd, "apps/macos/Sources/Clawdbot/GatewayConnection.swift"),
+      path.join(cwd, "apps/macos/Sources/Zee/GatewayConnection.swift"),
       "utf-8",
     );
     expect(swift.includes("struct CronSchedulerStatus")).toBe(true);

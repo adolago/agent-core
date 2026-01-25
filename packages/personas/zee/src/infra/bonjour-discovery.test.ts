@@ -17,8 +17,8 @@ describe("bonjour-discovery", () => {
         if (domain === "local.") {
           return {
             stdout: [
-              "Add 2 3 local. _clawdbot-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
-              "Add 2 3 local. _clawdbot-gw._tcp. Laptop Gateway",
+              "Add 2 3 local. _zee-gw._tcp. Peter\[zee\]226\[zee\]128\[zee\]153s Mac Studio Gateway",
+              "Add 2 3 local. _zee-gw._tcp. Laptop Gateway",
               "",
             ].join("\n"),
             stderr: "",
@@ -30,7 +30,7 @@ describe("bonjour-discovery", () => {
         if (domain === WIDE_AREA_DISCOVERY_DOMAIN) {
           return {
             stdout: [
-              `Add 2 3 ${WIDE_AREA_DISCOVERY_DOMAIN} _clawdbot-gw._tcp. Tailnet Gateway`,
+              `Add 2 3 ${WIDE_AREA_DISCOVERY_DOMAIN} _zee-gw._tcp. Tailnet Gateway`,
               "",
             ].join("\n"),
             stderr: "",
@@ -52,7 +52,7 @@ describe("bonjour-discovery", () => {
         const tailnetDns = instance === "Tailnet Gateway" ? "studio.tailnet.ts.net" : "";
         const displayName =
           instance === studioInstance
-            ? "Peter’s\\032Mac\\032Studio"
+            ? "Peter’s\[zee\]032Mac\[zee\]032Studio"
             : instance.replace(" Gateway", "");
         const txtParts = [
           "txtvers=1",
@@ -65,7 +65,7 @@ describe("bonjour-discovery", () => {
 
         return {
           stdout: [
-            `${instance}._clawdbot-gw._tcp. can be reached at ${host}:18789`,
+            `${instance}._zee-gw._tcp. can be reached at ${host}:18789`,
             txtParts.join(" "),
             "",
           ].join("\n"),
@@ -112,7 +112,7 @@ describe("bonjour-discovery", () => {
       const domain = argv[3] ?? "";
       if (argv[0] === "dns-sd" && argv[1] === "-B" && domain === "local.") {
         return {
-          stdout: ["Add 2 3 local. _clawdbot-gw._tcp. Studio Gateway", ""].join("\n"),
+          stdout: ["Add 2 3 local. _zee-gw._tcp. Studio Gateway", ""].join("\n"),
           stderr: "",
           code: 0,
           signal: null,
@@ -123,8 +123,8 @@ describe("bonjour-discovery", () => {
       if (argv[0] === "dns-sd" && argv[1] === "-L") {
         return {
           stdout: [
-            "Studio Gateway._clawdbot-gw._tcp. can be reached at studio.local:18789",
-            "txtvers=1 displayName=Peter\\226\\128\\153s\\032Mac\\032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
+            "Studio Gateway._zee-gw._tcp. can be reached at studio.local:18789",
+            "txtvers=1 displayName=Peter\[zee\]226\[zee\]128\[zee\]153s\[zee\]032Mac\[zee\]032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
             "",
           ].join("\n"),
           stderr: "",
@@ -203,10 +203,10 @@ describe("bonjour-discovery", () => {
         if (
           server === "100.123.224.76" &&
           qtype === "PTR" &&
-          qname === "_clawdbot-gw._tcp.clawdbot.internal"
+          qname === "_zee-gw._tcp.zee.internal"
         ) {
           return {
-            stdout: `studio-gateway._clawdbot-gw._tcp.clawdbot.internal.\n`,
+            stdout: `studio-gateway._zee-gw._tcp.zee.internal.\n`,
             stderr: "",
             code: 0,
             signal: null,
@@ -217,10 +217,10 @@ describe("bonjour-discovery", () => {
         if (
           server === "100.123.224.76" &&
           qtype === "SRV" &&
-          qname === "studio-gateway._clawdbot-gw._tcp.clawdbot.internal"
+          qname === "studio-gateway._zee-gw._tcp.zee.internal"
         ) {
           return {
-            stdout: `0 0 18789 studio.clawdbot.internal.\n`,
+            stdout: `0 0 18789 studio.zee.internal.\n`,
             stderr: "",
             code: 0,
             signal: null,
@@ -231,7 +231,7 @@ describe("bonjour-discovery", () => {
         if (
           server === "100.123.224.76" &&
           qtype === "TXT" &&
-          qname === "studio-gateway._clawdbot-gw._tcp.clawdbot.internal"
+          qname === "studio-gateway._zee-gw._tcp.zee.internal"
         ) {
           return {
             stdout: [
@@ -240,7 +240,7 @@ describe("bonjour-discovery", () => {
               `"transport=gateway"`,
               `"sshPort=22"`,
               `"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net"`,
-              `"cliPath=/opt/homebrew/bin/clawdbot"`,
+              `"cliPath=/opt/homebrew/bin/zee"`,
               "",
             ].join(" "),
             stderr: "",
@@ -266,12 +266,12 @@ describe("bonjour-discovery", () => {
         domain: WIDE_AREA_DISCOVERY_DOMAIN,
         instanceName: "studio-gateway",
         displayName: "Studio",
-        host: "studio.clawdbot.internal",
+        host: "studio.zee.internal",
         port: 18789,
         tailnetDns: "peters-mac-studio-1.sheep-coho.ts.net",
         gatewayPort: 18789,
         sshPort: 22,
-        cliPath: "/opt/homebrew/bin/clawdbot",
+        cliPath: "/opt/homebrew/bin/zee",
       }),
     ]);
 
@@ -295,12 +295,12 @@ describe("bonjour-discovery", () => {
     await discoverGatewayBeacons({
       platform: "darwin",
       timeoutMs: 1,
-      domains: ["local", "clawdbot.internal"],
+      domains: ["local", "zee.internal.],
       run: run as unknown as typeof runCommandWithTimeout,
     });
 
     expect(calls.filter((c) => c[1] === "-B").map((c) => c[3])).toEqual(
-      expect.arrayContaining(["local.", "clawdbot.internal."]),
+      expect.arrayContaining(["local.", "zee.internal."]),
     );
 
     calls.length = 0;

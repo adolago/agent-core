@@ -8,17 +8,17 @@ import type {
 import { registerInternalHook } from "../hooks/internal-hooks.js";
 import { resolveUserPath } from "../utils.js";
 import type {
-  ClawdbotPluginApi,
-  ClawdbotPluginChannelRegistration,
-  ClawdbotPluginCliRegistrar,
-  ClawdbotPluginCommandDefinition,
-  ClawdbotPluginHttpHandler,
-  ClawdbotPluginHttpRouteHandler,
-  ClawdbotPluginHookOptions,
+  ZeePluginApi,
+  ZeePluginChannelRegistration,
+  ZeePluginCliRegistrar,
+  ZeePluginCommandDefinition,
+  ZeePluginHttpHandler,
+  ZeePluginHttpRouteHandler,
+  ZeePluginHookOptions,
   ProviderPlugin,
-  ClawdbotPluginService,
-  ClawdbotPluginToolContext,
-  ClawdbotPluginToolFactory,
+  ZeePluginService,
+  ZeePluginToolContext,
+  ZeePluginToolFactory,
   PluginConfigUiHint,
   PluginDiagnostic,
   PluginLogger,
@@ -36,7 +36,7 @@ import { normalizePluginHttpPath } from "./http-path.js";
 
 export type PluginToolRegistration = {
   pluginId: string;
-  factory: ClawdbotPluginToolFactory;
+  factory: ZeePluginToolFactory;
   names: string[];
   optional: boolean;
   source: string;
@@ -44,21 +44,21 @@ export type PluginToolRegistration = {
 
 export type PluginCliRegistration = {
   pluginId: string;
-  register: ClawdbotPluginCliRegistrar;
+  register: ZeePluginCliRegistrar;
   commands: string[];
   source: string;
 };
 
 export type PluginHttpRegistration = {
   pluginId: string;
-  handler: ClawdbotPluginHttpHandler;
+  handler: ZeePluginHttpHandler;
   source: string;
 };
 
 export type PluginHttpRouteRegistration = {
   pluginId?: string;
   path: string;
-  handler: ClawdbotPluginHttpRouteHandler;
+  handler: ZeePluginHttpRouteHandler;
   source?: string;
 };
 
@@ -84,13 +84,13 @@ export type PluginHookRegistration = {
 
 export type PluginServiceRegistration = {
   pluginId: string;
-  service: ClawdbotPluginService;
+  service: ZeePluginService;
   source: string;
 };
 
 export type PluginCommandRegistration = {
   pluginId: string;
-  command: ClawdbotPluginCommandDefinition;
+  command: ZeePluginCommandDefinition;
   source: string;
 };
 
@@ -167,13 +167,13 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
 
   const registerTool = (
     record: PluginRecord,
-    tool: AnyAgentTool | ClawdbotPluginToolFactory,
+    tool: AnyAgentTool | ZeePluginToolFactory,
     opts?: { name?: string; names?: string[]; optional?: boolean },
   ) => {
     const names = opts?.names ?? (opts?.name ? [opts.name] : []);
     const optional = opts?.optional === true;
-    const factory: ClawdbotPluginToolFactory =
-      typeof tool === "function" ? tool : (_ctx: ClawdbotPluginToolContext) => tool;
+    const factory: ZeePluginToolFactory =
+      typeof tool === "function" ? tool : (_ctx: ZeePluginToolContext) => tool;
 
     if (typeof tool !== "function") {
       names.push(tool.name);
@@ -196,8 +196,8 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     record: PluginRecord,
     events: string | string[],
     handler: Parameters<typeof registerInternalHook>[1],
-    opts: ClawdbotPluginHookOptions | undefined,
-    config: ClawdbotPluginApi["config"],
+    opts: ZeePluginHookOptions | undefined,
+    config: ZeePluginApi["config"],
   ) => {
     const eventList = Array.isArray(events) ? events : [events];
     const normalizedEvents = eventList.map((event) => event.trim()).filter(Boolean);
@@ -221,11 +221,11 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
             ...entry.hook,
             name,
             description,
-            source: "clawdbot-plugin",
+            source: "zee-plugin",
             pluginId: record.id,
           },
-          clawdbot: {
-            ...entry.clawdbot,
+          zee: {
+            ...entry.zee,
             events: normalizedEvents,
           },
         }
@@ -233,14 +233,14 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
           hook: {
             name,
             description,
-            source: "clawdbot-plugin",
+            source: "zee-plugin",
             pluginId: record.id,
             filePath: record.source,
             baseDir: path.dirname(record.source),
             handlerPath: record.source,
           },
           frontmatter: {},
-          clawdbot: { events: normalizedEvents },
+          zee: { events: normalizedEvents },
           invocation: { enabled: true },
         };
 
@@ -282,7 +282,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     record.gatewayMethods.push(trimmed);
   };
 
-  const registerHttpHandler = (record: PluginRecord, handler: ClawdbotPluginHttpHandler) => {
+  const registerHttpHandler = (record: PluginRecord, handler: ZeePluginHttpHandler) => {
     record.httpHandlers += 1;
     registry.httpHandlers.push({
       pluginId: record.id,
@@ -293,7 +293,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
 
   const registerHttpRoute = (
     record: PluginRecord,
-    params: { path: string; handler: ClawdbotPluginHttpRouteHandler },
+    params: { path: string; handler: ZeePluginHttpRouteHandler },
   ) => {
     const normalizedPath = normalizePluginHttpPath(params.path);
     if (!normalizedPath) {
@@ -325,11 +325,11 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
 
   const registerChannel = (
     record: PluginRecord,
-    registration: ClawdbotPluginChannelRegistration | ChannelPlugin,
+    registration: ZeePluginChannelRegistration | ChannelPlugin,
   ) => {
     const normalized =
-      typeof (registration as ClawdbotPluginChannelRegistration).plugin === "object"
-        ? (registration as ClawdbotPluginChannelRegistration)
+      typeof (registration as ZeePluginChannelRegistration).plugin === "object"
+        ? (registration as ZeePluginChannelRegistration)
         : { plugin: registration as ChannelPlugin };
     const plugin = normalized.plugin;
     const id = typeof plugin?.id === "string" ? plugin.id.trim() : String(plugin?.id ?? "").trim();
@@ -382,7 +382,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
 
   const registerCli = (
     record: PluginRecord,
-    registrar: ClawdbotPluginCliRegistrar,
+    registrar: ZeePluginCliRegistrar,
     opts?: { commands?: string[] },
   ) => {
     const commands = (opts?.commands ?? []).map((cmd) => cmd.trim()).filter(Boolean);
@@ -395,7 +395,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     });
   };
 
-  const registerService = (record: PluginRecord, service: ClawdbotPluginService) => {
+  const registerService = (record: PluginRecord, service: ZeePluginService) => {
     const id = service.id.trim();
     if (!id) return;
     record.services.push(id);
@@ -406,7 +406,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     });
   };
 
-  const registerCommand = (record: PluginRecord, command: ClawdbotPluginCommandDefinition) => {
+  const registerCommand = (record: PluginRecord, command: ZeePluginCommandDefinition) => {
     const name = command.name.trim();
     if (!name) {
       pushDiagnostic({
@@ -464,10 +464,10 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
   const createApi = (
     record: PluginRecord,
     params: {
-      config: ClawdbotPluginApi["config"];
+      config: ZeePluginApi["config"];
       pluginConfig?: Record<string, unknown>;
     },
-  ): ClawdbotPluginApi => {
+  ): ZeePluginApi => {
     return {
       id: record.id,
       name: record.name,

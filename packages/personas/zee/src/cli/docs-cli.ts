@@ -9,7 +9,7 @@ import { runCommandWithRuntime } from "./cli-utils.js";
 export function registerDocsCli(program: Command) {
   program
     .command("docs")
-    .description("Search the live Clawdbot docs")
+    .description("Search the live Zee docs")
     .argument("[query...]", "Search query")
     .addHelpText(
       "after",

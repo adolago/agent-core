@@ -7,7 +7,7 @@ import { CLAUDE_CLI_PROFILE_ID, ensureAuthProfileStore } from "./auth-profiles.j
 
 describe("external CLI credential sync", () => {
   it("does not overwrite API keys when syncing external CLI creds", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-no-overwrite-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-no-overwrite-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -45,14 +45,14 @@ describe("external CLI credential sync", () => {
           expect((store.profiles["anthropic:default"] as { key: string }).key).toBe("sk-store");
           expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });
   it("prefers oauth over token even if token has later expiry (oauth enables auto-refresh)", async () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-cli-oauth-preferred-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-cli-oauth-preferred-"));
     try {
       await withTempHome(
         async (tempHome) => {
@@ -93,7 +93,7 @@ describe("external CLI credential sync", () => {
           expect(cliProfile.type).toBe("oauth");
           expect((cliProfile as { access: string }).access).toBe("cli-oauth-access");
         },
-        { prefix: "clawdbot-home-" },
+        { prefix: "zee-home-" },
       );
     } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });

@@ -14,7 +14,7 @@ export type DiscordMessageEvent = import("./listeners.js").DiscordMessageEvent;
 export type DiscordMessagePreflightContext = {
   cfg: LoadedConfig;
   discordConfig: NonNullable<
-    import("../../config/config.js").ClawdbotConfig["channels"]
+    import("../../config/config.js").ZeeConfig["channels"]
   >["discord"];
   accountId: string;
   token: string;

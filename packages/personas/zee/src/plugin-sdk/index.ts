@@ -59,15 +59,15 @@ export type {
 } from "../channels/plugins/types.js";
 export type { ChannelConfigSchema, ChannelPlugin } from "../channels/plugins/types.plugin.js";
 export type {
-  ClawdbotPluginApi,
-  ClawdbotPluginService,
-  ClawdbotPluginServiceContext,
+  ZeePluginApi,
+  ZeePluginService,
+  ZeePluginServiceContext,
 } from "../plugins/types.js";
 export type { PluginRuntime } from "../plugins/runtime/types.js";
 export { normalizePluginHttpPath } from "../plugins/http-path.js";
 export { registerPluginHttpRoute } from "../plugins/http-registry.js";
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
-export type { ClawdbotConfig } from "../config/config.js";
+export type { ZeeConfig } from "../config/config.js";
 export type { ChannelDock } from "../channels/dock.js";
 export { getChatChannelMeta } from "../channels/registry.js";
 export type {

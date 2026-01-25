@@ -19,7 +19,7 @@ export function isUnhandledRejectionHandled(reason: unknown): boolean {
       if (handler(reason)) return true;
     } catch (err) {
       console.error(
-        "[clawdbot] Unhandled rejection handler failed:",
+        "[zee] Unhandled rejection handler failed:",
         err instanceof Error ? (err.stack ?? err.message) : err,
       );
     }
@@ -30,7 +30,7 @@ export function isUnhandledRejectionHandled(reason: unknown): boolean {
 export function installUnhandledRejectionHandler(): void {
   process.on("unhandledRejection", (reason, _promise) => {
     if (isUnhandledRejectionHandled(reason)) return;
-    console.error("[clawdbot] Unhandled promise rejection:", formatUncaughtError(reason));
+    console.error("[zee] Unhandled promise rejection:", formatUncaughtError(reason));
     process.exit(1);
   });
 }

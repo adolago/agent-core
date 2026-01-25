@@ -7,7 +7,7 @@ import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-prof
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ChannelDock } from "../channels/dock.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { ModelProviderConfig } from "../config/types.js";
@@ -41,7 +41,7 @@ export type PluginConfigValidation =
   | { ok: true; value?: unknown }
   | { ok: false; errors: string[] };
 
-export type ClawdbotPluginConfigSchema = {
+export type ZeePluginConfigSchema = {
   safeParse?: (value: unknown) => {
     success: boolean;
     data?: unknown;
@@ -55,8 +55,8 @@ export type ClawdbotPluginConfigSchema = {
   jsonSchema?: Record<string, unknown>;
 };
 
-export type ClawdbotPluginToolContext = {
-  config?: ClawdbotConfig;
+export type ZeePluginToolContext = {
+  config?: ZeeConfig;
   workspaceDir?: string;
   agentDir?: string;
   agentId?: string;
@@ -66,17 +66,17 @@ export type ClawdbotPluginToolContext = {
   sandboxed?: boolean;
 };
 
-export type ClawdbotPluginToolFactory = (
-  ctx: ClawdbotPluginToolContext,
+export type ZeePluginToolFactory = (
+  ctx: ZeePluginToolContext,
 ) => AnyAgentTool | AnyAgentTool[] | null | undefined;
 
-export type ClawdbotPluginToolOptions = {
+export type ZeePluginToolOptions = {
   name?: string;
   names?: string[];
   optional?: boolean;
 };
 
-export type ClawdbotPluginHookOptions = {
+export type ZeePluginHookOptions = {
   entry?: HookEntry;
   name?: string;
   description?: string;
@@ -87,13 +87,13 @@ export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "
 
 export type ProviderAuthResult = {
   profiles: Array<{ profileId: string; credential: AuthProfileCredential }>;
-  configPatch?: Partial<ClawdbotConfig>;
+  configPatch?: Partial<ZeeConfig>;
   defaultModel?: string;
   notes?: string[];
 };
 
 export type ProviderAuthContext = {
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   agentDir?: string;
   workspaceDir?: string;
   prompter: WizardPrompter;
@@ -125,7 +125,7 @@ export type ProviderPlugin = {
   refreshOAuth?: (cred: OAuthCredential) => Promise<OAuthCredential>;
 };
 
-export type ClawdbotPluginGatewayMethod = {
+export type ZeePluginGatewayMethod = {
   method: string;
   handler: GatewayRequestHandler;
 };
@@ -148,8 +148,8 @@ export type PluginCommandContext = {
   args?: string;
   /** The full normalized command body */
   commandBody: string;
-  /** Current clawdbot configuration */
-  config: ClawdbotConfig;
+  /** Current zee configuration */
+  config: ZeeConfig;
 };
 
 /**
@@ -167,7 +167,7 @@ export type PluginCommandHandler = (
 /**
  * Definition for a plugin-registered command.
  */
-export type ClawdbotPluginCommandDefinition = {
+export type ZeePluginCommandDefinition = {
   /** Command name without leading slash (e.g., "tts") */
   name: string;
   /** Description shown in /help and command menus */
@@ -180,90 +180,90 @@ export type ClawdbotPluginCommandDefinition = {
   handler: PluginCommandHandler;
 };
 
-export type ClawdbotPluginHttpHandler = (
+export type ZeePluginHttpHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<boolean> | boolean;
 
-export type ClawdbotPluginHttpRouteHandler = (
+export type ZeePluginHttpRouteHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<void> | void;
 
-export type ClawdbotPluginCliContext = {
+export type ZeePluginCliContext = {
   program: Command;
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   workspaceDir?: string;
   logger: PluginLogger;
 };
 
-export type ClawdbotPluginCliRegistrar = (ctx: ClawdbotPluginCliContext) => void | Promise<void>;
+export type ZeePluginCliRegistrar = (ctx: ZeePluginCliContext) => void | Promise<void>;
 
-export type ClawdbotPluginServiceContext = {
-  config: ClawdbotConfig;
+export type ZeePluginServiceContext = {
+  config: ZeeConfig;
   workspaceDir?: string;
   stateDir: string;
   logger: PluginLogger;
 };
 
-export type ClawdbotPluginService = {
+export type ZeePluginService = {
   id: string;
-  start: (ctx: ClawdbotPluginServiceContext) => void | Promise<void>;
-  stop?: (ctx: ClawdbotPluginServiceContext) => void | Promise<void>;
+  start: (ctx: ZeePluginServiceContext) => void | Promise<void>;
+  stop?: (ctx: ZeePluginServiceContext) => void | Promise<void>;
 };
 
-export type ClawdbotPluginChannelRegistration = {
+export type ZeePluginChannelRegistration = {
   plugin: ChannelPlugin;
   dock?: ChannelDock;
 };
 
-export type ClawdbotPluginDefinition = {
+export type ZeePluginDefinition = {
   id?: string;
   name?: string;
   description?: string;
   version?: string;
   kind?: PluginKind;
-  configSchema?: ClawdbotPluginConfigSchema;
-  register?: (api: ClawdbotPluginApi) => void | Promise<void>;
-  activate?: (api: ClawdbotPluginApi) => void | Promise<void>;
+  configSchema?: ZeePluginConfigSchema;
+  register?: (api: ZeePluginApi) => void | Promise<void>;
+  activate?: (api: ZeePluginApi) => void | Promise<void>;
 };
 
-export type ClawdbotPluginModule =
-  | ClawdbotPluginDefinition
-  | ((api: ClawdbotPluginApi) => void | Promise<void>);
+export type ZeePluginModule =
+  | ZeePluginDefinition
+  | ((api: ZeePluginApi) => void | Promise<void>);
 
-export type ClawdbotPluginApi = {
+export type ZeePluginApi = {
   id: string;
   name: string;
   version?: string;
   description?: string;
   source: string;
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   pluginConfig?: Record<string, unknown>;
   runtime: PluginRuntime;
   logger: PluginLogger;
   registerTool: (
-    tool: AnyAgentTool | ClawdbotPluginToolFactory,
-    opts?: ClawdbotPluginToolOptions,
+    tool: AnyAgentTool | ZeePluginToolFactory,
+    opts?: ZeePluginToolOptions,
   ) => void;
   registerHook: (
     events: string | string[],
     handler: InternalHookHandler,
-    opts?: ClawdbotPluginHookOptions,
+    opts?: ZeePluginHookOptions,
   ) => void;
-  registerHttpHandler: (handler: ClawdbotPluginHttpHandler) => void;
-  registerHttpRoute: (params: { path: string; handler: ClawdbotPluginHttpRouteHandler }) => void;
-  registerChannel: (registration: ClawdbotPluginChannelRegistration | ChannelPlugin) => void;
+  registerHttpHandler: (handler: ZeePluginHttpHandler) => void;
+  registerHttpRoute: (params: { path: string; handler: ZeePluginHttpRouteHandler }) => void;
+  registerChannel: (registration: ZeePluginChannelRegistration | ChannelPlugin) => void;
   registerGatewayMethod: (method: string, handler: GatewayRequestHandler) => void;
-  registerCli: (registrar: ClawdbotPluginCliRegistrar, opts?: { commands?: string[] }) => void;
-  registerService: (service: ClawdbotPluginService) => void;
+  registerCli: (registrar: ZeePluginCliRegistrar, opts?: { commands?: string[] }) => void;
+  registerService: (service: ZeePluginService) => void;
   registerProvider: (provider: ProviderPlugin) => void;
   /**
    * Register a custom command that bypasses the LLM agent.
    * Plugin commands are processed before built-in commands and before agent invocation.
    * Use this for simple state-toggling or status commands that don't need AI reasoning.
    */
-  registerCommand: (command: ClawdbotPluginCommandDefinition) => void;
+  registerCommand: (command: ZeePluginCommandDefinition) => void;
   resolvePath: (input: string) => string;
   /** Register a lifecycle hook handler */
   on: <K extends PluginHookName>(

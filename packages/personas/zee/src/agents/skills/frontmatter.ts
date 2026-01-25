@@ -4,7 +4,7 @@ import type { Skill } from "@mariozechner/pi-coding-agent";
 import { parseFrontmatterBlock } from "../../markdown/frontmatter.js";
 import { parseBooleanValue } from "../../utils/boolean.js";
 import type {
-  ClawdbotSkillMetadata,
+  ZeeSkillMetadata,
   ParsedSkillFrontmatter,
   SkillEntry,
   SkillInstallSpec,
@@ -71,32 +71,32 @@ function parseFrontmatterBool(value: string | undefined, fallback: boolean): boo
   return parsed === undefined ? fallback : parsed;
 }
 
-export function resolveClawdbotMetadata(
+export function resolveZeeMetadata(
   frontmatter: ParsedSkillFrontmatter,
-): ClawdbotSkillMetadata | undefined {
+): ZeeSkillMetadata | undefined {
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON5.parse(raw) as { clawdbot?: unknown };
+    const parsed = JSON5.parse(raw) as { zee?: unknown };
     if (!parsed || typeof parsed !== "object") return undefined;
-    const clawdbot = (parsed as { clawdbot?: unknown }).clawdbot;
-    if (!clawdbot || typeof clawdbot !== "object") return undefined;
-    const clawdbotObj = clawdbot as Record<string, unknown>;
+    const zee = parsed.zee;
+    if (!zee || typeof zee !== "object") return undefined;
+    const zeeObj = zee as Record<string, unknown>;
     const requiresRaw =
-      typeof clawdbotObj.requires === "object" && clawdbotObj.requires !== null
-        ? (clawdbotObj.requires as Record<string, unknown>)
+      typeof zeeObj.requires === "object" && zeeObj.requires !== null
+        ? (zeeObj.requires as Record<string, unknown>)
         : undefined;
-    const installRaw = Array.isArray(clawdbotObj.install) ? (clawdbotObj.install as unknown[]) : [];
+    const installRaw = Array.isArray(zeeObj.install) ? (zeeObj.install as unknown[]) : [];
     const install = installRaw
       .map((entry) => parseInstallSpec(entry))
       .filter((entry): entry is SkillInstallSpec => Boolean(entry));
-    const osRaw = normalizeStringList(clawdbotObj.os);
+    const osRaw = normalizeStringList(zeeObj.os);
     return {
-      always: typeof clawdbotObj.always === "boolean" ? clawdbotObj.always : undefined,
-      emoji: typeof clawdbotObj.emoji === "string" ? clawdbotObj.emoji : undefined,
-      homepage: typeof clawdbotObj.homepage === "string" ? clawdbotObj.homepage : undefined,
-      skillKey: typeof clawdbotObj.skillKey === "string" ? clawdbotObj.skillKey : undefined,
-      primaryEnv: typeof clawdbotObj.primaryEnv === "string" ? clawdbotObj.primaryEnv : undefined,
+      always: typeof zeeObj.always === "boolean" ? zeeObj.always : undefined,
+      emoji: typeof zeeObj.emoji === "string" ? zeeObj.emoji : undefined,
+      homepage: typeof zeeObj.homepage === "string" ? zeeObj.homepage : undefined,
+      skillKey: typeof zeeObj.skillKey === "string" ? zeeObj.skillKey : undefined,
+      primaryEnv: typeof zeeObj.primaryEnv === "string" ? zeeObj.primaryEnv : undefined,
       os: osRaw.length > 0 ? osRaw : undefined,
       requires: requiresRaw
         ? {
@@ -126,5 +126,5 @@ export function resolveSkillInvocationPolicy(
 }
 
 export function resolveSkillKey(skill: Skill, entry?: SkillEntry): string {
-  return entry?.clawdbot?.skillKey ?? skill.name;
+  return entry?.zee?.skillKey ?? skill.name;
 }

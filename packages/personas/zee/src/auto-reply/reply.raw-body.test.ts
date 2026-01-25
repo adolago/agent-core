@@ -24,10 +24,10 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
     },
     {
       env: {
-        CLAWDBOT_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
-        PI_CODING_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
+        ZEE_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
+        PI_CODING_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
       },
-      prefix: "clawdbot-rawbody-",
+      prefix: "zee-rawbody-",
     },
   );
 }
@@ -49,7 +49,7 @@ describe("RawBody directive parsing", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
 
       const groupMessageCtx = {
-        Body: `[Chat messages since your last reply - for context]\\n[WhatsApp ...] Someone: hello\\n\\n[Current message - respond to this]\\n[WhatsApp ...] Jake: /think:high\\n[from: Jake McInteer (+6421807830)]`,
+        Body: `[Chat messages since your last reply - for context]\[zee\]n[WhatsApp ...] Someone: hello\[zee\]n\[zee\]n[Current message - respond to this]\[zee\]n[WhatsApp ...] Jake: /think:high\[zee\]n[from: Jake McInteer (+6421807830)]`,
         RawBody: "/think:high",
         From: "+1222",
         To: "+1222",
@@ -154,7 +154,7 @@ describe("RawBody directive parsing", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
 
       const groupMessageCtx = {
-        Body: `[Chat messages since your last reply - for context]\\n[WhatsApp ...] Someone: hello\\n\\n[Current message - respond to this]\\n[WhatsApp ...] Jake: /status\\n[from: Jake McInteer (+6421807830)]`,
+        Body: `[Chat messages since your last reply - for context]\[zee\]n[WhatsApp ...] Someone: hello\[zee\]n\[zee\]n[Current message - respond to this]\[zee\]n[WhatsApp ...] Jake: /status\[zee\]n[from: Jake McInteer (+6421807830)]`,
         RawBody: "/status",
         ChatType: "group",
         From: "+1222",

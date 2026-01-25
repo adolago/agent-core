@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { ClawdbotConfig } from "../config/config.js";
-import { createClawdbotCodingTools } from "./pi-tools.js";
+import type { ZeeConfig } from "../config/config.js";
+import { createZeeCodingTools } from "./pi-tools.js";
 import type { SandboxDockerConfig } from "./sandbox.js";
 
 describe("Agent-specific tool filtering", () => {
   it("should apply global tool policy when no agent-specific policy exists", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "write"],
         deny: ["bash"],
@@ -20,7 +20,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test",
@@ -35,7 +35,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should keep global tool policy when agent only sets tools.elevated", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         deny: ["write"],
       },
@@ -55,7 +55,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test",
@@ -70,7 +70,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should allow apply_patch when exec is allow-listed and applyPatch is enabled", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "exec"],
         exec: {
@@ -79,7 +79,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test",
@@ -95,7 +95,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply agent-specific tool policy", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "write", "exec"],
         deny: [],
@@ -114,7 +114,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:restricted:main",
       workspaceDir: "/tmp/test-restricted",
@@ -130,7 +130,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply provider-specific tool policy", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "write", "exec"],
         byProvider: {
@@ -141,7 +141,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-provider",
@@ -158,7 +158,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply provider-specific tool profile overrides", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         profile: "coding",
         byProvider: {
@@ -169,7 +169,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-provider-profile",
@@ -183,7 +183,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should allow different tool policies for different agents", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         list: [
           {
@@ -204,7 +204,7 @@ describe("Agent-specific tool filtering", () => {
     };
 
     // main agent: all tools
-    const mainTools = createClawdbotCodingTools({
+    const mainTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-main",
@@ -217,7 +217,7 @@ describe("Agent-specific tool filtering", () => {
     expect(mainToolNames).not.toContain("apply_patch");
 
     // family agent: restricted
-    const familyTools = createClawdbotCodingTools({
+    const familyTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:family:whatsapp:group:123",
       workspaceDir: "/tmp/test-family",
@@ -232,7 +232,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply group tool policy overrides (group-specific beats wildcard)", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         whatsapp: {
           groups: {
@@ -247,7 +247,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const trustedTools = createClawdbotCodingTools({
+    const trustedTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:trusted",
       messageProvider: "whatsapp",
@@ -258,7 +258,7 @@ describe("Agent-specific tool filtering", () => {
     expect(trustedNames).toContain("read");
     expect(trustedNames).toContain("exec");
 
-    const defaultTools = createClawdbotCodingTools({
+    const defaultTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:unknown",
       messageProvider: "whatsapp",
@@ -271,7 +271,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should resolve telegram group tool policy for topic session keys", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         telegram: {
           groups: {
@@ -283,7 +283,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:telegram:group:123:topic:456",
       messageProvider: "telegram",
@@ -296,7 +296,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should inherit group tool policy for subagents from spawnedBy session keys", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         whatsapp: {
           groups: {
@@ -308,7 +308,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:subagent:test",
       spawnedBy: "agent:main:whatsapp:group:trusted",
@@ -321,7 +321,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply global tool policy before agent-specific policy", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         deny: ["browser"], // Global deny
       },
@@ -338,7 +338,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:work:slack:dm:user123",
       workspaceDir: "/tmp/test-work",
@@ -354,7 +354,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should work with sandbox tools filtering", () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           sandbox: {
@@ -387,7 +387,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:restricted:main",
       workspaceDir: "/tmp/test-restricted",
@@ -427,13 +427,13 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should run exec synchronously when process is denied", async () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         deny: ["process"],
       },
     };
 
-    const tools = createClawdbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-main",

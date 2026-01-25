@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import {
   formatUserTime,
   resolveUserTimeFormat,
@@ -32,7 +32,7 @@ export type SystemPromptRuntimeParams = {
 };
 
 export function buildSystemPromptParams(params: {
-  config?: ClawdbotConfig;
+  config?: ZeeConfig;
   agentId?: string;
   runtime: Omit<RuntimeInfoInput, "agentId">;
   workspaceDir?: string;
@@ -59,7 +59,7 @@ export function buildSystemPromptParams(params: {
 }
 
 function resolveRepoRoot(params: {
-  config?: ClawdbotConfig;
+  config?: ZeeConfig;
   workspaceDir?: string;
   cwd?: string;
 }): string | undefined {

@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { STATE_DIR_CLAWDBOT } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginRegistry } from "./registry.js";
@@ -11,7 +11,7 @@ export type PluginServicesHandle = {
 
 export async function startPluginServices(params: {
   registry: PluginRegistry;
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   workspaceDir?: string;
 }): Promise<PluginServicesHandle> {
   const running: Array<{

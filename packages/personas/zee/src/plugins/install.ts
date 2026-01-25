@@ -20,7 +20,7 @@ type PackageManifest = {
   name?: string;
   version?: string;
   dependencies?: Record<string, string>;
-  clawdbot?: { extensions?: string[] };
+  zee?: { extensions?: string[] };
 };
 
 export type InstallPluginResult =
@@ -52,14 +52,14 @@ function safeFileName(input: string): string {
   return safeDirName(input);
 }
 
-async function ensureClawdbotExtensions(manifest: PackageManifest) {
-  const extensions = manifest.clawdbot?.extensions;
+async function ensureZeeExtensions(manifest: PackageManifest) {
+  const extensions = manifest.zee?.extensions;
   if (!Array.isArray(extensions)) {
-    throw new Error("package.json missing clawdbot.extensions");
+    throw new Error("package.json missing zee.extensions");
   }
   const list = extensions.map((e) => (typeof e === "string" ? e.trim() : "")).filter(Boolean);
   if (list.length === 0) {
-    throw new Error("package.json clawdbot.extensions is empty");
+    throw new Error("package.json zee.extensions is empty");
   }
   return list;
 }
@@ -99,7 +99,7 @@ async function installPluginFromPackageDir(params: {
 
   let extensions: string[];
   try {
-    extensions = await ensureClawdbotExtensions(manifest);
+    extensions = await ensureZeeExtensions(manifest);
   } catch (err) {
     return { ok: false, error: String(err) };
   }
@@ -217,7 +217,7 @@ export async function installPluginFromArchive(params: {
     return { ok: false, error: `unsupported archive: ${archivePath}` };
   }
 
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-plugin-"));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-plugin-"));
   const extractDir = path.join(tmpDir, "extract");
   await fs.mkdir(extractDir, { recursive: true });
 
@@ -350,7 +350,7 @@ export async function installPluginFromNpmSpec(params: {
   const spec = params.spec.trim();
   if (!spec) return { ok: false, error: "missing npm spec" };
 
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-npm-pack-"));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-npm-pack-"));
   logger.info?.(`Downloading ${spec}…`);
   const res = await runCommandWithTimeout(["npm", "pack", spec], {
     timeoutMs: Math.max(timeoutMs, 300_000),

@@ -27,7 +27,7 @@ import type {
   TelegramGroupConfig,
   TelegramTopicConfig,
 } from "../config/types.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { deliverReplies } from "./bot/delivery.js";
 import { buildInlineKeyboard } from "./send.js";
@@ -44,7 +44,7 @@ type TelegramNativeCommandContext = Context & { match?: string };
 
 type RegisterTelegramNativeCommandsParams = {
   bot: Bot;
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   runtime: RuntimeEnv;
   accountId: string;
   telegramCfg: TelegramAccountConfig;

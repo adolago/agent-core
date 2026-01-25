@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { resolveContextWindowInfo } from "../context-window-guard.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
 import { setContextPruningRuntime } from "../pi-extensions/context-pruning/runtime.js";
@@ -22,7 +22,7 @@ function resolvePiExtensionPath(id: string): string {
 }
 
 function resolveContextWindowTokens(params: {
-  cfg: ClawdbotConfig | undefined;
+  cfg: ZeeConfig | undefined;
   provider: string;
   modelId: string;
   model: Model<Api> | undefined;
@@ -37,7 +37,7 @@ function resolveContextWindowTokens(params: {
 }
 
 function buildContextPruningExtension(params: {
-  cfg: ClawdbotConfig | undefined;
+  cfg: ZeeConfig | undefined;
   sessionManager: SessionManager;
   provider: string;
   modelId: string;
@@ -62,12 +62,12 @@ function buildContextPruningExtension(params: {
   };
 }
 
-function resolveCompactionMode(cfg?: ClawdbotConfig): "default" | "safeguard" {
+function resolveCompactionMode(cfg?: ZeeConfig): "default" | "safeguard" {
   return cfg?.agents?.defaults?.compaction?.mode === "safeguard" ? "safeguard" : "default";
 }
 
 export function buildEmbeddedExtensionPaths(params: {
-  cfg: ClawdbotConfig | undefined;
+  cfg: ZeeConfig | undefined;
   sessionManager: SessionManager;
   provider: string;
   modelId: string;

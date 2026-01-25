@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
-import type { ClawdbotConfig } from "../config/config.js";
-import { ensureClawdbotModelsJson } from "./models-config.js";
+import type { ZeeConfig } from "../config/config.js";
+import { ensureZeeModelsJson } from "./models-config.js";
 import { applyGoogleTurnOrderingFix } from "./pi-embedded-runner.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
@@ -69,10 +69,10 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
         },
       },
     },
-  }) satisfies ClawdbotConfig;
+  }) satisfies ZeeConfig;
 
-const _ensureModels = (cfg: ClawdbotConfig, agentDir: string) =>
-  ensureClawdbotModelsJson(cfg, agentDir) as unknown;
+const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
+  ensureZeeModelsJson(cfg, agentDir) as unknown;
 
 const _textFromContent = (content: unknown) => {
   if (typeof content === "string") return content;

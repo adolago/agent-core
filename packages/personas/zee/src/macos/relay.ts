@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import process from "node:process";
 
-declare const __CLAWDBOT_VERSION__: string | undefined;
+declare const __ZEE_VERSION__: string | undefined;
 
 const BUNDLED_VERSION =
-  (typeof __CLAWDBOT_VERSION__ === "string" && __CLAWDBOT_VERSION__) ||
-  process.env.CLAWDBOT_BUNDLED_VERSION ||
+  (typeof __ZEE_VERSION__ === "string" && __ZEE_VERSION__) ||
+  process.env.ZEE_BUNDLED_VERSION ||
   "0.0.0";
 
 function hasFlag(args: string[], flag: string): boolean {
@@ -47,8 +47,8 @@ async function main() {
   const { loadDotEnv } = await import("../infra/dotenv.js");
   loadDotEnv({ quiet: true });
 
-  const { ensureClawdbotCliOnPath } = await import("../infra/path-env.js");
-  ensureClawdbotCliOnPath();
+  const { ensureZeeCliOnPath } = await import("../infra/path-env.js");
+  ensureZeeCliOnPath();
 
   const { enableConsoleCapture } = await import("../logging.js");
   enableConsoleCapture();
@@ -64,7 +64,7 @@ async function main() {
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
-    console.error("[clawdbot] Uncaught exception:", formatUncaughtError(error));
+    console.error("[zee] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
 
@@ -73,7 +73,7 @@ async function main() {
 
 void main().catch((err) => {
   console.error(
-    "[clawdbot] Relay failed:",
+    "[zee] Relay failed:",
     err instanceof Error ? (err.stack ?? err.message) : err,
   );
   process.exit(1);

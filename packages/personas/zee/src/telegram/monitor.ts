@@ -1,5 +1,5 @@
 import { type RunOptions, run } from "@grammyjs/runner";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import { resolveAgentMaxConcurrent } from "../config/agent-limits.js";
 import { computeBackoff, sleepWithAbort } from "../infra/backoff.js";
@@ -15,7 +15,7 @@ import { startTelegramWebhook } from "./webhook.js";
 export type MonitorTelegramOpts = {
   token?: string;
   accountId?: string;
-  config?: ClawdbotConfig;
+  config?: ZeeConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
   useWebhook?: boolean;
@@ -26,7 +26,7 @@ export type MonitorTelegramOpts = {
   webhookUrl?: string;
 };
 
-export function createTelegramRunnerOptions(cfg: ClawdbotConfig): RunOptions<unknown> {
+export function createTelegramRunnerOptions(cfg: ZeeConfig): RunOptions<unknown> {
   return {
     sink: {
       concurrency: resolveAgentMaxConcurrent(cfg),

@@ -25,7 +25,7 @@ export function assertProvider(input: string): asserts input is Provider {
   }
 }
 
-// Clawdbot naming convention (alias for compatibility with synced code)
+// Legacy naming convention (alias for compatibility with synced code)
 export type WebChannel = Provider;
 export const assertWebChannel = assertProvider;
 

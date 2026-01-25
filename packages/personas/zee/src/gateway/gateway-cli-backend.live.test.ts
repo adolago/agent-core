@@ -12,10 +12,10 @@ import { GatewayClient } from "./client.js";
 import { renderCatNoncePngBase64 } from "./live-image-probe.js";
 import { startGatewayServer } from "./server.js";
 
-const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.CLAWDBOT_LIVE_TEST);
-const CLI_LIVE = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_CLI_BACKEND);
-const CLI_IMAGE = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_CLI_BACKEND_IMAGE_PROBE);
-const CLI_RESUME = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_CLI_BACKEND_RESUME_PROBE);
+const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.ZEE_LIVE_TEST);
+const CLI_LIVE = isTruthyEnvValue(process.env.ZEE_LIVE_CLI_BACKEND);
+const CLI_IMAGE = isTruthyEnvValue(process.env.ZEE_LIVE_CLI_BACKEND_IMAGE_PROBE);
+const CLI_RESUME = isTruthyEnvValue(process.env.ZEE_LIVE_CLI_BACKEND_RESUME_PROBE);
 const describeLive = LIVE && CLI_LIVE ? describe : describe.skip;
 
 const DEFAULT_MODEL = "claude-cli/claude-sonnet-4-5";
@@ -94,7 +94,7 @@ function parseImageMode(raw?: string): "list" | "repeat" | undefined {
   const trimmed = raw?.trim();
   if (!trimmed) return undefined;
   if (trimmed === "list" || trimmed === "repeat") return trimmed;
-  throw new Error("CLAWDBOT_LIVE_CLI_BACKEND_IMAGE_MODE must be 'list' or 'repeat'.");
+  throw new Error("ZEE_LIVE_CLI_BACKEND_IMAGE_MODE must be 'list' or 'repeat'.");
 }
 
 function withMcpConfigOverrides(args: string[], mcpConfigPath: string): string[] {
@@ -181,31 +181,31 @@ async function connectClient(params: { url: string; token: string }) {
 describeLive("gateway live (cli backend)", () => {
   it("runs the agent pipeline against the local CLI backend", async () => {
     const previous = {
-      configPath: process.env.CLAWDBOT_CONFIG_PATH,
-      token: process.env.CLAWDBOT_GATEWAY_TOKEN,
-      skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
-      skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
-      skipCron: process.env.CLAWDBOT_SKIP_CRON,
-      skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
+      configPath: process.env.ZEE_CONFIG_PATH,
+      token: process.env.ZEE_GATEWAY_TOKEN,
+      skipChannels: process.env.ZEE_SKIP_CHANNELS,
+      skipGmail: process.env.ZEE_SKIP_GMAIL_WATCHER,
+      skipCron: process.env.ZEE_SKIP_CRON,
+      skipCanvas: process.env.ZEE_SKIP_CANVAS_HOST,
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       anthropicApiKeyOld: process.env.ANTHROPIC_API_KEY_OLD,
     };
 
-    process.env.CLAWDBOT_SKIP_CHANNELS = "1";
-    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
-    process.env.CLAWDBOT_SKIP_CRON = "1";
-    process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
+    process.env.ZEE_SKIP_CHANNELS = "1";
+    process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
+    process.env.ZEE_SKIP_CRON = "1";
+    process.env.ZEE_SKIP_CANVAS_HOST = "1";
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY_OLD;
 
     const token = `test-${randomUUID()}`;
-    process.env.CLAWDBOT_GATEWAY_TOKEN = token;
+    process.env.ZEE_GATEWAY_TOKEN = token;
 
-    const rawModel = process.env.CLAWDBOT_LIVE_CLI_BACKEND_MODEL ?? DEFAULT_MODEL;
+    const rawModel = process.env.ZEE_LIVE_CLI_BACKEND_MODEL ?? DEFAULT_MODEL;
     const parsed = parseModelRef(rawModel, "claude-cli");
     if (!parsed) {
       throw new Error(
-        `CLAWDBOT_LIVE_CLI_BACKEND_MODEL must resolve to a CLI backend model. Got: ${rawModel}`,
+        `ZEE_LIVE_CLI_BACKEND_MODEL must resolve to a CLI backend model. Got: ${rawModel}`,
       );
     }
     const providerId = parsed.provider;
@@ -218,36 +218,36 @@ describeLive("gateway live (cli backend)", () => {
           ? { command: "codex", args: DEFAULT_CODEX_ARGS }
           : null;
 
-    const cliCommand = process.env.CLAWDBOT_LIVE_CLI_BACKEND_COMMAND ?? providerDefaults?.command;
+    const cliCommand = process.env.ZEE_LIVE_CLI_BACKEND_COMMAND ?? providerDefaults?.command;
     if (!cliCommand) {
       throw new Error(
-        `CLAWDBOT_LIVE_CLI_BACKEND_COMMAND is required for provider "${providerId}".`,
+        `ZEE_LIVE_CLI_BACKEND_COMMAND is required for provider "${providerId}".`,
       );
     }
     const baseCliArgs =
       parseJsonStringArray(
-        "CLAWDBOT_LIVE_CLI_BACKEND_ARGS",
-        process.env.CLAWDBOT_LIVE_CLI_BACKEND_ARGS,
+        "ZEE_LIVE_CLI_BACKEND_ARGS",
+        process.env.ZEE_LIVE_CLI_BACKEND_ARGS,
       ) ?? providerDefaults?.args;
     if (!baseCliArgs || baseCliArgs.length === 0) {
-      throw new Error(`CLAWDBOT_LIVE_CLI_BACKEND_ARGS is required for provider "${providerId}".`);
+      throw new Error(`ZEE_LIVE_CLI_BACKEND_ARGS is required for provider "${providerId}".`);
     }
     const cliClearEnv =
       parseJsonStringArray(
-        "CLAWDBOT_LIVE_CLI_BACKEND_CLEAR_ENV",
-        process.env.CLAWDBOT_LIVE_CLI_BACKEND_CLEAR_ENV,
+        "ZEE_LIVE_CLI_BACKEND_CLEAR_ENV",
+        process.env.ZEE_LIVE_CLI_BACKEND_CLEAR_ENV,
       ) ?? (providerId === "claude-cli" ? DEFAULT_CLEAR_ENV : []);
-    const cliImageArg = process.env.CLAWDBOT_LIVE_CLI_BACKEND_IMAGE_ARG?.trim() || undefined;
-    const cliImageMode = parseImageMode(process.env.CLAWDBOT_LIVE_CLI_BACKEND_IMAGE_MODE);
+    const cliImageArg = process.env.ZEE_LIVE_CLI_BACKEND_IMAGE_ARG?.trim() || undefined;
+    const cliImageMode = parseImageMode(process.env.ZEE_LIVE_CLI_BACKEND_IMAGE_MODE);
 
     if (cliImageMode && !cliImageArg) {
       throw new Error(
-        "CLAWDBOT_LIVE_CLI_BACKEND_IMAGE_MODE requires CLAWDBOT_LIVE_CLI_BACKEND_IMAGE_ARG.",
+        "ZEE_LIVE_CLI_BACKEND_IMAGE_MODE requires ZEE_LIVE_CLI_BACKEND_IMAGE_ARG.",
       );
     }
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-live-cli-"));
-    const disableMcpConfig = process.env.CLAWDBOT_LIVE_CLI_BACKEND_DISABLE_MCP_CONFIG !== "0";
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-live-cli-"));
+    const disableMcpConfig = process.env.ZEE_LIVE_CLI_BACKEND_DISABLE_MCP_CONFIG !== "0";
     let cliArgs = baseCliArgs;
     if (providerId === "claude-cli" && disableMcpConfig) {
       const mcpConfigPath = path.join(tempDir, "claude-mcp.json");
@@ -281,9 +281,9 @@ describeLive("gateway live (cli backend)", () => {
         },
       },
     };
-    const tempConfigPath = path.join(tempDir, "clawdbot.json");
+    const tempConfigPath = path.join(tempDir, "zee.json");
     await fs.writeFile(tempConfigPath, `${JSON.stringify(nextCfg, null, 2)}\n`);
-    process.env.CLAWDBOT_CONFIG_PATH = tempConfigPath;
+    process.env.ZEE_CONFIG_PATH = tempConfigPath;
 
     const port = await getFreeGatewayPort();
     const server = await startGatewayServer(port, {
@@ -383,7 +383,7 @@ describeLive("gateway live (cli backend)", () => {
           throw new Error(`image probe failed: status=${String(imageProbe?.status)}`);
         }
         const imageText = extractPayloadText(imageProbe?.result);
-        if (!/\bcat\b/i.test(imageText)) {
+        if (!/\[zee\]cat\[zee\]/i.test(imageText)) {
           throw new Error(`image probe missing 'cat': ${imageText}`);
         }
         const candidates = imageText.toUpperCase().match(/[A-Z0-9]{6,20}/g) ?? [];
@@ -399,18 +399,18 @@ describeLive("gateway live (cli backend)", () => {
       client.stop();
       await server.close();
       await fs.rm(tempDir, { recursive: true, force: true });
-      if (previous.configPath === undefined) delete process.env.CLAWDBOT_CONFIG_PATH;
-      else process.env.CLAWDBOT_CONFIG_PATH = previous.configPath;
-      if (previous.token === undefined) delete process.env.CLAWDBOT_GATEWAY_TOKEN;
-      else process.env.CLAWDBOT_GATEWAY_TOKEN = previous.token;
-      if (previous.skipChannels === undefined) delete process.env.CLAWDBOT_SKIP_CHANNELS;
-      else process.env.CLAWDBOT_SKIP_CHANNELS = previous.skipChannels;
-      if (previous.skipGmail === undefined) delete process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
-      else process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = previous.skipGmail;
-      if (previous.skipCron === undefined) delete process.env.CLAWDBOT_SKIP_CRON;
-      else process.env.CLAWDBOT_SKIP_CRON = previous.skipCron;
-      if (previous.skipCanvas === undefined) delete process.env.CLAWDBOT_SKIP_CANVAS_HOST;
-      else process.env.CLAWDBOT_SKIP_CANVAS_HOST = previous.skipCanvas;
+      if (previous.configPath === undefined) delete process.env.ZEE_CONFIG_PATH;
+      else process.env.ZEE_CONFIG_PATH = previous.configPath;
+      if (previous.token === undefined) delete process.env.ZEE_GATEWAY_TOKEN;
+      else process.env.ZEE_GATEWAY_TOKEN = previous.token;
+      if (previous.skipChannels === undefined) delete process.env.ZEE_SKIP_CHANNELS;
+      else process.env.ZEE_SKIP_CHANNELS = previous.skipChannels;
+      if (previous.skipGmail === undefined) delete process.env.ZEE_SKIP_GMAIL_WATCHER;
+      else process.env.ZEE_SKIP_GMAIL_WATCHER = previous.skipGmail;
+      if (previous.skipCron === undefined) delete process.env.ZEE_SKIP_CRON;
+      else process.env.ZEE_SKIP_CRON = previous.skipCron;
+      if (previous.skipCanvas === undefined) delete process.env.ZEE_SKIP_CANVAS_HOST;
+      else process.env.ZEE_SKIP_CANVAS_HOST = previous.skipCanvas;
       if (previous.anthropicApiKey === undefined) delete process.env.ANTHROPIC_API_KEY;
       else process.env.ANTHROPIC_API_KEY = previous.anthropicApiKey;
       if (previous.anthropicApiKeyOld === undefined) delete process.env.ANTHROPIC_API_KEY_OLD;

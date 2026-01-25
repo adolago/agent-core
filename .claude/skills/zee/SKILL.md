@@ -1,10 +1,11 @@
 ---
 name: zee
-description: Personal assistant for life admin. Use for memory management, messaging (WhatsApp/Telegram/Discord), calendar scheduling, contacts, notifications, and cross-platform communication coordination.
+description: Personal assistant for life admin. Use for memory management, messaging (WhatsApp/Telegram/Discord), email (neomutt/notmuch), calendar (khal), contacts (khard), notifications, and cross-platform communication coordination.
 includes:
   - personas
   - shared
   - agents-menu
+  - pim-classic
 ---
 
 # zee - Personal Life Assistant
@@ -15,8 +16,9 @@ includes:
 zee handles the cognitive load of life administration:
 - **Memory**: Remember everything, recall anything
 - **Messaging**: WhatsApp, Telegram, Discord coordination
-- **Calendar**: Smart scheduling with context
-- **Contacts**: Unified address book
+- **Email**: neomutt + notmuch (search) + msmtp (send) + mbsync (sync)
+- **Calendar**: khal (TUI) + vdirsyncer (CalDAV sync)
+- **Contacts**: khard (TUI) + vdirsyncer (CardDAV sync)
 - **Notifications**: Proactive reminders and alerts
 - **Expenses**: Splitwise group balances, reimbursements
 - **Usage Monitoring**: CodexBar provider limits + reset tracking
@@ -47,7 +49,49 @@ npx tsx scripts/zee-messaging.ts telegram --to "@username" --message "Check this
 npx tsx scripts/zee-messaging.ts broadcast --group "family" --message "Dinner at 7pm"
 ```
 
-### Calendar Management
+### Email (neomutt + notmuch)
+```bash
+# Sync and index email
+mbsync -a && notmuch new
+
+# Search email
+notmuch search "from:john@example.com subject:meeting"
+
+# Read email (interactive)
+neomutt
+
+# Send email
+neomutt -s "Quick question" someone@example.com
+```
+
+### Calendar (khal)
+```bash
+# Sync calendars
+vdirsyncer sync
+
+# Today's events
+khal list
+
+# Add event
+khal new 15:00 16:00 "Meeting with John"
+
+# Interactive TUI
+ikhal
+```
+
+### Contacts (khard)
+```bash
+# Search contacts
+khard list "john"
+
+# Show contact
+khard show "John Doe"
+
+# Add new contact
+khard new
+```
+
+### Calendar Management (Legacy)
 ```bash
 # Check schedule
 npx tsx scripts/zee-calendar.ts today
@@ -103,9 +147,14 @@ codexbar cost --provider claude
 | `zee:memory-store` | Store facts, preferences, tasks, notes |
 | `zee:memory-search` | Semantic search across all memories |
 | `zee:messaging` | Send/receive across WhatsApp, Telegram, Discord |
+| `neomutt` | Email client (read, compose, reply) |
+| `notmuch` | Email search and indexing |
+| `mbsync` | IMAP sync (offline email) |
+| `msmtp` | SMTP sending |
+| `khal` | Calendar TUI (view, add, edit events) |
+| `khard` | Contacts TUI (search, add, edit) |
+| `vdirsyncer` | CalDAV/CardDAV sync |
 | `zee:notification` | Proactive alerts and reminders |
-| `zee:calendar` | Google Calendar integration |
-| `zee:contacts` | Unified contact management |
 | `zee:splitwise` | Shared expenses, balances, reimbursements |
 | `zee:codexbar` | Provider usage monitoring via CodexBar CLI |
 
@@ -176,7 +225,6 @@ zee operates across multiple surfaces:
 ## MCP Servers
 
 - `tiara` - Orchestration and memory
-- `google-calendar` - Calendar API
 
 ## Integration Points
 
@@ -272,7 +320,9 @@ Frontend Protocol:
 | Find past info | `zee:memory-search` | Context recall |
 | Analyze image | Multimodal Looker | Visual understanding |
 | Run background task | Interactive Bash | Persistent execution |
-| Schedule event | `zee:calendar` | Google integration |
+| Schedule event | `khal new` | CalDAV-synced calendar |
+| Search email | `notmuch search` | Fast indexed search |
+| Find contact | `khard list` | CardDAV-synced contacts |
 
 ### Delegation Triggers
 

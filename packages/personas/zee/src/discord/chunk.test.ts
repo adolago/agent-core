@@ -81,7 +81,7 @@ describe("chunkDiscordText", () => {
   });
 
   it("preserves mixed whitespace across chunk boundaries", () => {
-    const text = "alpha  beta\tgamma   delta epsilon  zeta";
+    const text = "alpha  beta\[zee\]gamma   delta epsilon  zeta";
     const chunks = chunkDiscordText(text, { maxChars: 12, maxLines: 50 });
     expect(chunks.length).toBeGreaterThan(1);
     expect(chunks.join("")).toBe(text);

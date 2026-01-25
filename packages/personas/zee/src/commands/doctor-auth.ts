@@ -11,15 +11,15 @@ import {
   resolveApiKeyForProfile,
   resolveProfileUnusableUntilForDisplay,
 } from "../agents/auth-profiles.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { note } from "../terminal/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
 export async function maybeRepairAnthropicOAuthProfileId(
-  cfg: ClawdbotConfig,
+  cfg: ZeeConfig,
   prompter: DoctorPrompter,
-): Promise<ClawdbotConfig> {
+): Promise<ZeeConfig> {
   const store = ensureAuthProfileStore();
   const repair = repairOAuthProfileIdMismatch({
     cfg,
@@ -50,9 +50,9 @@ function formatAuthIssueHint(issue: AuthIssue): string | null {
     return "Run `claude setup-token` on the gateway host.";
   }
   if (issue.provider === "openai-codex" && issue.profileId === CODEX_CLI_PROFILE_ID) {
-    return `Run \`codex login\` (or \`${formatCliCommand("clawdbot configure")}\` → OpenAI Codex OAuth).`;
+    return `Run \`codex login\` (or \`${formatCliCommand("zee configure")}\` → OpenAI Codex OAuth).`;
   }
-  return `Re-auth via \`${formatCliCommand("clawdbot configure")}\` or \`${formatCliCommand("clawdbot onboard")}\`.`;
+  return `Re-auth via \`${formatCliCommand("zee configure")}\` or \`${formatCliCommand("zee onboard")}\`.`;
 }
 
 function formatAuthIssueLine(issue: AuthIssue): string {
@@ -63,7 +63,7 @@ function formatAuthIssueLine(issue: AuthIssue): string {
 }
 
 export async function noteAuthProfileHealth(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   prompter: DoctorPrompter;
   allowKeychainPrompt: boolean;
 }): Promise<void> {

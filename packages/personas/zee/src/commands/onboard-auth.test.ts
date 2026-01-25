@@ -24,14 +24,14 @@ import {
 
 const authProfilePathFor = (agentDir: string) => path.join(agentDir, "auth-profiles.json");
 const requireAgentDir = () => {
-  const agentDir = process.env.CLAWDBOT_AGENT_DIR;
-  if (!agentDir) throw new Error("CLAWDBOT_AGENT_DIR not set");
+  const agentDir = process.env.ZEE_AGENT_DIR;
+  if (!agentDir) throw new Error("ZEE_AGENT_DIR not set");
   return agentDir;
 };
 
 describe("writeOAuthCredentials", () => {
-  const previousStateDir = process.env.CLAWDBOT_STATE_DIR;
-  const previousAgentDir = process.env.CLAWDBOT_AGENT_DIR;
+  const previousStateDir = process.env.ZEE_STATE_DIR;
+  const previousAgentDir = process.env.ZEE_AGENT_DIR;
   const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
   let tempStateDir: string | null = null;
 
@@ -41,28 +41,28 @@ describe("writeOAuthCredentials", () => {
       tempStateDir = null;
     }
     if (previousStateDir === undefined) {
-      delete process.env.CLAWDBOT_STATE_DIR;
+      delete process.env.ZEE_STATE_DIR;
     } else {
-      process.env.CLAWDBOT_STATE_DIR = previousStateDir;
+      process.env.ZEE_STATE_DIR = previousStateDir;
     }
     if (previousAgentDir === undefined) {
-      delete process.env.CLAWDBOT_AGENT_DIR;
+      delete process.env.ZEE_AGENT_DIR;
     } else {
-      process.env.CLAWDBOT_AGENT_DIR = previousAgentDir;
+      process.env.ZEE_AGENT_DIR = previousAgentDir;
     }
     if (previousPiAgentDir === undefined) {
       delete process.env.PI_CODING_AGENT_DIR;
     } else {
       process.env.PI_CODING_AGENT_DIR = previousPiAgentDir;
     }
-    delete process.env.CLAWDBOT_OAUTH_DIR;
+    delete process.env.ZEE_OAUTH_DIR;
   });
 
-  it("writes auth-profiles.json under CLAWDBOT_AGENT_DIR when set", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-oauth-"));
-    process.env.CLAWDBOT_STATE_DIR = tempStateDir;
-    process.env.CLAWDBOT_AGENT_DIR = path.join(tempStateDir, "agent");
-    process.env.PI_CODING_AGENT_DIR = process.env.CLAWDBOT_AGENT_DIR;
+  it("writes auth-profiles.json under ZEE_AGENT_DIR when set", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-oauth-"));
+    process.env.ZEE_STATE_DIR = tempStateDir;
+    process.env.ZEE_AGENT_DIR = path.join(tempStateDir, "agent");
+    process.env.PI_CODING_AGENT_DIR = process.env.ZEE_AGENT_DIR;
 
     const creds = {
       refresh: "refresh-token",
@@ -90,8 +90,8 @@ describe("writeOAuthCredentials", () => {
 });
 
 describe("setMinimaxApiKey", () => {
-  const previousStateDir = process.env.CLAWDBOT_STATE_DIR;
-  const previousAgentDir = process.env.CLAWDBOT_AGENT_DIR;
+  const previousStateDir = process.env.ZEE_STATE_DIR;
+  const previousAgentDir = process.env.ZEE_AGENT_DIR;
   const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
   let tempStateDir: string | null = null;
 
@@ -101,14 +101,14 @@ describe("setMinimaxApiKey", () => {
       tempStateDir = null;
     }
     if (previousStateDir === undefined) {
-      delete process.env.CLAWDBOT_STATE_DIR;
+      delete process.env.ZEE_STATE_DIR;
     } else {
-      process.env.CLAWDBOT_STATE_DIR = previousStateDir;
+      process.env.ZEE_STATE_DIR = previousStateDir;
     }
     if (previousAgentDir === undefined) {
-      delete process.env.CLAWDBOT_AGENT_DIR;
+      delete process.env.ZEE_AGENT_DIR;
     } else {
-      process.env.CLAWDBOT_AGENT_DIR = previousAgentDir;
+      process.env.ZEE_AGENT_DIR = previousAgentDir;
     }
     if (previousPiAgentDir === undefined) {
       delete process.env.PI_CODING_AGENT_DIR;
@@ -117,11 +117,11 @@ describe("setMinimaxApiKey", () => {
     }
   });
 
-  it("writes to CLAWDBOT_AGENT_DIR when set", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-minimax-"));
-    process.env.CLAWDBOT_STATE_DIR = tempStateDir;
-    process.env.CLAWDBOT_AGENT_DIR = path.join(tempStateDir, "custom-agent");
-    process.env.PI_CODING_AGENT_DIR = process.env.CLAWDBOT_AGENT_DIR;
+  it("writes to ZEE_AGENT_DIR when set", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-minimax-"));
+    process.env.ZEE_STATE_DIR = tempStateDir;
+    process.env.ZEE_AGENT_DIR = path.join(tempStateDir, "custom-agent");
+    process.env.PI_CODING_AGENT_DIR = process.env.ZEE_AGENT_DIR;
 
     await setMinimaxApiKey("sk-minimax-test");
 

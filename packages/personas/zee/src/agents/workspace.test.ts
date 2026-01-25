@@ -18,7 +18,7 @@ import {
 
 describe("ensureAgentWorkspace", () => {
   it("creates directory and bootstrap files when missing", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-ws-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-ws-"));
     const nested = path.join(dir, "nested");
     const result = await ensureAgentWorkspace({
       dir: nested,
@@ -42,7 +42,7 @@ describe("ensureAgentWorkspace", () => {
   });
 
   it("initializes a git repo for brand-new workspaces when git is available", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-ws-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-ws-"));
     const nested = path.join(dir, "nested");
     const gitAvailable = await runCommandWithTimeout(["git", "--version"], { timeoutMs: 2_000 })
       .then((res) => res.code === 0)
@@ -58,7 +58,7 @@ describe("ensureAgentWorkspace", () => {
   });
 
   it("does not initialize git when workspace already exists", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-ws-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-ws-"));
     await fs.writeFile(path.join(dir, "AGENTS.md"), "custom", "utf-8");
 
     await ensureAgentWorkspace({
@@ -70,7 +70,7 @@ describe("ensureAgentWorkspace", () => {
   });
 
   it("does not overwrite existing AGENTS.md", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-ws-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-ws-"));
     const agentsPath = path.join(dir, "AGENTS.md");
     await fs.writeFile(agentsPath, "custom", "utf-8");
     await ensureAgentWorkspace({ dir, ensureBootstrapFiles: true });
@@ -78,7 +78,7 @@ describe("ensureAgentWorkspace", () => {
   });
 
   it("does not recreate BOOTSTRAP.md once workspace exists", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-ws-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-ws-"));
     const agentsPath = path.join(dir, "AGENTS.md");
     const bootstrapPath = path.join(dir, "BOOTSTRAP.md");
 

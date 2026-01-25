@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { PluginConfigUiHint, PluginKind } from "./types.js";
 
-export const PLUGIN_MANIFEST_FILENAME = "clawdbot.plugin.json";
+export const PLUGIN_MANIFEST_FILENAME = "zee.plugin.json";
 
 export type PluginManifest = {
   id: string;
@@ -93,7 +93,7 @@ export function loadPluginManifest(rootDir: string): PluginManifestLoadResult {
   };
 }
 
-// package.json "clawdbot" metadata (used for onboarding/catalog)
+// package.json "zee" metadata (used for onboarding/catalog)
 export type PluginPackageChannel = {
   id?: string;
   label?: string;
@@ -121,7 +121,7 @@ export type PluginPackageInstall = {
   defaultChoice?: "npm" | "local";
 };
 
-export type ClawdbotPackageManifest = {
+export type ZeePackageManifest = {
   extensions?: string[];
   channel?: PluginPackageChannel;
   install?: PluginPackageInstall;
@@ -131,5 +131,5 @@ export type PackageManifest = {
   name?: string;
   version?: string;
   description?: string;
-  clawdbot?: ClawdbotPackageManifest;
+  zee?: ZeePackageManifest;
 };

@@ -1,10 +1,10 @@
-import type { ClawdbotConfig } from "../../../config/config.js";
+import type { ZeeConfig } from "../../../config/config.js";
 import { resolveUserPath } from "../../../utils.js";
 import type { OnboardOptions } from "../../onboard-types.js";
 
 export function resolveNonInteractiveWorkspaceDir(params: {
   opts: OnboardOptions;
-  baseConfig: ClawdbotConfig;
+  baseConfig: ZeeConfig;
   defaultWorkspaceDir: string;
 }) {
   const raw = (

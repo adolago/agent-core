@@ -17294,7 +17294,7 @@ const cardShadow = isAndroid ? "0 2px 10px rgba(0,0,0,.18)" : "0 10px 30px rgba(
 const buttonShadow = isAndroid ? "0 2px 10px rgba(6, 182, 212, 0.14)" : "0 10px 25px rgba(6, 182, 212, 0.18)";
 const statusShadow = isAndroid ? "0 2px 10px rgba(0, 0, 0, 0.18)" : "0 10px 24px rgba(0, 0, 0, 0.25)";
 const statusBlur = isAndroid ? "10px" : "14px";
-const clawdbotTheme = {
+const zeeTheme = {
 	components: {
 		AudioPlayer: emptyClasses(),
 		Button: emptyClasses(),
@@ -17450,7 +17450,7 @@ const clawdbotTheme = {
 		Image: { borderRadius: "12px" }
 	}
 };
-var ClawdbotA2UIHost = class extends i$6 {
+var ZeeA2UIHost = class extends i$6 {
 	static properties = {
 		surfaces: { state: true },
 		pendingAction: { state: true },
@@ -17459,7 +17459,7 @@ var ClawdbotA2UIHost = class extends i$6 {
 	#processor = Data.createSignalA2uiMessageProcessor();
 	#themeProvider = new i$3(this, {
 		context: themeContext,
-		initialValue: clawdbotTheme
+		initialValue: zeeTheme
 	});
 	surfaces = [];
 	pendingAction = null;
@@ -17472,10 +17472,10 @@ var ClawdbotA2UIHost = class extends i$6 {
       position: relative;
       box-sizing: border-box;
       padding:
-        var(--clawdbot-a2ui-inset-top, 0px)
-        var(--clawdbot-a2ui-inset-right, 0px)
-        var(--clawdbot-a2ui-inset-bottom, 0px)
-        var(--clawdbot-a2ui-inset-left, 0px);
+        var(--zee-a2ui-inset-top, 0px)
+        var(--zee-a2ui-inset-right, 0px)
+        var(--zee-a2ui-inset-bottom, 0px)
+        var(--zee-a2ui-inset-left, 0px);
     }
 
     #surfaces {
@@ -17484,14 +17484,14 @@ var ClawdbotA2UIHost = class extends i$6 {
       gap: 12px;
       height: 100%;
       overflow: auto;
-      padding-bottom: var(--clawdbot-a2ui-scroll-pad-bottom, 0px);
+      padding-bottom: var(--zee-a2ui-scroll-pad-bottom, 0px);
     }
 
     .status {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      top: var(--clawdbot-a2ui-status-top, 12px);
+      top: var(--zee-a2ui-status-top, 12px);
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -17512,7 +17512,7 @@ var ClawdbotA2UIHost = class extends i$6 {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      bottom: var(--clawdbot-a2ui-toast-bottom, 12px);
+      bottom: var(--zee-a2ui-toast-bottom, 12px);
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -17538,7 +17538,7 @@ var ClawdbotA2UIHost = class extends i$6 {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      top: var(--clawdbot-a2ui-empty-top, var(--clawdbot-a2ui-status-top, 12px));
+      top: var(--zee-a2ui-empty-top, var(--zee-a2ui-status-top, 12px));
       text-align: center;
       opacity: 0.8;
       padding: 10px 12px;
@@ -17570,20 +17570,20 @@ var ClawdbotA2UIHost = class extends i$6 {
   `;
 	connectedCallback() {
 		super.connectedCallback();
-		globalThis.clawdbotA2UI = {
+		globalThis.zeeA2UI = {
 			applyMessages: (messages) => this.applyMessages(messages),
 			reset: () => this.reset(),
 			getSurfaces: () => Array.from(this.#processor.getSurfaces().keys())
 		};
 		this.addEventListener("a2uiaction", (evt) => this.#handleA2UIAction(evt));
 		this.#statusListener = (evt) => this.#handleActionStatus(evt);
-		globalThis.addEventListener("clawdbot:a2ui-action-status", this.#statusListener);
+		globalThis.addEventListener("zee:a2ui-action-status", this.#statusListener);
 		this.#syncSurfaces();
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback();
 		if (this.#statusListener) {
-			globalThis.removeEventListener("clawdbot:a2ui-action-status", this.#statusListener);
+			globalThis.removeEventListener("zee:a2ui-action-status", this.#statusListener);
 			this.#statusListener = null;
 		}
 	}
@@ -17688,11 +17688,11 @@ var ClawdbotA2UIHost = class extends i$6 {
 			timestamp: new Date().toISOString(),
 			...Object.keys(context).length ? { context } : {}
 		};
-		globalThis.__clawdbotLastA2UIAction = userAction;
-		const handler = globalThis.webkit?.messageHandlers?.clawdbotCanvasA2UIAction ?? globalThis.clawdbotCanvasA2UIAction;
+		globalThis.__zeeLastA2UIAction = userAction;
+		const handler = globalThis.webkit?.messageHandlers?.zeeCanvasA2UIAction ?? globalThis.zeeCanvasA2UIAction;
 		if (handler?.postMessage) {
 			try {
-				if (handler === globalThis.clawdbotCanvasA2UIAction) {
+				if (handler === globalThis.zeeCanvasA2UIAction) {
 					handler.postMessage(JSON.stringify({ userAction }));
 				} else {
 					handler.postMessage({ userAction });
@@ -17765,4 +17765,4 @@ var ClawdbotA2UIHost = class extends i$6 {
     </section>`;
 	}
 };
-customElements.define("clawdbot-a2ui-host", ClawdbotA2UIHost);
+customElements.define("zee-a2ui-host", ZeeA2UIHost);

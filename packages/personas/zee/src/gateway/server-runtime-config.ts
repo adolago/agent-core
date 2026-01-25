@@ -72,12 +72,12 @@ export async function resolveGatewayRuntimeConfig(params: {
   const authMode: ResolvedGatewayAuth["mode"] = resolvedAuth.mode;
   const hooksConfig = resolveHooksConfig(params.cfg);
   const canvasHostEnabled =
-    process.env.CLAWDBOT_SKIP_CANVAS_HOST !== "1" && params.cfg.canvasHost?.enabled !== false;
+    process.env.ZEE_SKIP_CANVAS_HOST !== "1" && params.cfg.canvasHost?.enabled !== false;
 
   assertGatewayAuthConfigured(resolvedAuth);
   if (tailscaleMode === "funnel" && authMode !== "password") {
     throw new Error(
-      "tailscale funnel requires gateway auth mode=password (set gateway.auth.password or CLAWDBOT_GATEWAY_PASSWORD)",
+      "tailscale funnel requires gateway auth mode=password (set gateway.auth.password or ZEE_GATEWAY_PASSWORD)",
     );
   }
   if (tailscaleMode !== "off" && !isLoopbackHost(bindHost)) {
@@ -85,7 +85,7 @@ export async function resolveGatewayRuntimeConfig(params: {
   }
   if (!isLoopbackHost(bindHost) && authMode === "none") {
     throw new Error(
-      `refusing to bind gateway to ${bindHost}:${params.port} without auth (set gateway.auth.token or CLAWDBOT_GATEWAY_TOKEN, or pass --token)`,
+      `refusing to bind gateway to ${bindHost}:${params.port} without auth (set gateway.auth.token or ZEE_GATEWAY_TOKEN, or pass --token)`,
     );
   }
 

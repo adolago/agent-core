@@ -1,7 +1,7 @@
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import type { ChannelId } from "../channels/plugins/types.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveBrowserConfig } from "../browser/config.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
@@ -65,7 +65,7 @@ export type SecurityAuditReport = {
 };
 
 export type SecurityAuditOptions = {
-  config: ClawdbotConfig;
+  config: ZeeConfig;
   deep?: boolean;
   includeFilesystem?: boolean;
   includeChannelSecurity?: boolean;
@@ -138,7 +138,7 @@ async function collectFilesystemFindings(params: {
         checkId: "fs.state_dir.perms_world_writable",
         severity: "critical",
         title: "State dir is world-writable",
-        detail: `${params.stateDir} mode=${formatOctal(bits)}; other users can write into your Clawdbot state.`,
+        detail: `${params.stateDir} mode=${formatOctal(bits)}; other users can write into your Zee state.`,
         remediation: `chmod 700 ${params.stateDir}`,
       });
     } else if (isGroupWritable(bits)) {
@@ -146,7 +146,7 @@ async function collectFilesystemFindings(params: {
         checkId: "fs.state_dir.perms_group_writable",
         severity: "warn",
         title: "State dir is group-writable",
-        detail: `${params.stateDir} mode=${formatOctal(bits)}; group users can write into your Clawdbot state.`,
+        detail: `${params.stateDir} mode=${formatOctal(bits)}; group users can write into your Zee state.`,
         remediation: `chmod 700 ${params.stateDir}`,
       });
     } else if (isGroupReadable(bits) || isWorldReadable(bits)) {
@@ -201,7 +201,7 @@ async function collectFilesystemFindings(params: {
   return findings;
 }
 
-function collectGatewayConfigFindings(cfg: ClawdbotConfig): SecurityAuditFinding[] {
+function collectGatewayConfigFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
 
   const bind = typeof cfg.gateway?.bind === "string" ? cfg.gateway.bind : "loopback";
@@ -265,7 +265,7 @@ function isLoopbackClientHost(hostname: string): boolean {
   return h === "localhost" || h === "127.0.0.1" || h === "::1";
 }
 
-function collectBrowserControlFindings(cfg: ClawdbotConfig): SecurityAuditFinding[] {
+function collectBrowserControlFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
 
   let resolved: ReturnType<typeof resolveBrowserConfig>;
@@ -277,7 +277,7 @@ function collectBrowserControlFindings(cfg: ClawdbotConfig): SecurityAuditFindin
       severity: "warn",
       title: "Browser control config looks invalid",
       detail: String(err),
-      remediation: `Fix browser.controlUrl/browser.cdpUrl in ${resolveConfigPath()} and re-run "${formatCliCommand("clawdbot security audit --deep")}".`,
+      remediation: `Fix browser.controlUrl/browser.cdpUrl in ${resolveConfigPath()} and re-run "${formatCliCommand("zee security audit --deep")}".`,
     });
     return findings;
   }
@@ -286,7 +286,7 @@ function collectBrowserControlFindings(cfg: ClawdbotConfig): SecurityAuditFindin
 
   const url = new URL(resolved.controlUrl);
   const isLoopback = isLoopbackClientHost(url.hostname);
-  const envToken = process.env.CLAWDBOT_BROWSER_CONTROL_TOKEN?.trim();
+  const envToken = process.env.ZEE_BROWSER_CONTROL_TOKEN?.trim();
   const controlToken = (envToken || resolved.controlToken)?.trim() || null;
 
   if (!isLoopback) {
@@ -295,9 +295,9 @@ function collectBrowserControlFindings(cfg: ClawdbotConfig): SecurityAuditFindin
         checkId: "browser.control_remote_no_token",
         severity: "critical",
         title: "Remote browser control is missing an auth token",
-        detail: `browser.controlUrl is non-loopback (${resolved.controlUrl}) but no browser.controlToken (or CLAWDBOT_BROWSER_CONTROL_TOKEN) is configured.`,
+        detail: `browser.controlUrl is non-loopback (${resolved.controlUrl}) but no browser.controlToken (or ZEE_BROWSER_CONTROL_TOKEN) is configured.`,
         remediation:
-          "Set browser.controlToken (or export CLAWDBOT_BROWSER_CONTROL_TOKEN) and prefer serving over Tailscale Serve or HTTPS reverse proxy.",
+          "Set browser.controlToken (or export ZEE_BROWSER_CONTROL_TOKEN) and prefer serving over Tailscale Serve or HTTPS reverse proxy.",
       });
     }
 
@@ -343,7 +343,7 @@ function collectBrowserControlFindings(cfg: ClawdbotConfig): SecurityAuditFindin
   return findings;
 }
 
-function collectLoggingFindings(cfg: ClawdbotConfig): SecurityAuditFinding[] {
+function collectLoggingFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
   const redact = cfg.logging?.redactSensitive;
   if (redact !== "off") return [];
   return [
@@ -357,7 +357,7 @@ function collectLoggingFindings(cfg: ClawdbotConfig): SecurityAuditFinding[] {
   ];
 }
 
-function collectElevatedFindings(cfg: ClawdbotConfig): SecurityAuditFinding[] {
+function collectElevatedFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const enabled = cfg.tools?.elevated?.enabled;
   const allowFrom = cfg.tools?.elevated?.allowFrom ?? {};
@@ -389,7 +389,7 @@ function collectElevatedFindings(cfg: ClawdbotConfig): SecurityAuditFinding[] {
 }
 
 async function collectChannelSecurityFindings(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   plugins: ReturnType<typeof listChannelPlugins>;
 }): Promise<SecurityAuditFinding[]> {
   const findings: SecurityAuditFinding[] = [];
@@ -742,7 +742,7 @@ async function collectChannelSecurityFindings(params: {
 }
 
 async function maybeProbeGateway(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   timeoutMs: number;
   probe: typeof probeGateway;
 }): Promise<SecurityAuditReport["deep"]> {
@@ -762,10 +762,10 @@ async function maybeProbeGateway(params: {
         ? typeof remote?.token === "string" && remote.token.trim()
           ? remote.token.trim()
           : undefined
-        : process.env.CLAWDBOT_GATEWAY_TOKEN?.trim() ||
+        : process.env.ZEE_GATEWAY_TOKEN?.trim() ||
           (typeof authToken === "string" && authToken.trim() ? authToken.trim() : undefined);
     const password =
-      process.env.CLAWDBOT_GATEWAY_PASSWORD?.trim() ||
+      process.env.ZEE_GATEWAY_PASSWORD?.trim() ||
       (mode === "remote"
         ? typeof remote?.password === "string" && remote.password.trim()
           ? remote.password.trim()
@@ -854,7 +854,7 @@ export async function runSecurityAudit(opts: SecurityAuditOptions): Promise<Secu
       severity: "warn",
       title: "Gateway probe failed (deep)",
       detail: deep.gateway.error ?? "gateway unreachable",
-      remediation: `Run "${formatCliCommand("clawdbot status --all")}" to debug connectivity/auth, then re-run "${formatCliCommand("clawdbot security audit --deep")}".`,
+      remediation: `Run "${formatCliCommand("zee status --all")}" to debug connectivity/auth, then re-run "${formatCliCommand("zee security audit --deep")}".`,
     });
   }
 

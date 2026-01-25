@@ -363,7 +363,7 @@ export async function statusCommand(
     },
   ];
 
-  runtime.log(theme.heading("Clawdbot status"));
+  runtime.log(theme.heading("Zee status"));
   runtime.log("");
   runtime.log(theme.heading("Overview"));
   runtime.log(
@@ -412,8 +412,8 @@ export async function statusCommand(
       runtime.log(theme.muted(`… +${sorted.length - shown.length} more`));
     }
   }
-  runtime.log(theme.muted(`Full report: ${formatCliCommand("clawdbot security audit")}`));
-  runtime.log(theme.muted(`Deep probe: ${formatCliCommand("clawdbot security audit --deep")}`));
+  runtime.log(theme.muted(`Full report: ${formatCliCommand("zee security audit")}`));
+  runtime.log(theme.muted(`Deep probe: ${formatCliCommand("zee security audit --deep")}`));
 
   runtime.log("");
   runtime.log(theme.heading("Channels"));
@@ -569,11 +569,11 @@ export async function statusCommand(
     runtime.log("");
   }
   runtime.log("Next steps:");
-  runtime.log(`  Need to share?      ${formatCliCommand("clawdbot status --all")}`);
-  runtime.log(`  Need to debug live? ${formatCliCommand("clawdbot logs --follow")}`);
+  runtime.log(`  Need to share?      ${formatCliCommand("zee status --all")}`);
+  runtime.log(`  Need to debug live? ${formatCliCommand("zee logs --follow")}`);
   if (gatewayReachable) {
-    runtime.log(`  Need to test channels? ${formatCliCommand("clawdbot status --deep")}`);
+    runtime.log(`  Need to test channels? ${formatCliCommand("zee status --deep")}`);
   } else {
-    runtime.log(`  Fix reachability first: ${formatCliCommand("clawdbot gateway probe")}`);
+    runtime.log(`  Fix reachability first: ${formatCliCommand("zee gateway probe")}`);
   }
 }

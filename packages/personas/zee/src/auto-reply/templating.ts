@@ -66,7 +66,7 @@ export type MsgContext = {
   MediaTypes?: string[];
   OutputDir?: string;
   OutputBase?: string;
-  /** Remote host for SCP when media lives on a different machine (e.g., clawdbot@192.168.64.3). */
+  /** Remote host for SCP when media lives on a different machine (e.g., zee@192.168.64.3). */
   MediaRemoteHost?: string;
   Transcript?: string;
   MediaUnderstanding?: MediaUnderstandingOutput[];

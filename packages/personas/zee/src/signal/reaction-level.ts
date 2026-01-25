@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveSignalAccount } from "./accounts.js";
 
 export type SignalReactionLevel = "off" | "ack" | "minimal" | "extensive";
@@ -23,7 +23,7 @@ export type ResolvedSignalReactionLevel = {
  * - "extensive": Agent can react liberally
  */
 export function resolveSignalReactionLevel(params: {
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   accountId?: string;
 }): ResolvedSignalReactionLevel {
   const account = resolveSignalAccount({

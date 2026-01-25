@@ -2,13 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "clawdbot-models-" });
+  return withTempHomeBase(fn, { prefix: "zee-models-" });
 }
 
-const MODELS_CONFIG: ClawdbotConfig = {
+const MODELS_CONFIG: ZeeConfig = {
   models: {
     providers: {
       "custom-proxy": {
@@ -64,10 +64,10 @@ describe("models-config", () => {
 
       try {
         vi.resetModules();
-        const { ensureClawdbotModelsJson } = await import("./models-config.js");
+        const { ensureZeeModelsJson } = await import("./models-config.js");
 
         const agentDir = path.join(home, "agent-empty");
-        const result = await ensureClawdbotModelsJson(
+        const result = await ensureZeeModelsJson(
           {
             models: { providers: {} },
           },
@@ -99,12 +99,12 @@ describe("models-config", () => {
   it("writes models.json for configured providers", async () => {
     await withTempHome(async () => {
       vi.resetModules();
-      const { ensureClawdbotModelsJson } = await import("./models-config.js");
-      const { resolveClawdbotAgentDir } = await import("./agent-paths.js");
+      const { ensureZeeModelsJson } = await import("./models-config.js");
+      const { resolveZeeAgentDir } = await import("./agent-paths.js");
 
-      await ensureClawdbotModelsJson(MODELS_CONFIG);
+      await ensureZeeModelsJson(MODELS_CONFIG);
 
-      const modelPath = path.join(resolveClawdbotAgentDir(), "models.json");
+      const modelPath = path.join(resolveZeeAgentDir(), "models.json");
       const raw = await fs.readFile(modelPath, "utf8");
       const parsed = JSON.parse(raw) as {
         providers: Record<string, { baseUrl?: string }>;
@@ -119,12 +119,12 @@ describe("models-config", () => {
       const prevKey = process.env.MINIMAX_API_KEY;
       process.env.MINIMAX_API_KEY = "sk-minimax-test";
       try {
-        const { ensureClawdbotModelsJson } = await import("./models-config.js");
-        const { resolveClawdbotAgentDir } = await import("./agent-paths.js");
+        const { ensureZeeModelsJson } = await import("./models-config.js");
+        const { resolveZeeAgentDir } = await import("./agent-paths.js");
 
-        await ensureClawdbotModelsJson({});
+        await ensureZeeModelsJson({});
 
-        const modelPath = path.join(resolveClawdbotAgentDir(), "models.json");
+        const modelPath = path.join(resolveZeeAgentDir(), "models.json");
         const raw = await fs.readFile(modelPath, "utf8");
         const parsed = JSON.parse(raw) as {
           providers: Record<
@@ -153,12 +153,12 @@ describe("models-config", () => {
       const prevKey = process.env.SYNTHETIC_API_KEY;
       process.env.SYNTHETIC_API_KEY = "sk-synthetic-test";
       try {
-        const { ensureClawdbotModelsJson } = await import("./models-config.js");
-        const { resolveClawdbotAgentDir } = await import("./agent-paths.js");
+        const { ensureZeeModelsJson } = await import("./models-config.js");
+        const { resolveZeeAgentDir } = await import("./agent-paths.js");
 
-        await ensureClawdbotModelsJson({});
+        await ensureZeeModelsJson({});
 
-        const modelPath = path.join(resolveClawdbotAgentDir(), "models.json");
+        const modelPath = path.join(resolveZeeAgentDir(), "models.json");
         const raw = await fs.readFile(modelPath, "utf8");
         const parsed = JSON.parse(raw) as {
           providers: Record<

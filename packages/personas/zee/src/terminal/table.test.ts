@@ -75,7 +75,7 @@ describe("renderTable", () => {
 
       // OSC-8: ESC ] 8 ; ; ... ST (ST = ESC \)
       if (out[i + 1] === "]" && out.slice(i + 2, i + 5) === "8;;") {
-        const st = out.indexOf(`${ESC}\\`, i + 5);
+        const st = out.indexOf(`${ESC}\[zee\]`, i + 5);
         expect(st).toBeGreaterThanOrEqual(0);
         i = st + 1;
         continue;

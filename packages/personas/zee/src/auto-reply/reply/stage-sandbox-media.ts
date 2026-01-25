@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureSandboxWorkspaceForSession } from "../../agents/sandbox.js";
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { logVerbose } from "../../globals.js";
 import { CONFIG_DIR } from "../../utils.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
@@ -11,7 +11,7 @@ import type { MsgContext, TemplateContext } from "../templating.js";
 export async function stageSandboxMedia(params: {
   ctx: MsgContext;
   sessionCtx: TemplateContext;
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   sessionKey?: string;
   workspaceDir: string;
 }) {
@@ -32,7 +32,7 @@ export async function stageSandboxMedia(params: {
     workspaceDir,
   });
 
-  // For remote attachments without sandbox, use ~/.clawdbot/media (not agent workspace for privacy)
+  // For remote attachments without sandbox, use ~/.zee/media (not agent workspace for privacy)
   const remoteMediaCacheDir = ctx.MediaRemoteHost
     ? path.join(CONFIG_DIR, "media", "remote-cache", sessionKey)
     : null;

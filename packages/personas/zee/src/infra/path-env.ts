@@ -5,7 +5,7 @@ import { isTruthyEnvValue } from "./env.js";
 
 import { resolveBrewPathDirs } from "./brew.js";
 
-type EnsureClawdbotPathOpts = {
+type EnsureZeePathOpts = {
   execPath?: string;
   cwd?: string;
   homeDir?: string;
@@ -48,7 +48,7 @@ function mergePath(params: { existing: string; prepend: string[] }): string {
   return merged.join(path.delimiter);
 }
 
-function candidateBinDirs(opts: EnsureClawdbotPathOpts): string[] {
+function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
   const execPath = opts.execPath ?? process.execPath;
   const cwd = opts.cwd ?? process.cwd();
   const homeDir = opts.homeDir ?? os.homedir();
@@ -56,19 +56,19 @@ function candidateBinDirs(opts: EnsureClawdbotPathOpts): string[] {
 
   const candidates: string[] = [];
 
-  // Bundled macOS app: `clawdbot` lives next to the executable (process.execPath).
+  // Bundled macOS app: `zee` lives next to the executable (process.execPath).
   try {
     const execDir = path.dirname(execPath);
-    const siblingClawdbot = path.join(execDir, "clawdbot");
-    if (isExecutable(siblingClawdbot)) candidates.push(execDir);
+    const siblingZee = path.join(execDir, "zee");
+    if (isExecutable(siblingZee)) candidates.push(execDir);
   } catch {
     // ignore
   }
 
-  // Project-local installs (best effort): if a `node_modules/.bin/clawdbot` exists near cwd,
+  // Project-local installs (best effort): if a `node_modules/.bin/zee` exists near cwd,
   // include it. This helps when running under launchd or other minimal PATH environments.
   const localBinDir = path.join(cwd, "node_modules", ".bin");
-  if (isExecutable(path.join(localBinDir, "clawdbot"))) candidates.push(localBinDir);
+  if (isExecutable(path.join(localBinDir, "zee"))) candidates.push(localBinDir);
 
   const miseDataDir = process.env.MISE_DATA_DIR ?? path.join(homeDir, ".local", "share", "mise");
   const miseShims = path.join(miseDataDir, "shims");
@@ -91,12 +91,12 @@ function candidateBinDirs(opts: EnsureClawdbotPathOpts): string[] {
 }
 
 /**
- * Best-effort PATH bootstrap so skills that require the `clawdbot` CLI can run
+ * Best-effort PATH bootstrap so skills that require the `zee` CLI can run
  * under launchd/minimal environments (and inside the macOS app bundle).
  */
-export function ensureClawdbotCliOnPath(opts: EnsureClawdbotPathOpts = {}) {
-  if (isTruthyEnvValue(process.env.CLAWDBOT_PATH_BOOTSTRAPPED)) return;
-  process.env.CLAWDBOT_PATH_BOOTSTRAPPED = "1";
+export function ensureZeeCliOnPath(opts: EnsureZeePathOpts = {}) {
+  if (isTruthyEnvValue(process.env.ZEE_PATH_BOOTSTRAPPED)) return;
+  process.env.ZEE_PATH_BOOTSTRAPPED = "1";
 
   const existing = opts.pathEnv ?? process.env.PATH ?? "";
   const prepend = candidateBinDirs(opts);
@@ -105,6 +105,3 @@ export function ensureClawdbotCliOnPath(opts: EnsureClawdbotPathOpts = {}) {
   const merged = mergePath({ existing, prepend });
   if (merged) process.env.PATH = merged;
 }
-
-// Zee alias for compatibility
-export const ensureZeeCliOnPath = ensureClawdbotCliOnPath;

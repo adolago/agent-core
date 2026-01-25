@@ -291,8 +291,8 @@ describe("exec PATH handling", () => {
   });
 
   it("prepends configured path entries", async () => {
-    const basePath = isWin ? "C:\\Windows\\System32" : "/usr/bin";
-    const prepend = isWin ? ["C:\\custom\\bin", "C:\\oss\\bin"] : ["/custom/bin", "/opt/oss/bin"];
+    const basePath = isWin ? "C:\[zee\]Windows\[zee\]System32" : "/usr/bin";
+    const prepend = isWin ? ["C:\[zee\]custom\[zee\]bin", "C:\[zee\]oss\[zee\]bin"] : ["/custom/bin", "/opt/oss/bin"];
     process.env.PATH = basePath;
 
     const tool = createExecTool({ pathPrepend: prepend });

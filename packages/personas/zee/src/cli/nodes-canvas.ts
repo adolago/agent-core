@@ -29,5 +29,5 @@ export function canvasSnapshotTempPath(opts: { ext: string; tmpDir?: string; id?
   const tmpDir = opts.tmpDir ?? os.tmpdir();
   const id = opts.id ?? randomUUID();
   const ext = opts.ext.startsWith(".") ? opts.ext : `.${opts.ext}`;
-  return path.join(tmpDir, `clawdbot-canvas-snapshot-${id}${ext}`);
+  return path.join(tmpDir, `zee-canvas-snapshot-${id}${ext}`);
 }

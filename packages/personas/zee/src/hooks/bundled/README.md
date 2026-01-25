@@ -1,6 +1,6 @@
 # Bundled Hooks
 
-This directory contains hooks that ship with Clawdbot. These hooks are automatically discovered and can be enabled/disabled via CLI or configuration.
+This directory contains hooks that ship with Zee. These hooks are automatically discovered and can be enabled/disabled via CLI or configuration.
 
 ## Available Hooks
 
@@ -15,7 +15,7 @@ Automatically saves session context to memory when you issue `/new`.
 **Enable**:
 
 ```bash
-clawdbot hooks enable session-memory
+zee hooks enable session-memory
 ```
 
 ### 📝 command-logger
@@ -24,12 +24,12 @@ Logs all command events to a centralized audit file.
 
 **Events**: `command` (all commands)
 **What it does**: Appends JSONL entries to command log file.
-**Output**: `~/.clawdbot/logs/commands.log`
+**Output**: `~/.zee/logs/commands.log`
 
 **Enable**:
 
 ```bash
-clawdbot hooks enable command-logger
+zee hooks enable command-logger
 ```
 
 ### 😈 soul-evil
@@ -44,7 +44,7 @@ Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by
 **Enable**:
 
 ```bash
-clawdbot hooks enable soul-evil
+zee hooks enable soul-evil
 ```
 
 ### 🚀 boot-md
@@ -58,7 +58,7 @@ Runs `BOOT.md` whenever the gateway starts (after channels start).
 **Enable**:
 
 ```bash
-clawdbot hooks enable boot-md
+zee hooks enable boot-md
 ```
 
 ## Hook Structure
@@ -84,7 +84,7 @@ name: my-hook
 description: "Short description"
 homepage: https://docs.clawd.bot/hooks#my-hook
 metadata:
-  { "clawdbot": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
+  { "zee": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
 ---
 # Hook Title
 
@@ -108,7 +108,7 @@ Documentation goes here...
 To create your own hooks, place them in:
 
 - **Workspace hooks**: `<workspace>/hooks/` (highest precedence)
-- **Managed hooks**: `~/.clawdbot/hooks/` (shared across workspaces)
+- **Managed hooks**: `~/.zee/hooks/` (shared across workspaces)
 
 Custom hooks follow the same structure as bundled hooks.
 
@@ -117,31 +117,31 @@ Custom hooks follow the same structure as bundled hooks.
 List all hooks:
 
 ```bash
-clawdbot hooks list
+zee hooks list
 ```
 
 Show hook details:
 
 ```bash
-clawdbot hooks info session-memory
+zee hooks info session-memory
 ```
 
 Check hook status:
 
 ```bash
-clawdbot hooks check
+zee hooks check
 ```
 
 Enable/disable:
 
 ```bash
-clawdbot hooks enable session-memory
-clawdbot hooks disable command-logger
+zee hooks enable session-memory
+zee hooks disable command-logger
 ```
 
 ## Configuration
 
-Hooks can be configured in `~/.clawdbot/clawdbot.json`:
+Hooks can be configured in `~/.zee/zee.json`:
 
 ```json
 {
@@ -214,8 +214,8 @@ export default myHandler;
 Test your hooks by:
 
 1. Place hook in workspace hooks directory
-2. Restart gateway: `pkill -9 -f 'clawdbot.*gateway' && pnpm clawdbot gateway`
-3. Enable the hook: `clawdbot hooks enable my-hook`
+2. Restart gateway: `pkill -9 -f 'zee.*gateway' && pnpm zee gateway`
+3. Enable the hook: `zee hooks enable my-hook`
 4. Trigger the event (e.g., send `/new` command)
 5. Check gateway logs for hook execution
 
