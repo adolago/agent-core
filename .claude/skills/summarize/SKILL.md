@@ -1,6 +1,6 @@
 ---
 name: summarize
-description: Summarize URLs or files with the summarize CLI (web, PDFs, images, audio, YouTube).
+description: Summarize and transcribe URLs, local files, and podcasts via the summarize CLI (web, PDFs, images, audio, YouTube).
 homepage: https://summarize.sh
 metadata: {"zee":{"emoji":"🧾","requires":{"bins":["summarize"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/summarize","bins":["summarize"],"label":"Install summarize (brew)"}]}}
 ---

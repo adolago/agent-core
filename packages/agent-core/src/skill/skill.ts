@@ -18,8 +18,16 @@ export namespace Skill {
     name: z.string(),
     description: z.string(),
     location: z.string(),
+    /** Persona context: undefined = shared, "zee"/"stanley"/"johny" = persona-specific */
+    context: z.enum(["zee", "stanley", "johny"]).optional(),
   })
   export type Info = z.infer<typeof Info>
+
+  /** Extract persona context from skill path (e.g., @zee/ordercli -> "zee") */
+  function extractContext(skillPath: string): Info["context"] {
+    const match = skillPath.match(/[/\\]@(zee|stanley|johny)[/\\]/)
+    return match ? (match[1] as Info["context"]) : undefined
+  }
 
   export const InvalidError = NamedError.create(
     "SkillInvalidError",
@@ -73,6 +81,7 @@ export namespace Skill {
         name: parsed.data.name,
         description: parsed.data.description,
         location: match,
+        context: extractContext(match),
       }
     }
 
@@ -130,7 +139,24 @@ export namespace Skill {
     return state().then((x) => x[name])
   }
 
-  export async function all() {
-    return state().then((x) => Object.values(x))
+  /**
+   * Get all skills, optionally filtered by agent/persona.
+   * @param agent - If provided, returns only shared skills + skills for this persona.
+   *                Skills from other personas (e.g., @stanley/ when agent=zee) are excluded.
+   */
+  export async function all(agent?: string): Promise<Info[]> {
+    const skills: Info[] = await state().then((x) => Object.values(x))
+
+    if (!agent) return skills
+
+    // Normalize agent name to lowercase for matching
+    const normalizedAgent = agent.toLowerCase()
+
+    return skills.filter((skill) => {
+      // Shared skills (no context) are always included
+      if (!skill.context) return true
+      // Persona-specific skills only included if they match the agent
+      return skill.context === normalizedAgent
+    })
   }
 }

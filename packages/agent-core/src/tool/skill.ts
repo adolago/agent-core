@@ -10,10 +10,11 @@ const parameters = z.object({
 })
 
 export const SkillTool = Tool.define("skill", async (ctx) => {
-  const skills = await Skill.all()
-
-  // Filter skills by agent permissions if agent provided
   const agent = ctx?.agent
+  // Filter skills by persona context (e.g., @zee/ skills only for zee agent)
+  const skills = await Skill.all(agent?.name)
+
+  // Further filter by agent permissions if agent provided
   const accessibleSkills = agent
     ? skills.filter((skill) => {
         const rule = PermissionNext.evaluate("skill", skill.name, agent.permission)
@@ -45,7 +46,9 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       const skill = await Skill.get(params.name)
 
       if (!skill) {
-        const available = await Skill.all().then((x) => Object.keys(x).join(", "))
+        // In execute context, ctx.agent is already a string (agent name)
+        const skills = await Skill.all(ctx.agent)
+        const available = skills.map((s) => s.name).join(", ")
         throw new Error(`Skill "${params.name}" not found. Available skills: ${available || "none"}`)
       }
 
