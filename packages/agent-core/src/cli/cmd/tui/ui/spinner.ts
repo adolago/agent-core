@@ -38,7 +38,7 @@ interface CarouselState {
 /**
  * Get carousel animation state for a given frame.
  * The carousel moves a group of blocks that wrap around edges continuously.
- * Head moves: 0 → 9 → 8 → 7 → ... → 1 → 0 (wrapping right-to-left visually)
+ * Head moves: 0 → 1 → 2 → ... → 9 → 0 (always forward, wrapping left-to-right)
  */
 function getCarouselState(
   frameIndex: number,
@@ -48,24 +48,21 @@ function getCarouselState(
   // Total cycle = width frames (head goes through all positions)
   const cycleFrame = frameIndex % totalChars
 
-  // Head moves: 0 → 9 → 8 → 7 → ... → 1 → 0
-  const head = (totalChars - cycleFrame) % totalChars
-
-  // Forward phase: when blocks are wrapping (frames 0 to activeCount)
-  // Backward phase: when blocks slide without wrap (rest of cycle)
-  const forwardFrames = activeCount + 1
+  // Head moves forward: 0 → 1 → 2 → ... → 9 → 0 (wrap around)
+  const head = cycleFrame
 
   return {
     offset: head,
-    isMovingForward: cycleFrame < forwardFrames,
+    isMovingForward: true, // Always moving forward
     activeCount,
-    phase: cycleFrame < forwardFrames ? "forward" : "backward",
+    phase: "forward", // Always forward phase
   }
 }
 
 /**
  * Calculate which positions are active in carousel mode and their trail index.
  * Returns the trail index (0 = lead/brightest, 1+ = trail), or -1 if inactive.
+ * Trail follows behind the head in the direction of movement.
  */
 function getCarouselColorIndex(
   charIndex: number,
@@ -74,9 +71,10 @@ function getCarouselColorIndex(
 ): number {
   const { offset: head, activeCount } = state
 
-  // Each block position: head, head+1, head+2, ... (with wrap)
+  // Head is at position 'head', trail follows behind (head-1, head-2, etc. with wrap)
+  // i=0 is the head (brightest), i=1 is one step behind, etc.
   for (let i = 0; i < activeCount; i++) {
-    const pos = (head + i) % totalChars
+    const pos = (head - i + totalChars) % totalChars
     if (pos === charIndex) {
       return i // Trail index (0 = lead/brightest)
     }
