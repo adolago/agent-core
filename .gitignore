@@ -1,4 +1,6 @@
 .DS_Store
+*.py[cod]
+__pycache__
 node_modules
 .worktrees
 .sst
@@ -11,6 +13,10 @@ tmp
 dist
 ts-dist
 .turbo
+.wwebjs_cache
+.mcp-state
+.ruv-swarm
+**/.claude/settings.local.json
 **/.serena
 .serena/
 /result
