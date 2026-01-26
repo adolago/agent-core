@@ -1150,15 +1150,19 @@ export function Prompt(props: PromptProps) {
       frames: createFrames({
         color,
         style: "blocks",
+        animation: "carousel",
+        width: 10,
+        carouselActiveCount: 4,
         inactiveFactor: 0.6,
-        // enableFading: false,
         minAlpha: 0.3,
       }),
       color: createColors({
         color,
         style: "blocks",
+        animation: "carousel",
+        width: 10,
+        carouselActiveCount: 4,
         inactiveFactor: 0.6,
-        // enableFading: false,
         minAlpha: 0.3,
       }),
     }

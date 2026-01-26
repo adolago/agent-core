@@ -6,10 +6,12 @@ interface AdvancedGradientOptions {
   colors: ColorInput[]
   trailLength: number
   defaultColor?: ColorInput
-  direction?: "forward" | "backward" | "bidirectional"
+  direction?: "forward" | "backward" | "bidirectional" | "carousel"
   holdFrames?: { start?: number; end?: number }
   enableFading?: boolean
   minAlpha?: number
+  /** Number of active blocks for carousel mode (default: 4) */
+  carouselActiveCount?: number
 }
 
 interface ScannerState {
@@ -20,6 +22,90 @@ interface ScannerState {
   movementProgress: number
   movementTotal: number
   isMovingForward: boolean
+}
+
+interface CarouselState {
+  /** Current offset of the group (0 = start position) */
+  offset: number
+  /** Whether moving forward (left-to-right wrap) or backward */
+  isMovingForward: boolean
+  /** Total number of active blocks */
+  activeCount: number
+  /** Phase within the animation cycle */
+  phase: "forward" | "backward"
+}
+
+/**
+ * Get carousel animation state for a given frame.
+ * The carousel moves a group of blocks that wrap around edges.
+ * Phase 1 (forward): Group starts on left, moves right with wrap-around until all on right
+ * Phase 2 (backward): Group moves left (no wrap) until all back on left
+ */
+function getCarouselState(
+  frameIndex: number,
+  totalChars: number,
+  activeCount: number,
+): CarouselState {
+  // Number of frames to move all blocks from left to right (with wrapping)
+  const forwardFrames = totalChars
+  // Number of frames to move all blocks from right to left (no wrapping)
+  const backwardFrames = totalChars - activeCount
+
+  const totalCycleFrames = forwardFrames + backwardFrames
+  const cycleFrame = frameIndex % totalCycleFrames
+
+  if (cycleFrame < forwardFrames) {
+    // Forward phase: blocks wrap from left to right
+    return {
+      offset: cycleFrame,
+      isMovingForward: true,
+      activeCount,
+      phase: "forward",
+    }
+  } else {
+    // Backward phase: blocks slide from right to left (no wrap)
+    const backwardProgress = cycleFrame - forwardFrames
+    return {
+      offset: forwardFrames - 1 - backwardProgress,
+      isMovingForward: false,
+      activeCount,
+      phase: "backward",
+    }
+  }
+}
+
+/**
+ * Calculate which positions are active in carousel mode and their trail index.
+ * Returns the trail index (0 = lead/brightest, 1+ = trail), or -1 if inactive.
+ */
+function getCarouselColorIndex(
+  charIndex: number,
+  totalChars: number,
+  state: CarouselState,
+): number {
+  const { offset, activeCount, phase } = state
+
+  // Calculate positions of each active block
+  // In forward phase: lead is at offset, trail follows behind (wrapping)
+  // In backward phase: lead is at the front of the group moving left
+  for (let i = 0; i < activeCount; i++) {
+    let pos: number
+    if (phase === "forward") {
+      // Lead at offset, trail wraps around to the right
+      pos = (offset - i + totalChars) % totalChars
+    } else {
+      // Moving left: lead is at the leftmost position of the group
+      // offset represents the leftmost position
+      pos = offset + i
+      if (pos >= totalChars) continue // Out of bounds
+    }
+
+    if (pos === charIndex) {
+      return i // Trail index (0 = lead)
+    }
+  }
+
+  return -1 // Not active
 }
 
 function getScannerState(
@@ -244,10 +330,13 @@ export function deriveInactiveColor(brightColor: ColorInput, factor: number = 0.
 }
 
 export type KnightRiderStyle = "blocks" | "diamonds"
+export type SpinnerAnimation = "knight-rider" | "carousel"
 
 export interface KnightRiderOptions {
   width?: number
   style?: KnightRiderStyle
+  /** Animation type: "knight-rider" (single highlight bouncing) or "carousel" (group wrapping) */
+  animation?: SpinnerAnimation
   holdStart?: number
   holdEnd?: number
   colors?: ColorInput[]
@@ -262,6 +351,50 @@ export interface KnightRiderOptions {
   enableFading?: boolean
   /** Minimum alpha value when fading (default: 0, range: 0-1) */
   minAlpha?: number
+  /** Number of active blocks for carousel animation (default: 4) */
+  carouselActiveCount?: number
+}
+
+/**
+ * Creates frame strings for carousel animation
+ */
+function createCarouselFrames(options: KnightRiderOptions): string[] {
+  const width = options.width ?? 10
+  const style = options.style ?? "blocks"
+  const activeCount = options.carouselActiveCount ?? 4
+
+  const colors =
+    options.colors ??
+    (options.color
+      ? deriveTrailColors(options.color, activeCount)
+      : deriveTrailColors(RGBA.fromHex("#ff0000"), activeCount))
+
+  // Carousel cycle: Forward (width) + Backward (width - activeCount)
+  const forwardFrames = width
+  const backwardFrames = width - activeCount
+  const totalFrames = forwardFrames + backwardFrames
+
+  const frames = Array.from({ length: totalFrames }, (_, frameIndex) => {
+    const state = getCarouselState(frameIndex, width, activeCount)
+
+    return Array.from({ length: width }, (_, charIndex) => {
+      const index = getCarouselColorIndex(charIndex, width, state)
+
+      if (style === "diamonds") {
+        const shapes = ["⬥", "◆", "⬩", "⬪"]
+        if (index >= 0 && index < colors.length) {
+          return shapes[Math.min(index, shapes.length - 1)]
+        }
+        return "·"
+      }
+
+      // Default to blocks
+      const isActive = index >= 0 && index < colors.length
+      return isActive ? "■" : "⬝"
+    }).join("")
+  })
+
+  return frames
 }
 
 /**
@@ -270,6 +403,11 @@ export interface KnightRiderOptions {
  * @returns Array of frame strings
  */
 export function createFrames(options: KnightRiderOptions = {}): string[] {
+  // Use carousel animation if specified
+  if (options.animation === "carousel") {
+    return createCarouselFrames(options)
+  }
+
   const width = options.width ?? 8
   const style = options.style ?? "diamonds"
   const holdStart = options.holdStart ?? 30
@@ -329,11 +467,48 @@ export function createFrames(options: KnightRiderOptions = {}): string[] {
 }
 
 /**
+ * Creates a color generator function for carousel animation
+ */
+function createCarouselColors(options: KnightRiderOptions): ColorGenerator {
+  const width = options.width ?? 10
+  const activeCount = options.carouselActiveCount ?? 4
+
+  const colors =
+    options.colors ??
+    (options.color
+      ? deriveTrailColors(options.color, activeCount)
+      : deriveTrailColors(RGBA.fromHex("#ff0000"), activeCount))
+
+  const defaultColor =
+    options.defaultColor ??
+    (options.color ? deriveInactiveColor(options.color, options.inactiveFactor) : RGBA.fromHex("#330000"))
+
+  // Ensure we have an RGBA for the default
+  const defaultRgba = defaultColor instanceof RGBA ? defaultColor : RGBA.fromHex(defaultColor as string)
+
+  return (frameIndex: number, charIndex: number, _totalFrames: number, totalChars: number) => {
+    const state = getCarouselState(frameIndex, totalChars, activeCount)
+    const index = getCarouselColorIndex(charIndex, totalChars, state)
+
+    if (index === -1) {
+      return defaultRgba
+    }
+
+    return colors[index] ?? defaultRgba
+  }
+}
+
+/**
  * Creates a color generator function for Knight Rider style scanner animation
  * @param options Configuration options for the Knight Rider effect
  * @returns ColorGenerator function
  */
 export function createColors(options: KnightRiderOptions = {}): ColorGenerator {
+  // Use carousel animation if specified
+  if (options.animation === "carousel") {
+    return createCarouselColors(options)
+  }
+
   const holdStart = options.holdStart ?? 30
   const holdEnd = options.holdEnd ?? 9
 
