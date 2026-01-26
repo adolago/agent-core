@@ -13,7 +13,7 @@ import {
 
 async function withTempStateDir<T>(fn: (stateDir: string) => Promise<T>) {
   const previous = process.env.ZEE_STATE_DIR;
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zeebot-pairing-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-pairing-"));
   process.env.ZEE_STATE_DIR = dir;
   try {
     return await fn(dir);

@@ -35,7 +35,7 @@ afterEach(() => {
 describe("resolveGatewayDevMode", () => {
   it("detects dev mode for src ts entrypoints", () => {
     expect(resolveGatewayDevMode(["node", "/Users/me/zee/src/cli/index.ts"])).toBe(true);
-    expect(resolveGatewayDevMode(["node", "C:\[zee\]Users\[zee\]me\[zee\]zee\[zee\]src\[zee\]cli\[zee\]index.ts"])).toBe(
+    expect(resolveGatewayDevMode(["node", "C:\\Users\\me\\zee\\src\\cli\\index.ts"])).toBe(
       true,
     );
     expect(resolveGatewayDevMode(["node", "/Users/me/zee/dist/cli/index.js"])).toBe(false);

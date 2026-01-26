@@ -39,7 +39,7 @@ import { Todo } from "./todo"
 import { NamedError } from "@opencode-ai/util/error"
 import { fn } from "@/util/fn"
 import { SessionProcessor } from "./processor"
-import { TaskTool } from "@/tool/task"
+import { TaskTool, resolveAgentType } from "@/tool/task"
 import { Tool } from "@/tool/tool"
 import { PermissionNext } from "@/permission/next"
 import { SessionStatus } from "./status"
@@ -438,12 +438,18 @@ export namespace SessionPrompt {
       }
 
       if (!lastUser) throw new Error("No user message found in stream. This should never happen.")
+      // Check if we should exit the loop based on assistant's finish reason
+      // Continue if: pending tool calls OR pending tasks (subtask/compaction)
+      // Exit if: no pending work, even if finish reason is "unknown"
+      const hasPendingToolCalls = lastAssistant?.finish === "tool-calls"
+      const hasPendingTasks = tasks.length > 0
       if (
         lastAssistant?.finish &&
-        !["tool-calls", "unknown"].includes(lastAssistant.finish) &&
+        !hasPendingToolCalls &&
+        !hasPendingTasks &&
         lastUser.id < lastAssistant.id
       ) {
-        log.info("exiting loop", { sessionID })
+        log.info("exiting loop", { sessionID, finish: lastAssistant.finish })
         break
       }
 
@@ -463,6 +469,9 @@ export namespace SessionPrompt {
       // FUTURE: Consider centralizing tool invocation logic in a dedicated module
       // Currently, tool calls are handled here and in processor.ts
       if (task?.type === "subtask") {
+        // Resolve the agent type - maps tiara/external types to personas
+        // Each persona spawns its own kind: zee→zee, stanley→stanley, johny→johny
+        const resolvedAgent = await resolveAgentType(task.agent, lastUser.agent)
         const taskTool = await TaskTool.init()
         const taskModel = task.model ? await Provider.getModel(task.model.providerID, task.model.modelID) : model
         const assistantMessage = (await Session.updateMessage({
@@ -470,8 +479,8 @@ export namespace SessionPrompt {
           role: "assistant",
           parentID: lastUser.id,
           sessionID,
-          mode: task.agent,
-          agent: task.agent,
+          mode: resolvedAgent,
+          agent: resolvedAgent,
           path: {
             cwd: Instance.directory,
             root: Instance.worktree,
@@ -501,7 +510,7 @@ export namespace SessionPrompt {
             input: {
               prompt: task.prompt,
               description: task.description,
-              subagent_type: task.agent,
+              subagent_type: resolvedAgent,
               command: task.command,
             },
             time: {
@@ -512,7 +521,7 @@ export namespace SessionPrompt {
         const taskArgs = {
           prompt: task.prompt,
           description: task.description,
-          subagent_type: task.agent,
+          subagent_type: resolvedAgent,
           command: task.command,
         }
         await Plugin.trigger(
@@ -525,9 +534,9 @@ export namespace SessionPrompt {
           { args: taskArgs },
         )
         let executionError: Error | undefined
-        const taskAgent = await Agent.get(task.agent)
+        const taskAgent = await Agent.get(resolvedAgent)
         const taskCtx: Tool.Context = {
-          agent: task.agent,
+          agent: resolvedAgent,
           messageID: assistantMessage.id,
           sessionID: sessionID,
           abort,
@@ -553,7 +562,7 @@ export namespace SessionPrompt {
         }
         const result = await taskTool.execute(taskArgs, taskCtx).catch((error) => {
           executionError = error
-          log.error("subtask execution failed", { error, agent: task.agent, description: task.description })
+          log.error("subtask execution failed", { error, agent: resolvedAgent, originalAgent: task.agent, description: task.description })
           return undefined
         })
         await Plugin.trigger(

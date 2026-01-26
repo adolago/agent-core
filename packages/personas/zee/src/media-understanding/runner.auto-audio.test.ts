@@ -44,6 +44,14 @@ describe("runCapability auto audio entries", () => {
           },
         },
       },
+      tools: {
+        media: {
+          audio: {
+            // Explicitly configure the model to skip auto-discovery which probes local binaries
+            models: [{ type: "provider", provider: "openai" }],
+          },
+        },
+      },
     } as unknown as ZeeConfig;
 
     try {

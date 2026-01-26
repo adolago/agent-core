@@ -8,7 +8,7 @@ import type { ZeebotConfig } from "../config/config.js";
 import { resolveTelegramToken } from "./token.js";
 
 function withTempDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "zeebot-telegram-token-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "zee-telegram-token-"));
 }
 
 describe("resolveTelegramToken", () => {

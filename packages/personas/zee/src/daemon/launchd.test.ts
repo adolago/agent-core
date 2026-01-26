@@ -37,7 +37,7 @@ async function withLaunchctlStub(
         "const args = process.argv.slice(2);",
         "const logPath = process.env.ZEE_TEST_LAUNCHCTL_LOG;",
         "if (logPath) {",
-        '  fs.appendFileSync(logPath, JSON.stringify(args) + "\[zee\]n", "utf8");',
+        '  fs.appendFileSync(logPath, JSON.stringify(args) + "\\n", "utf8");',
         "}",
         'if (args[0] === "list") {',
         '  const output = process.env.ZEE_TEST_LAUNCHCTL_LIST_OUTPUT || "";',
@@ -52,7 +52,7 @@ async function withLaunchctlStub(
     if (process.platform === "win32") {
       await fs.writeFile(
         path.join(binDir, "launchctl.cmd"),
-        `@echo off\r\nnode "%~dp0\[zee\]launchctl.js" %*\r\n`,
+        `@echo off\r\nnode "%~dp0\\launchctl.js" %*\r\n`,
         "utf8",
       );
     } else {
@@ -162,7 +162,7 @@ describe("launchd install", () => {
           'import fs from "node:fs";',
           "const logPath = process.env.ZEE_TEST_LAUNCHCTL_LOG;",
           "if (logPath) {",
-          '  fs.appendFileSync(logPath, JSON.stringify(process.argv.slice(2)) + "\[zee\]n", "utf8");',
+          '  fs.appendFileSync(logPath, JSON.stringify(process.argv.slice(2)) + "\\n", "utf8");',
           "}",
           "process.exit(0);",
           "",
@@ -173,7 +173,7 @@ describe("launchd install", () => {
       if (process.platform === "win32") {
         await fs.writeFile(
           path.join(binDir, "launchctl.cmd"),
-          `@echo off\r\nnode "%~dp0\[zee\]launchctl.js" %*\r\n`,
+          `@echo off\r\nnode "%~dp0\\launchctl.js" %*\r\n`,
           "utf8",
         );
       } else {

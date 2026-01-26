@@ -24,7 +24,11 @@ describe("browser extension install", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zee-ext-"));
     const { installChromeExtension } = await import("./browser-cli-extension.js");
 
-    const sourceDir = path.resolve(process.cwd(), "assets/chrome-extension");
+    // Create a mock source directory with manifest.json
+    const sourceDir = path.join(tmp, "mock-source");
+    fs.mkdirSync(sourceDir, { recursive: true });
+    fs.writeFileSync(path.join(sourceDir, "manifest.json"), JSON.stringify({ manifest_version: 3 }));
+
     const result = await installChromeExtension({ stateDir: tmp, sourceDir });
 
     expect(result.path).toBe(path.join(tmp, "browser", "chrome-extension"));

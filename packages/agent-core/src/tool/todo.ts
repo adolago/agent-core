@@ -6,7 +6,7 @@ import { Todo } from "../session/todo"
 export const TodoWriteTool = Tool.define("todowrite", {
   description: DESCRIPTION_WRITE,
   parameters: z.object({
-    todos: z.array(z.object(Todo.Info.shape)).describe("The updated todo list"),
+    todos: z.array(z.object(Todo.InfoInput.shape)).describe("The updated todo list"),
   }),
   async execute(params, ctx) {
     await ctx.ask({
@@ -16,15 +16,18 @@ export const TodoWriteTool = Tool.define("todowrite", {
       metadata: {},
     })
 
+    // Normalize todos - fills in defaults for status/priority and generates ids
+    const normalizedTodos = params.todos.map(Todo.normalize)
+
     await Todo.update({
       sessionID: ctx.sessionID,
-      todos: params.todos,
+      todos: normalizedTodos,
     })
     return {
-      title: `${params.todos.filter((x) => x.status !== "completed").length} todos`,
-      output: JSON.stringify(params.todos, null, 2),
+      title: `${normalizedTodos.filter((x) => x.status !== "completed").length} todos`,
+      output: JSON.stringify(normalizedTodos, null, 2),
       metadata: {
-        todos: params.todos,
+        todos: normalizedTodos,
       },
     }
   },

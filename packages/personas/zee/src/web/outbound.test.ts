@@ -2,12 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetLogger, setLoggerOverride } from "../logging.js";
 import { setActiveWebListener } from "./active-listener.js";
-
-const loadWebMediaMock = vi.fn();
-vi.mock("./media.js", () => ({
-  loadWebMedia: (...args: unknown[]) => loadWebMediaMock(...args),
-}));
-
+import * as mediaModule from "./media.js";
 import { sendMessageWhatsApp, sendPollWhatsApp, sendReactionWhatsApp } from "./outbound.js";
 
 describe("web outbound", () => {
@@ -15,6 +10,7 @@ describe("web outbound", () => {
   const sendMessage = vi.fn(async () => ({ messageId: "msg123" }));
   const sendPoll = vi.fn(async () => ({ messageId: "poll123" }));
   const sendReaction = vi.fn(async () => {});
+  const loadWebMediaSpy = vi.spyOn(mediaModule, "loadWebMedia");
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,7 +53,7 @@ describe("web outbound", () => {
 
   it("maps audio to PTT with opus mime when ogg", async () => {
     const buf = Buffer.from("audio");
-    loadWebMediaMock.mockResolvedValueOnce({
+    loadWebMediaSpy.mockResolvedValueOnce({
       buffer: buf,
       contentType: "audio/ogg",
       kind: "audio",
@@ -76,7 +72,7 @@ describe("web outbound", () => {
 
   it("maps video with caption", async () => {
     const buf = Buffer.from("video");
-    loadWebMediaMock.mockResolvedValueOnce({
+    loadWebMediaSpy.mockResolvedValueOnce({
       buffer: buf,
       contentType: "video/mp4",
       kind: "video",
@@ -90,7 +86,7 @@ describe("web outbound", () => {
 
   it("marks gif playback for video when requested", async () => {
     const buf = Buffer.from("gifvid");
-    loadWebMediaMock.mockResolvedValueOnce({
+    loadWebMediaSpy.mockResolvedValueOnce({
       buffer: buf,
       contentType: "video/mp4",
       kind: "video",
@@ -107,7 +103,7 @@ describe("web outbound", () => {
 
   it("maps image with caption", async () => {
     const buf = Buffer.from("img");
-    loadWebMediaMock.mockResolvedValueOnce({
+    loadWebMediaSpy.mockResolvedValueOnce({
       buffer: buf,
       contentType: "image/jpeg",
       kind: "image",
@@ -121,7 +117,7 @@ describe("web outbound", () => {
 
   it("maps other kinds to document with filename", async () => {
     const buf = Buffer.from("pdf");
-    loadWebMediaMock.mockResolvedValueOnce({
+    loadWebMediaSpy.mockResolvedValueOnce({
       buffer: buf,
       contentType: "application/pdf",
       kind: "document",

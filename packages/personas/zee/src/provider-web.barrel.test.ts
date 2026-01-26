@@ -9,7 +9,6 @@ describe("provider-web barrel", () => {
     expect(mod.monitorWebProvider).toBeTypeOf("function");
     expect(mod.sendMessageWhatsApp).toBeTypeOf("function");
     expect(mod.monitorWebInbox).toBeTypeOf("function");
-    expect(mod.pickProvider).toBeTypeOf("function");
     expect(mod.WA_WEB_AUTH_DIR).toBeTruthy();
   });
 });

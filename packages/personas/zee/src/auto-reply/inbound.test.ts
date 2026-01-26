@@ -260,7 +260,7 @@ describe("createInboundDebouncer", () => {
 
 describe("initSessionState sender meta", () => {
   it("injects sender meta into BodyStripped for group chats", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zeebot-sender-meta-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-sender-meta-"));
     const storePath = path.join(root, "sessions.json");
     const cfg = { session: { store: storePath } } as ZeebotConfig;
 
@@ -281,7 +281,7 @@ describe("initSessionState sender meta", () => {
   });
 
   it("does not inject sender meta for direct chats", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zeebot-sender-meta-direct-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-sender-meta-direct-"));
     const storePath = path.join(root, "sessions.json");
     const cfg = { session: { store: storePath } } as ZeebotConfig;
 

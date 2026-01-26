@@ -35,7 +35,7 @@ vi.mock("../config/sessions.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config/sessions.js")>();
   return {
     ...actual,
-    resolveStorePath: vi.fn(() => "/tmp/zeebot-sessions.json"),
+    resolveStorePath: vi.fn(() => "/tmp/zee-sessions.json"),
     updateLastRoute: (...args: unknown[]) => updateLastRouteMock(...args),
     resolveSessionKey: vi.fn(),
   };
@@ -64,7 +64,7 @@ describe("discord tool result dispatch", () => {
           workspace: "/tmp/zee",
         },
       },
-      session: { store: "/tmp/zeebot-sessions.json" },
+      session: { store: "/tmp/zee-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },
@@ -144,7 +144,7 @@ describe("discord tool result dispatch", () => {
           workspace: "/tmp/zee",
         },
       },
-      session: { store: "/tmp/zeebot-sessions.json" },
+      session: { store: "/tmp/zee-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },
@@ -224,7 +224,7 @@ describe("discord tool result dispatch", () => {
           workspace: "/tmp/zee",
         },
       },
-      session: { store: "/tmp/zeebot-sessions.json" },
+      session: { store: "/tmp/zee-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },
@@ -338,7 +338,7 @@ describe("discord tool result dispatch", () => {
           workspace: "/tmp/zee",
         },
       },
-      session: { store: "/tmp/zeebot-sessions.json" },
+      session: { store: "/tmp/zee-sessions.json" },
       messages: { responsePrefix: "PFX" },
       channels: {
         discord: {
@@ -447,7 +447,7 @@ describe("discord tool result dispatch", () => {
 
     const cfg = {
       agent: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/zee" },
-      session: { store: "/tmp/zeebot-sessions.json" },
+      session: { store: "/tmp/zee-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },
@@ -556,7 +556,7 @@ describe("discord tool result dispatch", () => {
           workspace: "/tmp/zee",
         },
       },
-      session: { store: "/tmp/zeebot-sessions.json" },
+      session: { store: "/tmp/zee-sessions.json" },
       messages: { responsePrefix: "PFX" },
       channels: {
         discord: {

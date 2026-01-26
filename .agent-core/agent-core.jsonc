@@ -46,7 +46,7 @@
   "tui": {
     "dictation": {
       "enabled": true,
-      "model": "chirp_2",
+      "model": "default",
       "region": "us-central1",
       "language": "en-US",
       "alternative_languages": ["pt-BR", "es-ES", "de-DE"]

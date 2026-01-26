@@ -8,7 +8,7 @@ import { emitAgentEvent, registerAgentRunContext } from "../infra/agent-events.j
 import type { PluginRegistry } from "../plugins/registry.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
-import { whatsappPlugin } from "../../extensions/whatsapp/src/channel.js";
+import { whatsappPlugin } from "../test-utils/channel-plugins.js";
 import {
   agentCommand,
   connectOk,

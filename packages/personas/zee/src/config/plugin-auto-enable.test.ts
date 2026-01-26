@@ -1,5 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyPluginAutoEnable } from "./plugin-auto-enable.js";
+
+// Mock getChannelPluginCatalogEntry to provide preferOver for bluebubbles
+vi.mock("../channels/plugins/catalog.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../channels/plugins/catalog.js")>();
+  return {
+    ...mod,
+    getChannelPluginCatalogEntry: (id: string) => {
+      if (id === "bluebubbles") {
+        return {
+          id: "bluebubbles",
+          meta: {
+            id: "bluebubbles",
+            label: "BlueBubbles",
+            selectionLabel: "BlueBubbles",
+            docsPath: "/channels/bluebubbles",
+            blurb: "iMessage bridge via BlueBubbles server",
+            preferOver: ["imessage"],
+          },
+          install: { npmSpec: "@zee/bluebubbles" },
+        };
+      }
+      return mod.getChannelPluginCatalogEntry(id);
+    },
+  };
+});
 
 describe("applyPluginAutoEnable", () => {
   it("enables configured channel plugins and updates allowlist", () => {

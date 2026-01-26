@@ -1,6 +1,13 @@
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 
+const log = vi.fn();
+const error = vi.fn();
+const exit = vi.fn();
+vi.mock("../runtime.js", () => ({
+  defaultRuntime: { log, error, exit },
+}));
+
 const listChannelPairingRequests = vi.fn();
 const approveChannelPairingCode = vi.fn();
 const notifyPairingApproved = vi.fn();
@@ -64,7 +71,7 @@ describe("pairing cli", () => {
       },
     ]);
 
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    log.mockClear();
     const program = new Command();
     program.name("test");
     registerPairingCli(program);
@@ -126,7 +133,7 @@ describe("pairing cli", () => {
       },
     ]);
 
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    log.mockClear();
     const program = new Command();
     program.name("test");
     registerPairingCli(program);
@@ -150,7 +157,7 @@ describe("pairing cli", () => {
       },
     });
 
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    log.mockClear();
     const program = new Command();
     program.name("test");
     registerPairingCli(program);

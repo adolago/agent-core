@@ -47,6 +47,12 @@ describe("loadWorkspaceSkillEntries", () => {
     const pluginRoot = path.join(workspaceDir, ".zee", "extensions", "open-prose");
 
     await fs.mkdir(path.join(pluginRoot, "skills", "prose"), { recursive: true });
+    // Plugin discovery requires an index.ts or index.js entry point
+    await fs.writeFile(
+      path.join(pluginRoot, "index.ts"),
+      `export default { id: "open-prose", register() {} };`,
+      "utf-8",
+    );
     await fs.writeFile(
       path.join(pluginRoot, "zee.plugin.json"),
       JSON.stringify(
@@ -86,6 +92,12 @@ describe("loadWorkspaceSkillEntries", () => {
     const pluginRoot = path.join(workspaceDir, ".zee", "extensions", "open-prose");
 
     await fs.mkdir(path.join(pluginRoot, "skills", "prose"), { recursive: true });
+    // Plugin discovery requires an index.ts or index.js entry point
+    await fs.writeFile(
+      path.join(pluginRoot, "index.ts"),
+      `export default { id: "open-prose", register() {} };`,
+      "utf-8",
+    );
     await fs.writeFile(
       path.join(pluginRoot, "zee.plugin.json"),
       JSON.stringify(

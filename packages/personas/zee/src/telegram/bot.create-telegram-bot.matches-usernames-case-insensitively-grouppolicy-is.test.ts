@@ -4,7 +4,7 @@ let createTelegramBot: typeof import("./bot.js").createTelegramBot;
 let resetInboundDedupe: typeof import("../auto-reply/reply/inbound-dedupe.js").resetInboundDedupe;
 
 const { sessionStorePath } = vi.hoisted(() => ({
-  sessionStorePath: `/tmp/zeebot-telegram-${Math.random().toString(16).slice(2)}.json`,
+  sessionStorePath: `/tmp/zee-telegram-${Math.random().toString(16).slice(2)}.json`,
 }));
 
 const { loadWebMedia } = vi.hoisted(() => ({
@@ -181,7 +181,7 @@ describe("createTelegramBot", () => {
         text: "hello",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -210,7 +210,7 @@ describe("createTelegramBot", () => {
         text: "hello",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -238,7 +238,7 @@ describe("createTelegramBot", () => {
         text: "hello",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -266,7 +266,7 @@ describe("createTelegramBot", () => {
         text: "hello",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -296,7 +296,7 @@ describe("createTelegramBot", () => {
         text: "hello",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -325,7 +325,7 @@ describe("createTelegramBot", () => {
         text: "hello",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
@@ -355,7 +355,7 @@ describe("createTelegramBot", () => {
         text: "hello from prefixed user",
         date: 1736380800,
       },
-      me: { username: "zeebot_bot" },
+      me: { username: "zee_bot" },
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 

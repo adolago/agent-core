@@ -7,7 +7,7 @@ import { WIDE_AREA_DISCOVERY_DOMAIN } from "./widearea-dns.js";
 describe("bonjour-discovery", () => {
   it("discovers beacons on darwin across local + wide-area domains", async () => {
     const calls: Array<{ argv: string[]; timeoutMs: number }> = [];
-    const studioInstance = "Peter’s Mac Studio Gateway";
+    const studioInstance = "Peter\u2019s Mac Studio Gateway";
 
     const run = vi.fn(async (argv: string[], options: { timeoutMs: number }) => {
       calls.push({ argv, timeoutMs: options.timeoutMs });
@@ -17,7 +17,7 @@ describe("bonjour-discovery", () => {
         if (domain === "local.") {
           return {
             stdout: [
-              "Add 2 3 local. _zee-gw._tcp. Peter\[zee\]226\[zee\]128\[zee\]153s Mac Studio Gateway",
+              "Add 2 3 local. _zee-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
               "Add 2 3 local. _zee-gw._tcp. Laptop Gateway",
               "",
             ].join("\n"),
@@ -52,7 +52,7 @@ describe("bonjour-discovery", () => {
         const tailnetDns = instance === "Tailnet Gateway" ? "studio.tailnet.ts.net" : "";
         const displayName =
           instance === studioInstance
-            ? "Peter’s\[zee\]032Mac\[zee\]032Studio"
+            ? "Peter\u2019s\\032Mac\\032Studio"
             : instance.replace(" Gateway", "");
         const txtParts = [
           "txtvers=1",
@@ -90,7 +90,7 @@ describe("bonjour-discovery", () => {
       expect.arrayContaining([
         expect.objectContaining({
           instanceName: studioInstance,
-          displayName: "Peter’s Mac Studio",
+          displayName: "Peter\u2019s Mac Studio",
         }),
       ]),
     );
@@ -124,7 +124,7 @@ describe("bonjour-discovery", () => {
         return {
           stdout: [
             "Studio Gateway._zee-gw._tcp. can be reached at studio.local:18789",
-            "txtvers=1 displayName=Peter\[zee\]226\[zee\]128\[zee\]153s\[zee\]032Mac\[zee\]032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
+            "txtvers=1 displayName=Peter\\226\\128\\153s\\032Mac\\032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
             "",
           ].join("\n"),
           stderr: "",
@@ -295,7 +295,7 @@ describe("bonjour-discovery", () => {
     await discoverGatewayBeacons({
       platform: "darwin",
       timeoutMs: 1,
-      domains: ["local", "zee.internal.],
+      domains: ["local", "zee.internal."],
       run: run as unknown as typeof runCommandWithTimeout,
     });
 

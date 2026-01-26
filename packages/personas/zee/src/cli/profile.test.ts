@@ -14,14 +14,14 @@ describe("parseCliProfileArgs", () => {
     ]);
     if (!res.ok) throw new Error(res.error);
     expect(res.profile).toBeNull();
-    expect(res.argv).toEqual(["node", "zee.*gateway", "--dev", "--allow-unconfigured"]);
+    expect(res.argv).toEqual(["node", "zee", "gateway", "--dev", "--allow-unconfigured"]);
   });
 
   it("still accepts global --dev before subcommand", () => {
-    const res = parseCliProfileArgs(["node", "zee.*gateway"]);
+    const res = parseCliProfileArgs(["node", "zee", "--dev", "gateway"]);
     if (!res.ok) throw new Error(res.error);
     expect(res.profile).toBe("dev");
-    expect(res.argv).toEqual(["node", "zee.*gateway"]);
+    expect(res.argv).toEqual(["node", "zee", "gateway"]);
   });
 
   it("parses --profile value and strips it", () => {

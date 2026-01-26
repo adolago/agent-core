@@ -13,7 +13,6 @@ import { discordOutbound } from "../../channels/plugins/outbound/discord.js";
 import { imessageOutbound } from "../../channels/plugins/outbound/imessage.js";
 import { signalOutbound } from "../../channels/plugins/outbound/signal.js";
 import { slackOutbound } from "../../channels/plugins/outbound/slack.js";
-import { telegramOutbound } from "../../channels/plugins/outbound/telegram.js";
 import { whatsappOutbound } from "../../channels/plugins/outbound/whatsapp.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
 
@@ -64,6 +63,7 @@ const actualDeliver = await vi.importActual<typeof import("../../infra/outbound/
 );
 
 const { routeReply } = await import("./route-reply.js");
+const { telegramOutbound } = await import("../../channels/plugins/outbound/telegram.js");
 
 const createRegistry = (channels: PluginRegistry["channels"]): PluginRegistry => ({
   plugins: [],
@@ -234,6 +234,7 @@ describe("routeReply", () => {
       to: "telegram:123",
       threadId: 42,
       cfg: {} as never,
+      deps: { sendTelegram: mocks.sendMessageTelegram },
     });
     expect(mocks.sendMessageTelegram).toHaveBeenCalledWith(
       "telegram:123",
@@ -249,6 +250,7 @@ describe("routeReply", () => {
       channel: "telegram",
       to: "telegram:123",
       cfg: {} as never,
+      deps: { sendTelegram: mocks.sendMessageTelegram },
     });
     expect(mocks.sendMessageTelegram).toHaveBeenCalledWith(
       "telegram:123",

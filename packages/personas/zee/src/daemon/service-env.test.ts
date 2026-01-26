@@ -113,7 +113,7 @@ describe("getMinimalServicePathParts - Linux user directories", () => {
   it("does not include Linux user directories on Windows", () => {
     const result = getMinimalServicePathParts({
       platform: "win32",
-      home: "C:\[zee\]Users\[zee\]testuser",
+      home: "C:\\Users\\testuser",
     });
 
     // Windows returns empty array (uses existing PATH)
@@ -138,10 +138,10 @@ describe("buildMinimalServicePath", () => {
 
   it("returns PATH as-is on Windows", () => {
     const result = buildMinimalServicePath({
-      env: { PATH: "C:\[zee\]\[zee\]Windows\[zee\]\[zee\]System32" },
+      env: { PATH: "C:\\Windows\\System32" },
       platform: "win32",
     });
-    expect(result).toBe("C:\[zee\]\[zee\]Windows\[zee\]\[zee\]System32");
+    expect(result).toBe("C:\\Windows\\System32");
   });
 
   it("includes Linux user directories when HOME is set in env", () => {

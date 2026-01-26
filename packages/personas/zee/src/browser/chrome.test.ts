@@ -59,7 +59,7 @@ describe("browser chrome profile decoration", () => {
         path.join(userDataDir, ".zee-profile-decorated"),
         "utf-8",
       );
-      expect(marker.trim()).toMatch(/^\\+$/);
+      expect(marker.trim()).toMatch(/^\d+$/);
     } finally {
       await fsp.rm(userDataDir, { recursive: true, force: true });
     }

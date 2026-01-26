@@ -148,7 +148,10 @@ export function validateConfigObjectWithPlugins(raw: unknown):
     workspaceDir: workspaceDir ?? undefined,
   });
 
-  const knownIds = new Set(registry.plugins.map((record) => record.id));
+  const knownIds = new Set([
+    ...registry.plugins.map((record) => record.id),
+    ...CHANNEL_IDS, // Core channels are valid plugin entry IDs
+  ]);
 
   for (const diag of registry.diagnostics) {
     let path = diag.pluginId ? `plugins.entries.${diag.pluginId}` : "plugins";
@@ -199,11 +202,16 @@ export function validateConfigObjectWithPlugins(raw: unknown):
   }
 
   const memorySlot = normalizedPlugins.slots.memory;
-  if (typeof memorySlot === "string" && memorySlot.trim() && !knownIds.has(memorySlot)) {
-    issues.push({
-      path: "plugins.slots.memory",
-      message: `plugin not found: ${memorySlot}`,
-    });
+  // Only validate plugins.slots.memory if explicitly set by user (not defaulted)
+  const userSetMemorySlot = pluginsConfig?.slots?.memory;
+  if (typeof userSetMemorySlot === "string" && userSetMemorySlot.trim()) {
+    const trimmed = userSetMemorySlot.trim();
+    if (trimmed.toLowerCase() !== "none" && !knownIds.has(trimmed)) {
+      issues.push({
+        path: "plugins.slots.memory",
+        message: `plugin not found: ${trimmed}`,
+      });
+    }
   }
 
   const allowedChannels = new Set<string>(["defaults", ...CHANNEL_IDS]);

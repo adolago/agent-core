@@ -389,7 +389,8 @@ describe("doctor command", () => {
       parsed: {},
       valid: true,
       config: {
-        agents: { defaults: { workspace: "/Users/steipete/zee" } },
+        // Active workspace is ~/.zee (default), so ~/zee will be detected as legacy
+        agents: { defaults: { workspace: "/Users/steipete/.zee" } },
       },
       issues: [],
       legacyIssues: [],

@@ -11,6 +11,84 @@ import { iife } from "@/util/iife"
 import { defer } from "@/util/defer"
 import { Config } from "../config/config"
 import { PermissionNext } from "@/permission/next"
+import { Log } from "../util/log"
+
+const log = Log.create({ service: "task" })
+
+/**
+ * Maps external agent types (e.g., from tiara orchestration) to personas.
+ * Each persona spawns its own kind: zee spawns zees, stanley spawns stanleys, johny spawns johnys.
+ * @exported for use in prompt.ts subtask handling
+ */
+export async function resolveAgentType(requestedType: string, callerAgent?: string): Promise<string> {
+  // If empty or whitespace, use caller's agent type
+  const trimmed = requestedType?.trim()
+  if (!trimmed) {
+    if (callerAgent) {
+      log.info("empty agent type, using caller agent", { callerAgent })
+      return callerAgent
+    }
+    // Fall back to default agent
+    return Agent.defaultAgent()
+  }
+
+  // Check if the requested type exists directly
+  const directAgent = await Agent.get(trimmed)
+  if (directAgent) {
+    return trimmed
+  }
+
+  // Map tiara/external agent types to personas based on the calling context
+  // Each persona spawns its own kind for subtasks
+  const personas = ["zee", "stanley", "johny"]
+
+  // If caller is a persona, spawn the same persona type
+  if (callerAgent && personas.includes(callerAgent)) {
+    log.info("mapping external agent type to caller persona", {
+      requestedType: trimmed,
+      callerAgent,
+      resolvedTo: callerAgent,
+    })
+    return callerAgent
+  }
+
+  // Semantic mapping for when there's no caller context
+  // This maps tiara agent types to the most appropriate persona
+  const semanticMap: Record<string, string> = {
+    // Research/analysis → Stanley
+    researcher: "stanley",
+    analyst: "stanley",
+    analyzer: "stanley",
+
+    // Coding/development → Zee (general purpose)
+    coder: "zee",
+    developer: "zee",
+    tester: "zee",
+    architect: "zee",
+    reviewer: "zee",
+    optimizer: "zee",
+    coordinator: "zee",
+    general: "zee",
+
+    // Learning/teaching → Johny
+    tutor: "johny",
+    teacher: "johny",
+    mentor: "johny",
+  }
+
+  const mapped = semanticMap[trimmed.toLowerCase()]
+  if (mapped) {
+    log.info("semantic mapping for agent type", {
+      requestedType: trimmed,
+      resolvedTo: mapped,
+    })
+    return mapped
+  }
+
+  // Default to zee for unknown types
+  log.info("unknown agent type, defaulting to zee", { requestedType: trimmed })
+  return "zee"
+}
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -41,21 +119,32 @@ export const TaskTool = Tool.define("task", async (ctx) => {
     async execute(params: z.infer<typeof parameters>, ctx) {
       const config = await Config.get()
 
+      // Resolve the agent type - maps tiara/external types to personas
+      // Each persona spawns its own kind: zee→zee, stanley→stanley, johny→johny
+      const resolvedAgentType = await resolveAgentType(params.subagent_type, ctx.agent)
+
       // Skip permission check when user explicitly invoked via @ or command subtask
       if (!ctx.extra?.bypassAgentCheck) {
         await ctx.ask({
           permission: "task",
-          patterns: [params.subagent_type],
+          patterns: [resolvedAgentType],
           always: ["*"],
           metadata: {
             description: params.description,
-            subagent_type: params.subagent_type,
+            subagent_type: resolvedAgentType,
+            originalType: params.subagent_type !== resolvedAgentType ? params.subagent_type : undefined,
           },
         })
       }
 
-      const agent = await Agent.get(params.subagent_type)
-      if (!agent) throw new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`)
+      const agent = await Agent.get(resolvedAgentType)
+      if (!agent) {
+        // This shouldn't happen after resolution, but provide a helpful error
+        const available = await Agent.list().then((agents) => agents.map((a) => a.name).join(", "))
+        throw new Error(
+          `Failed to resolve agent type: "${params.subagent_type}" → "${resolvedAgentType}". Available agents: ${available}`,
+        )
+      }
 
       const hasTaskPermission = agent.permission.some((rule) => rule.permission === "task")
 

@@ -47,7 +47,7 @@ describe("cron protocol conformance", () => {
     for (const relPath of SWIFT_FILES) {
       const content = await fs.readFile(path.join(cwd, relPath), "utf-8");
       for (const channel of channels) {
-        const pattern = new RegExp(`\[zee\]bcase\[zee\]s+${channel}\[zee\]b`);
+        const pattern = new RegExp(`\\bcase\\s+${channel}\\b`);
         expect(pattern.test(content), `${relPath} missing case ${channel}`).toBe(true);
       }
     }
