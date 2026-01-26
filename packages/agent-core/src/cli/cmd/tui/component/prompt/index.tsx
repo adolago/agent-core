@@ -1007,12 +1007,22 @@ export function Prompt(props: PromptProps) {
           })),
       })
     } else {
+      // Hold mode: force hold agent for first message in session
+      const messages = sync.data.message[sessionID] ?? []
+      const isFirstMessage = messages.length === 0
+      const effectiveAgent = isFirstMessage ? "hold" : local.agent.current().name
+
+      // Update local agent state to reflect hold mode for first message
+      if (isFirstMessage) {
+        local.agent.set("hold")
+      }
+
       sdk.client.session
         .prompt({
           sessionID,
           ...selectedModel,
           messageID,
-          agent: local.agent.current().name,
+          agent: effectiveAgent,
           model: selectedModel,
           variant,
           parts: [

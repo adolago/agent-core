@@ -87,7 +87,7 @@ export const PersonaDefinition = z.object({
   // === Categorization ===
 
   /** Use case category */
-  useCase: z.enum(["stanley", "zee", "opencode", "custom"]).optional(),
+  useCase: z.enum(["stanley", "zee", "agent-core", "custom"]).optional(),
 
   /** Display color */
   color: z

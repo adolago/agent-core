@@ -299,11 +299,11 @@ export function Session() {
     if (part.state.status !== "completed") return
     if (part.id === lastSwitch) return
 
-    if (part.tool === "plan_exit") {
-      local.agent.set("build")
+    if (part.tool === "hold_release") {
+      local.agent.set("release")
       lastSwitch = part.id
-    } else if (part.tool === "plan_enter") {
-      local.agent.set("plan")
+    } else if (part.tool === "hold_enter") {
+      local.agent.set("hold")
       lastSwitch = part.id
     }
   })

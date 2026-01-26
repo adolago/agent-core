@@ -98,8 +98,8 @@ export namespace Agent {
         [Truncate.GLOB]: "allow",
       },
       question: "deny",
-      plan_enter: "deny",
-      plan_exit: "deny",
+      hold_enter: "deny",
+      hold_release: "deny",
       // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
       read: {
         "*": "allow",

@@ -7,8 +7,8 @@ import { MessageV2 } from "../session/message-v2"
 import { Identifier } from "../id/id"
 import { Provider } from "../provider/provider"
 import { Instance } from "../project/instance"
-import EXIT_DESCRIPTION from "./plan-exit.txt"
-import ENTER_DESCRIPTION from "./plan-enter.txt"
+import EXIT_DESCRIPTION from "./hold-release.txt"
+import ENTER_DESCRIPTION from "./hold-enter.txt"
 
 async function getLastModel(sessionID: string) {
   for await (const item of MessageV2.stream(sessionID)) {
@@ -17,7 +17,7 @@ async function getLastModel(sessionID: string) {
   return Provider.defaultModel()
 }
 
-export const PlanExitTool = Tool.define("plan_exit", {
+export const HoldReleaseTool = Tool.define("hold_release", {
   description: EXIT_DESCRIPTION,
   parameters: z.object({}),
   async execute(_params, ctx) {
@@ -27,12 +27,12 @@ export const PlanExitTool = Tool.define("plan_exit", {
       sessionID: ctx.sessionID,
       questions: [
         {
-          question: `Plan at ${plan} is complete. Would you like to switch to the build agent and start implementing?`,
-          header: "Build Agent",
+          question: `Plan at ${plan} is complete. Would you like to switch to the release agent and start implementing?`,
+          header: "Release Agent",
           custom: false,
           options: [
-            { label: "Yes", description: "Switch to build agent and start implementing the plan" },
-            { label: "No", description: "Stay with plan agent to continue refining the plan" },
+            { label: "Yes", description: "Switch to release agent and start implementing the plan" },
+            { label: "No", description: "Stay in hold mode to continue refining the plan" },
           ],
         },
       ],
@@ -51,7 +51,7 @@ export const PlanExitTool = Tool.define("plan_exit", {
       time: {
         created: Date.now(),
       },
-      agent: "build",
+      agent: "release",
       model,
     }
     await Session.updateMessage(userMsg)
@@ -65,14 +65,14 @@ export const PlanExitTool = Tool.define("plan_exit", {
     } satisfies MessageV2.TextPart)
 
     return {
-      title: "Switching to build agent",
-      output: "User approved switching to build agent. Wait for further instructions.",
+      title: "Switching to release agent",
+      output: "User approved switching to release agent. Wait for further instructions.",
       metadata: {},
     }
   },
 })
 
-export const PlanEnterTool = Tool.define("plan_enter", {
+export const HoldEnterTool = Tool.define("hold_enter", {
   description: ENTER_DESCRIPTION,
   parameters: z.object({}),
   async execute(_params, ctx) {
@@ -83,12 +83,12 @@ export const PlanEnterTool = Tool.define("plan_enter", {
       sessionID: ctx.sessionID,
       questions: [
         {
-          question: `Would you like to switch to the plan agent and create a plan saved to ${plan}?`,
-          header: "Plan Mode",
+          question: `Would you like to switch to hold mode and create a plan saved to ${plan}?`,
+          header: "Hold Mode",
           custom: false,
           options: [
-            { label: "Yes", description: "Switch to plan agent for research and planning" },
-            { label: "No", description: "Stay with build agent to continue making changes" },
+            { label: "Yes", description: "Switch to hold mode for research and planning" },
+            { label: "No", description: "Stay with release agent to continue making changes" },
           ],
         },
       ],
@@ -108,7 +108,7 @@ export const PlanEnterTool = Tool.define("plan_enter", {
       time: {
         created: Date.now(),
       },
-      agent: "plan",
+      agent: "hold",
       model,
     }
     await Session.updateMessage(userMsg)
@@ -117,13 +117,13 @@ export const PlanEnterTool = Tool.define("plan_enter", {
       messageID: userMsg.id,
       sessionID: ctx.sessionID,
       type: "text",
-      text: "User has requested to enter plan mode. Switch to plan mode and begin planning.",
+      text: "User has requested to enter hold mode. Switch to hold mode and begin planning.",
       synthetic: true,
     } satisfies MessageV2.TextPart)
 
     return {
-      title: "Switching to plan agent",
-      output: `User confirmed to switch to plan mode. A new message has been created to switch you to plan mode. The plan file will be at ${plan}. Begin planning.`,
+      title: "Switching to hold mode",
+      output: `User confirmed to switch to hold mode. A new message has been created to switch you to hold mode. The plan file will be at ${plan}. Begin planning.`,
       metadata: {},
     }
   },

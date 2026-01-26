@@ -2,7 +2,7 @@
  * Built-in Persona Definitions
  *
  * This module exports all built-in persona configurations for:
- * - Legacy: Development agents (build, plan, general, explore)
+ * - Agent-Core: Development agents (release, hold, general, explore)
  * - Stanley: Financial analysis agents (analyst, researcher, quant, macro)
  * - Zee: Personal assistant agents (assistant, coder, researcher)
  */
@@ -83,29 +83,29 @@ export const NO_EXECUTION_PERMISSIONS: PermissionConfig = {
 };
 
 // ============================================================================
-// Legacy Personas
+// Agent-Core Personas
 // ============================================================================
 
 /**
- * Build agent - Full-access development
+ * Release agent - Full-access for code creation and modification
  */
-export const OPENCODE_BUILD: PersonaDefinition = {
-  name: "build",
-  description: "Full-access development agent for code creation and modification",
+export const AGENT_CORE_RELEASE: PersonaDefinition = {
+  name: "release",
+  description: "Full-access agent for code creation and modification",
   mode: "primary",
-  useCase: "opencode",
+  useCase: "agent-core",
   permission: FULL_ACCESS_PERMISSIONS,
   tools: {},
 };
 
 /**
- * Plan agent - Read-only analysis
+ * Hold agent - Read-only analysis and review before file alterations
  */
-export const OPENCODE_PLAN: PersonaDefinition = {
-  name: "plan",
-  description: "Read-only analysis agent for planning and code review",
+export const AGENT_CORE_HOLD: PersonaDefinition = {
+  name: "hold",
+  description: "Read-only agent for analysis and review before file alterations",
   mode: "primary",
-  useCase: "opencode",
+  useCase: "agent-core",
   permission: READ_ONLY_PERMISSIONS,
   tools: {
     edit: false,
@@ -116,12 +116,12 @@ export const OPENCODE_PLAN: PersonaDefinition = {
 /**
  * General agent - Complex task subagent
  */
-export const OPENCODE_GENERAL: PersonaDefinition = {
+export const AGENT_CORE_GENERAL: PersonaDefinition = {
   name: "general",
   description:
     "General-purpose agent for researching complex questions and executing multi-step tasks in parallel",
   mode: "subagent",
-  useCase: "opencode",
+  useCase: "agent-core",
   hidden: true,
   permission: FULL_ACCESS_PERMISSIONS,
   tools: {
@@ -133,12 +133,12 @@ export const OPENCODE_GENERAL: PersonaDefinition = {
 /**
  * Explore agent - Fast codebase exploration
  */
-export const OPENCODE_EXPLORE: PersonaDefinition = {
+export const AGENT_CORE_EXPLORE: PersonaDefinition = {
   name: "explore",
   description:
     "Fast agent specialized for exploring codebases. Use for finding files by patterns, searching code for keywords, or answering questions about codebase structure.",
   mode: "subagent",
-  useCase: "opencode",
+  useCase: "agent-core",
   tools: {
     todoread: false,
     todowrite: false,
@@ -384,7 +384,7 @@ export const ZEE_CODER: PersonaDefinition = {
   mode: "primary",
   useCase: "zee",
   color: "#10b981",
-  extends: "opencode/build",
+  extends: "agent-core/release",
   temperature: 0.3,
   identityFiles: ["~/clawd/IDENTITY.md", "~/clawd/SOUL.md"],
   prompt: `You are Zee in coder mode. Apply your personal context while focusing on:
@@ -430,13 +430,13 @@ and thorough in research tasks.`,
 // ============================================================================
 
 /**
- * All legacy personas
+ * All agent-core personas
  */
-export const OPENCODE_PERSONAS: Record<string, PersonaDefinition> = {
-  build: OPENCODE_BUILD,
-  plan: OPENCODE_PLAN,
-  general: OPENCODE_GENERAL,
-  explore: OPENCODE_EXPLORE,
+export const AGENT_CORE_PERSONAS: Record<string, PersonaDefinition> = {
+  release: AGENT_CORE_RELEASE,
+  hold: AGENT_CORE_HOLD,
+  general: AGENT_CORE_GENERAL,
+  explore: AGENT_CORE_EXPLORE,
 };
 
 /**
@@ -462,11 +462,11 @@ export const ZEE_PERSONAS: Record<string, PersonaDefinition> = {
  * All built-in personas indexed by qualified name (useCase/name)
  */
 export const ALL_PERSONAS: Record<string, PersonaDefinition> = {
-  // Legacy
-  "opencode/build": OPENCODE_BUILD,
-  "opencode/plan": OPENCODE_PLAN,
-  "opencode/general": OPENCODE_GENERAL,
-  "opencode/explore": OPENCODE_EXPLORE,
+  // Agent-Core
+  "agent-core/release": AGENT_CORE_RELEASE,
+  "agent-core/hold": AGENT_CORE_HOLD,
+  "agent-core/general": AGENT_CORE_GENERAL,
+  "agent-core/explore": AGENT_CORE_EXPLORE,
   // Stanley
   "stanley/analyst": STANLEY_ANALYST,
   "stanley/researcher": STANLEY_RESEARCHER,
@@ -500,7 +500,7 @@ export function getPersona(name: string): PersonaDefinition | undefined {
 /**
  * List personas by use case
  */
-export function listPersonas(useCase?: "stanley" | "zee" | "opencode"): PersonaDefinition[] {
+export function listPersonas(useCase?: "stanley" | "zee" | "agent-core"): PersonaDefinition[] {
   if (!useCase) {
     return Object.values(ALL_PERSONAS);
   }
@@ -511,13 +511,13 @@ export function listPersonas(useCase?: "stanley" | "zee" | "opencode"): PersonaD
 /**
  * Get default persona for a use case
  */
-export function getDefaultPersona(useCase: "stanley" | "zee" | "opencode"): PersonaDefinition {
+export function getDefaultPersona(useCase: "stanley" | "zee" | "agent-core"): PersonaDefinition {
   switch (useCase) {
     case "stanley":
       return STANLEY_ANALYST;
     case "zee":
       return ZEE_ASSISTANT;
-    case "opencode":
-      return OPENCODE_BUILD;
+    case "agent-core":
+      return AGENT_CORE_RELEASE;
   }
 }
