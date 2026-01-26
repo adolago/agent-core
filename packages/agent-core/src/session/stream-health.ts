@@ -140,6 +140,16 @@ export class StreamHealthMonitor {
         eventsReceived: this.eventsReceived,
         lastEventType: this.lastEventType,
       })
+
+      // Emit timeout event so processor can abort the stream
+      Bus.publish(StreamEvents.Timeout, {
+        sessionID: this.sessionID,
+        messageID: this.messageID,
+        elapsed,
+        eventsReceived: this.eventsReceived,
+        lastEventType: this.lastEventType,
+      })
+
       return true
     }
 

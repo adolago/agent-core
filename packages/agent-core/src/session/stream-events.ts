@@ -87,4 +87,19 @@ export namespace StreamEvents {
       isStalled: z.boolean(),
     }),
   )
+
+  /**
+   * Emitted when a stream timeout is detected (no events received within hard timeout threshold).
+   * Subscribers should abort the stream to prevent indefinite hangs.
+   */
+  export const Timeout = BusEvent.define(
+    "stream.timeout",
+    z.object({
+      sessionID: z.string(),
+      messageID: z.string(),
+      elapsed: z.number(),
+      eventsReceived: z.number(),
+      lastEventType: z.string().optional(),
+    }),
+  )
 }

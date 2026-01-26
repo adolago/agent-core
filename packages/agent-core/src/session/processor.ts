@@ -21,6 +21,7 @@ import { Flag } from "@/flag/flag"
 import { withTimeout } from "@/util/timeout"
 import * as UsageTracker from "@/usage/tracker"
 import { StreamHealth } from "./stream-health"
+import { StreamEvents } from "./stream-events"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -79,13 +80,28 @@ export namespace SessionProcessor {
           log.info("process")
           needsCompaction = false
           const shouldBreak = (await Config.get()).experimental?.continue_loop_on_deny !== true
-          // Initialize stream health monitor for diagnostics (declared at this scope for error handling)
-          const healthMonitor = Flag.AGENT_CORE_STREAM_DIAGNOSTICS
-            ? StreamHealth.getOrCreate({
-                sessionID: input.sessionID,
-                messageID: input.assistantMessage.id,
+          // Initialize stream health monitor - always enabled to detect hanging streams
+          const healthMonitor = StreamHealth.getOrCreate({
+            sessionID: input.sessionID,
+            messageID: input.assistantMessage.id,
+          })
+
+          // Set up timeout abort controller to abort stream on timeout
+          const timeoutAbortController = new AbortController()
+          const unsubscribeTimeout = Bus.subscribe(StreamEvents.Timeout, (event) => {
+            const { sessionID, messageID, elapsed, eventsReceived } = event.properties
+            if (sessionID === input.sessionID && messageID === input.assistantMessage.id) {
+              log.warn("aborting stream due to timeout", {
+                sessionID,
+                messageID,
+                elapsed,
+                eventsReceived,
               })
-            : undefined
+              timeoutAbortController.abort(
+                new Error(`Stream timeout: no response received for ${Math.round(elapsed / 1000)}s`),
+              )
+            }
+          })
           while (true) {
             try {
               let currentText: MessageV2.TextPart | undefined
@@ -169,7 +185,7 @@ export namespace SessionProcessor {
 	                  new DOMException(`LLM stream did not start within ${streamStartTimeoutMs}ms`, "AbortError"),
 	                )
 	              }, streamStartTimeoutMs)
-	              const streamAbort = AbortSignal.any([input.abort, streamStartController.signal])
+	              const streamAbort = AbortSignal.any([input.abort, streamStartController.signal, timeoutAbortController.signal])
 	              let removeAbortListener: (() => void) | undefined
 	              const abortPromise = new Promise<never>((_, reject) => {
 	                const onAbort = () => {
@@ -196,12 +212,12 @@ export namespace SessionProcessor {
 	                while (true) {
 	                  const result = await Promise.race([iterator.next(), abortPromise])
 	                  if (result.done) {
-	                    healthMonitor?.complete()
+	                    healthMonitor.complete()
 	                    break
 	                  }
 	                  const value = result.value
 	                  // Record event for health monitoring
-	                  healthMonitor?.recordEvent(value.type)
+	                  healthMonitor.recordEvent(value.type)
 	                  if (!streamStartTimerCleared) {
 	                    streamStartTimerCleared = true
 	                    clearTimeout(streamStartTimer)
@@ -528,7 +544,7 @@ export namespace SessionProcessor {
 	                    continue
 	                }
 	                  if (needsCompaction) {
-	                    healthMonitor?.complete()
+	                    healthMonitor.complete()
 	                    await iterator.return?.()
 	                    break
 	                  }
@@ -539,7 +555,7 @@ export namespace SessionProcessor {
 	              }
 	            } catch (e: any) {
 	              // Record stream failure for diagnostics
-	              healthMonitor?.fail(e)
+	              healthMonitor.fail(e)
 	              log.error("process", {
 	                error: e,
 	                stack: JSON.stringify(e.stack),
@@ -599,11 +615,10 @@ export namespace SessionProcessor {
             await Session.updateMessage(input.assistantMessage)
             const error = input.assistantMessage.error
             // Get stream health report for telemetry
-            const streamReport = healthMonitor?.getReport()
-            // Clean up health monitor
-            if (healthMonitor) {
-              StreamHealth.remove(input.sessionID, input.assistantMessage.id)
-            }
+            const streamReport = healthMonitor.getReport()
+            // Clean up health monitor and timeout subscription
+            unsubscribeTimeout()
+            StreamHealth.remove(input.sessionID, input.assistantMessage.id)
             await finishWideEvent({
               ok: !error,
               error: error
