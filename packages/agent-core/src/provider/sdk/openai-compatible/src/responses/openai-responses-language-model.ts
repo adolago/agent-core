@@ -1250,10 +1250,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 })
               }
             } else if (isResponseFinishedChunk(value)) {
+              const responseStatus = (value.response as unknown as { status?: unknown }).status
+
+              console.error(
+                "[PATCHED OPENAI] response finished chunk:",
+                JSON.stringify({
+                  type: value.type,
+                  incomplete_details: value.response.incomplete_details,
+                  status: responseStatus,
+                }),
+              )
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
                 hasFunctionCall,
               })
+              console.error("[PATCHED OPENAI] mapped finishReason:", finishReason)
               usage.inputTokens = value.response.usage.input_tokens
               usage.outputTokens = value.response.usage.output_tokens
               usage.totalTokens = value.response.usage.input_tokens + value.response.usage.output_tokens
@@ -1287,6 +1298,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            console.error(`[PATCHED OPENAI] flush: finishReason=${finishReason}, hasFunctionCall=${hasFunctionCall}`)
+            // GPT-5 bug: Sometimes the stream ends without sending a response.completed
+            // or response.incomplete event. In this case, treat it as a normal completion.
+            if (finishReason === "unknown" && !hasFunctionCall) {
+              console.error("[PATCHED OPENAI] Fixing unknown finishReason to stop")
+              finishReason = "stop"
+            }
+
             // Close any dangling text part
             if (currentTextId) {
               controller.enqueue({ type: "text-end", id: currentTextId })

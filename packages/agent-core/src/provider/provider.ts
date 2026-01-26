@@ -35,6 +35,7 @@ import { createOpenAI } from "@ai-sdk/openai"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { createOpenRouter } from "@openrouter/ai-sdk-provider"
 import { createOpenaiCompatible as createGitHubCopilotOpenAICompatible } from "./sdk/openai-compatible/src"
+import { createOpenaiCompatible as createPatchedOpenAI } from "./sdk/openai-compatible/src"
 import { createXai } from "@ai-sdk/xai"
 import { createMistral } from "@ai-sdk/mistral"
 import { createGroq } from "@ai-sdk/groq"
@@ -81,7 +82,9 @@ export namespace Provider {
     "@ai-sdk/google": createGoogleGenerativeAI,
     "@ai-sdk/google-vertex": createVertex,
     "@ai-sdk/google-vertex/anthropic": createVertexAnthropic,
-    "@ai-sdk/openai": createOpenAI,
+    // Use custom OpenAI wrapper with GPT-5 stream completion fix
+    // @ts-ignore - types from custom wrapper don't match SDK factory signature
+    "@ai-sdk/openai": createPatchedOpenAI,
     "@ai-sdk/openai-compatible": createOpenAICompatible,
     "@openrouter/ai-sdk-provider": createOpenRouter,
     "@ai-sdk/xai": createXai,

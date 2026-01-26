@@ -411,6 +411,7 @@ export namespace SessionProcessor {
                       usage: value.usage,
                       metadata: value.providerMetadata,
                     })
+                    console.error("[PROCESSOR] finish-step value.finishReason:", value.finishReason, "typeof:", typeof value.finishReason)
                     const finishReason = value.finishReason ?? "unknown"
                     input.assistantMessage.finish = finishReason
                     input.assistantMessage.cost += usage.cost
@@ -510,6 +511,13 @@ export namespace SessionProcessor {
                   case "finish":
                     await finalizeTextPart()
                     await finalizeReasoningPart()
+                    // Extract finishReason from finish event
+                    // The finish event may have a corrected finishReason (e.g., from flush handler fix)
+                    // It should override "unknown" that finish-step may have set
+                    log.info("finish event", { finishReason: value.finishReason, currentFinish: input.assistantMessage.finish })
+                    if (value.finishReason && input.assistantMessage.finish === "unknown") {
+                      input.assistantMessage.finish = value.finishReason
+                    }
                     break
 
                   default:
