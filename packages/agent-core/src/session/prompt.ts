@@ -528,6 +528,23 @@ export namespace SessionPrompt {
       }
       const hasPendingToolCalls = lastAssistant?.finish === "tool-calls" || needsToolFollowup
       const hasPendingTasks = tasks.length > 0
+
+      // Debug logging to diagnose tool followup issues
+      if (lastAssistant?.finish) {
+        const toolParts = lastAssistantParts?.filter((p) => p.type === "tool") ?? []
+        const textParts = lastAssistantParts?.filter((p) => p.type === "text" && (p as any).text?.trim()) ?? []
+        log.info("loop exit check", {
+          sessionID,
+          finish: lastAssistant.finish,
+          needsToolFollowup,
+          hasPendingToolCalls,
+          hasPendingTasks,
+          toolCount: toolParts.length,
+          textCount: textParts.length,
+          partsOrder: lastAssistantParts?.map((p) => p.type).join(",") ?? "none",
+        })
+      }
+
       if (
         lastAssistant?.finish &&
         !hasPendingToolCalls &&
@@ -884,8 +901,16 @@ export namespace SessionPrompt {
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]
       if (part.type === "tool") lastToolIndex = i
-      if (part.type === "text" && part.text.trim()) lastTextIndex = i
+      if (part.type === "text" && (part as any).text?.trim()) lastTextIndex = i
     }
+    // Debug: Log what we found
+    log.debug("shouldContinueAfterTools", {
+      totalParts: parts.length,
+      lastToolIndex,
+      lastTextIndex,
+      partsTypes: parts.map((p) => p.type),
+      result: lastToolIndex === -1 ? false : lastTextIndex === -1 ? true : lastTextIndex < lastToolIndex,
+    })
     if (lastToolIndex === -1) return false
     if (lastTextIndex === -1) return true
     return lastTextIndex < lastToolIndex
