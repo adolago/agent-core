@@ -7,3 +7,8 @@
 **Vulnerability:** The `agent-core` server explicitly returned `err.stack` in JSON responses for 500 Internal Server Errors, exposing internal file paths and logic.
 **Learning:** Even local-first tools can expose sensitive system information via error handling. Testing error responses requires ensuring the mock error itself doesn't contain the stack trace in its message, which can lead to false negatives in tests.
 **Prevention:** Sanitize error messages in the global `onError` handler. Use `err.message` instead of `err.stack` or `err.toString()` for unknown errors in production-like environments.
+
+## 2026-02-17 - Open Proxy / SSRF via Protocol-Relative URLs
+**Vulnerability:** The proxy handler in `server.ts` blindly joined `c.req.path` with `proxyBase`. Protocol-relative URLs (e.g., `//evil.com`) in `c.req.path` caused `new URL()` to ignore `proxyBase`, turning the agent into an open proxy.
+**Learning:** `new URL(path, base)` is not just a path joiner; it parses `path` as a potential URL. Protocol-relative paths override the base's host.
+**Prevention:** Always validate that the resolved URL's origin matches the expected `proxyBase` origin when implementing a proxy.

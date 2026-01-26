@@ -239,6 +239,13 @@ export namespace Server {
           } catch {
             return c.text("Not Found", 404)
           }
+
+          // Sentinel: Prevent Open Proxy / SSRF
+          const baseUrl = new URL(proxyBase)
+          if (proxyUrl.origin !== baseUrl.origin) {
+            return c.text("Forbidden", 403)
+          }
+
           const response = await proxy(proxyUrl.toString(), {
             ...c.req,
             headers: {
