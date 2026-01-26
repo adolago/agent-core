@@ -1873,6 +1873,12 @@ export type SessionStatus =
     }
   | {
       type: "busy"
+      streamHealth?: {
+        isStalled: boolean
+        timeSinceLastEventMs: number
+        eventsReceived: number
+        stallWarnings: number
+      }
     }
 
 export type Todo = {

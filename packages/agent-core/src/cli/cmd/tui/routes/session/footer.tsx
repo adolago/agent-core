@@ -26,8 +26,7 @@ export function Footer() {
     if (route.data.type !== "session") return undefined
     const status = sync.data.session_status?.[route.data.sessionID]
     if (!status || status.type !== "busy") return undefined
-    // Access streamHealth using bracket notation to avoid TS error with SDK types
-    return (status as { streamHealth?: { isStalled: boolean; timeSinceLastEventMs: number } }).streamHealth
+    return status.streamHealth
   })
   const directory = useDirectory()
   const connected = useConnected()
