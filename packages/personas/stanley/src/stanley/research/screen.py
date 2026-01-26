@@ -67,23 +67,26 @@ def _parse_criteria(criteria: str) -> dict[str, Any]:
         (r"dividend\s*[>]\s*(\d+\.?\d*)", "dividend_yield_gt"),
         (r"dividend\s*[<]\s*(\d+\.?\d*)", "dividend_yield_lt"),
         (r"roe\s*[>]\s*(\d+\.?\d*)", "roe_gt"),
-        (r"market_cap\s*[>]\s*(\d+\.?\d*[BMK]?)", "market_cap_gt"),
-        (r"market_cap\s*[<]\s*(\d+\.?\d*[BMK]?)", "market_cap_lt"),
+        (r"market_cap\s*[>]\s*(\d+\.?\d*[bmkBMK]?)", "market_cap_gt"),
+        (r"market_cap\s*[<]\s*(\d+\.?\d*[bmkBMK]?)", "market_cap_lt"),
     ]
 
     for pattern, param_name in patterns:
         match = re.search(pattern, criteria.lower())
         if match:
-            value = match.group(1)
+            value_str = match.group(1)
             # Handle market cap suffixes
-            if "market_cap" in param_name:
-                if value.upper().endswith("B"):
-                    value = float(value[:-1]) * 1_000_000_000
-                elif value.upper().endswith("M"):
-                    value = float(value[:-1]) * 1_000_000
-                elif value.upper().endswith("K"):
-                    value = float(value[:-1]) * 1_000
-            params[param_name] = float(value)
+            if "market_cap" in param_name and value_str[-1:].upper() in ("B", "M", "K"):
+                suffix = value_str[-1].upper()
+                num = float(value_str[:-1])
+                if suffix == "B":
+                    params[param_name] = num * 1_000_000_000
+                elif suffix == "M":
+                    params[param_name] = num * 1_000_000
+                elif suffix == "K":
+                    params[param_name] = num * 1_000
+            else:
+                params[param_name] = float(value_str)
 
     return params
 

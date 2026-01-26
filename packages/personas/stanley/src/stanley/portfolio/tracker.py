@@ -22,7 +22,11 @@ def _load_portfolio() -> dict[str, Any]:
     if path.exists():
         try:
             with open(path) as f:
-                return json.load(f)
+                data = json.load(f)
+                # Handle legacy format (list of positions)
+                if isinstance(data, list):
+                    return {"positions": data, "cash": 0.0, "created_at": None, "updated_at": None}
+                return data
         except (json.JSONDecodeError, IOError):
             pass
     return {"positions": [], "cash": 0.0, "created_at": None, "updated_at": None}

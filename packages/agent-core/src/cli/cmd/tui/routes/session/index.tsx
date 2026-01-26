@@ -1417,8 +1417,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
               <box flexDirection="row" gap={1}>
                 <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
                 <text fg={theme.textMuted}>
-                  Thinking...
-                  <span style={{ fg: theme.textMuted }}> (Esc to interrupt · {formatTime(elapsed())} · thinking)</span>
+                  Thinking... <span style={{ fg: theme.textMuted }}>({formatTime(elapsed())})</span>
                 </text>
               </box>
               <Show when={!ctx.showThinking()}>

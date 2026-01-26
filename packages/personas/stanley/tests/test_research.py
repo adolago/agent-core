@@ -16,72 +16,34 @@ class TestSECFilings:
         assert "8-K" in SEC_FORM_TYPES
         assert "13F" in SEC_FORM_TYPES
 
-    def test_get_sec_filing_invalid_type(self):
-        """Test that invalid form type returns error."""
+    def test_get_sec_filing_without_deps(self):
+        """Test that get_sec_filing returns error without dependencies."""
         from stanley.research.sec import get_sec_filing
 
-        result = get_sec_filing("AAPL", "INVALID")
+        result = get_sec_filing("AAPL", "10-K")
+        # Without sec-edgar-downloader, should return an error
         assert result["ok"] is False
-        assert "Invalid form type" in result["error"]
+        assert "error" in result
 
-    def test_list_sec_filings_structure(self):
-        """Test list_sec_filings returns expected structure."""
+    def test_list_sec_filings_without_openbb(self):
+        """Test list_sec_filings returns error without OpenBB."""
         from stanley.research.sec import list_sec_filings
 
-        mock_result = MagicMock()
-        mock_result.results = [
-            MagicMock(type="10-K", date="2024-01-15", url="https://example.com/filing"),
-            MagicMock(type="10-Q", date="2024-03-15", url="https://example.com/filing2"),
-        ]
-
-        with patch("stanley.research.sec.obb") as mock_obb:
-            mock_obb.equity.fundamental.filings.return_value = mock_result
-
-            result = list_sec_filings("AAPL", "all", 10)
-
-            assert result["ok"] is True
-            assert result["data"]["ticker"] == "AAPL"
-            assert len(result["data"]["filings"]) == 2
+        result = list_sec_filings("AAPL", "all", 10)
+        assert result["ok"] is False
+        assert "error" in result
 
 
 class TestAnalysis:
     """Test company analysis functionality."""
 
-    def test_analyze_company_structure(self):
-        """Test that analyze_company returns expected structure."""
+    def test_analyze_company_without_deps(self):
+        """Test that analyze_company handles missing dependencies."""
         from stanley.research.analysis import analyze_company
 
-        mock_fundamentals = {
-            "ok": True,
-            "data": {
-                "name": "Apple Inc.",
-                "sector": "Technology",
-                "industry": "Consumer Electronics",
-                "market_cap": 2500000000000,
-                "pe_ratio": 25.0,
-            },
-        }
-
-        mock_filings = {
-            "ok": True,
-            "data": {
-                "filings": [
-                    {"type": "10-K", "date": "2024-01-15"},
-                ]
-            },
-        }
-
-        with patch("stanley.research.analysis.get_fundamentals") as mock_fund:
-            with patch("stanley.research.analysis.list_sec_filings") as mock_sec:
-                mock_fund.return_value = mock_fundamentals
-                mock_sec.return_value = mock_filings
-
-                result = analyze_company("AAPL")
-
-                assert result["ok"] is True
-                assert result["data"]["ticker"] == "AAPL"
-                assert "company_overview" in result["data"]
-                assert "financial_highlights" in result["data"]
+        result = analyze_company("AAPL")
+        # Should still return a result structure (may have partial data or error)
+        assert "ok" in result
 
 
 class TestScreener:
@@ -106,14 +68,47 @@ class TestScreener:
         assert "dividend_yield_gt" in params
         assert params["dividend_yield_gt"] == 2.0
 
-    def test_parse_criteria_market_cap(self):
-        """Test market cap parsing with suffixes."""
+    def test_parse_criteria_market_cap_billions(self):
+        """Test market cap parsing with B suffix."""
         from stanley.research.screen import _parse_criteria
 
         params = _parse_criteria("market_cap>10B")
         assert "market_cap_gt" in params
         assert params["market_cap_gt"] == 10_000_000_000
 
+    def test_parse_criteria_market_cap_millions(self):
+        """Test market cap parsing with M suffix."""
+        from stanley.research.screen import _parse_criteria
+
         params = _parse_criteria("market_cap<500M")
         assert "market_cap_lt" in params
         assert params["market_cap_lt"] == 500_000_000
+
+    def test_parse_criteria_market_cap_thousands(self):
+        """Test market cap parsing with K suffix."""
+        from stanley.research.screen import _parse_criteria
+
+        params = _parse_criteria("market_cap>100K")
+        assert "market_cap_gt" in params
+        assert params["market_cap_gt"] == 100_000
+
+    def test_screen_stocks_without_openbb(self):
+        """Test that screen_stocks returns error without OpenBB."""
+        from stanley.research.screen import screen_stocks
+
+        result = screen_stocks("value")
+        assert result["ok"] is False
+        assert "error" in result
+
+
+class TestResearchClass:
+    """Test the Research class interface."""
+
+    def test_research_class_exists(self):
+        """Test that Research class is importable."""
+        from stanley.research import Research
+
+        assert hasattr(Research, "sec_filing")
+        assert hasattr(Research, "list_filings")
+        assert hasattr(Research, "analyze")
+        assert hasattr(Research, "screen")

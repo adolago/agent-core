@@ -23,7 +23,6 @@ classifiers = [
     "Topic :: Office/Business :: Financial :: Investment",
 ]
 dependencies = [
-    "openbb>=4.0.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "httpx>=0.24.0",
@@ -32,6 +31,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+openbb = [
+    "openbb>=4.0.0",
+]
 nautilus = [
     "nautilus-trader>=1.190.0",
 ]
@@ -48,7 +50,7 @@ dev = [
     "ruff>=0.1.0",
 ]
 full = [
-    "stanley[nautilus,dbnomics,sec,dev]",
+    "stanley[openbb,nautilus,dbnomics,sec,dev]",
 ]
 light = []  # No heavy dependencies (faster install)
 

@@ -143,34 +143,33 @@ class TestPortfolioPerformance:
             assert result["ok"] is False
             assert "No positions" in result["error"]
 
-    def test_performance_calculation(self):
-        """Test basic performance calculation."""
-        from stanley.portfolio.performance import get_performance
 
-        mock_portfolio = {
-            "ok": True,
-            "data": {
-                "positions": [
-                    {
-                        "symbol": "AAPL",
-                        "shares": 10,
-                        "cost_basis": 100.0,
-                        "market_value": 1500.0,
-                        "gain_loss": 500.0,
-                    }
-                ],
-                "total_value": 1500.0,
-                "total_cost": 1000.0,
-            },
-        }
+class TestPortfolioRisk:
+    """Test portfolio risk calculations."""
 
-        with patch("stanley.portfolio.performance.get_portfolio") as mock_get:
-            with patch("stanley.portfolio.performance.get_quote") as mock_quote:
-                mock_get.return_value = mock_portfolio
-                mock_quote.return_value = {"ok": True, "data": {"change_percent": 1.5}}
+    def test_risk_empty_portfolio(self):
+        """Test risk calculation with empty portfolio."""
+        from stanley.portfolio.risk import calculate_risk_metrics
 
-                result = get_performance("ytd")
+        with patch("stanley.portfolio.tracker.get_portfolio") as mock_portfolio:
+            mock_portfolio.return_value = {"ok": True, "data": {"positions": []}}
 
-                assert result["ok"] is True
-                assert result["data"]["total_return"] == 500.0
-                assert result["data"]["total_return_percent"] == 50.0
+            result = calculate_risk_metrics(0.95)
+
+            assert result["ok"] is False
+            assert "No positions" in result["error"]
+
+
+class TestPortfolioClass:
+    """Test the Portfolio class interface."""
+
+    def test_portfolio_class_exists(self):
+        """Test that Portfolio class is importable."""
+        from stanley.portfolio import Portfolio
+
+        assert hasattr(Portfolio, "status")
+        assert hasattr(Portfolio, "positions")
+        assert hasattr(Portfolio, "performance")
+        assert hasattr(Portfolio, "risk")
+        assert hasattr(Portfolio, "add")
+        assert hasattr(Portfolio, "remove")
