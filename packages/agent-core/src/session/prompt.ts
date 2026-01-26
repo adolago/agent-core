@@ -398,7 +398,78 @@ export namespace SessionPrompt {
     }
     delete s[sessionID]
     SessionStatus.set(sessionID, { type: "idle" })
+
+    // Schedule force-kill after grace period
+    forceKillAfterGracePeriod(sessionID)
     return
+  }
+
+  const FORCE_KILL_GRACE_PERIOD_MS = 5000
+  const pendingForceKills = new Map<string, NodeJS.Timeout>()
+
+  function forceKillAfterGracePeriod(sessionID: string) {
+    // Clear any existing force-kill timer for this session
+    const existing = pendingForceKills.get(sessionID)
+    if (existing) {
+      clearTimeout(existing)
+    }
+
+    // Schedule force-kill after grace period
+    const timer = setTimeout(() => {
+      log.warn("force-killing session after grace period", { sessionID, gracePeriodMs: FORCE_KILL_GRACE_PERIOD_MS })
+
+      // Emit force-killed event for TUI to display
+      Bus.publish(Session.Event.Error, {
+        sessionID,
+        error: {
+          type: "session-force-killed",
+          message: "Session force-killed after timeout grace period",
+        } as any,
+      })
+
+      // Forcefully clean up session state
+      const s = state()
+      const match = s[sessionID]
+      if (match) {
+        match.abort.abort()
+        for (const item of match.callbacks) {
+          item.reject()
+        }
+        delete s[sessionID]
+      }
+
+      // Ensure status is set to idle
+      SessionStatus.set(sessionID, { type: "idle" })
+
+      // Recursively force-kill any child sessions
+      forceKillChildSessions(sessionID)
+
+      pendingForceKills.delete(sessionID)
+    }, FORCE_KILL_GRACE_PERIOD_MS)
+
+    pendingForceKills.set(sessionID, timer)
+  }
+
+  async function forceKillChildSessions(parentSessionID: string) {
+    try {
+      // Find all child sessions using Session.children()
+      const childSessions = await Session.children(parentSessionID)
+
+      for (const child of childSessions) {
+        log.warn("force-killing child session", { childSessionID: child.id, parentSessionID })
+        cancel(child.id)
+      }
+    } catch (error) {
+      log.error("failed to force-kill child sessions", { parentSessionID, error })
+    }
+  }
+
+  export function clearForceKillTimer(sessionID: string) {
+    const timer = pendingForceKills.get(sessionID)
+    if (timer) {
+      clearTimeout(timer)
+      pendingForceKills.delete(sessionID)
+    }
   }
 
   export const loop = fn(Identifier.schema("session"), async (sessionID) => {
@@ -410,7 +481,10 @@ export namespace SessionPrompt {
       })
     }
 
-    using _ = defer(() => cancel(sessionID))
+    using _ = defer(() => {
+      clearForceKillTimer(sessionID)
+      cancel(sessionID)
+    })
 
     let step = 0
     const session = await Session.get(sessionID)

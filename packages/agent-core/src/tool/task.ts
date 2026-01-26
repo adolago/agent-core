@@ -96,6 +96,10 @@ const parameters = z.object({
   subagent_type: z.string().describe("The type of specialized agent to use for this task"),
   session_id: z.string().describe("Existing Task session to continue").optional(),
   command: z.string().describe("The command that triggered this task").optional(),
+  timeout: z
+    .number()
+    .describe("Maximum execution time in milliseconds (default: 300000ms = 5 minutes)")
+    .optional(),
 })
 
 export const TaskTool = Tool.define("task", async (ctx) => {
@@ -228,25 +232,42 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         SessionPrompt.cancel(session.id)
       }
       ctx.abort.addEventListener("abort", cancel)
+      // Check if already aborted AFTER adding listener to avoid race condition
+      // where abort happens between listener add and this check
+      if (ctx.abort.aborted) {
+        cancel()
+        throw ctx.abort.reason ?? new DOMException("Task aborted", "AbortError")
+      }
       using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
       const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
 
-      const result = await SessionPrompt.prompt({
-        messageID,
-        sessionID: session.id,
-        model: {
-          modelID: model.modelID,
-          providerID: model.providerID,
-        },
-        agent: agent.name,
-        options: agent.options,
-        tools: {
-          todowrite: false,
-          todoread: false,
-          ...(hasTaskPermission ? {} : { task: false }),
-          ...Object.fromEntries((config.experimental?.primary_tools ?? []).map((t) => [t, false])),
-        },
-        parts: promptParts,
+      const timeoutMs = params.timeout ?? 300000 // 5 minute default
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Task timed out after ${timeoutMs}ms`)), timeoutMs),
+      )
+
+      const result = await Promise.race([
+        SessionPrompt.prompt({
+          messageID,
+          sessionID: session.id,
+          model: {
+            modelID: model.modelID,
+            providerID: model.providerID,
+          },
+          agent: agent.name,
+          options: agent.options,
+          tools: {
+            todowrite: false,
+            todoread: false,
+            ...(hasTaskPermission ? {} : { task: false }),
+            ...Object.fromEntries((config.experimental?.primary_tools ?? []).map((t) => [t, false])),
+          },
+          parts: promptParts,
+        }),
+        timeoutPromise,
+      ]).catch((error) => {
+        SessionPrompt.cancel(session.id)
+        throw error
       })
       unsub()
       const messages = await Session.messages({ sessionID: session.id })
