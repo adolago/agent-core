@@ -1,5 +1,6 @@
 import { createMemo } from "solid-js"
 import { useSync } from "@tui/context/sync"
+import { useVim } from "@tui/context/vim"
 import { Keybind } from "@/util/keybind"
 import { pipe, mapValues } from "remeda"
 import type { KeybindsConfig as SDKKeybindsConfig } from "@opencode-ai/sdk/v2"
@@ -19,12 +20,21 @@ export type KeybindsConfig = SDKKeybindsConfig & {
   messages_line_up?: string
   messages_line_down?: string
   grammar_quickfix?: string
+  // Vim mode keybinds
+  vim_normal_mode?: string
+  vim_insert_mode?: string
+  vim_insert_append?: string
+  vim_insert_line_start?: string
+  vim_insert_line_end?: string
+  vim_insert_below?: string
+  vim_insert_above?: string
 }
 
 export const { use: useKeybind, provider: KeybindProvider } = createSimpleContext({
   name: "Keybind",
   init: () => {
     const sync = useSync()
+    const vim = useVim()
     const keybinds = createMemo(() => {
       return pipe(
         (sync.data.config.keybinds ?? {}) as KeybindsConfig,
@@ -54,10 +64,13 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
     }
 
     useKeyboard(async (evt) => {
-      // Don't activate leader mode if an input/textarea is currently focused
-      // This prevents Space (leader key) from interrupting typing
+      // Activate leader mode if:
+      // - No focus (original behavior for non-textarea contexts)
+      // - OR vim mode is enabled AND we're in vim normal mode
+      // This allows Space to work as leader key in vim normal mode even when textarea is focused
       const hasFocus = renderer.currentFocusedRenderable !== null
-      if (!store.leader && !hasFocus && result.match("leader", evt)) {
+      const canActivateLeader = !hasFocus || vim.isNormal
+      if (!store.leader && canActivateLeader && result.match("leader", evt)) {
         leader(true)
         return
       }

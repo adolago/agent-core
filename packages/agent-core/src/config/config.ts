@@ -837,6 +837,14 @@ export namespace Config {
       session_child_cycle_reverse: z.string().optional().default("<leader>left").describe("Previous child session"),
       session_parent: z.string().optional().default("<leader>up").describe("Go to parent session"),
       tips_toggle: z.string().optional().default("<leader>?").describe("Toggle tips on home screen"),
+      // Vim mode keybinds
+      vim_normal_mode: z.string().optional().default("escape").describe("Enter vim normal mode from insert mode"),
+      vim_insert_mode: z.string().optional().default("i").describe("Enter vim insert mode"),
+      vim_insert_append: z.string().optional().default("a").describe("Enter insert mode after cursor"),
+      vim_insert_line_start: z.string().optional().default("shift+i").describe("Enter insert mode at line start"),
+      vim_insert_line_end: z.string().optional().default("shift+a").describe("Enter insert mode at line end"),
+      vim_insert_below: z.string().optional().default("o").describe("Insert new line below and enter insert mode"),
+      vim_insert_above: z.string().optional().default("shift+o").describe("Insert new line above and enter insert mode"),
     })
     .strict()
     .meta({
@@ -891,6 +899,13 @@ export namespace Config {
       })
       .optional()
       .describe("Dictation settings"),
+    vim: z
+      .object({
+        enabled: z.boolean().optional().default(true).describe("Enable vim normal/insert modes"),
+        start_in_insert: z.boolean().optional().default(false).describe("Start in insert mode instead of normal mode"),
+      })
+      .optional()
+      .describe("Vim mode settings for the input prompt"),
   })
 
   export const Server = z

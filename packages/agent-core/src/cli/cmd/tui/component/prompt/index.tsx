@@ -10,6 +10,7 @@ import { useSync } from "@tui/context/sync"
 import { Identifier } from "@/id/id"
 import { createStore, produce } from "solid-js/store"
 import { useKeybind } from "@tui/context/keybind"
+import { useVim } from "@tui/context/vim"
 import { usePromptHistory, type PromptInfo } from "./history"
 import { usePromptStash } from "./stash"
 import { DialogStash } from "../dialog-stash"
@@ -65,6 +66,7 @@ export function Prompt(props: PromptProps) {
   let autocomplete: AutocompleteRef
 
   const keybind = useKeybind()
+  const vim = useVim()
   const local = useLocal()
   const sdk = useSDK()
   const route = useRoute()
@@ -1167,7 +1169,7 @@ export function Prompt(props: PromptProps) {
         style: "blocks",
         animation: "carousel",
         width: 10,
-        carouselActiveCount: 4,
+        carouselActiveCount: 5,
         inactiveFactor: 0.6,
         minAlpha: 0.3,
       }),
@@ -1176,7 +1178,7 @@ export function Prompt(props: PromptProps) {
         style: "blocks",
         animation: "carousel",
         width: 10,
-        carouselActiveCount: 4,
+        carouselActiveCount: 5,
         inactiveFactor: 0.6,
         minAlpha: 0.3,
       }),
@@ -1245,6 +1247,231 @@ export function Prompt(props: PromptProps) {
                   e.preventDefault()
                   return
                 }
+
+                // Vim mode handling
+                if (vim.enabled) {
+                  // In insert mode, Escape switches to normal mode
+                  if (vim.isInsert && e.name === "escape" && !keybind.leader) {
+                    // Don't switch to vim normal if autocomplete is visible (let autocomplete handle escape)
+                    if (!autocomplete.visible) {
+                      vim.enterNormal()
+                      e.preventDefault()
+                      return
+                    }
+                  }
+
+                  // In normal mode, handle vim commands
+                  if (vim.isNormal && !keybind.leader) {
+                    // Single character commands (no modifiers except shift for uppercase)
+                    if (e.name && e.name.length === 1 && !e.ctrl && !e.meta) {
+                      const key = e.name
+
+                      // Insert mode commands
+                      if (key === "i") {
+                        vim.enterInsert()
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "a") {
+                        vim.enterInsert()
+                        // Move cursor right (append after cursor)
+                        if (input.cursorOffset < input.plainText.length) {
+                          input.cursorOffset++
+                        }
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "I") {
+                        vim.enterInsert()
+                        input.cursorOffset = 0
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "A") {
+                        vim.enterInsert()
+                        input.cursorOffset = input.plainText.length
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "o") {
+                        vim.enterInsert()
+                        // Insert newline at end and move cursor there
+                        input.cursorOffset = input.plainText.length
+                        input.insertText("\n")
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "O") {
+                        vim.enterInsert()
+                        // Insert newline at start and move cursor there
+                        input.cursorOffset = 0
+                        input.insertText("\n")
+                        input.cursorOffset = 0
+                        e.preventDefault()
+                        return
+                      }
+
+                      // Navigation commands
+                      if (key === "h") {
+                        if (input.cursorOffset > 0) input.cursorOffset--
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "l") {
+                        if (input.cursorOffset < input.plainText.length) input.cursorOffset++
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "j") {
+                        // Move down - delegate to textarea's internal handling
+                        // For now, just move to next line or end of buffer
+                        const lines = input.plainText.split("\n")
+                        if (lines.length > 1) {
+                          // Simple: move cursor down by finding next newline
+                          const afterCursor = input.plainText.slice(input.cursorOffset)
+                          const nextNewline = afterCursor.indexOf("\n")
+                          if (nextNewline !== -1) {
+                            input.cursorOffset += nextNewline + 1
+                          } else {
+                            input.cursorOffset = input.plainText.length
+                          }
+                        }
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "k") {
+                        // Move up - find previous line
+                        const beforeCursor = input.plainText.slice(0, input.cursorOffset)
+                        const lastNewline = beforeCursor.lastIndexOf("\n")
+                        if (lastNewline !== -1) {
+                          // Find the newline before that to get line start
+                          const prevNewline = beforeCursor.lastIndexOf("\n", lastNewline - 1)
+                          input.cursorOffset = prevNewline + 1
+                        } else {
+                          input.cursorOffset = 0
+                        }
+                        e.preventDefault()
+                        return
+                      }
+
+                      // Word motions
+                      if (key === "w") {
+                        // Move to next word start
+                        const text = input.plainText
+                        let pos = input.cursorOffset
+                        // Skip current word
+                        while (pos < text.length && /\w/.test(text[pos])) pos++
+                        // Skip whitespace
+                        while (pos < text.length && /\s/.test(text[pos])) pos++
+                        input.cursorOffset = pos
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "b") {
+                        // Move to previous word start
+                        const text = input.plainText
+                        let pos = input.cursorOffset - 1
+                        // Skip whitespace
+                        while (pos > 0 && /\s/.test(text[pos])) pos--
+                        // Skip word
+                        while (pos > 0 && /\w/.test(text[pos - 1])) pos--
+                        input.cursorOffset = Math.max(0, pos)
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "e") {
+                        // Move to end of word
+                        const text = input.plainText
+                        let pos = input.cursorOffset + 1
+                        // Skip whitespace
+                        while (pos < text.length && /\s/.test(text[pos])) pos++
+                        // Move to end of word
+                        while (pos < text.length && /\w/.test(text[pos])) pos++
+                        input.cursorOffset = Math.min(text.length, pos)
+                        e.preventDefault()
+                        return
+                      }
+
+                      // Line motions
+                      if (key === "0") {
+                        // Move to line start
+                        const beforeCursor = input.plainText.slice(0, input.cursorOffset)
+                        const lastNewline = beforeCursor.lastIndexOf("\n")
+                        input.cursorOffset = lastNewline + 1
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "$") {
+                        // Move to line end
+                        const afterCursor = input.plainText.slice(input.cursorOffset)
+                        const nextNewline = afterCursor.indexOf("\n")
+                        if (nextNewline !== -1) {
+                          input.cursorOffset += nextNewline
+                        } else {
+                          input.cursorOffset = input.plainText.length
+                        }
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "^") {
+                        // Move to first non-whitespace character of line
+                        const beforeCursor = input.plainText.slice(0, input.cursorOffset)
+                        const lastNewline = beforeCursor.lastIndexOf("\n")
+                        const lineStart = lastNewline + 1
+                        const afterLineStart = input.plainText.slice(lineStart)
+                        const firstNonSpace = afterLineStart.search(/\S/)
+                        input.cursorOffset = lineStart + (firstNonSpace === -1 ? 0 : firstNonSpace)
+                        e.preventDefault()
+                        return
+                      }
+
+                      // Buffer motions
+                      if (key === "g") {
+                        // gg - go to start (handled as single g for simplicity)
+                        input.cursorOffset = 0
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "G") {
+                        // G - go to end
+                        input.cursorOffset = input.plainText.length
+                        e.preventDefault()
+                        return
+                      }
+
+                      // Delete commands
+                      if (key === "x") {
+                        // Delete character under cursor
+                        if (input.cursorOffset < input.plainText.length) {
+                          const before = input.plainText.slice(0, input.cursorOffset)
+                          const after = input.plainText.slice(input.cursorOffset + 1)
+                          input.setText(before + after)
+                          setStore("prompt", "input", before + after)
+                        }
+                        e.preventDefault()
+                        return
+                      }
+                      if (key === "X") {
+                        // Delete character before cursor (like backspace)
+                        if (input.cursorOffset > 0) {
+                          const before = input.plainText.slice(0, input.cursorOffset - 1)
+                          const after = input.plainText.slice(input.cursorOffset)
+                          input.setText(before + after)
+                          setStore("prompt", "input", before + after)
+                          input.cursorOffset--
+                        }
+                        e.preventDefault()
+                        return
+                      }
+
+                      // Block all other character input in normal mode
+                      // This prevents accidental typing
+                      e.preventDefault()
+                      return
+                    }
+                  }
+                }
+
                 // Handle clipboard paste (Ctrl+V) - check for images first on Windows
                 // This is needed because Windows terminal doesn't properly send image data
                 // through bracketed paste, so we need to intercept the keypress and
@@ -1418,6 +1645,11 @@ export function Prompt(props: PromptProps) {
               <text fg={highlight()}>
                 {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}{" "}
               </text>
+              <Show when={vim.enabled && store.mode === "normal"}>
+                <text fg={vim.isNormal ? theme.warning : theme.success}>
+                  {vim.isNormal ? "[N]" : "[I]"}
+                </text>
+              </Show>
               <Show when={store.mode === "normal"}>
                 <text fg={local.mode.isHold() ? theme.warning : theme.success}>{local.mode.isHold() ? "▣" : "▢"}</text>
               </Show>
@@ -1600,6 +1832,11 @@ export function Prompt(props: PromptProps) {
                   <Show when={realtimeGrammarEnabled()}>
                     <text fg={grammarChecker.errors().length > 0 ? theme.warning : theme.textMuted}>
                       {grammarChecker.loading() ? "..." : grammarChecker.errors().length > 0 ? `${grammarChecker.errors().length} errors` : ""}
+                    </text>
+                  </Show>
+                  <Show when={vim.enabled}>
+                    <text fg={vim.isNormal ? theme.warning : theme.textMuted}>
+                      {vim.isNormal ? "i insert" : "esc normal"}
                     </text>
                   </Show>
                 </Match>

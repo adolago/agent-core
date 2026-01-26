@@ -35,6 +35,7 @@ import { TuiEvent } from "./event"
 import { KVProvider, useKV } from "./context/kv"
 import { Provider } from "@/provider/provider"
 import { ArgsProvider, useArgs, type Args } from "./context/args"
+import { VimProvider } from "./context/vim"
 import open from "open"
 import { PromptRefProvider, usePromptRef } from "./context/prompt"
 import { normalizeHttpUrl } from "@/util/net"
@@ -137,7 +138,8 @@ export function tui(input: {
                         <SyncProvider>
                           <ThemeProvider mode={mode}>
                             <LocalProvider>
-                              <KeybindProvider>
+                              <VimProvider>
+                                <KeybindProvider>
                                 <PromptStashProvider>
                                   <DialogProvider>
                                     <CommandProvider>
@@ -151,7 +153,8 @@ export function tui(input: {
                                     </CommandProvider>
                                   </DialogProvider>
                                 </PromptStashProvider>
-                              </KeybindProvider>
+                                </KeybindProvider>
+                              </VimProvider>
                             </LocalProvider>
                           </ThemeProvider>
                         </SyncProvider>
