@@ -67,7 +67,7 @@ export function Home() {
           <Switch>
             <Match when={mcpError()}>
               <span style={{ fg: theme.error }}>•</span> mcp errors{" "}
-              <span style={{ fg: theme.textMuted }}>ctrl+x s</span>
+              <span style={{ fg: theme.textMuted }}>space s</span>
             </Match>
             <Match when={true}>
               <span style={{ fg: theme.success }}>•</span>{" "}

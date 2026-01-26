@@ -201,6 +201,11 @@ export namespace Config {
       result.compaction = { ...result.compaction, auto: false }
     }
 
+    // Migrate deprecated autoshare field to share field
+    if (result.autoshare !== undefined && result.share === undefined) {
+      result.share = result.autoshare ? "auto" : "manual"
+    }
+
     result.plugin = deduplicatePlugins(result.plugin ?? [])
 
     return {
@@ -691,7 +696,7 @@ export namespace Config {
 
   export const Keybinds = z
     .object({
-      leader: z.string().optional().default("ctrl+x").describe("Leader key for keybind combinations"),
+      leader: z.string().optional().default("space").describe("Leader key for keybind combinations"),
       app_exit: z.string().optional().default("ctrl+c,<leader>q").describe("Exit the application"),
       editor_open: z.string().optional().default("<leader>e").describe("Open external editor"),
       theme_list: z.string().optional().default("<leader>t").describe("List available themes"),

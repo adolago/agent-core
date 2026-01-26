@@ -54,18 +54,19 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
     }
 
     useKeyboard(async (evt) => {
-      if (!store.leader && result.match("leader", evt)) {
+      // Don't activate leader mode if an input/textarea is currently focused
+      // This prevents Space (leader key) from interrupting typing
+      const hasFocus = renderer.currentFocusedRenderable !== null
+      if (!store.leader && !hasFocus && result.match("leader", evt)) {
         leader(true)
         return
       }
 
-      if (store.leader && evt.name) {
-        setImmediate(() => {
-          if (focus && renderer.currentFocusedRenderable === focus) {
-            focus.focus()
-          }
-          leader(false)
-        })
+      // Only Escape dismisses the which-key popup without executing an action
+      // Other keys are handled by individual components which call leader(false) explicitly
+      if (store.leader && evt.name === "escape") {
+        leader(false)
+        return
       }
     })
 
@@ -75,6 +76,9 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       },
       get leader() {
         return store.leader
+      },
+      dismiss() {
+        leader(false)
       },
       parse(evt: ParsedKey): Keybind.Info {
         // Handle special case for Ctrl+Underscore (represented as \x1F)

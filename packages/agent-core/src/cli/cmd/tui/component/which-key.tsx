@@ -17,47 +17,37 @@ type KeybindCategory = {
 }
 
 // Map keybind names to human-readable descriptions and categories
+// Only essential commands are shown - less common ones still work but aren't displayed
 const KEYBIND_META: Record<string, { category: string; description: string }> = {
-  // Session
-  session_new: { category: "Session", description: "New session" },
-  session_list: { category: "Session", description: "List sessions" },
-  session_timeline: { category: "Session", description: "Timeline" },
-  session_export: { category: "Session", description: "Export" },
-  session_delete: { category: "Session", description: "Delete" },
-  session_delegate: { category: "Session", description: "Delegate" },
-  session_compact: { category: "Session", description: "Compact" },
-  session_parent: { category: "Session", description: "Parent" },
-  session_child_cycle: { category: "Session", description: "Next child" },
-  session_child_cycle_reverse: { category: "Session", description: "Prev child" },
-
-  // Messages
-  messages_copy: { category: "Messages", description: "Copy" },
-  messages_undo: { category: "Messages", description: "Undo" },
-  messages_redo: { category: "Messages", description: "Redo" },
-  messages_toggle_conceal: { category: "Messages", description: "Toggle code" },
-
-  // Model
-  model_list: { category: "Model", description: "List models" },
-  model_provider_list: { category: "Model", description: "Providers" },
-  variant_cycle: { category: "Model", description: "Cycle variant" },
+  // Session - most used
+  session_new: { category: "Session", description: "[n]ew" },
+  session_list: { category: "Session", description: "[l]ist" },
+  session_delete: { category: "Session", description: "[d]elete" },
+  session_delegate: { category: "Session", description: "[D]elegate" },
+  session_compact: { category: "Session", description: "[c]ompact" },
+  session_timeline: { category: "Session", description: "timelin[g]" },
 
   // Agent
-  agent_list: { category: "Agent", description: "List agents" },
+  agent_list: { category: "Agent", description: "[a]gents" },
+
+  // Model
+  model_list: { category: "Model", description: "[m]odels" },
+
+  // Messages
+  messages_copy: { category: "Messages", description: "[y]ank" },
+  messages_undo: { category: "Messages", description: "[u]ndo" },
 
   // UI
-  editor_open: { category: "UI", description: "External editor" },
-  theme_list: { category: "UI", description: "Themes" },
-  sidebar_toggle: { category: "UI", description: "Sidebar" },
-  status_view: { category: "UI", description: "Status" },
-  mode_toggle: { category: "UI", description: "Hold/Release" },
-  tips_toggle: { category: "UI", description: "Tips" },
+  mode_toggle: { category: "UI", description: "[h]old mode" },
+  status_view: { category: "UI", description: "[s]tatus" },
+  sidebar_toggle: { category: "UI", description: "side[b]ar" },
 
   // App
-  app_exit: { category: "App", description: "Quit" },
+  app_exit: { category: "App", description: "[q]uit" },
 }
 
-// Category display order
-const CATEGORY_ORDER = ["Session", "Messages", "Model", "Agent", "UI", "App"]
+// Category display order - most used first
+const CATEGORY_ORDER = ["Session", "Agent", "Model", "Messages", "UI", "App"]
 
 export function WhichKey() {
   const { theme } = useTheme()
@@ -144,7 +134,9 @@ export function WhichKey() {
               <text fg={theme.primary} attributes={TextAttributes.BOLD}>
                 Which Key?
               </text>
-              <text fg={theme.textMuted}> (press key to execute)</text>
+              <text fg={theme.textMuted}> (</text>
+              <text fg={theme.warning}>Esc</text>
+              <text fg={theme.textMuted}> to cancel)</text>
             </box>
 
             {/* Categories in columns */}

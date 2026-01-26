@@ -56,6 +56,8 @@ export function createCommandDialog() {
       if (option.keybind && keybind.match(option.keybind, evt)) {
         evt.preventDefault()
         option.onSelect?.(dialog)
+        // Dismiss leader mode after executing a command
+        keybind.dismiss()
         return
       }
     }

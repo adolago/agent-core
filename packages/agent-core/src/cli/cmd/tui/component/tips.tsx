@@ -2,7 +2,7 @@ import { For } from "solid-js"
 import { DEFAULT_THEMES, useTheme } from "@tui/context/theme"
 
 const themeCount = Object.keys(DEFAULT_THEMES).length
-const themeTip = `Use {highlight}:theme{/highlight} or {highlight}Ctrl+X T{/highlight} to preview and switch between ${themeCount} built-in themes.`
+const themeTip = `Use {highlight}:theme{/highlight} or {highlight}Space T{/highlight} to preview and switch between ${themeCount} built-in themes.`
 
 type TipPart = { text: string; highlight: boolean }
 
@@ -51,26 +51,26 @@ export function Tips() {
 export const TIPS = [
   "Type {highlight}@{/highlight} followed by a filename to fuzzy search and attach files to your prompt.",
   "Start a message with {highlight}!{/highlight} to run shell commands directly (e.g., {highlight}!ls -la{/highlight}).",
-  "Press {highlight}Ctrl+X H{/highlight} to toggle between HOLD (research) and RELEASE (edit) modes.",
+  "Press {highlight}Space H{/highlight} to toggle between HOLD (research) and RELEASE (edit) modes.",
   "Use {highlight}:undo{/highlight} to revert the last message and any file changes made by agent-core.",
   "Use {highlight}:redo{/highlight} to restore previously undone messages and file changes.",
   "Use {highlight}:share{/highlight} to create a public link to your conversation.",
   "Drag and drop images into the terminal to add them as context for your prompts.",
   "Press {highlight}Ctrl+V{/highlight} to paste images from your clipboard directly into the prompt.",
-  "Press {highlight}Ctrl+X E{/highlight} or {highlight}:editor{/highlight} to compose messages in your external editor.",
+  "Press {highlight}Space E{/highlight} or {highlight}:editor{/highlight} to compose messages in your external editor.",
   "Run {highlight}:init{/highlight} to auto-generate project rules based on your codebase structure.",
-  "Run {highlight}:models{/highlight} or {highlight}Ctrl+X M{/highlight} to see and switch between available AI models.",
+  "Run {highlight}:models{/highlight} or {highlight}Space M{/highlight} to see and switch between available AI models.",
   themeTip,
-  "Press {highlight}Ctrl+X N{/highlight} or {highlight}:new{/highlight} to start a fresh conversation session.",
-  "Use {highlight}:sessions{/highlight} or {highlight}Ctrl+X L{/highlight} to list and continue previous conversations.",
+  "Press {highlight}Space N{/highlight} or {highlight}:new{/highlight} to start a fresh conversation session.",
+  "Use {highlight}:sessions{/highlight} or {highlight}Space L{/highlight} to list and continue previous conversations.",
   "Run {highlight}:compact{/highlight} to summarize long sessions when approaching context limits.",
-  "Press {highlight}Ctrl+X X{/highlight} or {highlight}:export{/highlight} to save the conversation as Markdown.",
-  "Press {highlight}Ctrl+X Y{/highlight} to copy the assistant's last message to clipboard.",
+  "Press {highlight}Space X{/highlight} or {highlight}:export{/highlight} to save the conversation as Markdown.",
+  "Press {highlight}Space Y{/highlight} to copy the assistant's last message to clipboard.",
   "Press {highlight}Ctrl+P{/highlight} to see all available actions and commands.",
   "Run {highlight}:connect{/highlight} to add API keys for 75+ supported LLM providers.",
-  "The default leader key is {highlight}Ctrl+X{/highlight}; combine with other keys for quick actions.",
+  "The default leader key is {highlight}Space{/highlight}; combine with other keys for quick actions.",
   "Press {highlight}F2{/highlight} to quickly switch between recently used models.",
-  "Press {highlight}Ctrl+X B{/highlight} to show/hide the sidebar panel.",
+  "Press {highlight}Space B{/highlight} to show/hide the sidebar panel.",
   "Use {highlight}PageUp{/highlight}/{highlight}PageDown{/highlight} to navigate through conversation history.",
   "Press {highlight}Ctrl+G{/highlight} or {highlight}Home{/highlight} to jump to the beginning of the conversation.",
   "Press {highlight}Ctrl+Alt+G{/highlight} or {highlight}End{/highlight} to jump to the most recent message.",
@@ -79,7 +79,7 @@ export const TIPS = [
   "Press {highlight}Escape{/highlight} to stop the AI mid-response.",
   "Use {highlight}HOLD{/highlight} mode to research without making changes, {highlight}RELEASE{/highlight} to edit files.",
   "Use {highlight}@<agent-name>{/highlight} in prompts to invoke specialized subagents.",
-  "Press {highlight}Ctrl+X Right/Left{/highlight} to cycle through parent and child sessions.",
+  "Press {highlight}Space Right/Left{/highlight} to cycle through parent and child sessions.",
   "Create {highlight}agent-core.jsonc{/highlight} in project root for project-specific settings.",
   "Place settings in {highlight}~/.config/agent-core/agent-core.jsonc{/highlight} for global config.",
   "Add {highlight}$schema{/highlight} to your config for autocomplete in your editor.",
@@ -127,9 +127,9 @@ export const TIPS = [
   "Permission {highlight}external_directory{/highlight} protects files outside project.",
   "Run {highlight}agent-core debug config{/highlight} to troubleshoot configuration.",
   "Use {highlight}--print-logs{/highlight} flag to see detailed logs in stderr.",
-  "Press {highlight}Ctrl+X G{/highlight} or {highlight}:timeline{/highlight} to jump to specific messages.",
-  "Press {highlight}Ctrl+X H{/highlight} to toggle code block visibility in messages.",
-  "Press {highlight}Ctrl+X S{/highlight} or {highlight}:status{/highlight} to see system status info.",
+  "Press {highlight}Space G{/highlight} or {highlight}:timeline{/highlight} to jump to specific messages.",
+  "Press {highlight}Space H{/highlight} to toggle code block visibility in messages.",
+  "Press {highlight}Space S{/highlight} or {highlight}:status{/highlight} to see system status info.",
   "Enable {highlight}tui.scroll_acceleration{/highlight} for smooth macOS-style scrolling.",
   "Toggle username display in chat via command palette ({highlight}Ctrl+P{/highlight}).",
   "Type {highlight}:q{/highlight} or {highlight}exit{/highlight} to quit agent-core.",
@@ -138,6 +138,6 @@ export const TIPS = [
   "Use {highlight}:rename{/highlight} to rename the current session.",
   "Press {highlight}Ctrl+Z{/highlight} to suspend the terminal and return to your shell.",
   "Press {highlight}Tab{/highlight}/{highlight}Shift+Tab{/highlight} to switch between Zee, Stanley, and Johny.",
-  "Press {highlight}Ctrl+X{/highlight} (leader key) to see all available keybindings in a which-key popup.",
+  "Press {highlight}Space{/highlight} (leader key) to see all available keybindings in a which-key popup.",
   "Press {highlight}Shift+G{/highlight} to jump to the most recent message (vim-style).",
 ]
