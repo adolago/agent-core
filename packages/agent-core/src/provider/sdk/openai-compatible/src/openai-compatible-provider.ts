@@ -50,7 +50,6 @@ export interface OpenaiCompatibleProvider {
  * Create an OpenAI Compatible provider instance.
  */
 export function createOpenaiCompatible(options: OpenaiCompatibleProviderSettings = {}): OpenaiCompatibleProvider {
-  console.error("[CUSTOM OPENAI PROVIDER] createOpenaiCompatible called with options:", JSON.stringify({name: options.name, baseURL: options.baseURL}))
   const baseURL = withoutTrailingSlash(options.baseURL ?? "https://api.openai.com/v1")
 
   if (!baseURL) {

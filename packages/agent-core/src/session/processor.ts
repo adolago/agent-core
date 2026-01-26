@@ -411,8 +411,16 @@ export namespace SessionProcessor {
                       usage: value.usage,
                       metadata: value.providerMetadata,
                     })
-                    console.error("[PROCESSOR] finish-step value.finishReason:", value.finishReason, "typeof:", typeof value.finishReason)
-                    const finishReason = value.finishReason ?? "unknown"
+                    // AI SDK v6 has a bug where finishReason is undefined for V2 language models
+                    // even when the provider correctly sends it. Work around by defaulting to "stop"
+                    // when finishReason is undefined.
+                    let finishReason = value.finishReason
+                    if (finishReason === undefined) {
+                      // Check if this looks like a normal completion based on usage
+                      // We can't reliably check parts here as they may not all be persisted yet
+                      const hasUsage = value.usage && (value.usage.outputTokens ?? 0) > 0
+                      finishReason = hasUsage ? "stop" : "other"
+                    }
                     input.assistantMessage.finish = finishReason
                     input.assistantMessage.cost += usage.cost
                     input.assistantMessage.tokens = usage.tokens
@@ -511,13 +519,6 @@ export namespace SessionProcessor {
                   case "finish":
                     await finalizeTextPart()
                     await finalizeReasoningPart()
-                    // Extract finishReason from finish event
-                    // The finish event may have a corrected finishReason (e.g., from flush handler fix)
-                    // It should override "unknown" that finish-step may have set
-                    log.info("finish event", { finishReason: value.finishReason, currentFinish: input.assistantMessage.finish })
-                    if (value.finishReason && input.assistantMessage.finish === "unknown") {
-                      input.assistantMessage.finish = value.finishReason
-                    }
                     break
 
                   default:
