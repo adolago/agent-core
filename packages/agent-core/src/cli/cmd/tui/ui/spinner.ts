@@ -37,21 +37,29 @@ interface CarouselState {
 
 /**
  * Get carousel animation state for a given frame.
- * The carousel moves continuously left-to-right, wrapping at edges.
+ * The carousel moves left-to-right: enters from left, exits on right, repeats.
+ *
+ * Animation phases:
+ * 1. Enter: blocks appear one-by-one from left edge
+ * 2. Traverse: full group slides right
+ * 3. Exit: blocks disappear one-by-one on right edge
  */
 function getCarouselState(
   frameIndex: number,
   totalChars: number,
   activeCount: number,
 ): CarouselState {
-  const cycleFrame = frameIndex % totalChars
+  // Total cycle: enter (activeCount-1) + traverse (totalChars - activeCount + 1) + exit (activeCount-1)
+  // Simplified: totalChars + activeCount - 1 frames per cycle
+  const cycleLength = totalChars + activeCount - 1
+  const cycleFrame = frameIndex % cycleLength
 
-  // Lead moves left-to-right: 0 → 1 → 2 → ... → 9 → 0
-  const lead = cycleFrame
+  // Head position (rightmost active block) moves from 0 to totalChars + activeCount - 2
+  const head = cycleFrame
 
   return {
-    offset: lead,
-    isMovingForward: true, // Always moving left-to-right
+    offset: head, // Now represents head position, not lead
+    isMovingForward: true,
     activeCount,
     phase: "forward",
   }
@@ -59,24 +67,35 @@ function getCarouselState(
 
 /**
  * Calculate which positions are active in carousel mode and their trail index.
- * Returns the trail index (0 = lead/brightest, 1+ = trail), or -1 if inactive.
+ * Returns the trail index (0 = head/brightest, 1+ = trail), or -1 if inactive.
+ *
+ * For left-to-right movement:
+ * - HEAD (brightest) is at the right edge of the visible group
+ * - TRAIL extends left from head
+ * - Positions outside [0, totalChars) are not displayed
  */
 function getCarouselColorIndex(
   charIndex: number,
   totalChars: number,
   state: CarouselState,
 ): number {
-  const { offset: lead, activeCount } = state
+  const { offset: head, activeCount } = state
 
-  // Trail index: how far behind the lead is this position?
-  // Lead (index 0) at `lead`, trail extends right with wrap
-  const trailIndex = (charIndex - lead + totalChars) % totalChars
+  // Trail index: how far behind the head is this position?
+  // Head (index 0) is brightest, trail extends LEFT (no wrap)
+  const trailIndex = head - charIndex
 
-  if (trailIndex < activeCount) {
-    return trailIndex // 0 = lead/brightest, 1+ = trail
+  // Must be within trail range AND within display bounds
+  if (trailIndex >= 0 && trailIndex < activeCount) {
+    // The actual display position of the block
+    const displayPos = head - trailIndex
+    // Only show if within the visible area [0, totalChars)
+    if (displayPos >= 0 && displayPos < totalChars) {
+      return trailIndex // 0 = head/brightest, 1+ = trail
+    }
   }
 
-  return -1 // Not active
+  return -1 // Not active or out of bounds
 }
 
 function getScannerState(
@@ -340,8 +359,9 @@ function createCarouselFrames(options: KnightRiderOptions): string[] {
       ? deriveTrailColors(options.color, activeCount)
       : deriveTrailColors(RGBA.fromHex("#ff0000"), activeCount))
 
-  // Carousel cycle: width frames (head visits each position once)
-  const totalFrames = width
+  // Carousel cycle: enter (activeCount-1) + traverse (width - activeCount + 1) + exit (activeCount-1)
+  // = width + activeCount - 1 frames
+  const totalFrames = width + activeCount - 1
 
   const frames = Array.from({ length: totalFrames }, (_, frameIndex) => {
     const state = getCarouselState(frameIndex, width, activeCount)
