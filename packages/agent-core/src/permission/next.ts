@@ -131,8 +131,9 @@ export namespace PermissionNext {
     async (input) => {
       const s = await state()
       const { ruleset, ...request } = input
+      const merged = merge(ruleset, s.approved)
       for (const pattern of request.patterns ?? []) {
-        const rule = evaluate(request.permission, pattern, ruleset, s.approved)
+        const rule = evaluateRuleset(request.permission, pattern, merged)
         log.info("evaluated", { permission: request.permission, pattern, action: rule })
         if (rule.action === "deny")
           throw new DeniedError(ruleset.filter((r) => Wildcard.match(request.permission, r.permission)))
@@ -208,7 +209,7 @@ export namespace PermissionNext {
         for (const [id, pending] of Object.entries(s.pending)) {
           if (pending.info.sessionID !== sessionID) continue
           const ok = pending.info.patterns.every(
-            (pattern) => evaluate(pending.info.permission, pattern, s.approved).action === "allow",
+            (pattern) => evaluateRuleset(pending.info.permission, pattern, s.approved).action === "allow",
           )
           if (!ok) continue
           delete s.pending[id]
@@ -230,8 +231,12 @@ export namespace PermissionNext {
 
   export function evaluate(permission: string, pattern: string, ...rulesets: Ruleset[]): Rule {
     const merged = merge(...rulesets)
-    log.info("evaluate", { permission, pattern, ruleset: merged })
-    const match = merged.findLast(
+    return evaluateRuleset(permission, pattern, merged)
+  }
+
+  export function evaluateRuleset(permission: string, pattern: string, ruleset: Ruleset): Rule {
+    log.debug("evaluate", { permission, pattern, ruleset })
+    const match = ruleset.findLast(
       (rule) => Wildcard.match(permission, rule.permission) && Wildcard.match(pattern, rule.pattern),
     )
     return match ?? { action: "ask", permission, pattern: "*" }
