@@ -13,6 +13,7 @@ const log = Log.create({ service: "stream.health" })
  */
 const DEFAULT_STALL_WARNING_MS = 15_000 // 15s without events = stall warning
 const DEFAULT_STALL_TIMEOUT_MS = 60_000 // 60s without events = hard timeout
+const DEFAULT_EARLY_STALL_MS = 5_000 // 5s without meaningful content = early warning
 
 export type StreamStatus = "streaming" | "completed" | "error" | "stalled" | "timeout"
 
@@ -66,6 +67,7 @@ export class StreamHealthMonitor {
   private stallTimeoutMs: number
   private stallCheckTimer?: ReturnType<typeof setInterval>
   private stallWarningEmitted: boolean = false
+  private earlyWarningEmitted: boolean = false
 
   constructor(input: { sessionID: string; messageID: string }) {
     this.sessionID = input.sessionID
@@ -129,6 +131,35 @@ export class StreamHealthMonitor {
       return true
     }
 
+    // Check for early warning (no meaningful content after 5s)
+    const elapsedSinceStart = Date.now() - this.streamStartedAt
+    const hasNoContent = this.textDeltaEvents === 0 && this.toolCallEvents === 0
+    if (
+      elapsedSinceStart >= DEFAULT_EARLY_STALL_MS &&
+      hasNoContent &&
+      !this.earlyWarningEmitted
+    ) {
+      this.earlyWarningEmitted = true
+      log.warn("stream slow start detected - no content received", {
+        sessionID: this.sessionID,
+        messageID: this.messageID,
+        elapsedSinceStartMs: elapsedSinceStart,
+        eventsReceived: this.eventsReceived,
+        lastEventType: this.lastEventType,
+      })
+
+      // Update session status with early warning
+      SessionStatus.set(this.sessionID, {
+        type: "busy",
+        streamHealth: {
+          isStalled: false, // Not stalled yet, just slow
+          timeSinceLastEventMs: elapsed,
+          eventsReceived: this.eventsReceived,
+          stallWarnings: this.stallWarnings,
+        },
+      })
+    }
+
     // Check for stall warning
     if (elapsed >= this.stallWarningMs && !this.stallWarningEmitted) {
       this.stallWarnings++
@@ -190,11 +221,27 @@ export class StreamHealthMonitor {
     this.stopStallDetection()
 
     const report = this.getReport()
-    log.info("stream completed", {
-      sessionID: this.sessionID,
-      durationMs: report.timing.durationMs,
-      eventsReceived: report.progress.eventsReceived,
-    })
+
+    // Detect suspicious completions (empty or near-empty responses)
+    const isSuspicious =
+      report.progress.eventsReceived < 5 || // Very few events
+      (report.progress.textDeltaEvents === 0 && report.progress.toolCallEvents === 0) // No content
+
+    if (isSuspicious) {
+      log.warn("stream completed with suspicious metrics", {
+        sessionID: this.sessionID,
+        durationMs: report.timing.durationMs,
+        eventsReceived: report.progress.eventsReceived,
+        textDeltaEvents: report.progress.textDeltaEvents,
+        toolCallEvents: report.progress.toolCallEvents,
+      })
+    } else {
+      log.info("stream completed", {
+        sessionID: this.sessionID,
+        durationMs: report.timing.durationMs,
+        eventsReceived: report.progress.eventsReceived,
+      })
+    }
 
     Bus.publish(StreamEvents.Completed, {
       sessionID: this.sessionID,
