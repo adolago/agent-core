@@ -8,10 +8,13 @@ import {
   Match,
   on,
   onCleanup,
+  onMount,
   Show,
   Switch,
   useContext,
 } from "solid-js"
+import "opentui-spinner/solid"
+import { createColors, createFrames } from "@tui/ui/spinner"
 import { Dynamic } from "solid-js/web"
 import path from "path"
 import { useRoute, useRouteData } from "@tui/context/route"
@@ -1368,23 +1371,62 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
         }}
       </For>
       <Show when={showThinkingPlaceholder()}>
-        <box
-          paddingLeft={3}
-          marginTop={1}
-          border={["left"]}
-          customBorderChars={SplitBorder.customBorderChars}
-          borderColor={theme.backgroundElement}
-        >
-          <text fg={theme.textMuted}>
-            <span style={{ fg: theme.warning }}>🧠</span> Thinking
-            <Show when={streamHealth()?.timeSinceContentMs != null}>
-              {` (${Math.round((streamHealth()!.timeSinceContentMs ?? 0) / 1000)}s)`}
-            </Show>
-          </text>
-          <Show when={!ctx.showThinking()}>
-            <text fg={theme.textMuted}>Use :thinking to show reasoning</text>
-          </Show>
-        </box>
+        {(() => {
+          const [elapsed, setElapsed] = createSignal(0)
+          onMount(() => {
+            const start = Date.now()
+            const timer = setInterval(() => {
+              setElapsed(Math.floor((Date.now() - start) / 1000))
+            }, 1000)
+            onCleanup(() => clearInterval(timer))
+          })
+          const formatTime = (s: number) => {
+            if (s < 60) return `${s}s`
+            const m = Math.floor(s / 60)
+            const sec = s % 60
+            return `${m}m ${sec}s`
+          }
+          const spinnerDef = createMemo(() => ({
+            frames: createFrames({
+              color: theme.warning,
+              style: "blocks",
+              animation: "carousel",
+              width: 10,
+              carouselActiveCount: 5,
+              inactiveFactor: 0.6,
+              minAlpha: 0.3,
+            }),
+            color: createColors({
+              color: theme.warning,
+              style: "blocks",
+              animation: "carousel",
+              width: 10,
+              carouselActiveCount: 5,
+              inactiveFactor: 0.6,
+              minAlpha: 0.3,
+            }),
+          }))
+          return (
+            <box
+              paddingLeft={3}
+              marginTop={1}
+              border={["left"]}
+              customBorderChars={SplitBorder.customBorderChars}
+              borderColor={theme.backgroundElement}
+            >
+              <box flexDirection="row" gap={1}>
+                <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
+                <text fg={theme.textMuted}>
+                  Thinking...
+                  <span style={{ fg: theme.textMuted }}> (Esc to interrupt · {formatTime(elapsed())} · thinking)</span>
+                </text>
+              </box>
+              <Show when={!ctx.showThinking()}>
+                <text fg={theme.textMuted}>Use :thinking to show reasoning</text>
+              </Show>
+            </box>
+          )
+        })()}
       </Show>
       <Show when={props.message.error && props.message.error.name !== "MessageAbortedError"}>
         <box
