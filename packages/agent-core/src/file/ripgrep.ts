@@ -122,7 +122,7 @@ export namespace Ripgrep {
     }),
   )
 
-  const state = lazy(async () => {
+  export const state = lazy(async () => {
     let filepath = Bun.which("rg")
     if (filepath) return { filepath }
     filepath = path.join(Global.Path.bin, "rg" + (process.platform === "win32" ? ".exe" : ""))
@@ -211,7 +211,7 @@ export namespace Ripgrep {
     maxDepth?: number
   }) {
     const args = [await filepath(), "--files", "--glob=!.git/*"]
-    if (input.follow !== false) args.push("--follow")
+    if (input.follow === true) args.push("--follow")
     if (input.hidden !== false) args.push("--hidden")
     if (input.maxDepth !== undefined) args.push(`--max-depth=${input.maxDepth}`)
     if (input.glob) {
@@ -375,7 +375,7 @@ export namespace Ripgrep {
     follow?: boolean
   }) {
     const args = [`${await filepath()}`, "--json", "--hidden", "--glob='!.git/*'"]
-    if (input.follow !== false) args.push("--follow")
+    if (input.follow === true) args.push("--follow")
 
     if (input.glob) {
       for (const g of input.glob) {

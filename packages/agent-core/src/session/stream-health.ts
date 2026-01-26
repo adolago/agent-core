@@ -7,6 +7,51 @@ import { SessionStatus } from "./status"
 const log = Log.create({ service: "stream.health" })
 
 /**
+ * Status handler interface for dependency injection.
+ * This allows tests to provide a no-op implementation without mocking Instance.
+ *
+ * In production, the default handler delegates to SessionStatus.set().
+ * In tests, a no-op handler can be provided to avoid Instance dependencies.
+ */
+export type StatusHandler = (sessionID: string, status: SessionStatus.Info) => void
+
+/**
+ * Bus publisher interface for dependency injection.
+ * This allows tests to provide a no-op implementation without mocking Instance.
+ *
+ * In production, the default publisher delegates to Bus.publish().
+ * In tests, a no-op publisher can be provided to avoid Instance dependencies.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type BusPublisher = (event: any, data: any) => void
+
+/**
+ * Default status handler that delegates to SessionStatus.set().
+ */
+function getDefaultStatusHandler(): StatusHandler {
+  return (sessionID, status) => SessionStatus.set(sessionID, status)
+}
+
+/**
+ * Default bus publisher that delegates to Bus.publish().
+ */
+function getDefaultBusPublisher(): BusPublisher {
+  return (event, data) => Bus.publish(event, data)
+}
+
+/**
+ * No-op status handler for testing.
+ * Use this when you don't have an Instance context.
+ */
+export const noopStatusHandler: StatusHandler = () => {}
+
+/**
+ * No-op bus publisher for testing.
+ * Use this when you don't have an Instance context.
+ */
+export const noopBusPublisher: BusPublisher = () => {}
+
+/**
  * Environment variable configuration for stream health thresholds.
  * These can be overridden via AGENT_CORE_STREAM_STALL_WARNING_MS and
  * AGENT_CORE_STREAM_STALL_TIMEOUT_MS environment variables.
@@ -40,8 +85,44 @@ export interface StreamHealthReport {
 }
 
 /**
+ * Options for creating a StreamHealthMonitor.
+ */
+export interface StreamHealthMonitorOptions {
+  sessionID: string
+  messageID: string
+  /**
+   * Optional status handler for dependency injection.
+   * Defaults to SessionStatus.set() which requires Instance context.
+   * Pass `noopStatusHandler` for testing without Instance.
+   */
+  statusHandler?: StatusHandler
+  /**
+   * Optional bus publisher for dependency injection.
+   * Defaults to Bus.publish() which requires Instance context.
+   * Pass `noopBusPublisher` for testing without Instance.
+   */
+  busPublisher?: BusPublisher
+}
+
+/**
  * StreamHealthMonitor tracks the health and progress of an LLM stream.
  * It provides stall detection, progress tracking, and diagnostic reporting.
+ *
+ * ## Testing without Instance
+ *
+ * By default, the monitor calls `SessionStatus.set()` and `Bus.publish()` which
+ * require an Instance context. For tests, pass the no-op handlers to avoid this:
+ *
+ * ```typescript
+ * import { StreamHealthMonitor, noopStatusHandler, noopBusPublisher } from "./stream-health"
+ *
+ * const monitor = new StreamHealthMonitor({
+ *   sessionID: "test",
+ *   messageID: "msg",
+ *   statusHandler: noopStatusHandler,
+ *   busPublisher: noopBusPublisher,
+ * })
+ * ```
  */
 export class StreamHealthMonitor {
   private sessionID: string
@@ -69,11 +150,19 @@ export class StreamHealthMonitor {
   private stallWarningEmitted: boolean = false
   private earlyWarningEmitted: boolean = false
 
-  constructor(input: { sessionID: string; messageID: string }) {
+  // Dependency injection
+  private statusHandler: StatusHandler
+  private busPublisher: BusPublisher
+
+  constructor(input: StreamHealthMonitorOptions) {
     this.sessionID = input.sessionID
     this.messageID = input.messageID
     this.streamStartedAt = Date.now()
     this.lastEventAt = Date.now()
+
+    // Use provided handlers or defaults (which require Instance context)
+    this.statusHandler = input.statusHandler ?? getDefaultStatusHandler()
+    this.busPublisher = input.busPublisher ?? getDefaultBusPublisher()
 
     // Allow configuration via environment variables
     this.stallWarningMs =
@@ -106,7 +195,7 @@ export class StreamHealthMonitor {
     // Reset stall warning state when we receive events
     // If we were stalled, immediately update status to clear the warning
     if (this.stallWarningEmitted) {
-      SessionStatus.set(this.sessionID, {
+      this.statusHandler(this.sessionID, {
         type: "busy",
         streamHealth: {
           isStalled: false,
@@ -142,7 +231,7 @@ export class StreamHealthMonitor {
       })
 
       // Emit timeout event so processor can abort the stream
-      Bus.publish(StreamEvents.Timeout, {
+      this.busPublisher(StreamEvents.Timeout, {
         sessionID: this.sessionID,
         messageID: this.messageID,
         elapsed,
@@ -171,7 +260,7 @@ export class StreamHealthMonitor {
       })
 
       // Update session status with early warning
-      SessionStatus.set(this.sessionID, {
+      this.statusHandler(this.sessionID, {
         type: "busy",
         streamHealth: {
           isStalled: false, // Not stalled yet, just slow
@@ -195,7 +284,7 @@ export class StreamHealthMonitor {
         lastEventType: this.lastEventType,
       })
 
-      Bus.publish(StreamEvents.StallWarning, {
+      this.busPublisher(StreamEvents.StallWarning, {
         sessionID: this.sessionID,
         messageID: this.messageID,
         elapsed,
@@ -204,7 +293,7 @@ export class StreamHealthMonitor {
       })
 
       // Update session status with stream health warning
-      SessionStatus.set(this.sessionID, {
+      this.statusHandler(this.sessionID, {
         type: "busy",
         streamHealth: {
           isStalled: true,
@@ -220,7 +309,7 @@ export class StreamHealthMonitor {
     // Update session status with healthy stream info periodically
     // Only if we haven't emitted a stall warning
     if (this.eventsReceived > 0 && this.eventsReceived % 50 === 0) {
-      SessionStatus.set(this.sessionID, {
+      this.statusHandler(this.sessionID, {
         type: "busy",
         streamHealth: {
           isStalled: false,
@@ -265,7 +354,7 @@ export class StreamHealthMonitor {
       })
     }
 
-    Bus.publish(StreamEvents.Completed, {
+    this.busPublisher(StreamEvents.Completed, {
       sessionID: this.sessionID,
       messageID: this.messageID,
       report,
@@ -289,7 +378,7 @@ export class StreamHealthMonitor {
       eventsReceived: report.progress.eventsReceived,
     })
 
-    Bus.publish(StreamEvents.Failed, {
+    this.busPublisher(StreamEvents.Failed, {
       sessionID: this.sessionID,
       messageID: this.messageID,
       report,
@@ -392,8 +481,11 @@ const activeMonitors = new Map<string, StreamHealthMonitor>()
 export namespace StreamHealth {
   /**
    * Get or create a health monitor for a session.
+   *
+   * @param input.statusHandler - Optional status handler for dependency injection.
+   *   Pass `noopStatusHandler` for testing without Instance context.
    */
-  export function getOrCreate(input: { sessionID: string; messageID: string }): StreamHealthMonitor {
+  export function getOrCreate(input: StreamHealthMonitorOptions): StreamHealthMonitor {
     const key = `${input.sessionID}:${input.messageID}`
     let monitor = activeMonitors.get(key)
     if (!monitor) {
@@ -435,7 +527,7 @@ export namespace StreamHealth {
   }
 
   /**
-   * Clear all monitors.
+   * Clear all monitors and reset internal state.
    */
   export function clear(): void {
     for (const monitor of activeMonitors.values()) {

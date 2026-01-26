@@ -32,6 +32,16 @@ export namespace Scheduler {
 
   const globalRegistry = new Map<string, Entry>()
 
+  /**
+   * Reset the global registry (for testing)
+   */
+  export function resetGlobal() {
+    for (const entry of globalRegistry.values()) {
+      if (entry.timer) clearInterval(entry.timer)
+    }
+    globalRegistry.clear()
+  }
+
   function schedule(entry: Entry) {
     const run = async () => {
       if (entry.running) return

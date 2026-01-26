@@ -29,7 +29,7 @@ const resolveWasm = (asset: string) => {
   return fileURLToPath(url)
 }
 
-const parser = lazy(async () => {
+export const parser = lazy(async () => {
   const { Parser } = await import("web-tree-sitter")
   const { default: treeWasm } = await import("web-tree-sitter/tree-sitter.wasm" as string, {
     with: { type: "wasm" },

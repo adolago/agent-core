@@ -4,7 +4,7 @@ import os from "os"
 import path from "path"
 import fs from "fs/promises"
 import fsSync from "fs"
-import { afterAll } from "bun:test"
+import { afterAll, afterEach } from "bun:test"
 
 const dir = path.join(os.tmpdir(), "opencode-test-data-" + process.pid)
 await fs.mkdir(dir, { recursive: true })
@@ -16,6 +16,7 @@ afterAll(() => {
 const testHome = path.join(dir, "home")
 await fs.mkdir(testHome, { recursive: true })
 process.env["OPENCODE_TEST_HOME"] = testHome
+process.env["AGENT_CORE_TEST_HOME"] = testHome
 
 process.env["XDG_DATA_HOME"] = path.join(dir, "share")
 process.env["XDG_CACHE_HOME"] = path.join(dir, "cache")
@@ -70,9 +71,64 @@ delete process.env["SAMBANOVA_API_KEY"]
 
 // Now safe to import from src/
 const { Log } = await import("../src/util/log")
+const { Instance } = await import("../src/project/instance")
+const { State } = await import("../src/project/state")
+const { Config } = await import("../src/config/config")
+const { GlobalBus } = await import("../src/bus/global")
+const { Scheduler } = await import("../src/scheduler")
+const { ProcessRegistry } = await import("../src/process/registry")
+const { ServerState } = await import("../src/server/state")
+const { CircuitBreaker } = await import("../src/provider/circuit-breaker")
+const { ModelEquivalence } = await import("../src/provider/equivalence")
+const { Storage } = await import("../src/storage/storage")
+const { parser: bashParser } = await import("../src/tool/bash")
+const { Ripgrep } = await import("../src/file/ripgrep")
 
 Log.init({
   print: false,
   dev: true,
   level: "DEBUG",
+})
+
+// Clean up global state between tests to prevent state pollution
+afterEach(async () => {
+  // 1. Dispose all Instance contexts and their associated State
+  await Instance.disposeAll()
+
+  // 2. Clear any remaining State entries not tied to Instance
+  State.clear()
+
+  // 3. Reset Config.global lazy cache
+  Config.global.reset()
+
+  // 4. Clear GlobalBus listeners to prevent cross-test event handling
+  GlobalBus.removeAllListeners()
+
+  // 5. Clear Scheduler global registry
+  Scheduler.resetGlobal()
+
+  // 6. Shutdown ProcessRegistry singleton
+  ProcessRegistry.getInstance().shutdown()
+
+  // 7. Reset ServerState URL
+  ServerState.reset()
+
+  // 8. Reset CircuitBreaker state
+  await CircuitBreaker.resetAll()
+
+  // 9. Reset ModelEquivalence tier configuration
+  ModelEquivalence.reset()
+
+  // 10. Reset Storage lazy cache (prevents cross-test state pollution)
+  Storage.state.reset()
+
+  // 11. Reset Server.App lazy cache (Hono app instance) - import dynamically to avoid circular deps
+  const { Server } = await import("../src/server/server")
+  Server.App.reset()
+
+  // 12. Reset Bash parser lazy cache (tree-sitter)
+  bashParser.reset()
+
+  // 13. Reset Ripgrep state lazy cache
+  Ripgrep.state.reset()
 })

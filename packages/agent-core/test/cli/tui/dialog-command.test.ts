@@ -1,4 +1,9 @@
-import { expect, mock, test } from "bun:test"
+import { expect, mock, test, afterAll } from "bun:test"
+
+// Restore mock.module mocks after all tests to avoid polluting other test files
+afterAll(() => {
+  mock.restore()
+})
 import { createRoot } from "solid-js"
 import type { CommandOption } from "../../../src/cli/cmd/tui/component/dialog-command"
 

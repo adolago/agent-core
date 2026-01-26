@@ -84,10 +84,9 @@ export namespace Server {
     Disposed: BusEvent.define("global.disposed", z.object({})),
   }
 
-  const app = new Hono()
-  export const App: () => Hono = lazy(
+  export const App: (() => Hono) & { reset: () => void } = lazy(
     () =>
-      app
+      new Hono()
         .onError((err, c) => {
           if (err instanceof HTTPException) {
             return err.getResponse()

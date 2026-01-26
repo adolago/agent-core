@@ -1,4 +1,9 @@
-import { test, expect, mock, beforeEach } from "bun:test"
+import { test, expect, mock, beforeEach, afterAll } from "bun:test"
+
+// Restore mock.module mocks after all tests to avoid polluting other test files
+afterAll(() => {
+  mock.restore()
+})
 
 // Track what options were passed to each transport constructor
 const transportCalls: Array<{

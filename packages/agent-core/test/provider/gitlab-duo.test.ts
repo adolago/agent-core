@@ -1,4 +1,9 @@
-import { test, expect, mock } from "bun:test"
+import { test, expect, mock, afterAll } from "bun:test"
+
+// Restore mock.module mocks after all tests to avoid polluting other test files
+afterAll(() => {
+  mock.restore()
+})
 import path from "path"
 
 // === Mocks ===

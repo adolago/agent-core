@@ -28,6 +28,17 @@ export namespace State {
     }
   }
 
+  /**
+   * Clear all state entries (for testing)
+   */
+  export function clear() {
+    for (const [key, entries] of recordsByKey) {
+      entries.clear()
+    }
+    recordsByKey.clear()
+    log.info("all state cleared")
+  }
+
   export async function dispose(key: string) {
     const entries = recordsByKey.get(key)
     if (!entries) return

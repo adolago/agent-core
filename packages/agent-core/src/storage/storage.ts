@@ -141,7 +141,7 @@ export namespace Storage {
     },
   ]
 
-  const state = lazy(async () => {
+  export const state = lazy(async () => {
     const dir = path.join(Global.Path.data, "storage")
     const migration = await Bun.file(path.join(dir, "migration"))
       .json()

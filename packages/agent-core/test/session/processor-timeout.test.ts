@@ -1,4 +1,4 @@
-import { describe, expect, test, mock } from "bun:test"
+import { describe, expect, test, mock, afterAll } from "bun:test"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 import { Identifier } from "../../src/id/id"
@@ -18,6 +18,11 @@ mock.module("../../src/provider/fallback", () => ({
     },
   },
 }))
+
+// Restore mock.module mocks after all tests to avoid polluting other test files
+afterAll(() => {
+  mock.restore()
+})
 
 describe("SessionProcessor", () => {
   test("errors if LLM stream never starts", async () => {

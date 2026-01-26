@@ -1,54 +1,46 @@
-import { describe, expect, test, beforeEach, afterEach, mock, spyOn } from "bun:test"
-import { Bus } from "../../src/bus"
-import { StreamEvents } from "../../src/session/stream-events"
-import { StreamHealthMonitor, StreamHealth } from "../../src/session/stream-health"
+import { describe, expect, test, beforeEach, afterEach } from "bun:test"
+import {
+  StreamHealthMonitor,
+  StreamHealth,
+  noopStatusHandler,
+  noopBusPublisher,
+} from "../../src/session/stream-health"
 
-// Store captured events for verification
-const capturedEvents: { type: string; properties: unknown }[] = []
-let unsubscribe: (() => void) | null = null
+/**
+ * Test options that avoid Instance context.
+ * Pass these to StreamHealthMonitor and StreamHealth.getOrCreate().
+ */
+const testOptions = {
+  statusHandler: noopStatusHandler,
+  busPublisher: noopBusPublisher,
+}
 
-// Mock the Instance module
-mock.module("../../src/project/instance", () => ({
-  Instance: {
-    state: <T>(init: () => T) => {
-      const value = init()
-      return () => value
-    },
-    directory: "/test",
-  },
-}))
-
-// Mock SessionStatus
-mock.module("../../src/session/status", () => ({
-  SessionStatus: {
-    set: () => {},
-    get: () => ({ type: "idle" }),
-  },
-}))
+/**
+ * Stream health stall detection tests using dependency injection.
+ *
+ * These tests use `noopStatusHandler` instead of mocking the Instance module.
+ * This avoids global state pollution from mock.module() which affected other
+ * test files in the same process.
+ *
+ * Note: Bus event subscription is not tested here because it requires Instance
+ * context. Event emission is tested in integration tests that have a full
+ * Instance context.
+ */
 
 describe("StreamHealth stall detection with timing", () => {
   beforeEach(() => {
     StreamHealth.clear()
-    capturedEvents.length = 0
-
-    // Subscribe to stall warning events
-    unsubscribe = Bus.subscribe(StreamEvents.StallWarning, (event) => {
-      capturedEvents.push(event)
-    })
   })
 
   afterEach(() => {
     StreamHealth.clear()
-    if (unsubscribe) {
-      unsubscribe()
-      unsubscribe = null
-    }
   })
 
   test("isStalled returns false immediately after event", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "stall-test",
       messageID: "msg-1",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -64,6 +56,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "no-stall-test",
       messageID: "msg-2",
+      ...testOptions,
     })
 
     // Continuously record events
@@ -85,6 +78,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "counter-test",
       messageID: "msg-3",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -105,6 +99,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "reset-test",
       messageID: "msg-4",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -126,6 +121,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "completed-test",
       messageID: "msg-5",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -145,6 +141,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "failed-test",
       messageID: "msg-6",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -164,6 +161,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "timing-test",
       messageID: "msg-7",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -187,6 +185,7 @@ describe("StreamHealth stall detection with timing", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "eps-test",
       messageID: "msg-8",
+      ...testOptions,
     })
 
     // Record 20 events quickly
@@ -224,6 +223,7 @@ describe("StreamHealth report generation", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "report-test",
       messageID: "msg-9",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
@@ -251,6 +251,7 @@ describe("StreamHealth report generation", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "progress-test",
       messageID: "msg-10",
+      ...testOptions,
     })
 
     // Simulate a realistic stream

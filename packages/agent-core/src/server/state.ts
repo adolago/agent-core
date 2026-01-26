@@ -9,4 +9,8 @@ export namespace ServerState {
   export function setUrl(url: URL) {
     _url = url
   }
+
+  export function reset() {
+    _url = undefined
+  }
 }

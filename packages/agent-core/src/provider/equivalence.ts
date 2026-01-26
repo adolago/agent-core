@@ -66,6 +66,13 @@ export namespace ModelEquivalence {
   }
 
   /**
+   * Reset to default tier mappings (for testing).
+   */
+  export function reset(): void {
+    customTiers = { ...DEFAULT_TIERS }
+  }
+
+  /**
    * Get the tier mappings.
    */
   export function getTiers(): Record<Tier, string[]> {

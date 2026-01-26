@@ -1,27 +1,29 @@
-import { describe, expect, test, beforeEach, afterEach, mock, spyOn } from "bun:test"
-import { StreamHealthMonitor, StreamHealth } from "../../src/session/stream-health"
-import { Bus } from "../../src/bus"
-import { StreamEvents } from "../../src/session/stream-events"
+import { describe, expect, test, beforeEach, afterEach } from "bun:test"
+import {
+  StreamHealthMonitor,
+  StreamHealth,
+  noopStatusHandler,
+  noopBusPublisher,
+} from "../../src/session/stream-health"
 
-// Mock the Instance module to avoid initialization issues
-mock.module("../../src/project/instance", () => ({
-  Instance: {
-    state: <T>(init: () => T) => {
-      const value = init()
-      return () => value
-    },
-    directory: "/test",
-  },
-}))
+/**
+ * Test options that avoid Instance context.
+ * Pass these to StreamHealthMonitor and StreamHealth.getOrCreate().
+ */
+const testOptions = {
+  statusHandler: noopStatusHandler,
+  busPublisher: noopBusPublisher,
+}
 
-// Mock SessionStatus to avoid side effects
-mock.module("../../src/session/status", () => ({
-  SessionStatus: {
-    set: () => {},
-    get: () => ({ type: "idle" }),
-  },
-}))
-
+/**
+ * Stream health tests using dependency injection.
+ *
+ * These tests use `noopStatusHandler` instead of mocking the Instance module.
+ * This avoids global state pollution from mock.module() which affected other
+ * test files in the same process.
+ *
+ * See: https://github.com/oven-sh/bun/issues/XXX (Bun mock.module limitation)
+ */
 describe("StreamHealthMonitor", () => {
   let monitor: StreamHealthMonitor
 
@@ -43,6 +45,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       const report = monitor.getReport()
@@ -58,6 +61,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
       const after = Date.now()
 
@@ -72,6 +76,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("text-delta")
@@ -86,6 +91,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("text-delta")
@@ -100,6 +106,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("tool-call")
@@ -114,6 +121,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("text-delta", 100)
@@ -127,6 +135,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("start")
@@ -143,6 +152,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       const initialTime = monitor.getReport().timing.lastEventAt
@@ -158,6 +168,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.complete()
@@ -170,6 +181,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       const before = Date.now()
@@ -186,6 +198,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       await Bun.sleep(50)
@@ -202,6 +215,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.fail("Something went wrong")
@@ -214,6 +228,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.fail("Network timeout")
@@ -225,6 +240,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.fail(new Error("Connection refused"))
@@ -238,6 +254,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("text-delta")
@@ -248,6 +265,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.complete()
@@ -258,6 +276,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.fail("error")
@@ -270,6 +289,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       // Record 10 events
@@ -288,6 +308,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       monitor.recordEvent("start")
@@ -305,6 +326,7 @@ describe("StreamHealthMonitor", () => {
       monitor = new StreamHealthMonitor({
         sessionID: "test-session",
         messageID: "test-message",
+        ...testOptions,
       })
 
       // Should not throw
@@ -328,6 +350,7 @@ describe("StreamHealth namespace", () => {
       const monitor = StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       expect(monitor).toBeInstanceOf(StreamHealthMonitor)
@@ -338,11 +361,13 @@ describe("StreamHealth namespace", () => {
       const first = StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       const second = StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       expect(first).toBe(second)
@@ -352,11 +377,13 @@ describe("StreamHealth namespace", () => {
       const monitor1 = StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       const monitor2 = StreamHealth.getOrCreate({
         sessionID: "session-2",
         messageID: "message-2",
+        ...testOptions,
       })
 
       expect(monitor1).not.toBe(monitor2)
@@ -373,6 +400,7 @@ describe("StreamHealth namespace", () => {
       StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       const monitor = StreamHealth.get("session-1", "message-1")
@@ -391,6 +419,7 @@ describe("StreamHealth namespace", () => {
       StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       const active = StreamHealth.getActive("session-1")
@@ -402,6 +431,7 @@ describe("StreamHealth namespace", () => {
       const monitor = StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
       monitor.complete()
 
@@ -415,6 +445,7 @@ describe("StreamHealth namespace", () => {
       StreamHealth.getOrCreate({
         sessionID: "session-1",
         messageID: "message-1",
+        ...testOptions,
       })
 
       StreamHealth.remove("session-1", "message-1")
@@ -430,9 +461,9 @@ describe("StreamHealth namespace", () => {
 
   describe("clear", () => {
     test("removes all monitors", () => {
-      StreamHealth.getOrCreate({ sessionID: "s1", messageID: "m1" })
-      StreamHealth.getOrCreate({ sessionID: "s2", messageID: "m2" })
-      StreamHealth.getOrCreate({ sessionID: "s3", messageID: "m3" })
+      StreamHealth.getOrCreate({ sessionID: "s1", messageID: "m1", statusHandler: noopStatusHandler })
+      StreamHealth.getOrCreate({ sessionID: "s2", messageID: "m2", statusHandler: noopStatusHandler })
+      StreamHealth.getOrCreate({ sessionID: "s3", messageID: "m3", statusHandler: noopStatusHandler })
 
       StreamHealth.clear()
 
@@ -458,6 +489,7 @@ describe("StreamHealthReport structure", () => {
     const monitor = StreamHealth.getOrCreate({
       sessionID: "test-session",
       messageID: "test-message",
+      ...testOptions,
     })
 
     monitor.recordEvent("start")
