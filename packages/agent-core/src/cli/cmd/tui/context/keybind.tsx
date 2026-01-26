@@ -37,20 +37,11 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
     const renderer = useRenderer()
 
     let focus: Renderable | null
-    let timeout: NodeJS.Timeout
     function leader(active: boolean) {
       if (active) {
         setStore("leader", true)
         focus = renderer.currentFocusedRenderable
         focus?.blur()
-        if (timeout) clearTimeout(timeout)
-        timeout = setTimeout(() => {
-          if (!store.leader) return
-          leader(false)
-          if (focus) {
-            focus.focus()
-          }
-        }, 2000)
         return
       }
 
