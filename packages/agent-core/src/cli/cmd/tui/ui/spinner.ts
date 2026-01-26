@@ -37,24 +37,21 @@ interface CarouselState {
 
 /**
  * Get carousel animation state for a given frame.
- * The carousel moves a group of blocks that wrap around edges continuously.
- * Head moves: 9 → 8 → 7 → ... → 0 → 9 (always right-to-left, wrapping)
+ * The carousel moves continuously left-to-right, wrapping at edges.
  */
 function getCarouselState(
   frameIndex: number,
   totalChars: number,
   activeCount: number,
 ): CarouselState {
-  // Total cycle = width frames (head goes through all positions)
   const cycleFrame = frameIndex % totalChars
 
-  // Head moves right-to-left: starts at rightmost, decreases, wraps from 0 to end
-  // Frame 0: head at position (width-1), Frame 1: head at (width-2), etc.
-  const head = (totalChars - 1 - cycleFrame + totalChars) % totalChars
+  // Lead moves left-to-right: 0 → 1 → 2 → ... → 9 → 0
+  const lead = cycleFrame
 
   return {
-    offset: head,
-    isMovingForward: false, // Moving right-to-left
+    offset: lead,
+    isMovingForward: true, // Always moving left-to-right
     activeCount,
     phase: "forward",
   }
@@ -63,22 +60,20 @@ function getCarouselState(
 /**
  * Calculate which positions are active in carousel mode and their trail index.
  * Returns the trail index (0 = lead/brightest, 1+ = trail), or -1 if inactive.
- * Trail follows behind the head (to the right, since head moves left).
  */
 function getCarouselColorIndex(
   charIndex: number,
   totalChars: number,
   state: CarouselState,
 ): number {
-  const { offset: head, activeCount } = state
+  const { offset: lead, activeCount } = state
 
-  // Head moves right-to-left, so trail is to the right (head+1, head+2, etc. with wrap)
-  // i=0 is the head (brightest), i=1 is one step behind (to the right), etc.
-  for (let i = 0; i < activeCount; i++) {
-    const pos = (head + i) % totalChars
-    if (pos === charIndex) {
-      return i // Trail index (0 = lead/brightest)
-    }
+  // Trail index: how far behind the lead is this position?
+  // Lead (index 0) at `lead`, trail extends right with wrap
+  const trailIndex = (charIndex - lead + totalChars) % totalChars
+
+  if (trailIndex < activeCount) {
+    return trailIndex // 0 = lead/brightest, 1+ = trail
   }
 
   return -1 // Not active
