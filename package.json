@@ -18,6 +18,7 @@
       "packages/agent-core",
       "packages/tiara",
       "packages/personas/zee",
+      "packages/personas/stanley",
       "packages/sdk"
     ],
     "catalog": {

@@ -10,10 +10,10 @@
 import { z } from "zod";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, delimiter } from "node:path";
+import { delimiter } from "node:path";
 import type { ToolDefinition, ToolRuntime, ToolExecutionContext, ToolExecutionResult } from "../../mcp/types";
 import { getSafeEnv } from "../../util/safe-env";
+import { Stanley } from "../../paths";
 
 type StanleyResult = {
   ok: boolean;
@@ -22,28 +22,11 @@ type StanleyResult = {
   error?: string;
 };
 
-function resolvePersonaRepo(name: string): string {
-  const root = process.env.AGENT_CORE_ROOT;
-  if (root) return join(root, "vendor", "personas", name);
-  return join(homedir(), ".local", "src", "agent-core", "vendor", "personas", name);
-}
-
 function resolveStanleyCli(): { python: string; cliPath: string; pythonPath?: string } {
-  const repo = process.env.STANLEY_REPO || resolvePersonaRepo("stanley");
-  const pythonPath = process.env.STANLEY_PYTHONPATH || (existsSync(join(repo, ".python")) ? join(repo, ".python") : undefined);
-  const runtimePython = join(repo, ".python-runtime", "bin", "python3");
-  const runtimePythonAlt = join(repo, ".python-runtime", "bin", "python3.13");
-  const bundledPython = existsSync(runtimePython)
-    ? runtimePython
-    : existsSync(runtimePythonAlt)
-      ? runtimePythonAlt
-      : undefined;
-  const cliPath = process.env.STANLEY_CLI || join(repo, "scripts", "stanley_cli.py");
-  const venvPython = join(repo, ".venv", "bin", "python");
-  const python =
-    process.env.STANLEY_PYTHON ||
-    bundledPython ||
-    (pythonPath ? "python3" : existsSync(venvPython) ? venvPython : "python3");
+  // Use centralized path resolution from paths.ts
+  const python = Stanley.python();
+  const cliPath = Stanley.cli();
+  const pythonPath = Stanley.pythonPath();
   return { python, cliPath, pythonPath };
 }
 
