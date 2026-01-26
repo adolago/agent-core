@@ -73,9 +73,21 @@ export namespace Dictation {
 
     const model: Model = input?.model ?? "default"
     const google = await resolveGoogleAuth()
+
+    // Check for ADC availability:
+    // 1. Explicit GOOGLE_APPLICATION_CREDENTIALS env var
+    // 2. Service account env vars (GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY)
+    // 3. Default ADC file location (~/.config/gcloud/application_default_credentials.json)
+    const defaultAdcPath = path.join(
+      process.env["HOME"] ?? process.env["USERPROFILE"] ?? "",
+      ".config",
+      "gcloud",
+      "application_default_credentials.json"
+    )
     const hasAdc =
       Boolean(process.env["GOOGLE_APPLICATION_CREDENTIALS"]) ||
-      (Boolean(process.env["GOOGLE_CLIENT_EMAIL"]) && Boolean(process.env["GOOGLE_PRIVATE_KEY"]))
+      (Boolean(process.env["GOOGLE_CLIENT_EMAIL"]) && Boolean(process.env["GOOGLE_PRIVATE_KEY"])) ||
+      (await Bun.file(defaultAdcPath).exists())
     if (!google.apiKey && !google.credentials && !hasAdc) return
 
     return {
@@ -268,6 +280,11 @@ export namespace Dictation {
       url.searchParams.set("key", input.config.google.apiKey)
     } else {
       headers.Authorization = `Bearer ${await getGoogleAccessToken(input.config.google.credentials)}`
+      // For ADC with user credentials, we need to specify a quota project
+      const quotaProject = input.config.google.projectId ?? (await getGoogleProjectId(input.config.google.credentials))
+      if (quotaProject) {
+        headers["x-goog-user-project"] = quotaProject
+      }
     }
 
     const response = await fetcher(url.toString(), {
@@ -296,7 +313,7 @@ export namespace Dictation {
     fetcher: typeof fetch
   ): Promise<string | undefined> {
     // Chirp 2 uses Speech-to-Text V2 API
-    // Endpoint: https://{region}-speech.googleapis.com/v2/projects/{project}/locations/{region}:recognize
+    // Endpoint: https://{region}-speech.googleapis.com/v2/projects/{project}/locations/{region}/recognizers/_:recognize
     const region = input.config.region
     const projectId = input.config.google.projectId ?? (await getGoogleProjectId(input.config.google.credentials))
 
@@ -304,7 +321,8 @@ export namespace Dictation {
       throw new Error("Chirp 2 requires a Google Cloud project ID. Set GOOGLE_CLOUD_PROJECT or use a service account key.")
     }
 
-    const url = `https://${region}-speech.googleapis.com/v2/projects/${projectId}/locations/${region}:recognize`
+    // V2 API uses recognizers path: /recognizers/_:recognize (underscore means default recognizer)
+    const url = `https://${region}-speech.googleapis.com/v2/projects/${projectId}/locations/${region}/recognizers/_:recognize`
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${await getGoogleAccessToken(input.config.google.credentials)}`,
@@ -397,13 +415,18 @@ export namespace Dictation {
       }
     }
 
+    // Check for stored service account credentials
+    // Note: We only accept service account JSON keys here, not API keys,
+    // because Speech-to-Text API requires OAuth tokens (not API keys)
     const stored = (await Auth.get("google-vertex")) ?? (await Auth.get("google-stt"))
     if (stored?.type === "api" && stored.key) {
       const parsed = parseGoogleServiceAccountKey(stored.key)
       if (parsed) return { credentials: parsed }
-      return { apiKey: stored.key.trim() }
+      // If not a service account key, fall through to use ADC
+      // (Speech API doesn't support API keys, only OAuth)
     }
 
+    // Return empty to signal that ADC should be used
     return {}
   }
 
