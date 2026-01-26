@@ -104,9 +104,7 @@ const BATCH_FAILURE_LIMIT = 2;
 const SESSION_DELTA_READ_CHUNK_BYTES = 64 * 1024;
 const VECTOR_LOAD_TIMEOUT_MS = 30_000;
 const EMBEDDING_QUERY_TIMEOUT_REMOTE_MS = 60_000;
-const EMBEDDING_QUERY_TIMEOUT_LOCAL_MS = 5 * 60_000;
 const EMBEDDING_BATCH_TIMEOUT_REMOTE_MS = 2 * 60_000;
-const EMBEDDING_BATCH_TIMEOUT_LOCAL_MS = 10 * 60_000;
 
 const log = createSubsystemLogger("memory");
 
@@ -122,8 +120,8 @@ export class MemoryIndexManager {
   private readonly workspaceDir: string;
   private readonly settings: ResolvedMemorySearchConfig;
   private provider: EmbeddingProvider;
-  private readonly requestedProvider: "openai" | "local" | "gemini" | "auto";
-  private fallbackFrom?: "openai" | "local" | "gemini";
+  private readonly requestedProvider: "openai" | "gemini" | "auto";
+  private fallbackFrom?: "openai" | "gemini";
   private fallbackReason?: string;
   private openAi?: OpenAiEmbeddingClient;
   private gemini?: GeminiEmbeddingClient;
@@ -190,7 +188,6 @@ export class MemoryIndexManager {
       remote: settings.remote,
       model: settings.model,
       fallback: settings.fallback,
-      local: settings.local,
     });
     const manager = new MemoryIndexManager({
       cacheKey: key,
@@ -517,7 +514,7 @@ export class MemoryIndexManager {
         error: this.fts.loadError,
       },
       fallback: this.fallbackReason
-        ? { from: this.fallbackFrom ?? "local", reason: this.fallbackReason }
+        ? { from: this.fallbackFrom ?? "openai", reason: this.fallbackReason }
         : undefined,
       vector: {
         enabled: this.vector.enabled,
@@ -1264,14 +1261,12 @@ export class MemoryIndexManager {
     const fallback = this.settings.fallback;
     if (!fallback || fallback === "none" || fallback === this.provider.id) return false;
     if (this.fallbackFrom) return false;
-    const fallbackFrom = this.provider.id as "openai" | "gemini" | "local";
+    const fallbackFrom = this.provider.id as "openai" | "gemini";
 
     const fallbackModel =
       fallback === "gemini"
         ? DEFAULT_GEMINI_EMBEDDING_MODEL
-        : fallback === "openai"
-          ? DEFAULT_OPENAI_EMBEDDING_MODEL
-          : this.settings.model;
+        : DEFAULT_OPENAI_EMBEDDING_MODEL;
 
     const fallbackResult = await createEmbeddingProvider({
       config: this.cfg,
@@ -1280,7 +1275,6 @@ export class MemoryIndexManager {
       remote: this.settings.remote,
       model: fallbackModel,
       fallback: "none",
-      local: this.settings.local,
     });
 
     this.fallbackFrom = fallbackFrom;
@@ -1905,11 +1899,11 @@ export class MemoryIndexManager {
   }
 
   private resolveEmbeddingTimeout(kind: "query" | "batch"): number {
-    const isLocal = this.provider.id === "local";
+    // All providers are now remote (local llama removed)
     if (kind === "query") {
-      return isLocal ? EMBEDDING_QUERY_TIMEOUT_LOCAL_MS : EMBEDDING_QUERY_TIMEOUT_REMOTE_MS;
+      return EMBEDDING_QUERY_TIMEOUT_REMOTE_MS;
     }
-    return isLocal ? EMBEDDING_BATCH_TIMEOUT_LOCAL_MS : EMBEDDING_BATCH_TIMEOUT_REMOTE_MS;
+    return EMBEDDING_BATCH_TIMEOUT_REMOTE_MS;
   }
 
   private async embedQueryWithTimeout(text: string): Promise<number[]> {

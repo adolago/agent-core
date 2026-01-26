@@ -16,10 +16,6 @@ export function computeMemoryManagerCacheKey(params: {
       provider: settings.provider,
       model: settings.model,
       fallback: settings.fallback,
-      local: {
-        modelPath: settings.local.modelPath,
-        modelCacheDir: settings.local.modelCacheDir,
-      },
       remote: settings.remote
         ? {
             baseUrl: settings.remote.baseUrl,

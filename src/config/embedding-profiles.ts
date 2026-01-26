@@ -50,7 +50,7 @@ export const EMBEDDING_PROFILES: Record<string, EmbeddingProfileConfig> = {
     baseUrl: "https://generativelanguage.googleapis.com/v1beta",
   },
   "nebius/qwen3-embedding-8b": {
-    provider: "openai",
+    provider: "nebius",
     model: "Qwen/Qwen3-Embedding-8B",
     dimensions: 4096,
     baseUrl: "https://api.tokenfactory.nebius.com/v1",

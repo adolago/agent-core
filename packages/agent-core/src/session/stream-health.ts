@@ -59,6 +59,7 @@ export const noopBusPublisher: BusPublisher = () => {}
 const DEFAULT_STALL_WARNING_MS = 15_000 // 15s without events = stall warning
 const DEFAULT_STALL_TIMEOUT_MS = 60_000 // 60s without events = hard timeout
 const DEFAULT_EARLY_STALL_MS = 5_000 // 5s without meaningful content = early warning
+const DEFAULT_NO_CONTENT_TIMEOUT_MS = 120_000 // 2 min of reasoning without text/tool = timeout
 
 export type StreamStatus = "streaming" | "completed" | "error" | "stalled" | "timeout"
 
@@ -69,9 +70,11 @@ export interface StreamHealthReport {
   timing: {
     startedAt: number
     lastEventAt: number
+    lastMeaningfulEventAt: number
     completedAt?: number
     durationMs: number
     timeSinceLastEventMs: number
+    timeSinceMeaningfulEventMs: number
   }
   progress: {
     eventsReceived: number
@@ -146,9 +149,12 @@ export class StreamHealthMonitor {
   // Stall detection
   private stallWarningMs: number
   private stallTimeoutMs: number
+  private noContentTimeoutMs: number
   private stallCheckTimer?: ReturnType<typeof setInterval>
   private stallWarningEmitted: boolean = false
   private earlyWarningEmitted: boolean = false
+  private noContentWarningEmitted: boolean = false
+  private lastMeaningfulEventAt: number
 
   // Dependency injection
   private statusHandler: StatusHandler
@@ -159,6 +165,7 @@ export class StreamHealthMonitor {
     this.messageID = input.messageID
     this.streamStartedAt = Date.now()
     this.lastEventAt = Date.now()
+    this.lastMeaningfulEventAt = Date.now()
 
     // Use provided handlers or defaults (which require Instance context)
     this.statusHandler = input.statusHandler ?? getDefaultStatusHandler()
@@ -169,6 +176,8 @@ export class StreamHealthMonitor {
       Flag.AGENT_CORE_STREAM_STALL_WARNING_MS ?? DEFAULT_STALL_WARNING_MS
     this.stallTimeoutMs =
       Flag.AGENT_CORE_STREAM_STALL_TIMEOUT_MS ?? DEFAULT_STALL_TIMEOUT_MS
+    this.noContentTimeoutMs =
+      Flag.AGENT_CORE_STREAM_NO_CONTENT_TIMEOUT_MS ?? DEFAULT_NO_CONTENT_TIMEOUT_MS
 
     this.startStallDetection()
   }
@@ -186,10 +195,18 @@ export class StreamHealthMonitor {
     }
 
     // Track specific event types for more detailed metrics
+    // Also track meaningful content for extended thinking timeout detection
+    const isMeaningfulContent = type === "text-delta" || type === "tool-call" || type === "tool-result"
     if (type === "text-delta") {
       this.textDeltaEvents++
     } else if (type === "tool-call" || type === "tool-result") {
       this.toolCallEvents++
+    }
+
+    // Update last meaningful event time when we receive actual content
+    if (isMeaningfulContent) {
+      this.lastMeaningfulEventAt = Date.now()
+      this.noContentWarningEmitted = false
     }
 
     // Reset stall warning state when we receive events
@@ -219,7 +236,7 @@ export class StreamHealthMonitor {
 
     const elapsed = Date.now() - this.lastEventAt
 
-    // Check for hard timeout
+    // Check for hard timeout (no events at all)
     if (elapsed >= this.stallTimeoutMs) {
       this.status = "timeout"
       log.warn("stream timeout detected", {
@@ -240,6 +257,62 @@ export class StreamHealthMonitor {
       })
 
       return true
+    }
+
+    // Check for extended thinking without content timeout
+    // This catches cases where reasoning events keep arriving but no actual output is produced
+    // Common with extended thinking models (GPT-5.2 xhigh, kimi-k2-thinking, etc.)
+    const elapsedSinceMeaningful = Date.now() - this.lastMeaningfulEventAt
+    const isExtendedThinking = this.eventsReceived > 10 && elapsed < this.stallWarningMs // Getting events but no content
+    if (isExtendedThinking && elapsedSinceMeaningful >= this.noContentTimeoutMs) {
+      this.status = "timeout"
+      log.warn("extended thinking timeout - no meaningful content", {
+        sessionID: this.sessionID,
+        messageID: this.messageID,
+        elapsedSinceMeaningfulMs: elapsedSinceMeaningful,
+        totalEvents: this.eventsReceived,
+        textEvents: this.textDeltaEvents,
+        toolEvents: this.toolCallEvents,
+        lastEventType: this.lastEventType,
+      })
+
+      this.busPublisher(StreamEvents.Timeout, {
+        sessionID: this.sessionID,
+        messageID: this.messageID,
+        elapsed: elapsedSinceMeaningful,
+        eventsReceived: this.eventsReceived,
+        lastEventType: this.lastEventType,
+      })
+
+      return true
+    }
+
+    // Emit warning for extended thinking (reasoning without content) after 60s
+    if (
+      isExtendedThinking &&
+      elapsedSinceMeaningful >= this.stallTimeoutMs &&
+      !this.noContentWarningEmitted
+    ) {
+      this.noContentWarningEmitted = true
+      log.warn("extended thinking detected - reasoning without output", {
+        sessionID: this.sessionID,
+        messageID: this.messageID,
+        elapsedSinceMeaningfulMs: elapsedSinceMeaningful,
+        eventsReceived: this.eventsReceived,
+        lastEventType: this.lastEventType,
+      })
+
+      this.statusHandler(this.sessionID, {
+        type: "busy",
+        streamHealth: {
+          isStalled: false,
+          isThinking: true, // New flag to indicate reasoning is happening
+          timeSinceLastEventMs: elapsed,
+          timeSinceContentMs: elapsedSinceMeaningful,
+          eventsReceived: this.eventsReceived,
+          stallWarnings: this.stallWarnings,
+        },
+      })
     }
 
     // Check for early warning (no meaningful content after 5s)
@@ -394,6 +467,7 @@ export class StreamHealthMonitor {
     const completedAt = this.completedAt ?? now
     const durationMs = completedAt - this.streamStartedAt
     const timeSinceLastEventMs = now - this.lastEventAt
+    const timeSinceMeaningfulEventMs = now - this.lastMeaningfulEventAt
 
     return {
       sessionID: this.sessionID,
@@ -402,9 +476,11 @@ export class StreamHealthMonitor {
       timing: {
         startedAt: this.streamStartedAt,
         lastEventAt: this.lastEventAt,
+        lastMeaningfulEventAt: this.lastMeaningfulEventAt,
         completedAt: this.completedAt,
         durationMs,
         timeSinceLastEventMs,
+        timeSinceMeaningfulEventMs,
       },
       progress: {
         eventsReceived: this.eventsReceived,

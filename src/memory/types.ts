@@ -304,6 +304,7 @@ export type EmbeddingProviderType =
   | "voyage"
   | "vllm"
   | "ollama"
+  | "nebius"
   | "local"
   | "custom";
 

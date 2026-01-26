@@ -481,6 +481,78 @@ class LocalEmbeddingProvider implements EmbeddingProvider {
 }
 
 /**
+ * Nebius embedding client using OpenAI-compatible API
+ * Uses Qwen/Qwen3-Embedding-8B with 4096 dimensions
+ */
+class NebiusEmbeddingProvider implements EmbeddingProvider {
+  readonly id = "nebius";
+  readonly model: string;
+  dimension: number;
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+
+  constructor(config: EmbeddingConfig) {
+    // Try agent-core auth store first, then env
+    this.apiKey =
+      config.apiKey ??
+      readAuthStoreApiKey("nebius") ??
+      process.env.NEBIUS_API_KEY ??
+      "";
+    this.model = config.model ?? "Qwen/Qwen3-Embedding-8B";
+    this.dimension = config.dimensions ?? 4096;
+    this.baseUrl = (config.baseUrl ?? "https://api.tokenfactory.nebius.com/v1").replace(
+      /\/$/,
+      ""
+    );
+
+    if (!this.apiKey) {
+      throw new Error(
+        "Nebius API key required: run `agent-core auth login` and select nebius, or set NEBIUS_API_KEY env"
+      );
+    }
+  }
+
+  async embed(text: string): Promise<number[]> {
+    const result = await this.embedBatch([text]);
+    return result[0] ?? [];
+  }
+
+  async embedBatch(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+
+    const response = await fetch(`${this.baseUrl}/embeddings`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        input: texts,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Nebius embedding failed (${response.status}): ${errorText}`
+      );
+    }
+
+    const data = (await response.json()) as {
+      data: Array<{ embedding: number[]; index: number }>;
+    };
+
+    const sorted = data.data.sort((a, b) => a.index - b.index);
+    if (sorted.length > 0) {
+      const length = sorted[0]?.embedding.length ?? 0;
+      if (length > 0) this.dimension = length;
+    }
+    return sorted.map((item) => item.embedding);
+  }
+}
+
+/**
  * Voyage AI embedding client
  * #1 on MTEB, 200M free tokens, supports query/document input types
  */
@@ -646,6 +718,9 @@ export function createEmbeddingProvider(
     case "local":
       provider = new LocalEmbeddingProvider(config);
       break;
+    case "nebius":
+      provider = new NebiusEmbeddingProvider(config);
+      break;
     default:
       throw new Error(`Unknown embedding provider: ${providerType}`);
   }
@@ -665,6 +740,7 @@ export {
   EmbeddingCache,
   OpenAIEmbeddingProvider,
   GoogleEmbeddingProvider,
+  NebiusEmbeddingProvider,
   VoyageEmbeddingProvider,
   VLLMEmbeddingProvider,
   OllamaEmbeddingProvider,

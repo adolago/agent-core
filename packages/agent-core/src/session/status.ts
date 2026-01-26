@@ -9,7 +9,9 @@ export namespace SessionStatus {
    */
   export const StreamHealth = z.object({
     isStalled: z.boolean(),
+    isThinking: z.boolean().optional(), // True when reasoning events are arriving but no text/tool output
     timeSinceLastEventMs: z.number(),
+    timeSinceContentMs: z.number().optional(), // Time since last meaningful content (text/tool)
     eventsReceived: z.number(),
     stallWarnings: z.number(),
   })

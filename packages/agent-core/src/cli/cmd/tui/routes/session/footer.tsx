@@ -80,10 +80,54 @@ export function Footer() {
                 {permissions().length > 1 ? "s" : ""}
               </text>
             </Show>
-            <Show when={streamHealth()?.isStalled}>
-              <text fg={theme.error}>
-                <span style={{ fg: theme.error }}>⚠</span> Stream stalled ({Math.round((streamHealth()?.timeSinceLastEventMs ?? 0) / 1000)}s)
-              </text>
+            <Show when={streamHealth()}>
+              {(() => {
+                const health = streamHealth()!
+                const elapsed = health.timeSinceLastEventMs ?? 0
+                const elapsedSeconds = Math.round(elapsed / 1000)
+
+                // Progressive timeout indicators
+                if (health.isStalled) {
+                  // 60s+ = Hard stall
+                  return (
+                    <text fg={theme.error}>
+                      <span style={{ fg: theme.error }}>⛔</span> Stream stalled ({elapsedSeconds}s)
+                    </text>
+                  )
+                }
+
+                if (health.isThinking) {
+                  // Extended thinking mode - show time since meaningful content
+                  const thinkingSeconds = Math.round((health.timeSinceContentMs ?? 0) / 1000)
+                  return (
+                    <text fg={theme.warning}>
+                      <span style={{ fg: theme.warning }}>🧠</span> Thinking... ({thinkingSeconds}s without output)
+                    </text>
+                  )
+                }
+
+                // Progressive warnings based on elapsed time
+                if (elapsed >= 45_000) {
+                  // 45s+ = Critical warning
+                  return (
+                    <text fg={theme.error}>
+                      <span style={{ fg: theme.error }}>⚠</span> Response delayed ({elapsedSeconds}s)
+                    </text>
+                  )
+                }
+
+                if (elapsed >= 30_000) {
+                  // 30s+ = Warning
+                  return (
+                    <text fg={theme.warning}>
+                      <span style={{ fg: theme.warning }}>⏳</span> Waiting for response ({elapsedSeconds}s)
+                    </text>
+                  )
+                }
+
+                // No indicator for < 30s (normal streaming)
+                return null
+              })()}
             </Show>
             <text fg={theme.text}>
               <Switch>
