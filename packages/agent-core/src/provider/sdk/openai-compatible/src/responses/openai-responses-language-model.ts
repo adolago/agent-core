@@ -9,6 +9,14 @@ import {
   type LanguageModelV2Usage,
   type SharedV2ProviderMetadata,
 } from "@ai-sdk/provider"
+
+// Diagnostic logging for GPT-5.x stream issues
+const DEBUG_STREAM = process.env.DEBUG_OPENAI_STREAM === "1"
+function debugLog(msg: string, data?: Record<string, unknown>) {
+  if (!DEBUG_STREAM) return
+  const ts = new Date().toISOString()
+  console.error(`[${ts}] [openai-responses] ${msg}`, data ? JSON.stringify(data) : "")
+}
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -798,6 +806,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const self = this
 
+    // Diagnostic tracking for GPT-5.x hanging streams
+    const streamStart = Date.now()
+    let firstChunkAt: number | null = null
+    let lastChunkAt: number | null = null
+    let chunkCount = 0
+    debugLog("stream started", { modelId: this.modelId })
+
     let finishReason: LanguageModelV2FinishReason = "unknown"
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
@@ -849,6 +864,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            // Track chunk timing for diagnostics
+            const now = Date.now()
+            chunkCount++
+            if (!firstChunkAt) {
+              firstChunkAt = now
+              debugLog("first chunk received", {
+                modelId: self.modelId,
+                timeToFirstChunkMs: now - streamStart,
+              })
+            }
+            lastChunkAt = now
+
             if (options.includeRawChunks) {
               controller.enqueue({ type: "raw", rawValue: chunk.rawValue })
             }
@@ -856,11 +883,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = "error"
+              debugLog("chunk parse error", { error: String(chunk.error) })
               controller.enqueue({ type: "error", error: chunk.error })
               return
             }
 
             const value = chunk.value
+            debugLog("chunk received", { type: value.type, chunkCount })
 
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === "function_call") {
@@ -1186,6 +1215,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }
             } else if (isResponseCreatedChunk(value)) {
               responseId = value.response.id
+              debugLog("response.created received", {
+                responseId: value.response.id,
+                model: value.response.model,
+                timeFromStartMs: Date.now() - streamStart,
+              })
               controller.enqueue({
                 type: "response-metadata",
                 id: value.response.id,
@@ -1251,6 +1285,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }
             } else if (isResponseFinishedChunk(value)) {
               const responseStatus = (value.response as unknown as { status?: unknown }).status
+              debugLog("response finished event", {
+                type: value.type,
+                status: responseStatus,
+                incompleteReason: value.response.incomplete_details?.reason,
+                timeFromStartMs: Date.now() - streamStart,
+                chunkCount,
+              })
 
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
@@ -1289,11 +1330,32 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            const flushTime = Date.now()
+            const totalDurationMs = flushTime - streamStart
+            const timeSinceLastChunkMs = lastChunkAt ? flushTime - lastChunkAt : null
+
             // GPT-5 bug: Sometimes the stream ends without sending a response.completed
             // or response.incomplete event. In this case, treat it as a normal completion.
             if (finishReason === "unknown" && !hasFunctionCall) {
+              debugLog("GPT-5 stream ended without completion event", {
+                modelId: self.modelId,
+                chunkCount,
+                totalDurationMs,
+                timeSinceLastChunkMs,
+                lastChunkType: "unknown",
+                usage: JSON.stringify(usage),
+              })
               finishReason = "stop"
             }
+
+            debugLog("stream flushing", {
+              modelId: self.modelId,
+              finishReason,
+              chunkCount,
+              totalDurationMs,
+              timeSinceLastChunkMs,
+              hasUsage: usage.inputTokens !== undefined,
+            })
 
             // Close any dangling text part
             if (currentTextId) {
