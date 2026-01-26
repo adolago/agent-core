@@ -45,12 +45,13 @@ export function renderChatControls(state: AppViewState) {
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const focusActive = state.onboarding ? true : state.settings.chatFocusMode;
   // Refresh icon
-  const refreshIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>`;
+  const refreshIcon = html`<svg class="${state.chatLoading ? "spin" : ""}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>`;
   const focusIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
   return html`
     <div class="chat-controls">
       <label class="field chat-controls__session">
         <select
+          aria-label="Select session"
           .value=${state.sessionKey}
           ?disabled=${!state.connected}
           @change=${(e: Event) => {
@@ -89,6 +90,7 @@ export function renderChatControls(state: AppViewState) {
           state.resetToolStream();
           void loadChatHistory(state);
         }}
+        aria-label="Refresh chat history"
         title="Refresh chat history"
       >
         ${refreshIcon}
@@ -105,6 +107,7 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${showThinking}
+        aria-label="Toggle assistant thinking"
         title=${disableThinkingToggle
           ? "Disabled during onboarding"
           : "Toggle assistant thinking/working output"}
@@ -122,6 +125,7 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${focusActive}
+        aria-label="Toggle focus mode"
         title=${disableFocusToggle
           ? "Disabled during onboarding"
           : "Toggle focus mode (hide sidebar + page header)"}
