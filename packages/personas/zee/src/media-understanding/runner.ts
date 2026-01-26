@@ -49,7 +49,7 @@ import {
 import { describeImageWithModel } from "./providers/image.js";
 import { estimateBase64Size, resolveVideoMaxBase64Bytes } from "./video.js";
 
-const AUTO_AUDIO_KEY_PROVIDERS = ["openai", "groq", "deepgram", "google"] as const;
+const AUTO_AUDIO_KEY_PROVIDERS = ["openai", "groq", "deepgram", "google", "google-stt"] as const;
 const AUTO_IMAGE_KEY_PROVIDERS = ["openai", "anthropic", "google", "minimax"] as const;
 const AUTO_VIDEO_KEY_PROVIDERS = ["google"] as const;
 const DEFAULT_IMAGE_MODELS: Record<string, string> = {
@@ -328,6 +328,19 @@ async function resolveGeminiCliEntry(
   };
 }
 
+async function hasGoogleAdc(): Promise<boolean> {
+  // Check for ADC availability for google-stt
+  const defaultAdcPath = path.join(os.homedir(), ".config", "gcloud", "application_default_credentials.json");
+  const hasEnvAdc = Boolean(process.env["GOOGLE_APPLICATION_CREDENTIALS"]);
+  const hasEnvServiceAccount = Boolean(process.env["GOOGLE_CLIENT_EMAIL"]) && Boolean(process.env["GOOGLE_PRIVATE_KEY"]);
+  const hasEnvProject = Boolean(
+    process.env["GOOGLE_CLOUD_PROJECT"] || process.env["GCLOUD_PROJECT"] || process.env["GCP_PROJECT"]
+  );
+  if (hasEnvAdc || hasEnvServiceAccount) return true;
+  if (hasEnvProject && (await fileExists(defaultAdcPath))) return true;
+  return false;
+}
+
 async function resolveKeyEntry(params: {
   cfg: ZeeConfig;
   agentDir?: string;
@@ -346,6 +359,13 @@ async function resolveKeyEntry(params: {
     if (capability === "image" && !provider.describeImage) return null;
     if (capability === "video" && !provider.describeVideo) return null;
     try {
+      // google-stt uses ADC instead of API keys
+      if (providerId === "google-stt") {
+        if (await hasGoogleAdc()) {
+          return { type: "provider" as const, provider: providerId, model };
+        }
+        return null;
+      }
       await resolveApiKeyForProvider({ provider: providerId, cfg, agentDir });
       return { type: "provider" as const, provider: providerId, model };
     } catch {
@@ -722,14 +742,21 @@ async function runProviderEntry(params: {
       maxBytes,
       timeoutMs,
     });
-    const auth = await resolveApiKeyForProvider({
-      provider: providerId,
-      cfg,
-      profileId: entry.profile,
-      preferredProfile: entry.preferredProfile,
-      agentDir: params.agentDir,
-    });
-    const apiKey = requireApiKey(auth, providerId);
+    // google-stt uses ADC (Application Default Credentials) instead of API keys
+    // Skip API key resolution for google-stt and pass a placeholder
+    let apiKey: string;
+    if (providerId === "google-stt") {
+      apiKey = "adc"; // Placeholder - google-stt provider uses ADC internally
+    } else {
+      const auth = await resolveApiKeyForProvider({
+        provider: providerId,
+        cfg,
+        profileId: entry.profile,
+        preferredProfile: entry.preferredProfile,
+        agentDir: params.agentDir,
+      });
+      apiKey = requireApiKey(auth, providerId);
+    }
     const providerConfig = cfg.models?.providers?.[providerId];
     const baseUrl = entry.baseUrl ?? params.config?.baseUrl ?? providerConfig?.baseUrl;
     const mergedHeaders = {

@@ -3,6 +3,7 @@ import type { MediaUnderstandingProvider } from "../types.js";
 import { anthropicProvider } from "./anthropic/index.js";
 import { deepgramProvider } from "./deepgram/index.js";
 import { googleProvider } from "./google/index.js";
+import { googleSttProvider } from "./google-stt/index.js";
 import { groqProvider } from "./groq/index.js";
 import { minimaxProvider } from "./minimax/index.js";
 import { openaiProvider } from "./openai/index.js";
@@ -11,6 +12,7 @@ const PROVIDERS: MediaUnderstandingProvider[] = [
   groqProvider,
   openaiProvider,
   googleProvider,
+  googleSttProvider,
   anthropicProvider,
   minimaxProvider,
   deepgramProvider,
@@ -19,6 +21,10 @@ const PROVIDERS: MediaUnderstandingProvider[] = [
 export function normalizeMediaProviderId(id: string): string {
   const normalized = normalizeProviderId(id);
   if (normalized === "gemini") return "google";
+  // Normalize Google STT / Chirp aliases
+  if (normalized === "chirp" || normalized === "chirp2" || normalized === "chirp-2" || normalized === "chirp_2") {
+    return "google-stt";
+  }
   return normalized;
 }
 
