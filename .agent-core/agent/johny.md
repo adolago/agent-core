@@ -2,7 +2,7 @@
 description: Learning system - study, knowledge graph, spaced repetition
 color: "#DC2626"
 theme: johny
-model: anthropic/claude-opus-4-5-latest
+model: anthropic/claude-opus-4-5
 fallback: google/gemini-3-pro-preview
 temperature: 0.5
 skill: johny
