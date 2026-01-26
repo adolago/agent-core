@@ -7,7 +7,7 @@ Agent-Core is a CLI agent engine that powers the Personas system (Zee, Stanley, 
 
 ## Release
 
-- **Version:** 0.1.2-alpha
+- **Version:** 0.1.6-alpha
 - **Prebuilt targets:** Linux x64
 - **Other platforms:** build from source
 
