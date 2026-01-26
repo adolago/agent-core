@@ -11,6 +11,7 @@ export function mapOpenAIResponseFinishReason({
   switch (finishReason) {
     case undefined:
     case null:
+    case "": // GPT-5 bug: sometimes returns empty string instead of null
       return hasFunctionCall ? "tool-calls" : "stop"
     case "max_output_tokens":
     case "length":
@@ -25,10 +26,8 @@ export function mapOpenAIResponseFinishReason({
       console.warn(`[openai] Response incomplete: ${finishReason}`)
       return "error"
     default:
-      // Log unknown reasons for debugging
-      if (finishReason) {
-        console.warn(`[openai] Unknown finish reason: ${finishReason}`)
-      }
+      // Log unknown reasons for debugging - this helps identify new API values
+      console.warn(`[openai] Unknown finish reason: "${finishReason}"`)
       return hasFunctionCall ? "tool-calls" : "unknown"
   }
 }
