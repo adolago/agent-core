@@ -1309,14 +1309,38 @@ function UserMessage(props: {
 }
 
 function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; last: boolean }) {
+  const ctx = use()
   const local = useLocal()
   const { theme } = useTheme()
   const sync = useSync()
   const messages = createMemo(() => sync.data.message[props.message.sessionID] ?? [])
+  const streamHealth = createMemo(() => {
+    const status = sync.data.session_status?.[props.message.sessionID]
+    return status?.type === "busy" ? status.streamHealth : undefined
+  })
 
   const final = createMemo(() => {
     return props.message.finish && !["tool-calls", "unknown"].includes(props.message.finish)
   })
+
+  const hasVisibleText = createMemo(() =>
+    props.parts.some((part) => part.type === "text" && part.text.trim()),
+  )
+  const hasVisibleTool = createMemo(() =>
+    props.parts.some((part) => {
+      if (part.type !== "tool") return false
+      if (ctx.showDetails()) return true
+      return part.state.status !== "completed"
+    }),
+  )
+  const hasVisibleReasoning = createMemo(() =>
+    ctx.showThinking() && props.parts.some((part) => part.type === "reasoning" && part.text.trim()),
+  )
+  const hasVisibleParts = createMemo(
+    () => hasVisibleText() || hasVisibleTool() || hasVisibleReasoning(),
+  )
+  const isStreaming = createMemo(() => !props.message.time.completed && !props.message.error)
+  const showThinkingPlaceholder = createMemo(() => isStreaming() && !hasVisibleParts())
 
   const duration = createMemo(() => {
     if (!final()) return 0
@@ -1343,6 +1367,25 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
           )
         }}
       </For>
+      <Show when={showThinkingPlaceholder()}>
+        <box
+          paddingLeft={3}
+          marginTop={1}
+          border={["left"]}
+          customBorderChars={SplitBorder.customBorderChars}
+          borderColor={theme.backgroundElement}
+        >
+          <text fg={theme.textMuted}>
+            <span style={{ fg: theme.warning }}>🧠</span> Thinking
+            <Show when={streamHealth()?.timeSinceContentMs != null}>
+              {` (${Math.round((streamHealth()!.timeSinceContentMs ?? 0) / 1000)}s)`}
+            </Show>
+          </text>
+          <Show when={!ctx.showThinking()}>
+            <text fg={theme.textMuted}>Use :thinking to show reasoning</text>
+          </Show>
+        </box>
+      </Show>
       <Show when={props.message.error && props.message.error.name !== "MessageAbortedError"}>
         <box
           border={["left"]}

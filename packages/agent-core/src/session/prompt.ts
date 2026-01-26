@@ -496,12 +496,16 @@ export namespace SessionPrompt {
 
       let lastUser: MessageV2.User | undefined
       let lastAssistant: MessageV2.Assistant | undefined
+      let lastAssistantParts: MessageV2.Part[] | undefined
       let lastFinished: MessageV2.Assistant | undefined
       let tasks: (MessageV2.CompactionPart | MessageV2.SubtaskPart)[] = []
       for (let i = msgs.length - 1; i >= 0; i--) {
         const msg = msgs[i]
         if (!lastUser && msg.info.role === "user") lastUser = msg.info as MessageV2.User
-        if (!lastAssistant && msg.info.role === "assistant") lastAssistant = msg.info as MessageV2.Assistant
+        if (!lastAssistant && msg.info.role === "assistant") {
+          lastAssistant = msg.info as MessageV2.Assistant
+          lastAssistantParts = msg.parts
+        }
         if (!lastFinished && msg.info.role === "assistant" && msg.info.finish)
           lastFinished = msg.info as MessageV2.Assistant
         if (lastUser && lastFinished) break
@@ -515,7 +519,14 @@ export namespace SessionPrompt {
       // Check if we should exit the loop based on assistant's finish reason
       // Continue if: pending tool calls OR pending tasks (subtask/compaction)
       // Exit if: no pending work, even if finish reason is "unknown"
-      const hasPendingToolCalls = lastAssistant?.finish === "tool-calls"
+      const needsToolFollowup = lastAssistantParts ? shouldContinueAfterTools(lastAssistantParts) : false
+      if (needsToolFollowup && lastAssistant) {
+        log.info("tool-only response detected; continuing loop", {
+          sessionID,
+          messageID: lastAssistant.id,
+        })
+      }
+      const hasPendingToolCalls = lastAssistant?.finish === "tool-calls" || needsToolFollowup
       const hasPendingTasks = tasks.length > 0
       if (
         lastAssistant?.finish &&
@@ -866,6 +877,19 @@ export namespace SessionPrompt {
     }
     throw new Error("Impossible")
   })
+
+  function shouldContinueAfterTools(parts: MessageV2.Part[]): boolean {
+    let lastToolIndex = -1
+    let lastTextIndex = -1
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      if (part.type === "tool") lastToolIndex = i
+      if (part.type === "text" && part.text.trim()) lastTextIndex = i
+    }
+    if (lastToolIndex === -1) return false
+    if (lastTextIndex === -1) return true
+    return lastTextIndex < lastToolIndex
+  }
 
   async function lastModel(sessionID: string) {
     for await (const item of MessageV2.stream(sessionID)) {

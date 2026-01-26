@@ -1285,16 +1285,38 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }
             } else if (isResponseFinishedChunk(value)) {
               const responseStatus = (value.response as unknown as { status?: unknown }).status
+              const incompleteReason = value.response.incomplete_details?.reason
               debugLog("response finished event", {
                 type: value.type,
                 status: responseStatus,
-                incompleteReason: value.response.incomplete_details?.reason,
+                incompleteReason,
                 timeFromStartMs: Date.now() - streamStart,
                 chunkCount,
               })
 
+              // Surface errors when response status indicates incomplete or failed
+              // GPT-5.2/kimi-k2-thinking: These models can terminate mid-stream with status=incomplete
+              if (responseStatus === "incomplete" || responseStatus === "failed") {
+                const reason = incompleteReason || responseStatus
+                console.warn(`[openai] Response ${responseStatus}: ${reason}`)
+                controller.enqueue({
+                  type: "error",
+                  error: new Error(`Response ${responseStatus}: ${reason}`),
+                })
+              }
+
+              // Surface critical incomplete errors to user instead of silently failing
+              // Critical errors: server_error, interruption, cancelled, turn_limit
+              // Non-critical: max_output_tokens, content_filter (handled by finishReason)
+              if (incompleteReason && ["server_error", "interruption", "cancelled", "turn_limit"].includes(incompleteReason)) {
+                controller.enqueue({
+                  type: "error",
+                  error: new Error(`Response incomplete: ${incompleteReason}`),
+                })
+              }
+
               finishReason = mapOpenAIResponseFinishReason({
-                finishReason: value.response.incomplete_details?.reason,
+                finishReason: incompleteReason,
                 hasFunctionCall,
               })
               usage.inputTokens = value.response.usage.input_tokens
@@ -1334,18 +1356,57 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             const totalDurationMs = flushTime - streamStart
             const timeSinceLastChunkMs = lastChunkAt ? flushTime - lastChunkAt : null
 
-            // GPT-5 bug: Sometimes the stream ends without sending a response.completed
-            // or response.incomplete event. In this case, treat it as a normal completion.
+            // GPT-5/kimi-k2 bug: Sometimes the stream ends without sending a response.completed
+            // or response.incomplete event. This can happen with extended thinking models.
             if (finishReason === "unknown" && !hasFunctionCall) {
-              debugLog("GPT-5 stream ended without completion event", {
+              debugLog("Stream ended without completion event", {
                 modelId: self.modelId,
                 chunkCount,
                 totalDurationMs,
                 timeSinceLastChunkMs,
                 lastChunkType: "unknown",
                 usage: JSON.stringify(usage),
+                hasUsage: usage.inputTokens !== undefined,
               })
-              finishReason = "stop"
+
+              // Determine if this is a real error or just missing completion event
+              // Real error indicators:
+              // 1. No chunks received at all
+              // 2. No usage data (model didn't finish processing)
+              // 3. Very short duration with no content (likely connection drop)
+              const hasUsageData = usage.inputTokens !== undefined || usage.outputTokens !== undefined
+              const hasMinimalContent = chunkCount >= 2
+              const suspiciouslyShort = totalDurationMs < 1000 && chunkCount < 5
+
+              if (!hasMinimalContent || (!hasUsageData && suspiciouslyShort)) {
+                console.error(
+                  `[openai] Stream terminated unexpectedly (${chunkCount} chunks, ${totalDurationMs}ms, hasUsage=${hasUsageData})`
+                )
+                controller.enqueue({
+                  type: "error",
+                  error: new Error(
+                    `Stream ended unexpectedly: received ${chunkCount} chunks in ${totalDurationMs}ms without completion event`
+                  ),
+                })
+                finishReason = "error"
+              } else {
+                // We have content and/or usage data, treat as successful but warn
+                console.warn(
+                  `[openai] Stream ended without completion event (${chunkCount} chunks, ${totalDurationMs}ms) - treating as successful`
+                )
+                finishReason = "stop"
+              }
+            }
+
+            // If the stream ended without a completion event but we saw tool calls,
+            // treat this as a tool-calls finish to allow a follow-up response.
+            if (finishReason === "unknown" && hasFunctionCall) {
+              debugLog("Stream ended without completion event; tool calls detected", {
+                modelId: self.modelId,
+                chunkCount,
+                totalDurationMs,
+              })
+              finishReason = "tool-calls"
             }
 
             debugLog("stream flushing", {

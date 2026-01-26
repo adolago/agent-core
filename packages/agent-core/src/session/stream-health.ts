@@ -155,6 +155,8 @@ export class StreamHealthMonitor {
   private earlyWarningEmitted: boolean = false
   private noContentWarningEmitted: boolean = false
   private lastMeaningfulEventAt: number
+  private thinkingStatusEmitted: boolean = false
+  private lastThinkingStatusAt: number = 0
 
   // Dependency injection
   private statusHandler: StatusHandler
@@ -197,6 +199,7 @@ export class StreamHealthMonitor {
     // Track specific event types for more detailed metrics
     // Also track meaningful content for extended thinking timeout detection
     const isMeaningfulContent = type === "text-delta" || type === "tool-call" || type === "tool-result"
+    const isReasoningEvent = type.startsWith("reasoning")
     if (type === "text-delta") {
       this.textDeltaEvents++
     } else if (type === "tool-call" || type === "tool-result") {
@@ -207,6 +210,27 @@ export class StreamHealthMonitor {
     if (isMeaningfulContent) {
       this.lastMeaningfulEventAt = Date.now()
       this.noContentWarningEmitted = false
+      this.thinkingStatusEmitted = false
+    }
+
+    // Emit early thinking status as soon as reasoning begins (before any content)
+    if (isReasoningEvent && this.textDeltaEvents === 0 && this.toolCallEvents === 0) {
+      const now = Date.now()
+      if (!this.thinkingStatusEmitted || now - this.lastThinkingStatusAt >= 1000) {
+        this.thinkingStatusEmitted = true
+        this.lastThinkingStatusAt = now
+        this.statusHandler(this.sessionID, {
+          type: "busy",
+          streamHealth: {
+            isStalled: false,
+            isThinking: true,
+            timeSinceLastEventMs: 0,
+            timeSinceContentMs: now - this.lastMeaningfulEventAt,
+            eventsReceived: this.eventsReceived,
+            stallWarnings: this.stallWarnings,
+          },
+        })
+      }
     }
 
     // Reset stall warning state when we receive events

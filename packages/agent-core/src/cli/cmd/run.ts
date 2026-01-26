@@ -13,6 +13,7 @@ import { Server } from "../../server/server"
 import { Provider } from "../../provider/provider"
 import { Agent } from "../../agent/agent"
 import { checkEnvironment } from "./check"
+import { GlobalBus } from "../../bus/global"
 
 const TOOL: Record<string, [string, string]> = {
   todowrite: ["Todo", UI.Style.TEXT_WARNING_BOLD],
@@ -144,9 +145,10 @@ export const RunCommand = cmd({
 
     const execute = async (
       sdk: OpencodeClient,
-      eventClient: ReturnType<typeof createEventClient>,
+      eventClient: ReturnType<typeof createEventClient> | null,
       sessionID: string,
       resolvedAgent: string | undefined,
+      localEvents?: { stream: AsyncIterable<any> },
     ) => {
       const printEvent = (color: string, type: string, title: string) => {
         UI.println(
@@ -165,7 +167,8 @@ export const RunCommand = cmd({
         return false
       }
 
-      const events = await eventClient.event.subscribe()
+      // Use local events stream if provided (bootstrap mode), otherwise use SSE (attach mode)
+      const events = localEvents ?? (await eventClient!.event.subscribe())
       let errorMsg: string | undefined
       const resolveEvent = (input: any): AppEvent | undefined => {
         if (!input || typeof input !== "object") return
@@ -344,7 +347,50 @@ export const RunCommand = cmd({
         return Server.App().fetch(request)
       }) as typeof globalThis.fetch
       const sdk = createOpencodeClient({ baseUrl: "http://opencode.internal", fetch: fetchFn })
-      const eventClient = createEventClient({ baseUrl: "http://opencode.internal", fetch: fetchFn })
+
+      // Create a local event stream using GlobalBus directly instead of SSE
+      // This avoids issues with Server.App().fetch() not properly streaming SSE
+      const createLocalEventStream = () => {
+        const queue: any[] = []
+        let resolver: ((value: IteratorResult<any>) => void) | null = null
+        let done = false
+
+        const handler = (event: { directory?: string; payload: any }) => {
+          if (resolver) {
+            resolver({ value: event.payload, done: false })
+            resolver = null
+          } else {
+            queue.push(event.payload)
+          }
+        }
+
+        GlobalBus.on("event", handler)
+
+        const stream = {
+          [Symbol.asyncIterator]() {
+            return {
+              async next() {
+                if (done) return { value: undefined, done: true }
+                if (queue.length > 0) {
+                  return { value: queue.shift(), done: false }
+                }
+                return new Promise<IteratorResult<any>>((resolve) => {
+                  resolver = resolve
+                })
+              },
+              async return() {
+                done = true
+                GlobalBus.off("event", handler)
+                return { value: undefined, done: true }
+              },
+            }
+          },
+        }
+
+        return { stream }
+      }
+
+      const events = createLocalEventStream()
 
       if (args.command) {
         const exists = await Command.get(args.command)
@@ -400,7 +446,7 @@ export const RunCommand = cmd({
         return args.agent
       })()
 
-      await execute(sdk, eventClient, sessionID, resolvedAgent)
+      await execute(sdk, null, sessionID, resolvedAgent, events)
     })
   },
 })
