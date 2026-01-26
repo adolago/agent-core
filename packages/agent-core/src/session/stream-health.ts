@@ -104,6 +104,18 @@ export class StreamHealthMonitor {
     }
 
     // Reset stall warning state when we receive events
+    // If we were stalled, immediately update status to clear the warning
+    if (this.stallWarningEmitted) {
+      SessionStatus.set(this.sessionID, {
+        type: "busy",
+        streamHealth: {
+          isStalled: false,
+          timeSinceLastEventMs: 0,
+          eventsReceived: this.eventsReceived,
+          stallWarnings: this.stallWarnings,
+        },
+      })
+    }
     this.stallWarningEmitted = false
   }
 
