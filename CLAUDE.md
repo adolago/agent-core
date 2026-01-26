@@ -4,21 +4,25 @@ This is the **engine** that powers Agent-Core.
 
 ## CRITICAL: Always Verify Binary Version Before Testing
 
-**Before testing any changes, ALWAYS verify you're running the correct binary:**
+**Before testing any changes, ALWAYS run the verification script:**
 
 ```bash
-# Check which binary is in PATH
-which agent-core
+# After building, verify binary is correct
+cd packages/agent-core && bun run build
+./script/verify-binary.sh
+```
 
-# Verify version
-agent-core --version
+The script checks:
+1. Installed binary points to local build (not global npm install)
+2. Binary is newer than source files
+3. Symlink resolves correctly
 
-# If version doesn't match expected, the bun link may be broken
-# Fix by pointing directly to compiled binary:
+**If verification fails**, fix with:
+```bash
 ln -sf /home/artur/.local/src/agent-core/packages/agent-core/dist/@adolago/agent-core-linux-x64/bin/agent-core ~/.bun/bin/agent-core
 ```
 
-This prevents testing against stale or broken binaries.
+⚠️ **Common pitfall**: `bun run build` compiles to `dist/` but does NOT update the installed binary if the symlink points elsewhere (e.g., global npm install).
 
 ## CRITICAL: Naming Convention
 
