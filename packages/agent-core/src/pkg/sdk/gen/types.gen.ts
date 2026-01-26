@@ -464,9 +464,13 @@ export type SessionStatus =
       type: "busy"
       streamHealth?: {
         isStalled: boolean
+        isThinking?: boolean
         timeSinceLastEventMs: number
+        timeSinceContentMs?: number
         eventsReceived: number
         stallWarnings: number
+        phase?: "starting" | "thinking" | "tool_calling" | "generating"
+        charsReceived?: number
       }
     }
 

@@ -1880,6 +1880,8 @@ export type SessionStatus =
         timeSinceContentMs?: number
         eventsReceived: number
         stallWarnings: number
+        phase?: "starting" | "thinking" | "tool_calling" | "generating"
+        charsReceived?: number
       }
     }
 

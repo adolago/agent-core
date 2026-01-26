@@ -1407,6 +1407,20 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
               minAlpha: 0.3,
             }),
           }))
+          const phase = createMemo(() => streamHealth()?.phase ?? "thinking")
+          const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
+          const formatChars = (n: number) => {
+            if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+            return n.toString()
+          }
+          const phaseLabel = createMemo(() => {
+            switch (phase()) {
+              case "thinking": return "thinking"
+              case "tool_calling": return "tool calling"
+              case "generating": return "generating"
+              default: return "starting"
+            }
+          })
           return (
             <box
               paddingLeft={3}
@@ -1417,7 +1431,11 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
             >
               <box flexDirection="row" gap={1}>
                 <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                <text fg={theme.textMuted}>(Esc to interrupt - {formatTime(elapsed())} - thinking)</text>
+                <text fg={theme.textMuted}>
+                  (Esc to interrupt - {formatTime(elapsed())}
+                  <Show when={chars() > 0}> - {formatChars(chars())} chars</Show>
+                  {" "}- {phaseLabel()})
+                </text>
               </box>
               <Show when={!ctx.showThinking()}>
                 <text fg={theme.textMuted}>Use :thinking to show reasoning</text>

@@ -140,6 +140,8 @@ export class StreamHealthMonitor {
   private textDeltaEvents: number = 0
   private toolCallEvents: number = 0
   private bytesReceived: number = 0
+  private charsReceived: number = 0
+  private phase: "starting" | "thinking" | "tool_calling" | "generating" = "starting"
 
   // State
   private status: StreamStatus = "streaming"
@@ -186,14 +188,20 @@ export class StreamHealthMonitor {
 
   /**
    * Record that an event was received from the stream.
+   * @param type - Event type
+   * @param bytes - Optional byte count
+   * @param chars - Optional character count for activity tracking
    */
-  recordEvent(type: string, bytes?: number): void {
+  recordEvent(type: string, bytes?: number, chars?: number): void {
     this.lastEventAt = Date.now()
     this.lastEventType = type
     this.eventsReceived++
 
     if (bytes) {
       this.bytesReceived += bytes
+    }
+    if (chars) {
+      this.charsReceived += chars
     }
 
     // Track specific event types for more detailed metrics
@@ -202,8 +210,16 @@ export class StreamHealthMonitor {
     const isReasoningEvent = type.startsWith("reasoning")
     if (type === "text-delta") {
       this.textDeltaEvents++
-    } else if (type === "tool-call" || type === "tool-result") {
+      this.phase = "generating"
+    } else if (type === "tool-call" || type === "tool-result" || type === "tool-input-start") {
       this.toolCallEvents++
+      this.phase = "tool_calling"
+    } else if (isReasoningEvent) {
+      // Only set to "thinking" if we haven't started generating or tool calling yet
+      // Extended thinking models can have reasoning events interleaved with tools
+      if (this.phase === "starting" || this.phase === "thinking") {
+        this.phase = "thinking"
+      }
     }
 
     // Update last meaningful event time when we receive actual content
@@ -228,6 +244,8 @@ export class StreamHealthMonitor {
             timeSinceContentMs: now - this.lastMeaningfulEventAt,
             eventsReceived: this.eventsReceived,
             stallWarnings: this.stallWarnings,
+            phase: this.phase,
+            charsReceived: this.charsReceived,
           },
         })
       }
@@ -243,6 +261,8 @@ export class StreamHealthMonitor {
           timeSinceLastEventMs: 0,
           eventsReceived: this.eventsReceived,
           stallWarnings: this.stallWarnings,
+          phase: this.phase,
+          charsReceived: this.charsReceived,
         },
       })
     }
@@ -330,11 +350,13 @@ export class StreamHealthMonitor {
         type: "busy",
         streamHealth: {
           isStalled: false,
-          isThinking: true, // New flag to indicate reasoning is happening
+          isThinking: true,
           timeSinceLastEventMs: elapsed,
           timeSinceContentMs: elapsedSinceMeaningful,
           eventsReceived: this.eventsReceived,
           stallWarnings: this.stallWarnings,
+          phase: this.phase,
+          charsReceived: this.charsReceived,
         },
       })
     }
@@ -360,10 +382,12 @@ export class StreamHealthMonitor {
       this.statusHandler(this.sessionID, {
         type: "busy",
         streamHealth: {
-          isStalled: false, // Not stalled yet, just slow
+          isStalled: false,
           timeSinceLastEventMs: elapsed,
           eventsReceived: this.eventsReceived,
           stallWarnings: this.stallWarnings,
+          phase: this.phase,
+          charsReceived: this.charsReceived,
         },
       })
     }
@@ -397,6 +421,8 @@ export class StreamHealthMonitor {
           timeSinceLastEventMs: elapsed,
           eventsReceived: this.eventsReceived,
           stallWarnings: this.stallWarnings,
+          phase: this.phase,
+          charsReceived: this.charsReceived,
         },
       })
 
@@ -413,6 +439,8 @@ export class StreamHealthMonitor {
           timeSinceLastEventMs: elapsed,
           eventsReceived: this.eventsReceived,
           stallWarnings: this.stallWarnings,
+          phase: this.phase,
+          charsReceived: this.charsReceived,
         },
       })
     }

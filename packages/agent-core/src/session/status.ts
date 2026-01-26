@@ -14,6 +14,8 @@ export namespace SessionStatus {
     timeSinceContentMs: z.number().optional(), // Time since last meaningful content (text/tool)
     eventsReceived: z.number(),
     stallWarnings: z.number(),
+    phase: z.enum(["starting", "thinking", "tool_calling", "generating"]).optional(),
+    charsReceived: z.number().optional(), // Characters received for activity indication
   })
   export type StreamHealth = z.infer<typeof StreamHealth>
 

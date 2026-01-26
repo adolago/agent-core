@@ -216,8 +216,9 @@ export namespace SessionProcessor {
 	                    break
 	                  }
 	                  const value = result.value
-	                  // Record event for health monitoring
-	                  healthMonitor.recordEvent(value.type)
+	                  // Record event for health monitoring (chars tracked for delta events)
+	                  const deltaChars = (value as any).delta?.length ?? (value as any).textDelta?.length ?? 0
+	                  healthMonitor.recordEvent(value.type, undefined, deltaChars)
 	                  if (!streamStartTimerCleared) {
 	                    streamStartTimerCleared = true
 	                    clearTimeout(streamStartTimer)
@@ -543,11 +544,10 @@ export namespace SessionProcessor {
 	                    })
 	                    continue
 	                }
-	                  if (needsCompaction) {
-	                    healthMonitor.complete()
-	                    await iterator.return?.()
-	                    break
-	                  }
+	                // NOTE: Compaction is handled after stream completes naturally (see line ~647)
+	                // Do NOT break the loop early here - extended thinking models (kimi-k2-thinking,
+	                // gpt-5.2 xhigh) produce long reasoning chains that may exceed compaction
+	                // thresholds mid-stream. Breaking early would lose buffered content.
 	                }
 	              } finally {
 	                clearTimeout(streamStartTimer)
