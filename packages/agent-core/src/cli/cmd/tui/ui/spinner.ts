@@ -38,7 +38,7 @@ interface CarouselState {
 /**
  * Get carousel animation state for a given frame.
  * The carousel moves a group of blocks that wrap around edges continuously.
- * Head moves: 0 → 1 → 2 → ... → 9 → 0 (always forward, wrapping left-to-right)
+ * Head moves: 9 → 8 → 7 → ... → 0 → 9 (always right-to-left, wrapping)
  */
 function getCarouselState(
   frameIndex: number,
@@ -48,21 +48,22 @@ function getCarouselState(
   // Total cycle = width frames (head goes through all positions)
   const cycleFrame = frameIndex % totalChars
 
-  // Head moves forward: 0 → 1 → 2 → ... → 9 → 0 (wrap around)
-  const head = cycleFrame
+  // Head moves right-to-left: starts at rightmost, decreases, wraps from 0 to end
+  // Frame 0: head at position (width-1), Frame 1: head at (width-2), etc.
+  const head = (totalChars - 1 - cycleFrame + totalChars) % totalChars
 
   return {
     offset: head,
-    isMovingForward: true, // Always moving forward
+    isMovingForward: false, // Moving right-to-left
     activeCount,
-    phase: "forward", // Always forward phase
+    phase: "forward",
   }
 }
 
 /**
  * Calculate which positions are active in carousel mode and their trail index.
  * Returns the trail index (0 = lead/brightest, 1+ = trail), or -1 if inactive.
- * Trail follows behind the head in the direction of movement.
+ * Trail follows behind the head (to the right, since head moves left).
  */
 function getCarouselColorIndex(
   charIndex: number,
@@ -71,10 +72,10 @@ function getCarouselColorIndex(
 ): number {
   const { offset: head, activeCount } = state
 
-  // Head is at position 'head', trail follows behind (head-1, head-2, etc. with wrap)
-  // i=0 is the head (brightest), i=1 is one step behind, etc.
+  // Head moves right-to-left, so trail is to the right (head+1, head+2, etc. with wrap)
+  // i=0 is the head (brightest), i=1 is one step behind (to the right), etc.
   for (let i = 0; i < activeCount; i++) {
-    const pos = (head - i + totalChars) % totalChars
+    const pos = (head + i) % totalChars
     if (pos === charIndex) {
       return i // Trail index (0 = lead/brightest)
     }
