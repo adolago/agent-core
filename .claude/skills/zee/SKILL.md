@@ -140,6 +140,70 @@ codexbar cost --provider codex
 codexbar cost --provider claude
 ```
 
+### Browser Automation (Computer Use)
+Control a browser programmatically via the Zee gateway. Enable with `zee.browser.enabled` in `agent-core.jsonc`.
+
+**Prerequisites:**
+1. Chrome/Chromium running with remote debugging:
+   ```bash
+   chromium --remote-debugging-port=9222
+   ```
+2. Zee gateway running (auto-started by `agent-core daemon`)
+
+**Configuration** (`agent-core.jsonc`):
+```json
+{
+  "zee": {
+    "browser": {
+      "enabled": true,
+      "controlUrl": "http://127.0.0.1:18791",
+      "profile": "zee"
+    }
+  }
+}
+```
+
+**Browser Tools Workflow:**
+
+1. **Check status** - Verify browser server is running
+   ```
+   zee:browser-status → { "status": "ok", "profiles": ["zee", "chrome"] }
+   ```
+
+2. **Navigate** - Go to a URL
+   ```
+   zee:browser-navigate { url: "https://example.com" }
+   ```
+
+3. **Snapshot** - Get ARIA tree with element refs
+   ```
+   zee:browser-snapshot → Returns accessibility tree with refs like:
+   - button[0]: "Submit"
+   - textbox[1]: "Search..."
+   - link[2]: "Home"
+   ```
+
+4. **Interact** - Click, type, fill forms using refs
+   ```
+   zee:browser-click { ref: "button[0]" }
+   zee:browser-type { ref: "textbox[1]", text: "hello world", submit: true }
+   zee:browser-fill-form { fields: [
+     { ref: "textbox[0]", value: "user@example.com" },
+     { ref: "textbox[1]", value: "password123" }
+   ]}
+   ```
+
+5. **Wait** - Wait for conditions
+   ```
+   zee:browser-wait { waitFor: "text", value: "Success" }
+   zee:browser-wait { waitFor: "element", selector: "#result" }
+   ```
+
+6. **Screenshot** - Capture visual state
+   ```
+   zee:browser-screenshot { fullPage: true }
+   ```
+
 ## Domain Tools
 
 | Tool | Purpose |
@@ -157,6 +221,15 @@ codexbar cost --provider claude
 | `zee:notification` | Proactive alerts and reminders |
 | `zee:splitwise` | Shared expenses, balances, reimbursements |
 | `zee:codexbar` | Provider usage monitoring via CodexBar CLI |
+| `zee:browser-status` | Check browser control server status |
+| `zee:browser-snapshot` | Get ARIA accessibility tree with element refs |
+| `zee:browser-navigate` | Navigate to URL |
+| `zee:browser-click` | Click element by ref (e.g., "button[3]") |
+| `zee:browser-type` | Type text into element |
+| `zee:browser-fill-form` | Fill multiple form fields at once |
+| `zee:browser-screenshot` | Capture page or element screenshot |
+| `zee:browser-wait` | Wait for element, text, or URL |
+| `zee:browser-tabs` | List open browser tabs |
 
 ## Runtime Status
 
@@ -229,11 +302,13 @@ zee operates across multiple surfaces:
 ## Integration Points
 
 - **agent-core**: `/src/domain/zee/tools.ts`
+- **Browser**: `/src/domain/zee/browser.ts` (Playwright via Zee gateway)
 - **Plugins**: `/src/plugin/builtin/domains/zee-messaging.ts`
 - **Memory**: `/src/plugin/builtin/memory-persistence.ts`
 - **Qdrant**: Vector database for semantic memory
 - **CodexBar**: Menu bar usage tracking + `codexbar` CLI
 - **Splitwise**: Expense sharing API (`https://secure.splitwise.com/api/v3.0`)
+- **Zee Gateway**: Browser control server at `http://127.0.0.1:18791`
 
 ## Permissions
 
@@ -251,6 +326,7 @@ zee operates across multiple surfaces:
 - Personal task tracking
 - Life admin automation
 - Morning/evening briefings
+- Browser automation (form filling, web scraping, UI testing)
 
 ---
 

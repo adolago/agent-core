@@ -45,6 +45,7 @@ type RuntimeConfig = {
   zee?: {
     splitwise?: ZeeSplitwiseConfig;
     codexbar?: ZeeCodexbarConfig;
+    browser?: ZeeBrowserConfig;
   };
 };
 
@@ -82,6 +83,12 @@ export type ZeeCodexbarConfig = {
   enabled?: boolean;
   command?: string | string[];
   timeoutMs?: number;
+};
+
+export type ZeeBrowserConfig = {
+  enabled?: boolean;
+  controlUrl?: string;
+  profile?: string;
 };
 
 const CONFIG_PATHS = [
@@ -148,6 +155,10 @@ function mergeConfigs(base: RuntimeConfig, override: RuntimeConfig): RuntimeConf
       codexbar: {
         ...base.zee?.codexbar,
         ...override.zee?.codexbar,
+      },
+      browser: {
+        ...base.zee?.browser,
+        ...override.zee?.browser,
       },
     },
   };
@@ -238,4 +249,8 @@ export function getZeeSplitwiseConfig(): ZeeSplitwiseConfig {
 
 export function getZeeCodexbarConfig(): ZeeCodexbarConfig {
   return loadRuntimeConfig().zee?.codexbar ?? {};
+}
+
+export function getZeeBrowserConfig(): ZeeBrowserConfig {
+  return loadRuntimeConfig().zee?.browser ?? {};
 }

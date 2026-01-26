@@ -45,6 +45,7 @@ import {
   type TimeSlot,
 } from "./google/calendar.js";
 import { getMemory } from "../../memory/unified.js";
+import { BROWSER_TOOLS, registerBrowserTools } from "./browser.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -1199,6 +1200,7 @@ export const ZEE_TOOLS = [
   splitwiseTool,
   codexbarTool,
   whatsappReactionTool,
+  ...BROWSER_TOOLS,
 ];
 
 export function registerZeeTools(registry: { register: (tool: ToolDefinition, options: { source: string }) => void }): void {

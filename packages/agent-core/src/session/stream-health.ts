@@ -403,9 +403,9 @@ export class StreamHealthMonitor {
       return true
     }
 
-    // Update session status with healthy stream info periodically
-    // Only if we haven't emitted a stall warning
-    if (this.eventsReceived > 0 && this.eventsReceived % 50 === 0) {
+    // Update session status with healthy stream info on every stall check (every 2s)
+    // This ensures UI has fresh eventsReceived count for activity indicator
+    if (this.eventsReceived > 0 && !this.stallWarningEmitted) {
       this.statusHandler(this.sessionID, {
         type: "busy",
         streamHealth: {
@@ -533,6 +533,7 @@ export class StreamHealthMonitor {
       eventsPerSecond,
     }
   }
+
 
   /**
    * Check if the stream is currently stalled (warning threshold exceeded).

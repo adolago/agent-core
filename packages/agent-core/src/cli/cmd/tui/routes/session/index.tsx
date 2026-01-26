@@ -1381,10 +1381,11 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
             onCleanup(() => clearInterval(timer))
           })
           const formatTime = (s: number) => {
-            if (s < 60) return `${s}s`
-            const m = Math.floor(s / 60)
+            const h = Math.floor(s / 3600)
+            const m = Math.floor((s % 3600) / 60)
             const sec = s % 60
-            return `${m}m ${sec}s`
+            const pad = (n: number) => n.toString().padStart(2, "0")
+            return `${pad(h)}:${pad(m)}:${pad(sec)}`
           }
           const spinnerDef = createMemo(() => ({
             frames: createFrames({
@@ -1416,9 +1417,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
             >
               <box flexDirection="row" gap={1}>
                 <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                <text fg={theme.textMuted}>
-                  Thinking... <span style={{ fg: theme.textMuted }}>({formatTime(elapsed())})</span>
-                </text>
+                <text fg={theme.textMuted}>(Esc to interrupt - {formatTime(elapsed())} - thinking)</text>
               </box>
               <Show when={!ctx.showThinking()}>
                 <text fg={theme.textMuted}>Use :thinking to show reasoning</text>
