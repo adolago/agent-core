@@ -13,10 +13,22 @@ export function mapOpenAIResponseFinishReason({
     case null:
       return hasFunctionCall ? "tool-calls" : "stop"
     case "max_output_tokens":
+    case "length":
       return "length"
     case "content_filter":
       return "content-filter"
+    case "server_error":
+    case "interruption":
+    case "turn_limit":
+    case "cancelled":
+      // Log unexpected incomplete reasons for diagnostics
+      console.warn(`[openai] Response incomplete: ${finishReason}`)
+      return "error"
     default:
+      // Log unknown reasons for debugging
+      if (finishReason) {
+        console.warn(`[openai] Unknown finish reason: ${finishReason}`)
+      }
       return hasFunctionCall ? "tool-calls" : "unknown"
   }
 }
