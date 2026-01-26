@@ -1,5 +1,5 @@
 import { realpathSync } from "fs"
-import { exists, realpath } from "fs/promises"
+import { realpath } from "fs/promises"
 import { dirname, join, relative } from "path"
 
 export namespace Filesystem {
