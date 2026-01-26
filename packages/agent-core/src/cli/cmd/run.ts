@@ -254,6 +254,13 @@ export const RunCommand = cmd({
         }
       })()
 
+      // Hold mode: first message in new session restricts edit/write tools
+      // This mirrors TUI behavior - agents must plan before executing
+      const isNewSession = !args.continue && !args.session
+      const holdModeTools = isNewSession
+        ? { edit: false, write: false, notebook_edit: false }
+        : undefined
+
       if (args.command) {
         await sdk.session.command({
           sessionID,
@@ -270,6 +277,7 @@ export const RunCommand = cmd({
           agent: resolvedAgent,
           model: modelParam,
           variant: args.variant,
+          tools: holdModeTools,
           parts: [...fileParts, { type: "text", text: message }],
         })
       }

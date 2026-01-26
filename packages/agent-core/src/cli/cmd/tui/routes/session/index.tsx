@@ -299,11 +299,12 @@ export function Session() {
     if (part.state.status !== "completed") return
     if (part.id === lastSwitch) return
 
+    // Hold/release are modes, not agents - use the mode system
     if (part.tool === "hold_release") {
-      local.agent.set("release")
+      local.mode.setRelease()
       lastSwitch = part.id
     } else if (part.tool === "hold_enter") {
-      local.agent.set("hold")
+      local.mode.setHold()
       lastSwitch = part.id
     }
   })

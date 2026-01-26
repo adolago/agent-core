@@ -44,6 +44,7 @@ export const HoldReleaseTool = Tool.define("hold_release", {
 
     const model = await getLastModel(ctx.sessionID)
 
+    // Use current agent - hold/release are modes, not separate agents
     const userMsg: MessageV2.User = {
       id: Identifier.ascending("message"),
       sessionID: ctx.sessionID,
@@ -51,7 +52,7 @@ export const HoldReleaseTool = Tool.define("hold_release", {
       time: {
         created: Date.now(),
       },
-      agent: "release",
+      agent: ctx.agent, // Keep the current agent
       model,
     }
     await Session.updateMessage(userMsg)
@@ -60,14 +61,14 @@ export const HoldReleaseTool = Tool.define("hold_release", {
       messageID: userMsg.id,
       sessionID: ctx.sessionID,
       type: "text",
-      text: `The plan at ${plan} has been approved, you can now edit files. Execute the plan`,
+      text: `The plan at ${plan} has been approved. Mode changed to RELEASE - you can now edit files. Execute the plan.`,
       synthetic: true,
     } satisfies MessageV2.TextPart)
 
     return {
-      title: "Switching to release agent",
-      output: "User approved switching to release agent. Wait for further instructions.",
-      metadata: {},
+      title: "Switching to release mode",
+      output: "User approved switching to release mode. You can now edit files. Continue with the plan.",
+      metadata: { modeChange: "release" },
     }
   },
 })
@@ -101,6 +102,7 @@ export const HoldEnterTool = Tool.define("hold_enter", {
 
     const model = await getLastModel(ctx.sessionID)
 
+    // Use current agent - hold/release are modes, not separate agents
     const userMsg: MessageV2.User = {
       id: Identifier.ascending("message"),
       sessionID: ctx.sessionID,
@@ -108,7 +110,7 @@ export const HoldEnterTool = Tool.define("hold_enter", {
       time: {
         created: Date.now(),
       },
-      agent: "hold",
+      agent: ctx.agent, // Keep the current agent
       model,
     }
     await Session.updateMessage(userMsg)
@@ -117,14 +119,14 @@ export const HoldEnterTool = Tool.define("hold_enter", {
       messageID: userMsg.id,
       sessionID: ctx.sessionID,
       type: "text",
-      text: "User has requested to enter hold mode. Switch to hold mode and begin planning.",
+      text: "Mode changed to HOLD (read-only). Begin planning and research without editing files.",
       synthetic: true,
     } satisfies MessageV2.TextPart)
 
     return {
       title: "Switching to hold mode",
-      output: `User confirmed to switch to hold mode. A new message has been created to switch you to hold mode. The plan file will be at ${plan}. Begin planning.`,
-      metadata: {},
+      output: `User confirmed to switch to hold mode. The plan file will be at ${plan}. Begin planning without editing files.`,
+      metadata: { modeChange: "hold" },
     }
   },
 })

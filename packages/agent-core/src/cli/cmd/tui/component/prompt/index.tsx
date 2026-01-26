@@ -1007,24 +1007,29 @@ export function Prompt(props: PromptProps) {
           })),
       })
     } else {
-      // Hold mode: force hold agent for first message in session
+      // Hold mode: force hold mode for first message in session
       const messages = sync.data.message[sessionID] ?? []
       const isFirstMessage = messages.length === 0
-      const effectiveAgent = isFirstMessage ? "hold" : local.agent.current().name
 
-      // Update local agent state to reflect hold mode for first message
-      if (isFirstMessage) {
-        local.agent.set("hold")
+      // Force hold mode for first message (read-only until user approves plan)
+      if (isFirstMessage && !local.mode.isHold()) {
+        local.mode.setHold()
       }
+
+      // Tool restrictions for hold mode (read-only: no edit/write)
+      const holdModeTools = local.mode.isHold()
+        ? { edit: false, write: false, notebook_edit: false }
+        : undefined
 
       sdk.client.session
         .prompt({
           sessionID,
           ...selectedModel,
           messageID,
-          agent: effectiveAgent,
+          agent: local.agent.current().name,
           model: selectedModel,
           variant,
+          tools: holdModeTools,
           parts: [
             {
               id: Identifier.ascending("part"),

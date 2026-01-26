@@ -2,6 +2,24 @@
 
 This is the **engine** that powers Agent-Core.
 
+## CRITICAL: Always Verify Binary Version Before Testing
+
+**Before testing any changes, ALWAYS verify you're running the correct binary:**
+
+```bash
+# Check which binary is in PATH
+which agent-core
+
+# Verify version
+agent-core --version
+
+# If version doesn't match expected, the bun link may be broken
+# Fix by pointing directly to compiled binary:
+ln -sf /home/artur/.local/src/agent-core/packages/agent-core/dist/@adolago/agent-core-linux-x64/bin/agent-core ~/.bun/bin/agent-core
+```
+
+This prevents testing against stale or broken binaries.
+
 ## CRITICAL: Naming Convention
 
 **NEVER use the legacy name in new code, documentation, or user-facing text.**
