@@ -37,40 +37,29 @@ interface CarouselState {
 
 /**
  * Get carousel animation state for a given frame.
- * The carousel moves a group of blocks that wrap around edges.
- * Phase 1 (forward): Group starts on left, moves right with wrap-around until all on right
- * Phase 2 (backward): Group moves left (no wrap) until all back on left
+ * The carousel moves a group of blocks that wrap around edges continuously.
+ * Head moves: 0 → 9 → 8 → 7 → ... → 1 → 0 (wrapping right-to-left visually)
  */
 function getCarouselState(
   frameIndex: number,
   totalChars: number,
   activeCount: number,
 ): CarouselState {
-  // Number of frames to move all blocks from left to right (with wrapping)
-  const forwardFrames = totalChars
-  // Number of frames to move all blocks from right to left (no wrapping)
-  const backwardFrames = totalChars - activeCount
+  // Total cycle = width frames (head goes through all positions)
+  const cycleFrame = frameIndex % totalChars
 
-  const totalCycleFrames = forwardFrames + backwardFrames
-  const cycleFrame = frameIndex % totalCycleFrames
+  // Head moves: 0 → 9 → 8 → 7 → ... → 1 → 0
+  const head = (totalChars - cycleFrame) % totalChars
 
-  if (cycleFrame < forwardFrames) {
-    // Forward phase: blocks wrap from left to right
-    return {
-      offset: cycleFrame,
-      isMovingForward: true,
-      activeCount,
-      phase: "forward",
-    }
-  } else {
-    // Backward phase: blocks slide from right to left (no wrap)
-    const backwardProgress = cycleFrame - forwardFrames
-    return {
-      offset: forwardFrames - 1 - backwardProgress,
-      isMovingForward: false,
-      activeCount,
-      phase: "backward",
-    }
+  // Forward phase: when blocks are wrapping (frames 0 to activeCount)
+  // Backward phase: when blocks slide without wrap (rest of cycle)
+  const forwardFrames = activeCount + 1
+
+  return {
+    offset: head,
+    isMovingForward: cycleFrame < forwardFrames,
+    activeCount,
+    phase: cycleFrame < forwardFrames ? "forward" : "backward",
   }
 }
 
@@ -83,25 +72,13 @@ function getCarouselColorIndex(
   totalChars: number,
   state: CarouselState,
 ): number {
-  const { offset, activeCount, phase } = state
+  const { offset: head, activeCount } = state
 
-  // Calculate positions of each active block
-  // In forward phase: lead is at offset, trail follows behind (wrapping)
-  // In backward phase: lead is at the front of the group moving left
+  // Each block position: head, head+1, head+2, ... (with wrap)
   for (let i = 0; i < activeCount; i++) {
-    let pos: number
-    if (phase === "forward") {
-      // Lead at offset, trail wraps around to the right
-      pos = (offset - i + totalChars) % totalChars
-    } else {
-      // Moving left: lead is at the leftmost position of the group
-      // offset represents the leftmost position
-      pos = offset + i
-      if (pos >= totalChars) continue // Out of bounds
-    }
-
+    const pos = (head + i) % totalChars
     if (pos === charIndex) {
-      return i // Trail index (0 = lead)
+      return i // Trail index (0 = lead/brightest)
     }
   }
 
@@ -369,10 +346,8 @@ function createCarouselFrames(options: KnightRiderOptions): string[] {
       ? deriveTrailColors(options.color, activeCount)
       : deriveTrailColors(RGBA.fromHex("#ff0000"), activeCount))
 
-  // Carousel cycle: Forward (width) + Backward (width - activeCount)
-  const forwardFrames = width
-  const backwardFrames = width - activeCount
-  const totalFrames = forwardFrames + backwardFrames
+  // Carousel cycle: width frames (head visits each position once)
+  const totalFrames = width
 
   const frames = Array.from({ length: totalFrames }, (_, frameIndex) => {
     const state = getCarouselState(frameIndex, width, activeCount)
