@@ -123,17 +123,12 @@ export async function modelsStatusCommand(
   // a provider isn't currently selected in config/models).
   const envProbeProviders = [
     "anthropic",
-    "github-copilot",
-    "google-vertex",
     "openai",
     "google",
-    "groq",
     "cerebras",
     "xai",
     "openrouter",
     "zai",
-    "mistral",
-    "synthetic",
   ];
   for (const provider of envProbeProviders) {
     if (resolveEnvApiKey(provider)) providersFromEnv.add(provider);

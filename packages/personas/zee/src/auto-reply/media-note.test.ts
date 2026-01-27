@@ -35,7 +35,7 @@ describe("buildInboundMediaNote", () => {
           kind: "audio.transcription",
           attachmentIndex: 0,
           text: "hello",
-          provider: "groq",
+          provider: "google",
         },
       ],
     });

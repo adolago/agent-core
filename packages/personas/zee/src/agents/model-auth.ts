@@ -272,18 +272,11 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
   const envMap: Record<string, string> = {
     openai: "OPENAI_API_KEY",
     google: "GEMINI_API_KEY",
-    groq: "GROQ_API_KEY",
-    deepgram: "DEEPGRAM_API_KEY",
     cerebras: "CEREBRAS_API_KEY",
     xai: "XAI_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
-    "vercel-ai-gateway": "AI_GATEWAY_API_KEY",
-    moonshot: "MOONSHOT_API_KEY",
     "kimi-code": "KIMICODE_API_KEY",
     minimax: "MINIMAX_API_KEY",
-    synthetic: "SYNTHETIC_API_KEY",
-    venice: "VENICE_API_KEY",
-    mistral: "MISTRAL_API_KEY",
     opencode: "OPENCODE_API_KEY",
   };
   const envVar = envMap[normalized];

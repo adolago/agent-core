@@ -19,12 +19,8 @@ const MODEL_PICK_PROVIDER_PREFERENCE = [
   "zai",
   "openrouter",
   "opencode",
-  "github-copilot",
-  "groq",
   "cerebras",
-  "mistral",
   "xai",
-  "lmstudio",
 ] as const;
 
 const PROVIDER_RANK = new Map<string, number>(
