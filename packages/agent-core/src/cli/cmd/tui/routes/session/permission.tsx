@@ -7,6 +7,7 @@ import { useTheme, selectedForeground } from "../../context/theme"
 import type { PermissionRequest } from "@opencode-ai/sdk/v2"
 import { useSDK } from "../../context/sdk"
 import { SplitBorder } from "../../component/border"
+import { useDialog } from "../../ui/dialog"
 import { useSync } from "../../context/sync"
 import { useTextareaKeybindings } from "../../component/textarea-keybindings"
 import path from "path"
@@ -302,8 +303,10 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
   const { theme } = useTheme()
   const keybind = useKeybind()
   const textareaKeybindings = useTextareaKeybindings()
+  const dialog = useDialog()
 
   useKeyboard((evt) => {
+    if (dialog.stack.length > 0) return
     if (evt.name === "escape" || keybind.match("app_exit", evt)) {
       evt.preventDefault()
       props.onCancel()
@@ -379,8 +382,10 @@ function Prompt<const T extends Record<string, string>>(props: {
     expanded: false,
   })
   const diffKey = Keybind.parse("ctrl+f")[0]
+  const dialog = useDialog()
 
   useKeyboard((evt) => {
+    if (dialog.stack.length > 0) return
     if (evt.name === "left" || evt.name == "h") {
       evt.preventDefault()
       const idx = keys.indexOf(store.selected)

@@ -135,7 +135,7 @@ export function WhichKey() {
                 Which Key?
               </text>
               <text fg={theme.textMuted}> (</text>
-              <text fg={theme.warning}>Esc</text>
+              <text fg={theme.warning}>q</text>
               <text fg={theme.textMuted}> to cancel)</text>
             </box>
 

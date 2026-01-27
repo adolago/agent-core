@@ -85,9 +85,9 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
         return
       }
 
-      // Only Escape dismisses the which-key popup without executing an action
+      // Only 'q' dismisses the which-key popup without executing an action
       // Other keys are handled by individual components which call leader(false) explicitly
-      if (store.leader && evt.name === "escape") {
+      if (store.leader && evt.name === "q") {
         evt.stopPropagation()
         leader(false)
         return

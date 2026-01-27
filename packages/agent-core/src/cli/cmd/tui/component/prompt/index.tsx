@@ -105,7 +105,7 @@ export function Prompt(props: PromptProps) {
     }
     return Math.floor(total / 1000)
   })
-  // Context usage percentage (for compaction indicator)
+  // Context usage for token counter and compaction indicator
   const contextUsage = createMemo(() => {
     if (!props.sessionID) return null
     const messages = sync.data.message[props.sessionID] ?? []
@@ -125,7 +125,11 @@ export function Prompt(props: PromptProps) {
     const usable = modelInfo.limit.input ?? (modelInfo.limit.context - outputLimit)
     if (usable <= 0) return null
     
-    return Math.min(100, Math.round((count / usable) * 100))
+    return {
+      count,
+      limit: usable,
+      percent: Math.min(100, Math.round((count / usable) * 100)),
+    }
   })
   const history = usePromptHistory()
   const stash = usePromptStash()
@@ -501,7 +505,7 @@ export function Prompt(props: PromptProps) {
         onSelect: (dialog) => {
           if (autocomplete.visible) return
           // Removed focus check - allow abort even when prompt is not focused
-          // This enables escape to work from any state in the session
+          // This enables leader+esc to work from any state in the session
           // FUTURE: Shell mode toggle should be its own registered command
           // for better discoverability in the command palette
           if (store.mode === "shell") {
@@ -1759,6 +1763,16 @@ export function Prompt(props: PromptProps) {
             <text fg={highlight()}>
               {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
             </text>
+            {/* Vim mode indicator */}
+            <Show when={vim.enabled && store.mode !== "shell"}>
+              <text fg={vim.isNormal ? theme.accent : theme.textMuted}>
+                {vim.isNormal ? "[N]" : "[I]"}
+              </text>
+            </Show>
+            {/* Hold/Release mode indicator */}
+            <text fg={local.mode.isHold() ? theme.warning : theme.success}>
+              {local.mode.isHold() ? "HOLD" : "RELS"}
+            </text>
             <Switch fallback={
               <Switch>
                 <Match when={dictationState() === "listening"}>
@@ -1928,9 +1942,28 @@ export function Prompt(props: PromptProps) {
                     </text>
                   )
                 })()}
+                <Show when={contextUsage()}>
+                  {(() => {
+                    const formatTokens = (n: number) => {
+                      if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
+                      if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
+                      return n.toString()
+                    }
+                    const usage = contextUsage()!
+                    const color = usage.percent >= 80 ? theme.error : usage.percent >= 60 ? theme.warning : theme.textMuted
+                    return (
+                      <>
+                        <text fg={theme.textMuted}>·</text>
+                        <text fg={color}>
+                          {formatTokens(usage.count)}/{formatTokens(usage.limit)}
+                        </text>
+                      </>
+                    )
+                  })()}
+                </Show>
                 <Show when={status().type === "busy"}>
                   <box flexDirection="row" gap={1} marginLeft={2}>
-                    <text fg={store.interrupt > 0 ? theme.primary : theme.text}>esc</text>
+                    <text fg={store.interrupt > 0 ? theme.primary : theme.text}>spc esc</text>
                     <text fg={store.interrupt > 0 ? theme.primary : theme.textMuted}>
                       {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
                     </text>

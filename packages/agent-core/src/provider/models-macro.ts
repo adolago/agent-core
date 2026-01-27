@@ -6,6 +6,7 @@ export async function data() {
       return await file.text()
     }
   }
-  const json = await fetch("https://models.dev/api.json").then((x) => x.text())
+  const modelsDevUrl = Bun.env.AGENT_CORE_MODELS_URL ?? Bun.env.OPENCODE_MODELS_URL ?? "https://models.dev"
+  const json = await fetch(`${modelsDevUrl}/api.json`).then((x) => x.text())
   return json
 }

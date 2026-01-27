@@ -76,7 +76,7 @@ export const TIPS = [
   "Press {highlight}Ctrl+Alt+G{/highlight} or {highlight}End{/highlight} to jump to the most recent message.",
   "Press {highlight}Shift+Enter{/highlight} or {highlight}Ctrl+J{/highlight} to add newlines in your prompt.",
   "Press {highlight}Ctrl+C{/highlight} when typing to clear the input field.",
-  "Press {highlight}Escape{/highlight} to stop the AI mid-response.",
+  "Press {highlight}Space Esc{/highlight} to stop the AI mid-response.",
   "Use {highlight}HOLD{/highlight} mode to research without making changes, {highlight}RELEASE{/highlight} to edit files.",
   "Use {highlight}@<agent-name>{/highlight} in prompts to invoke specialized subagents.",
   "Press {highlight}Space Right/Left{/highlight} to cycle through parent and child sessions.",

@@ -91,7 +91,7 @@ export namespace ModelsDev {
       return JSON.parse(json) as Record<string, Provider>
     }
     // Direct fetch as final fallback
-    const response = await fetch("https://models.dev/api.json")
+    const response = await fetch(`${Global.Path.modelsDevUrl}/api.json`)
     return (await response.json()) as Record<string, Provider>
   }
 
@@ -101,7 +101,7 @@ export namespace ModelsDev {
     log.info("refreshing", {
       file,
     })
-    const result = await fetch("https://models.dev/api.json", {
+    const result = await fetch(`${Global.Path.modelsDevUrl}/api.json`, {
       headers: {
         "User-Agent": Installation.USER_AGENT,
       },
