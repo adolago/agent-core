@@ -33,8 +33,10 @@ process.on("uncaughtException", (e) => {
 })
 
 // Subscribe to global events and forward them via RPC
+// Use GlobalBus directly instead of SSE - this avoids issues with
+// Server.App().fetch() not properly streaming SSE (same approach as CLI `run`)
 GlobalBus.on("event", (event) => {
-  Rpc.emit("global.event", event)
+  Rpc.emit("event", event)
 })
 
 let server: Bun.Server<BunWebSocketData> | undefined
@@ -106,7 +108,8 @@ const startEventStream = (directory: string) => {
   })
 }
 
-startEventStream(process.cwd())
+// SSE event stream disabled - using GlobalBus directly for reliable event delivery
+// startEventStream(process.cwd())
 
 export const rpc = {
   async fetch(input: { url: string; method: string; headers: Record<string, string>; body?: string }) {

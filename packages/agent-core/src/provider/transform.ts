@@ -616,7 +616,12 @@ export namespace ProviderTransform {
       result["chat_template_args"] = { enable_thinking: true }
     }
 
-    if (["zai", "zhipuai"].includes(input.model.providerID) && input.model.api.npm === "@ai-sdk/openai-compatible") {
+    // Enable thinking mode for Z.AI/ZhipuAI models
+    // Use .includes() to match provider IDs like "zai-coding-plan"
+    if (
+      (input.model.providerID.includes("zai") || input.model.providerID === "zhipuai") &&
+      input.model.api.npm === "@ai-sdk/openai-compatible"
+    ) {
       result["thinking"] = {
         type: "enabled",
         clear_thinking: false,

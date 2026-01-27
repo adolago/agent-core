@@ -439,7 +439,8 @@ export function Prompt(props: PromptProps) {
         enabled: status().type !== "idle",
         onSelect: (dialog) => {
           if (autocomplete.visible) return
-          if (!input.focused) return
+          // Removed focus check - allow abort even when prompt is not focused
+          // This enables escape to work from any state in the session
           // FUTURE: Shell mode toggle should be its own registered command
           // for better discoverability in the command palette
           if (store.mode === "shell") {
@@ -1246,6 +1247,16 @@ export function Prompt(props: PromptProps) {
                 if (props.disabled) {
                   e.preventDefault()
                   return
+                }
+
+                // Global abort: Ctrl+C always aborts, bypasses all mode/focus checks
+                if (e.ctrl && e.name === "c") {
+                  if (status().type !== "idle" && props.sessionID) {
+                    sdk.client.session.abort({ sessionID: props.sessionID })
+                    setStore("interrupt", 0)
+                    e.preventDefault()
+                    return
+                  }
                 }
 
                 // Vim mode handling
