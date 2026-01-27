@@ -1,5 +1,6 @@
 import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { Installation } from "@/installation"
+import { Auth } from "@/auth"
 import os from "os"
 import path from "path"
 import { Global } from "@/global"
@@ -12,6 +13,9 @@ const API_BASE_URL = "https://api.kimi.com/coding/v1"
 
 // Polling configuration
 const OAUTH_POLLING_SAFETY_MARGIN_MS = 3000
+
+// Refresh buffer - refresh 2 minutes before expiry
+const REFRESH_BUFFER_MS = 2 * 60 * 1000
 
 // Device ID persistence
 const DEVICE_ID_FILE = "kimi-device-id"
@@ -65,6 +69,56 @@ async function getKimiHeaders(): Promise<Record<string, string>> {
   }
 }
 
+/**
+ * Refresh the Kimi access token using the refresh token
+ * Returns the new auth info or null if refresh failed
+ */
+async function refreshKimiToken(): Promise<Auth.Info | null> {
+  const auth = await Auth.get("kimi-for-coding")
+  if (!auth || auth.type !== "oauth" || !auth.refresh) return null
+
+  const kimiHeaders = await getKimiHeaders()
+
+  try {
+    const response = await fetch(`${OAUTH_HOST}/api/oauth/token`, {
+      method: "POST",
+      headers: {
+        ...kimiHeaders,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: KIMI_CODE_CLIENT_ID,
+        grant_type: "refresh_token",
+        refresh_token: auth.refresh,
+      }),
+    })
+
+    if (!response.ok) {
+      console.error("[kimi-plugin] token refresh failed:", response.status)
+      return null
+    }
+
+    const data = (await response.json()) as {
+      access_token: string
+      refresh_token?: string
+      expires_in: number
+    }
+
+    const newAuth: Auth.Info = {
+      type: "oauth",
+      access: data.access_token,
+      refresh: data.refresh_token || auth.refresh,
+      expires: Date.now() + data.expires_in * 1000,
+    }
+
+    await Auth.set("kimi-for-coding", newAuth)
+    return newAuth
+  } catch (error) {
+    console.error("[kimi-plugin] token refresh error:", error)
+    return null
+  }
+}
+
 export async function KimiAuthPlugin(input: PluginInput): Promise<Hooks> {
   return {
     auth: {
@@ -91,8 +145,19 @@ export async function KimiAuthPlugin(input: PluginInput): Promise<Hooks> {
           baseURL: API_BASE_URL,
           apiKey: "",
           async fetch(request: RequestInfo | URL, init?: RequestInit) {
-            const info = await getAuth()
+            let info = await getAuth()
             if (info.type !== "oauth") return fetch(request, init)
+
+            // Check if token is expired or about to expire, refresh if needed
+            if (info.expires < Date.now() + REFRESH_BUFFER_MS) {
+              const refreshed = await refreshKimiToken()
+              if (refreshed && refreshed.type === "oauth") {
+                info = refreshed
+              } else {
+                // Refresh failed, try with current token anyway
+                console.warn("[kimi-plugin] token refresh failed, using possibly expired token")
+              }
+            }
 
             const kimiHeaders = await getKimiHeaders()
 

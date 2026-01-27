@@ -20,10 +20,7 @@ const OAUTH_REFRESH_CONFIG: Record<string, { url: string; clientId: string }> = 
     url: "https://auth.openai.com/oauth/token",
     clientId: "pdlLIX2Y72MgDktxw22rHpPdJKmlMVBi", // ChatGPT client ID
   },
-  "kimi-for-coding": {
-    url: "https://auth.kimi.com/api/oauth/token",
-    clientId: "17e5f671-d194-4dfb-9706-5516cb48c098", // Kimi Code CLI client ID
-  },
+  // Note: kimi-for-coding uses custom refresh in plugin (requires X-Msh-* headers)
 }
 
 export namespace Auth {
