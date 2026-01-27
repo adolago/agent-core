@@ -408,27 +408,40 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     async function bootstrap() {
       console.log("bootstrapping")
       const start = Date.now() - 30 * 24 * 60 * 60 * 1000
+      
+      // Create promises for all blocking requests - don't setStore in .then()
+      // This avoids inconsistent intermediate state (e.g. agents briefly undefined)
       const sessionListPromise = sdk.client.session
         .list({ start: start })
-        .then((x) => setStore("session", reconcile((x.data ?? []).toSorted((a, b) => a.id.localeCompare(b.id)))))
+        .then((x) => (x.data ?? []).toSorted((a, b) => a.id.localeCompare(b.id)))
+
+      const providersPromise = sdk.client.config.providers({ throwOnError: true })
+      const providerListPromise = sdk.client.provider.list({ throwOnError: true })
+      const agentsPromise = sdk.client.app.agents({ throwOnError: true })
+      const configPromise = sdk.client.config.get({ throwOnError: true })
 
       // blocking - include session.list when continuing a session
       const blockingRequests: Promise<unknown>[] = [
-        sdk.client.config.providers({ throwOnError: true }).then((x) => {
-          batch(() => {
-            setStore("provider", reconcile(x.data!.providers))
-            setStore("provider_default", reconcile(x.data!.default))
-          })
-        }),
-        sdk.client.provider.list({ throwOnError: true }).then((x) => {
-          batch(() => {
-            setStore("provider_next", reconcile(x.data!))
-          })
-        }),
-        sdk.client.app.agents({ throwOnError: true }).then((x) => {
-          const agents = Array.isArray(x.data) ? x.data : []
-          if (!Array.isArray(x.data)) {
-            Log.Default.error("agents response invalid", { type: typeof x.data })
+        providersPromise,
+        providerListPromise,
+        agentsPromise,
+        configPromise,
+        ...(args.continue ? [sessionListPromise] : []),
+      ]
+
+      await Promise.all(blockingRequests)
+        .then(async () => {
+          // Now extract all responses and apply in a single batch
+          const providersResponse = await providersPromise
+          const providerListResponse = await providerListPromise
+          const agentsResponse = await agentsPromise
+          const configResponse = await configPromise
+          const sessionsResponse = args.continue ? await sessionListPromise : undefined
+
+          // Validate agents response
+          const agents = Array.isArray(agentsResponse.data) ? agentsResponse.data : []
+          if (!Array.isArray(agentsResponse.data)) {
+            Log.Default.error("agents response invalid", { type: typeof agentsResponse.data })
             toast.show({
               variant: "error",
               message: "Agents failed to load (invalid response). Check the daemon status.",
@@ -441,18 +454,24 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               duration: 5000,
             })
           }
-          setStore("agent", reconcile(agents))
-        }),
-        sdk.client.config.get({ throwOnError: true }).then((x) => setStore("config", reconcile(x.data!))),
-        ...(args.continue ? [sessionListPromise] : []),
-      ]
 
-      await Promise.all(blockingRequests)
+          // Apply ALL initial state in a single batch to avoid inconsistent intermediate state
+          batch(() => {
+            setStore("provider", reconcile(providersResponse.data!.providers))
+            setStore("provider_default", reconcile(providersResponse.data!.default))
+            setStore("provider_next", reconcile(providerListResponse.data!))
+            setStore("agent", reconcile(agents))
+            setStore("config", reconcile(configResponse.data!))
+            if (sessionsResponse !== undefined) {
+              setStore("session", reconcile(sessionsResponse))
+            }
+          })
+        })
         .then(() => {
           if (store.status !== "complete") setStore("status", "partial")
           // non-blocking
           Promise.all([
-            ...(args.continue ? [] : [sessionListPromise]),
+            ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
             sdk.client.command.list().then((x) => setStore("command", reconcile(x.data ?? []))),
             sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
             sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
