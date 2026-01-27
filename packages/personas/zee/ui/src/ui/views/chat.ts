@@ -1,4 +1,5 @@
 import { html, nothing } from "lit";
+import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
 import type { SessionsListResult } from "../types";
 import type { ChatQueueItem } from "../ui-types";
@@ -67,6 +68,12 @@ export type ChatProps = {
 };
 
 const COMPACTION_TOAST_DURATION_MS = 5000;
+
+function autoResize(el?: Element) {
+  if (!(el instanceof HTMLTextAreaElement)) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, 150)}px`;
+}
 
 function renderCompactionIndicator(status: CompactionIndicatorStatus | null | undefined) {
   if (!status) return nothing;
@@ -238,6 +245,9 @@ export function renderChat(props: ChatProps) {
         <label class="field chat-compose__field">
           <span>Message</span>
           <textarea
+            ${ref((el) => autoResize(el))}
+            aria-label="Message"
+            rows="1"
             .value=${props.draft}
             ?disabled=${!props.connected}
             @keydown=${(e: KeyboardEvent) => {
@@ -248,8 +258,11 @@ export function renderChat(props: ChatProps) {
               e.preventDefault();
               if (canCompose) props.onSend();
             }}
-            @input=${(e: Event) =>
-              props.onDraftChange((e.target as HTMLTextAreaElement).value)}
+            @input=${(e: Event) => {
+              const target = e.target as HTMLTextAreaElement;
+              props.onDraftChange(target.value);
+              autoResize(target);
+            }}
             placeholder=${composePlaceholder}
           ></textarea>
         </label>
