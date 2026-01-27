@@ -191,7 +191,7 @@ export async function resolveProviderAuths(params: {
   const auths: ProviderAuth[] = [];
 
   for (const provider of params.providers) {
-    if (provider === "zai") {
+    if (provider === "zai-coding-plan") {
       const apiKey = resolveZaiApiKey();
       if (apiKey) auths.push({ provider, token: apiKey });
       continue;

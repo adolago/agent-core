@@ -66,7 +66,7 @@ export async function loadProviderUsageSummary(
             return await fetchCodexUsage(auth.token, auth.accountId, timeoutMs, fetchFn);
           case "minimax":
             return await fetchMinimaxUsage(auth.token, timeoutMs, fetchFn);
-          case "zai":
+          case "zai-coding-plan":
             return await fetchZaiUsage(auth.token, timeoutMs, fetchFn);
           default:
             return {
