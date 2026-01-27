@@ -1028,10 +1028,10 @@ export function Prompt(props: PromptProps) {
     const currentMode = store.mode
     const variant = local.model.variant.current()
 
-    // Tool restrictions for hold mode (read-only: no edit/write)
+    // Tool permissions based on hold/release mode
     const holdModeTools = local.mode.isHold()
       ? { edit: false, write: false, notebook_edit: false }
-      : undefined
+      : { edit: true, write: true, notebook_edit: true }
 
     if (store.mode === "shell") {
       // Shell mode executes user-provided commands directly, not AI actions
@@ -1088,10 +1088,10 @@ export function Prompt(props: PromptProps) {
         local.mode.setHold()
       }
 
-      // Tool restrictions for hold mode (read-only: no edit/write)
+      // Tool permissions based on hold/release mode
       const holdModeTools = local.mode.isHold()
         ? { edit: false, write: false, notebook_edit: false }
-        : undefined
+        : { edit: true, write: true, notebook_edit: true }
 
       sdk.client.session
         .prompt({
