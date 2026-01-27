@@ -5,3 +5,7 @@
 ## 2026-01-25 - Cache Compiled RegExp in Hot Paths
 **Learning:** Recompiling regexes in utility functions called in loops (like `Wildcard.match`) is expensive (measured ~18x overhead).
 **Action:** Use a simple module-level `Map` cache for compiled `RegExp` objects when patterns are repetitive.
+
+## 2026-02-14 - Optimize File Lookup
+**Learning:** `Filesystem.findUp` in this codebase returns *all* matches up the directory tree (for config aggregation). Using it just to check if a file exists or to find the closest one is inefficient O(depth).
+**Action:** Use `Filesystem.findFirstUp` when you only need the closest match or to check existence.
