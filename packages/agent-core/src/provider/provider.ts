@@ -185,69 +185,6 @@ export namespace Provider {
         },
       }
     },
-    zenmux: async () => {
-      return {
-        autoload: false,
-        options: {
-          headers: {
-            ...clientHeaders(),
-          },
-        },
-      }
-    },
-    "cloudflare-ai-gateway": async (input) => {
-      const accountId = Env.get("CLOUDFLARE_ACCOUNT_ID")
-      const gateway = Env.get("CLOUDFLARE_GATEWAY_ID")
-
-      if (!accountId || !gateway) return { autoload: false }
-
-      // Get API token from env or auth prompt
-      const apiToken = await (async () => {
-        const envToken = Env.get("CLOUDFLARE_API_TOKEN")
-        if (envToken) return envToken
-        const auth = await Auth.get(input.id)
-        if (auth?.type === "api") return auth.key
-        return undefined
-      })()
-
-      return {
-        autoload: true,
-        async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
-          return sdk.languageModel(modelID)
-        },
-        options: {
-          baseURL: `https://gateway.ai.cloudflare.com/v1/${accountId}/${gateway}/compat`,
-          headers: {
-            // Cloudflare AI Gateway uses cf-aig-authorization for authenticated gateways
-            // This enables Unified Billing where Cloudflare handles upstream provider auth
-            ...(apiToken ? { "cf-aig-authorization": `Bearer ${apiToken}` } : {}),
-            ...clientHeaders(),
-          },
-          // Custom fetch to handle parameter transformation and auth
-          fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-            const headers = new Headers(init?.headers)
-            // Strip Authorization header - AI Gateway uses cf-aig-authorization instead
-            headers.delete("Authorization")
-
-            // Transform max_tokens to max_completion_tokens for newer models
-            if (init?.body && init.method === "POST") {
-              try {
-                const body = JSON.parse(init.body as string)
-                if (body.max_tokens !== undefined && !body.max_completion_tokens) {
-                  body.max_completion_tokens = body.max_tokens
-                  delete body.max_tokens
-                  init = { ...init, body: JSON.stringify(body) }
-                }
-              } catch (e) {
-                // If body parsing fails, continue with original request
-              }
-            }
-
-            return fetch(input, { ...init, headers })
-          },
-        },
-      }
-    },
     cerebras: async () => {
       return {
         autoload: false,
