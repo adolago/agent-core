@@ -182,15 +182,17 @@ describe("tool.read truncation", () => {
   test("truncates large file by bytes and sets truncated metadata", async () => {
     await using tmp = await tmpdir({
       init: async (dir) => {
-        const content = await Bun.file(path.join(FIXTURES_DIR, "models-api.json")).text()
-        await Bun.write(path.join(dir, "large.json"), content)
+        // Create a file with many short lines that exceeds byte limit (50KB)
+        // Each line is ~100 chars, need 510+ lines to exceed 50KB
+        const lines = Array.from({ length: 600 }, (_, i) => `line${i.toString().padStart(3, "0")}: ${"x".repeat(90)}`).join("\n")
+        await Bun.write(path.join(dir, "large.txt"), lines)
       },
     })
     await Instance.provide({
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "large.json") }, ctx(tmp.path))
+        const result = await read.execute({ filePath: path.join(tmp.path, "large.txt") }, ctx(tmp.path))
         expect(result.metadata.truncated).toBe(true)
         expect(result.output).toContain("Output truncated at")
         expect(result.output).toContain("bytes")

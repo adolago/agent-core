@@ -8,10 +8,11 @@ const FIXTURES_DIR = path.join(import.meta.dir, "fixtures")
 
 describe("Truncate", () => {
   describe("output", () => {
-    test("truncates large json file by bytes", async () => {
+    test("truncates large json file", async () => {
       const content = await Bun.file(path.join(FIXTURES_DIR, "models-api.json")).text()
       const result = await Truncate.output(content)
 
+      // File has >2000 lines, so it should be truncated by line count
       expect(result.truncated).toBe(true)
       expect(result.content).toContain("truncated...")
       if (result.truncated) expect(result.outputPath).toBeDefined()
@@ -68,8 +69,9 @@ describe("Truncate", () => {
       expect(Truncate.MAX_BYTES).toBe(50 * 1024)
     })
 
-    test("large single-line file truncates with byte message", async () => {
-      const content = await Bun.file(path.join(FIXTURES_DIR, "models-api.json")).text()
+    test("single-line file truncates with byte message", async () => {
+      // Create a truly single-line content that exceeds MAX_BYTES
+      const content = "x".repeat(Truncate.MAX_BYTES + 1000)
       const result = await Truncate.output(content)
 
       expect(result.truncated).toBe(true)
