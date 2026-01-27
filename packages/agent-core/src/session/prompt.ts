@@ -416,32 +416,35 @@ export namespace SessionPrompt {
 
     // Schedule force-kill after grace period
     const timer = setTimeout(() => {
-      log.warn("force-killing session after grace period", { sessionID, gracePeriodMs: FORCE_KILL_GRACE_PERIOD_MS })
-
-      // Emit force-killed event for TUI to display
-      Bus.publish(Session.Event.Error, {
-        sessionID,
-        error: new NamedError.Unknown({
-          message: "Session force-killed after timeout grace period",
-        }).toObject(),
-      })
-
       // Forcefully clean up session state
       const s = state()
       const match = s[sessionID]
+
+      // Only emit error and force-kill if session actually still exists
+      // (i.e., it didn't clean up properly during the grace period)
       if (match) {
+        log.warn("force-killing session after grace period", { sessionID, gracePeriodMs: FORCE_KILL_GRACE_PERIOD_MS })
+
+        // Emit force-killed event for TUI to display
+        Bus.publish(Session.Event.Error, {
+          sessionID,
+          error: new NamedError.Unknown({
+            message: "Session force-killed after timeout grace period",
+          }).toObject(),
+        })
+
         match.abort.abort()
         for (const item of match.callbacks) {
           item.reject()
         }
         delete s[sessionID]
+
+        // Ensure status is set to idle
+        SessionStatus.set(sessionID, { type: "idle" })
+
+        // Recursively force-kill any child sessions
+        forceKillChildSessions(sessionID)
       }
-
-      // Ensure status is set to idle
-      SessionStatus.set(sessionID, { type: "idle" })
-
-      // Recursively force-kill any child sessions
-      forceKillChildSessions(sessionID)
 
       pendingForceKills.delete(sessionID)
     }, FORCE_KILL_GRACE_PERIOD_MS)
@@ -1776,6 +1779,7 @@ export namespace SessionPrompt {
     arguments: z.string(),
     command: z.string(),
     variant: z.string().optional(),
+    tools: z.record(z.string(), z.boolean()).optional(),
     parts: z
       .array(
         z.discriminatedUnion("type", [
@@ -1987,6 +1991,7 @@ export namespace SessionPrompt {
       agent: userAgent,
       parts,
       variant: input.variant,
+      tools: input.tools,
     })) as MessageV2.WithParts
 
     Bus.publish(Command.Event.Executed, {

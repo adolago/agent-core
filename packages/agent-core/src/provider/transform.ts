@@ -464,7 +464,8 @@ export namespace ProviderTransform {
     if (
       input.model.providerID.startsWith("opencode") &&
       ((input.model.api.id.includes("kimi-k2") && input.model.api.id.includes("thinking")) ||
-        input.model.api.id.includes("glm-4"))
+        input.model.api.id.includes("glm-4") ||
+        input.model.api.id.includes("claude"))
     ) {
       result["thinking"] = {
         type: "enabled",

@@ -25,9 +25,28 @@ describe("Dictation.resolveConfig", () => {
     expect(result).toBeUndefined()
   })
 
-  it("returns undefined when no credentials are available", async () => {
+  it("returns undefined when no credentials are available and no ADC", async () => {
+    // This test checks that config is undefined when there's no API key, no env vars,
+    // no stored auth, and no default ADC file. However, if the test machine has
+    // ~/.config/gcloud/application_default_credentials.json, this test will not apply.
+    const path = await import("path")
+    const defaultAdcPath = path.join(
+      process.env["HOME"] ?? process.env["USERPROFILE"] ?? "",
+      ".config",
+      "gcloud",
+      "application_default_credentials.json"
+    )
+    const hasSystemAdc = await Bun.file(defaultAdcPath).exists()
+
     const result = await Dictation.resolveConfig({})
-    expect(result).toBeUndefined()
+    if (hasSystemAdc) {
+      // If ADC exists on the system, config is returned with empty google auth
+      expect(result).toBeDefined()
+      expect(result?.google.apiKey).toBeUndefined()
+      expect(result?.google.credentials).toBeUndefined()
+    } else {
+      expect(result).toBeUndefined()
+    }
   })
 
   it("uses GOOGLE_STT_API_KEY when present", async () => {
@@ -65,9 +84,9 @@ describe("Dictation.resolveConfig", () => {
     expect(result?.google.credentials).toBeUndefined()
   })
 
-  it("reads service account JSON from stored google-vertex auth", async () => {
+  it("reads service account JSON from stored google-stt auth", async () => {
     authGetSpy.mockImplementation(async (providerID: string) => {
-      if (providerID !== "google-vertex") return
+      if (providerID !== "google-stt") return
       return {
         type: "api",
         key: JSON.stringify({
@@ -86,25 +105,17 @@ describe("Dictation.resolveConfig", () => {
     expect(result?.google.credentials?.private_key_id).toBe("stored-key-id")
   })
 
-  it("falls back to google-stt auth when google-vertex is missing", async () => {
+  it("prefers env vars over stored auth", async () => {
+    process.env.GOOGLE_STT_API_KEY = "env-key"
     authGetSpy.mockImplementation(async (providerID: string) => {
       if (providerID !== "google-stt") return
       return {
         type: "api",
-        key: "stored-api-key",
+        key: JSON.stringify({
+          client_email: "stored@example.iam.gserviceaccount.com",
+          private_key: "stored-private-key",
+        }),
       }
-    })
-
-    const result = await Dictation.resolveConfig({})
-    expect(result).toBeDefined()
-    expect(result?.google.apiKey).toBe("stored-api-key")
-  })
-
-  it("prefers env vars over stored auth", async () => {
-    process.env.GOOGLE_STT_API_KEY = "env-key"
-    authGetSpy.mockImplementation(async (providerID: string) => {
-      if (providerID !== "google-vertex") return
-      return { type: "api", key: "stored-key" }
     })
 
     const result = await Dictation.resolveConfig({})

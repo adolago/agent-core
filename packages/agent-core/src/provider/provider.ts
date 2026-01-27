@@ -38,6 +38,60 @@ import { ProviderTransform } from "./transform"
 export namespace Provider {
   const log = Log.create({ service: "provider" })
 
+  /**
+   * Hard-coded model blacklist by provider.
+   * Models listed here are permanently hidden from the model selector.
+   * Use config blacklist for per-user filtering instead.
+   */
+  const MODEL_BLACKLIST: Record<string, string[]> = {
+    opencode: [
+      "glm-4.6",
+      "gpt-5",
+      "gpt-5-codex",
+      "gpt-5-nano",
+      "gpt-5.1",
+      "gpt-5.1-codex",
+      "gpt-5.1-codex-max",
+      "gpt-5.1-codex-mini",
+      "kimi-k2",
+      "kimi-k2-thinking",
+    ],
+    cerebras: [
+      "gpt-oss-120b",
+      "qwen-3-235b-a22b-instruct-2507",
+    ],
+    "kimi-for-coding": [
+      "kimi-k2-thinking",
+    ],
+    xai: [
+      "grok-2",
+      "grok-2-1212",
+      "grok-2-latest",
+      "grok-2-vision",
+      "grok-2-vision-1212",
+      "grok-2-vision-latest",
+      "grok-3",
+      "grok-3-fast",
+      "grok-3-fast-latest",
+      "grok-3-latest",
+      "grok-3-mini",
+      "grok-3-mini-fast",
+      "grok-3-mini-fast-latest",
+      "grok-3-mini-latest",
+      "grok-4",
+      "grok-4-fast",
+      "grok-4-fast-non-reasoning",
+    ],
+    "zai-coding-plan": [
+      "glm-4.5",
+      "glm-4.5-air",
+      "glm-4.5-flash",
+      "glm-4.5v",
+      "glm-4.6",
+      "glm-4.6v",
+    ],
+  }
+
   function clientHeaders(options?: { lower?: boolean }) {
     const referer = Env.get("AGENT_CORE_HTTP_REFERER") ?? Env.get("OPENCODE_HTTP_REFERER")
     const title = Env.get("AGENT_CORE_CLIENT_TITLE") ?? "agent-core"
@@ -776,6 +830,8 @@ export namespace Provider {
           delete provider.models[modelID]
         if (model.status === "alpha" && !Flag.OPENCODE_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
         if (model.status === "deprecated") delete provider.models[modelID]
+        // Hard-coded blacklist - permanently hidden models
+        if (MODEL_BLACKLIST[providerID]?.includes(modelID)) delete provider.models[modelID]
         if (
           (configProvider?.blacklist && configProvider.blacklist.includes(modelID)) ||
           (configProvider?.whitelist && !configProvider.whitelist.includes(modelID))

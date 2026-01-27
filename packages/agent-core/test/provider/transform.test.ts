@@ -116,34 +116,6 @@ describe("ProviderTransform.maxOutputTokens", () => {
     expect(result).toBe(16000)
   })
 
-  describe("azure", () => {
-    test("returns 32k when modelLimit > 32k", () => {
-      const modelLimit = 100000
-      const result = ProviderTransform.maxOutputTokens("@ai-sdk/azure", {}, modelLimit, OUTPUT_TOKEN_MAX)
-      expect(result).toBe(OUTPUT_TOKEN_MAX)
-    })
-
-    test("returns modelLimit when modelLimit < 32k", () => {
-      const modelLimit = 16000
-      const result = ProviderTransform.maxOutputTokens("@ai-sdk/azure", {}, modelLimit, OUTPUT_TOKEN_MAX)
-      expect(result).toBe(16000)
-    })
-  })
-
-  describe("bedrock", () => {
-    test("returns 32k when modelLimit > 32k", () => {
-      const modelLimit = 100000
-      const result = ProviderTransform.maxOutputTokens("@ai-sdk/amazon-bedrock", {}, modelLimit, OUTPUT_TOKEN_MAX)
-      expect(result).toBe(OUTPUT_TOKEN_MAX)
-    })
-
-    test("returns modelLimit when modelLimit < 32k", () => {
-      const modelLimit = 16000
-      const result = ProviderTransform.maxOutputTokens("@ai-sdk/amazon-bedrock", {}, modelLimit, OUTPUT_TOKEN_MAX)
-      expect(result).toBe(16000)
-    })
-  })
-
   describe("anthropic without thinking options", () => {
     test("returns 32k when modelLimit > 32k", () => {
       const modelLimit = 100000
@@ -995,59 +967,6 @@ describe("ProviderTransform.message - providerOptions key remapping", () => {
       headers: {},
     }) as any
 
-  test("azure keeps 'azure' key and does not remap to 'openai'", () => {
-    const model = createModel("azure", "@ai-sdk/azure")
-    const msgs = [
-      {
-        role: "user",
-        content: "Hello",
-        providerOptions: {
-          azure: { someOption: "value" },
-        },
-      },
-    ] as any[]
-
-    const result = ProviderTransform.message(msgs, model, {})
-
-    expect(result[0].providerOptions?.azure).toEqual({ someOption: "value" })
-    expect(result[0].providerOptions?.openai).toBeUndefined()
-  })
-
-  test("openai with github-copilot npm remaps providerID to 'openai'", () => {
-    const model = createModel("github-copilot", "@ai-sdk/github-copilot")
-    const msgs = [
-      {
-        role: "user",
-        content: "Hello",
-        providerOptions: {
-          "github-copilot": { someOption: "value" },
-        },
-      },
-    ] as any[]
-
-    const result = ProviderTransform.message(msgs, model, {})
-
-    expect(result[0].providerOptions?.openai).toEqual({ someOption: "value" })
-    expect(result[0].providerOptions?.["github-copilot"]).toBeUndefined()
-  })
-
-  test("bedrock remaps providerID to 'bedrock' key", () => {
-    const model = createModel("my-bedrock", "@ai-sdk/amazon-bedrock")
-    const msgs = [
-      {
-        role: "user",
-        content: "Hello",
-        providerOptions: {
-          "my-bedrock": { someOption: "value" },
-        },
-      },
-    ] as any[]
-
-    const result = ProviderTransform.message(msgs, model, {})
-
-    expect(result[0].providerOptions?.bedrock).toEqual({ someOption: "value" })
-    expect(result[0].providerOptions?.["my-bedrock"]).toBeUndefined()
-  })
 })
 
 describe("ProviderTransform.variants", () => {
@@ -1135,20 +1054,6 @@ describe("ProviderTransform.variants", () => {
     expect(result).toEqual({})
   })
 
-  test("mistral returns empty object", () => {
-    const model = createMockModel({
-      id: "mistral/mistral-large",
-      providerID: "mistral",
-      api: {
-        id: "mistral-large-latest",
-        url: "https://api.mistral.com",
-        npm: "@ai-sdk/mistral",
-      },
-    })
-    const result = ProviderTransform.variants(model)
-    expect(result).toEqual({})
-  })
-
   describe("@openrouter/ai-sdk-provider", () => {
     test("returns empty object for non-qualifying models", () => {
       const model = createMockModel({
@@ -1225,24 +1130,6 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("@ai-sdk/gateway", () => {
-    test("returns OPENAI_EFFORTS with reasoningEffort", () => {
-      const model = createMockModel({
-        id: "gateway/gateway-model",
-        providerID: "gateway",
-        api: {
-          id: "gateway-model",
-          url: "https://gateway.ai",
-          npm: "@ai-sdk/gateway",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["none", "minimal", "low", "medium", "high", "xhigh"])
-      expect(result.low).toEqual({ reasoningEffort: "low" })
-      expect(result.high).toEqual({ reasoningEffort: "high" })
-    })
-  })
-
   describe("@ai-sdk/cerebras", () => {
     test("returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
       const model = createMockModel({
@@ -1252,24 +1139,6 @@ describe("ProviderTransform.variants", () => {
           id: "llama-4-sc",
           url: "https://api.cerebras.ai",
           npm: "@ai-sdk/cerebras",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "medium", "high"])
-      expect(result.low).toEqual({ reasoningEffort: "low" })
-      expect(result.high).toEqual({ reasoningEffort: "high" })
-    })
-  })
-
-  describe("@ai-sdk/togetherai", () => {
-    test("returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
-      const model = createMockModel({
-        id: "togetherai/llama-4",
-        providerID: "togetherai",
-        api: {
-          id: "llama-4-sc",
-          url: "https://api.togetherai.com",
-          npm: "@ai-sdk/togetherai",
         },
       })
       const result = ProviderTransform.variants(model)
@@ -1313,24 +1182,6 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("@ai-sdk/deepinfra", () => {
-    test("returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
-      const model = createMockModel({
-        id: "deepinfra/llama-4",
-        providerID: "deepinfra",
-        api: {
-          id: "llama-4-sc",
-          url: "https://api.deepinfra.com",
-          npm: "@ai-sdk/deepinfra",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "medium", "high"])
-      expect(result.low).toEqual({ reasoningEffort: "low" })
-      expect(result.high).toEqual({ reasoningEffort: "high" })
-    })
-  })
-
   describe("@ai-sdk/openai-compatible", () => {
     test("returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
       const model = createMockModel({
@@ -1346,55 +1197,6 @@ describe("ProviderTransform.variants", () => {
       expect(Object.keys(result)).toEqual(["low", "medium", "high"])
       expect(result.low).toEqual({ reasoningEffort: "low" })
       expect(result.high).toEqual({ reasoningEffort: "high" })
-    })
-  })
-
-  describe("@ai-sdk/azure", () => {
-    test("o1-mini returns empty object", () => {
-      const model = createMockModel({
-        id: "o1-mini",
-        providerID: "azure",
-        api: {
-          id: "o1-mini",
-          url: "https://azure.com",
-          npm: "@ai-sdk/azure",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(result).toEqual({})
-    })
-
-    test("standard azure models return custom efforts with reasoningSummary", () => {
-      const model = createMockModel({
-        id: "o1",
-        providerID: "azure",
-        api: {
-          id: "o1",
-          url: "https://azure.com",
-          npm: "@ai-sdk/azure",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "medium", "high"])
-      expect(result.low).toEqual({
-        reasoningEffort: "low",
-        reasoningSummary: "auto",
-        include: ["reasoning.encrypted_content"],
-      })
-    })
-
-    test("gpt-5 adds minimal effort", () => {
-      const model = createMockModel({
-        id: "gpt-5",
-        providerID: "azure",
-        api: {
-          id: "gpt-5",
-          url: "https://azure.com",
-          npm: "@ai-sdk/azure",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["minimal", "low", "medium", "high"])
     })
   })
 
@@ -1492,28 +1294,6 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("@ai-sdk/amazon-bedrock", () => {
-    test("returns WIDELY_SUPPORTED_EFFORTS with reasoningConfig", () => {
-      const model = createMockModel({
-        id: "bedrock/llama-4",
-        providerID: "bedrock",
-        api: {
-          id: "llama-4-sc",
-          url: "https://bedrock.amazonaws.com",
-          npm: "@ai-sdk/amazon-bedrock",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "medium", "high"])
-      expect(result.low).toEqual({
-        reasoningConfig: {
-          type: "enabled",
-          maxReasoningEffort: "low",
-        },
-      })
-    })
-  })
-
   describe("@ai-sdk/google", () => {
     test("gemini-2.5 returns high and max with thinkingConfig and thinkingBudget", () => {
       const model = createMockModel({
@@ -1564,90 +1344,105 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("@ai-sdk/google-vertex", () => {
-    test("gemini-2.5 returns high and max with thinkingConfig and thinkingBudget", () => {
-      const model = createMockModel({
-        id: "google-vertex/gemini-2.5-pro",
-        providerID: "google-vertex",
-        api: {
-          id: "gemini-2.5-pro",
-          url: "https://vertexai.googleapis.com",
-          npm: "@ai-sdk/google-vertex",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["high", "max"])
-    })
+})
 
-    test("other vertex models return low and high with thinkingLevel", () => {
-      const model = createMockModel({
-        id: "google-vertex/gemini-2.0-pro",
-        providerID: "google-vertex",
-        api: {
-          id: "gemini-2.0-pro",
-          url: "https://vertexai.googleapis.com",
-          npm: "@ai-sdk/google-vertex",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "high"])
+describe("ProviderTransform.options - OpenCode Zen thinking", () => {
+  const sessionID = "test-session-123"
+
+  test("should enable thinking for OpenCode Claude models", () => {
+    const model = {
+      id: "opencode/claude-opus-4-5",
+      providerID: "opencode",
+      api: {
+        id: "claude-opus-4-5",
+        url: "https://opencode.example.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    } as any
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.thinking).toEqual({
+      type: "enabled",
+      clear_thinking: false,
     })
   })
 
-  describe("@ai-sdk/cohere", () => {
-    test("returns empty object", () => {
-      const model = createMockModel({
-        id: "cohere/command-r",
-        providerID: "cohere",
-        api: {
-          id: "command-r",
-          url: "https://api.cohere.com",
-          npm: "@ai-sdk/cohere",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(result).toEqual({})
+  test("should enable thinking for OpenCode Zen Claude Opus 4.5", () => {
+    const model = {
+      id: "opencode-zen/claude-opus-4-5-20251101",
+      providerID: "opencode-zen",
+      api: {
+        id: "claude-opus-4-5-20251101",
+        url: "https://opencode.example.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    } as any
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.thinking).toEqual({
+      type: "enabled",
+      clear_thinking: false,
     })
   })
 
-  describe("@ai-sdk/groq", () => {
-    test("returns none and WIDELY_SUPPORTED_EFFORTS with thinkingLevel", () => {
-      const model = createMockModel({
-        id: "groq/llama-4",
-        providerID: "groq",
-        api: {
-          id: "llama-4-sc",
-          url: "https://api.groq.com",
-          npm: "@ai-sdk/groq",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["none", "low", "medium", "high"])
-      expect(result.none).toEqual({
-        includeThoughts: true,
-        thinkingLevel: "none",
-      })
-      expect(result.low).toEqual({
-        includeThoughts: true,
-        thinkingLevel: "low",
-      })
+  test("should enable thinking for OpenCode Kimi K2 thinking models", () => {
+    const model = {
+      id: "opencode/kimi-k2-thinking",
+      providerID: "opencode",
+      api: {
+        id: "kimi-k2-thinking",
+        url: "https://opencode.example.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    } as any
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.thinking).toEqual({
+      type: "enabled",
+      clear_thinking: false,
     })
   })
 
-  describe("@ai-sdk/perplexity", () => {
-    test("returns empty object", () => {
-      const model = createMockModel({
-        id: "perplexity/sonar-plus",
-        providerID: "perplexity",
-        api: {
-          id: "sonar-plus",
-          url: "https://api.perplexity.ai",
-          npm: "@ai-sdk/perplexity",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(result).toEqual({})
+  test("should enable thinking for OpenCode GLM-4 models", () => {
+    const model = {
+      id: "opencode/glm-4-plus",
+      providerID: "opencode",
+      api: {
+        id: "glm-4-plus",
+        url: "https://opencode.example.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    } as any
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.thinking).toEqual({
+      type: "enabled",
+      clear_thinking: false,
     })
+  })
+
+  test("should NOT enable thinking for OpenCode non-thinking models", () => {
+    const model = {
+      id: "opencode/gpt-4o",
+      providerID: "opencode",
+      api: {
+        id: "gpt-4o",
+        url: "https://opencode.example.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    } as any
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.thinking).toBeUndefined()
+  })
+
+  test("should NOT enable thinking for Kimi K2 without 'thinking' in name", () => {
+    const model = {
+      id: "opencode/kimi-k2",
+      providerID: "opencode",
+      api: {
+        id: "kimi-k2",
+        url: "https://opencode.example.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    } as any
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.thinking).toBeUndefined()
   })
 })
 

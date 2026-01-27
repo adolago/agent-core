@@ -279,3 +279,326 @@ export function createTrackingMockProvider(options: MockProviderOptions = {}) {
     getLastCall: () => calls[calls.length - 1],
   }
 }
+
+/**
+ * Extended mock provider options for advanced simulation scenarios
+ */
+export interface ExtendedMockProviderOptions extends MockProviderOptions {
+  /** Delay between each streamed chunk in ms (simulates slow network) */
+  chunkDelay?: number
+  /** Simulate stall after N chunks (for testing stall detection) */
+  stallAfterChunks?: number
+  /** Duration of simulated stall in ms */
+  stallDurationMs?: number
+  /** Simulate partial response (stream stops early) */
+  truncateAfterChunks?: number
+  /** Add reasoning/thinking content before text */
+  reasoning?: string
+  /** Model ID to report */
+  modelId?: string
+  /** Provider name to report */
+  providerName?: string
+}
+
+/**
+ * Create an advanced mock provider with extended simulation capabilities
+ *
+ * Supports:
+ * - Chunk-by-chunk streaming delays
+ * - Simulated stalls (for testing stall detection)
+ * - Truncated responses
+ * - Reasoning/thinking content
+ */
+export function createAdvancedMockProvider(options: ExtendedMockProviderOptions = {}): LanguageModelV2 {
+  const {
+    responses = new Map(),
+    defaultResponse = DEFAULT_RESPONSE,
+    delay = 0,
+    chunkDelay = 0,
+    stallAfterChunks,
+    stallDurationMs = 5000,
+    truncateAfterChunks,
+    reasoning,
+    errorRate = 0,
+    errorType = "server",
+    modelId = "advanced-mock-model",
+    providerName = "advanced-mock",
+  } = options
+
+  function getResponseForPrompt(prompt: string): MockResponse {
+    for (const [key, response] of responses) {
+      if (prompt.includes(key)) {
+        return response
+      }
+    }
+    return defaultResponse
+  }
+
+  function maybeThrowError() {
+    if (errorRate > 0 && Math.random() < errorRate) {
+      switch (errorType) {
+        case "network":
+          throw new Error("Network error: Connection refused")
+        case "auth":
+          throw new Error("Authentication failed: Invalid API key")
+        case "rate-limit":
+          throw new Error("Rate limit exceeded: Too many requests")
+        case "server":
+        default:
+          throw new Error("Server error: Internal server error")
+      }
+    }
+  }
+
+  return {
+    specificationVersion: "v2",
+    provider: providerName,
+    modelId,
+    defaultObjectGenerationMode: "json",
+
+    async doGenerate(opts) {
+      maybeThrowError()
+
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+
+      const promptText = opts.prompt
+        .map((p) => {
+          if (p.role === "user") {
+            return p.content.map((c) => (c.type === "text" ? c.text : "")).join("")
+          }
+          return ""
+        })
+        .join("\n")
+
+      const response = getResponseForPrompt(promptText)
+
+      return {
+        text: response.text,
+        toolCalls: response.toolCalls,
+        finishReason: response.finishReason || "stop",
+        usage: {
+          promptTokens: response.usage?.promptTokens ?? 10,
+          completionTokens: response.usage?.completionTokens ?? 20,
+        },
+        rawCall: {
+          rawPrompt: null,
+          rawSettings: {},
+        },
+        warnings: [],
+      }
+    },
+
+    async doStream(opts) {
+      maybeThrowError()
+
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+
+      const promptText = opts.prompt
+        .map((p) => {
+          if (p.role === "user") {
+            return p.content.map((c) => (c.type === "text" ? c.text : "")).join("")
+          }
+          return ""
+        })
+        .join("\n")
+
+      const response = getResponseForPrompt(promptText)
+
+      const stream = new ReadableStream<LanguageModelV2StreamPart>({
+        async start(controller) {
+          let chunkCount = 0
+
+          // Helper to emit with optional delay and stall handling
+          async function emitChunk(part: LanguageModelV2StreamPart) {
+            chunkCount++
+
+            // Check for truncation
+            if (truncateAfterChunks !== undefined && chunkCount > truncateAfterChunks) {
+              controller.close()
+              return false
+            }
+
+            // Check for stall simulation
+            if (stallAfterChunks !== undefined && chunkCount === stallAfterChunks) {
+              await new Promise((resolve) => setTimeout(resolve, stallDurationMs))
+            }
+
+            // Apply chunk delay
+            if (chunkDelay > 0) {
+              await new Promise((resolve) => setTimeout(resolve, chunkDelay))
+            }
+
+            controller.enqueue(part)
+            return true
+          }
+
+          // Emit reasoning first if provided
+          if (reasoning) {
+            const reasoningWords = reasoning.split(" ")
+            for (const word of reasoningWords) {
+              const shouldContinue = await emitChunk({
+                type: "text-delta",
+                textDelta: word + " ",
+              })
+              if (!shouldContinue) return
+            }
+          }
+
+          // Emit text chunks
+          if (response.text) {
+            const words = response.text.split(" ")
+            for (const word of words) {
+              const shouldContinue = await emitChunk({
+                type: "text-delta",
+                textDelta: word + " ",
+              })
+              if (!shouldContinue) return
+            }
+          }
+
+          // Emit tool calls
+          if (response.toolCalls) {
+            for (const tc of response.toolCalls) {
+              const shouldContinue = await emitChunk({
+                type: "tool-call",
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                args: JSON.stringify(tc.args),
+              })
+              if (!shouldContinue) return
+            }
+          }
+
+          // Emit finish
+          controller.enqueue({
+            type: "finish",
+            finishReason: response.finishReason || "stop",
+            usage: {
+              promptTokens: response.usage?.promptTokens ?? 10,
+              completionTokens: response.usage?.completionTokens ?? 20,
+            },
+          })
+
+          controller.close()
+        },
+      })
+
+      return {
+        stream,
+        rawCall: {
+          rawPrompt: null,
+          rawSettings: {},
+        },
+        warnings: [],
+      }
+    },
+  }
+}
+
+/**
+ * Create a provider that simulates extended thinking behavior
+ *
+ * Simulates models like Claude Opus 4.5 or GPT-5.2 that may:
+ * - Emit reasoning tokens before text
+ * - Have longer initial delay ("thinking" time)
+ * - Produce tool calls with or without synthesis text
+ */
+export function createThinkingMockProvider(options: {
+  thinkingContent?: string
+  thinkingDelayMs?: number
+  responses?: Map<string, MockResponse>
+  defaultResponse?: MockResponse
+}) {
+  const {
+    thinkingContent = "Let me think about this carefully...",
+    thinkingDelayMs = 100,
+    responses = new Map(),
+    defaultResponse = DEFAULT_RESPONSE,
+  } = options
+
+  return createAdvancedMockProvider({
+    delay: thinkingDelayMs,
+    reasoning: thinkingContent,
+    responses,
+    defaultResponse,
+    modelId: "thinking-mock-model",
+    providerName: "thinking-mock",
+  })
+}
+
+/**
+ * Create a provider that simulates slow/stalling behavior
+ *
+ * Useful for testing:
+ * - Stall detection warnings
+ * - Timeout handling
+ * - Recovery after stall
+ */
+export function createStallingMockProvider(options: {
+  stallAfterMs?: number
+  stallDurationMs?: number
+  responses?: Map<string, MockResponse>
+  defaultResponse?: MockResponse
+}) {
+  const {
+    stallAfterMs = 0,
+    stallDurationMs = 5000,
+    responses = new Map(),
+    defaultResponse = DEFAULT_RESPONSE,
+  } = options
+
+  return createAdvancedMockProvider({
+    delay: stallAfterMs,
+    stallAfterChunks: 3, // Stall after 3 chunks
+    stallDurationMs,
+    responses,
+    defaultResponse,
+    modelId: "stalling-mock-model",
+    providerName: "stalling-mock",
+  })
+}
+
+/**
+ * Create a provider that simulates multi-tool calling patterns
+ *
+ * Useful for testing:
+ * - Parallel tool execution
+ * - Tool-only responses (no final synthesis)
+ * - Tool result handling
+ */
+export function createMultiToolMockProvider(options: {
+  toolCount?: number
+  includeSynthesis?: boolean
+  toolNames?: string[]
+}) {
+  const {
+    toolCount = 3,
+    includeSynthesis = false,
+    toolNames = ["Read", "Glob", "Grep"],
+  } = options
+
+  const toolCalls = Array.from({ length: toolCount }, (_, i) => ({
+    toolCallId: `call_${String(i + 1).padStart(3, "0")}`,
+    toolName: toolNames[i % toolNames.length],
+    args: { index: i },
+  }))
+
+  const response: MockResponse = {
+    text: includeSynthesis ? "Based on the tool results, here is my analysis." : undefined,
+    toolCalls,
+    finishReason: "tool-calls",
+    usage: {
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+    },
+  }
+
+  return createMockProvider({
+    defaultResponse: response,
+  })
+}
