@@ -204,6 +204,46 @@ Control a browser programmatically via the Zee gateway. Enable with `zee.browser
    zee:browser-screenshot { fullPage: true }
    ```
 
+### Claude Code Integration
+Spawn Claude Code CLI as a subprocess that shares skills and MCP servers with agent-core.
+
+**Prerequisites:**
+1. Claude Code CLI installed: `npm install -g @anthropic-ai/claude-code`
+2. Authenticated: `claude login`
+
+**Shared Configuration:**
+When spawning Claude Code, it automatically inherits:
+- MCP servers from `~/.config/agent-core/mcp.json`, `.claude/mcp.json`, `~/.claude/mcp.json`
+- Skills directories from `.claude/skills/` and `~/.config/agent-core/skills/`
+- Working directory access
+
+**Claude Code Tools Workflow:**
+
+1. **Check status** - Verify Claude Code is ready
+   ```
+   zee:claude-status → Shows installed, auth status, shared configs
+   ```
+
+2. **Spawn with prompt** - Run Claude Code with shared capabilities
+   ```
+   zee:claude-spawn { prompt: "Explain this codebase", model: "sonnet" }
+   zee:claude-spawn { prompt: "Fix the bug", model: "opus", shareMcpConfig: true }
+   ```
+
+3. **Continue session** - Resume a conversation
+   ```
+   zee:claude-spawn { prompt: "Continue from there", sessionId: "abc123" }
+   ```
+
+4. **Restrict tools** - Run with limited capabilities
+   ```
+   zee:claude-spawn {
+     prompt: "Review this code",
+     allowedTools: ["Read", "Grep"],
+     disallowedTools: ["Write", "Edit"]
+   }
+   ```
+
 ## Domain Tools
 
 | Tool | Purpose |
@@ -230,6 +270,9 @@ Control a browser programmatically via the Zee gateway. Enable with `zee.browser
 | `zee:browser-screenshot` | Capture page or element screenshot |
 | `zee:browser-wait` | Wait for element, text, or URL |
 | `zee:browser-tabs` | List open browser tabs |
+| `zee:claude-status` | Check Claude Code CLI availability and auth |
+| `zee:claude-spawn` | Spawn Claude Code with a prompt |
+| `zee:claude-credentials` | Check OAuth credential details |
 
 ## Runtime Status
 
