@@ -421,10 +421,9 @@ export namespace SessionPrompt {
       // Emit force-killed event for TUI to display
       Bus.publish(Session.Event.Error, {
         sessionID,
-        error: {
-          type: "session-force-killed",
+        error: new NamedError.Unknown({
           message: "Session force-killed after timeout grace period",
-        } as any,
+        }).toObject(),
       })
 
       // Forcefully clean up session state

@@ -580,8 +580,12 @@ function App() {
 
       if (typeof error === "object") {
         const data = error.data
-        if ("message" in data && typeof data.message === "string") {
+        if (data && typeof data === "object" && "message" in data && typeof data.message === "string") {
           return data.message
+        }
+        // Fallback for malformed errors with message at top level
+        if ("message" in error && typeof error.message === "string") {
+          return error.message
         }
       }
       return String(error)
