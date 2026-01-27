@@ -46,6 +46,7 @@ import {
 } from "./google/calendar.js";
 import { getMemory } from "../../memory/unified.js";
 import { BROWSER_TOOLS, registerBrowserTools } from "./browser.js";
+import { BROWSER_PROFILE_TOOLS } from "./browser-profiles.js";
 import { CLAUDE_CODE_TOOLS, registerClaudeCodeTools } from "./claude-code.js";
 import { RESTART_SENTINEL_TOOLS } from "./restart-sentinel.js";
 import { CRON_TOOLS } from "./cron.js";
@@ -1204,6 +1205,7 @@ export const ZEE_TOOLS = [
   codexbarTool,
   whatsappReactionTool,
   ...BROWSER_TOOLS,
+  ...BROWSER_PROFILE_TOOLS,
   ...CLAUDE_CODE_TOOLS,
   ...RESTART_SENTINEL_TOOLS,
   ...CRON_TOOLS,

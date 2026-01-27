@@ -270,6 +270,12 @@ When spawning Claude Code, it automatically inherits:
 | `zee:browser-screenshot` | Capture page or element screenshot |
 | `zee:browser-wait` | Wait for element, text, or URL |
 | `zee:browser-tabs` | List open browser tabs |
+| `zee:browser-profiles-list` | List all browser profiles with status |
+| `zee:browser-profiles-create` | Create new isolated browser profile |
+| `zee:browser-profiles-delete` | Delete a browser profile |
+| `zee:browser-profiles-start` | Start browser for a specific profile |
+| `zee:browser-profiles-stop` | Stop browser for a specific profile |
+| `zee:browser-profiles-reset` | Reset profile (clear all cookies/storage) |
 | `zee:claude-status` | Check Claude Code CLI availability and auth |
 | `zee:claude-spawn` | Spawn Claude Code with a prompt |
 | `zee:claude-credentials` | Check OAuth credential details |
@@ -285,6 +291,107 @@ When spawning Claude Code, it automatically inherits:
 | `zee:cron-run` | Manually trigger a cron job immediately |
 | `zee:cron-runs` | Get run history for a cron job |
 | `zee:cron-wake` | Send a wake event to the agent |
+
+## Browser Profiles
+
+Manage multiple isolated browser contexts for different purposes (work, personal, testing, etc.).
+
+Each profile has its own:
+- Cookies and sessions (separate logins)
+- localStorage and sessionStorage
+- Browser history and cache
+- CDP port for debugging
+- Color for visual distinction
+
+**Browser Profile Tools Workflow:**
+
+1. **List profiles** - See all available profiles
+   ```
+   zee:browser-profiles-list → { profiles: [...], running: 2 }
+   ```
+
+2. **Create profile** - New isolated browser context
+   ```
+   zee:browser-profiles-create {
+     name: "work",
+     color: "#0066CC"
+   }
+   ```
+
+3. **Start profile** - Launch browser with profile's data
+   ```
+   zee:browser-profiles-start { profile: "work" }
+   ```
+
+4. **Use browser tools** - All browser tools accept a profile parameter
+   ```
+   zee:browser-navigate { url: "https://example.com", profile: "work" }
+   zee:browser-snapshot { profile: "work" }
+   ```
+
+5. **Stop profile** - Close browser (preserves data)
+   ```
+   zee:browser-profiles-stop { profile: "work" }
+   ```
+
+6. **Reset profile** - Clear all data (cookies, storage, cache)
+   ```
+   zee:browser-profiles-reset { profile: "work" }
+   ```
+
+7. **Delete profile** - Remove profile entirely
+   ```
+   zee:browser-profiles-delete { name: "work" }
+   ```
+
+**Profile Types:**
+
+- **Local profiles**: Chrome runs on this machine, data stored locally
+- **Remote profiles**: Connect to external Chrome via CDP URL
+
+**Example: Separate Work/Personal Browsers**
+
+```bash
+# Create profiles
+zee:browser-profiles-create { name: "work", color: "#0066CC" }
+zee:browser-profiles-create { name: "personal", color: "#00AA00" }
+
+# Start work browser, login to work accounts
+zee:browser-profiles-start { profile: "work" }
+zee:browser-navigate { url: "https://mail.google.com", profile: "work" }
+
+# Start personal browser, separate session
+zee:browser-profiles-start { profile: "personal" }
+zee:browser-navigate { url: "https://mail.google.com", profile: "personal" }
+
+# Each profile maintains its own login state
+```
+
+**Configuration** (`agent-core.jsonc`):
+```json
+{
+  "zee": {
+    "browser": {
+      "enabled": true,
+      "defaultProfile": "zee",
+      "profiles": {
+        "work": {
+          "cdpPort": 18802,
+          "color": "#0066CC"
+        },
+        "personal": {
+          "cdpPort": 18803,
+          "color": "#00AA00"
+        },
+        "remote": {
+          "cdpUrl": "http://browserless.io:3000",
+          "color": "#FF6699"
+        }
+      }
+    }
+  }
+}
+```
 
 ## Cron Scheduling
 
