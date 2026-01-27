@@ -682,6 +682,9 @@ export namespace Provider {
         url: provider.api!,
         npm: iife(() => {
           if (provider.id.startsWith("github-copilot")) return "@ai-sdk/github-copilot"
+          // Fix: Kimi For Coding uses OpenAI-compatible API format, not Anthropic
+          // The models-api.json incorrectly specifies @ai-sdk/anthropic
+          if (provider.id === "kimi-for-coding") return "@ai-sdk/openai-compatible"
           return model.provider?.npm ?? provider.npm ?? "@ai-sdk/openai-compatible"
         }),
       },
@@ -836,12 +839,17 @@ export namespace Provider {
           id: modelID,
           api: {
             id: model.id ?? existingModel?.api.id ?? modelID,
-            npm:
-              model.provider?.npm ??
-              provider.npm ??
-              existingModel?.api.npm ??
-              modelsDev[providerID]?.npm ??
-              "@ai-sdk/openai-compatible",
+            npm: iife(() => {
+              // Fix: Kimi For Coding uses OpenAI-compatible API format, not Anthropic
+              if (providerID === "kimi-for-coding") return "@ai-sdk/openai-compatible"
+              return (
+                model.provider?.npm ??
+                provider.npm ??
+                existingModel?.api.npm ??
+                modelsDev[providerID]?.npm ??
+                "@ai-sdk/openai-compatible"
+              )
+            }),
             url: provider?.api ?? existingModel?.api.url ?? modelsDev[providerID]?.api,
           },
           status: model.status ?? existingModel?.status ?? "active",

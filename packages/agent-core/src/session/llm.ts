@@ -143,11 +143,18 @@ export namespace LLM {
 
     const header = system[0]
     const original = clone(system)
-    l.debug("system prompt constructed", {
+    // For Anthropic: system[0] is header, system[1] is content
+    // For others: system[0] is content (no separate header)
+    const mainContent = system.length > 1 ? system[1] : system[0]
+    // Enhanced logging for persona debugging - log at info level for visibility
+    l.info("system prompt constructed", {
       systemParts: system.length,
       headerLength: header?.length ?? 0,
-      contentLength: system[1]?.length ?? 0,
-      includesAgentPrompt: input.agent.prompt ? system[1]?.includes(input.agent.prompt.slice(0, 50)) : false,
+      mainContentLength: mainContent?.length ?? 0,
+      agentPromptLength: input.agent.prompt?.length ?? 0,
+      agentPromptPreview: input.agent.prompt?.slice(0, 100) ?? "(no prompt)",
+      includesAgentPrompt: input.agent.prompt ? mainContent?.includes(input.agent.prompt.slice(0, 50)) : false,
+      systemContentPreview: mainContent?.slice(0, 200) ?? "(no content)",
     })
     await Plugin.trigger("experimental.chat.system.transform", { sessionID: input.sessionID }, { system })
     if (system.length === 0) {

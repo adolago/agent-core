@@ -321,7 +321,8 @@ export namespace Config {
         ...md.data,
         prompt: md.content.trim(),
       }
-      log.debug("loading agent from markdown", {
+      // Log at info level for persona debugging visibility
+      log.info("loading agent from markdown", {
         name: agentName,
         file: item,
         promptLength: config.prompt?.length ?? 0,

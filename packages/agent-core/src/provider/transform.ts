@@ -9,6 +9,24 @@ import { THINKING_BUDGETS } from "./constants"
 
 const log = Log.create({ service: "transform" })
 
+/**
+ * Get the actual provider npm package for filtering purposes.
+ * When a model overrides api.npm, we still need to filter based on the
+ * PROVIDER's actual backend, not the model's override.
+ *
+ * Example: OpenCode Zen provider uses @ai-sdk/openai-compatible, but GPT-5.2
+ * model overrides api.npm to @ai-sdk/openai. For filtering, we need to use
+ * the provider's actual backend (@ai-sdk/openai-compatible).
+ */
+function getProviderNpm(model: Provider.Model): string {
+  // OpenCode providers use openai-compatible internally
+  // even when models override api.npm to @ai-sdk/openai
+  if (model.providerID.startsWith("opencode")) {
+    return "@ai-sdk/openai-compatible"
+  }
+  return model.api.npm
+}
+
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
 
 function mimeToModality(mime: string): Modality | undefined {
@@ -168,26 +186,22 @@ export namespace ProviderTransform {
           // Filter out reasoning parts from content
           const filteredContent = msg.content.filter((part: any) => part.type !== "reasoning")
 
-          // Include interleaved reasoning field directly on the message for all assistant messages
-          if (reasoningText) {
-            // Type assertion: providerOptions is Record<string, unknown> but we need to spread existing openaiCompatible options
-            const existingOptions = (msg.providerOptions as Record<string, unknown>)?.openaiCompatible
-            return {
-              ...msg,
-              content: filteredContent,
-              providerOptions: {
-                ...msg.providerOptions,
-                openaiCompatible: {
-                  ...(existingOptions && typeof existingOptions === "object" ? existingOptions : {}),
-                  [interleavedField]: reasoningText,
-                },
-              },
-            }
-          }
-
+          // ALWAYS include interleaved reasoning field for ALL assistant messages when using
+          // interleaved models, even if reasoning is empty. This is required by providers like
+          // Kimi For Coding which expect reasoning_content on EVERY assistant message when
+          // thinking is enabled, otherwise they return: "thinking is enabled but reasoning_content
+          // is missing in assistant tool call message"
+          const existingOptions = (msg.providerOptions as Record<string, unknown>)?.openaiCompatible
           return {
             ...msg,
             content: filteredContent,
+            providerOptions: {
+              ...msg.providerOptions,
+              openaiCompatible: {
+                ...(existingOptions && typeof existingOptions === "object" ? existingOptions : {}),
+                [interleavedField]: reasoningText || "", // Include even when empty
+              },
+            },
           }
         }
 
@@ -609,11 +623,22 @@ export namespace ProviderTransform {
       }
     }
 
-    if (
-      input.model.providerID === "baseten" ||
-      (input.model.providerID === "opencode" && ["kimi-k2-thinking", "glm-4.6"].includes(input.model.api.id))
-    ) {
+    // Enable thinking mode for Baseten models - use chat_template_args
+    if (input.model.providerID === "baseten") {
       result["chat_template_args"] = { enable_thinking: true }
+    }
+
+    // For OpenCode Zen models with thinking capability, use thinking param (like Z.AI)
+    // NOT chat_template_args which may not work on the openai-compatible backend
+    if (
+      input.model.providerID.startsWith("opencode") &&
+      ((input.model.api.id.includes("kimi-k2") && input.model.api.id.includes("thinking")) ||
+        input.model.api.id.includes("glm-4"))
+    ) {
+      result["thinking"] = {
+        type: "enabled",
+        clear_thinking: false,
+      }
     }
 
     // Enable thinking mode for Z.AI/ZhipuAI models
@@ -646,7 +671,13 @@ export namespace ProviderTransform {
         result["store"] = false
       }
 
-      if (!input.model.api.id.includes("codex") && !input.model.api.id.includes("gpt-5-pro")) {
+      // Don't set reasoningEffort for OpenCode Zen - the backend may not support it
+      // and causes "Bad Request" errors when using openai-compatible with GPT-5 models
+      if (
+        !input.model.api.id.includes("codex") &&
+        !input.model.api.id.includes("gpt-5-pro") &&
+        !input.model.providerID.startsWith("opencode")
+      ) {
         result["reasoningEffort"] = "medium"
       }
 
@@ -654,7 +685,10 @@ export namespace ProviderTransform {
         result["textVerbosity"] = "low"
       }
 
-      if (input.model.providerID.startsWith("opencode")) {
+      // GPT-5 specific params for native OpenAI SDK only
+      // These params are NOT supported by @ai-sdk/openai-compatible (used by OpenCode Zen)
+      // and cause "Bad Request" errors if sent to openai-compatible backends
+      if (input.model.providerID === "openai" && input.model.api.npm === "@ai-sdk/openai") {
         result["promptCacheKey"] = input.sessionID
         result["include"] = ["reasoning.encrypted_content"]
         result["reasoningSummary"] = "auto"
@@ -1121,7 +1155,8 @@ export namespace ProviderTransform {
     // First sanitize to remove agent-core metadata fields
     const sanitized = sanitizeOptions(options)
     // Then filter to only include params supported by this provider SDK
-    const filtered = filterProviderParams(model.api.npm, sanitized)
+    // Use getProviderNpm() to get the ACTUAL provider backend, not model overrides
+    const filtered = filterProviderParams(getProviderNpm(model), sanitized)
 
     const key = sdkKey(model.api.npm) ?? model.providerID
     return { [key]: filtered }
