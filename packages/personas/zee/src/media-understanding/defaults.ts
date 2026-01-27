@@ -28,9 +28,7 @@ export const DEFAULT_PROMPT: Record<MediaUnderstandingCapability, string> = {
 };
 export const DEFAULT_VIDEO_MAX_BASE64_BYTES = 70 * MB;
 export const DEFAULT_AUDIO_MODELS: Record<string, string> = {
-  groq: "whisper-large-v3-turbo",
-  openai: "gpt-4o-mini-transcribe",
-  deepgram: "nova-3",
+  google: "gemini-3-flash-preview", // Gemini native audio transcription
 };
 export const CLI_OUTPUT_MAX_BUFFER = 5 * MB;
 export const DEFAULT_MEDIA_CONCURRENCY = 2;

@@ -64,7 +64,7 @@ describe("applyMediaUnderstanding", () => {
           audio: {
             enabled: true,
             maxBytes: 1024 * 1024,
-            models: [{ provider: "groq" }],
+            models: [{ provider: "google" }],
           },
         },
       },
@@ -74,8 +74,8 @@ describe("applyMediaUnderstanding", () => {
       ctx,
       cfg,
       providers: {
-        groq: {
-          id: "groq",
+        "google": {
+          id: "google",
           transcribeAudio: async () => ({ text: "transcribed text" }),
         },
       },
@@ -107,7 +107,7 @@ describe("applyMediaUnderstanding", () => {
           audio: {
             enabled: true,
             maxBytes: 1024 * 1024,
-            models: [{ provider: "groq" }],
+            models: [{ provider: "google" }],
           },
         },
       },
@@ -117,8 +117,8 @@ describe("applyMediaUnderstanding", () => {
       ctx,
       cfg,
       providers: {
-        groq: {
-          id: "groq",
+        "google": {
+          id: "google",
           transcribeAudio: async () => ({ text: "transcribed text" }),
         },
       },
@@ -150,7 +150,7 @@ describe("applyMediaUnderstanding", () => {
               default: "deny",
               rules: [{ action: "allow", match: { chatType: "direct" } }],
             },
-            models: [{ provider: "groq" }],
+            models: [{ provider: "google" }],
           },
         },
       },
@@ -160,8 +160,8 @@ describe("applyMediaUnderstanding", () => {
       ctx,
       cfg,
       providers: {
-        groq: {
-          id: "groq",
+        "google": {
+          id: "google",
           transcribeAudio: async () => ({ text: "remote transcript" }),
         },
       },
@@ -190,7 +190,7 @@ describe("applyMediaUnderstanding", () => {
           audio: {
             enabled: true,
             maxBytes: 4,
-            models: [{ provider: "groq" }],
+            models: [{ provider: "google" }],
           },
         },
       },
@@ -199,7 +199,7 @@ describe("applyMediaUnderstanding", () => {
     const result = await applyMediaUnderstanding({
       ctx,
       cfg,
-      providers: { groq: { id: "groq", transcribeAudio } },
+      providers: { "google": { id: "google", transcribeAudio } },
     });
 
     expect(result.appliedAudio).toBe(false);
@@ -224,7 +224,7 @@ describe("applyMediaUnderstanding", () => {
           audio: {
             enabled: true,
             models: [
-              { provider: "groq" },
+              { provider: "google" },
               {
                 type: "cli",
                 command: "whisper",
@@ -246,8 +246,8 @@ describe("applyMediaUnderstanding", () => {
       ctx,
       cfg,
       providers: {
-        groq: {
-          id: "groq",
+        "google": {
+          id: "google",
           transcribeAudio: async () => {
             throw new Error("boom");
           },
@@ -372,10 +372,10 @@ describe("applyMediaUnderstanding", () => {
     const result = await applyMediaUnderstanding({
       ctx,
       cfg,
-      activeModel: { provider: "groq", model: "whisper-large-v3" },
+      activeModel: { provider: "google", model: "chirp_2" },
       providers: {
-        groq: {
-          id: "groq",
+        "google": {
+          id: "google",
           transcribeAudio: async () => ({ text: "fallback transcript" }),
         },
       },
@@ -404,7 +404,7 @@ describe("applyMediaUnderstanding", () => {
           audio: {
             enabled: true,
             attachments: { mode: "all", maxAttachments: 2 },
-            models: [{ provider: "groq" }],
+            models: [{ provider: "google" }],
           },
         },
       },
@@ -414,8 +414,8 @@ describe("applyMediaUnderstanding", () => {
       ctx,
       cfg,
       providers: {
-        groq: {
-          id: "groq",
+        "google": {
+          id: "google",
           transcribeAudio: async (req) => ({ text: req.fileName }),
         },
       },
@@ -446,8 +446,8 @@ describe("applyMediaUnderstanding", () => {
     const cfg: ZeeConfig = {
       tools: {
         media: {
-          image: { enabled: true, models: [{ provider: "openai", model: "gpt-5.2" }] },
-          audio: { enabled: true, models: [{ provider: "groq" }] },
+          image: { enabled: true, models: [{ provider: "google", model: "gemini-3-flash" }] },
+          audio: { enabled: true, models: [{ provider: "google" }] },
           video: { enabled: true, models: [{ provider: "google", model: "gemini-3" }] },
         },
       },
@@ -458,17 +458,11 @@ describe("applyMediaUnderstanding", () => {
       cfg,
       agentDir: dir,
       providers: {
-        openai: {
-          id: "openai",
-          describeImage: async () => ({ text: "image ok" }),
-        },
-        groq: {
-          id: "groq",
-          transcribeAudio: async () => ({ text: "audio ok" }),
-        },
         google: {
           id: "google",
+          describeImage: async () => ({ text: "image ok" }),
           describeVideo: async () => ({ text: "video ok" }),
+          transcribeAudio: async () => ({ text: "audio ok" }),
         },
       },
     });

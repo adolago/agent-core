@@ -4,10 +4,10 @@ import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-age
 
 import { getApiKeyForModel, requireApiKey } from "../../agents/model-auth.js";
 import { ensureZeeModelsJson } from "../../agents/models-config.js";
-import { minimaxUnderstandImage } from "../../agents/minimax-vlm.js";
 import { coerceImageAssistantText } from "../../agents/tools/image-tool.helpers.js";
 import type { ImageDescriptionRequest, ImageDescriptionResult } from "../types.js";
 
+// Media understanding: Google only (Gemini for vision)
 export async function describeImageWithModel(
   params: ImageDescriptionRequest,
 ): Promise<ImageDescriptionResult> {
@@ -32,16 +32,6 @@ export async function describeImageWithModel(
   authStorage.setRuntimeApiKey(model.provider, apiKey);
 
   const base64 = params.buffer.toString("base64");
-  if (model.provider === "minimax") {
-    const text = await minimaxUnderstandImage({
-      apiKey,
-      prompt: params.prompt ?? "Describe the image.",
-      imageDataUrl: `data:${params.mime ?? "image/jpeg"};base64,${base64}`,
-      modelBaseUrl: model.baseUrl,
-    });
-    return { text, model: model.id };
-  }
-
   const context: Context = {
     messages: [
       {

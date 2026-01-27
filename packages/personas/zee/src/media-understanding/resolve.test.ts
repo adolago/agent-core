@@ -4,8 +4,7 @@ import type { ZeeConfig } from "../config/config.js";
 import { resolveEntriesWithActiveFallback, resolveModelEntries } from "./resolve.js";
 
 const providerRegistry = new Map([
-  ["openai", { capabilities: ["image"] }],
-  ["groq", { capabilities: ["audio"] }],
+  ["google", { capabilities: ["image", "video", "audio"] }],
 ]);
 
 describe("resolveModelEntries", () => {
@@ -13,7 +12,7 @@ describe("resolveModelEntries", () => {
     const cfg: ZeeConfig = {
       tools: {
         media: {
-          models: [{ provider: "openai", model: "gpt-5.2" }],
+          models: [{ provider: "google", model: "gemini-3-flash" }],
         },
       },
     };
@@ -25,12 +24,13 @@ describe("resolveModelEntries", () => {
     });
     expect(imageEntries).toHaveLength(1);
 
+    // Google now has all capabilities (image, video, audio)
     const audioEntries = resolveModelEntries({
       cfg,
       capability: "audio",
       providerRegistry,
     });
-    expect(audioEntries).toHaveLength(0);
+    expect(audioEntries).toHaveLength(1);
   });
 
   it("keeps per-capability entries even without explicit caps", () => {
@@ -38,7 +38,7 @@ describe("resolveModelEntries", () => {
       tools: {
         media: {
           image: {
-            models: [{ provider: "openai", model: "gpt-5.2" }],
+            models: [{ provider: "google", model: "gemini-3-flash" }],
           },
         },
       },
@@ -86,17 +86,17 @@ describe("resolveEntriesWithActiveFallback", () => {
       capability: "audio",
       config: cfg.tools?.media?.audio,
       providerRegistry,
-      activeModel: { provider: "groq", model: "whisper-large-v3" },
+      activeModel: { provider: "google", model: "chirp_2" },
     });
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.provider).toBe("groq");
+    expect(entries[0]?.provider).toBe("google");
   });
 
   it("ignores active model when configured entries exist", () => {
     const cfg: ZeeConfig = {
       tools: {
         media: {
-          audio: { enabled: true, models: [{ provider: "openai", model: "whisper-1" }] },
+          audio: { enabled: true, models: [{ provider: "google", model: "chirp_2" }] },
         },
       },
     };
@@ -106,13 +106,13 @@ describe("resolveEntriesWithActiveFallback", () => {
       capability: "audio",
       config: cfg.tools?.media?.audio,
       providerRegistry,
-      activeModel: { provider: "groq", model: "whisper-large-v3" },
+      activeModel: { provider: "google", model: "chirp_2" },
     });
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.provider).toBe("openai");
+    expect(entries[0]?.provider).toBe("google");
   });
 
-  it("skips active model when provider lacks capability", () => {
+  it("skips active model when provider is not in registry", () => {
     const cfg: ZeeConfig = {
       tools: {
         media: {
@@ -126,7 +126,8 @@ describe("resolveEntriesWithActiveFallback", () => {
       capability: "video",
       config: cfg.tools?.media?.video,
       providerRegistry,
-      activeModel: { provider: "groq", model: "whisper-large-v3" },
+      // Use a provider that doesn't exist in registry
+      activeModel: { provider: "unknown-provider", model: "some-model" },
     });
     expect(entries).toHaveLength(0);
   });
