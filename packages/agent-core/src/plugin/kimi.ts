@@ -96,14 +96,24 @@ export async function KimiAuthPlugin(input: PluginInput): Promise<Hooks> {
 
             const kimiHeaders = await getKimiHeaders()
 
-            const headers: Record<string, string> = {
-              ...(init?.headers as Record<string, string>),
-              ...kimiHeaders,
-              Authorization: `Bearer ${info.access}`,
+            // Start with init headers, then override with Kimi headers
+            const initHeaders = init?.headers as Record<string, string> || {}
+            const headers: Record<string, string> = {}
+
+            // Copy init headers, skipping user-agent variants
+            for (const [key, value] of Object.entries(initHeaders)) {
+              if (key.toLowerCase() !== "user-agent") {
+                headers[key] = value
+              }
             }
+
+            // Add Kimi headers (these take precedence)
+            Object.assign(headers, kimiHeaders)
+            headers["Authorization"] = `Bearer ${info.access}`
 
             // Remove any conflicting auth headers
             delete headers["x-api-key"]
+            delete headers["authorization"] // lowercase version
 
             return fetch(request, {
               ...init,
