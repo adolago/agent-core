@@ -706,7 +706,7 @@ export namespace Config {
       leader: z.string().optional().default("space").describe("Leader key for keybind combinations"),
       app_exit: z.string().optional().default("ctrl+c,<leader>q").describe("Exit the application"),
       editor_open: z.string().optional().default("<leader>e").describe("Open external editor"),
-      theme_list: z.string().optional().default("<leader>t").describe("List available themes"),
+      theme_list: z.string().optional().default("<leader>shift+t").describe("List available themes"),
       sidebar_toggle: z.string().optional().default("<leader>b").describe("Toggle sidebar"),
       status_view: z.string().optional().default("<leader>s").describe("View status"),
       session_export: z.string().optional().default("<leader>x").describe("Export session to editor"),
@@ -720,7 +720,7 @@ export namespace Config {
       model_provider_list: z.string().optional().default("<leader>p").describe("Open provider list from model dialog"),
       session_delegate: z.string().optional().default("<leader>shift+d").describe("Delegate to another persona"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
-      session_compact: z.string().optional().default("<leader>c").describe("Compact the session"),
+      session_compact: z.string().optional().default("<leader>shift+c").describe("Compact the session"),
       messages_page_up: z.string().optional().default("pageup,ctrl+alt+b").describe("Scroll messages up by one page"),
       messages_page_down: z
         .string()
@@ -749,7 +749,7 @@ export namespace Config {
       model_cycle_recent: z.string().optional().default("f2").describe("Next recently used model"),
       model_cycle_recent_reverse: z.string().optional().default("shift+f2").describe("Previous recently used model"),
       model_fallback_toggle: z.string().optional().default("f3").describe("Toggle between primary and fallback model"),
-      command_list: z.string().optional().default("ctrl+p").describe("List available commands"),
+      command_list: z.string().optional().default("<leader>c").describe("List available commands"),
       agent_list: z.string().optional().default("<leader>a").describe("List agents"),
       agent_cycle: z.string().optional().default("tab").describe("Next agent"),
       agent_cycle_reverse: z.string().optional().default("shift+tab").describe("Previous agent"),
@@ -758,7 +758,7 @@ export namespace Config {
       input_clear: z.string().optional().default("ctrl+c").describe("Clear input field"),
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
       input_submit: z.string().optional().default("return").describe("Submit input"),
-      input_dictation_toggle: z.string().optional().default("f4").describe("Toggle dictation recording"),
+      input_dictation_toggle: z.string().optional().default("<leader>t").describe("Toggle dictation recording"),
       grammar_quickfix: z.string().optional().default("ctrl+.").describe("Quick-fix grammar error at cursor"),
       input_newline: z
         .string()
