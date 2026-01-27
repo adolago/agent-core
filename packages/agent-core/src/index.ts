@@ -27,6 +27,7 @@ import { WebCommand } from "./cli/cmd/web"
 import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
 import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand, GatewayStatusCommand } from "./cli/cmd/daemon"
+import { DaemonInstallCommand, DaemonUninstallCommand, DaemonServiceStatusCommand } from "./cli/cmd/daemon-install"
 import { PluginCommand } from "./cli/cmd/plugin"
 import { SetupCommand } from "./cli/cmd/setup"
 import { BugReportCommand } from "./cli/cmd/bug-report"
@@ -165,6 +166,9 @@ const cli = yargs(hideBin(process.argv))
   .command(DaemonCommand)
   .command(DaemonStatusCommand)
   .command(DaemonStopCommand)
+  .command(DaemonInstallCommand)
+  .command(DaemonUninstallCommand)
+  .command(DaemonServiceStatusCommand)
   .command(GatewayStatusCommand)
   .command(PluginCommand)
   .command(SetupCommand)

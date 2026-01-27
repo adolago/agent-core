@@ -332,6 +332,74 @@ Never lose context when the daemon restarts or crashes. The restart sentinel:
 - On daemon startup: Pending sentinel is automatically restored
 - Sessions with incomplete todos are highlighted for continuation
 
+## Daemon Install Wizard
+
+Install agent-core daemon as a system service for always-on operation.
+
+**IMPORTANT:** Agent-core daemon is the PRIMARY service. Zee gateway runs as a child
+process when `--gateway` is enabled. Do NOT install zee gateway separately.
+
+**Supported Platforms:**
+- **macOS**: LaunchAgent via launchd (auto-start on login)
+- **Linux**: systemd user service (requires linger for persistence after logout)
+
+**Installation Commands:**
+```bash
+# Interactive wizard
+agent-core daemon-install
+
+# With options
+agent-core daemon-install --port 3210 --gateway
+
+# Non-interactive (for scripts)
+agent-core daemon-install --non-interactive --gateway
+
+# Check status
+agent-core daemon-service-status
+
+# Uninstall
+agent-core daemon-uninstall
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--port` | Daemon port (default: 3210) |
+| `--hostname` | Bind hostname (default: 127.0.0.1) |
+| `--gateway` | Enable zee messaging gateway (WhatsApp/Telegram/Signal) |
+| `--gateway-force` | Force gateway start even if preflight fails |
+| `--wezterm` | Enable WezTerm visual orchestration (default: true) |
+| `--directory` | Working directory for daemon |
+| `--force` | Force reinstall if already installed |
+| `--non-interactive` | Skip prompts (for scripting) |
+
+**Service Locations:**
+- **macOS**: `~/Library/LaunchAgents/com.agent-core.daemon.plist`
+- **Linux**: `~/.config/systemd/user/agent-core-daemon.service`
+
+**Log Locations:**
+- `~/.local/state/agent-core/logs/daemon.log`
+- `~/.local/state/agent-core/logs/daemon.err.log`
+
+**Linux systemd linger:**
+Required for service to continue running after logout:
+```bash
+sudo loginctl enable-linger $USER
+```
+
+**Service Management:**
+```bash
+# macOS
+launchctl kickstart -k gui/$(id -u)/com.agent-core.daemon  # restart
+launchctl bootout gui/$(id -u)/com.agent-core.daemon       # stop
+
+# Linux
+systemctl --user restart agent-core-daemon.service
+systemctl --user stop agent-core-daemon.service
+systemctl --user status agent-core-daemon.service
+journalctl --user -u agent-core-daemon.service -f          # logs
+```
+
 ## Runtime Status
 
 Check shared runtime status:
