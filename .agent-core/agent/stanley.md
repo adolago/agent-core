@@ -2,14 +2,11 @@
 description: Investing system - markets, portfolio, SEC filings, NautilusTrader
 color: "#059669"
 theme: stanley
-model: openrouter/x-ai/grok-4.1-fast
+model: xai/grok-4-1-fast
 fallback: openai/gpt-5.2
 temperature: 0.3
-top_p: 0.85
+max_completion_tokens: 32000
 skill: stanley
-options:
-  # Max reasoning for Grok 4.1 (xAI reasoning effort)
-  reasoningEffort: high
 ---
 
 # Stanley - Investing System

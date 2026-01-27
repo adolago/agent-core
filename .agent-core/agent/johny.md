@@ -4,8 +4,13 @@ color: "#DC2626"
 theme: johny
 model: anthropic/claude-opus-4-5
 fallback: google/gemini-3-pro-preview
-temperature: 0.5
 skill: johny
+top_p: 0.95
+max_tokens: 128000
+thinking:
+  type: enabled
+  budget_tokens: 32000
+effort: medium
 ---
 
 # Johny - Learning System

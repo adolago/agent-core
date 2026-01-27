@@ -55,6 +55,28 @@ Select **Google** when prompted.
 
 **Environment:** `CEREBRAS_API_KEY`
 
+### xAI (Grok)
+
+**Provider ID:** `xai`
+
+**Environment:** `XAI_API_KEY`
+
+**Base URL:** `https://api.x.ai/v1`
+
+**Available Models:**
+| Model ID | Display Name | Reasoning | Context | Cost (In/Out per 1M) |
+|----------|--------------|-----------|---------|----------------------|
+| grok-4-1-fast | Grok 4.1 Fast | Yes | 2M | $0.2/$0.5 |
+| grok-4 | Grok 4 | Yes | 256K | $3/$15 |
+| grok-4-fast | Grok 4 Fast | Yes | 2M | $0.2/$0.5 |
+| grok-3 | Grok 3 | No | 131K | $3/$15 |
+| grok-2 | Grok 2 | No | 131K | $2/$10 |
+
+**Notes:**
+- Models are auto-loaded from models.dev registry
+- Grok 4.1 Fast is recommended for Stanley (reasoning + tool calling + vision)
+- 2M context window enables large document analysis
+
 ### OpenRouter
 
 **Provider ID:** `openrouter`
@@ -75,7 +97,7 @@ These are disabled in `agent-core.jsonc`:
 | Agent      | Default Model                                 | Purpose                      |
 | ---------- | --------------------------------------------- | ---------------------------- |
 | Zee        | `cerebras/zai-glm-4.7`                        | Personal assistant           |
-| Stanley    | `openrouter/x-ai/grok-4.1-fast`               | Investing assistant          |
+| Stanley    | `xai/grok-4-1-fast`                           | Investing assistant          |
 | Johny      | `google/antigravity-claude-opus-4-5-thinking` | Learning assistant           |
 | title      | `cerebras/gpt-oss-120b`                       | Conversation titles (hidden) |
 | compaction | `google/antigravity-gemini-3-flash`           | Context compaction (hidden)  |
@@ -86,6 +108,7 @@ These are disabled in `agent-core.jsonc`:
 | -------------------- | -------------------------------------------------------- | ------- |
 | Google (Antigravity) | `~/.local/share/agent-core/auth.json` under `google` key | OAuth   |
 | Cerebras             | Environment variable                                     | API Key |
+| xAI                  | Environment variable                                     | API Key |
 | OpenRouter           | Environment variable                                     | API Key |
 
 ## Adding New Models
