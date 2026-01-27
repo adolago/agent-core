@@ -1913,12 +1913,12 @@ export function Prompt(props: PromptProps) {
                     })()}
                   </box>
                 </box>
-                <text fg={store.interrupt > 0 ? theme.primary : theme.text}>
-                  esc{" "}
-                  <span style={{ fg: store.interrupt > 0 ? theme.primary : theme.textMuted }}>
+                <box flexDirection="row" gap={1} flexShrink={0}>
+                  <text fg={store.interrupt > 0 ? theme.primary : theme.text}>esc</text>
+                  <text fg={store.interrupt > 0 ? theme.primary : theme.textMuted}>
                     {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
-                  </span>
-                </text>
+                  </text>
+                </box>
               </box>
             </Match>
           </Switch>
@@ -1927,20 +1927,24 @@ export function Prompt(props: PromptProps) {
               <Switch>
                 <Match when={store.mode === "normal"}>
                   <Show when={local.model.variant.list().length > 0}>
-                    <text fg={theme.text}>
-                      {keybind.print("variant_cycle")} <span style={{ fg: theme.textMuted }}>variants</span>
-                    </text>
+                    <box flexDirection="row" gap={1}>
+                      <text fg={theme.text}>{keybind.print("variant_cycle")}</text>
+                      <text fg={theme.textMuted}>variants</text>
+                    </box>
                   </Show>
-                  <text fg={theme.text}>
-                    {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>agents</span>
-                  </text>
-                  <text fg={theme.text}>
-                    {keybind.print("command_list")} <span style={{ fg: theme.textMuted }}>commands</span>
-                  </text>
+                  <box flexDirection="row" gap={1}>
+                    <text fg={theme.text}>{keybind.print("agent_cycle")}</text>
+                    <text fg={theme.textMuted}>agents</text>
+                  </box>
+                  <box flexDirection="row" gap={1}>
+                    <text fg={theme.text}>{keybind.print("command_list")}</text>
+                    <text fg={theme.textMuted}>commands</text>
+                  </box>
                   <Show when={dictationKey() && dictationConfig()}>
-                    <text fg={dictationHintColor()}>
-                      {dictationKey()} <span style={{ fg: theme.textMuted }}>{dictationHintLabel()}</span>
-                    </text>
+                    <box flexDirection="row" gap={1}>
+                      <text fg={dictationHintColor()}>{dictationKey()}</text>
+                      <text fg={theme.textMuted}>{dictationHintLabel()}</text>
+                    </box>
                   </Show>
                   <Show when={realtimeGrammarEnabled()}>
                     <text fg={grammarChecker.errors().length > 0 ? theme.warning : theme.textMuted}>
@@ -1954,9 +1958,10 @@ export function Prompt(props: PromptProps) {
                   </Show>
                 </Match>
                 <Match when={store.mode === "shell"}>
-                  <text fg={theme.text}>
-                    esc <span style={{ fg: theme.textMuted }}>exit shell mode</span>
-                  </text>
+                  <box flexDirection="row" gap={1}>
+                    <text fg={theme.text}>esc</text>
+                    <text fg={theme.textMuted}>exit shell mode</text>
+                  </box>
                 </Match>
               </Switch>
             </box>
