@@ -63,49 +63,24 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       }
     }
 
-    // Global vim mode switching - works regardless of focus
-    // This allows switching between normal/insert modes even when textarea is not focused
-    // Track last mode to prevent double-switching in same handler sequence
-    let lastHandledMode: "normal" | "insert" | null = null
-
-    useKeyboard(async (evt) => {
-      if (!store.leader && vim.enabled) {
-        const targetMode = vim.isInsert ? "insert" : "normal"
-
-        // Only handle if:
-        // 1. Not switching to same mode we're already in
-        // 2. Mode changed since last time we handled it (prevents double-triggering)
-        if (lastHandledMode !== targetMode) {
-          // Enter normal mode from insert mode (Escape or configured key)
-          if (vim.isInsert && result.match("vim_normal_mode", evt)) {
-            vim.enterNormal()
-            lastHandledMode = "normal"
-            return
-          }
-
-          // Enter insert mode from normal mode (i, a, o, O, etc.)
-          if (vim.isNormal && !store.leader) {
-            // Single character insert commands (i, a, I, A, o, O)
-            if (evt.name && evt.name.length === 1 && !evt.ctrl && !evt.meta) {
-              const key = evt.name
-              if (key === "i" || key === "I" || key === "a" || key === "A" || key === "o" || key === "O") {
-                vim.enterInsert()
-                vim.onEnterInsert()
-                lastHandledMode = "insert"
-                return
-              }
-            }
-          }
-        }
-      }
-
+    // Global keyboard handler for leader key activation
+    // NOTE: Vim mode switching is handled by the prompt component's onKeyDown
+    // to ensure proper event ordering - the prompt prevents the character from
+    // being typed BEFORE switching modes. If we switched modes here, the prompt
+    // would see vim.isInsert=true and allow the character through.
+    useKeyboard((evt) => {
       // Activate leader mode if:
       // - No focus (original behavior for non-textarea contexts)
       // - OR vim mode is enabled AND we're in vim normal mode
       // This allows Space to work as leader key in vim normal mode even when textarea is focused
       const hasFocus = renderer.currentFocusedRenderable !== null
-      const canActivateLeader = !hasFocus || vim.isNormal
+      const canActivateLeader = !hasFocus || (vim.enabled && vim.isNormal)
       if (!store.leader && canActivateLeader && result.match("leader", evt)) {
+        // Stop propagation to prevent the textarea from receiving this key
+        // This is important because:
+        // 1. In vim normal mode, Space should trigger leader mode, not be caught by vim handler
+        // 2. The prompt's vim handler would otherwise call preventDefault() for Space
+        evt.stopPropagation()
         leader(true)
         return
       }
@@ -113,6 +88,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       // Only Escape dismisses the which-key popup without executing an action
       // Other keys are handled by individual components which call leader(false) explicitly
       if (store.leader && evt.name === "escape") {
+        evt.stopPropagation()
         leader(false)
         return
       }
