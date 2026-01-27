@@ -1,0 +1,69 @@
+[package]
+name = "agent-core-desktop"
+version = "0.1.0"
+edition = "2021"
+authors = ["Adolago"]
+license = "MIT"
+description = "Unified GPUI desktop app for Agent Core with Personas (Zee, Stanley, Johny)"
+repository = "https://github.com/adolago/agent-core"
+
+[[bin]]
+name = "agent-core-desktop"
+path = "src/main.rs"
+
+[dependencies]
+# GPUI framework from Zed
+gpui = { git = "https://github.com/zed-industries/zed", branch = "main" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+async-stream = "0.3"
+
+# HTTP client for daemon API
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID for session IDs
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Configuration
+toml = "0.8"
+directories = "6.0"
+
+# Image handling for icons (PNG only, SVG handled separately)
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# Markdown and syntax highlighting
+pulldown-cmark = "0.10"
+syntect = "5"
+
+# Stanley core (optional, for trading features)
+stanley-core = { path = "../stanley-core", optional = true }
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[features]
+default = []
+trading = ["stanley-core"]  # Enable Stanley trading features with Rust core
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
