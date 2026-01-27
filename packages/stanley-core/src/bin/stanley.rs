@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
 use serde_json::json;
 use stanley_core::{
     paper_trade::{get_strategy, list_strategies, PaperTradingState},
-    portfolio::{calculate_risk_metrics, PortfolioTracker},
+    portfolio::PortfolioTracker,
     ApiResponse,
 };
 
@@ -224,7 +224,7 @@ fn handle_paper(action: PaperAction) -> String {
             let strategy_info = match get_strategy(&strategy) {
                 Some(s) => s,
                 None => {
-                    let available: Vec<_> = list_strategies().iter().map(|s| &s.id).collect();
+                    let available: Vec<_> = list_strategies().iter().map(|s| s.id.clone()).collect();
                     return serde_json::to_string_pretty(&ApiResponse::<()>::err(format!(
                         "Unknown strategy: {}. Available: {:?}",
                         strategy, available
@@ -328,7 +328,7 @@ fn handle_strategy(action: StrategyAction) -> String {
     }
 }
 
-fn handle_risk(confidence: f64) -> String {
+fn handle_risk(_confidence: f64) -> String {
     // For risk calculation, we need historical returns
     // In the CLI, we return a placeholder since we don't have market data access
     // The Python FFI layer will provide actual returns
