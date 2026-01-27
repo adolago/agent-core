@@ -25,6 +25,7 @@ This is the **engine** that powers Agent-Core.
 - The default branch in this repo is `dev`.
 - When creating GitHub issues or PRs, target the fork at `origin` (e.g., `adolago/agent-core`), not upstream or other repos.
 
+- **No emojis** in commit messages, PR titles, code comments, or documentation. Keep text clean and professional.
 ### Binary Installation
 
 **Single source of truth**: The `agent-core` binary is installed via `bun link` from `packages/agent-core/`.
