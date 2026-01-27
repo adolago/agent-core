@@ -277,14 +277,32 @@ export const AuthLoginCommand = cmd({
           return filtered
         })
 
+        // Inject plugin providers (e.g., gemini-cli from opencode-google-auth)
+        const pluginHooks = await Plugin.list()
+        for (const hooks of pluginHooks) {
+          if (hooks.auth?.provider) {
+            const id = hooks.auth.provider
+            if ((enabled ? enabled.has(id) : true) && !disabled.has(id) && !providers[id]) {
+              // Add minimal provider entry for auth display
+              providers[id] = {
+                id,
+                name: id,
+                env: [],
+                models: {},
+              } as (typeof providers)[string]
+            }
+          }
+        }
+
         const priority: Record<string, number> = {
           opencode: 0,
           anthropic: 1,
-          "github-copilot": 2,
-          openai: 3,
-          google: 4,
-          openrouter: 5,
-          vercel: 6,
+          "gemini-cli": 2,
+          "github-copilot": 3,
+          openai: 4,
+          google: 5,
+          openrouter: 6,
+          vercel: 7,
         }
         let provider = providerArg ?? ""
         if (!provider) {
@@ -305,6 +323,7 @@ export const AuthLoginCommand = cmd({
                   hint: {
                     opencode: "recommended",
                     anthropic: "Claude Max or API key",
+                    "gemini-cli": "Google OAuth (Antigravity)",
                     openai: "ChatGPT Plus/Pro or API key",
                   }[x.id],
                 })),
