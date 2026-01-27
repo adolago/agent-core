@@ -8,7 +8,7 @@ import { Agent } from "../../src/agent/agent"
 
 const FIXTURES_DIR = path.join(import.meta.dir, "fixtures")
 
-const ctx = {
+const baseCtx = {
   sessionID: "test",
   messageID: "",
   callID: "",
@@ -17,6 +17,8 @@ const ctx = {
   metadata: () => {},
   ask: async () => {},
 }
+// Helper to create context with directory
+const ctx = (dir: string) => ({ ...baseCtx, directory: dir })
 
 describe("tool.read external_directory permission", () => {
   test("allows reading absolute path inside project directory", async () => {
@@ -29,7 +31,7 @@ describe("tool.read external_directory permission", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "test.txt") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "test.txt") }, ctx(tmp.path))
         expect(result.output).toContain("hello world")
       },
     })
@@ -45,7 +47,7 @@ describe("tool.read external_directory permission", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "subdir", "test.txt") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "subdir", "test.txt") }, ctx(tmp.path))
         expect(result.output).toContain("nested content")
       },
     })
@@ -64,7 +66,7 @@ describe("tool.read external_directory permission", () => {
         const read = await ReadTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -85,7 +87,7 @@ describe("tool.read external_directory permission", () => {
         const read = await ReadTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -111,7 +113,7 @@ describe("tool.read external_directory permission", () => {
         const read = await ReadTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -148,7 +150,7 @@ describe("tool.read env file permissions", () => {
           const agent = await Agent.get(agentName)
           let askedForEnv = false
           const ctxWithPermissions = {
-            ...ctx,
+            ...ctx(tmp.path),
             ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
               for (const pattern of req.patterns) {
                 const rule = PermissionNext.evaluate(req.permission, pattern, agent.permission)
@@ -188,7 +190,7 @@ describe("tool.read truncation", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "large.json") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "large.json") }, ctx(tmp.path))
         expect(result.metadata.truncated).toBe(true)
         expect(result.output).toContain("Output truncated at")
         expect(result.output).toContain("bytes")
@@ -207,7 +209,7 @@ describe("tool.read truncation", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "many-lines.txt"), limit: 10 }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "many-lines.txt"), limit: 10 }, ctx(tmp.path))
         expect(result.metadata.truncated).toBe(true)
         expect(result.output).toContain("File has more lines")
         expect(result.output).toContain("line0")
@@ -227,7 +229,7 @@ describe("tool.read truncation", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "small.txt") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "small.txt") }, ctx(tmp.path))
         expect(result.metadata.truncated).toBe(false)
         expect(result.output).toContain("End of file")
       },
@@ -245,7 +247,7 @@ describe("tool.read truncation", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "offset.txt"), offset: 10, limit: 5 }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "offset.txt"), offset: 10, limit: 5 }, ctx(tmp.path))
         expect(result.output).toContain("line10")
         expect(result.output).toContain("line14")
         expect(result.output).not.toContain("line0")
@@ -265,7 +267,7 @@ describe("tool.read truncation", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "long-line.txt") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "long-line.txt") }, ctx(tmp.path))
         expect(result.output).toContain("...")
         expect(result.output.length).toBeLessThan(3000)
       },
@@ -287,7 +289,7 @@ describe("tool.read truncation", () => {
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "image.png") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "image.png") }, ctx(tmp.path))
         expect(result.metadata.truncated).toBe(false)
         expect(result.attachments).toBeDefined()
         expect(result.attachments?.length).toBe(1)
@@ -300,7 +302,7 @@ describe("tool.read truncation", () => {
       directory: FIXTURES_DIR,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(FIXTURES_DIR, "large-image.png") }, ctx)
+        const result = await read.execute({ filePath: path.join(FIXTURES_DIR, "large-image.png") }, ctx(FIXTURES_DIR))
         expect(result.metadata.truncated).toBe(false)
         expect(result.attachments).toBeDefined()
         expect(result.attachments?.length).toBe(1)
@@ -329,7 +331,7 @@ root_type Monster;`
       directory: tmp.path,
       fn: async () => {
         const read = await ReadTool.init()
-        const result = await read.execute({ filePath: path.join(tmp.path, "schema.fbs") }, ctx)
+        const result = await read.execute({ filePath: path.join(tmp.path, "schema.fbs") }, ctx(tmp.path))
         // Should be read as text, not as image
         expect(result.attachments).toBeUndefined()
         expect(result.output).toContain("namespace MyGame")

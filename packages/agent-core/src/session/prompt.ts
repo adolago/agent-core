@@ -642,6 +642,7 @@ export namespace SessionPrompt {
           sessionID: sessionID,
           abort,
           callID: part.callID,
+          directory: Instance.directory,
           extra: { bypassAgentCheck: true },
           async metadata(input) {
             await Session.updatePart({
@@ -938,6 +939,7 @@ export namespace SessionPrompt {
       abort: options.abortSignal!,
       messageID: input.processor.message.id,
       callID: options.toolCallId,
+      directory: Instance.directory,
       extra: { model: input.model, bypassAgentCheck: input.bypassAgentCheck },
       agent: input.agent.name,
       metadata: async (val: { title?: string; metadata?: any }) => {
@@ -1301,6 +1303,7 @@ export namespace SessionPrompt {
                       abort: new AbortController().signal,
                       agent: input.agent!,
                       messageID: info.id,
+                      directory: Instance.directory,
                       extra: { bypassCwdCheck: true, model },
                       metadata: async () => {},
                       ask: async () => {},
@@ -1362,6 +1365,7 @@ export namespace SessionPrompt {
                   abort: new AbortController().signal,
                   agent: input.agent!,
                   messageID: info.id,
+                  directory: Instance.directory,
                   extra: { bypassCwdCheck: true },
                   metadata: async () => {},
                   ask: async () => {},
@@ -1554,7 +1558,7 @@ export namespace SessionPrompt {
 
     const session = await Session.get(input.sessionID)
     if (session.revert) {
-      SessionRevert.cleanup(session)
+      await SessionRevert.cleanup(session)
     }
     const agent = await Agent.get(input.agent)
     const model = input.model ?? agent.model ?? (await lastModel(input.sessionID))

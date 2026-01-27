@@ -4,7 +4,7 @@ import { GrepTool } from "../../src/tool/grep"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 
-const ctx = {
+const baseCtx = {
   sessionID: "test",
   messageID: "",
   callID: "",
@@ -13,6 +13,7 @@ const ctx = {
   metadata: () => {},
   ask: async () => {},
 }
+const ctx = (dir: string) => ({ ...baseCtx, directory: dir })
 
 const projectRoot = path.join(__dirname, "../..")
 
@@ -28,7 +29,7 @@ describe("tool.grep", () => {
             path: path.join(projectRoot, "src/tool"),
             include: "*.ts",
           },
-          ctx,
+          ctx(projectRoot),
         )
         expect(result.metadata.matches).toBeGreaterThan(0)
         expect(result.output).toContain("Found")
@@ -51,7 +52,7 @@ describe("tool.grep", () => {
             pattern: "xyznonexistentpatternxyz123",
             path: tmp.path,
           },
-          ctx,
+          ctx(tmp.path),
         )
         expect(result.metadata.matches).toBe(0)
         expect(result.output).toBe("No files found")
@@ -76,7 +77,7 @@ describe("tool.grep", () => {
             pattern: "line",
             path: tmp.path,
           },
-          ctx,
+          ctx(tmp.path),
         )
         expect(result.metadata.matches).toBeGreaterThan(0)
       },

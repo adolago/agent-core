@@ -798,6 +798,11 @@ export namespace Provider {
     function mergeProvider(providerID: string, provider: Partial<Info>) {
       const existing = providers[providerID]
       if (existing) {
+        // Preserve source from env or api when custom loaders try to override.
+        // User-set credentials (env vars, API keys) should take precedence over plugin detection.
+        if ((existing.source === "env" || existing.source === "api") && provider.source === "custom") {
+          provider = { ...provider, source: existing.source }
+        }
         // mergeDeep returns a complex intersection type that doesn't match Info exactly,
         // but the result is structurally compatible with Info
         providers[providerID] = mergeDeep(existing, provider) as Info

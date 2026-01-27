@@ -46,9 +46,9 @@ test("provider loaded from env variable", async () => {
     fn: async () => {
       const providers = await Provider.list()
       expect(providers["anthropic"]).toBeDefined()
-      // Note: source becomes "custom" because CUSTOM_LOADERS run after env loading
-      // and anthropic has a custom loader that merges additional options
-      expect(providers["anthropic"].source).toBe("custom")
+      // Source is preserved as "env" because user-set credentials (env vars) take precedence
+      // over plugin detection. Custom loaders still merge their options, but don't override source.
+      expect(providers["anthropic"].source).toBe("env")
     },
   })
 })

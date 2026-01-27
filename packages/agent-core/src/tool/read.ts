@@ -9,6 +9,7 @@ import { Instance } from "../project/instance"
 import { Identifier } from "../id/id"
 import { assertExternalDirectory } from "./external-directory"
 import { PermissionNext } from "../permission/next"
+import { InstructionPrompt } from "../session/instruction"
 
 const DEFAULT_READ_LIMIT = 2000
 const MAX_LINE_LENGTH = 2000
@@ -76,7 +77,7 @@ export const ReadTool = Tool.define("read", {
   async execute(params, ctx) {
     let filepath = params.filePath
     if (!path.isAbsolute(filepath)) {
-      filepath = path.join(process.cwd(), filepath)
+      filepath = path.join(ctx.directory, filepath)
     }
     const title = path.relative(Instance.worktree, filepath)
 
@@ -194,6 +195,12 @@ export const ReadTool = Tool.define("read", {
     // just warms the lsp client
     LSP.touchFile(filepath, false)
     FileTime.read(ctx.sessionID, filepath)
+
+    // Load any new AGENTS.md instructions from the file's directory or parents
+    const newInstructions = await InstructionPrompt.resolve(ctx.sessionID, filepath)
+    if (newInstructions.length > 0) {
+      output += "\n\n" + newInstructions.join("\n\n")
+    }
 
     return {
       title,

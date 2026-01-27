@@ -306,7 +306,7 @@ export namespace SessionProcessor {
                         tool: value.toolName,
                         state: {
                           status: "running",
-                          input: value.input,
+                          input: value.input ?? match.state.input,
                           time: {
                             start: Date.now(),
                           },
@@ -351,7 +351,7 @@ export namespace SessionProcessor {
                         ...match,
                         state: {
                           status: "completed",
-                          input: value.input,
+                          input: value.input ?? match.state.input,
                           output: value.output.output,
                           metadata: value.output.metadata,
                           title: value.output.title,

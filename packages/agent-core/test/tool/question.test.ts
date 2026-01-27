@@ -9,6 +9,7 @@ const ctx = {
   callID: "test-call",
   agent: "test-agent",
   abort: AbortSignal.any([]),
+  directory: process.cwd(),
   metadata: () => {},
   ask: async () => {},
 }

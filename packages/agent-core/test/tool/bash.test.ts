@@ -6,7 +6,7 @@ import { tmpdir } from "../fixture/fixture"
 import type { PermissionNext } from "../../src/permission/next"
 import { Truncate } from "../../src/tool/truncation"
 
-const ctx = {
+const baseCtx = {
   sessionID: "test",
   messageID: "",
   callID: "",
@@ -15,6 +15,7 @@ const ctx = {
   metadata: () => {},
   ask: async () => {},
 }
+const ctx = (dir: string) => ({ ...baseCtx, directory: dir })
 
 const projectRoot = path.join(__dirname, "../..")
 
@@ -29,7 +30,7 @@ describe("tool.bash", () => {
             command: "echo 'test'",
             description: "Echo test message",
           },
-          ctx,
+          ctx(projectRoot),
         )
         expect(result.metadata.exit).toBe(0)
         expect(result.metadata.output).toContain("test")
@@ -47,7 +48,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -74,7 +75,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -102,7 +103,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -128,7 +129,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -156,7 +157,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -186,7 +187,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -213,7 +214,7 @@ describe("tool.bash permissions", () => {
         const bash = await BashTool.init()
         const requests: Array<Omit<PermissionNext.Request, "id" | "sessionID" | "tool">> = []
         const testCtx = {
-          ...ctx,
+          ...ctx(tmp.path),
           ask: async (req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) => {
             requests.push(req)
           },
@@ -244,7 +245,7 @@ describe("tool.bash truncation", () => {
             command: `seq 1 ${lineCount}`,
             description: "Generate lines exceeding limit",
           },
-          ctx,
+          ctx(projectRoot),
         )
         expect((result.metadata as any).truncated).toBe(true)
         expect(result.output).toContain("truncated")
@@ -264,7 +265,7 @@ describe("tool.bash truncation", () => {
             command: `head -c ${byteCount} /dev/zero | tr '\\0' 'a'`,
             description: "Generate bytes exceeding limit",
           },
-          ctx,
+          ctx(projectRoot),
         )
         expect((result.metadata as any).truncated).toBe(true)
         expect(result.output).toContain("truncated")
@@ -283,7 +284,7 @@ describe("tool.bash truncation", () => {
             command: "echo hello",
             description: "Echo hello",
           },
-          ctx,
+          ctx(projectRoot),
         )
         expect((result.metadata as any).truncated).toBe(false)
         expect(result.output).toBe("hello\n")
@@ -302,7 +303,7 @@ describe("tool.bash truncation", () => {
             command: `seq 1 ${lineCount}`,
             description: "Generate lines for file check",
           },
-          ctx,
+          ctx(projectRoot),
         )
         expect((result.metadata as any).truncated).toBe(true)
 

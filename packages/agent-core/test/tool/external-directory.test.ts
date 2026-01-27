@@ -11,6 +11,7 @@ const baseCtx: Omit<Tool.Context, "ask"> = {
   callID: "",
   agent: "build",
   abort: AbortSignal.any([]),
+  directory: "/tmp/project", // Default, overridden per-test as needed
   metadata: () => {},
 }
 
