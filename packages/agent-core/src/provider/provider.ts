@@ -29,8 +29,6 @@ import { createAmazonBedrock, type AmazonBedrockProviderSettings } from "@ai-sdk
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { createAzure } from "@ai-sdk/azure"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { createVertex } from "@ai-sdk/google-vertex"
-import { createVertexAnthropic } from "@ai-sdk/google-vertex/anthropic"
 import { createOpenAI } from "@ai-sdk/openai"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { createOpenRouter } from "@openrouter/ai-sdk-provider"
@@ -80,8 +78,6 @@ export namespace Provider {
     "@ai-sdk/anthropic": createAnthropic,
     "@ai-sdk/azure": createAzure,
     "@ai-sdk/google": createGoogleGenerativeAI,
-    "@ai-sdk/google-vertex": createVertex,
-    "@ai-sdk/google-vertex/anthropic": createVertexAnthropic,
     // Use custom OpenAI wrapper with GPT-5 stream completion fix
     // @ts-ignore - types from custom wrapper don't match SDK factory signature
     "@ai-sdk/openai": createPatchedOpenAI,
@@ -392,64 +388,6 @@ export namespace Provider {
           headers: {
             ...clientHeaders({ lower: true }),
           },
-        },
-      }
-    },
-    "google-vertex": async () => {
-      const auth = await Auth.get("google-vertex")
-      const serviceAccount =
-        auth?.type === "api" && auth.key ? parseGoogleServiceAccountKey(auth.key) : undefined
-
-      const project =
-        Env.get("GOOGLE_CLOUD_PROJECT") ??
-        Env.get("GCP_PROJECT") ??
-        Env.get("GCLOUD_PROJECT") ??
-        Env.get("GOOGLE_VERTEX_PROJECT") ??
-        serviceAccount?.project
-
-      const location =
-        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "us-east5"
-      const autoload = Boolean(project)
-      if (!autoload) return { autoload: false }
-      return {
-        autoload: true,
-        options: {
-          project,
-          location,
-          ...(serviceAccount?.credentials ? { googleAuthOptions: { credentials: serviceAccount.credentials } } : {}),
-        },
-        async getModel(sdk: any, modelID: string) {
-          const id = String(modelID).trim()
-          return sdk.languageModel(id)
-        },
-      }
-    },
-    "google-vertex-anthropic": async () => {
-      const auth = await Auth.get("google-vertex")
-      const serviceAccount =
-        auth?.type === "api" && auth.key ? parseGoogleServiceAccountKey(auth.key) : undefined
-
-      const project =
-        Env.get("GOOGLE_CLOUD_PROJECT") ??
-        Env.get("GCP_PROJECT") ??
-        Env.get("GCLOUD_PROJECT") ??
-        Env.get("GOOGLE_VERTEX_PROJECT") ??
-        serviceAccount?.project
-
-      const location =
-        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "global"
-      const autoload = Boolean(project)
-      if (!autoload) return { autoload: false }
-      return {
-        autoload: true,
-        options: {
-          project,
-          location,
-          ...(serviceAccount?.credentials ? { googleAuthOptions: { credentials: serviceAccount.credentials } } : {}),
-        },
-        async getModel(sdk: any, modelID) {
-          const id = String(modelID).trim()
-          return sdk.languageModel(id)
         },
       }
     },
@@ -1413,12 +1351,9 @@ export namespace Provider {
         })
       }
 
-      // Special case: google-vertex-anthropic uses a subpath import
-      const bundledKey =
-        model.providerID === "google-vertex-anthropic" ? "@ai-sdk/google-vertex/anthropic" : model.api.npm
-      const bundledFn = BUNDLED_PROVIDERS[bundledKey]
+      const bundledFn = BUNDLED_PROVIDERS[model.api.npm]
       if (bundledFn) {
-        log.info("using bundled provider", { providerID: model.providerID, pkg: bundledKey })
+        log.info("using bundled provider", { providerID: model.providerID, pkg: model.api.npm })
         const loaded = bundledFn({
           name: model.providerID,
           ...options,

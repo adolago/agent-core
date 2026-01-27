@@ -189,7 +189,7 @@ export function Prompt(props: PromptProps) {
       toast.show({
         variant: "warning",
         message:
-          "Dictation is not configured. Connect google-vertex via :connect (service account JSON), or set GOOGLE_APPLICATION_CREDENTIALS.",
+          "Dictation is not configured. Connect google-stt via :connect (service account JSON), or set GOOGLE_APPLICATION_CREDENTIALS.",
       })
       return
     }
@@ -992,7 +992,14 @@ export function Prompt(props: PromptProps) {
     const currentMode = store.mode
     const variant = local.model.variant.current()
 
+    // Tool restrictions for hold mode (read-only: no edit/write)
+    const holdModeTools = local.mode.isHold()
+      ? { edit: false, write: false, notebook_edit: false }
+      : undefined
+
     if (store.mode === "shell") {
+      // Shell mode executes user-provided commands directly, not AI actions
+      // Hold/release mode doesn't apply since the user is explicitly running the command
       sdk.client.session.shell({
         sessionID,
         agent: local.agent.current().name,
@@ -1027,6 +1034,7 @@ export function Prompt(props: PromptProps) {
         model: `${selectedModel.providerID}/${selectedModel.modelID}`,
         messageID,
         variant,
+        tools: holdModeTools,
         parts: nonTextParts
           .filter((x) => x.type === "file")
           .map((x) => ({

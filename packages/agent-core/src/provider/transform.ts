@@ -72,9 +72,7 @@ export namespace ProviderTransform {
       case "@ai-sdk/amazon-bedrock":
         return "bedrock"
       case "@ai-sdk/anthropic":
-      case "@ai-sdk/google-vertex/anthropic":
         return "anthropic"
-      case "@ai-sdk/google-vertex":
       case "@ai-sdk/google":
         return "google"
       case "@ai-sdk/gateway":
@@ -540,8 +538,6 @@ export namespace ProviderTransform {
           ]),
         )
 
-      case "@ai-sdk/google-vertex":
-      // https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-vertex
       case "@ai-sdk/google":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
         if (id.includes("2.5")) {
@@ -657,7 +653,7 @@ export namespace ProviderTransform {
       result["promptCacheKey"] = input.sessionID
     }
 
-    if (input.model.api.npm === "@ai-sdk/google" || input.model.api.npm === "@ai-sdk/google-vertex") {
+    if (input.model.api.npm === "@ai-sdk/google") {
       result["thinkingConfig"] = {
         includeThoughts: true,
       }
@@ -873,33 +869,6 @@ export namespace ProviderTransform {
       "speechConfig", // { voiceConfig: { prebuiltVoiceConfig: { voiceName: string } } }
     ]),
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // GOOGLE VERTEX AI
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/google-vertex": new Set([
-      // Thinking
-      "thinkingConfig",
-      "thinkingLevel",
-      "thinkingBudget",
-
-      // Safety
-      "safetySettings",
-
-      // Caching
-      "cachedContent",
-
-      // Output
-      "structuredOutputs",
-
-      // Search grounding
-      "useSearchGrounding",
-
-      // Response modalities
-      "responseModalities",
-
-      // Speech
-      "speechConfig",
-    ]),
 
     // ═══════════════════════════════════════════════════════════════════════
     // XAI (Grok models)

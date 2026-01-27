@@ -418,7 +418,7 @@ export namespace Dictation {
     // Check for stored service account credentials
     // Note: We only accept service account JSON keys here, not API keys,
     // because Speech-to-Text API requires OAuth tokens (not API keys)
-    const stored = (await Auth.get("google-vertex")) ?? (await Auth.get("google-stt"))
+    const stored = await Auth.get("google-stt")
     if (stored?.type === "api" && stored.key) {
       const parsed = parseGoogleServiceAccountKey(stored.key)
       if (parsed) return { credentials: parsed }
@@ -460,7 +460,7 @@ export namespace Dictation {
     const token = await client.getAccessToken()
     if (token?.token) return token.token
     throw new Error(
-      "Unable to obtain Google access token. Set GOOGLE_APPLICATION_CREDENTIALS, or connect google-vertex with a service-account JSON key.",
+      "Unable to obtain Google access token. Set GOOGLE_APPLICATION_CREDENTIALS, or connect google-stt with a service-account JSON key.",
     )
   }
 
