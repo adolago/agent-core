@@ -1921,7 +1921,8 @@ export function Prompt(props: PromptProps) {
                 </text>
               </box>
             </Match>
-          </Switch>          <Show when={status().type !== "retry"}>
+          </Switch>
+          <Show when={status().type !== "retry"}>
             <box gap={2} flexDirection="row">
               <Switch>
                 <Match when={store.mode === "normal"}>
