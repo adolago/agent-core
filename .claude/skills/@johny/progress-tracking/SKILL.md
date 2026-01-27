@@ -1,6 +1,9 @@
 ---
 name: progress-tracking
 description: Track learning progress, identify gaps, and adapt curriculum
+version: 1.0.0
+author: Artur
+tags: [learning, progress, tracking, johny]
 triggers:
   - progress
   - status

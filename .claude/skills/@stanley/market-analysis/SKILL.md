@@ -1,6 +1,9 @@
 ---
 name: market-analysis
 description: Analyze market conditions, sector rotation, and macro trends
+version: 1.0.0
+author: Artur
+tags: [finance, market, analysis, stanley]
 triggers:
   - market analysis
   - sector rotation

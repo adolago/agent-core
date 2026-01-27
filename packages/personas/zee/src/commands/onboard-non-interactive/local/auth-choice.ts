@@ -142,7 +142,7 @@ export async function applyNonInteractiveAuthChoice(params: {
 
   if (authChoice === "zai-api-key") {
     const resolved = await resolveNonInteractiveApiKey({
-      provider: "zai",
+      provider: "zai-coding-plan",
       cfg: baseConfig,
       flagValue: opts.zaiApiKey,
       flagName: "--zai-api-key",
@@ -152,8 +152,8 @@ export async function applyNonInteractiveAuthChoice(params: {
     if (!resolved) return null;
     if (resolved.source !== "profile") await setZaiApiKey(resolved.key);
     nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "zai:default",
-      provider: "zai",
+      profileId: "zai-coding-plan:default",
+      provider: "zai-coding-plan",
       mode: "api_key",
     });
     return applyZaiConfig(nextConfig);

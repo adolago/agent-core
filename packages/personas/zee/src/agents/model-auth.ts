@@ -251,7 +251,7 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return pick("CHUTES_OAUTH_TOKEN") ?? pick("CHUTES_API_KEY");
   }
 
-  if (normalized === "zai") {
+  if (normalized === "zai-coding-plan") {
     return pick("ZAI_API_KEY") ?? pick("Z_AI_API_KEY");
   }
 
@@ -272,7 +272,6 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
   const envMap: Record<string, string> = {
     openai: "OPENAI_API_KEY",
     google: "GEMINI_API_KEY",
-    cerebras: "CEREBRAS_API_KEY",
     xai: "XAI_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
     "kimi-code": "KIMICODE_API_KEY",

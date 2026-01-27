@@ -1,6 +1,9 @@
 ---
 name: pim-classic
 description: "Classic Unix PIM stack: neomutt (email), mbsync (IMAP sync), msmtp (SMTP), notmuch (search), vdirsyncer (CalDAV/CardDAV), khal (calendar), khard (contacts). Provider-agnostic, offline-first, battle-tested."
+version: 1.0.0
+author: Artur
+tags: [email, calendar, contacts, zee]
 homepage: https://neomutt.org
 metadata: {"zee":{"emoji":"📬","requires":{"bins":["neomutt","mbsync","msmtp","notmuch","vdirsyncer","khal","khard"]},"install":[{"id":"pacman","kind":"pacman","packages":["neomutt","isync","msmtp","notmuch","vdirsyncer","khal","khard"],"label":"Install PIM stack (pacman)"}]}}
 ---

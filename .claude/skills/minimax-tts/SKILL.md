@@ -1,6 +1,9 @@
 ---
 name: minimax-tts
 description: MiniMax TTS for voice synthesis in TUI and messaging. High-quality text-to-speech with multiple voices and languages.
+version: 1.0.0
+author: Artur
+tags: [speech, tts, voice, synthesis]
 homepage: https://www.minimax.io/
 metadata: {"zee":{"emoji":"🔊","requires":{"env":["MINIMAX_API_KEY"]}}}
 ---

@@ -1,6 +1,9 @@
 ---
 name: blogwatcher
 description: Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.
+version: 1.0.0
+author: Artur
+tags: [rss, feeds, blogs, monitoring]
 homepage: https://github.com/Hyaxia/blogwatcher
 metadata: {"zee":{"emoji":"📰","requires":{"bins":["blogwatcher"]},"install":[{"id":"go","kind":"go","module":"github.com/Hyaxia/blogwatcher/cmd/blogwatcher@latest","bins":["blogwatcher"],"label":"Install blogwatcher (go)"}]}}
 ---

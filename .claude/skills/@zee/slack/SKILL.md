@@ -1,6 +1,9 @@
 ---
 name: slack
 description: Use when you need to control Slack from Zee via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.
+version: 1.0.0
+author: Artur
+tags: [messaging, slack, social, zee]
 ---
 
 # Slack Actions

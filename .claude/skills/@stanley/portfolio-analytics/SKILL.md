@@ -1,6 +1,9 @@
 ---
 name: portfolio-analytics
 description: Analyze portfolio risk, performance, and allocation
+version: 1.0.0
+author: Artur
+tags: [finance, portfolio, analytics, stanley]
 triggers:
   - portfolio analysis
   - risk metrics

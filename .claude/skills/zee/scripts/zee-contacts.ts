@@ -1,12 +1,12 @@
 #!/usr/bin/env npx tsx
 /**
- * shared contacts CLI
+ * Zee Contacts CLI
  *
  * Usage:
- *   npx tsx shared-contacts.ts add --name "Sarah" [--platform telegram] [--topic "..."]
- *   npx tsx shared-contacts.ts list [--limit 20] [--contains "sa"]
- *   npx tsx shared-contacts.ts last --name "Sarah"
- *   npx tsx shared-contacts.ts dormant --days 30
+ *   npx tsx zee-contacts.ts add --name "Sarah" [--platform telegram] [--topic "..."]
+ *   npx tsx zee-contacts.ts list [--limit 20] [--contains "sa"]
+ *   npx tsx zee-contacts.ts last --name "Sarah"
+ *   npx tsx zee-contacts.ts dormant --days 30
  */
 
 import { runZeeCli } from "./zee-runner";
@@ -20,7 +20,7 @@ function getArg(name: string): string | undefined {
 }
 
 function printError(message: string) {
-  console.error("\n⚠️  Zee CLI unavailable");
+  console.error("\n  Zee CLI unavailable");
   console.error(message);
 }
 
@@ -65,7 +65,7 @@ switch (command) {
   }
   default:
     console.log(`
-shared contacts CLI
+Zee Contacts CLI
 
 Commands:
   add --name <name> [--platform <platform>] [--topic <topic>]

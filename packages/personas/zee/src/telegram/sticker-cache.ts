@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ClawdbotConfig } from "../config/config.js";
-import { STATE_DIR_CLAWDBOT } from "../config/paths.js";
+import type { ZeeConfig } from "../config/config.js";
+import { STATE_DIR_ZEE } from "../config/paths.js";
 import { loadJsonFile, saveJsonFile } from "../infra/json-file.js";
 import { logVerbose } from "../globals.js";
 import { resolveApiKeyForProvider } from "../agents/model-auth.js";
 
-const CACHE_FILE = path.join(STATE_DIR_CLAWDBOT, "telegram", "sticker-cache.json");
+const CACHE_FILE = path.join(STATE_DIR_ZEE, "telegram", "sticker-cache.json");
 const CACHE_VERSION = 1;
 
 export interface CachedSticker {
@@ -145,7 +145,7 @@ const DEFAULT_VISION_MODELS: Record<string, string> = {
 
 export interface DescribeStickerParams {
   imagePath: string;
-  cfg: ClawdbotConfig;
+  cfg: ZeeConfig;
   agentDir?: string;
 }
 

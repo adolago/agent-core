@@ -1,6 +1,9 @@
 ---
 name: financial-research
 description: Conduct fundamental investment research using OpenBB and Stanley backend
+version: 1.0.0
+author: Artur
+tags: [finance, research, analysis, stanley]
 triggers:
   - stock research
   - company analysis

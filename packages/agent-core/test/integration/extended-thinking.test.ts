@@ -501,25 +501,6 @@ describe("OpenRouter Extended Thinking", () => {
   })
 })
 
-describe("Cerebras Extended Thinking (via openai-compatible)", () => {
-  test("Cerebras models get WIDELY_SUPPORTED_EFFORTS via openai-compatible", () => {
-    // Cerebras now uses openai-compatible instead of dedicated SDK
-    const model = createMockModel({
-      id: "cerebras/llama-4",
-      providerID: "cerebras",
-      api: {
-        id: "llama-4-sc",
-        url: "https://api.cerebras.ai",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    })
-
-    const variants = ProviderTransform.variants(model)
-    expect(Object.keys(variants)).toEqual(["low", "medium", "high"])
-    expect(variants.medium).toEqual({ reasoningEffort: "medium" })
-  })
-})
-
 describe("Non-Reasoning Models", () => {
   test("Models without reasoning capability return empty variants", () => {
     const model = createMockModel({
@@ -590,13 +571,13 @@ describe("Persona Thinking Configs", () => {
       })
     })
 
-    test("ZAI provider gets preserved thinking mode", () => {
+    test("Z.AI Coding Plan provider gets preserved thinking mode", () => {
       const model = createMockModel({
-        id: "zai/glm-4.7",
-        providerID: "zai",
+        id: "zai-coding-plan/glm-4.7",
+        providerID: "zai-coding-plan",
         api: {
           id: "glm-4.7",
-          url: "https://api.cerebras.ai",
+          url: "https://open.bigmodel.cn/api/paas/v4",
           npm: "@ai-sdk/openai-compatible",
         },
       })

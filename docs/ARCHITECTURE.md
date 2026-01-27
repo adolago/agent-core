@@ -72,10 +72,10 @@ Multi-provider LLM support with subscription-based authentication.
 - Google Vertex AI
 - OpenRouter
 - xAI (Grok)
+- Z.AI Coding Plan
 - Mistral
 - Groq
 - DeepInfra
-- Cerebras
 - Cohere
 - Together AI
 - Perplexity

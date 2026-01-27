@@ -16,10 +16,9 @@ const MODEL_PICK_PROVIDER_PREFERENCE = [
   "minimax",
   "synthetic",
   "google",
-  "zai",
+  "zai-coding-plan",
   "openrouter",
   "opencode",
-  "cerebras",
   "xai",
 ] as const;
 

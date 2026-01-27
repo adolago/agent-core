@@ -1,6 +1,9 @@
 ---
 name: video-frames
 description: Extract frames or short clips from videos using ffmpeg.
+version: 1.0.0
+author: Artur
+tags: [video, frames, ffmpeg, media]
 homepage: https://ffmpeg.org
 metadata: {"zee":{"emoji":"🎞️","requires":{"bins":["ffmpeg"]},"install":[{"id":"brew","kind":"brew","formula":"ffmpeg","bins":["ffmpeg"],"label":"Install ffmpeg (brew)"}]}}
 ---

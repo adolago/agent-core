@@ -1616,7 +1616,7 @@ Example:
 
 Z.AI GLM-4.x models automatically enable thinking mode unless you:
 - set `--thinking off`, or
-- define `agents.defaults.models["zai/<model>"].params.thinking` yourself.
+- define `agents.defaults.models["zai-coding-plan/<model>"].params.thinking` yourself.
 
 Zee also ships a few built-in alias shorthands. Defaults only apply when the model
 is already present in `agents.defaults.models`:
@@ -1699,7 +1699,7 @@ Example:
         "anthropic/claude-opus-4-5": { alias: "Opus" },
         "anthropic/claude-sonnet-4-1": { alias: "Sonnet" },
         "openrouter/deepseek/deepseek-r1:free": {},
-        "zai/glm-4.7": {
+        "zai-coding-plan/glm-4.7": {
           alias: "GLM",
           params: {
             thinking: {
@@ -1915,7 +1915,7 @@ See [/concepts/typing-indicators](/concepts/typing-indicators) for behavior deta
 Aliases come from `agents.defaults.models.*.alias` (e.g. `Opus`).
 If you omit the provider, Zee currently assumes `anthropic` as a temporary
 deprecation fallback.
-Z.AI models are available as `zai/<model>` (e.g. `zai/glm-4.7`) and require
+Z.AI Coding Plan models are available as `zai-coding-plan/<model>` (e.g. `zai-coding-plan/glm-4.7`) and require
 `ZAI_API_KEY` (or legacy `Z_AI_API_KEY`) in the environment.
 
 `agents.defaults.heartbeat` configures periodic heartbeat runs:
@@ -2363,9 +2363,9 @@ Notes:
 }
 ```
 
-### Z.AI (GLM-4.7) — provider alias support
+### Z.AI Coding Plan (GLM-4.7)
 
-Z.AI models are available via the built-in `zai` provider. Set `ZAI_API_KEY`
+Z.AI Coding Plan models are available via the built-in `zai-coding-plan` provider. Set `ZAI_API_KEY`
 in your environment and reference the model by provider/model.
 
 Shortcut: `zee onboard --auth-choice zai-api-key`.
@@ -2374,22 +2374,17 @@ Shortcut: `zee onboard --auth-choice zai-api-key`.
 {
   agents: {
     defaults: {
-      model: { primary: "zai/glm-4.7" },
-      models: { "zai/glm-4.7": {} }
+      model: { primary: "zai-coding-plan/glm-4.7" },
+      models: { "zai-coding-plan/glm-4.7": {} }
     }
   }
 }
 ```
 
 Notes:
-- `z.ai/*` and `z-ai/*` are accepted aliases and normalize to `zai/*`.
-- If `ZAI_API_KEY` is missing, requests to `zai/*` will fail with an auth error at runtime.
-- Example error: `No API key found for provider "zai".`
-- Z.AI’s general API endpoint is `https://api.z.ai/api/paas/v4`. GLM coding
-  requests use the dedicated Coding endpoint `https://api.z.ai/api/coding/paas/v4`.
-  The built-in `zai` provider uses the Coding endpoint. If you need the general
-  endpoint, define a custom provider in `models.providers` with the base URL
-  override (see the custom providers section above).
+- If `ZAI_API_KEY` is missing, requests to `zai-coding-plan/*` will fail with an auth error at runtime.
+- Example error: `No API key found for provider "zai-coding-plan".`
+- The built-in `zai-coding-plan` provider uses the Z.AI Coding endpoint.
 - Use a fake placeholder in docs/configs; never commit real API keys.
 
 ### Moonshot AI (Kimi)
@@ -2565,46 +2560,6 @@ Notes:
 - Set `MINIMAX_API_KEY` environment variable or use `zee onboard --auth-choice minimax-api`.
 - Available model: `MiniMax-M2.1` (default).
 - Update pricing in `models.json` if you need exact cost tracking.
-
-### Cerebras (GLM 4.6 / 4.7)
-
-Use Cerebras via their OpenAI-compatible endpoint:
-
-```json5
-{
-  env: { CEREBRAS_API_KEY: "sk-..." },
-  agents: {
-    defaults: {
-      model: {
-        primary: "cerebras/zai-glm-4.7",
-        fallbacks: ["cerebras/zai-glm-4.6"]
-      },
-      models: {
-        "cerebras/zai-glm-4.7": { alias: "GLM 4.7 (Cerebras)" },
-        "cerebras/zai-glm-4.6": { alias: "GLM 4.6 (Cerebras)" }
-      }
-    }
-  },
-  models: {
-    mode: "merge",
-    providers: {
-      cerebras: {
-        baseUrl: "https://api.cerebras.ai/v1",
-        apiKey: "${CEREBRAS_API_KEY}",
-        api: "openai-completions",
-        models: [
-          { id: "zai-glm-4.7", name: "GLM 4.7 (Cerebras)" },
-          { id: "zai-glm-4.6", name: "GLM 4.6 (Cerebras)" }
-        ]
-      }
-    }
-  }
-}
-```
-
-Notes:
-- Use `cerebras/zai-glm-4.7` for Cerebras; use `zai/glm-4.7` for Z.AI direct.
-- Set `CEREBRAS_API_KEY` in the environment or config.
 
 Notes:
 - Supported APIs: `openai-completions`, `openai-responses`, `anthropic-messages`,

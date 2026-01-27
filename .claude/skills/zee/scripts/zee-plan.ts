@@ -33,11 +33,11 @@ function listPlans() {
 function createPlan(title: string, content: string) {
   const filename = `${getTimestamp()}-${sanitizeFilename(title)}.md`;
   const path = join(PLAN_DIR, filename);
-  
+
   const fullContent = `# ${title}\n\n**Created:** ${new Date().toLocaleString()}\n**Status:** Draft\n\n${content}`;
-  
+
   writeFileSync(path, fullContent);
-  console.log(`\n✅ Plan created: ${filename}`);
+  console.log(`\nPlan created: ${filename}`);
   console.log(`Path: ${path}`);
 }
 
@@ -61,12 +61,12 @@ switch (command) {
   case "create":
     const titleIdx = args.indexOf("--title");
     const contentIdx = args.indexOf("--content");
-    
+
     if (titleIdx === -1 || contentIdx === -1) {
       console.error("Usage: plan create --title <title> --content <content>");
       process.exit(1);
     }
-    
+
     const title = args[titleIdx + 1];
     const content = args[contentIdx + 1];
     createPlan(title, content);
@@ -81,7 +81,7 @@ switch (command) {
     break;
   default:
     console.log(`
-Shared Planning Tool
+Zee Planning Tool
 
 Commands:
   list                                List recent plans

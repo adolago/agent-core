@@ -1,6 +1,9 @@
 ---
 name: oracle
 description: Best practices for using the oracle CLI (prompt + file bundling, engines, sessions, and file attachment patterns).
+version: 1.0.0
+author: Artur
+tags: [llm, cli, context, johny]
 homepage: https://askoracle.dev
 metadata: {"zee":{"emoji":"🧿","requires":{"bins":["oracle"]},"install":[{"id":"node","kind":"node","package":"@steipete/oracle","bins":["oracle"],"label":"Install oracle (node)"}]}}
 ---

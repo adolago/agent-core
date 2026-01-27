@@ -582,8 +582,7 @@ export namespace ProviderTransform {
    * - OpenAI: https://platform.openai.com/docs/api-reference/chat/create
    * - Google: https://ai.google.dev/api/rest/v1beta/models/generateContent
    * - xAI: https://docs.x.ai/api
-   * - Cerebras: https://inference-docs.cerebras.ai/api-reference/chat-completions
-   * - OpenRouter: https://openrouter.ai/docs/parameters
+     * - OpenRouter: https://openrouter.ai/docs/parameters
    */
   const PROVIDER_SUPPORTED_PARAMS: Record<string, Set<string> | null> = {
     // ═══════════════════════════════════════════════════════════════════════
@@ -670,7 +669,6 @@ export namespace ProviderTransform {
       // Speech config
       "speechConfig", // { voiceConfig: { prebuiltVoiceConfig: { voiceName: string } } }
     ]),
-
 
     // ═══════════════════════════════════════════════════════════════════════
     // OPENROUTER (Multi-provider gateway)

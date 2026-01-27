@@ -54,10 +54,6 @@ export namespace Provider {
       "kimi-k2",
       "kimi-k2-thinking",
     ],
-    cerebras: [
-      "gpt-oss-120b",
-      "qwen-3-235b-a22b-instruct-2507",
-    ],
     "kimi-for-coding": [
       "kimi-k2-thinking",
     ],

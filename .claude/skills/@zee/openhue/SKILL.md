@@ -1,6 +1,9 @@
 ---
 name: openhue
 description: Control Philips Hue lights/scenes via the OpenHue CLI.
+version: 1.0.0
+author: Artur
+tags: [home, lights, hue, zee]
 homepage: https://www.openhue.io/cli
 metadata: {"zee":{"emoji":"💡","requires":{"bins":["openhue"]},"install":[{"id":"brew","kind":"brew","formula":"openhue/cli/openhue-cli","bins":["openhue"],"label":"Install OpenHue CLI (brew)"}]}}
 ---

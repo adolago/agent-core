@@ -1,6 +1,9 @@
 ---
 name: problem-solving
 description: Structured problem-solving with scaffolding for math and informatics
+version: 1.0.0
+author: Artur
+tags: [learning, problem-solving, math, johny]
 triggers:
   - solve
   - problem

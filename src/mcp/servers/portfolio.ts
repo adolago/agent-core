@@ -392,7 +392,7 @@ Returns performance metrics, trade history, and equity curve.`,
     startDate: z.string().describe("Backtest start date (YYYY-MM-DD)"),
     endDate: z.string().describe("Backtest end date (YYYY-MM-DD)"),
     initialCapital: z.number().default(100000).describe("Initial capital in USD"),
-    params: z.record(z.unknown()).optional().describe("Strategy-specific parameters"),
+    params: z.record(z.string(), z.any()).optional().describe("Strategy-specific parameters"),
   },
   async (args) => {
     const { strategy, symbol, startDate, endDate, initialCapital, params } = args;

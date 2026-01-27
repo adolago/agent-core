@@ -1,11 +1,11 @@
 #!/usr/bin/env npx tsx
 /**
- * shared calendar CLI
+ * Zee Calendar CLI
  *
  * Usage:
- *   npx tsx shared-calendar.ts list [--calendar-id <id>] [--max <n>]
- *   npx tsx shared-calendar.ts create --summary <text> --start <iso> --end <iso>
- *   npx tsx shared-calendar.ts delete --event-id <id>
+ *   npx tsx zee-calendar.ts list [--calendar-id <id>] [--max <n>]
+ *   npx tsx zee-calendar.ts create --summary <text> --start <iso> --end <iso>
+ *   npx tsx zee-calendar.ts delete --event-id <id>
  */
 
 import { runZeeCli } from "./zee-runner";
@@ -19,7 +19,7 @@ function getArg(name: string): string | undefined {
 }
 
 function printError(message: string) {
-  console.error("\n⚠️  Zee CLI unavailable");
+  console.error("\n  Zee CLI unavailable");
   console.error(message);
 }
 
@@ -66,7 +66,7 @@ switch (command) {
   }
   default:
     console.log(`
-shared calendar CLI
+Zee Calendar CLI
 
 Commands:
   list [--calendar-id <id>] [--max <n>]

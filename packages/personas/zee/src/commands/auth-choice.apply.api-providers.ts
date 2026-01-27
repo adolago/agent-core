@@ -77,7 +77,7 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "kimi-code-api-key";
     } else if (params.opts.tokenProvider === "google") {
       authChoice = "gemini-api-key";
-    } else if (params.opts.tokenProvider === "zai") {
+    } else if (params.opts.tokenProvider === "zai-coding-plan") {
       authChoice = "zai-api-key";
     } else if (params.opts.tokenProvider === "synthetic") {
       authChoice = "synthetic-api-key";
@@ -371,12 +371,12 @@ export async function applyAuthChoiceApiProviders(
   if (authChoice === "zai-api-key") {
     let hasCredential = false;
 
-    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "zai") {
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "zai-coding-plan") {
       await setZaiApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
     }
 
-    const envKey = resolveEnvApiKey("zai");
+    const envKey = resolveEnvApiKey("zai-coding-plan");
     if (envKey) {
       const useExisting = await params.prompter.confirm({
         message: `Use existing ZAI_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
@@ -395,8 +395,8 @@ export async function applyAuthChoiceApiProviders(
       await setZaiApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "zai:default",
-      provider: "zai",
+      profileId: "zai-coding-plan:default",
+      provider: "zai-coding-plan",
       mode: "api_key",
     });
     {

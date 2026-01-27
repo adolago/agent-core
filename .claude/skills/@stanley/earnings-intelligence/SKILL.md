@@ -1,6 +1,9 @@
 ---
 name: earnings-intelligence
 description: Analyze earnings reports, calls, and estimate revisions
+version: 1.0.0
+author: Artur
+tags: [finance, earnings, analysis, stanley]
 triggers:
   - earnings analysis
   - earnings call

@@ -1,6 +1,9 @@
 ---
 name: brave-search
 description: Web search and content extraction via Brave Search API.
+version: 1.0.0
+author: Artur
+tags: [search, web, api, brave]
 homepage: https://brave.com/search/api
 metadata: {"zee":{"emoji":"🦁","requires":{"bins":["node"],"env":["BRAVE_API_KEY"]},"primaryEnv":"BRAVE_API_KEY"}}
 ---

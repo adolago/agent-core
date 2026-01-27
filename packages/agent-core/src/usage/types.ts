@@ -15,7 +15,7 @@ export interface UsageEvent {
   messageId?: string
 
   // Provider info
-  providerId: string // "anthropic", "openai", "cerebras"
+  providerId: string // "anthropic", "openai", "google"
   modelId: string // "claude-sonnet-4-5-20250929"
   modelName?: string // Human-readable name
 

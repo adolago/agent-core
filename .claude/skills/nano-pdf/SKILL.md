@@ -1,6 +1,9 @@
 ---
 name: nano-pdf
 description: Edit PDFs with natural-language instructions using the nano-pdf CLI.
+version: 1.0.0
+author: Artur
+tags: [pdf, editing, documents, cli]
 homepage: https://pypi.org/project/nano-pdf/
 metadata: {"zee":{"emoji":"📄","requires":{"bins":["nano-pdf"]},"install":[{"id":"uv","kind":"uv","package":"nano-pdf","bins":["nano-pdf"],"label":"Install nano-pdf (uv)"}]}}
 ---

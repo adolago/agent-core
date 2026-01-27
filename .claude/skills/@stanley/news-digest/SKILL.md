@@ -1,6 +1,9 @@
 ---
 name: "News Digest"
 description: "Generate daily news digests for portfolio holdings and watchlist. Aggregates financial news from multiple sources, summarizes key developments, and highlights market-moving events. Use when you need a comprehensive market briefing or want to stay informed on specific tickers."
+version: 1.0.0
+author: Artur
+tags: [finance, news, portfolio, stanley]
 ---
 
 # News Digest

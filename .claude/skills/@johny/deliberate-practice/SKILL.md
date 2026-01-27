@@ -1,6 +1,9 @@
 ---
 name: deliberate-practice
 description: Structured practice sessions with immediate feedback for skill acquisition
+version: 1.0.0
+author: Artur
+tags: [learning, practice, skills, johny]
 triggers:
   - practice
   - drill

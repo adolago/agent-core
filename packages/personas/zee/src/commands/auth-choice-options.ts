@@ -17,7 +17,7 @@ export type AuthChoiceGroupId =
   | "openrouter"
   | "ai-gateway"
   | "moonshot"
-  | "zai"
+  | "zai-coding-plan"
   | "opencode-zen"
   | "minimax"
   | "synthetic"
@@ -104,8 +104,8 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["moonshot-api-key", "kimi-code-api-key"],
   },
   {
-    value: "zai",
-    label: "Z.AI (GLM 4.7)",
+    value: "zai-coding-plan",
+    label: "Z.AI Coding Plan (GLM 4.7)",
     hint: "API key",
     choices: ["zai-api-key"],
   },

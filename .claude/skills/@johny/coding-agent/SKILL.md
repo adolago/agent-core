@@ -1,6 +1,9 @@
 ---
 name: coding-agent
 description: Run Codex CLI, Claude Code, agent-core, or Pi Coding Agent via background process for programmatic control.
+version: 1.0.0
+author: Artur
+tags: [coding, agents, background, johny]
 metadata: {"zee":{"emoji":"🧩","requires":{"anyBins":["claude","codex","agent-core","pi"]}}}
 ---
 

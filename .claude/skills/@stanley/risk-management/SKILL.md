@@ -1,6 +1,9 @@
 ---
 name: risk-management
 description: Portfolio risk analysis using nautilus_trader and Stanley risk metrics
+version: 1.0.0
+author: Artur
+tags: [finance, risk, portfolio, stanley]
 triggers:
   - risk analysis
   - VaR

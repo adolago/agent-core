@@ -125,10 +125,9 @@ export async function modelsStatusCommand(
     "anthropic",
     "openai",
     "google",
-    "cerebras",
     "xai",
     "openrouter",
-    "zai",
+    "zai-coding-plan",
   ];
   for (const provider of envProbeProviders) {
     if (resolveEnvApiKey(provider)) providersFromEnv.add(provider);

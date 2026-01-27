@@ -44,17 +44,6 @@ Select **Google** when prompted.
 - Opus 4.5 is only available as the `-thinking` variant
 - Thinking models require `topP >= 0.95` (handled automatically by ProviderTransform)
 
-### Cerebras
-
-**Provider ID:** `cerebras`
-
-**Custom Models (defined in config):**
-| Model ID | Display Name |
-|----------|--------------|
-| `cerebras/zai-glm-4.7` | GLM-4.7 (Z.AI on Cerebras) |
-
-**Environment:** `CEREBRAS_API_KEY`
-
 ### xAI (Grok)
 
 **Provider ID:** `xai`
@@ -96,10 +85,10 @@ These are disabled in `agent-core.jsonc`:
 
 | Agent      | Default Model                                 | Purpose                      |
 | ---------- | --------------------------------------------- | ---------------------------- |
-| Zee        | `cerebras/zai-glm-4.7`                        | Personal assistant           |
+| Zee        | `zai-coding-plan/glm-4.7`                     | Personal assistant           |
 | Stanley    | `xai/grok-4-1-fast`                           | Investing assistant          |
 | Johny      | `google/antigravity-claude-opus-4-5-thinking` | Learning assistant           |
-| title      | `cerebras/gpt-oss-120b`                       | Conversation titles (hidden) |
+| title      | `openrouter/meta-llama/llama-3.3-70b-instruct`| Conversation titles (hidden) |
 | compaction | `google/antigravity-gemini-3-flash`           | Context compaction (hidden)  |
 
 ## Auth Storage
@@ -107,7 +96,7 @@ These are disabled in `agent-core.jsonc`:
 | Provider             | Auth Location                                            | Type    |
 | -------------------- | -------------------------------------------------------- | ------- |
 | Google (Antigravity) | `~/.local/share/agent-core/auth.json` under `google` key | OAuth   |
-| Cerebras             | Environment variable                                     | API Key |
+| Z.AI Coding Plan     | Environment variable                                     | API Key |
 | xAI                  | Environment variable                                     | API Key |
 | OpenRouter           | Environment variable                                     | API Key |
 

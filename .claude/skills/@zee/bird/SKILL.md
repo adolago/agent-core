@@ -1,6 +1,9 @@
 ---
 name: bird
 description: X/Twitter CLI for reading, searching, and posting via cookies or Sweetistics.
+version: 1.0.0
+author: Artur
+tags: [social, twitter, cli, zee]
 homepage: https://bird.fast
 metadata: {"zee":{"emoji":"🐦","requires":{"bins":["bird"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/bird","bins":["bird"],"label":"Install bird (brew)"}]}}
 ---

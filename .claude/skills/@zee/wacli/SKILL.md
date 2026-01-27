@@ -1,6 +1,9 @@
 ---
 name: wacli
 description: Send WhatsApp messages FROM THE USER'S PERSONAL NUMBER to other people, or search/sync WhatsApp history via the wacli CLI.
+version: 1.0.0
+author: Artur
+tags: [messaging, whatsapp, cli, zee]
 homepage: https://wacli.sh
 metadata: {"zee":{"emoji":"📱","requires":{"bins":["wacli"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/wacli","bins":["wacli"],"label":"Install wacli (brew)"},{"id":"go","kind":"go","module":"github.com/steipete/wacli/cmd/wacli@latest","bins":["wacli"],"label":"Install wacli (go)"}]}}
 ---

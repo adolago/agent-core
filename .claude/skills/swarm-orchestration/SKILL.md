@@ -1,6 +1,9 @@
 ---
 name: "Swarm Orchestration"
 description: "Orchestrate multi-agent swarms with agentic-flow for parallel task execution, dynamic topology, and intelligent coordination. Use when scaling beyond single agents, implementing complex workflows, or building distributed AI systems."
+version: 1.0.0
+author: Artur
+tags: [swarm, orchestration, multi-agent, distributed]
 ---
 
 # Swarm Orchestration

@@ -1,6 +1,9 @@
 ---
 name: writer
 description: Writing specialist for external-facing content (reports, docs, emails to others)
+version: 1.0.0
+author: Artur
+tags: [writing, content, communication, zee]
 ---
 
 # Writer - External Content Specialist

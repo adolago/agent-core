@@ -90,8 +90,8 @@ Existing upstream code may still contain legacy references - that's fine. But al
    - `.claude/skills/stanley/SKILL.md` - Investing assistant with access to a full platform (NautilusTrader, OpenBB, own GUI in rust) of APIS integration
    - `.claude/skills/johny/SKILL.md` - Study assistant focused on diliberate practice, with knowledge graph and spaced repetition
    - Each persona has its own configuration and capabilities, all have access to Tiara's orchestration offers
-3. **Shared capabilities** (`.claude/skills/shared/`, `.claude/skills/personas/`)
-   - Orchestration, WezTerm integration, drone spawning
+3. **Orchestration** (`.claude/skills/tiara-orchestration/`, `.claude/skills/personas/`)
+   - Tiara orchestration, WezTerm integration, drone spawning
 
 **Do NOT skip this step** - the personas have specific capabilities and delegation rules.
 
@@ -293,11 +293,12 @@ agent-core/
 Skills are loaded from `.claude/skills/` and `~/.config/agent-core/skills/`:
 
 ```
-.claude/skills/johny/     → Johny persona
-.claude/skills/stanley/   → Stanley persona
-.claude/skills/zee/       → Zee persona
-.claude/skills/personas/  → Shared orchestration
-.claude/skills/shared/    → Shared tools (Qdrant, WezTerm)
+.claude/skills/johny/              → Johny persona
+.claude/skills/stanley/            → Stanley persona
+.claude/skills/zee/                → Zee persona
+.claude/skills/personas/           → Persona identities
+.claude/skills/tiara-orchestration/→ Orchestration (drones, memory, continuity)
+.claude/skills/agents-menu/        → Quick reference
 ```
 
 ## Development Guidelines

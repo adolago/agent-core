@@ -1,6 +1,9 @@
 ---
 name: concept-exploration
 description: Deep understanding through Socratic questioning and concept mapping
+version: 1.0.0
+author: Artur
+tags: [learning, concepts, understanding, johny]
 triggers:
   - explain
   - understand

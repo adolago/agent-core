@@ -3,12 +3,11 @@ description: Personal life assistant - memory, messaging, calendar, contacts, ex
 color: "#2563EB"
 theme: zee
 model: zai-coding-plan/glm-4.7
-fallback: cerebras/zai-glm-4.7
 temperature: 1.0
 top_p: 0.95
 skill: zee
 options:
-  # Thinking enabled for Z.AI GLM-4.7 (Cerebras fallback filters options)
+  # Thinking enabled for Z.AI GLM-4.7
   thinking:
     type: enabled
     clear_thinking: false

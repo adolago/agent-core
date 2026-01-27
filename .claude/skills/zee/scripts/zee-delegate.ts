@@ -13,7 +13,7 @@ Task: ${task}
 Context: ${context || "None provided"}
 Please execute this and report back.`;
 
-  console.log(`\n🔄 Delegating to ${targetPersona}...`);
+  console.log(`\nDelegating to ${targetPersona}...`);
   console.log(`Task: ${task}`);
 
   try {
@@ -27,18 +27,18 @@ Please execute this and report back.`;
     });
 
     if (response.success) {
-      console.log(`\n✅ ${targetPersona} completed the task:`);
+      console.log(`\n${targetPersona} completed the task:`);
       console.log("----------------------------------------");
       console.log(response.result || "(No output provided)");
       console.log("----------------------------------------");
       return true;
     } else {
-      console.error(`\n❌ ${targetPersona} failed:`);
+      console.error(`\n${targetPersona} failed:`);
       console.error(response.error || "Unknown error");
       throw new Error(response.error);
     }
   } catch (error) {
-    console.error(`\n❌ Delegation failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`\nDelegation failed: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }

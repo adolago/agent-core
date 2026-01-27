@@ -1,6 +1,9 @@
 ---
 name: local-places
 description: Search for places (restaurants, cafes, etc.) via Google Places API proxy on localhost.
+version: 1.0.0
+author: Artur
+tags: [location, places, search, zee]
 homepage: https://github.com/Hyaxia/local_places
 metadata: {"zee":{"emoji":"📍","requires":{"bins":["uv"],"env":["GOOGLE_PLACES_API_KEY"]},"primaryEnv":"GOOGLE_PLACES_API_KEY"}}
 ---

@@ -1,6 +1,9 @@
 ---
 name: weather
 description: Get current weather and forecasts (no API key required).
+version: 1.0.0
+author: Artur
+tags: [weather, forecast, cli, zee]
 homepage: https://wttr.in/:help
 metadata: {"zee":{"emoji":"🌤️","requires":{"bins":["curl"]}}}
 ---

@@ -66,7 +66,6 @@ delete process.env["TOGETHER_API_KEY"]
 delete process.env["XAI_API_KEY"]
 delete process.env["DEEPSEEK_API_KEY"]
 delete process.env["FIREWORKS_API_KEY"]
-delete process.env["CEREBRAS_API_KEY"]
 delete process.env["SAMBANOVA_API_KEY"]
 
 // Now safe to import from src/

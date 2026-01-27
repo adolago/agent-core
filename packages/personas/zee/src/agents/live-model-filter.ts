@@ -54,7 +54,7 @@ export function isModernModelRef(ref: ModelRef): boolean {
     return matchesPrefix(id, GOOGLE_PREFIXES) || matchesPrefix(id, ANTHROPIC_PREFIXES);
   }
 
-  if (provider === "zai") {
+  if (provider === "zai-coding-plan") {
     return matchesPrefix(id, ZAI_PREFIXES);
   }
 

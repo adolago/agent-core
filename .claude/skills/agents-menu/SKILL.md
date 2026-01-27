@@ -1,24 +1,20 @@
 ---
 name: agents-menu
-description: Always-read menu of available personas, handles, and delegation shortcuts.
+description: Quick reference for personas, handles, and delegation.
 version: 1.0.0
 author: Artur
-tags: [menu, personas, delegation]
+tags: [menu, personas, delegation, quick-reference]
 ---
 
-# agents-menu - Persona Menu
+# Personas Quick Reference
 
-Use this as a quick reference to the available personas and how to hand off work.
+| Handle | Domain | When to Use |
+|--------|--------|-------------|
+| @zee | Personal | Memory, messaging, calendar, contacts |
+| @stanley | Investing | Markets, portfolio, research |
+| @johny | Learning | Knowledge, practice, study |
 
-## Personas
-
-| Persona | Handle | Domain | Notes |
-|--------|--------|--------|-------|
-| Zee | @zee | Personal, coordination | Default lead persona |
-| Stanley | @stanley | Trading, markets | OpenBB + Nautilus |
-| Johny | @johny | Learning, study | External persona (CLI bridge) |
-
-## Delegation
+## Delegation Examples
 
 ```
 Ask @zee to schedule a meeting.
@@ -28,8 +24,17 @@ Ask @johny to build a study plan for calculus.
 
 ## CLI
 
-```
+```bash
 agent-core --agent zee "..."
 agent-core --agent stanley "..."
 agent-core --agent johny "..."
 ```
+
+## Orchestration
+
+See `tiara-orchestration` skill for:
+- Drone spawning
+- Shared memory (Qdrant)
+- Conversation continuity
+- WezTerm integration
+- Hold/Release mode

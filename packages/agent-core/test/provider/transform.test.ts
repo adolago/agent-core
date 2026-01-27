@@ -261,60 +261,6 @@ describe("ProviderTransform.message - interleaved reasoning fields", () => {
     expect(result[0].providerOptions?.openaiCompatible?.reasoning_content).toBe("Let me think about this...")
   })
 
-  test("Cerebras interleaved reasoning uses reasoning field", () => {
-    const msgs = [
-      {
-        role: "assistant",
-        content: [
-          { type: "reasoning", text: "Thinking..." },
-          { type: "text", text: "Answer" },
-        ],
-      },
-    ] as any[]
-
-    const result = ProviderTransform.message(
-      msgs,
-      {
-        id: "cerebras/zai-glm-4.7",
-        providerID: "cerebras",
-        api: {
-          id: "zai-glm-4.7",
-          url: "https://api.cerebras.ai",
-          npm: "@ai-sdk/openai-compatible",
-        },
-        name: "Z.AI GLM-4.7",
-        capabilities: {
-          temperature: true,
-          reasoning: true,
-          attachment: false,
-          toolcall: true,
-          input: { text: true, audio: false, image: false, video: false, pdf: false },
-          output: { text: true, audio: false, image: false, video: false, pdf: false },
-          interleaved: {
-            field: "reasoning",
-          },
-        },
-        cost: {
-          input: 0,
-          output: 0,
-          cache: { read: 0, write: 0 },
-        },
-        limit: {
-          context: 131072,
-          output: 40000,
-        },
-        status: "active",
-        options: {},
-        headers: {},
-        release_date: "2026-01-10",
-      },
-      {},
-    )
-
-    expect(result[0].content).toEqual([{ type: "text", text: "Answer" }])
-    expect(result[0].providerOptions?.openaiCompatible?.reasoning).toBe("Thinking...")
-  })
-
   test("Non-DeepSeek providers leave reasoning content unchanged", () => {
     const msgs = [
       {
@@ -1130,25 +1076,6 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("cerebras (via openai-compatible)", () => {
-    test("returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
-      // Cerebras now uses openai-compatible instead of dedicated SDK
-      const model = createMockModel({
-        id: "cerebras/llama-4",
-        providerID: "cerebras",
-        api: {
-          id: "llama-4-sc",
-          url: "https://api.cerebras.ai",
-          npm: "@ai-sdk/openai-compatible",
-        },
-      })
-      const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "medium", "high"])
-      expect(result.low).toEqual({ reasoningEffort: "low" })
-      expect(result.high).toEqual({ reasoningEffort: "high" })
-    })
-  })
-
   describe("xai (via openai-compatible)", () => {
     test("grok-3 returns low/medium/high with reasoningEffort", () => {
       // xAI now uses openai-compatible instead of dedicated SDK
@@ -1451,14 +1378,14 @@ describe("ProviderTransform.options - OpenCode Zen thinking", () => {
 describe("ProviderTransform.options - persona thinking configs", () => {
   const sessionID = "test-session-123"
 
-  describe("Zee (GLM-4.7 via Cerebras)", () => {
-    test("should enable preserved thinking mode for zai provider", () => {
+  describe("Zee (GLM-4.7 via Z.AI Coding Plan)", () => {
+    test("should enable preserved thinking mode for zai-coding-plan provider", () => {
       const model = {
-        id: "cerebras/zai-glm-4.7",
-        providerID: "zai",
+        id: "zai-coding-plan/glm-4.7",
+        providerID: "zai-coding-plan",
         api: {
-          id: "zai-glm-4.7",
-          url: "https://api.cerebras.ai",
+          id: "glm-4.7",
+          url: "https://open.bigmodel.cn/api/paas/v4",
           npm: "@ai-sdk/openai-compatible",
         },
       } as any

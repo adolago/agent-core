@@ -1445,6 +1445,9 @@ export class Session extends HeyApiClient {
       arguments?: string
       command?: string
       variant?: string
+      tools?: {
+        [key: string]: boolean
+      }
       parts?: Array<{
         id?: string
         type: "file"
@@ -1468,6 +1471,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "arguments" },
             { in: "body", key: "command" },
             { in: "body", key: "variant" },
+            { in: "body", key: "tools" },
             { in: "body", key: "parts" },
           ],
         },

@@ -1,6 +1,9 @@
 ---
 name: food-order
 description: "Reorder Foodora orders + track ETA/status with ordercli. Never confirm without explicit user approval. Triggers: order food, reorder, track ETA."
+version: 1.0.0
+author: Artur
+tags: [food, ordering, cli, zee]
 homepage: https://ordercli.sh
 metadata: {"zee":{"emoji":"🥡","requires":{"bins":["ordercli"]},"install":[{"id":"go","kind":"go","module":"github.com/steipete/ordercli/cmd/ordercli@latest","bins":["ordercli"],"label":"Install ordercli (go)"}]}}
 ---

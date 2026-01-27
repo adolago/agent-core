@@ -1,6 +1,9 @@
 ---
 name: mcporter
 description: Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.
+version: 1.0.0
+author: Artur
+tags: [mcp, cli, servers, johny]
 homepage: http://mcporter.dev
 metadata: {"zee":{"emoji":"📦","requires":{"bins":["mcporter"]},"install":[{"id":"node","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (node)"}]}}
 ---

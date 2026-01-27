@@ -272,6 +272,7 @@ export const RunCommand = cmd({
           command: args.command,
           arguments: message,
           variant: args.variant,
+          tools: holdModeTools,
         })
       } else {
         const modelParam = args.model ? Provider.parseModel(args.model) : undefined

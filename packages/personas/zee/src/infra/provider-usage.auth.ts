@@ -37,17 +37,16 @@ function resolveZaiApiKey(): string | undefined {
   const envDirect = process.env.ZAI_API_KEY?.trim() || process.env.Z_AI_API_KEY?.trim();
   if (envDirect) return envDirect;
 
-  const envResolved = resolveEnvApiKey("zai");
+  const envResolved = resolveEnvApiKey("zai-coding-plan");
   if (envResolved?.apiKey) return envResolved.apiKey;
 
   const cfg = loadConfig();
-  const key = getCustomProviderApiKey(cfg, "zai") || getCustomProviderApiKey(cfg, "z-ai");
+  const key = getCustomProviderApiKey(cfg, "zai-coding-plan");
   if (key) return key;
 
   const store = ensureAuthProfileStore();
   const apiProfile = [
-    ...listProfilesForProvider(store, "zai"),
-    ...listProfilesForProvider(store, "z-ai"),
+    ...listProfilesForProvider(store, "zai-coding-plan"),
   ].find((id) => store.profiles[id]?.type === "api_key");
   if (apiProfile) {
     const cred = store.profiles[apiProfile];
@@ -63,7 +62,7 @@ function resolveZaiApiKey(): string | undefined {
       string,
       { access?: string }
     >;
-    return data["z-ai"]?.access || data.zai?.access;
+    return data["zai-coding-plan"]?.access;
   } catch {
     return undefined;
   }

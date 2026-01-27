@@ -1,9 +1,9 @@
 #!/usr/bin/env npx tsx
 /**
- * shared Telegram CLI
+ * Zee Telegram CLI
  *
  * Usage:
- *   npx tsx shared-telegram.ts send --to @handle --message "Hi" [--mode user|bot]
+ *   npx tsx zee-telegram.ts send --to @handle --message "Hi" [--mode user|bot]
  */
 
 import { runZeeCli } from "./zee-runner";
@@ -17,13 +17,13 @@ function getArg(name: string): string | undefined {
 }
 
 function printError(message: string) {
-  console.error("\n⚠️  Zee CLI unavailable");
+  console.error("\n  Zee CLI unavailable");
   console.error(message);
 }
 
 if (command !== "send") {
   console.log(`
-shared telegram CLI
+Zee Telegram CLI
 
 Commands:
   send --to <chat> --message <text> [--mode user|bot]

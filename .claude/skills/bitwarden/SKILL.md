@@ -1,6 +1,9 @@
 ---
 name: bitwarden
 description: Manage secrets with Bitwarden CLI (bw). Use for unlocking vault, retrieving passwords/usernames/TOTP codes, and injecting secrets into commands.
+version: 1.0.0
+author: Artur
+tags: [security, secrets, credentials, cli]
 homepage: https://bitwarden.com/help/cli/
 metadata: {"zee":{"emoji":"🔐","requires":{"bins":["bw"]},"install":[{"id":"pacman","kind":"pacman","package":"bitwarden-cli","bins":["bw"],"label":"Install Bitwarden CLI (pacman)"},{"id":"npm","kind":"npm","package":"@bitwarden/cli","bins":["bw"],"label":"Install Bitwarden CLI (npm)"}]}}
 ---

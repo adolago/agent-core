@@ -1,6 +1,9 @@
 ---
 name: investment-thesis
 description: Create and track investment theses with conviction levels
+version: 1.0.0
+author: Artur
+tags: [finance, thesis, investing, stanley]
 triggers:
   - investment thesis
   - stock thesis

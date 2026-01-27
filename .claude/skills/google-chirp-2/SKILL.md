@@ -1,6 +1,9 @@
 ---
 name: google-chirp-2
 description: Single STT source for the entire system. Google Chirp 2 handles all speech-to-text across TUI dictation and messaging platforms (WhatsApp, Telegram voice messages).
+version: 1.0.0
+author: Artur
+tags: [speech, stt, voice, google]
 homepage: https://cloud.google.com/vertex-ai/docs/generative-ai/speech/chirp-2
 metadata: {"zee":{"emoji":"🎙️","requires":{"providers":["google-vertex"]}}}
 ---

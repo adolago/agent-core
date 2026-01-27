@@ -108,7 +108,7 @@ export namespace WhatsAppGateway {
     pendingResponse: boolean
   }
 
-  // WhatsApp is exclusively Zee's channel using GLM 4.7 via Z.ai (cerebras)
+  // WhatsApp is exclusively Zee's channel using GLM 4.7 via Z.ai
   // Stanley and Johny use Telegram bots instead
 
   export class Gateway {
