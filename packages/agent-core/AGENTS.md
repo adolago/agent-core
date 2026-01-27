@@ -3,10 +3,32 @@
 ## Build/Test Commands
 
 - **Install**: `bun install`
+- **Build**: `bun run build` (compiles binary + updates global symlink)
 - **Run**: `bun run --conditions=browser ./src/index.ts`
 - **Typecheck**: `bun run typecheck` (npm run typecheck)
 - **Test**: `bun test` (runs all tests)
 - **Single test**: `bun test test/tool/tool.test.ts` (specific test file)
+- **Verify**: `./script/verify-binary.sh` (check binary is correct)
+
+## Binary Installation
+
+The build script automatically symlinks the compiled binary to `~/.bun/bin/agent-core`:
+
+```bash
+# Build outputs to: dist/@adolago/agent-core-linux-x64/bin/agent-core
+# Symlink created: ~/.bun/bin/agent-core -> <build output>
+bun run build
+```
+
+After building, restart the daemon to apply changes:
+
+```bash
+# Quick reload (no rebuild)
+./scripts/reload.sh --no-build
+
+# Full reload (rebuild + restart)
+./scripts/reload.sh
+```
 
 ## Code Style
 
