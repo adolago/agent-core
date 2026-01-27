@@ -49,11 +49,12 @@ export const EMBEDDING_PROFILES: Record<string, EmbeddingProfileConfig> = {
     dimensions: 768,
     baseUrl: "https://generativelanguage.googleapis.com/v1beta",
   },
+  // Nebius config sourced from models-api.json - keep in sync
   "nebius/qwen3-embedding-8b": {
     provider: "nebius",
-    model: "Qwen/Qwen3-Embedding-8B",
-    dimensions: 4096,
-    baseUrl: "https://api.tokenfactory.nebius.com/v1",
+    model: "Qwen/Qwen3-Embedding-8B", // models-api.json: nebius.models["Qwen/Qwen3-Embedding-8B"]
+    dimensions: 4096, // models-api.json: limit.output
+    baseUrl: "https://api.tokenfactory.nebius.com/v1", // models-api.json: nebius.api
   },
   "voyage/voyage-3-large": {
     provider: "voyage",
