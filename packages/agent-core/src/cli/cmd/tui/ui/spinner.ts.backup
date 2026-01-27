@@ -37,12 +37,12 @@ interface CarouselState {
 
 /**
  * Get carousel animation state for a given frame.
- * The carousel moves right-to-left: enters from right, exits on left, repeats.
+ * The carousel moves left-to-right: enters from left, exits on right, repeats.
  *
  * Animation phases:
- * 1. Enter: blocks appear one-by-one from right edge
- * 2. Traverse: full group slides left
- * 3. Exit: blocks disappear one-by-one on left edge
+ * 1. Enter: blocks appear one-by-one from left edge
+ * 2. Traverse: full group slides right
+ * 3. Exit: blocks disappear one-by-one on right edge
  */
 function getCarouselState(
   frameIndex: number,
@@ -54,15 +54,14 @@ function getCarouselState(
   const cycleLength = totalChars + activeCount - 1
   const cycleFrame = frameIndex % cycleLength
 
-  // Head position (leftmost active block) moves from totalChars + activeCount - 2 down to 0
-  // This reverses the direction to go right-to-left
-  const head = (cycleLength - 1) - cycleFrame
+  // Head position (rightmost active block) moves from 0 to totalChars + activeCount - 2
+  const head = cycleFrame
 
   return {
-    offset: head, // Now represents head position
-    isMovingForward: false, // Moving backward (right-to-left)
+    offset: head, // Now represents head position, not lead
+    isMovingForward: true,
     activeCount,
-    phase: "backward",
+    phase: "forward",
   }
 }
 
@@ -70,9 +69,9 @@ function getCarouselState(
  * Calculate which positions are active in carousel mode and their trail index.
  * Returns the trail index (0 = head/brightest, 1+ = trail), or -1 if inactive.
  *
- * For right-to-left movement:
- * - HEAD (brightest) is at the left edge of the visible group
- * - TRAIL extends right from head
+ * For left-to-right movement:
+ * - HEAD (brightest) is at the right edge of the visible group
+ * - TRAIL extends left from head
  * - Positions outside [0, totalChars) are not displayed
  */
 function getCarouselColorIndex(
@@ -83,13 +82,13 @@ function getCarouselColorIndex(
   const { offset: head, activeCount } = state
 
   // Trail index: how far behind the head is this position?
-  // Head (index 0) is brightest, trail extends RIGHT (no wrap)
-  const trailIndex = charIndex - head
+  // Head (index 0) is brightest, trail extends LEFT (no wrap)
+  const trailIndex = head - charIndex
 
   // Must be within trail range AND within display bounds
   if (trailIndex >= 0 && trailIndex < activeCount) {
     // The actual display position of the block
-    const displayPos = head + trailIndex
+    const displayPos = head - trailIndex
     // Only show if within the visible area [0, totalChars)
     if (displayPos >= 0 && displayPos < totalChars) {
       return trailIndex // 0 = head/brightest, 1+ = trail

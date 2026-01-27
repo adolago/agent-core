@@ -1730,198 +1730,158 @@ export function Prompt(props: PromptProps) {
           />
         </box>
         <box flexDirection="row" justifyContent="space-between">
-          <Switch fallback={
-            <Switch>
-              <Match when={dictationState() === "listening"}>
-                <text fg={theme.warning}>
-                  [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
-                </text>
-              </Match>
-              <Match when={dictationState() === "sending"}>
-                <text fg={theme.primary}>[SEND] sending audio...</text>
-              </Match>
-              <Match when={dictationState() === "receiving"}>
-                <text fg={theme.primary}>[RECV] receiving transcript...</text>
-              </Match>
-              <Match when={dictationState() === "transcribing"}>
-                <text fg={theme.textMuted}>dictation processing...</text>
-              </Match>
-              <Match when={todoHint()}>
-                {(hint) => (
+          <Show
+            when={status().type !== "idle"}
+            fallback={
+              <Switch>
+                <Match when={dictationState() === "listening"}>
                   <text fg={theme.warning}>
-                    ◐ {hint().count} pending · {hint().current}...
+                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
                   </text>
-                )}
-              </Match>
-            </Switch>
-          }>
-            <Match when={status().type === "idle"}>
-              <box
-                flexDirection="row"
-                gap={1}
-                flexGrow={1}
-                justifyContent="flex-start"
-              >
-                <box flexShrink={0} flexDirection="row" gap={1}>
-                  <box marginLeft={1}>
-                    <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-                      {/* Show static dots (track) when idle */}
-                      <text fg={theme.textMuted}>⬝⬝⬝⬝⬝⬝⬝⬝⬝⬝</text>
-                    </Show>
-                  </box>
-                  <box flexDirection="row" gap={1} flexShrink={0}>
-                    {(() => {
-                      const [elapsed, setElapsed] = createSignal(0)
-                      onMount(() => {
-                        const start = Date.now()
-                        const timer = setInterval(() => {
-                          if (status().type === "busy") {
-                            setElapsed(Math.floor((Date.now() - start) / 1000))
-                          }
-                        }, 1000)
-                        onCleanup(() => clearInterval(timer))
+                </Match>
+                <Match when={dictationState() === "sending"}>
+                  <text fg={theme.primary}>[SEND] sending audio...</text>
+                </Match>
+                <Match when={dictationState() === "receiving"}>
+                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
+                </Match>
+                <Match when={dictationState() === "transcribing"}>
+                  <text fg={theme.textMuted}>dictation processing...</text>
+                </Match>
+                <Match when={todoHint()}>
+                  {(hint) => (
+                    <text fg={theme.warning}>
+                      ◐ {hint().count} pending · {hint().current}...
+                    </text>
+                  )}
+                </Match>
+              </Switch>
+            }
+          >
+            <box
+              flexDirection="row"
+              gap={1}
+              flexGrow={1}
+              justifyContent={status().type === "retry" ? "space-between" : "flex-start"}
+            >
+              <box flexShrink={0} flexDirection="row" gap={1}>
+                <box marginLeft={1}>
+                  <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
+                    <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
+                  </Show>
+                </box>
+                <box flexDirection="row" gap={1} flexShrink={0}>
+                  {(() => {
+                    const retry = createMemo(() => {
+                      const s = status()
+                      if (s.type !== "retry") return
+                      return s
+                    })
+                    const message = createMemo(() => {
+                      const r = retry()
+                      if (!r) return
+                      if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
+                        return "gemini is way too hot right now"
+                      if (r.message.length > 80) return r.message.slice(0, 80) + "..."
+                      return r.message
+                    })
+                    const isTruncated = createMemo(() => {
+                      const r = retry()
+                      if (!r) return false
+                      return r.message.length > 120
+                    })
+                    const [seconds, setSeconds] = createSignal(0)
+                    const [elapsed, setElapsed] = createSignal(0)
+                    onMount(() => {
+                      const start = Date.now()
+                      const timer = setInterval(() => {
+                        const next = retry()?.next
+                        if (next) setSeconds(Math.round((next - Date.now()) / 1000))
+                        // Update elapsed time for streaming status
+                        if (status().type === "busy") {
+                          setElapsed(Math.floor((Date.now() - start) / 1000))
+                        }
+                      }, 1000)
+
+                      onCleanup(() => {
+                        clearInterval(timer)
                       })
-                      const formatTime = (s: number) => {
-                        const m = Math.floor(s / 60)
-                        const sec = s % 60
-                        const pad = (n: number) => n.toString().padStart(2, "0")
-                        return `${pad(m)}:${pad(sec)}`
+                    })
+                    const handleMessageClick = () => {
+                      const r = retry()
+                      if (!r) return
+                      if (isTruncated()) {
+                        DialogAlert.show(dialog, "Retry Error", r.message)
                       }
-                      return (
-                        <text fg={theme.textMuted}>
-                          waiting prompt{" "}{formatTime(elapsed())}
-                        </text>
-                      )
-                    })()}
-                  </box>
+                    }
+
+                    const retryText = () => {
+                      const r = retry()
+                      if (!r) return ""
+                      const baseMessage = message()
+                      const truncatedHint = isTruncated() ? " (click to expand)" : ""
+                      const duration = formatDuration(seconds())
+                      const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
+                      return baseMessage + truncatedHint + retryInfo
+                    }
+
+                    const formatTime = (s: number) => {
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      const pad = (n: number) => n.toString().padStart(2, "0")
+                      return `${pad(m)}:${pad(sec)}`
+                    }
+                    const formatChars = (n: number) => {
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                      return n.toString()
+                    }
+                    const phaseLabel = createMemo(() => {
+                      const health = streamHealth()
+                      if (!health?.phase) return "starting"
+                      switch (health.phase) {
+                        case "thinking": return "thinking"
+                        case "tool_calling": return "tools"
+                        case "generating": return "generating"
+                        default: return "starting"
+                      }
+                    })
+                    const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
+                    const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
+                    const estimatedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
+                    const formatTokens = (n: number) => {
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                      return n.toString()
+                    }
+
+                    return (
+                      <>
+                        <Show when={retry()}>
+                          <box onMouseUp={handleMessageClick}>
+                            <text fg={theme.error}>{retryText()}</text>
+                          </box>
+                        </Show>
+                        <Show when={!retry() && status().type === "busy"}>
+                          <text fg={theme.textMuted}>
+                            {phaseLabel()}
+                            <Show when={estimatedTokens() > 0}>{" ~"}{formatTokens(estimatedTokens())} tok</Show>
+                            <Show when={events() > 0 && estimatedTokens() === 0}>{" "}{events()} events</Show>
+                            {" "}{formatTime(elapsed())}
+                          </text>
+                        </Show>
+                      </>
+                    )
+                  })()}
                 </box>
               </box>
-            </Match>
-            <Match when={true}>
-              <box
-                flexDirection="row"
-                gap={1}
-                flexGrow={1}
-                justifyContent={status().type === "retry" ? "space-between" : "flex-start"}
-              >
-                <box flexShrink={0} flexDirection="row" gap={1}>
-                  <box marginLeft={1}>
-                    <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-                      <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                    </Show>
-                  </box>
-                  <box flexDirection="row" gap={1} flexShrink={0}>
-                    {(() => {
-                      const retry = createMemo(() => {
-                        const s = status()
-                        if (s.type !== "retry") return
-                        return s
-                      })
-                      const message = createMemo(() => {
-                        const r = retry()
-                        if (!r) return
-                        if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
-                          return "gemini is way too hot right now"
-                        if (r.message.length > 80) return r.message.slice(0, 80) + "..."
-                        return r.message
-                      })
-                      const isTruncated = createMemo(() => {
-                        const r = retry()
-                        if (!r) return false
-                        return r.message.length > 120
-                      })
-                      const [seconds, setSeconds] = createSignal(0)
-                      const [elapsed, setElapsed] = createSignal(0)
-                      onMount(() => {
-                        const start = Date.now()
-                        const timer = setInterval(() => {
-                          const next = retry()?.next
-                          if (next) setSeconds(Math.round((next - Date.now()) / 1000))
-                          // Update elapsed time for streaming status
-                          if (status().type === "busy") {
-                            setElapsed(Math.floor((Date.now() - start) / 1000))
-                          }
-                        }, 1000)
-
-                        onCleanup(() => {
-                          clearInterval(timer)
-                        })
-                      })
-                      const handleMessageClick = () => {
-                        const r = retry()
-                        if (!r) return
-                        if (isTruncated()) {
-                          DialogAlert.show(dialog, "Retry Error", r.message)
-                        }
-                      }
-
-                      const retryText = () => {
-                        const r = retry()
-                        if (!r) return ""
-                        const baseMessage = message()
-                        const truncatedHint = isTruncated() ? " (click to expand)" : ""
-                        const duration = formatDuration(seconds())
-                        const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
-                        return baseMessage + truncatedHint + retryInfo
-                      }
-
-                      const formatTime = (s: number) => {
-                        const m = Math.floor(s / 60)
-                        const sec = s % 60
-                        const pad = (n: number) => n.toString().padStart(2, "0")
-                        return `${pad(m)}:${pad(sec)}`
-                      }
-                      const formatChars = (n: number) => {
-                        if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                        return n.toString()
-                      }
-                      const phaseLabel = createMemo(() => {
-                        const health = streamHealth()
-                        if (!health?.phase) return "starting"
-                        switch (health.phase) {
-                          case "thinking": return "thinking"
-                          case "tool_calling": return "tools"
-                          case "generating": return "generating"
-                          default: return "starting"
-                        }
-                      })
-                      const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
-                      const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
-                      const estimatedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
-                      const formatTokens = (n: number) => {
-                        if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                        return n.toString()
-                      }
-
-                      return (
-                        <>
-                          <Show when={retry()}>
-                            <box onMouseUp={handleMessageClick}>
-                              <text fg={theme.error}>{retryText()}</text>
-                            </box>
-                          </Show>
-                          <Show when={!retry() && status().type === "busy"}>
-                            <text fg={theme.textMuted}>
-                              {phaseLabel()}
-                              <Show when={estimatedTokens() > 0}>{" ~"}{formatTokens(estimatedTokens())} tok</Show>
-                              <Show when={events() > 0 && estimatedTokens() === 0}>{" "}{events()} events</Show>
-                              {" "}{formatTime(elapsed())}
-                            </text>
-                          </Show>
-                        </>
-                      )
-                    })()}
-                  </box>
-                </box>
-                <text fg={store.interrupt > 0 ? theme.primary : theme.text}>
-                  esc{" "}
-                  <span style={{ fg: store.interrupt > 0 ? theme.primary : theme.textMuted }}>
-                    {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
-                  </span>
-                </text>
-              </box>
-            </Match>
-          </Switch>          <Show when={status().type !== "retry"}>
+              <text fg={store.interrupt > 0 ? theme.primary : theme.text}>
+                esc{" "}
+                <span style={{ fg: store.interrupt > 0 ? theme.primary : theme.textMuted }}>
+                  {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
+                </span>
+              </text>
+            </box>
+          </Show>
+          <Show when={status().type !== "retry"}>
             <box gap={2} flexDirection="row">
               <Switch>
                 <Match when={store.mode === "normal"}>

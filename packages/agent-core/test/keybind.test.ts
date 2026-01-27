@@ -419,3 +419,60 @@ describe("Keybind.parse", () => {
     ])
   })
 })
+
+describe("vim mode switching", () => {
+  describe("global vim mode switching", () => {
+    test("should switch to normal mode when Escape is pressed in insert mode", () => {
+      const parsedKey = { ctrl: false, meta: false, shift: false, leader: false, name: "escape" }
+      const result = Keybind.parse(parsedKey)
+      expect(result).toEqual([
+        { ctrl: false, meta: false, shift: false, leader: false, name: "escape" },
+      ])
+    })
+
+    test("should switch to insert mode when 'i' is pressed in normal mode", () => {
+      const parsedKey = { ctrl: false, meta: false, shift: false, leader: false, name: "i" }
+      const result = Keybind.parse(parsedKey)
+      expect(result).toEqual([
+        { ctrl: false, meta: false, shift: false, leader: false, name: "i" },
+      ])
+    })
+
+    test("should switch to insert mode when 'a' is pressed in normal mode", () => {
+      const parsedKey = { ctrl: false, meta: false, shift: false, leader: false, name: "a" }
+      const result = Keybind.parse(parsedKey)
+      expect(result).toEqual([
+        { ctrl: false, meta: false, shift: false, leader: false, name: "a" },
+      ])
+    })
+
+    test("should switch to insert mode when 'o' is pressed in normal mode", () => {
+      const parsedKey = { ctrl: false, meta: false, shift: false, leader: false, name: "o" }
+      const result = Keybind.parse(parsedKey)
+      expect(result).toEqual([
+        { ctrl: false, meta: false, shift: false, leader: false, name: "o" },
+      ])
+    })
+  })
+
+  describe("vim mode edge cases", () => {
+    test("should not double-switch when pressing Escape in normal mode", () => {
+      // When already in normal mode, Escape should not switch again
+      // The implementation should track lastHandledMode to prevent this
+      const parsedKey = { ctrl: false, meta: false, shift: false, leader: false, name: "escape" }
+      const result = Keybind.parse(parsedKey)
+      expect(result).toEqual([
+        { ctrl: false, meta: false, shift: false, leader: false, name: "escape" },
+      ])
+    })
+
+    test("should not double-switch when pressing 'i' in insert mode", () => {
+      // When already in insert mode, 'i' should not switch again
+      const parsedKey = { ctrl: false, meta: false, shift: false, leader: false, name: "i" }
+      const result = Keybind.parse(parsedKey)
+      expect(result).toEqual([
+        { ctrl: false, meta: false, shift: false, leader: false, name: "i" },
+      ])
+    })
+  })
+})

@@ -63,7 +63,41 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       }
     }
 
+    // Global vim mode switching - works regardless of focus
+    // This allows switching between normal/insert modes even when textarea is not focused
+    // Track last mode to prevent double-switching in same handler sequence
+    let lastHandledMode: "normal" | "insert" | null = null
+
     useKeyboard(async (evt) => {
+      if (!store.leader && vim.enabled) {
+        const targetMode = vim.isInsert ? "insert" : "normal"
+
+        // Only handle if:
+        // 1. Not switching to same mode we're already in
+        // 2. Mode changed since last time we handled it (prevents double-triggering)
+        if (lastHandledMode !== targetMode) {
+          // Enter normal mode from insert mode (Escape or configured key)
+          if (vim.isInsert && result.match("vim_normal_mode", evt)) {
+            vim.enterNormal()
+            lastHandledMode = "normal"
+            return
+          }
+
+          // Enter insert mode from normal mode (i, a, o, O, etc.)
+          if (vim.isNormal && !store.leader) {
+            // Single character insert commands (i, a, I, A, o, O)
+            if (evt.name && evt.name.length === 1 && !evt.ctrl && !evt.meta && !evt.alt && !evt.super) {
+              const key = evt.name
+              if (key === "i" || key === "I" || key === "a" || key === "A" || key === "o" || key === "O") {
+                vim.enterInsert()
+                lastHandledMode = "insert"
+                return
+              }
+            }
+          }
+        }
+      }
+
       // Activate leader mode if:
       // - No focus (original behavior for non-textarea contexts)
       // - OR vim mode is enabled AND we're in vim normal mode
