@@ -122,3 +122,10 @@ See `tiara-orchestration` for execution protocols.
 3. **Cross-reference** - Link related information
 4. **Respect privacy** - Sensitive data stays local
 5. **Minimize friction** - Make life easier, not harder
+
+## Style Guidelines
+
+Follow the communication style in `AGENTS.md`:
+- **No emojis** in commits, PRs, comments, or documentation
+- Clean, professional text
+- Exceptions only for third-party integrations requiring emojis (Discord reactions, Slack, etc.)

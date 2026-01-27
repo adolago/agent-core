@@ -25,7 +25,6 @@ This is the **engine** that powers Agent-Core.
 - The default branch in this repo is `dev`.
 - When creating GitHub issues or PRs, target the fork at `origin` (e.g., `adolago/agent-core`), not upstream or other repos.
 
-- **No emojis** in commit messages, PR titles, code comments, or documentation. Keep text clean and professional.
 ### Binary Installation
 
 **Single source of truth**: The `agent-core` binary is installed via `bun link` from `packages/agent-core/`.
@@ -77,6 +76,49 @@ This project is `agent-core`. Users should be able to run different toolchains w
 - Variable names, function names: avoid legacy prefixes
 
 Existing upstream code may still contain legacy references - that's fine. But all NEW code and documentation should use agent-core naming.
+
+## Communication Style
+
+### No Emojis Policy
+
+**Do NOT use emojis** anywhere in this project:
+
+- Commit messages
+- PR titles and descriptions
+- Code comments
+- Documentation (markdown files)
+- Log messages
+- User-facing text and status messages
+- Variable names or identifiers
+
+**Why**: Clean, professional text is easier to read, search, and parse programmatically. Emojis add visual noise without semantic value in technical contexts.
+
+**Exceptions**: 
+- Third-party integrations that require emojis (e.g., Discord reactions, Slack status)
+- User-provided content that may contain emojis
+- Skill metadata `emoji` fields used for external platform identity
+
+**Examples**:
+
+```
+# Bad
+git commit -m "🚀 Add new feature"
+git commit -m "✨ Fix bug in parser"
+
+# Good  
+git commit -m "Add new feature"
+git commit -m "Fix bug in parser"
+```
+
+```
+# Bad (in code comments)
+// TODO: 🔥 Optimize this later
+
+# Good
+// TODO: Optimize this later
+```
+
+This policy applies to all personas (Zee, Stanley, Johny) and all agents working on this codebase.
 
 ## IMPORTANT: First Steps When Working on This Repo
 

@@ -201,3 +201,10 @@ See `tiara-orchestration` for execution protocols (Oracle finance variant, Multi
 3. **Size with conviction** - Big when right, small when uncertain
 4. **Cut losers** - No emotional attachment to positions
 5. **Document everything** - Journal trades for pattern learning
+
+## Style Guidelines
+
+Follow the communication style in `AGENTS.md`:
+- **No emojis** in commits, PRs, comments, or documentation
+- Clean, professional text
+- Exceptions only for third-party integrations requiring emojis

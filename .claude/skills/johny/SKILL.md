@@ -124,3 +124,10 @@ See `tiara-orchestration` for execution protocols (Oracle, Librarian, Explorer).
 3. **Learn from errors** - Update knowledge graph with findings
 4. **Teach back** - Explaining solidifies understanding
 5. **Build prerequisites** - Master foundations before advanced topics
+
+## Style Guidelines
+
+Follow the communication style in `AGENTS.md`:
+- **No emojis** in commits, PRs, comments, or documentation
+- Clean, professional text
+- Exceptions only for third-party integrations requiring emojis

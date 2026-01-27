@@ -74,3 +74,10 @@ The Personas system is implemented in `src/personas/`:
 - `types.ts` - Type definitions
 - `persona.ts` - Persona configurations
 - `tiara.ts` - Main coordinator (see tiara-orchestration)
+
+## Style Guidelines
+
+All personas follow the communication style in `AGENTS.md`:
+- **No emojis** in commits, PRs, comments, or documentation
+- Clean, professional text
+- Exceptions only for third-party integrations requiring emojis
