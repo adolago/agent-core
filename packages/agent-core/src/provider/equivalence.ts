@@ -35,7 +35,6 @@ export namespace ModelEquivalence {
       "openai/gpt-4o",
       "google/gemini-2.5-flash",
       "google/gemini-2.0-flash",
-      "mistral/mistral-large",
     ],
     fast: [
       "anthropic/claude-haiku-4",
@@ -43,10 +42,8 @@ export namespace ModelEquivalence {
       "openai/gpt-4.1-mini",
       "openai/gpt-4o-mini",
       "google/gemini-2.0-flash-lite",
-      "mistral/mistral-small",
-      "groq/llama-3.3-70b",
     ],
-    mini: ["anthropic/claude-haiku-3", "openai/gpt-4o-mini", "google/gemini-2.0-flash-lite", "groq/llama-3.1-8b"],
+    mini: ["anthropic/claude-haiku-3", "openai/gpt-4o-mini", "google/gemini-2.0-flash-lite"],
   }
 
   // Custom tiers from config (merged with defaults)

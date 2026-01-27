@@ -392,7 +392,7 @@ export namespace Session {
     }),
     (input) => {
       const cachedInputTokens = input.usage.cachedInputTokens ?? 0
-      const excludesCachedTokens = !!(input.metadata?.["anthropic"] || input.metadata?.["bedrock"])
+      const excludesCachedTokens = !!input.metadata?.["anthropic"]
       const adjustedInputTokens = excludesCachedTokens
         ? (input.usage.inputTokens ?? 0)
         : (input.usage.inputTokens ?? 0) - cachedInputTokens
@@ -406,12 +406,7 @@ export namespace Session {
         output: safe(input.usage.outputTokens ?? 0),
         reasoning: safe(input.usage?.reasoningTokens ?? 0),
         cache: {
-          write: safe(
-            (input.metadata?.["anthropic"]?.["cacheCreationInputTokens"] ??
-              // @ts-expect-error
-              input.metadata?.["bedrock"]?.["usage"]?.["cacheWriteInputTokens"] ??
-              0) as number,
-          ),
+          write: safe((input.metadata?.["anthropic"]?.["cacheCreationInputTokens"] ?? 0) as number),
           read: safe(cachedInputTokens),
         },
       }

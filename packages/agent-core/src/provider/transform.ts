@@ -65,12 +65,9 @@ export namespace ProviderTransform {
   // Maps npm package to the key the AI SDK expects for providerOptions
   function sdkKey(npm: string): string | undefined {
     switch (npm) {
-      case "@ai-sdk/github-copilot":
       case "@ai-sdk/openai":
       case "@ai-sdk/azure":
         return "openai"
-      case "@ai-sdk/amazon-bedrock":
-        return "bedrock"
       case "@ai-sdk/anthropic":
         return "anthropic"
       case "@ai-sdk/google":
@@ -125,51 +122,6 @@ export namespace ProviderTransform {
         return msg
       })
     }
-    if (model.providerID === "mistral" || model.api.id.toLowerCase().includes("mistral")) {
-      const result: ModelMessage[] = []
-      for (let i = 0; i < msgs.length; i++) {
-        const msg = msgs[i]
-        const nextMsg = msgs[i + 1]
-
-        if ((msg.role === "assistant" || msg.role === "tool") && Array.isArray(msg.content)) {
-          // Filter out approval parts and transform tool IDs
-          msg.content = msg.content
-            .filter((part) => part.type !== "tool-approval-request" && part.type !== "tool-approval-response")
-            .map((part) => {
-              if ((part.type === "tool-call" || part.type === "tool-result") && "toolCallId" in part) {
-                // Mistral requires alphanumeric tool call IDs with exactly 9 characters
-                const normalizedId = part.toolCallId
-                  .replace(/[^a-zA-Z0-9]/g, "") // Remove non-alphanumeric characters
-                  .substring(0, 9) // Take first 9 characters
-                  .padEnd(9, "0") // Pad with zeros if less than 9 characters
-
-                return {
-                  ...part,
-                  toolCallId: normalizedId,
-                }
-              }
-              return part
-            }) as typeof msg.content
-        }
-
-        result.push(msg)
-
-        // Fix message sequence: tool messages cannot be followed by user messages
-        if (msg.role === "tool" && nextMsg?.role === "user") {
-          result.push({
-            role: "assistant",
-            content: [
-              {
-                type: "text",
-                text: "Done.",
-              },
-            ],
-          })
-        }
-      }
-      return result
-    }
-
     const interleavedField =
       model.capabilities.interleaved && typeof model.capabilities.interleaved === "object"
         ? model.capabilities.interleaved.field
@@ -220,9 +172,6 @@ export namespace ProviderTransform {
       },
       openrouter: {
         cacheControl: { type: "ephemeral" },
-      },
-      bedrock: {
-        cachePoint: { type: "ephemeral" },
       },
       openaiCompatible: {
         cache_control: { type: "ephemeral" },
@@ -379,7 +328,7 @@ export namespace ProviderTransform {
     if (!model.capabilities.reasoning) return {}
 
     const id = model.id.toLowerCase()
-    if (id.includes("deepseek") || id.includes("minimax") || id.includes("glm") || id.includes("mistral")) return {}
+    if (id.includes("deepseek") || id.includes("minimax") || id.includes("glm")) return {}
 
     // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
     if (id.includes("grok") && id.includes("grok-3-mini")) {
@@ -405,40 +354,12 @@ export namespace ProviderTransform {
       case "@ai-sdk/gateway":
         return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
 
-      case "@ai-sdk/github-copilot":
-        return Object.fromEntries(
-          WIDELY_SUPPORTED_EFFORTS.map((effort) => [
-            effort,
-            {
-              reasoningEffort: effort,
-              reasoningSummary: "auto",
-              include: ["reasoning.encrypted_content"],
-            },
-          ]),
-        )
-
       case "@ai-sdk/cerebras":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/cerebras
-      case "@ai-sdk/togetherai":
-      // https://v5.ai-sdk.dev/providers/ai-sdk-providers/togetherai
       case "@ai-sdk/xai":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/xai
-      case "@ai-sdk/deepinfra":
-      // https://v5.ai-sdk.dev/providers/ai-sdk-providers/deepinfra
       case "@ai-sdk/openai-compatible":
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
-
-      case "@ai-sdk/github-copilot":
-        return Object.fromEntries(
-          WIDELY_SUPPORTED_EFFORTS.map((effort) => [
-            effort,
-            {
-              reasoningEffort: effort,
-              reasoningSummary: "auto",
-              include: ["reasoning.encrypted_content"],
-            },
-          ]),
-        )
 
       case "@ai-sdk/azure":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure
@@ -505,39 +426,6 @@ export namespace ProviderTransform {
           },
         }
 
-      case "@ai-sdk/amazon-bedrock":
-        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock
-        // For Anthropic models on Bedrock, use reasoningConfig with budgetTokens
-        if (model.api.id.includes("anthropic")) {
-          return {
-            high: {
-              reasoningConfig: {
-                type: "enabled",
-                budgetTokens: 16000,
-              },
-            },
-            max: {
-              reasoningConfig: {
-                type: "enabled",
-                budgetTokens: 31999,
-              },
-            },
-          }
-        }
-
-        // For Amazon Nova models, use reasoningConfig with maxReasoningEffort
-        return Object.fromEntries(
-          WIDELY_SUPPORTED_EFFORTS.map((effort) => [
-            effort,
-            {
-              reasoningConfig: {
-                type: "enabled",
-                maxReasoningEffort: effort,
-              },
-            },
-          ]),
-        )
-
       case "@ai-sdk/google":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
         if (id.includes("2.5")) {
@@ -566,30 +454,6 @@ export namespace ProviderTransform {
           ]),
         )
 
-      case "@ai-sdk/mistral":
-        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/mistral
-        return {}
-
-      case "@ai-sdk/cohere":
-        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/cohere
-        return {}
-
-      case "@ai-sdk/groq":
-        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/groq
-        const groqEffort = ["none", ...WIDELY_SUPPORTED_EFFORTS]
-        return Object.fromEntries(
-          groqEffort.map((effort) => [
-            effort,
-            {
-              includeThoughts: true,
-              thinkingLevel: effort,
-            },
-          ]),
-        )
-
-      case "@ai-sdk/perplexity":
-        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/perplexity
-        return {}
     }
     return {}
   }
@@ -602,11 +466,7 @@ export namespace ProviderTransform {
     const result: Record<string, any> = {}
 
     // openai and providers using openai package should set store to false by default.
-    if (
-      input.model.providerID === "openai" ||
-      input.model.api.npm === "@ai-sdk/openai" ||
-      input.model.api.npm === "@ai-sdk/github-copilot"
-    ) {
+    if (input.model.providerID === "openai" || input.model.api.npm === "@ai-sdk/openai") {
       result["store"] = false
     }
 
@@ -945,110 +805,11 @@ export namespace ProviderTransform {
     ]),
 
     // ═══════════════════════════════════════════════════════════════════════
-    // GROQ (Fast inference)
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/groq": new Set([
-      // Thinking (for DeepSeek R1 on Groq)
-      "includeThoughts", // Include reasoning in response
-      "thinkingLevel", // "none" | "low" | "medium" | "high"
-
-      // Common params
-      "user",
-      "seed",
-      "stop",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // MISTRAL
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/mistral": new Set([
-      // Mistral API is straightforward, minimal special params
-      "safePrompt", // Enable safe mode
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // COHERE
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/cohere": new Set([
-      // Cohere-specific features
-      "documents", // RAG document context
-      "searchQueriesOnly", // Return only search queries
-      "preamble", // System preamble
-      "connectors", // External data connectors
-      "citationQuality", // Citation generation quality
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // PERPLEXITY (Search-focused)
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/perplexity": new Set([
-      // Search configuration
-      "searchRecency", // "month" | "week" | "day" | "hour"
-      "searchDomainFilter", // Domains to search
-      "returnImages", // Include images in response
-      "returnRelatedQuestions", // Include related questions
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TOGETHER.AI
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/togetherai": new Set([
-      // Reasoning
-      "reasoningEffort",
-
-      // Common params
-      "user",
-      "seed",
-      "stop",
-      "repetitionPenalty",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // DEEPINFRA
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/deepinfra": new Set([
-      // Reasoning
-      "reasoningEffort",
-
-      // Common params
-      "user",
-      "seed",
-      "stop",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
     // AI GATEWAY (Vercel)
     // ═══════════════════════════════════════════════════════════════════════
     "@ai-sdk/gateway": new Set([
       // Reasoning (passed to underlying provider)
       "reasoningEffort",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // AMAZON BEDROCK
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/amazon-bedrock": new Set([
-      // Guardrails
-      "guardrailConfig", // { guardrailIdentifier, guardrailVersion, trace }
-
-      // Caching
-      "cacheConfig", // { ttl: number }
-
-      // Model-specific fields
-      "additionalModelRequestFields", // Pass-through for model-specific params
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // GITHUB COPILOT
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/github-copilot": new Set([
-      // Reasoning
-      "reasoningEffort",
-      "reasoningSummary",
-      "include",
-
-      // Caching
-      "promptCacheKey",
     ]),
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1242,17 +1003,6 @@ export namespace ProviderTransform {
   }
 
   export function error(providerID: string, error: APICallError) {
-    let message = error.message
-    if (providerID.includes("github-copilot") && error.statusCode === 403) {
-      return "Please reauthenticate with the copilot provider to ensure your credentials work properly with agent-core."
-    }
-    if (providerID.includes("github-copilot") && message.includes("The requested model is not supported")) {
-      return (
-        message +
-        "\n\nMake sure the model is enabled in your copilot settings: https://github.com/settings/copilot/features"
-      )
-    }
-
-    return message
+    return error.message
   }
 }

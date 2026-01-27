@@ -225,17 +225,11 @@ export const GithubInstallCommand = cmd({
           printNextSteps()
 
           function printNextSteps() {
-            let step2
-            if (provider === "amazon-bedrock") {
-              step2 =
-                "Configure OIDC in AWS - https://docs.github.com/en/actions/how-tos/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services"
-            } else {
-              step2 = [
-                `    2. Add the following secrets in org or repo (${app.owner}/${app.repo}) settings`,
-                "",
-                ...providers[provider].env.map((e) => `       - ${e}`),
-              ].join("\n")
-            }
+            const step2 = [
+              `    2. Add the following secrets in org or repo (${app.owner}/${app.repo}) settings`,
+              "",
+              ...providers[provider].env.map((e) => `       - ${e}`),
+            ].join("\n")
 
             prompts.outro(
               [
@@ -366,10 +360,7 @@ export const GithubInstallCommand = cmd({
           }
 
           async function addWorkflowFiles() {
-            const envStr =
-              provider === "amazon-bedrock"
-                ? ""
-                : `\n        env:${providers[provider].env.map((e) => `\n          ${e}: \${{ secrets.${e} }}`).join("")}`
+            const envStr = `\n        env:${providers[provider].env.map((e) => `\n          ${e}: \${{ secrets.${e} }}`).join("")}`
 
             await Bun.write(
               path.join(app.root, WORKFLOW_FILE),
