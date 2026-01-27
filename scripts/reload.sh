@@ -7,7 +7,7 @@
 # 1. Kills all agent-core processes
 # 2. Optionally cleans build artifacts (--clean or --fresh)
 # 3. Rebuilds from source (unless --no-build)
-# 4. Links binary via bun link (~/.bun/bin/agent-core)
+# 4. Links binary via direct symlink (~/.bun/bin/agent-core -> dist binary)
 # 5. Starts daemon (unless --no-daemon)
 # 6. Verifies everything is working
 #
@@ -154,7 +154,7 @@ show_status() {
     local link_target=$(readlink -f "$BINARY_LINK" 2>/dev/null || true)
     ok "Exists ${link_target:+(-> $link_target)}"
   else
-    err "Not found (run: cd packages/agent-core && bun link)"
+    err "Not found (run: cd packages/agent-core && bun run build)"
   fi
   echo ""
   echo "Native binary: $BINARY_SRC"
@@ -342,16 +342,11 @@ else
   warn "Skipping build (--no-build)"
 fi
 
-# Step 4: Link binary (bun link)
+# Step 4: Link binary (direct symlink to built binary)
 log "Linking binary..."
 if [[ -f "$BINARY_SRC" ]]; then
-  cd "$PKG_DIR"
-  if bun link 2>&1 | tail -5; then
-    ok "Linked to $BINARY_LINK"
-  else
-    err "bun link failed"
-    exit 1
-  fi
+  ln -sf "$BINARY_SRC" "$BINARY_LINK"
+  ok "Linked $BINARY_LINK -> $BINARY_SRC"
 else
   err "Binary not found at $BINARY_SRC"
   exit 1
