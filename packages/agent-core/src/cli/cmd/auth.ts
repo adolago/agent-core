@@ -278,6 +278,9 @@ export const AuthLoginCommand = cmd({
         })
 
         // Inject plugin providers (e.g., gemini-cli from opencode-google-auth)
+        const pluginDisplayNames: Record<string, string> = {
+          "gemini-cli": "Gemini CLI",
+        }
         const pluginHooks = await Plugin.list()
         for (const hooks of pluginHooks) {
           if (hooks.auth?.provider) {
@@ -286,7 +289,7 @@ export const AuthLoginCommand = cmd({
               // Add minimal provider entry for auth display
               providers[id] = {
                 id,
-                name: id,
+                name: pluginDisplayNames[id] ?? id,
                 env: [],
                 models: {},
               } as (typeof providers)[string]
@@ -328,10 +331,6 @@ export const AuthLoginCommand = cmd({
                   }[x.id],
                 })),
               ),
-              {
-                value: "other",
-                label: "Other",
-              },
             ],
           })
           if (prompts.isCancel(selected)) throw new UI.CancelledError()
@@ -339,7 +338,7 @@ export const AuthLoginCommand = cmd({
         }
 
         const knownProvider = provider in providers
-        if (!knownProvider && provider !== "other") {
+        if (!knownProvider) {
           provider = provider.replace(/^@ai-sdk\//, "")
           const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
           if (customPlugin && customPlugin.auth) {
@@ -355,26 +354,6 @@ export const AuthLoginCommand = cmd({
         if (plugin && plugin.auth) {
           const handled = await handlePluginAuth({ auth: plugin.auth }, provider)
           if (handled) return
-        }
-
-        if (provider === "other") {
-          const entered = await prompts.text({
-            message: "Enter provider id",
-            validate: (x) => (x && x.match(/^[0-9a-z-]+$/) ? undefined : "a-z, 0-9 and hyphens only"),
-          })
-          if (prompts.isCancel(entered)) throw new UI.CancelledError()
-          provider = entered.replace(/^@ai-sdk\//, "")
-
-          // Check if a plugin provides auth for this custom provider
-          const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
-          if (customPlugin && customPlugin.auth) {
-            const handled = await handlePluginAuth({ auth: customPlugin.auth }, provider)
-            if (handled) return
-          }
-
-          prompts.log.warn(
-            `This only stores a credential for ${provider} - you will need configure it in agent-core.json, check the docs for examples.`,
-          )
         }
 
         if (provider === "amazon-bedrock") {
