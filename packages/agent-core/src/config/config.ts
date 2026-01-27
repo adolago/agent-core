@@ -714,9 +714,9 @@ export namespace Config {
       session_list: z.string().optional().default("<leader>l").describe("List all sessions"),
       session_timeline: z.string().optional().default("<leader>g").describe("Show session timeline"),
       session_fork: z.string().optional().default("none").describe("Fork session from message"),
-      session_rename: z.string().optional().default("ctrl+r").describe("Rename session"),
+      session_rename: z.string().optional().default("<leader>shift+r").describe("Rename session"),
       session_delete: z.string().optional().default("<leader>d").describe("Delete session"),
-      stash_delete: z.string().optional().default("ctrl+d").describe("Delete stash entry"),
+      stash_delete: z.string().optional().default("<leader>shift+x").describe("Delete stash entry"),
       model_provider_list: z.string().optional().default("<leader>p").describe("Open provider list from model dialog"),
       session_delegate: z.string().optional().default("<leader>shift+d").describe("Delegate to another persona"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
@@ -735,7 +735,7 @@ export namespace Config {
         .optional()
         .default("ctrl+alt+d")
         .describe("Scroll messages down by half page"),
-      messages_first: z.string().optional().default("ctrl+g,home").describe("Navigate to first message"),
+      messages_first: z.string().optional().default("home").describe("Navigate to first message"),
       messages_last: z.string().optional().default("shift+g,end").describe("Navigate to last message"),
       messages_copy: z.string().optional().default("<leader>y").describe("Copy message"),
       messages_undo: z.string().optional().default("<leader>u").describe("Undo message"),
@@ -759,7 +759,7 @@ export namespace Config {
       input_paste: z.string().optional().default("ctrl+v").describe("Paste from clipboard"),
       input_submit: z.string().optional().default("return").describe("Submit input"),
       input_dictation_toggle: z.string().optional().default("<leader>t").describe("Toggle dictation recording"),
-      grammar_quickfix: z.string().optional().default("ctrl+.").describe("Quick-fix grammar error at cursor"),
+      grammar_quickfix: z.string().optional().default("<leader>.").describe("Quick-fix grammar error at cursor"),
       input_newline: z
         .string()
         .optional()

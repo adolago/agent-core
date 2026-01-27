@@ -90,6 +90,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
               const key = evt.name
               if (key === "i" || key === "I" || key === "a" || key === "A" || key === "o" || key === "O") {
                 vim.enterInsert()
+                vim.onEnterInsert()
                 lastHandledMode = "insert"
                 return
               }

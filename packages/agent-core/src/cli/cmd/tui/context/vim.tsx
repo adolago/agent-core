@@ -27,6 +27,9 @@ export const { use: useVim, provider: VimProvider } = createSimpleContext({
       mode: startInInsert() ? "insert" : "normal",
     })
 
+    // Focus callback for when entering insert mode
+    let focusCallback: (() => void) | null = null
+
     return {
       get enabled() {
         return enabled()
@@ -50,6 +53,14 @@ export const { use: useVim, provider: VimProvider } = createSimpleContext({
       },
       enterInsert() {
         setStore("mode", "insert")
+      },
+      // Register a callback to be called when entering insert mode
+      registerFocusCallback(fn: () => void) {
+        focusCallback = fn
+      },
+      // Call the focus callback (for use after entering insert mode)
+      onEnterInsert() {
+        focusCallback?.()
       },
     }
   },

@@ -335,6 +335,14 @@ export function Prompt(props: PromptProps) {
     }
   })
 
+  // Track session count for dynamic hints (show hints for first 5 sessions)
+  onMount(() => {
+    const count = kv.get("hint_session_count", 0)
+    if (count < 5) {
+      kv.set("hint_session_count", count + 1)
+    }
+  })
+
   sdk.event.on(TuiEvent.PromptAppend.type, (evt) => {
     input.insertText(evt.properties.text)
     setTimeout(() => {
@@ -1659,6 +1667,8 @@ export function Prompt(props: PromptProps) {
                 if (grammarErrorTypeId === 0) {
                   grammarErrorTypeId = input.extmarks.registerType("grammar-error")
                 }
+                // Register focus callback for vim mode
+                vim.registerFocusCallback(() => input?.focus())
                 props.ref?.(ref)
                 setTimeout(() => {
                   input.cursorColor = theme.text
@@ -1925,43 +1935,25 @@ export function Prompt(props: PromptProps) {
           <Show when={status().type !== "retry"}>
             <box gap={2} flexDirection="row">
               <Switch>
-                <Match when={store.mode === "normal"}>
-                  <Show when={local.model.variant.list().length > 0}>
-                    <box flexDirection="row" gap={1}>
-                      <text fg={theme.text}>{keybind.print("variant_cycle")}</text>
-                      <text fg={theme.textMuted}>variants</text>
-                    </box>
-                  </Show>
-                  <box flexDirection="row" gap={1}>
-                    <text fg={theme.text}>{keybind.print("agent_cycle")}</text>
-                    <text fg={theme.textMuted}>agents</text>
-                  </box>
-                  <box flexDirection="row" gap={1}>
-                    <text fg={theme.text}>{keybind.print("command_list")}</text>
-                    <text fg={theme.textMuted}>commands</text>
-                  </box>
-                  <Show when={dictationKey() && dictationConfig()}>
-                    <box flexDirection="row" gap={1}>
-                      <text fg={dictationHintColor()}>{dictationKey()}</text>
-                      <text fg={theme.textMuted}>{dictationHintLabel()}</text>
-                    </box>
-                  </Show>
-                  <Show when={realtimeGrammarEnabled()}>
-                    <text fg={grammarChecker.errors().length > 0 ? theme.warning : theme.textMuted}>
-                      {grammarChecker.loading() ? "..." : grammarChecker.errors().length > 0 ? `${grammarChecker.errors().length} errors` : ""}
-                    </text>
-                  </Show>
-                  <Show when={vim.enabled}>
-                    <text fg={vim.isNormal ? theme.warning : theme.textMuted}>
-                      {vim.isNormal ? "i insert" : "esc normal"}
-                    </text>
-                  </Show>
-                </Match>
                 <Match when={store.mode === "shell"}>
                   <box flexDirection="row" gap={1}>
                     <text fg={theme.text}>esc</text>
-                    <text fg={theme.textMuted}>exit shell mode</text>
+                    <text fg={theme.textMuted}>exit shell</text>
                   </box>
+                </Match>
+                <Match when={store.mode === "normal"}>
+                  {/* Contextual hints - only show when relevant */}
+                  <Show when={realtimeGrammarEnabled() && grammarChecker.errors().length > 0}>
+                    <text fg={theme.warning}>
+                      {grammarChecker.errors().length} grammar {grammarChecker.errors().length === 1 ? "error" : "errors"}
+                    </text>
+                  </Show>
+                  {/* Dynamic hints - show for first 5 sessions, then hide */}
+                  <Show when={kv.get("hint_session_count", 0) < 5}>
+                    <text fg={theme.textMuted}>
+                      {vim.isNormal ? "i insert · space commands" : "esc normal"}
+                    </text>
+                  </Show>
                 </Match>
               </Switch>
             </box>
