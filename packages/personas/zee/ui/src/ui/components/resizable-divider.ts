@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, type PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 /**
@@ -25,6 +25,11 @@ export class ResizableDivider extends LitElement {
       position: relative;
     }
 
+    :host(:focus-visible) {
+      outline: 2px solid var(--accent, #007bff);
+      outline-offset: -1px;
+    }
+
     :host::before {
       content: "";
       position: absolute;
@@ -47,17 +52,51 @@ export class ResizableDivider extends LitElement {
     return html``;
   }
 
+  updated(changedProperties: PropertyValues) {
+    if (changedProperties.has("splitRatio")) {
+      this.setAttribute("aria-valuenow", String(Math.round(this.splitRatio * 100)));
+    }
+    if (changedProperties.has("minRatio")) {
+      this.setAttribute("aria-valuemin", String(Math.round(this.minRatio * 100)));
+    }
+    if (changedProperties.has("maxRatio")) {
+      this.setAttribute("aria-valuemax", String(Math.round(this.maxRatio * 100)));
+    }
+  }
+
   connectedCallback() {
     super.connectedCallback();
+    this.setAttribute("role", "separator");
+    this.setAttribute("tabindex", "0");
+    this.setAttribute("aria-label", "Resize sidebar");
     this.addEventListener("mousedown", this.handleMouseDown);
+    this.addEventListener("keydown", this.handleKeyDown);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener("mousedown", this.handleMouseDown);
+    this.removeEventListener("keydown", this.handleKeyDown);
     document.removeEventListener("mousemove", this.handleMouseMove);
     document.removeEventListener("mouseup", this.handleMouseUp);
   }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+
+    e.preventDefault();
+    const delta = e.key === "ArrowLeft" ? -0.05 : 0.05;
+    let newRatio = this.splitRatio + delta;
+    newRatio = Math.max(this.minRatio, Math.min(this.maxRatio, newRatio));
+
+    this.dispatchEvent(
+      new CustomEvent("resize", {
+        detail: { splitRatio: newRatio },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  };
 
   private handleMouseDown = (e: MouseEvent) => {
     this.isDragging = true;
