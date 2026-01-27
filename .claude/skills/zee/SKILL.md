@@ -299,6 +299,158 @@ When spawning Claude Code, it automatically inherits:
 | `zee:pty-log` | Fetch full session output log |
 | `zee:pty-kill` | Terminate a running session |
 | `zee:pty-clear` | Clear finished session from registry |
+| `zee:node-list` | List connected and paired mobile nodes |
+| `zee:node-describe` | Get detailed node information |
+| `zee:node-pending` | List pending pairing requests |
+| `zee:node-approve` | Approve node pairing request |
+| `zee:node-reject` | Reject node pairing request |
+| `zee:node-camera-snap` | Take photo (front/back/both camera) |
+| `zee:node-camera-clip` | Record video clip |
+| `zee:node-screen-record` | Record device screen |
+| `zee:node-location` | Get GPS coordinates |
+| `zee:node-notify` | Send push notification |
+| `zee:node-run` | Execute command on macOS/Linux node |
+
+## Mobile Nodes (iOS/Android Control)
+
+Control mobile devices connected to the Zee gateway.
+
+**Capabilities:**
+- **Camera**: Take photos, record video
+- **Screen**: Record screen content
+- **Location**: Get GPS coordinates
+- **Notifications**: Send push alerts
+- **System**: Execute commands (macOS/Linux only)
+
+**Platform Defaults:**
+
+| Platform | Capabilities |
+|----------|--------------|
+| iOS | Canvas, Camera, Screen, Location |
+| Android | Canvas, Camera, Screen, Location, SMS |
+| macOS | Canvas, Camera, Screen, Location, System |
+| Linux | System commands only |
+
+**Node Pairing Workflow:**
+
+1. **Install companion app** on device
+2. **Scan QR code** to initiate pairing
+3. **Check pending requests**
+   ```
+   zee:node-pending → { pending: [...] }
+   ```
+4. **Approve the request**
+   ```
+   zee:node-approve { requestId: "abc123" }
+   ```
+5. **Verify connection**
+   ```
+   zee:node-list → shows node as "online"
+   ```
+
+**Node Tools Workflow:**
+
+1. **List nodes** - See connected devices
+   ```
+   zee:node-list → { connected: 1, offline: 2 }
+   ```
+
+2. **Take photo** - Capture from camera
+   ```
+   zee:node-camera-snap {
+     nodeId: "iphone-12",
+     facing: "back"
+   }
+   → { format: "jpg", base64: "...", width: 4032, height: 3024 }
+   ```
+
+3. **Record video** - Capture video clip
+   ```
+   zee:node-camera-clip {
+     nodeId: "iphone-12",
+     facing: "front",
+     durationMs: 5000
+   }
+   ```
+
+4. **Record screen** - Capture screen content
+   ```
+   zee:node-screen-record {
+     nodeId: "iphone-12",
+     durationMs: 10000,
+     fps: 15
+   }
+   ```
+
+5. **Get location** - GPS coordinates
+   ```
+   zee:node-location {
+     nodeId: "iphone-12",
+     desiredAccuracy: "precise"
+   }
+   → { latitude: 37.7749, longitude: -122.4194, accuracy: 5 }
+   ```
+
+6. **Send notification** - Push alert
+   ```
+   zee:node-notify {
+     nodeId: "iphone-12",
+     title: "Reminder",
+     body: "Meeting in 5 minutes",
+     priority: "timeSensitive"
+   }
+   ```
+
+7. **Run command** - Execute on macOS/Linux
+   ```
+   zee:node-run {
+     nodeId: "macbook",
+     command: ["ls", "-la", "/tmp"]
+   }
+   ```
+
+**Camera Options:**
+
+| Option | Description |
+|--------|-------------|
+| `facing` | "front", "back", or "both" |
+| `maxWidth` | Max image width in pixels |
+| `quality` | JPEG quality (0-100) |
+| `delayMs` | Delay before capture |
+
+**Location Accuracy:**
+
+| Level | Description |
+|-------|-------------|
+| `coarse` | ~3km accuracy, low power |
+| `balanced` | ~100m accuracy (default) |
+| `precise` | ~10m accuracy, high power |
+
+**Notification Priority:**
+
+| Priority | Behavior |
+|----------|----------|
+| `passive` | Silent, appears in notification center |
+| `active` | Sound/vibration (default) |
+| `timeSensitive` | Breaks through Do Not Disturb |
+
+**Configuration** (`agent-core.jsonc`):
+```json
+{
+  "zee": {
+    "gateway": {
+      "nodes": {
+        "allowCommands": ["camera.snap", "location.get"],
+        "denyCommands": ["system.run"]
+      }
+    }
+  }
+}
+```
+
+**Storage:**
+- Pairing state: `~/.zee/nodes/paired.json`
+- Pending requests: `~/.zee/nodes/pending.json` (5 min TTL)
 
 ## PTY Sessions (Interactive Terminals)
 
