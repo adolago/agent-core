@@ -1407,7 +1407,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
               minAlpha: 0.3,
             }),
           }))
-          const phase = createMemo(() => streamHealth()?.phase ?? "thinking")
+          const phase = createMemo(() => streamHealth()?.phase ?? "starting")
           const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
           const formatChars = (n: number) => {
             if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
