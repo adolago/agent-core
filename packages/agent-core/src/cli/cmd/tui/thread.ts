@@ -7,7 +7,7 @@ import { spawn, spawnSync } from "child_process"
 import { UI } from "@/cli/ui"
 import { iife } from "@/util/iife"
 import { Log } from "@/util/log"
-import { withNetworkOptions, resolveNetworkOptions, type NetworkOptions } from "@/cli/network"
+import { withNetworkOptions, resolveNetworkOptions, type ResolvedNetworkOptions } from "@/cli/network"
 import { Daemon } from "@/cli/cmd/daemon"
 import { Config } from "@/config/config"
 import { createAuthorizedFetch } from "@/server/auth"
@@ -87,7 +87,7 @@ function getSystemdServiceState(): SystemdServiceState {
   }
 }
 
-function resolveDaemonUrl(network: NetworkOptions, state?: Daemon.DaemonState | null): string {
+function resolveDaemonUrl(network: ResolvedNetworkOptions, state?: Daemon.DaemonState | null): string {
   if (process.env.AGENT_CORE_URL) return process.env.AGENT_CORE_URL
   const hostname = normalizeDaemonHost(state?.hostname ?? network.hostname)
   const port = state?.port ?? (network.port && network.port !== 0 ? network.port : DEFAULT_DAEMON_PORT)
@@ -161,7 +161,7 @@ function spawnLocalDaemon(hostname: string, port: number, directory: string): bo
 }
 
 async function ensureDaemonRunning(
-  network: NetworkOptions,
+  network: ResolvedNetworkOptions,
   directory: string,
   options?: { systemdOnly?: boolean },
 ): Promise<string> {

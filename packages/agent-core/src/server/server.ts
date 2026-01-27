@@ -269,7 +269,28 @@ export namespace Server {
     return result
   }
 
-  export function listen(opts: { port: number; hostname: string; mdns?: boolean; cors?: string[] }) {
+  /**
+   * mDNS configuration options - supports both boolean shorthand and detailed object.
+   */
+  type MdnsOption = boolean | { enabled?: boolean; minimal?: boolean }
+
+  /**
+   * Resolve mDNS configuration from the flexible format.
+   */
+  function resolveMdnsConfig(mdns?: MdnsOption): { enabled: boolean; minimal: boolean } {
+    if (mdns === undefined || mdns === false) {
+      return { enabled: false, minimal: false }
+    }
+    if (mdns === true) {
+      return { enabled: true, minimal: false }
+    }
+    return {
+      enabled: mdns.enabled ?? true,
+      minimal: mdns.minimal ?? false,
+    }
+  }
+
+  export function listen(opts: { port: number; hostname: string; mdns?: MdnsOption; cors?: string[] }) {
     _corsWhitelist = opts.cors ?? []
 
     const args = {
@@ -290,15 +311,13 @@ export namespace Server {
 
     ServerState.setUrl(server.url)
 
-    const shouldPublishMDNS =
-      opts.mdns &&
-      server.port &&
-      opts.hostname !== "127.0.0.1" &&
-      opts.hostname !== "localhost" &&
-      opts.hostname !== "::1"
+    const mdnsConfig = resolveMdnsConfig(opts.mdns)
+    const isLoopback = opts.hostname === "127.0.0.1" || opts.hostname === "localhost" || opts.hostname === "::1"
+    const shouldPublishMDNS = mdnsConfig.enabled && server.port && !isLoopback
+
     if (shouldPublishMDNS) {
-      MDNS.publish(server.port!)
-    } else if (opts.mdns) {
+      MDNS.publish({ port: server.port!, minimal: mdnsConfig.minimal })
+    } else if (mdnsConfig.enabled && isLoopback) {
       log.warn("mDNS enabled but hostname is loopback; skipping mDNS publish")
     }
 

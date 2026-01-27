@@ -27,6 +27,32 @@ const options = {
 
 export type NetworkOptions = InferredOptionTypes<typeof options>
 
+/**
+ * mDNS configuration - supports both boolean shorthand and detailed object.
+ * The CLI only provides boolean, but config files can specify detailed options.
+ */
+export type MdnsConfig = boolean | { enabled?: boolean; minimal?: boolean }
+
+/**
+ * Resolved network options with potentially enhanced mdns config.
+ * The mdns field may be an object if coming from config file.
+ */
+export type ResolvedNetworkOptions = {
+  hostname: string
+  port: number
+  mdns: MdnsConfig
+  cors: string[]
+}
+
+/**
+ * Check if mDNS is enabled from either boolean or object config.
+ */
+function isMdnsEnabled(mdns: MdnsConfig | undefined): boolean {
+  if (mdns === undefined) return false
+  if (typeof mdns === "boolean") return mdns
+  return mdns.enabled ?? true
+}
+
 export function withNetworkOptions<T>(yargs: Argv<T>) {
   return yargs.options(options)
 }
@@ -38,11 +64,15 @@ export async function resolveNetworkOptions(args: NetworkOptions) {
   const mdnsExplicitlySet = process.argv.includes("--mdns")
   const corsExplicitlySet = process.argv.includes("--cors")
 
-  const mdns = mdnsExplicitlySet ? args.mdns : (config?.server?.mdns ?? args.mdns)
+  // mDNS config can be boolean (from CLI) or object (from config file)
+  // If CLI flag is set, it overrides config; otherwise use config (preserving object form)
+  const mdns: MdnsConfig = mdnsExplicitlySet ? args.mdns : (config?.server?.mdns ?? args.mdns)
+  const mdnsEnabled = isMdnsEnabled(mdns)
+
   const port = portExplicitlySet ? args.port : (config?.server?.port ?? args.port)
   const hostname = hostnameExplicitlySet
     ? args.hostname
-    : mdns && !config?.server?.hostname
+    : mdnsEnabled && !config?.server?.hostname
       ? "0.0.0.0"
       : (config?.server?.hostname ?? args.hostname)
   const configCors = config?.server?.cors ?? []

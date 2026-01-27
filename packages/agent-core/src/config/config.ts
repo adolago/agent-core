@@ -908,11 +908,31 @@ export namespace Config {
       .describe("Vim mode settings for the input prompt"),
   })
 
+  /**
+   * mDNS configuration - supports both boolean shorthand and detailed object.
+   * Security note: mDNS broadcasts can disclose operational details on the network.
+   * Based on ClawdBot commit a1f9825d63 (mDNS information disclosure fix).
+   */
+  export const MdnsConfig = z
+    .object({
+      enabled: z.boolean().optional().default(true).describe("Enable mDNS service discovery"),
+      minimal: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Minimal broadcast mode - only advertise service type, not detailed metadata"),
+    })
+    .strict()
+    .describe("mDNS service discovery configuration")
+
   export const Server = z
     .object({
       port: z.number().int().positive().optional().describe("Port to listen on"),
       hostname: z.string().optional().describe("Hostname to listen on"),
-      mdns: z.boolean().optional().describe("Enable mDNS service discovery"),
+      mdns: z
+        .union([z.boolean(), MdnsConfig])
+        .optional()
+        .describe("Enable mDNS service discovery (boolean or detailed config)"),
       cors: z.array(z.string()).optional().describe("Additional domains to allow for CORS"),
     })
     .strict()
