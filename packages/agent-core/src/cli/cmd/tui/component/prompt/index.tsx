@@ -74,6 +74,10 @@ export function Prompt(props: PromptProps) {
   const dialog = useDialog()
   const toast = useToast()
   const status = createMemo(() => sync.data.session_status?.[props.sessionID ?? ""] ?? { type: "idle" })
+  const streamHealth = createMemo(() => {
+    const s = status()
+    return s.type === "busy" ? s.streamHealth : undefined
+  })
   const history = usePromptHistory()
   const stash = usePromptStash()
   const command = useCommandDialog()
@@ -1774,10 +1778,16 @@ export function Prompt(props: PromptProps) {
                       return r.message.length > 120
                     })
                     const [seconds, setSeconds] = createSignal(0)
+                    const [elapsed, setElapsed] = createSignal(0)
                     onMount(() => {
+                      const start = Date.now()
                       const timer = setInterval(() => {
                         const next = retry()?.next
                         if (next) setSeconds(Math.round((next - Date.now()) / 1000))
+                        // Update elapsed time for streaming status
+                        if (status().type === "busy") {
+                          setElapsed(Math.floor((Date.now() - start) / 1000))
+                        }
                       }, 1000)
 
                       onCleanup(() => {
@@ -1802,12 +1812,45 @@ export function Prompt(props: PromptProps) {
                       return baseMessage + truncatedHint + retryInfo
                     }
 
+                    const formatTime = (s: number) => {
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      const pad = (n: number) => n.toString().padStart(2, "0")
+                      return `${pad(m)}:${pad(sec)}`
+                    }
+                    const formatChars = (n: number) => {
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                      return n.toString()
+                    }
+                    const phaseLabel = createMemo(() => {
+                      const health = streamHealth()
+                      if (!health?.phase) return "starting"
+                      switch (health.phase) {
+                        case "thinking": return "thinking"
+                        case "tool_calling": return "tools"
+                        case "generating": return "generating"
+                        default: return "starting"
+                      }
+                    })
+                    const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
+                    const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
+
                     return (
-                      <Show when={retry()}>
-                        <box onMouseUp={handleMessageClick}>
-                          <text fg={theme.error}>{retryText()}</text>
-                        </box>
-                      </Show>
+                      <>
+                        <Show when={retry()}>
+                          <box onMouseUp={handleMessageClick}>
+                            <text fg={theme.error}>{retryText()}</text>
+                          </box>
+                        </Show>
+                        <Show when={!retry() && status().type === "busy"}>
+                          <text fg={theme.textMuted}>
+                            {phaseLabel()}
+                            <Show when={chars() > 0}>{" "}{formatChars(chars())} chars</Show>
+                            <Show when={events() > 0 && chars() === 0}>{" "}{events()} events</Show>
+                            {" "}{formatTime(elapsed())}
+                          </text>
+                        </Show>
+                      </>
                     )
                   })()}
                 </box>

@@ -14,7 +14,7 @@ import {
   useContext,
 } from "solid-js"
 import "opentui-spinner/solid"
-import { createColors, createFrames } from "@tui/ui/spinner"
+// createColors, createFrames removed - thinking spinner consolidated to prompt
 import { Dynamic } from "solid-js/web"
 import path from "path"
 import { useRoute, useRouteData } from "@tui/context/route"
@@ -1317,10 +1317,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
   const { theme } = useTheme()
   const sync = useSync()
   const messages = createMemo(() => sync.data.message[props.message.sessionID] ?? [])
-  const streamHealth = createMemo(() => {
-    const status = sync.data.session_status?.[props.message.sessionID]
-    return status?.type === "busy" ? status.streamHealth : undefined
-  })
+  // streamHealth memo removed - spinner consolidated to prompt area
 
   const final = createMemo(() => {
     return props.message.finish && !["tool-calls", "unknown"].includes(props.message.finish)
@@ -1343,7 +1340,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
     () => hasVisibleText() || hasVisibleTool() || hasVisibleReasoning(),
   )
   const isStreaming = createMemo(() => !props.message.time.completed && !props.message.error)
-  const showThinkingPlaceholder = createMemo(() => isStreaming() && !hasVisibleParts())
+  // showThinkingPlaceholder removed - spinner consolidated to prompt area
 
   const duration = createMemo(() => {
     if (!final()) return 0
@@ -1370,80 +1367,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
           )
         }}
       </For>
-      <Show when={showThinkingPlaceholder()}>
-        {(() => {
-          const [elapsed, setElapsed] = createSignal(0)
-          onMount(() => {
-            const start = Date.now()
-            const timer = setInterval(() => {
-              setElapsed(Math.floor((Date.now() - start) / 1000))
-            }, 1000)
-            onCleanup(() => clearInterval(timer))
-          })
-          const formatTime = (s: number) => {
-            const h = Math.floor(s / 3600)
-            const m = Math.floor((s % 3600) / 60)
-            const sec = s % 60
-            const pad = (n: number) => n.toString().padStart(2, "0")
-            return `${pad(h)}:${pad(m)}:${pad(sec)}`
-          }
-          const spinnerDef = createMemo(() => ({
-            frames: createFrames({
-              color: theme.warning,
-              style: "blocks",
-              animation: "carousel",
-              width: 10,
-              carouselActiveCount: 5,
-              inactiveFactor: 0.6,
-              minAlpha: 0.3,
-            }),
-            color: createColors({
-              color: theme.warning,
-              style: "blocks",
-              animation: "carousel",
-              width: 10,
-              carouselActiveCount: 5,
-              inactiveFactor: 0.6,
-              minAlpha: 0.3,
-            }),
-          }))
-          const phase = createMemo(() => streamHealth()?.phase ?? "starting")
-          const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
-          const formatChars = (n: number) => {
-            if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-            return n.toString()
-          }
-          const phaseLabel = createMemo(() => {
-            switch (phase()) {
-              case "thinking": return "thinking"
-              case "tool_calling": return "tool calling"
-              case "generating": return "generating"
-              default: return "starting"
-            }
-          })
-          return (
-            <box
-              paddingLeft={3}
-              marginTop={1}
-              border={["left"]}
-              customBorderChars={SplitBorder.customBorderChars}
-              borderColor={theme.backgroundElement}
-            >
-              <box flexDirection="row" gap={1}>
-                <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                <text fg={theme.textMuted}>
-                  (Esc to interrupt - {formatTime(elapsed())}
-                  <Show when={chars() > 0}> - {formatChars(chars())} chars</Show>
-                  {" "}- {phaseLabel()})
-                </text>
-              </box>
-              <Show when={!ctx.showThinking()}>
-                <text fg={theme.textMuted}>Use :thinking to show reasoning</text>
-              </Show>
-            </box>
-          )
-        })()}
-      </Show>
+      {/* Thinking placeholder removed - status now shown in prompt spinner */}
       <Show when={props.message.error && props.message.error.name !== "MessageAbortedError"}>
         <box
           border={["left"]}

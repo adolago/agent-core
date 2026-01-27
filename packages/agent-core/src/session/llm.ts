@@ -112,6 +112,9 @@ export namespace LLM {
     l.info("stream", {
       modelID: input.model.id,
       providerID: input.model.providerID,
+      hasAgentPrompt: !!input.agent.prompt,
+      agentPromptLength: input.agent.prompt?.length ?? 0,
+      agentName: input.agent.name,
     })
     const [language, cfg, provider, auth] = await Promise.all([
       Provider.getLanguage(input.model),
@@ -140,6 +143,12 @@ export namespace LLM {
 
     const header = system[0]
     const original = clone(system)
+    l.debug("system prompt constructed", {
+      systemParts: system.length,
+      headerLength: header?.length ?? 0,
+      contentLength: system[1]?.length ?? 0,
+      includesAgentPrompt: input.agent.prompt ? system[1]?.includes(input.agent.prompt.slice(0, 50)) : false,
+    })
     await Plugin.trigger("experimental.chat.system.transform", { sessionID: input.sessionID }, { system })
     if (system.length === 0) {
       system.push(...original)
