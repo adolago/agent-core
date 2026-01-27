@@ -7,3 +7,8 @@
 **Vulnerability:** The `agent-core` server explicitly returned `err.stack` in JSON responses for 500 Internal Server Errors, exposing internal file paths and logic.
 **Learning:** Even local-first tools can expose sensitive system information via error handling. Testing error responses requires ensuring the mock error itself doesn't contain the stack trace in its message, which can lead to false negatives in tests.
 **Prevention:** Sanitize error messages in the global `onError` handler. Use `err.message` instead of `err.stack` or `err.toString()` for unknown errors in production-like environments.
+
+## 2026-01-27 - Command Injection in Ripgrep Search
+**Vulnerability:** The `Ripgrep.search` function constructed a shell command by joining arguments into a string and executing it via `$` (Bun Shell) with `{ raw: command }`. This allowed arbitrary command injection via the `pattern` argument.
+**Learning:** Using `raw` mode in Bun Shell bypasses auto-escaping. Even when using modern runtimes like Bun, constructing commands as strings for shell execution is risky.
+**Prevention:** Use `Bun.spawn` with an argument array to execute binaries directly, bypassing the shell. This ensures arguments are treated literally and prevents injection.

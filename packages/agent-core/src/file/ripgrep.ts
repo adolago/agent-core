@@ -374,7 +374,8 @@ export namespace Ripgrep {
     limit?: number
     follow?: boolean
   }) {
-    const args = [`${await filepath()}`, "--json", "--hidden", "--glob='!.git/*'"]
+    // Sentinel: Removed quotes around glob to support Bun.spawn (array args) and fixed command injection.
+    const args = [`${await filepath()}`, "--json", "--hidden", "--glob=!.git/*"]
     if (input.follow === true) args.push("--follow")
 
     if (input.glob) {
@@ -390,14 +391,21 @@ export namespace Ripgrep {
     args.push("--")
     args.push(input.pattern)
 
-    const command = args.join(" ")
-    const result = await $`${{ raw: command }}`.cwd(input.cwd).quiet().nothrow()
-    if (result.exitCode !== 0) {
+    const proc = Bun.spawn(args, {
+      cwd: input.cwd,
+      stdout: "pipe",
+      stderr: "ignore",
+    })
+
+    const stdout = await new Response(proc.stdout).text()
+    const exitCode = await proc.exited
+
+    if (exitCode !== 0) {
       return []
     }
 
     // Handle both Unix (\n) and Windows (\r\n) line endings
-    const lines = result.text().trim().split(/\r?\n/).filter(Boolean)
+    const lines = stdout.trim().split(/\r?\n/).filter(Boolean)
     // Parse JSON lines from ripgrep output
 
     return lines
