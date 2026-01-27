@@ -66,14 +66,11 @@ export namespace ProviderTransform {
   function sdkKey(npm: string): string | undefined {
     switch (npm) {
       case "@ai-sdk/openai":
-      case "@ai-sdk/azure":
         return "openai"
       case "@ai-sdk/anthropic":
         return "anthropic"
       case "@ai-sdk/google":
         return "google"
-      case "@ai-sdk/gateway":
-        return "gateway"
       case "@openrouter/ai-sdk-provider":
         return "openrouter"
     }
@@ -253,7 +250,7 @@ export namespace ProviderTransform {
 
     // Remap providerOptions keys from stored providerID to expected SDK key
     const key = sdkKey(model.api.npm)
-    if (key && key !== model.providerID && model.api.npm !== "@ai-sdk/azure") {
+    if (key && key !== model.providerID) {
       const remap = (opts: Record<string, any> | undefined) => {
         if (!opts) return opts
         if (!(model.providerID in opts)) return opts
@@ -349,11 +346,6 @@ export namespace ProviderTransform {
         if (!model.id.includes("gpt") && !model.id.includes("gemini-3")) return {}
         return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoning: { effort } }]))
 
-      // IMPORTANT: When using @ai-sdk/gateway with reasoningEffort, do NOT set max_tokens
-      // as this causes an API error. The SDK handles token limits automatically.
-      case "@ai-sdk/gateway":
-        return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
-
       case "@ai-sdk/cerebras":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/cerebras
       case "@ai-sdk/xai":
@@ -361,23 +353,6 @@ export namespace ProviderTransform {
       case "@ai-sdk/openai-compatible":
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
 
-      case "@ai-sdk/azure":
-        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure
-        if (id === "o1-mini") return {}
-        const azureEfforts = ["low", "medium", "high"]
-        if (id.includes("gpt-5-") || id === "gpt-5") {
-          azureEfforts.unshift("minimal")
-        }
-        return Object.fromEntries(
-          azureEfforts.map((effort) => [
-            effort,
-            {
-              reasoningEffort: effort,
-              reasoningSummary: "auto",
-              include: ["reasoning.encrypted_content"],
-            },
-          ]),
-        )
       case "@ai-sdk/openai":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/openai
         if (id === "gpt-5-pro") return {}
@@ -672,36 +647,6 @@ export namespace ProviderTransform {
     ]),
 
     // ═══════════════════════════════════════════════════════════════════════
-    // AZURE OPENAI
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/azure": new Set([
-      // Reasoning
-      "reasoningEffort",
-      "reasoningSummary",
-      "include",
-
-      // Service
-      "serviceTier",
-
-      // Tools
-      "parallelToolCalls",
-
-      // User
-      "user",
-
-      // Output
-      "structuredOutputs",
-      "logprobs",
-      "topLogprobs",
-
-      // Sampling
-      "seed",
-      "frequencyPenalty",
-      "presencePenalty",
-      "stop",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
     // GOOGLE AI (Gemini via ai.google.dev)
     // ═══════════════════════════════════════════════════════════════════════
     "@ai-sdk/google": new Set([
@@ -804,22 +749,6 @@ export namespace ProviderTransform {
       "stop",
     ]),
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // AI GATEWAY (Vercel)
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/gateway": new Set([
-      // Reasoning (passed to underlying provider)
-      "reasoningEffort",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // VERCEL AI SDK
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/vercel": new Set([
-      // Vercel's own provider, typically proxies to other models
-      "reasoningEffort",
-    ]),
-
     // null = allow all params (fallback for unknown providers)
     // This ensures forward compatibility with new providers
   }
@@ -906,8 +835,8 @@ export namespace ProviderTransform {
     const hasReasoningEffort = options?.["reasoningEffort"] || options?.["reasoning"]?.["effort"]
     const hasThinkingBudget = options?.["thinking"]?.["budgetTokens"] || options?.["thinkingBudget"]
 
-    // OpenAI o-series, Gateway, xAI: reasoningEffort is mutually exclusive with max_tokens
-    if (npm === "@ai-sdk/gateway" || npm === "@ai-sdk/openai" || npm === "@ai-sdk/xai") {
+    // OpenAI o-series, xAI: reasoningEffort is mutually exclusive with max_tokens
+    if (npm === "@ai-sdk/openai" || npm === "@ai-sdk/xai") {
       if (hasReasoningEffort) {
         log.debug("max_tokens disabled due to reasoningEffort", {
           npm,
