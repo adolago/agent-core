@@ -291,6 +291,127 @@ When spawning Claude Code, it automatically inherits:
 | `zee:cron-run` | Manually trigger a cron job immediately |
 | `zee:cron-runs` | Get run history for a cron job |
 | `zee:cron-wake` | Send a wake event to the agent |
+| `zee:pty-start` | Start interactive PTY session for TTY commands |
+| `zee:pty-list` | List running and finished PTY sessions |
+| `zee:pty-poll` | Poll session for new output |
+| `zee:pty-send-keys` | Send keystrokes (arrows, ctrl+c, function keys) |
+| `zee:pty-paste` | Paste text with bracketed paste mode |
+| `zee:pty-log` | Fetch full session output log |
+| `zee:pty-kill` | Terminate a running session |
+| `zee:pty-clear` | Clear finished session from registry |
+
+## PTY Sessions (Interactive Terminals)
+
+Run interactive terminal commands that require TTY support.
+
+**Use Cases:**
+- Interactive interpreters: `python -i`, `node`, `irb`
+- Text editors: `vim`, `nano`, `emacs`
+- TUI applications: `htop`, `ncdu`, `lazygit`
+- Debuggers: `gdb`, `pdb`, `lldb`
+- Any command needing terminal input
+
+**PTY Session Workflow:**
+
+1. **Start session** - Launch interactive command
+   ```
+   zee:pty-start { command: "python3 -i" }
+   → sessionId: "abc123"
+   ```
+
+2. **Send input** - Type commands or keystrokes
+   ```
+   zee:pty-send-keys {
+     sessionId: "abc123",
+     literal: "print('hello')",
+     keys: ["enter"]
+   }
+   ```
+
+3. **Poll output** - Get response
+   ```
+   zee:pty-poll { sessionId: "abc123" }
+   → stdout: "hello\n>>>"
+   ```
+
+4. **Paste code** - Safe multi-line paste
+   ```
+   zee:pty-paste {
+     sessionId: "abc123",
+     text: "for i in range(3):\n  print(i)",
+     bracketed: true
+   }
+   ```
+
+5. **Kill session** - Terminate when done
+   ```
+   zee:pty-kill { sessionId: "abc123" }
+   ```
+
+**Named Keys:**
+
+| Key | Description |
+|-----|-------------|
+| `enter`, `tab`, `escape`, `space` | Basic keys |
+| `up`, `down`, `left`, `right` | Arrow keys |
+| `home`, `end`, `pageup`, `pagedown` | Navigation |
+| `f1` - `f12` | Function keys |
+| `c-c` | Ctrl+C (SIGINT) |
+| `c-d` | Ctrl+D (EOF) |
+| `c-z` | Ctrl+Z (SIGTSTP) |
+| `c-KEY` | Ctrl + key |
+| `m-KEY` | Alt + key |
+
+**Example: Interactive Python Session**
+
+```bash
+# Start Python interpreter
+zee:pty-start { command: "python3 -i" }
+
+# Define a function
+zee:pty-paste {
+  sessionId: "abc123",
+  text: "def greet(name):\n    return f'Hello, {name}!'"
+}
+zee:pty-send-keys { sessionId: "abc123", keys: ["enter", "enter"] }
+
+# Call it
+zee:pty-send-keys {
+  sessionId: "abc123",
+  literal: "greet('World')",
+  keys: ["enter"]
+}
+
+# Check output
+zee:pty-poll { sessionId: "abc123" }
+→ stdout: "'Hello, World!'\n>>>"
+
+# Exit
+zee:pty-send-keys { sessionId: "abc123", keys: ["c-d"] }
+```
+
+**Example: Vim Editing**
+
+```bash
+# Start vim
+zee:pty-start { command: "vim /tmp/test.txt" }
+
+# Enter insert mode and type
+zee:pty-send-keys { sessionId: "abc123", keys: ["i"] }
+zee:pty-send-keys { sessionId: "abc123", literal: "Hello, World!" }
+
+# Exit insert mode
+zee:pty-send-keys { sessionId: "abc123", keys: ["escape"] }
+
+# Save and quit
+zee:pty-send-keys { sessionId: "abc123", literal: ":wq", keys: ["enter"] }
+```
+
+**Configuration:**
+
+Sessions auto-cleanup after 30 minutes. Environment variables:
+- `PI_BASH_JOB_TTL_MS` - Session TTL (default: 30 min)
+- `PI_BASH_MAX_OUTPUT_CHARS` - Output limit (default: 200KB)
 
 ## Browser Profiles
 

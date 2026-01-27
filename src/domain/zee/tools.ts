@@ -50,6 +50,7 @@ import { BROWSER_PROFILE_TOOLS } from "./browser-profiles.js";
 import { CLAUDE_CODE_TOOLS, registerClaudeCodeTools } from "./claude-code.js";
 import { RESTART_SENTINEL_TOOLS } from "./restart-sentinel.js";
 import { CRON_TOOLS } from "./cron.js";
+import { PTY_SESSION_TOOLS } from "./pty-sessions.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -1209,6 +1210,7 @@ export const ZEE_TOOLS = [
   ...CLAUDE_CODE_TOOLS,
   ...RESTART_SENTINEL_TOOLS,
   ...CRON_TOOLS,
+  ...PTY_SESSION_TOOLS,
 ];
 
 export function registerZeeTools(registry: { register: (tool: ToolDefinition, options: { source: string }) => void }): void {
