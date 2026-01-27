@@ -13,7 +13,7 @@ export namespace ModelEquivalence {
   /**
    * Capability tiers from highest to lowest.
    */
-  export type Tier = "flagship" | "standard" | "fast" | "mini"
+  export type Tier = "flagship" | "standard" | "fast"
 
   /**
    * Built-in tier mappings. Models listed first are preferred within each tier.
@@ -39,11 +39,11 @@ export namespace ModelEquivalence {
     fast: [
       "anthropic/claude-haiku-4",
       "anthropic/claude-haiku-3-5",
+      "anthropic/claude-haiku-3",
       "openai/gpt-4.1-mini",
       "openai/gpt-4o-mini",
       "google/gemini-2.0-flash-lite",
     ],
-    mini: ["anthropic/claude-haiku-3", "openai/gpt-4o-mini", "google/gemini-2.0-flash-lite"],
   }
 
   // Custom tiers from config (merged with defaults)
@@ -57,7 +57,6 @@ export namespace ModelEquivalence {
       flagship: [...(tiers.flagship ?? DEFAULT_TIERS.flagship)],
       standard: [...(tiers.standard ?? DEFAULT_TIERS.standard)],
       fast: [...(tiers.fast ?? DEFAULT_TIERS.fast)],
-      mini: [...(tiers.mini ?? DEFAULT_TIERS.mini)],
     }
     log.info("configured", { tiers: Object.keys(customTiers) })
   }
@@ -127,7 +126,8 @@ export namespace ModelEquivalence {
     if (lower.includes("sonnet") || lower.includes("4o") || lower.includes("4.1") || lower.includes("flash")) {
       return "standard"
     }
-    if (lower.includes("haiku") || lower.includes("mini") || lower.includes("small")) {
+    // "fast" tier now includes models previously in "mini"
+    if (lower.includes("haiku") || lower.includes("mini") || lower.includes("small") || lower.includes("lite")) {
       return "fast"
     }
 
@@ -221,7 +221,7 @@ export namespace ModelEquivalence {
     }
 
     // Try lower tier if no same-tier fallback found
-    const tierOrder: Tier[] = ["flagship", "standard", "fast", "mini"]
+    const tierOrder: Tier[] = ["flagship", "standard", "fast"]
     const currentTierIndex = tierOrder.indexOf(tier)
 
     for (let i = currentTierIndex + 1; i < tierOrder.length; i++) {
@@ -275,6 +275,6 @@ export namespace ModelEquivalence {
    * Get all tiers in order from highest to lowest capability.
    */
   export function getTierOrder(): Tier[] {
-    return ["flagship", "standard", "fast", "mini"]
+    return ["flagship", "standard", "fast"]
   }
 }

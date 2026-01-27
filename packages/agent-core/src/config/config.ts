@@ -1202,10 +1202,6 @@ export namespace Config {
           "Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications",
         ),
       disabled_providers: z.array(z.string()).optional().describe("Disable providers that are loaded automatically"),
-      enabled_providers: z
-        .array(z.string())
-        .optional()
-        .describe("When set, ONLY these providers will be enabled. All other providers will be ignored"),
       model: z.string().describe("Model to use in the format of provider/model, eg anthropic/claude-2").optional(),
       small_model: z
         .string()

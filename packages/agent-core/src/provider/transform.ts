@@ -346,10 +346,6 @@ export namespace ProviderTransform {
         if (!model.id.includes("gpt") && !model.id.includes("gemini-3")) return {}
         return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoning: { effort } }]))
 
-      case "@ai-sdk/cerebras":
-      // https://v5.ai-sdk.dev/providers/ai-sdk-providers/cerebras
-      case "@ai-sdk/xai":
-      // https://v5.ai-sdk.dev/providers/ai-sdk-providers/xai
       case "@ai-sdk/openai-compatible":
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
 
@@ -675,33 +671,6 @@ export namespace ProviderTransform {
       "speechConfig", // { voiceConfig: { prebuiltVoiceConfig: { voiceName: string } } }
     ]),
 
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // XAI (Grok models)
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/xai": new Set([
-      // Reasoning
-      "reasoningEffort", // "low" | "medium" | "high" for Grok reasoning models
-
-      // User
-      "user",
-
-      // Sampling
-      "seed",
-      "frequencyPenalty",
-      "presencePenalty",
-      "stop",
-    ]),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // CEREBRAS (Wafer-scale inference)
-    // Has built-in reasoning but accepts NO configuration parameters for it
-    // ═══════════════════════════════════════════════════════════════════════
-    "@ai-sdk/cerebras": new Set([
-      // Cerebras explicitly rejects: thinking, fallback, reasoningEffort
-      // Their inference is optimized for speed, not configurable reasoning
-      // Empty set = filter out ALL provider options
-    ]),
 
     // ═══════════════════════════════════════════════════════════════════════
     // OPENROUTER (Multi-provider gateway)

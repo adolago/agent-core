@@ -31,8 +31,6 @@ import { createOpenAI } from "@ai-sdk/openai"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { createOpenRouter } from "@openrouter/ai-sdk-provider"
 import { createOpenaiCompatible as createPatchedOpenAI } from "./sdk/openai-compatible/src"
-import { createXai } from "@ai-sdk/xai"
-import { createCerebras } from "@ai-sdk/cerebras"
 import { ProviderTransform } from "./transform"
 
 export namespace Provider {
@@ -119,8 +117,6 @@ export namespace Provider {
     "@ai-sdk/openai": createPatchedOpenAI,
     "@ai-sdk/openai-compatible": createOpenAICompatible,
     "@openrouter/ai-sdk-provider": createOpenRouter,
-    "@ai-sdk/xai": createXai,
-    "@ai-sdk/cerebras": createCerebras,
   }
 
   type CustomModelLoader = (sdk: any, modelID: string, options?: Record<string, any>) => Promise<any>
@@ -213,16 +209,6 @@ export namespace Provider {
         options: {
           headers: {
             ...clientHeaders(),
-          },
-        },
-      }
-    },
-    cerebras: async () => {
-      return {
-        autoload: false,
-        options: {
-          headers: {
-            "X-Cerebras-3rd-Party-Integration": "agent-core",
           },
         },
       }
@@ -405,13 +391,6 @@ export namespace Provider {
     const database = mapValues(modelsDev, fromModelsDevProvider)
 
     const disabled = new Set(config.disabled_providers ?? [])
-    const enabled = config.enabled_providers ? new Set(config.enabled_providers) : null
-
-    function isProviderAllowed(providerID: string): boolean {
-      if (enabled && !enabled.has(providerID)) return false
-      if (disabled.has(providerID)) return false
-      return true
-    }
 
     const providers: { [providerID: string]: Info } = {}
     const languages = new Map<string, LanguageModel>()
@@ -817,7 +796,7 @@ export namespace Provider {
     }
 
     for (const [providerID, provider] of Object.entries(providers)) {
-      if (!isProviderAllowed(providerID)) {
+      if (disabled.has(providerID)) {
         delete providers[providerID]
         continue
       }

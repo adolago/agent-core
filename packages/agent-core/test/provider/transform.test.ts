@@ -1130,15 +1130,16 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("@ai-sdk/cerebras", () => {
+  describe("cerebras (via openai-compatible)", () => {
     test("returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
+      // Cerebras now uses openai-compatible instead of dedicated SDK
       const model = createMockModel({
         id: "cerebras/llama-4",
         providerID: "cerebras",
         api: {
           id: "llama-4-sc",
           url: "https://api.cerebras.ai",
-          npm: "@ai-sdk/cerebras",
+          npm: "@ai-sdk/openai-compatible",
         },
       })
       const result = ProviderTransform.variants(model)
@@ -1148,15 +1149,16 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-  describe("@ai-sdk/xai", () => {
+  describe("xai (via openai-compatible)", () => {
     test("grok-3 returns low/medium/high with reasoningEffort", () => {
+      // xAI now uses openai-compatible instead of dedicated SDK
       const model = createMockModel({
         id: "xai/grok-3",
         providerID: "xai",
         api: {
           id: "grok-3",
           url: "https://api.x.ai",
-          npm: "@ai-sdk/xai",
+          npm: "@ai-sdk/openai-compatible",
         },
       })
       const result = ProviderTransform.variants(model)
@@ -1172,7 +1174,7 @@ describe("ProviderTransform.variants", () => {
         api: {
           id: "grok-3-mini",
           url: "https://api.x.ai",
-          npm: "@ai-sdk/xai",
+          npm: "@ai-sdk/openai-compatible",
         },
       })
       const result = ProviderTransform.variants(model)
@@ -1485,15 +1487,16 @@ describe("ProviderTransform.options - persona thinking configs", () => {
     })
   })
 
-  describe("Stanley (Grok 4.1 via xAI)", () => {
-    test("xAI models support reasoningEffort variants", () => {
+  describe("Stanley (Grok 4.1 via xAI openai-compatible)", () => {
+    test("xAI models support reasoningEffort variants via openai-compatible", () => {
+      // xAI now uses openai-compatible instead of dedicated SDK
       const model = {
         id: "x-ai/grok-4.1-fast",
         providerID: "x-ai",
         api: {
           id: "grok-4.1-fast",
           url: "https://api.x.ai",
-          npm: "@ai-sdk/xai",
+          npm: "@ai-sdk/openai-compatible",
         },
         capabilities: {
           reasoning: true,

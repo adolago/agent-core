@@ -104,31 +104,7 @@ test("disabled_providers excludes provider", async () => {
   })
 })
 
-test("enabled_providers restricts to only listed providers", async () => {
-  await using tmp = await tmpdir({
-    init: async (dir) => {
-      await Bun.write(
-        path.join(dir, "agent-core.json"),
-        JSON.stringify({
-          $schema: "agent-core",
-          enabled_providers: ["anthropic"],
-        }),
-      )
-    },
-  })
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      Env.set("ANTHROPIC_API_KEY", "test-api-key")
-      Env.set("OPENAI_API_KEY", "test-openai-key")
-    },
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(providers["anthropic"]).toBeDefined()
-      expect(providers["openai"]).toBeUndefined()
-    },
-  })
-})
+// enabled_providers config option was removed - use disabled_providers instead
 
 test("model whitelist filters models for provider", async () => {
   await using tmp = await tmpdir({
@@ -794,30 +770,7 @@ test("disabled_providers prevents loading even with env var", async () => {
   })
 })
 
-test("enabled_providers with empty array allows no providers", async () => {
-  await using tmp = await tmpdir({
-    init: async (dir) => {
-      await Bun.write(
-        path.join(dir, "agent-core.json"),
-        JSON.stringify({
-          $schema: "agent-core",
-          enabled_providers: [],
-        }),
-      )
-    },
-  })
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      Env.set("ANTHROPIC_API_KEY", "test-api-key")
-      Env.set("OPENAI_API_KEY", "test-openai-key")
-    },
-    fn: async () => {
-      const providers = await Provider.list()
-      expect(Object.keys(providers).length).toBe(0)
-    },
-  })
-})
+// enabled_providers config option was removed - use disabled_providers instead
 
 test("whitelist and blacklist can be combined", async () => {
   await using tmp = await tmpdir({
@@ -1280,39 +1233,7 @@ test("completely new provider not in database can be configured", async () => {
   })
 })
 
-test("disabled_providers and enabled_providers interaction", async () => {
-  await using tmp = await tmpdir({
-    init: async (dir) => {
-      await Bun.write(
-        path.join(dir, "agent-core.json"),
-        JSON.stringify({
-          $schema: "agent-core",
-          // enabled_providers takes precedence - only these are considered
-          enabled_providers: ["anthropic", "openai"],
-          // Then disabled_providers filters from the enabled set
-          disabled_providers: ["openai"],
-        }),
-      )
-    },
-  })
-  await Instance.provide({
-    directory: tmp.path,
-    init: async () => {
-      Env.set("ANTHROPIC_API_KEY", "test-anthropic")
-      Env.set("OPENAI_API_KEY", "test-openai")
-      Env.set("GOOGLE_GENERATIVE_AI_API_KEY", "test-google")
-    },
-    fn: async () => {
-      const providers = await Provider.list()
-      // anthropic: in enabled, not in disabled = allowed
-      expect(providers["anthropic"]).toBeDefined()
-      // openai: in enabled, but also in disabled = NOT allowed
-      expect(providers["openai"]).toBeUndefined()
-      // google: not in enabled = NOT allowed (even though not disabled)
-      expect(providers["google"]).toBeUndefined()
-    },
-  })
-})
+// enabled_providers config option was removed - use disabled_providers instead
 
 test("model with tool_call false", async () => {
   await using tmp = await tmpdir({

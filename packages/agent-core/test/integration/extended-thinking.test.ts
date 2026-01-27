@@ -416,15 +416,16 @@ describe("OpenAI GPT Extended Thinking", () => {
   })
 })
 
-describe("xAI Grok Extended Thinking", () => {
-  test("Grok 3 models get reasoning effort variants", () => {
+describe("xAI Grok Extended Thinking (via openai-compatible)", () => {
+  test("Grok 3 models get reasoning effort variants via openai-compatible", () => {
+    // xAI now uses openai-compatible instead of dedicated SDK
     const model = createMockModel({
       id: "xai/grok-3",
       providerID: "xai",
       api: {
         id: "grok-3",
         url: "https://api.x.ai",
-        npm: "@ai-sdk/xai",
+        npm: "@ai-sdk/openai-compatible",
       },
     })
 
@@ -440,10 +441,11 @@ describe("xAI Grok Extended Thinking", () => {
       api: {
         id: "grok-3-mini",
         url: "https://api.x.ai",
-        npm: "@ai-sdk/xai",
+        npm: "@ai-sdk/openai-compatible",
       },
     })
 
+    // Grok 3 Mini has special handling in variants() for low/high only
     const variants = ProviderTransform.variants(model)
     expect(Object.keys(variants)).toEqual(["low", "high"])
   })
@@ -499,15 +501,16 @@ describe("OpenRouter Extended Thinking", () => {
   })
 })
 
-describe("Cerebras Extended Thinking", () => {
-  test("Cerebras models get WIDELY_SUPPORTED_EFFORTS", () => {
+describe("Cerebras Extended Thinking (via openai-compatible)", () => {
+  test("Cerebras models get WIDELY_SUPPORTED_EFFORTS via openai-compatible", () => {
+    // Cerebras now uses openai-compatible instead of dedicated SDK
     const model = createMockModel({
       id: "cerebras/llama-4",
       providerID: "cerebras",
       api: {
         id: "llama-4-sc",
         url: "https://api.cerebras.ai",
-        npm: "@ai-sdk/cerebras",
+        npm: "@ai-sdk/openai-compatible",
       },
     })
 
