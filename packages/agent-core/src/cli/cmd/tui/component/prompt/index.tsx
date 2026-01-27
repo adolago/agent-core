@@ -91,6 +91,42 @@ export function Prompt(props: PromptProps) {
     const s = status()
     return s.type === "busy" ? (s.streamHealth as StreamHealthExtended | undefined) : undefined
   })
+  // Session for token counter
+  const session = createMemo(() => props.sessionID ? sync.session.get(props.sessionID) : undefined)
+  // Cumulative agent work time for COMPLETED assistant responses only
+  const completedWorkTime = createMemo(() => {
+    if (!props.sessionID) return 0
+    const messages = sync.data.message[props.sessionID] ?? []
+    let total = 0
+    for (const msg of messages) {
+      if (msg.role === "assistant" && msg.time.created && msg.time.completed) {
+        total += msg.time.completed - msg.time.created
+      }
+    }
+    return Math.floor(total / 1000)
+  })
+  // Context usage percentage (for compaction indicator)
+  const contextUsage = createMemo(() => {
+    if (!props.sessionID) return null
+    const messages = sync.data.message[props.sessionID] ?? []
+    const lastAssistant = messages.findLast((m): m is typeof m & { role: "assistant" } => m.role === "assistant")
+    if (!lastAssistant?.tokens) return null
+    
+    // Get current model limits
+    const model = local.model.current()
+    if (!model) return null
+    const provider = sync.data.provider.find((p) => p.id === model.providerID)
+    const modelInfo = provider?.models[model.modelID]
+    if (!modelInfo?.limit?.context) return null
+    
+    // Calculate usage (same formula as compaction.ts)
+    const count = lastAssistant.tokens.input + (lastAssistant.tokens.cache?.read ?? 0) + lastAssistant.tokens.output
+    const outputLimit = Math.min(modelInfo.limit.output ?? 8192, 16384)
+    const usable = modelInfo.limit.input ?? (modelInfo.limit.context - outputLimit)
+    if (usable <= 0) return null
+    
+    return Math.min(100, Math.round((count / usable) * 100))
+  })
   const history = usePromptHistory()
   const stash = usePromptStash()
   const command = useCommandDialog()
@@ -1687,40 +1723,9 @@ export function Prompt(props: PromptProps) {
               cursorColor={theme.text}
               syntaxStyle={syntax()}
             />
-            <box flexDirection="row" flexShrink={0} paddingTop={1} gap={1}>
-              <text fg={highlight()}>
-                {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}{" "}
-              </text>
-              <Show when={vim.enabled && store.mode === "normal"}>
-                <text fg={vim.isNormal ? theme.warning : theme.success}>
-                  {vim.isNormal ? "[N]" : "[I]"}
-                </text>
-              </Show>
-              <Show when={store.mode === "normal"}>
-                <text fg={local.mode.isHold() ? theme.warning : theme.success}>{local.mode.isHold() ? "▣" : "▢"}</text>
-              </Show>
-              <Show when={store.mode === "normal"}>
-                <box flexDirection="row" gap={1}>
-                  <text flexShrink={0} fg={keybind.leader ? theme.textMuted : theme.text}>
-                    {local.model.parsed().model}
-                  </text>
-                  <text fg={theme.textMuted}>{local.model.parsed().provider}</text>
-                  <Show when={local.model.isFallbackActive()}>
-                    <text>
-                      <span style={{ fg: theme.warning, bold: true }}>[FB]</span>
-                    </text>
-                  </Show>
-                  <Show when={showVariant()}>
-                    <text fg={theme.textMuted}>·</text>
-                    <text>
-                      <span style={{ fg: theme.warning, bold: true }}>{local.model.variant.current()}</span>
-                    </text>
-                  </Show>
-                </box>
-              </Show>
-            </box>
           </box>
         </box>
+        {/* Unified bottom status bar */}
         <box
           height={1}
           border={["left"]}
@@ -1748,224 +1753,192 @@ export function Prompt(props: PromptProps) {
           />
         </box>
         <box flexDirection="row" justifyContent="space-between">
-          <Switch fallback={
-            <Switch>
-              <Match when={dictationState() === "listening"}>
-                <text fg={theme.warning}>
-                  [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
-                </text>
-              </Match>
-              <Match when={dictationState() === "sending"}>
-                <text fg={theme.primary}>[SEND] sending audio...</text>
-              </Match>
-              <Match when={dictationState() === "receiving"}>
-                <text fg={theme.primary}>[RECV] receiving transcript...</text>
-              </Match>
-              <Match when={dictationState() === "transcribing"}>
-                <text fg={theme.textMuted}>dictation processing...</text>
-              </Match>
-              <Match when={todoHint()}>
-                {(hint) => (
-                  <text fg={theme.warning}>
-                    ◐ {hint().count} pending · {hint().current}...
-                  </text>
-                )}
-              </Match>
-            </Switch>
-          }>
-            <Match when={status().type === "idle"}>
-              <box
-                flexDirection="row"
-                gap={1}
-                flexGrow={1}
-                justifyContent="flex-start"
-              >
-                <box flexShrink={0} flexDirection="row" gap={1}>
-                  <box marginLeft={1}>
-                    <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-                      {/* Show static dots (track) when idle */}
-                      <text fg={theme.textMuted}>⬝⬝⬝⬝⬝⬝⬝⬝⬝⬝</text>
-                    </Show>
-                  </box>
-                  <box flexDirection="row" gap={1} flexShrink={0}>
-                    {(() => {
-                      const [elapsed, setElapsed] = createSignal(0)
-                      onMount(() => {
-                        const start = Date.now()
-                        const timer = setInterval(() => {
-                          if (status().type === "busy") {
-                            setElapsed(Math.floor((Date.now() - start) / 1000))
-                          }
-                        }, 1000)
-                        onCleanup(() => clearInterval(timer))
-                      })
-                      const formatTime = (s: number) => {
-                        const m = Math.floor(s / 60)
-                        const sec = s % 60
-                        const pad = (n: number) => n.toString().padStart(2, "0")
-                        return `${pad(m)}:${pad(sec)}`
-                      }
-                      return (
-                        <text fg={theme.textMuted}>
-                          waiting prompt{" "}{formatTime(elapsed())}
-                        </text>
-                      )
-                    })()}
-                  </box>
-                </box>
-              </box>
-            </Match>
-            <Match when={true}>
-              <box
-                flexDirection="row"
-                gap={1}
-                flexGrow={1}
-                justifyContent={status().type === "retry" ? "space-between" : "flex-start"}
-              >
-                <box flexShrink={0} flexDirection="row" gap={1}>
-                  <box marginLeft={1}>
-                    <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-                      <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                    </Show>
-                  </box>
-                  <box flexDirection="row" gap={1} flexShrink={0}>
-                    {(() => {
-                      const retry = createMemo(() => {
-                        const s = status()
-                        if (s.type !== "retry") return
-                        return s
-                      })
-                      const message = createMemo(() => {
-                        const r = retry()
-                        if (!r) return
-                        if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
-                          return "gemini is way too hot right now"
-                        if (r.message.length > 80) return r.message.slice(0, 80) + "..."
-                        return r.message
-                      })
-                      const isTruncated = createMemo(() => {
-                        const r = retry()
-                        if (!r) return false
-                        return r.message.length > 120
-                      })
-                      const [seconds, setSeconds] = createSignal(0)
-                      const [elapsed, setElapsed] = createSignal(0)
-                      onMount(() => {
-                        const start = Date.now()
-                        const timer = setInterval(() => {
-                          const next = retry()?.next
-                          if (next) setSeconds(Math.round((next - Date.now()) / 1000))
-                          // Update elapsed time for streaming status
-                          if (status().type === "busy") {
-                            setElapsed(Math.floor((Date.now() - start) / 1000))
-                          }
-                        }, 1000)
-
-                        onCleanup(() => {
-                          clearInterval(timer)
-                        })
-                      })
-                      const handleMessageClick = () => {
-                        const r = retry()
-                        if (!r) return
-                        if (isTruncated()) {
-                          DialogAlert.show(dialog, "Retry Error", r.message)
-                        }
-                      }
-
-                      const retryText = () => {
-                        const r = retry()
-                        if (!r) return ""
-                        const baseMessage = message()
-                        const truncatedHint = isTruncated() ? " (click to expand)" : ""
-                        const duration = formatDuration(seconds())
-                        const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
-                        return baseMessage + truncatedHint + retryInfo
-                      }
-
-                      const formatTime = (s: number) => {
-                        const m = Math.floor(s / 60)
-                        const sec = s % 60
-                        const pad = (n: number) => n.toString().padStart(2, "0")
-                        return `${pad(m)}:${pad(sec)}`
-                      }
-                      const formatChars = (n: number) => {
-                        if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                        return n.toString()
-                      }
-                      const phaseLabel = createMemo(() => {
-                        const health = streamHealth()
-                        if (!health?.phase) return "starting"
-                        switch (health.phase) {
-                          case "thinking": return "thinking"
-                          case "tool_calling": return "tools"
-                          case "generating": return "generating"
-                          default: return "starting"
-                        }
-                      })
-                      const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
-                      const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
-                      const estimatedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
-                      const formatTokens = (n: number) => {
-                        if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                        return n.toString()
-                      }
-
-                      return (
-                        <>
-                          <Show when={retry()}>
-                            <box onMouseUp={handleMessageClick}>
-                              <text fg={theme.error}>{retryText()}</text>
-                            </box>
-                          </Show>
-                          <Show when={!retry() && status().type === "busy"}>
-                            <text fg={theme.textMuted}>
-                              {phaseLabel()}
-                              <Show when={estimatedTokens() > 0}>{" ~"}{formatTokens(estimatedTokens())} tok</Show>
-                              <Show when={events() > 0 && estimatedTokens() === 0}>{" "}{events()} events</Show>
-                              {" "}{formatTime(elapsed())}
-                            </text>
-                          </Show>
-                        </>
-                      )
-                    })()}
-                  </box>
-                </box>
-                <box flexDirection="row" gap={1} flexShrink={0}>
-                  <text fg={store.interrupt > 0 ? theme.primary : theme.text}>esc</text>
-                  <text fg={store.interrupt > 0 ? theme.primary : theme.textMuted}>
-                    {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
-                  </text>
-                </box>
-              </box>
-            </Match>
-          </Switch>
-          <Show when={status().type !== "retry"}>
-            <box gap={2} flexDirection="row">
+          {/* Left side: persona + spinner + status */}
+          <box flexDirection="row" gap={1} flexShrink={0}>
+            {/* Persona name */}
+            <text fg={highlight()}>
+              {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
+            </text>
+            <Switch fallback={
               <Switch>
-                <Match when={store.mode === "shell"}>
-                  <box flexDirection="row" gap={1}>
-                    <text fg={theme.text}>esc</text>
-                    <text fg={theme.textMuted}>exit shell</text>
-                  </box>
+                <Match when={dictationState() === "listening"}>
+                  <text fg={theme.warning}>
+                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
+                  </text>
                 </Match>
-                <Match when={store.mode === "normal"}>
-                  {/* Contextual hints - only show when relevant */}
-                  <Show when={realtimeGrammarEnabled() && grammarChecker.errors().length > 0}>
+                <Match when={dictationState() === "sending"}>
+                  <text fg={theme.primary}>[SEND] sending audio...</text>
+                </Match>
+                <Match when={dictationState() === "receiving"}>
+                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
+                </Match>
+                <Match when={dictationState() === "transcribing"}>
+                  <text fg={theme.textMuted}>dictation processing...</text>
+                </Match>
+                <Match when={todoHint()}>
+                  {(hint) => (
                     <text fg={theme.warning}>
-                      {grammarChecker.errors().length} grammar {grammarChecker.errors().length === 1 ? "error" : "errors"}
+                      ◐ {hint().count} pending · {hint().current}...
                     </text>
-                  </Show>
-                  {/* Dynamic hints - show for first 5 sessions, then hide */}
-                  <Show when={kv.get("hint_session_count", 0) < 5}>
-                    <text fg={theme.textMuted}>
-                      {vim.isNormal ? "i insert · space commands" : "esc normal"}
-                    </text>
-                  </Show>
+                  )}
                 </Match>
               </Switch>
-            </box>
-          </Show>
+            }>
+              <Match when={status().type === "idle"}>
+                <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
+                  <text fg={theme.textMuted}>⬝⬝⬝⬝⬝⬝⬝⬝⬝⬝</text>
+                </Show>
+              </Match>
+              <Match when={true}>
+                <box flexDirection="row" gap={1}>
+                  <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
+                    <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
+                  </Show>
+                  {(() => {
+                    const retry = createMemo(() => {
+                      const s = status()
+                      if (s.type !== "retry") return
+                      return s
+                    })
+                    const message = createMemo(() => {
+                      const r = retry()
+                      if (!r) return
+                      if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
+                        return "gemini is way too hot right now"
+                      if (r.message.length > 80) return r.message.slice(0, 80) + "..."
+                      return r.message
+                    })
+                    const isTruncated = createMemo(() => {
+                      const r = retry()
+                      if (!r) return false
+                      return r.message.length > 120
+                    })
+                    const [seconds, setSeconds] = createSignal(0)
+                    const [elapsed, setElapsed] = createSignal(0)
+                    onMount(() => {
+                      const start = Date.now()
+                      const timer = setInterval(() => {
+                        const next = retry()?.next
+                        if (next) setSeconds(Math.round((next - Date.now()) / 1000))
+                        if (status().type === "busy") {
+                          setElapsed(Math.floor((Date.now() - start) / 1000))
+                        }
+                      }, 1000)
+                      onCleanup(() => clearInterval(timer))
+                    })
+                    const handleMessageClick = () => {
+                      const r = retry()
+                      if (!r) return
+                      if (isTruncated()) {
+                        DialogAlert.show(dialog, "Retry Error", r.message)
+                      }
+                    }
+                    const retryText = () => {
+                      const r = retry()
+                      if (!r) return ""
+                      const baseMessage = message()
+                      const truncatedHint = isTruncated() ? " (click to expand)" : ""
+                      const duration = formatDuration(seconds())
+                      const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
+                      return baseMessage + truncatedHint + retryInfo
+                    }
+                    const formatTime = (s: number) => {
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      const pad = (n: number) => n.toString().padStart(2, "0")
+                      return `${pad(m)}:${pad(sec)}`
+                    }
+                    const phaseLabel = createMemo(() => {
+                      const health = streamHealth()
+                      if (!health?.phase) return "starting"
+                      switch (health.phase) {
+                        case "thinking": return "thinking"
+                        case "tool_calling": return "tools"
+                        case "generating": return "generating"
+                        default: return "starting"
+                      }
+                    })
+                    const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
+                    const estimatedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
+                    const formatTokens = (n: number) => {
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                      return n.toString()
+                    }
+                    const totalTime = () => completedWorkTime() + elapsed()
+                    return (
+                      <>
+                        <Show when={retry()}>
+                          <box onMouseUp={handleMessageClick}>
+                            <text fg={theme.error}>{retryText()}</text>
+                          </box>
+                        </Show>
+                        <Show when={!retry() && status().type === "busy"}>
+                          <text fg={theme.textMuted}>
+                            {phaseLabel()}
+                            <Show when={estimatedTokens() > 0}>{" ~"}{formatTokens(estimatedTokens())} tok</Show>
+                            <Show when={events() > 0 && estimatedTokens() === 0}>{" "}{events()} events</Show>
+                            {" "}{formatTime(totalTime())}
+                          </text>
+                        </Show>
+                      </>
+                    )
+                  })()}
+                </box>
+              </Match>
+            </Switch>
+          </box>
+          {/* Right side: model (provider) · time · esc interrupt */}
+          <box flexDirection="row" gap={1} flexShrink={0}>
+            <Switch>
+              <Match when={store.mode === "shell"}>
+                <box flexDirection="row" gap={1}>
+                  <text fg={theme.text}>esc</text>
+                  <text fg={theme.textMuted}>exit shell</text>
+                </box>
+              </Match>
+              <Match when={store.mode === "normal"}>
+                <text fg={theme.textMuted}>
+                  {local.model.parsed().model} ({local.model.parsed().provider})
+                </text>
+                <text fg={theme.textMuted}>·</text>
+                {(() => {
+                  const [liveTime, setLiveTime] = createSignal(completedWorkTime())
+                  onMount(() => {
+                    const timer = setInterval(() => {
+                      setLiveTime(completedWorkTime())
+                    }, 1000)
+                    onCleanup(() => clearInterval(timer))
+                  })
+                  const formatTime = (s: number) => {
+                    if (s >= 3600) {
+                      const h = Math.floor(s / 3600)
+                      const m = Math.floor((s % 3600) / 60)
+                      return `${h}h${m}m`
+                    }
+                    if (s >= 60) {
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      return `${m}m ${sec}s`
+                    }
+                    return `${s}s`
+                  }
+                  return (
+                    <text fg={theme.textMuted}>
+                      {formatTime(liveTime())}
+                    </text>
+                  )
+                })()}
+                <Show when={status().type === "busy"}>
+                  <box flexDirection="row" gap={1} marginLeft={2}>
+                    <text fg={store.interrupt > 0 ? theme.primary : theme.text}>esc</text>
+                    <text fg={store.interrupt > 0 ? theme.primary : theme.textMuted}>
+                      {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
+                    </text>
+                  </box>
+                </Show>
+              </Match>
+            </Switch>
+          </box>
         </box>
       </box>
     </>
