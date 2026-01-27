@@ -277,6 +277,119 @@ When spawning Claude Code, it automatically inherits:
 | `zee:sentinel-save` | Manually save session state for restart recovery |
 | `zee:sentinel-restore` | Restore session state from restart sentinel |
 | `zee:sentinel-search` | Search similar past sessions using semantic search |
+| `zee:cron-status` | Check cron scheduler status and configuration |
+| `zee:cron-list` | List all configured cron jobs |
+| `zee:cron-add` | Create a new cron job (scheduled, interval, or one-time) |
+| `zee:cron-update` | Update an existing cron job |
+| `zee:cron-remove` | Remove a cron job |
+| `zee:cron-run` | Manually trigger a cron job immediately |
+| `zee:cron-runs` | Get run history for a cron job |
+| `zee:cron-wake` | Send a wake event to the agent |
+
+## Cron Scheduling
+
+Automate recurring tasks without external schedulers. Cron jobs run via the Zee gateway.
+
+**Schedule Types:**
+- **cron**: Standard cron expressions (e.g., `0 9 * * *` for 9am daily)
+- **every**: Intervals in milliseconds (e.g., 3600000 for hourly)
+- **at**: One-time run at specific timestamp
+
+**Payload Types:**
+- **systemEvent**: Inject text into agent context
+- **agentTurn**: Run agent with specific message
+
+**Cron Tools Workflow:**
+
+1. **Check status** - Verify cron scheduler is running
+   ```
+   zee:cron-status → { enabled: true, running: true, jobCount: 3 }
+   ```
+
+2. **List jobs** - See all scheduled jobs
+   ```
+   zee:cron-list { includeDisabled: true }
+   ```
+
+3. **Create job** - Schedule a recurring task
+   ```
+   zee:cron-add {
+     job: {
+       name: "Morning standup",
+       schedule: { kind: "cron", expr: "0 9 * * *" },
+       payload: { kind: "systemEvent", text: "Time for morning standup" }
+     }
+   }
+   ```
+
+4. **Update job** - Modify schedule or disable
+   ```
+   zee:cron-update {
+     jobId: "abc123",
+     patch: { enabled: false }
+   }
+   ```
+
+5. **Run manually** - Test a job immediately
+   ```
+   zee:cron-run { jobId: "abc123" }
+   ```
+
+6. **Check history** - View run results
+   ```
+   zee:cron-runs { jobId: "abc123" }
+   ```
+
+7. **Wake agent** - Send immediate or deferred wake event
+   ```
+   zee:cron-wake { text: "Check inbox now", mode: "now" }
+   ```
+
+**Example Jobs:**
+
+```bash
+# Daily 9am reminder
+zee:cron-add {
+  job: {
+    name: "Daily standup",
+    schedule: { kind: "cron", expr: "0 9 * * MON-FRI", tz: "America/New_York" },
+    payload: { kind: "systemEvent", text: "Morning standup reminder" }
+  }
+}
+
+# Hourly health check
+zee:cron-add {
+  job: {
+    name: "Health check",
+    schedule: { kind: "every", everyMs: 3600000 },
+    sessionTarget: "isolated",
+    payload: { kind: "agentTurn", message: "Run system health check and report issues" }
+  }
+}
+
+# One-time reminder (deletes after run)
+zee:cron-add {
+  job: {
+    name: "Meeting reminder",
+    schedule: { kind: "at", atMs: 1706104800000 },
+    deleteAfterRun: true,
+    payload: { kind: "systemEvent", text: "Meeting with John in 15 minutes" }
+  }
+}
+```
+
+**Configuration** (`agent-core.jsonc`):
+```json
+{
+  "zee": {
+    "cron": {
+      "enabled": true,
+      "store": "~/.local/state/agent-core/cron.json",
+      "maxConcurrentRuns": 3
+    }
+  }
+}
+```
 
 ## Stay-Up (Restart Sentinel)
 
