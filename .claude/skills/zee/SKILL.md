@@ -273,6 +273,64 @@ When spawning Claude Code, it automatically inherits:
 | `zee:claude-status` | Check Claude Code CLI availability and auth |
 | `zee:claude-spawn` | Spawn Claude Code with a prompt |
 | `zee:claude-credentials` | Check OAuth credential details |
+| `zee:sentinel-status` | Check restart sentinel system status |
+| `zee:sentinel-save` | Manually save session state for restart recovery |
+| `zee:sentinel-restore` | Restore session state from restart sentinel |
+| `zee:sentinel-search` | Search similar past sessions using semantic search |
+
+## Stay-Up (Restart Sentinel)
+
+Never lose context when the daemon restarts or crashes. The restart sentinel:
+- Captures session state (key facts, objectives, pending tasks) on shutdown
+- Stores context in Qdrant with semantic embeddings for search
+- Automatically restores interrupted sessions on startup
+- Uses Nebius QWEN 8B embeddings (4096 dimensions) for semantic context
+
+**Configuration** (`agent-core.jsonc`):
+```json
+{
+  "memory": {
+    "qdrant": {
+      "url": "http://localhost:6333"
+    },
+    "embedding": {
+      "profile": "nebius/qwen3-embedding-8b"
+    }
+  }
+}
+```
+
+**Sentinel Tools Workflow:**
+
+1. **Check status** - Verify sentinel system is ready
+   ```
+   zee:sentinel-status → { qdrant: "connected", embedding: { provider: "nebius", dimension: 4096 } }
+   ```
+
+2. **Manual save** - Save current session before update/restart
+   ```
+   zee:sentinel-save {
+     sessionKey: "my-session",
+     keyFacts: ["Working on feature X", "User prefers TypeScript"],
+     objectives: ["Complete the implementation"],
+     pendingTasks: ["Write tests", "Update docs"]
+   }
+   ```
+
+3. **Restore after restart** - Get saved context
+   ```
+   zee:sentinel-restore {} → { sessions: [...], contextSummary: "..." }
+   ```
+
+4. **Search past sessions** - Find similar contexts
+   ```
+   zee:sentinel-search { query: "implementing browser automation" }
+   ```
+
+**Automatic Integration:**
+- On daemon shutdown: Session state is automatically saved
+- On daemon startup: Pending sentinel is automatically restored
+- Sessions with incomplete todos are highlighted for continuation
 
 ## Runtime Status
 

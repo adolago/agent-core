@@ -47,6 +47,7 @@ import {
 import { getMemory } from "../../memory/unified.js";
 import { BROWSER_TOOLS, registerBrowserTools } from "./browser.js";
 import { CLAUDE_CODE_TOOLS, registerClaudeCodeTools } from "./claude-code.js";
+import { RESTART_SENTINEL_TOOLS } from "./restart-sentinel.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -1203,6 +1204,7 @@ export const ZEE_TOOLS = [
   whatsappReactionTool,
   ...BROWSER_TOOLS,
   ...CLAUDE_CODE_TOOLS,
+  ...RESTART_SENTINEL_TOOLS,
 ];
 
 export function registerZeeTools(registry: { register: (tool: ToolDefinition, options: { source: string }) => void }): void {
