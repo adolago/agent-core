@@ -142,6 +142,27 @@ export class StreamHealthMonitor {
   private bytesReceived: number = 0
   private charsReceived: number = 0
   private phase: "starting" | "thinking" | "tool_calling" | "generating" = "starting"
+  private requestCount: number = 1 // Start at 1 for the initial request
+
+  /**
+   * Helper to build streamHealth object with all fields.
+   */
+  private buildStreamHealth(overrides: {
+    isStalled: boolean
+    timeSinceLastEventMs: number
+    isThinking?: boolean
+    timeSinceContentMs?: number
+  }): SessionStatus.StreamHealth {
+    return {
+      ...overrides,
+      eventsReceived: this.eventsReceived,
+      stallWarnings: this.stallWarnings,
+      phase: this.phase,
+      charsReceived: this.charsReceived,
+      estimatedTokens: Math.floor(this.charsReceived / 4), // ~4 chars per token
+      requestCount: this.requestCount,
+    }
+  }
 
   // State
   private status: StreamStatus = "streaming"
@@ -237,16 +258,12 @@ export class StreamHealthMonitor {
         this.lastThinkingStatusAt = now
         this.statusHandler(this.sessionID, {
           type: "busy",
-          streamHealth: {
+          streamHealth: this.buildStreamHealth({
             isStalled: false,
             isThinking: true,
             timeSinceLastEventMs: 0,
             timeSinceContentMs: now - this.lastMeaningfulEventAt,
-            eventsReceived: this.eventsReceived,
-            stallWarnings: this.stallWarnings,
-            phase: this.phase,
-            charsReceived: this.charsReceived,
-          },
+          }),
         })
       }
     }
@@ -256,14 +273,10 @@ export class StreamHealthMonitor {
     if (this.stallWarningEmitted) {
       this.statusHandler(this.sessionID, {
         type: "busy",
-        streamHealth: {
+        streamHealth: this.buildStreamHealth({
           isStalled: false,
           timeSinceLastEventMs: 0,
-          eventsReceived: this.eventsReceived,
-          stallWarnings: this.stallWarnings,
-          phase: this.phase,
-          charsReceived: this.charsReceived,
-        },
+        }),
       })
     }
     this.stallWarningEmitted = false
@@ -348,16 +361,12 @@ export class StreamHealthMonitor {
 
       this.statusHandler(this.sessionID, {
         type: "busy",
-        streamHealth: {
+        streamHealth: this.buildStreamHealth({
           isStalled: false,
           isThinking: true,
           timeSinceLastEventMs: elapsed,
           timeSinceContentMs: elapsedSinceMeaningful,
-          eventsReceived: this.eventsReceived,
-          stallWarnings: this.stallWarnings,
-          phase: this.phase,
-          charsReceived: this.charsReceived,
-        },
+        }),
       })
     }
 
@@ -381,14 +390,10 @@ export class StreamHealthMonitor {
       // Update session status with early warning
       this.statusHandler(this.sessionID, {
         type: "busy",
-        streamHealth: {
+        streamHealth: this.buildStreamHealth({
           isStalled: false,
           timeSinceLastEventMs: elapsed,
-          eventsReceived: this.eventsReceived,
-          stallWarnings: this.stallWarnings,
-          phase: this.phase,
-          charsReceived: this.charsReceived,
-        },
+        }),
       })
     }
 
@@ -416,14 +421,10 @@ export class StreamHealthMonitor {
       // Update session status with stream health warning
       this.statusHandler(this.sessionID, {
         type: "busy",
-        streamHealth: {
+        streamHealth: this.buildStreamHealth({
           isStalled: true,
           timeSinceLastEventMs: elapsed,
-          eventsReceived: this.eventsReceived,
-          stallWarnings: this.stallWarnings,
-          phase: this.phase,
-          charsReceived: this.charsReceived,
-        },
+        }),
       })
 
       return true
@@ -434,14 +435,10 @@ export class StreamHealthMonitor {
     if (this.eventsReceived > 0 && !this.stallWarningEmitted) {
       this.statusHandler(this.sessionID, {
         type: "busy",
-        streamHealth: {
+        streamHealth: this.buildStreamHealth({
           isStalled: false,
           timeSinceLastEventMs: elapsed,
-          eventsReceived: this.eventsReceived,
-          stallWarnings: this.stallWarnings,
-          phase: this.phase,
-          charsReceived: this.charsReceived,
-        },
+        }),
       })
     }
 

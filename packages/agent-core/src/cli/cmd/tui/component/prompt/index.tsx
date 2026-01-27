@@ -74,9 +74,22 @@ export function Prompt(props: PromptProps) {
   const dialog = useDialog()
   const toast = useToast()
   const status = createMemo(() => sync.data.session_status?.[props.sessionID ?? ""] ?? { type: "idle" })
-  const streamHealth = createMemo(() => {
+  // Extended type to include new fields until SDK is regenerated
+  type StreamHealthExtended = {
+    isStalled: boolean
+    isThinking?: boolean
+    timeSinceLastEventMs: number
+    timeSinceContentMs?: number
+    eventsReceived: number
+    stallWarnings: number
+    phase?: "starting" | "thinking" | "tool_calling" | "generating"
+    charsReceived?: number
+    estimatedTokens?: number
+    requestCount?: number
+  }
+  const streamHealth = createMemo((): StreamHealthExtended | undefined => {
     const s = status()
-    return s.type === "busy" ? s.streamHealth : undefined
+    return s.type === "busy" ? (s.streamHealth as StreamHealthExtended | undefined) : undefined
   })
   const history = usePromptHistory()
   const stash = usePromptStash()
@@ -1834,6 +1847,11 @@ export function Prompt(props: PromptProps) {
                     })
                     const chars = createMemo(() => streamHealth()?.charsReceived ?? 0)
                     const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
+                    const estimatedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
+                    const formatTokens = (n: number) => {
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                      return n.toString()
+                    }
 
                     return (
                       <>
@@ -1845,8 +1863,8 @@ export function Prompt(props: PromptProps) {
                         <Show when={!retry() && status().type === "busy"}>
                           <text fg={theme.textMuted}>
                             {phaseLabel()}
-                            <Show when={chars() > 0}>{" "}{formatChars(chars())} chars</Show>
-                            <Show when={events() > 0 && chars() === 0}>{" "}{events()} events</Show>
+                            <Show when={estimatedTokens() > 0}>{" ~"}{formatTokens(estimatedTokens())} tok</Show>
+                            <Show when={events() > 0 && estimatedTokens() === 0}>{" "}{events()} events</Show>
                             {" "}{formatTime(elapsed())}
                           </text>
                         </Show>

@@ -16,6 +16,8 @@ export namespace SessionStatus {
     stallWarnings: z.number(),
     phase: z.enum(["starting", "thinking", "tool_calling", "generating"]).optional(),
     charsReceived: z.number().optional(), // Characters received for activity indication
+    estimatedTokens: z.number().optional(), // Estimated output tokens (chars/4)
+    requestCount: z.number().optional(), // Number of LLM API requests in this session
   })
   export type StreamHealth = z.infer<typeof StreamHealth>
 
