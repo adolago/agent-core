@@ -76,9 +76,15 @@ const opencodeBinary = platform === "windows" ? "opencode.exe" : "opencode"
 
 function findBinary(startDir) {
   // First check dist/ folder for development builds
-  const distCandidate = path.join(startDir, "..", "dist", agentCoreBase, "bin", agentCoreBinary)
-  if (fs.existsSync(distCandidate)) {
-    return distCandidate
+  // Check both scoped (@adolago/) and unscoped paths
+  const distCandidates = [
+    path.join(startDir, "..", "dist", "@adolago", agentCoreBase, "bin", agentCoreBinary),
+    path.join(startDir, "..", "dist", agentCoreBase, "bin", agentCoreBinary),
+  ]
+  for (const distCandidate of distCandidates) {
+    if (fs.existsSync(distCandidate)) {
+      return distCandidate
+    }
   }
 
   const candidates = [
