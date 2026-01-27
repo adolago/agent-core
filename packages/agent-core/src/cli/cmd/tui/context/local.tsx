@@ -561,6 +561,33 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       }
     })
 
+    // Watch for mode changes from hold_enter/hold_release tools
+    // When the tool completes with modeChange metadata, sync.mode.pending() is set
+    // This effect consumes the pending change and applies it to the UI mode
+    createEffect(() => {
+      const pending = sync.mode.pending()
+      if (pending) {
+        // Consume the pending change to clear the signal
+        sync.mode.consume()
+        // Apply the mode change
+        if (pending === "hold") {
+          mode.setHold()
+          toast.show({
+            variant: "info",
+            message: "▣ HOLD mode - Research only (from tool)",
+            duration: 2000,
+          })
+        } else if (pending === "release") {
+          mode.setRelease()
+          toast.show({
+            variant: "success",
+            message: "▢ RELEASE mode - Can edit files (from tool)",
+            duration: 2000,
+          })
+        }
+      }
+    })
+
     const result = {
       model,
       agent,

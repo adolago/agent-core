@@ -17,6 +17,7 @@ import type {
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
+  ToolPart,
 } from "@opencode-ai/sdk/v2"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useSDK } from "@tui/context/sdk"
@@ -25,7 +26,7 @@ import { createSimpleContext } from "./helper"
 import type { Snapshot } from "@/snapshot"
 import { useExit } from "./exit"
 import { useArgs } from "./args"
-import { batch, onMount } from "solid-js"
+import { batch, createSignal, onMount } from "solid-js"
 import { Log } from "@/util/log"
 import type { Path } from "@opencode-ai/sdk/v2"
 import { useToast } from "../ui/toast"
@@ -125,6 +126,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       daemon: undefined,
       health: { internet: "checking", providers: [] },
     })
+
+    // Signal for mode changes from hold_enter/hold_release tools
+    // When a tool completes with modeChange metadata, this signal is updated
+    // local.tsx watches this signal to toggle the actual UI mode
+    const [pendingModeChange, setPendingModeChange] = createSignal<"hold" | "release" | null>(null)
 
     function normalizeDaemonHealth(data: unknown) {
       if (data && typeof data === "object") {
@@ -337,23 +343,35 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
         }
         case "message.part.updated": {
-          const parts = store.part[event.properties.part.messageID]
+          const part = event.properties.part
+          const parts = store.part[part.messageID]
           if (!parts) {
-            setStore("part", event.properties.part.messageID, [event.properties.part])
-            break
+            setStore("part", part.messageID, [part])
+          } else {
+            const result = Binary.search(parts, part.id, (p) => p.id)
+            if (result.found) {
+              setStore("part", part.messageID, result.index, reconcile(part))
+            } else {
+              setStore(
+                "part",
+                part.messageID,
+                produce((draft) => {
+                  draft.splice(result.index, 0, part)
+                }),
+              )
+            }
           }
-          const result = Binary.search(parts, event.properties.part.id, (p) => p.id)
-          if (result.found) {
-            setStore("part", event.properties.part.messageID, result.index, reconcile(event.properties.part))
-            break
+
+          // Check for mode change from hold_enter/hold_release tools
+          if (part.type === "tool") {
+            const toolPart = part as ToolPart
+            if (toolPart.state.status === "completed") {
+              const modeChange = toolPart.state.metadata?.modeChange
+              if (modeChange === "hold" || modeChange === "release") {
+                setPendingModeChange(modeChange)
+              }
+            }
           }
-          setStore(
-            "part",
-            event.properties.part.messageID,
-            produce((draft) => {
-              draft.splice(result.index, 0, event.properties.part)
-            }),
-          )
           break
         }
 
@@ -529,6 +547,16 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         },
       },
       bootstrap,
+      // Mode change signal from hold_enter/hold_release tools
+      // local.tsx watches this to toggle the actual UI mode
+      mode: {
+        pending: pendingModeChange,
+        consume() {
+          const value = pendingModeChange()
+          if (value) setPendingModeChange(null)
+          return value
+        },
+      },
     }
     return result
   },
