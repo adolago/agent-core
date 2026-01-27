@@ -131,8 +131,8 @@ export const biome: Info = {
   async enabled() {
     const configs = ["biome.json", "biome.jsonc"]
     for (const config of configs) {
-      const found = await Filesystem.findUp(config, Instance.directory, Instance.worktree)
-      if (found.length > 0) {
+      const found = await Filesystem.findFirstUp(config, Instance.directory, Instance.worktree)
+      if (found) {
         return true
       }
     }
@@ -154,8 +154,8 @@ export const clang: Info = {
   command: ["clang-format", "-i", "$FILE"],
   extensions: [".c", ".cc", ".cpp", ".cxx", ".c++", ".h", ".hh", ".hpp", ".hxx", ".h++", ".ino", ".C", ".H"],
   async enabled() {
-    const items = await Filesystem.findUp(".clang-format", Instance.directory, Instance.worktree)
-    return items.length > 0
+    const items = await Filesystem.findFirstUp(".clang-format", Instance.directory, Instance.worktree)
+    return !!items
   },
 }
 
@@ -176,10 +176,10 @@ export const ruff: Info = {
     if (!Bun.which("ruff")) return false
     const configs = ["pyproject.toml", "ruff.toml", ".ruff.toml"]
     for (const config of configs) {
-      const found = await Filesystem.findUp(config, Instance.directory, Instance.worktree)
-      if (found.length > 0) {
+      const found = await Filesystem.findFirstUp(config, Instance.directory, Instance.worktree)
+      if (found) {
         if (config === "pyproject.toml") {
-          const content = await Bun.file(found[0]).text()
+          const content = await Bun.file(found).text()
           if (content.includes("[tool.ruff]")) return true
         } else {
           return true
@@ -188,9 +188,9 @@ export const ruff: Info = {
     }
     const deps = ["requirements.txt", "pyproject.toml", "Pipfile"]
     for (const dep of deps) {
-      const found = await Filesystem.findUp(dep, Instance.directory, Instance.worktree)
-      if (found.length > 0) {
-        const content = await Bun.file(found[0]).text()
+      const found = await Filesystem.findFirstUp(dep, Instance.directory, Instance.worktree)
+      if (found) {
+        const content = await Bun.file(found).text()
         if (content.includes("ruff")) return true
       }
     }
@@ -282,8 +282,8 @@ export const ocamlformat: Info = {
   extensions: [".ml", ".mli"],
   async enabled() {
     if (!Bun.which("ocamlformat")) return false
-    const items = await Filesystem.findUp(".ocamlformat", Instance.directory, Instance.worktree)
-    return items.length > 0
+    const items = await Filesystem.findFirstUp(".ocamlformat", Instance.directory, Instance.worktree)
+    return !!items
   },
 }
 

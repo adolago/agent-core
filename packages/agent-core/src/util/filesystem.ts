@@ -82,6 +82,19 @@ export namespace Filesystem {
     return result
   }
 
+  export async function findFirstUp(target: string, start: string, stop?: string): Promise<string | undefined> {
+    let current = start
+    while (true) {
+      const search = join(current, target)
+      if (await exists(search)) return search
+      if (stop === current) break
+      const parent = dirname(current)
+      if (parent === current) break
+      current = parent
+    }
+    return undefined
+  }
+
   export async function* up(options: { targets: string[]; start: string; stop?: string }) {
     const { targets, start, stop } = options
     let current = start
