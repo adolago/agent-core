@@ -1,7 +1,7 @@
 {
   "version": 1,
   "fallback": {
-    "emoji": "🧩",
+    "emoji": "",
     "detailKeys": [
       "command",
       "path",
@@ -26,42 +26,42 @@
   },
   "tools": {
     "exec": {
-      "emoji": "🛠️",
+      "emoji": "",
       "title": "Exec",
       "detailKeys": ["command"]
     },
     "process": {
-      "emoji": "🧰",
+      "emoji": "",
       "title": "Process",
       "detailKeys": ["sessionId"]
     },
     "read": {
-      "emoji": "📖",
+      "emoji": "",
       "title": "Read",
       "detailKeys": ["path"]
     },
     "write": {
-      "emoji": "✍️",
+      "emoji": "",
       "title": "Write",
       "detailKeys": ["path"]
     },
     "edit": {
-      "emoji": "📝",
+      "emoji": "",
       "title": "Edit",
       "detailKeys": ["path"]
     },
     "apply_patch": {
-      "emoji": "🩹",
+      "emoji": "",
       "title": "Apply Patch",
       "detailKeys": []
     },
     "attach": {
-      "emoji": "📎",
+      "emoji": "",
       "title": "Attach",
       "detailKeys": ["path", "url", "fileName"]
     },
     "browser": {
-      "emoji": "🌐",
+      "emoji": "",
       "title": "Browser",
       "actions": {
         "status": { "label": "status" },
@@ -106,7 +106,7 @@
       }
     },
     "canvas": {
-      "emoji": "🖼️",
+      "emoji": "",
       "title": "Canvas",
       "actions": {
         "present": { "label": "present", "detailKeys": ["target", "node", "nodeId"] },
@@ -119,7 +119,7 @@
       }
     },
     "nodes": {
-      "emoji": "📱",
+      "emoji": "",
       "title": "Nodes",
       "actions": {
         "status": { "label": "status" },
@@ -144,7 +144,7 @@
       }
     },
     "cron": {
-      "emoji": "⏰",
+      "emoji": "",
       "title": "Cron",
       "actions": {
         "status": { "label": "status" },
@@ -161,14 +161,14 @@
       }
     },
     "gateway": {
-      "emoji": "🔌",
+      "emoji": "",
       "title": "Gateway",
       "actions": {
         "restart": { "label": "restart", "detailKeys": ["reason", "delayMs"] }
       }
     },
     "message": {
-      "emoji": "✉️",
+      "emoji": "",
       "title": "Message",
       "actions": {
         "send": {
@@ -238,27 +238,27 @@
       }
     },
     "agents_list": {
-      "emoji": "🧭",
+      "emoji": "",
       "title": "Agents",
       "detailKeys": []
     },
     "sessions_list": {
-      "emoji": "🗂️",
+      "emoji": "",
       "title": "Sessions",
       "detailKeys": ["kinds", "limit", "activeMinutes", "messageLimit"]
     },
     "sessions_history": {
-      "emoji": "🧾",
+      "emoji": "",
       "title": "Session History",
       "detailKeys": ["sessionKey", "limit", "includeTools"]
     },
     "sessions_send": {
-      "emoji": "📨",
+      "emoji": "",
       "title": "Session Send",
       "detailKeys": ["label", "sessionKey", "agentId", "timeoutSeconds"]
     },
     "sessions_spawn": {
-      "emoji": "🧑‍🔧",
+      "emoji": "",
       "title": "Sub-agent",
       "detailKeys": [
         "label",
@@ -272,32 +272,32 @@
       ]
     },
     "session_status": {
-      "emoji": "📊",
+      "emoji": "",
       "title": "Session Status",
       "detailKeys": ["sessionKey", "model"]
     },
     "memory_search": {
-      "emoji": "🧠",
+      "emoji": "",
       "title": "Memory Search",
       "detailKeys": ["query"]
     },
     "memory_get": {
-      "emoji": "📓",
+      "emoji": "",
       "title": "Memory Get",
       "detailKeys": ["path", "from", "lines"]
     },
     "web_search": {
-      "emoji": "🔎",
+      "emoji": "",
       "title": "Web Search",
       "detailKeys": ["query", "count"]
     },
     "web_fetch": {
-      "emoji": "📄",
+      "emoji": "",
       "title": "Web Fetch",
       "detailKeys": ["url", "extractMode", "maxChars"]
     },
     "whatsapp_login": {
-      "emoji": "🟢",
+      "emoji": "",
       "title": "WhatsApp Login",
       "actions": {
         "start": { "label": "start" },

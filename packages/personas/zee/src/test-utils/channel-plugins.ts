@@ -6,6 +6,7 @@ import type {
   ChannelId,
   ChannelOutboundAdapter,
   ChannelPlugin,
+  ChannelStatusIssue,
 } from "../channels/plugins/types.js";
 import type { PluginRegistry } from "../plugins/registry.js";
 import { normalizeIMessageHandle } from "../imessage/targets.js";
@@ -206,11 +207,11 @@ export const createOutboundTestPlugin = (params: {
 });
 
 // Mock channel plugins for testing - use these instead of importing from extensions
-const mockOutbound: ChannelOutboundAdapter = {
-  prepareMessage: async ({ ctx }) => ({ ok: true, messageCtx: ctx }),
-  sendText: async () => ({ ok: true, messageId: "mock-id" }),
-  sendMedia: async () => ({ ok: true, messageId: "mock-id" }),
-};
+const createMockOutbound = (channel: "slack" | "discord" | "signal"): ChannelOutboundAdapter => ({
+  deliveryMode: "direct",
+  sendText: async () => ({ channel, messageId: "mock-id" }),
+  sendMedia: async () => ({ channel, messageId: "mock-id" }),
+});
 
 export const telegramPlugin: ChannelPlugin = {
   id: "telegram",
@@ -244,7 +245,7 @@ export const telegramPlugin: ChannelPlugin = {
     },
     collectStatusIssues: (accounts) =>
       accounts.flatMap((account) => {
-        const issues = [];
+        const issues: ChannelStatusIssue[] = [];
         const lastError = typeof account.lastError === "string" ? account.lastError.trim() : "";
         if (lastError) {
           issues.push({
@@ -258,7 +259,7 @@ export const telegramPlugin: ChannelPlugin = {
           issues.push({
             channel: "telegram",
             accountId: account.accountId,
-            kind: "hint",
+            kind: "config",
             message: "Telegram Bot API privacy mode is enabled (allowUnmentionedGroups=true)",
           });
         }
@@ -269,7 +270,7 @@ export const telegramPlugin: ChannelPlugin = {
           issues.push({
             channel: "telegram",
             accountId: account.accountId,
-            kind: "warning",
+            kind: "config",
             message: "Telegram group membership probing is not possible with wildcard allowUnmentionedGroups",
           });
           for (const group of audit.groups ?? []) {
@@ -278,7 +279,7 @@ export const telegramPlugin: ChannelPlugin = {
               issues.push({
                 channel: "telegram",
                 accountId: account.accountId,
-                kind: "warning",
+                kind: "runtime",
                 message: `Group ${chatId}: ${typeof group.error === "string" ? group.error : "unknown error"}`,
               });
             }
@@ -328,12 +329,12 @@ export const whatsappPlugin: ChannelPlugin = {
   status: {
     collectStatusIssues: (accounts) =>
       accounts.flatMap((account) => {
-        const issues = [];
+        const issues: ChannelStatusIssue[] = [];
         if (account.linked === false) {
           issues.push({
             channel: "whatsapp",
             accountId: account.accountId,
-            kind: "hint",
+            kind: "auth",
             message: "Not linked",
           });
         }
@@ -341,7 +342,7 @@ export const whatsappPlugin: ChannelPlugin = {
           issues.push({
             channel: "whatsapp",
             accountId: account.accountId,
-            kind: "hint",
+            kind: "runtime",
             message: `WhatsApp disconnected (reconnect attempts: ${account.reconnectAttempts ?? 0})${account.lastError ? ` - ${account.lastError}` : ""}`,
           });
         }
@@ -409,7 +410,7 @@ export const slackPlugin: ChannelPlugin = {
         ];
       }),
   },
-  outbound: mockOutbound,
+  outbound: createMockOutbound("slack"),
   messaging: {
     targetResolver: {
       looksLikeId: (raw) => {
@@ -449,7 +450,7 @@ export const discordPlugin: ChannelPlugin = {
   status: {
     collectStatusIssues: (accounts) =>
       accounts.flatMap((account) => {
-        const issues = [];
+        const issues: ChannelStatusIssue[] = [];
         const application = account.application as
           | { intents?: { messageContent?: string } }
           | undefined;
@@ -462,7 +463,7 @@ export const discordPlugin: ChannelPlugin = {
           issues.push({
             channel: "discord",
             accountId: account.accountId,
-            kind: "warning",
+            kind: "config",
             message: "Message Content Intent is disabled",
           });
         }
@@ -473,7 +474,7 @@ export const discordPlugin: ChannelPlugin = {
           issues.push({
             channel: "discord",
             accountId: account.accountId,
-            kind: "warning",
+            kind: "permissions",
             message: "Discord permission audit detected missing permissions",
           });
           for (const channel of audit?.channels ?? []) {
@@ -483,7 +484,7 @@ export const discordPlugin: ChannelPlugin = {
               issues.push({
                 channel: "discord",
                 accountId: account.accountId,
-                kind: "warning",
+                kind: "permissions",
                 message: `Channel ${channelId}: missing permissions [${missing.join(", ")}]`,
               });
             }
@@ -492,7 +493,7 @@ export const discordPlugin: ChannelPlugin = {
         return issues;
       }),
   },
-  outbound: mockOutbound,
+  outbound: createMockOutbound("discord"),
   messaging: {
     targetResolver: {
       looksLikeId: (raw) => {
@@ -544,5 +545,5 @@ export const signalPlugin: ChannelPlugin = {
         ];
       }),
   },
-  outbound: mockOutbound,
+  outbound: createMockOutbound("signal"),
 };

@@ -213,7 +213,7 @@ const formatUsagePair = (input?: number | null, output?: number | null) => {
   if (input == null && output == null) return null;
   const inputLabel = typeof input === "number" ? formatTokenCount(input) : "?";
   const outputLabel = typeof output === "number" ? formatTokenCount(output) : "?";
-  return `🧮 Tokens: ${inputLabel} in / ${outputLabel} out`;
+  return `Tokens: ${inputLabel} in / ${outputLabel} out`;
 };
 
 const formatMediaUnderstandingLine = (decisions?: MediaUnderstandingDecision[]) => {
@@ -250,7 +250,7 @@ const formatMediaUnderstandingLine = (decisions?: MediaUnderstandingDecision[]) 
     .filter((part): part is string => part != null);
   if (parts.length === 0) return null;
   if (parts.every((part) => part.endsWith(" none"))) return null;
-  return `📎 Media: ${parts.join(" · ")}`;
+  return `Media: ${parts.join(" · ")}`;
 };
 
 const formatVoiceModeLine = (
@@ -269,7 +269,7 @@ const formatVoiceModeLine = (
   const provider = getTtsProvider(ttsConfig, prefsPath);
   const maxLength = getTtsMaxLength(prefsPath);
   const summarize = isSummarizationEnabled(prefsPath) ? "on" : "off";
-  return `🔊 Voice: ${autoMode} · provider=${provider} · limit=${maxLength} · summary=${summarize}`;
+  return `Voice: ${autoMode} · provider=${provider} · limit=${maxLength} · summary=${summarize}`;
 };
 
 export function buildStatusMessage(args: StatusArgs): string {
@@ -344,7 +344,7 @@ export function buildStatusMessage(args: StatusArgs): string {
 
   const contextLine = [
     `Context: ${formatTokens(totalTokens, contextTokens ?? null)}`,
-    `🧹 Compactions: ${entry?.compactionCount ?? 0}`,
+    `Compactions: ${entry?.compactionCount ?? 0}`,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -368,8 +368,8 @@ export function buildStatusMessage(args: StatusArgs): string {
   ];
   const optionsLine = optionParts.filter(Boolean).join(" · ");
   const activationParts = [
-    groupActivationValue ? `👥 Activation: ${groupActivationValue}` : null,
-    `🪢 Queue: ${queueMode}${queueDetails}`,
+    groupActivationValue ? `Activation: ${groupActivationValue}` : null,
+    `Queue: ${queueMode}${queueDetails}`,
   ];
   const activationLine = activationParts.filter(Boolean).join(" · ");
 
@@ -398,12 +398,12 @@ export function buildStatusMessage(args: StatusArgs): string {
   const costLabel = showCost && hasUsage ? formatUsd(cost) : undefined;
 
   const modelLabel = model ? `${provider}/${model}` : "unknown";
-  const authLabel = authLabelValue ? ` · 🔑 ${authLabelValue}` : "";
-  const modelLine = `🧠 Model: ${modelLabel}${authLabel}`;
+  const authLabel = authLabelValue ? ` · Auth: ${authLabelValue}` : "";
+  const modelLine = `Model: ${modelLabel}${authLabel}`;
   const commit = resolveCommitHash();
-  const versionLine = `🦞 Zee ${VERSION}${commit ? ` (${commit})` : ""}`;
+  const versionLine = `Zee ${VERSION}${commit ? ` (${commit})` : ""}`;
   const usagePair = formatUsagePair(inputTokens, outputTokens);
-  const costLine = costLabel ? `💵 Cost: ${costLabel}` : null;
+  const costLine = costLabel ? `Cost: ${costLabel}` : null;
   const usageCostLine =
     usagePair && costLine ? `${usagePair} · ${costLine}` : (usagePair ?? costLine);
   const mediaLine = formatMediaUnderstandingLine(args.mediaDecisions);
@@ -414,12 +414,12 @@ export function buildStatusMessage(args: StatusArgs): string {
     args.timeLine,
     modelLine,
     usageCostLine,
-    `📚 ${contextLine}`,
+    contextLine,
     mediaLine,
     args.usageLine,
-    `🧵 ${sessionLine}`,
+    sessionLine,
     args.subagentsLine,
-    `⚙️ ${optionsLine}`,
+    optionsLine,
     voiceLine,
     activationLine,
   ]
@@ -439,7 +439,7 @@ export function buildHelpMessage(cfg?: ZeeConfig): string {
   if (cfg?.commands?.config === true) options.push("/config show");
   if (cfg?.commands?.debug === true) options.push("/debug show");
   return [
-    "ℹ️ Help",
+    "Help",
     "Shortcuts: /new reset | /compact [instructions] | /restart relink (if enabled)",
     `Options: ${options.join(" | ")}`,
     "Skills: /skill <name> [input]",
@@ -451,7 +451,7 @@ export function buildCommandsMessage(
   cfg?: ZeeConfig,
   skillCommands?: SkillCommandSpec[],
 ): string {
-  const lines = ["ℹ️ Slash commands"];
+  const lines = ["Slash commands"];
   const commands = cfg
     ? listChatCommandsForConfig(cfg, { skillCommands })
     : listChatCommands({ skillCommands });
