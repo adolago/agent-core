@@ -86,7 +86,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
           // Enter insert mode from normal mode (i, a, o, O, etc.)
           if (vim.isNormal && !store.leader) {
             // Single character insert commands (i, a, I, A, o, O)
-            if (evt.name && evt.name.length === 1 && !evt.ctrl && !evt.meta && !evt.alt && !evt.super) {
+            if (evt.name && evt.name.length === 1 && !evt.ctrl && !evt.meta) {
               const key = evt.name
               if (key === "i" || key === "I" || key === "a" || key === "A" || key === "o" || key === "O") {
                 vim.enterInsert()
