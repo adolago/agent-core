@@ -125,6 +125,7 @@ describe("gateway auth", () => {
     const res = await authorizeGatewayConnect({
       auth: { mode: "token", token: "secret", allowTailscale: true },
       connectAuth: null,
+      tailscaleWhois: async () => ({ login: "peter", name: "Peter" }),
       req: {
         socket: { remoteAddress: "127.0.0.1" },
         headers: {
