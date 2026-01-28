@@ -2,6 +2,7 @@ import { readableStreamToText } from "bun"
 import { BunProc } from "../bun"
 import { Instance } from "../project/instance"
 import { Filesystem } from "../util/filesystem"
+import path from "path"
 
 export interface Info {
   name: string
@@ -64,8 +65,11 @@ export const prettier: Info = {
     ".gql",
   ],
   async enabled() {
-    const items = await Filesystem.findUp("package.json", Instance.directory, Instance.worktree)
-    for (const item of items) {
+    for await (const item of Filesystem.up({
+      targets: ["package.json"],
+      start: Instance.directory,
+      stop: Instance.worktree,
+    })) {
       const json = await Bun.file(item).json()
       if (json.dependencies?.prettier) return true
       if (json.devDependencies?.prettier) return true
@@ -82,8 +86,11 @@ export const oxfmt: Info = {
   },
   extensions: [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"],
   async enabled() {
-    const items = await Filesystem.findUp("package.json", Instance.directory, Instance.worktree)
-    for (const item of items) {
+    for await (const item of Filesystem.up({
+      targets: ["package.json"],
+      start: Instance.directory,
+      stop: Instance.worktree,
+    })) {
       const json = await Bun.file(item).json()
       if (json.dependencies?.oxfmt) return true
       if (json.devDependencies?.oxfmt) return true
@@ -173,24 +180,18 @@ export const ruff: Info = {
   async enabled() {
     if (!Bun.which("ruff")) return false
     const configs = ["pyproject.toml", "ruff.toml", ".ruff.toml"]
-    for (const config of configs) {
-      const found = await Filesystem.findFirstUp(config, Instance.directory, Instance.worktree)
-      if (found) {
-        if (config === "pyproject.toml") {
-          const content = await Bun.file(found).text()
-          if (content.includes("[tool.ruff]")) return true
-        } else {
-          return true
-        }
+    for await (const found of Filesystem.up({ targets: configs, start: Instance.directory, stop: Instance.worktree })) {
+      if (path.basename(found) === "pyproject.toml") {
+        const content = await Bun.file(found).text()
+        if (content.includes("[tool.ruff]")) return true
+      } else {
+        return true
       }
     }
     const deps = ["requirements.txt", "pyproject.toml", "Pipfile"]
-    for (const dep of deps) {
-      const found = await Filesystem.findFirstUp(dep, Instance.directory, Instance.worktree)
-      if (found) {
-        const content = await Bun.file(found).text()
-        if (content.includes("ruff")) return true
-      }
+    for await (const found of Filesystem.up({ targets: deps, start: Instance.directory, stop: Instance.worktree })) {
+      const content = await Bun.file(found).text()
+      if (content.includes("ruff")) return true
     }
     return false
   },
