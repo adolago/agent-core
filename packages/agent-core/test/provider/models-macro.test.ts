@@ -12,14 +12,17 @@ test("models.dev base URL can be overridden via env", async () => {
   process.env.AGENT_CORE_MODELS_URL = "https://example.invalid"
 
   const requests: string[] = []
-  globalThis.fetch = async (input, init) => {
+  const mockFetch: typeof fetch = (async (input: any, init: any) => {
     requests.push(String(input))
     // Ensure callers can use .text() / .json() interchangeably.
     return new Response(JSON.stringify({}), {
       status: 200,
       headers: { "content-type": "application/json" },
     })
-  }
+  }) as any
+  // Bun's fetch has extra properties (e.g. fetch.preconnect); preserve them for typing.
+  ;(mockFetch as any).preconnect = (originalFetch as any).preconnect
+  globalThis.fetch = mockFetch
 
   try {
     await data()
@@ -33,4 +36,3 @@ test("models.dev base URL can be overridden via env", async () => {
     globalThis.fetch = originalFetch
   }
 })
-
