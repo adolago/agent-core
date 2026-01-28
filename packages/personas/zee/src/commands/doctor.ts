@@ -50,6 +50,7 @@ import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "./doctor-worksp
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
 import { applyWizardMetadata, printWizardHeader, randomToken } from "./onboard-helpers.js";
 import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
+import { checkSkillDependencies } from "./doctor-dependencies.js";
 
 const intro = (message: string) => clackIntro(stylePromptTitle(message) ?? message);
 const outro = (message: string) => clackOutro(stylePromptTitle(message) ?? message);
@@ -252,6 +253,13 @@ export async function doctorCommand(
   }
 
   noteWorkspaceStatus(cfg);
+
+  // Check for missing skill dependencies
+  await checkSkillDependencies({
+    cfg,
+    prompter,
+    fix: prompter.shouldRepair,
+  });
 
   const { healthOk } = await checkGatewayHealth({
     runtime,
