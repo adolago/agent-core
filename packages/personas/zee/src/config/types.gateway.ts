@@ -17,8 +17,19 @@ export type WideAreaDiscoveryConfig = {
   enabled?: boolean;
 };
 
+export type MdnsDiscoveryConfig = {
+  /** Enable mDNS/Bonjour discovery broadcasts (default: true). */
+  enabled?: boolean;
+  /**
+   * When true (default), omit sensitive fields (like cliPath/sshPort) from TXT records.
+   * Set to false for full discovery details.
+   */
+  minimal?: boolean;
+};
+
 export type DiscoveryConfig = {
   wideArea?: WideAreaDiscoveryConfig;
+  mdns?: MdnsDiscoveryConfig;
 };
 
 export type CanvasHostConfig = {

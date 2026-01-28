@@ -272,6 +272,13 @@ export const ZeeSchema = z
           })
           .strict()
           .optional(),
+        mdns: z
+          .object({
+            enabled: z.boolean().optional(),
+            minimal: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
       })
       .strict()
       .optional(),

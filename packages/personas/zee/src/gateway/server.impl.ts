@@ -344,6 +344,12 @@ export async function startGatewayServer(
     channelManager;
 
   const machineDisplayName = await getMachineDisplayName();
+  const mdnsMode =
+    cfgAtStart.discovery?.mdns?.enabled === false
+      ? "off"
+      : cfgAtStart.discovery?.mdns?.minimal === false
+        ? "full"
+        : "minimal";
   const discovery = await startGatewayDiscovery({
     machineDisplayName,
     port,
@@ -352,6 +358,7 @@ export async function startGatewayServer(
       : undefined,
     wideAreaDiscoveryEnabled: cfgAtStart.discovery?.wideArea?.enabled === true,
     tailscaleMode,
+    mdnsMode,
     logDiscovery,
   });
   bonjourStop = discovery.bonjourStop;

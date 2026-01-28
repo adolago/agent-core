@@ -581,13 +581,13 @@ export async function modelsStatusCommand(
         const modelLabel = result.model ?? `${result.provider}/-`;
         const modeLabel = result.mode ? ` ${colorize(rich, theme.muted, `(${result.mode})`)}` : "";
         const profile = `${colorize(rich, theme.accent, result.label)}${modeLabel}`;
-        const detail = result.error?.trim();
-        const detailLabel = detail ? `\n${colorize(rich, theme.muted, `↳ ${detail}`)}` : "";
-        const statusLabel = `${status}${colorize(rich, theme.muted, ` · ${latency}`)}${detailLabel}`;
+        const detail = result.error ? colorize(rich, theme.muted, result.error) : "";
+        const statusLabel = `${status}${colorize(rich, theme.muted, ` · ${latency}`)}`;
         return {
           Model: colorize(rich, theme.heading, modelLabel),
           Profile: profile,
           Status: statusLabel,
+          Detail: detail,
         };
       });
       runtime.log(
@@ -597,6 +597,7 @@ export async function modelsStatusCommand(
             { key: "Model", header: "Model", minWidth: 18 },
             { key: "Profile", header: "Profile", minWidth: 24 },
             { key: "Status", header: "Status", minWidth: 12 },
+            { key: "Detail", header: "Detail", minWidth: 16, flex: true },
           ],
           rows,
         }).trimEnd(),

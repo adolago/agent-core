@@ -353,6 +353,9 @@ const FIELD_LABELS: Record<string, string> = {
   "plugins.installs.*.installPath": "Plugin Install Path",
   "plugins.installs.*.version": "Plugin Install Version",
   "plugins.installs.*.installedAt": "Plugin Install Time",
+  "discovery.wideArea.enabled": "Wide Area Discovery Enabled",
+  "discovery.mdns.enabled": "mDNS Discovery Enabled",
+  "discovery.mdns.minimal": "mDNS Discovery Minimal Mode",
 };
 
 const FIELD_HELP: Record<string, string> = {
@@ -366,6 +369,11 @@ const FIELD_HELP: Record<string, string> = {
   "gateway.remote.sshTarget":
     "Remote gateway over SSH (tunnels the gateway port to localhost). Format: user@host or user@host:port.",
   "gateway.remote.sshIdentity": "Optional SSH identity file path (passed to ssh -i).",
+  "discovery.wideArea.enabled":
+    "Enable wide-area discovery via unicast DNS-SD zone updates (tailnet).",
+  "discovery.mdns.enabled": "Enable mDNS/Bonjour discovery broadcasts (default: true).",
+  "discovery.mdns.minimal":
+    "When true (default), omit cliPath/sshPort from mDNS TXT records for better operational security.",
   "agents.list[].identity.avatar":
     "Avatar image path (relative to the agent workspace only) or a remote URL/data URL.",
   "gateway.auth.token": "Recommended for all gateways; required for non-loopback binds.",

@@ -47,15 +47,15 @@ describe("gateway hooks helpers", () => {
       },
     } as unknown as IncomingMessage;
     const url = new URL("http://localhost/hooks/wake?token=query");
-    expect(extractHookToken(req, url)).toBe("top");
+    expect(extractHookToken(req, url)).toEqual({ token: "top", fromQuery: false });
 
     const req2 = {
       headers: { "x-zee-token": "header" },
     } as unknown as IncomingMessage;
-    expect(extractHookToken(req2, url)).toBe("header");
+    expect(extractHookToken(req2, url)).toEqual({ token: "header", fromQuery: false });
 
     const req3 = { headers: {} } as unknown as IncomingMessage;
-    expect(extractHookToken(req3, url)).toBe("query");
+    expect(extractHookToken(req3, url)).toEqual({ token: "query", fromQuery: true });
   });
 
   test("normalizeWakePayload trims + validates", () => {

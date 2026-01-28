@@ -207,6 +207,7 @@ function collectGatewayConfigFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
   const bind = typeof cfg.gateway?.bind === "string" ? cfg.gateway.bind : "loopback";
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
   const auth = resolveGatewayAuth({ authConfig: cfg.gateway?.auth, tailscaleMode });
+  const controlUiEnabled = cfg.gateway?.controlUi?.enabled ?? true;
 
   if (bind !== "loopback" && auth.mode === "none") {
     findings.push({
@@ -215,6 +216,18 @@ function collectGatewayConfigFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
       title: "Gateway binds beyond loopback without auth",
       detail: `gateway.bind="${bind}" but no gateway.auth token/password is configured.`,
       remediation: `Set gateway.auth (token recommended) or bind to loopback.`,
+    });
+  }
+
+  if (bind === "loopback" && controlUiEnabled && auth.mode === "none") {
+    findings.push({
+      checkId: "gateway.loopback_no_auth",
+      severity: "critical",
+      title: "Gateway auth disabled on loopback",
+      detail:
+        "gateway.bind is loopback and gateway.auth is disabled. " +
+        "If the Control UI is exposed through a reverse proxy, unauthenticated access is possible.",
+      remediation: "Set gateway.auth (token recommended) or keep the Control UI local-only.",
     });
   }
 
