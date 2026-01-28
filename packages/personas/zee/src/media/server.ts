@@ -5,10 +5,10 @@ import { danger } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { isValidMediaId, resolveMediaPath, safeReadFile } from "../security/fs-safe.js";
 import { detectMime } from "./mime.js";
-import { cleanOldMedia, getMediaDir } from "./store.js";
+import { cleanOldMedia, getMediaDir, MEDIA_MAX_BYTES } from "./store.js";
 
 const DEFAULT_TTL_MS = 2 * 60 * 1000;
-const MAX_MEDIA_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_MEDIA_BYTES = MEDIA_MAX_BYTES;
 
 export function attachMediaRoutes(
   app: Express,
@@ -22,7 +22,7 @@ export function attachMediaRoutes(
 
     // Validate media ID format before any filesystem operations
     if (!isValidMediaId(id)) {
-      res.status(400).send("invalid media id");
+      res.status(400).send("invalid path");
       return;
     }
 
@@ -40,7 +40,7 @@ export function attachMediaRoutes(
 
       // Safely read file with symlink protection and size limits
       const result = await safeReadFile(filePath, {
-        maxSize: MAX_MEDIA_SIZE,
+        maxSize: MAX_MEDIA_BYTES,
         rootDir: mediaDir,
       });
 
@@ -59,7 +59,7 @@ export function attachMediaRoutes(
       if (msg.includes("symlink") || msg.includes("traversal") || msg.includes("invalid media")) {
         res.status(400).send("invalid path");
       } else if (msg.includes("too large")) {
-        res.status(413).send("file too large");
+        res.status(413).send("too large");
       } else {
         res.status(404).send("not found");
       }
