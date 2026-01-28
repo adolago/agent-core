@@ -331,7 +331,7 @@ export function attachGatewayWsMessageHandler(params: {
         connectParams.role = role;
         connectParams.scopes = scopes;
 
-        const device = connectParams.device;
+        const deviceRaw = connectParams.device;
         let devicePublicKey: string | null = null;
         const hasTokenAuth = Boolean(connectParams.auth?.token);
         const hasPasswordAuth = Boolean(connectParams.auth?.password);
@@ -339,6 +339,10 @@ export function attachGatewayWsMessageHandler(params: {
         const isControlUi = connectParams.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
         const allowInsecureControlUi =
           isControlUi && configSnapshot.gateway?.controlUi?.allowInsecureAuth === true;
+        const disableControlUiDeviceAuth =
+          isControlUi && configSnapshot.gateway?.controlUi?.dangerouslyDisableDeviceAuth === true;
+        const allowControlUiBypass = allowInsecureControlUi || disableControlUiDeviceAuth;
+        const device = disableControlUiDeviceAuth ? null : deviceRaw;
         if (hasUntrustedProxyHeaders && resolvedAuth.mode === "none") {
           setHandshakeState("failed");
           setCloseCause("proxy-auth-required", {
@@ -366,9 +370,9 @@ export function attachGatewayWsMessageHandler(params: {
         }
 
         if (!device) {
-          const canSkipDevice = allowInsecureControlUi ? hasSharedAuth : hasTokenAuth;
+          const canSkipDevice = allowControlUiBypass ? hasSharedAuth : hasTokenAuth;
 
-          if (isControlUi && !allowInsecureControlUi) {
+          if (isControlUi && !allowControlUiBypass) {
             const errorMessage = "control ui requires HTTPS or localhost (secure context)";
             setHandshakeState("failed");
             setCloseCause("control-ui-insecure-auth", {
@@ -611,7 +615,7 @@ export function attachGatewayWsMessageHandler(params: {
           return;
         }
 
-        const skipPairing = allowInsecureControlUi && hasSharedAuth;
+        const skipPairing = allowControlUiBypass && hasSharedAuth;
         if (device && devicePublicKey && !skipPairing) {
           const requirePairing = async (reason: string, _paired?: { deviceId: string }) => {
             const pairing = await requestDevicePairing({
@@ -733,7 +737,7 @@ export function attachGatewayWsMessageHandler(params: {
         const clientId = connectParams.client.id;
         const instanceId = connectParams.client.instanceId;
         const presenceKey = shouldTrackPresence
-          ? (connectParams.device?.id ?? instanceId ?? connId)
+          ? (device?.id ?? instanceId ?? connId)
           : undefined;
 
         logWs("in", "connect", {
@@ -756,16 +760,16 @@ export function attachGatewayWsMessageHandler(params: {
         if (presenceKey) {
           upsertPresence(presenceKey, {
             host: connectParams.client.displayName ?? connectParams.client.id ?? os.hostname(),
-            ip: isLocalClient ? undefined : clientIp,
+            ip: isLocalClient ? undefined : reportedClientIp,
             version: connectParams.client.version,
             platform: connectParams.client.platform,
             deviceFamily: connectParams.client.deviceFamily,
             modelIdentifier: connectParams.client.modelIdentifier,
             mode: connectParams.client.mode,
-            deviceId: connectParams.device?.id,
+            deviceId: device?.id,
             roles: [role],
             scopes,
-            instanceId: connectParams.device?.id ?? instanceId,
+            instanceId: device?.id ?? instanceId,
             reason: "connect",
           });
           incrementPresenceVersion();

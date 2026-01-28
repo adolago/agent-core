@@ -111,6 +111,21 @@ Zee **blocks** Control UI connections without device identity.
 This disables device identity + pairing for the Control UI (even on HTTPS). Use
 only if you trust the network.
 
+**Break-glass (disable Control UI device checks):**
+
+```json5
+{
+  gateway: {
+    controlUi: { dangerouslyDisableDeviceAuth: true },
+    bind: "loopback",
+    auth: { mode: "token", token: "replace-me" }
+  }
+}
+```
+
+This disables Control UI device identity checks entirely (DANGEROUS). Keep it
+loopback-only and remove it as soon as possible.
+
 See [Tailscale](/gateway/tailscale) for HTTPS setup guidance.
 
 ## Building the UI

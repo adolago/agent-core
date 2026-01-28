@@ -320,6 +320,7 @@ export const ZeeSchema = z
             enabled: z.boolean().optional(),
             basePath: z.string().optional(),
             allowInsecureAuth: z.boolean().optional(),
+            dangerouslyDisableDeviceAuth: z.boolean().optional(),
           })
           .strict()
           .optional(),
