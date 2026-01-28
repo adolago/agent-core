@@ -2784,6 +2784,8 @@ Control UI base path:
 - `gateway.controlUi.allowInsecureAuth` allows token-only auth for the Control UI and skips
   device identity + pairing (even on HTTPS). Default: `false`. Prefer HTTPS
   (Tailscale Serve) or `127.0.0.1`.
+- `gateway.controlUi.dangerouslyDisableDeviceAuth` disables device identity checks for the
+  Control UI (DANGEROUS). Default: `false`. Only use for short-lived break-glass scenarios.
 
 Related docs:
 - [Control UI](/web/control-ui)

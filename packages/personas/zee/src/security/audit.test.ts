@@ -229,7 +229,7 @@ describe("security audit", () => {
     }
   });
 
-  it("warns when control UI allows insecure auth", async () => {
+  it("flags control UI insecure auth as critical", async () => {
     const cfg: ZeeConfig = {
       gateway: {
         controlUi: { allowInsecureAuth: true },
@@ -246,7 +246,30 @@ describe("security audit", () => {
       expect.arrayContaining([
         expect.objectContaining({
           checkId: "gateway.control_ui.insecure_auth",
-          severity: "warn",
+          severity: "critical",
+        }),
+      ]),
+    );
+  });
+
+  it("flags control UI device auth disabled as critical", async () => {
+    const cfg: ZeeConfig = {
+      gateway: {
+        controlUi: { dangerouslyDisableDeviceAuth: true },
+      },
+    };
+
+    const res = await runSecurityAudit({
+      config: cfg,
+      includeFilesystem: false,
+      includeChannelSecurity: false,
+    });
+
+    expect(res.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          checkId: "gateway.control_ui.device_auth_disabled",
+          severity: "critical",
         }),
       ]),
     );
