@@ -49,6 +49,7 @@ test("provider loaded from env variable", async () => {
       // Source is preserved as "env" because user-set credentials (env vars) take precedence
       // over plugin detection. Custom loaders still merge their options, but don't override source.
       expect(providers["anthropic"].source).toBe("env")
+      expect(providers["anthropic"].options.headers["anthropic-beta"]).toBeDefined()
     },
   })
 })
