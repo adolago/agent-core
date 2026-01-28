@@ -4,6 +4,7 @@ import { EditTool } from "./edit"
 import DESCRIPTION from "./multiedit.txt"
 import path from "path"
 import { Instance } from "../project/instance"
+import { HoldMode } from "@/config/hold-mode"
 
 export const MultiEditTool = Tool.define("multiedit", {
   description: DESCRIPTION,
@@ -21,6 +22,13 @@ export const MultiEditTool = Tool.define("multiedit", {
       .describe("Array of edit operations to perform sequentially on the file"),
   }),
   async execute(params, ctx) {
+    if (ctx.extra?.holdMode === true) {
+      const allowed = await HoldMode.isToolAllowedInHold("edit")
+      if (!allowed) {
+        throw new Error("HOLD MODE: Cannot edit files. Switch to RELEASE mode to modify files.")
+      }
+    }
+
     const tool = await EditTool.init()
     const results = []
     for (const [, edit] of params.edits.entries()) {

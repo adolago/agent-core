@@ -16,6 +16,7 @@ import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { Snapshot } from "@/snapshot"
 import { assertExternalDirectory } from "./external-directory"
+import { HoldMode } from "@/config/hold-mode"
 
 const MAX_DIAGNOSTICS_PER_FILE = 20
 
@@ -32,6 +33,13 @@ export const EditTool = Tool.define("edit", {
     replaceAll: z.boolean().optional().describe("Replace all occurrences of oldString (default false)"),
   }),
   async execute(params, ctx) {
+    if (ctx.extra?.holdMode === true) {
+      const allowed = await HoldMode.isToolAllowedInHold("edit")
+      if (!allowed) {
+        throw new Error("HOLD MODE: Cannot edit files. Switch to RELEASE mode to modify files.")
+      }
+    }
+
     if (!params.filePath) {
       throw new Error("filePath is required")
     }
