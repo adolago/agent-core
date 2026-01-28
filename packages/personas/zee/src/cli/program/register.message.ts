@@ -41,7 +41,7 @@ ${formatHelpExamples([
     "Create a Discord poll.",
   ],
   [
-    'zee message react --channel discord --target 123 --message-id 456 --emoji "✅"',
+    'zee message react --channel discord --target 123 --message-id 456 --emoji "+"',
     "React to a message.",
   ],
 ])}

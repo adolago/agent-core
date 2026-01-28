@@ -73,7 +73,7 @@ function formatHookStatus(hook: HookStatusEntry): string {
 }
 
 function formatHookName(hook: HookStatusEntry): string {
-  const emoji = hook.emoji ?? "🔗";
+  const emoji = hook.emoji ?? "~";
   return `${emoji} ${theme.command(hook.name)}`;
 }
 
@@ -205,7 +205,7 @@ export function formatHookInfo(
   }
 
   const lines: string[] = [];
-  const emoji = hook.emoji ?? "🔗";
+  const emoji = hook.emoji ?? "~";
   const status = hook.eligible
     ? theme.success("✓ Ready")
     : hook.disabled
@@ -333,7 +333,7 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
       if (hook.missing.env.length > 0) reasons.push(`env: ${hook.missing.env.join(", ")}`);
       if (hook.missing.config.length > 0) reasons.push(`config: ${hook.missing.config.join(", ")}`);
       if (hook.missing.os.length > 0) reasons.push(`os: ${hook.missing.os.join(", ")}`);
-      lines.push(`  ${hook.emoji ?? "🔗"} ${hook.name} - ${reasons.join("; ")}`);
+      lines.push(`  ${hook.emoji ?? "~"} ${hook.name} - ${reasons.join("; ")}`);
     }
   }
 
@@ -377,7 +377,7 @@ export async function enableHook(hookName: string): Promise<void> {
 
   await writeConfigFile(nextConfig);
   defaultRuntime.log(
-    `${theme.success("✓")} Enabled hook: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
+    `${theme.success("✓")} Enabled hook: ${hook.emoji ?? "~"} ${theme.command(hookName)}`,
   );
 }
 
@@ -413,7 +413,7 @@ export async function disableHook(hookName: string): Promise<void> {
 
   await writeConfigFile(nextConfig);
   defaultRuntime.log(
-    `${theme.warn("⏸")} Disabled hook: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
+    `${theme.warn("⏸")} Disabled hook: ${hook.emoji ?? "~"} ${theme.command(hookName)}`,
   );
 }
 
