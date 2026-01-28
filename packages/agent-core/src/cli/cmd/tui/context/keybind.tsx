@@ -87,9 +87,11 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
         return
       }
 
-      // Only 'q' dismisses the which-key popup without executing an action
+      // Only Escape dismisses the which-key popup without executing an action
       // Other keys are handled by individual components which call leader(false) explicitly
-      if (store.leader && evt.name === "q") {
+      // Note: Escape is safe here because leader mode only activates in vim normal mode,
+      // so there's no conflict with vim insert mode's Escape handling
+      if (store.leader && evt.name === "escape") {
         evt.stopPropagation()
         leader(false)
         return
@@ -135,7 +137,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
         }
         return Keybind.fromParsedKey(evt, store.leader)
       },
-      match(key: keyof KeybindsConfig, evt: ParsedKey) {
+      match(key: keyof KeybindsConfig, evt: ParsedKey): boolean {
         const keybind = keybinds()[key]
         if (!keybind) return false
         const parsed: Keybind.Info = result.parse(evt)
@@ -144,6 +146,7 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
             return true
           }
         }
+        return false
       },
       print(key: keyof KeybindsConfig) {
         const first = keybinds()[key]?.at(0)

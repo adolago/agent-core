@@ -1,4 +1,4 @@
-import { createMemo } from "solid-js"
+import { createEffect, createMemo, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useSync } from "@tui/context/sync"
 import { createSimpleContext } from "./helper"
@@ -30,6 +30,24 @@ export const { use: useVim, provider: VimProvider } = createSimpleContext({
     // Focus callback for when entering insert mode
     let focusCallback: (() => void) | null = null
 
+    // Track previous enabled state to detect transitions
+    let prevEnabled = enabled()
+
+    // Reset mode to default when vim is re-enabled to avoid stale state
+    createEffect(() => {
+      const currentEnabled = enabled()
+      if (!prevEnabled && currentEnabled) {
+        // Transitioning from disabled to enabled: reset to configured default
+        setStore("mode", startInInsert() ? "insert" : "normal")
+      }
+      prevEnabled = currentEnabled
+    })
+
+    // Cleanup focus callback on unmount to avoid stale references
+    onCleanup(() => {
+      focusCallback = null
+    })
+
     return {
       get enabled() {
         return enabled()
@@ -52,8 +70,10 @@ export const { use: useVim, provider: VimProvider } = createSimpleContext({
         setStore("mode", "normal")
       },
       enterInsert() {
-        setStore("mode", "insert")
-        // Auto-focus the textarea when entering insert mode
+        if (enabled()) {
+          setStore("mode", "insert")
+        }
+        // Always fire focus callback regardless of vim mode
         focusCallback?.()
       },
       // Register a callback to be called when entering insert mode
