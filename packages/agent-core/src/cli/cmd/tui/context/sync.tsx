@@ -409,8 +409,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       console.log("bootstrapping")
       const start = Date.now() - 30 * 24 * 60 * 60 * 1000
       
-      // Create promises for all blocking requests - don't setStore in .then()
-      // This avoids inconsistent intermediate state (e.g. agents briefly undefined)
+      // Create promises for blocking requests; apply all initial setStore calls in a single batch.
+      // This avoids inconsistent intermediate state (e.g. agents briefly undefined/missing).
       const sessionListPromise = sdk.client.session
         .list({ start: start })
         .then((x) => (x.data ?? []).toSorted((a, b) => a.id.localeCompare(b.id)))
@@ -420,95 +420,86 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       const agentsPromise = sdk.client.app.agents({ throwOnError: true })
       const configPromise = sdk.client.config.get({ throwOnError: true })
 
-      // blocking - include session.list when continuing a session
-      const blockingRequests: Promise<unknown>[] = [
-        providersPromise,
-        providerListPromise,
-        agentsPromise,
-        configPromise,
-        ...(args.continue ? [sessionListPromise] : []),
-      ]
+      try {
+        const [providersResponse, providerListResponse, agentsResponse, configResponse] = await Promise.all([
+          providersPromise,
+          providerListPromise,
+          agentsPromise,
+          configPromise,
+        ])
 
-      await Promise.all(blockingRequests)
-        .then(async () => {
-          // Now extract all responses and apply in a single batch
-          const providersResponse = await providersPromise
-          const providerListResponse = await providerListPromise
-          const agentsResponse = await agentsPromise
-          const configResponse = await configPromise
-          const sessionsResponse = args.continue ? await sessionListPromise : undefined
+        const sessionsResponse = args.continue ? await sessionListPromise : undefined
 
-          // Validate agents response
-          const agents = Array.isArray(agentsResponse.data) ? agentsResponse.data : []
-          if (!Array.isArray(agentsResponse.data)) {
-            Log.Default.error("agents response invalid", { type: typeof agentsResponse.data })
-            toast.show({
-              variant: "error",
-              message: "Agents failed to load (invalid response). Check the daemon status.",
-              duration: 5000,
-            })
-          } else if (agents.length === 0) {
-            toast.show({
-              variant: "error",
-              message: "No agents loaded. Check agent-core config and restart the daemon.",
-              duration: 5000,
-            })
+        // Validate agents response
+        const agents = Array.isArray(agentsResponse.data) ? agentsResponse.data : []
+        if (!Array.isArray(agentsResponse.data)) {
+          Log.Default.error("agents response invalid", { type: typeof agentsResponse.data })
+          toast.show({
+            variant: "error",
+            message: "Agents failed to load (invalid response). Check the daemon status.",
+            duration: 5000,
+          })
+        } else if (agents.length === 0) {
+          toast.show({
+            variant: "error",
+            message: "No agents loaded. Check agent-core config and restart the daemon.",
+            duration: 5000,
+          })
+        }
+
+        batch(() => {
+          setStore("provider", reconcile(providersResponse.data!.providers))
+          setStore("provider_default", reconcile(providersResponse.data!.default))
+          setStore("provider_next", reconcile(providerListResponse.data!))
+          setStore("agent", reconcile(agents))
+          setStore("config", reconcile(configResponse.data!))
+          if (sessionsResponse !== undefined) {
+            setStore("session", reconcile(sessionsResponse))
           }
-
-          // Apply ALL initial state in a single batch to avoid inconsistent intermediate state
-          batch(() => {
-            setStore("provider", reconcile(providersResponse.data!.providers))
-            setStore("provider_default", reconcile(providersResponse.data!.default))
-            setStore("provider_next", reconcile(providerListResponse.data!))
-            setStore("agent", reconcile(agents))
-            setStore("config", reconcile(configResponse.data!))
-            if (sessionsResponse !== undefined) {
-              setStore("session", reconcile(sessionsResponse))
-            }
-          })
-        })
-        .then(() => {
           if (store.status !== "complete") setStore("status", "partial")
-          // non-blocking
-          Promise.all([
-            ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
-            sdk.client.command.list().then((x) => setStore("command", reconcile(x.data ?? []))),
-            sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
-            sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
-            sdk.client.experimental.resource.list().then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),
-            sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
-            sdk.client.session.status().then((x) => {
-              setStore("session_status", reconcile(x.data!))
-            }),
-            sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
-            sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
-            sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
-            createAuthorizedFetch(fetch)(`${sdk.url}/global/health`)
-              .then((res) => res.json())
-              .then((data) => {
-                const normalized = normalizeDaemonHealth(data)
-                setStore("daemon", normalized ? reconcile(normalized) : undefined)
-              })
-              .catch(() => setStore("daemon", undefined)),
-            // Fetch health status (internet + providers)
-            createAuthorizedFetch(fetch)(`${sdk.url}/global/health/status`)
-              .then((res) => res.json())
-              .then((data: { internet: "ok" | "fail" | "checking"; providers: { id: string; name: string; status: "ok" | "fail" | "skip" }[] }) =>
-                setStore("health", reconcile(data)),
-              )
-              .catch(() => setStore("health", "internet", "fail")),
-          ]).then(() => {
-            setStore("status", "complete")
-          })
         })
-        .catch(async (e) => {
-          Log.Default.error("tui bootstrap failed", {
-            error: e instanceof Error ? e.message : String(e),
-            name: e instanceof Error ? e.name : undefined,
-            stack: e instanceof Error ? e.stack : undefined,
-          })
-          await exit(e)
+
+        // non-blocking
+        await Promise.all([
+          ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
+          sdk.client.command.list().then((x) => setStore("command", reconcile(x.data ?? []))),
+          sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
+          sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
+          sdk.client.experimental.resource.list().then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),
+          sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
+          sdk.client.session.status().then((x) => {
+            setStore("session_status", reconcile(x.data!))
+          }),
+          sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
+          sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
+          sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
+          createAuthorizedFetch(fetch)(`${sdk.url}/global/health`)
+            .then((res) => res.json())
+            .then((data) => {
+              const normalized = normalizeDaemonHealth(data)
+              setStore("daemon", normalized ? reconcile(normalized) : undefined)
+            })
+            .catch(() => setStore("daemon", undefined)),
+          // Fetch health status (internet + providers)
+          createAuthorizedFetch(fetch)(`${sdk.url}/global/health/status`)
+            .then((res) => res.json())
+            .then(
+              (data: {
+                internet: "ok" | "fail" | "checking"
+                providers: { id: string; name: string; status: "ok" | "fail" | "skip" }[]
+              }) => setStore("health", reconcile(data)),
+            )
+            .catch(() => setStore("health", "internet", "fail")),
+        ])
+        setStore("status", "complete")
+      } catch (e) {
+        Log.Default.error("tui bootstrap failed", {
+          error: e instanceof Error ? e.message : String(e),
+          name: e instanceof Error ? e.name : undefined,
+          stack: e instanceof Error ? e.stack : undefined,
         })
+        await exit(e)
+      }
     }
 
     onMount(() => {
