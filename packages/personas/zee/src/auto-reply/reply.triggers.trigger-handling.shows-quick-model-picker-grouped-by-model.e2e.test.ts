@@ -18,7 +18,7 @@ const usageMocks = vi.hoisted(() => ({
     updatedAt: 0,
     providers: [],
   }),
-  formatUsageSummaryLine: vi.fn().mockReturnValue("📊 Usage: Claude 80% left"),
+  formatUsageSummaryLine: vi.fn().mockReturnValue("◆ Usage: Claude 80% left"),
   resolveUsageProviderId: vi.fn((provider: string) => provider.split("/")[0]),
 }));
 

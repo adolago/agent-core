@@ -203,7 +203,7 @@ export function buildEmbeddedRunPayloads(params: {
       );
       const errorSuffix = params.lastToolError.error ? `: ${params.lastToolError.error}` : "";
       replyItems.push({
-        text: `⚠️ ${toolSummary} failed${errorSuffix}`,
+        text: `⚠ ${toolSummary} failed${errorSuffix}`,
         isError: true,
       });
     }

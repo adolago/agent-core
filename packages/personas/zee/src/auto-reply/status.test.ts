@@ -189,7 +189,7 @@ describe("buildStatusMessage", () => {
       queue: { mode: "collect", depth: 0 },
     });
 
-    const optionsLine = text.split("\n").find((line) => line.trim().startsWith("⚙️"));
+    const optionsLine = text.split("\n").find((line) => line.trim().startsWith(">"));
     expect(optionsLine).toBeTruthy();
     expect(optionsLine).not.toContain("elevated");
   });
@@ -290,7 +290,7 @@ describe("buildStatusMessage", () => {
       sessionKey: "agent:main:main",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
-      usageLine: "📊 Usage: Claude 80% left (5h)",
+      usageLine: "◆ Usage: Claude 80% left (5h)",
       modelAuth: "api-key",
     });
 

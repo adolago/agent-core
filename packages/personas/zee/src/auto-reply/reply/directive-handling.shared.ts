@@ -1,7 +1,7 @@
 import { formatCliCommand } from "../../cli/command-format.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
 
-export const SYSTEM_MARK = "⚙️";
+export const SYSTEM_MARK = ">";
 
 export const formatDirectiveAck = (text: string): string => {
   if (!text) return text;

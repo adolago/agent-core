@@ -295,7 +295,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
   const parsed = parseAllowlistCommand(params.command.commandBodyNormalized);
   if (!parsed) return null;
   if (parsed.action === "error") {
-    return { shouldContinue: false, reply: { text: `⚠️ ${parsed.message}` } };
+    return { shouldContinue: false, reply: { text: `⚠ ${parsed.message}` } };
   }
   if (!params.command.isAuthorizedSender) {
     logVerbose(
@@ -311,7 +311,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
   if (!channelId) {
     return {
       shouldContinue: false,
-      reply: { text: "⚠️ Unknown channel. Add channel=<id> to the command." },
+      reply: { text: "⚠ Unknown channel. Add channel=<id> to the command." },
     };
   }
   const accountId = normalizeAccountId(parsed.account ?? params.ctx.AccountId);
@@ -442,7 +442,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
             })
           : undefined;
 
-    const lines: string[] = ["🧾 Allowlist"];
+    const lines: string[] = ["# Allowlist"];
     lines.push(`Channel: ${channelId}${accountId ? ` (account ${accountId})` : ""}`);
     if (dmPolicy) lines.push(`DM policy: ${dmPolicy}`);
     if (groupPolicy) lines.push(`Group policy: ${groupPolicy}`);
@@ -485,7 +485,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
   if (params.cfg.commands?.config !== true) {
     return {
       shouldContinue: false,
-      reply: { text: "⚠️ /allowlist edits are disabled. Set commands.config=true to enable." },
+      reply: { text: "⚠ /allowlist edits are disabled. Set commands.config=true to enable." },
     };
   }
 
@@ -502,7 +502,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
       const hint = `channels.${channelId}.configWrites=true`;
       return {
         shouldContinue: false,
-        reply: { text: `⚠️ Config writes are disabled for ${channelId}. Set ${hint} to enable.` },
+        reply: { text: `⚠ Config writes are disabled for ${channelId}. Set ${hint} to enable.` },
       };
     }
 
@@ -511,7 +511,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
       return {
         shouldContinue: false,
         reply: {
-          text: `⚠️ ${channelId} does not support ${scope} allowlist edits via /allowlist.`,
+          text: `⚠ ${channelId} does not support ${scope} allowlist edits via /allowlist.`,
         },
       };
     }
@@ -520,7 +520,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
     if (!snapshot.valid || !snapshot.parsed || typeof snapshot.parsed !== "object") {
       return {
         shouldContinue: false,
-        reply: { text: "⚠️ Config file is invalid; fix it before using /allowlist." },
+        reply: { text: "⚠ Config file is invalid; fix it before using /allowlist." },
       };
     }
     const parsedConfig = structuredClone(snapshot.parsed as Record<string, unknown>);
@@ -543,7 +543,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
     if (normalizedEntry.length === 0) {
       return {
         shouldContinue: false,
-        reply: { text: "⚠️ Invalid allowlist entry." },
+        reply: { text: "⚠ Invalid allowlist entry." },
       };
     }
 
@@ -598,14 +598,14 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
         const issue = validated.issues[0];
         return {
           shouldContinue: false,
-          reply: { text: `⚠️ Config invalid after update (${issue.path}: ${issue.message}).` },
+          reply: { text: `⚠ Config invalid after update (${issue.path}: ${issue.message}).` },
         };
       }
       await writeConfigFile(validated.config);
     }
 
     if (!configChanged && !shouldTouchStore) {
-      const message = parsed.action === "add" ? "✅ Already allowlisted." : "⚠️ Entry not found.";
+      const message = parsed.action === "add" ? "+ Already allowlisted." : "! Entry not found.";
       return { shouldContinue: false, reply: { text: message } };
     }
 
@@ -630,7 +630,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
     return {
       shouldContinue: false,
       reply: {
-        text: `✅ ${scopeLabel} allowlist ${actionLabel}: ${targetLabel}.`,
+        text: `✓ ${scopeLabel} allowlist ${actionLabel}: ${targetLabel}.`,
       },
     };
   }
@@ -638,7 +638,7 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
   if (!shouldTouchStore) {
     return {
       shouldContinue: false,
-      reply: { text: "⚠️ This channel does not support allowlist storage." },
+      reply: { text: "⚠ This channel does not support allowlist storage." },
     };
   }
 
@@ -652,6 +652,6 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
   const scopeLabel = scope === "dm" ? "DM" : "group";
   return {
     shouldContinue: false,
-    reply: { text: `✅ ${scopeLabel} allowlist ${actionLabel} in pairing store.` },
+    reply: { text: `✓ ${scopeLabel} allowlist ${actionLabel} in pairing store.` },
   };
 };

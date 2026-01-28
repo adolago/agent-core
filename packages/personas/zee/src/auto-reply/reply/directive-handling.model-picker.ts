@@ -18,7 +18,6 @@ const MODEL_PICK_PROVIDER_PREFERENCE = [
   "google",
   "zai-coding-plan",
   "openrouter",
-  "opencode",
   "xai",
 ] as const;
 

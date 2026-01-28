@@ -492,11 +492,11 @@ export async function runReplyAgent(params: {
       });
       if (verboseEnabled) {
         const suffix = typeof count === "number" ? ` (count ${count})` : "";
-        finalPayloads = [{ text: `🧹 Auto-compaction complete${suffix}.` }, ...finalPayloads];
+        finalPayloads = [{ text: `▸ Auto-compaction complete${suffix}.` }, ...finalPayloads];
       }
     }
     if (verboseEnabled && activeIsNewSession) {
-      finalPayloads = [{ text: `🧭 New session: ${followupRun.run.sessionId}` }, ...finalPayloads];
+      finalPayloads = [{ text: `▸ New session: ${followupRun.run.sessionId}` }, ...finalPayloads];
     }
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);

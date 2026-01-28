@@ -42,7 +42,7 @@ describe("zee-tools: subagents", () => {
       session: { mainKey: "main", scope: "per-sender" },
       agents: {
         defaults: { subagents: { model: "minimax/MiniMax-M2.1" } },
-        list: [{ id: "research", subagents: { model: "opencode/claude" } }],
+        list: [{ id: "research", subagents: { model: "zai-coding-plan/glm-4.7" } }],
       },
     };
     const calls: Array<{ method?: string; params?: unknown }> = [];
@@ -75,7 +75,7 @@ describe("zee-tools: subagents", () => {
 
     const patchCall = calls.find((call) => call.method === "sessions.patch");
     expect(patchCall?.params).toMatchObject({
-      model: "opencode/claude",
+      model: "zai-coding-plan/glm-4.7",
     });
   });
   it("sessions_spawn skips invalid model overrides and continues", async () => {

@@ -238,7 +238,7 @@ export function createSessionStatusTool(opts?: {
     label: "Session Status",
     name: "session_status",
     description:
-      "Show a /status-equivalent session status card (usage + time + cost when available). Use for model-use questions (📊 session_status). Optional: set per-session model override (model=default resets overrides).",
+      "Show a /status-equivalent session status card (usage + time + cost when available). Use for model-use questions (# session_status). Optional: set per-session model override (model=default resets overrides).",
     parameters: SessionStatusToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -369,7 +369,7 @@ export function createSessionStatusTool(opts?: {
               includeResets: true,
             });
             if (formatted && !formatted.startsWith("error:")) {
-              usageLine = `📊 Usage: ${formatted}`;
+              usageLine = `◆ Usage: ${formatted}`;
             }
           }
         } catch {
@@ -401,8 +401,8 @@ export function createSessionStatusTool(opts?: {
       const userTimeFormat = resolveUserTimeFormat(cfg.agents?.defaults?.timeFormat);
       const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
       const timeLine = userTime
-        ? `🕒 Time: ${userTime} (${userTimezone})`
-        : `🕒 Time zone: ${userTimezone}`;
+        ? `⏱ Time: ${userTime} (${userTimezone})`
+        : `⏱ Time zone: ${userTimezone}`;
 
       const agentDefaults = cfg.agents?.defaults ?? {};
       const defaultLabel = `${configured.provider}/${configured.model}`;

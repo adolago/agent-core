@@ -18,7 +18,7 @@ const usageMocks = vi.hoisted(() => ({
     updatedAt: 0,
     providers: [],
   }),
-  formatUsageSummaryLine: vi.fn().mockReturnValue("📊 Usage: Claude 80% left"),
+  formatUsageSummaryLine: vi.fn().mockReturnValue("◆ Usage: Claude 80% left"),
   resolveUsageProviderId: vi.fn((provider: string) => provider.split("/")[0]),
 }));
 
@@ -111,7 +111,7 @@ describe("trigger handling", () => {
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toBe(
-        "⚠️ Agent failed before reply: sandbox is not defined.\nLogs: zee logs --follow",
+        "! Agent failed before reply: sandbox is not defined.\nLogs: zee logs --follow",
       );
       expect(runEmbeddedPiAgent).toHaveBeenCalledOnce();
     });

@@ -187,7 +187,7 @@ describe("directive behavior", () => {
       );
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toMatch(/^⚙️ Verbose logging enabled\./);
+      expect(text).toMatch(/^> Verbose logging enabled\./);
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });

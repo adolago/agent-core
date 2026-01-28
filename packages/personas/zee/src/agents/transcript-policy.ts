@@ -74,8 +74,7 @@ export function resolveTranscriptPolicy(params: {
   const isOpenAi = isOpenAiProvider(provider) || (!provider && isOpenAiApi(params.modelApi));
   const isMistral = isMistralModel({ provider, modelId });
   const isOpenRouterGemini =
-    (provider === "openrouter" || provider === "opencode") &&
-    modelId.toLowerCase().includes("gemini");
+    provider === "openrouter" && modelId.toLowerCase().includes("gemini");
   const isAntigravityClaudeModel = isAntigravityClaude({
     api: params.modelApi,
     provider,

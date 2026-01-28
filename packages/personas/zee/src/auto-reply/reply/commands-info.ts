@@ -97,7 +97,7 @@ export const handleWhoamiCommand: CommandHandler = async (params, allowTextComma
   }
   const senderId = params.ctx.SenderId ?? "";
   const senderUsername = params.ctx.SenderUsername ?? "";
-  const lines = ["🧭 Identity", `Channel: ${params.command.channel}`];
+  const lines = ["> Identity", `Channel: ${params.command.channel}`];
   if (senderId) lines.push(`User id: ${senderId}`);
   if (senderUsername) {
     const handle = senderUsername.startsWith("@") ? senderUsername : `@${senderUsername}`;

@@ -353,7 +353,7 @@ describe("handleCommands subagents", () => {
     const params = buildParams("/status", cfg);
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
-    expect(result.reply?.text).toContain("🤖 Subagents: 1 active");
+    expect(result.reply?.text).toContain("@ Subagents: 1 active");
   });
 
   it("includes subagent details in /status when verbose", async () => {
@@ -389,7 +389,7 @@ describe("handleCommands subagents", () => {
     params.resolvedVerboseLevel = "on";
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
-    expect(result.reply?.text).toContain("🤖 Subagents: 1 active");
+    expect(result.reply?.text).toContain("@ Subagents: 1 active");
     expect(result.reply?.text).toContain("· 1 done");
   });
 

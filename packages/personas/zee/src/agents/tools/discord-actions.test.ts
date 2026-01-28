@@ -85,11 +85,11 @@ describe("handleDiscordMessagingAction", () => {
       {
         channelId: "C1",
         messageId: "M1",
-        emoji: "✅",
+        emoji: "+",
       },
       enableAllActions,
     );
-    expect(reactMessageDiscord).toHaveBeenCalledWith("C1", "M1", "✅");
+    expect(reactMessageDiscord).toHaveBeenCalledWith("C1", "M1", "+");
   });
 
   it("forwards accountId for reactions", async () => {
@@ -98,12 +98,12 @@ describe("handleDiscordMessagingAction", () => {
       {
         channelId: "C1",
         messageId: "M1",
-        emoji: "✅",
+        emoji: "+",
         accountId: "ops",
       },
       enableAllActions,
     );
-    expect(reactMessageDiscord).toHaveBeenCalledWith("C1", "M1", "✅", { accountId: "ops" });
+    expect(reactMessageDiscord).toHaveBeenCalledWith("C1", "M1", "+", { accountId: "ops" });
   });
 
   it("removes reactions on empty emoji", async () => {
@@ -125,12 +125,12 @@ describe("handleDiscordMessagingAction", () => {
       {
         channelId: "C1",
         messageId: "M1",
-        emoji: "✅",
+        emoji: "+",
         remove: true,
       },
       enableAllActions,
     );
-    expect(removeReactionDiscord).toHaveBeenCalledWith("C1", "M1", "✅");
+    expect(removeReactionDiscord).toHaveBeenCalledWith("C1", "M1", "+");
   });
 
   it("rejects removes without emoji", async () => {
@@ -155,7 +155,7 @@ describe("handleDiscordMessagingAction", () => {
         {
           channelId: "C1",
           messageId: "M1",
-          emoji: "✅",
+          emoji: "+",
         },
         disabledActions,
       ),

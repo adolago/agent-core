@@ -38,10 +38,10 @@ vi.mock("./abort.js", () => ({
   tryFastAbortFromMessage: mocks.tryFastAbortFromMessage,
   formatAbortReplyText: (stoppedSubagents?: number) => {
     if (typeof stoppedSubagents !== "number" || stoppedSubagents <= 0) {
-      return "⚙️ Agent was aborted.";
+      return "> Agent was aborted.";
     }
     const label = stoppedSubagents === 1 ? "sub-agent" : "sub-agents";
-    return `⚙️ Agent was aborted. Stopped ${stoppedSubagents} ${label}.`;
+    return `> Agent was aborted. Stopped ${stoppedSubagents} ${label}.`;
   },
 }));
 
@@ -187,7 +187,7 @@ describe("dispatchReplyFromConfig", () => {
 
     expect(replyResolver).not.toHaveBeenCalled();
     expect(dispatcher.sendFinalReply).toHaveBeenCalledWith({
-      text: "⚙️ Agent was aborted.",
+      text: "▸ Agent was aborted.",
     });
   });
 
@@ -212,7 +212,7 @@ describe("dispatchReplyFromConfig", () => {
     });
 
     expect(dispatcher.sendFinalReply).toHaveBeenCalledWith({
-      text: "⚙️ Agent was aborted. Stopped 2 sub-agents.",
+      text: "▸ Agent was aborted. Stopped 2 sub-agents.",
     });
   });
 

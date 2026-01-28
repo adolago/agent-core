@@ -223,7 +223,7 @@ describe("directive behavior", () => {
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain("Elevated mode disabled.");
-      const optionsLine = text?.split("\n").find((line) => line.trim().startsWith("⚙️"));
+      const optionsLine = text?.split("\n").find((line) => line.trim().startsWith(">"));
       expect(optionsLine).toBeTruthy();
       expect(optionsLine).not.toContain("elevated");
 

@@ -56,6 +56,7 @@ import { listNodes, resolveNodeIdFromList } from "./tools/nodes-utils.js";
 import { getShellConfig, sanitizeBinaryOutput } from "./shell-utils.js";
 import { buildCursorPositionResponse, stripDsrRequests } from "./pty-dsr.js";
 import { parseAgentSessionKey, resolveAgentIdFromSessionKey } from "../routing/session-key.js";
+import { sanitizeEnvForShell, validateUserEnv } from "../security/env-sanitize.js";
 
 const DEFAULT_MAX_OUTPUT = clampNumber(
   readEnvInt("PI_BASH_MAX_OUTPUT_CHARS"),
@@ -867,11 +868,18 @@ export function createExecTool(
       }
 
       const baseEnv = coerceEnv(process.env);
-      const mergedEnv = params.env ? { ...baseEnv, ...params.env } : baseEnv;
+      // Validate user-provided environment variables to prevent injection
+      let validatedUserEnv: Record<string, string> | undefined;
+      try {
+        validatedUserEnv = validateUserEnv(params.env);
+      } catch (err) {
+        throw new Error(`exec rejected: ${String(err)}`);
+      }
+      const mergedEnv = validatedUserEnv ? { ...baseEnv, ...validatedUserEnv } : baseEnv;
       const env = sandbox
         ? buildSandboxEnv({
             defaultPath: DEFAULT_PATH,
-            paramsEnv: params.env,
+            paramsEnv: validatedUserEnv,
             sandboxEnv: sandbox.env,
             containerWorkdir: containerWorkdir ?? sandbox.containerWorkdir,
           })
@@ -884,6 +892,13 @@ export function createExecTool(
         applyShellPath(env, shellPath);
       }
       applyPathPrepend(env, defaultPathPrepend);
+
+      // Final sanitization pass to catch any injection attempts in PATH
+      const sanitizeResult = sanitizeEnvForShell(env);
+      if (sanitizeResult.warnings.length > 0) {
+        warnings.push(...sanitizeResult.warnings);
+      }
+      Object.assign(env, sanitizeResult.env);
 
       if (host === "node") {
         const approvals = resolveExecApprovals(agentId, { security, ask });

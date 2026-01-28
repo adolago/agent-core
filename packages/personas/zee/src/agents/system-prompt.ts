@@ -207,7 +207,7 @@ export function buildAgentSystemPrompt(params: {
     sessions_send: "Send a message to another session/sub-agent",
     sessions_spawn: "Spawn a sub-agent session",
     session_status:
-      "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
+      "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (# session_status); optional per-session model override",
     image: "Analyze an image with the configured image model",
   };
 
@@ -533,14 +533,14 @@ export function buildAgentSystemPrompt(params: {
       "## Silent Replies",
       `When you have nothing to say, respond with ONLY: ${SILENT_REPLY_TOKEN}`,
       "",
-      "⚠️ Rules:",
+      "Rules:",
       "- It must be your ENTIRE message — nothing else",
       `- Never append it to an actual response (never include "${SILENT_REPLY_TOKEN}" in real replies)`,
       "- Never wrap it in markdown or code blocks",
       "",
-      `❌ Wrong: "Here's help... ${SILENT_REPLY_TOKEN}"`,
-      `❌ Wrong: "${SILENT_REPLY_TOKEN}"`,
-      `✅ Right: ${SILENT_REPLY_TOKEN}`,
+      `x Wrong: "Here's help... ${SILENT_REPLY_TOKEN}"`,
+      `x Wrong: "${SILENT_REPLY_TOKEN}"`,
+      `+ Right: ${SILENT_REPLY_TOKEN}`,
       "",
     );
   }

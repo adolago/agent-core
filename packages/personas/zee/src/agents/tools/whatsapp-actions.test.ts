@@ -22,11 +22,11 @@ describe("handleWhatsAppAction", () => {
         action: "react",
         chatJid: "123@s.whatsapp.net",
         messageId: "msg1",
-        emoji: "✅",
+        emoji: "+",
       },
       enabledConfig,
     );
-    expect(sendReactionWhatsApp).toHaveBeenCalledWith("123@s.whatsapp.net", "msg1", "✅", {
+    expect(sendReactionWhatsApp).toHaveBeenCalledWith("123@s.whatsapp.net", "msg1", "+", {
       verbose: false,
       fromMe: undefined,
       participant: undefined,
@@ -58,7 +58,7 @@ describe("handleWhatsAppAction", () => {
         action: "react",
         chatJid: "123@s.whatsapp.net",
         messageId: "msg1",
-        emoji: "✅",
+        emoji: "+",
         remove: true,
       },
       enabledConfig,
@@ -102,7 +102,7 @@ describe("handleWhatsAppAction", () => {
           action: "react",
           chatJid: "123@s.whatsapp.net",
           messageId: "msg1",
-          emoji: "✅",
+          emoji: "+",
         },
         cfg,
       ),

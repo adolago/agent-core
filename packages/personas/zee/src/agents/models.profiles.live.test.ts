@@ -370,10 +370,7 @@ describeLive("live models (profile keys)", () => {
               logProgress(`${progressLabel}: skip (google model not found)`);
               break;
             }
-            if (
-              ok.text.length === 0 &&
-              (model.provider === "openrouter" || model.provider === "opencode")
-            ) {
+            if (ok.text.length === 0 && model.provider === "openrouter") {
               skipped.push({
                 model: id,
                 reason: "no text returned (provider returned empty content)",
@@ -427,15 +424,6 @@ describeLive("live models (profile keys)", () => {
             ) {
               skipped.push({ model: id, reason: message });
               logProgress(`${progressLabel}: skip (minimax empty response)`);
-              break;
-            }
-            if (
-              allowNotFoundSkip &&
-              model.provider === "opencode" &&
-              isRateLimitErrorMessage(message)
-            ) {
-              skipped.push({ model: id, reason: message });
-              logProgress(`${progressLabel}: skip (rate limit)`);
               break;
             }
             if (

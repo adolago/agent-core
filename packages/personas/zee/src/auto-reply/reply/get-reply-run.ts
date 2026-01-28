@@ -292,8 +292,8 @@ export async function runPreparedReply(
       const defaultLabel = `${defaultProvider}/${defaultModel}`;
       const text =
         modelLabel === defaultLabel
-          ? `✅ New session started · model: ${modelLabel}`
-          : `✅ New session started · model: ${modelLabel} (default: ${defaultLabel})`;
+          ? `+ New session started · model: ${modelLabel}`
+          : `+ New session started · model: ${modelLabel} (default: ${defaultLabel})`;
       await routeReply({
         payload: { text },
         channel,

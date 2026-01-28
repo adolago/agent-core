@@ -41,11 +41,11 @@ describe("handleSlackAction", () => {
         action: "react",
         channelId: "C1",
         messageId: "123.456",
-        emoji: "✅",
+        emoji: "+",
       },
       cfg,
     );
-    expect(reactSlackMessage).toHaveBeenCalledWith("C1", "123.456", "✅");
+    expect(reactSlackMessage).toHaveBeenCalledWith("C1", "123.456", "+");
   });
 
   it("strips channel: prefix for channelId params", async () => {
@@ -55,11 +55,11 @@ describe("handleSlackAction", () => {
         action: "react",
         channelId: "channel:C1",
         messageId: "123.456",
-        emoji: "✅",
+        emoji: "+",
       },
       cfg,
     );
-    expect(reactSlackMessage).toHaveBeenCalledWith("C1", "123.456", "✅");
+    expect(reactSlackMessage).toHaveBeenCalledWith("C1", "123.456", "+");
   });
 
   it("removes reactions on empty emoji", async () => {
@@ -83,12 +83,12 @@ describe("handleSlackAction", () => {
         action: "react",
         channelId: "C1",
         messageId: "123.456",
-        emoji: "✅",
+        emoji: "+",
         remove: true,
       },
       cfg,
     );
-    expect(removeSlackReaction).toHaveBeenCalledWith("C1", "123.456", "✅");
+    expect(removeSlackReaction).toHaveBeenCalledWith("C1", "123.456", "+");
   });
 
   it("rejects removes without emoji", async () => {
@@ -117,7 +117,7 @@ describe("handleSlackAction", () => {
           action: "react",
           channelId: "C1",
           messageId: "123.456",
-          emoji: "✅",
+          emoji: "+",
         },
         cfg,
       ),

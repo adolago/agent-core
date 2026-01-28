@@ -161,7 +161,7 @@ export async function buildStatusReply(params: {
           maxWindows: 2,
           includeResets: true,
         });
-        if (summaryLine) usageLine = `📊 Usage: ${summaryLine}`;
+        if (summaryLine) usageLine = `◆ Usage: ${summaryLine}`;
       }
     } catch {
       usageLine = null;
@@ -193,9 +193,9 @@ export async function buildStatusReply(params: {
           .filter(Boolean)
           .slice(0, 3);
         const labelText = labels.length ? ` (${labels.join(", ")})` : "";
-        subagentsLine = `🤖 Subagents: ${active.length} active${labelText} · ${done} done`;
+        subagentsLine = `@ Subagents: ${active.length} active${labelText} · ${done} done`;
       } else if (active.length > 0) {
-        subagentsLine = `🤖 Subagents: ${active.length} active`;
+        subagentsLine = `@ Subagents: ${active.length} active`;
       }
     }
   }

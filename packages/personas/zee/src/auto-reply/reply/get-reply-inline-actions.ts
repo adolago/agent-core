@@ -178,7 +178,7 @@ export async function handleInlineActions(params: {
       const tool = tools.find((candidate) => candidate.name === dispatch.toolName);
       if (!tool) {
         typing.cleanup();
-        return { kind: "reply", reply: { text: `❌ Tool not available: ${dispatch.toolName}` } };
+        return { kind: "reply", reply: { text: `✗ Tool not available: ${dispatch.toolName}` } };
       }
 
       const toolCallId = `cmd_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -188,13 +188,13 @@ export async function handleInlineActions(params: {
           commandName: skillInvocation.command.name,
           skillName: skillInvocation.command.skillName,
         } as any);
-        const text = extractTextFromToolResult(result) ?? "✅ Done.";
+        const text = extractTextFromToolResult(result) ?? "+ Done.";
         typing.cleanup();
         return { kind: "reply", reply: { text } };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         typing.cleanup();
-        return { kind: "reply", reply: { text: `❌ ${message}` } };
+        return { kind: "reply", reply: { text: `✗ ${message}` } };
       }
     }
 

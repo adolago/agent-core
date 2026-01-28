@@ -42,14 +42,14 @@ describe("handleTelegramAction", () => {
         action: "react",
         chatId: "123",
         messageId: "456",
-        emoji: "✅",
+        emoji: "+",
       },
       cfg,
     );
     expect(reactMessageTelegram).toHaveBeenCalledWith(
       "123",
       456,
-      "✅",
+      "+",
       expect.objectContaining({ token: "tok", remove: false }),
     );
   });
@@ -63,14 +63,14 @@ describe("handleTelegramAction", () => {
         action: "react",
         chatId: "123",
         messageId: "456",
-        emoji: "✅",
+        emoji: "+",
       },
       cfg,
     );
     expect(reactMessageTelegram).toHaveBeenCalledWith(
       "123",
       456,
-      "✅",
+      "+",
       expect.objectContaining({ token: "tok", remove: false }),
     );
   });
@@ -105,7 +105,7 @@ describe("handleTelegramAction", () => {
         action: "react",
         chatId: "123",
         messageId: "456",
-        emoji: "✅",
+        emoji: "+",
         remove: true,
       },
       cfg,
@@ -113,7 +113,7 @@ describe("handleTelegramAction", () => {
     expect(reactMessageTelegram).toHaveBeenCalledWith(
       "123",
       456,
-      "✅",
+      "+",
       expect.objectContaining({ token: "tok", remove: true }),
     );
   });
@@ -128,7 +128,7 @@ describe("handleTelegramAction", () => {
           action: "react",
           chatId: "123",
           messageId: "456",
-          emoji: "✅",
+          emoji: "+",
         },
         cfg,
       ),
@@ -145,7 +145,7 @@ describe("handleTelegramAction", () => {
           action: "react",
           chatId: "123",
           messageId: "456",
-          emoji: "✅",
+          emoji: "+",
         },
         cfg,
       ),
@@ -168,7 +168,7 @@ describe("handleTelegramAction", () => {
           action: "react",
           chatId: "123",
           messageId: "456",
-          emoji: "✅",
+          emoji: "+",
         },
         cfg,
       ),

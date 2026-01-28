@@ -417,7 +417,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠️ Context limit exceeded. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
+            text: "⚠ Context limit exceeded. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
           },
         };
       }
@@ -427,7 +427,7 @@ export async function runAgentTurnWithFallback(params: {
           return {
             kind: "final",
             payload: {
-              text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
+              text: "⚠ Message ordering conflict. I've reset the conversation - please try again.",
             },
           };
         }
@@ -450,7 +450,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠️ Context limit exceeded during compaction. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
+            text: "⚠ Context limit exceeded during compaction. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
           },
         };
       }
@@ -460,7 +460,7 @@ export async function runAgentTurnWithFallback(params: {
           return {
             kind: "final",
             payload: {
-              text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
+              text: "⚠ Message ordering conflict. I've reset the conversation - please try again.",
             },
           };
         }
@@ -506,7 +506,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠️ Session history was corrupted. I've reset the conversation - please try again!",
+            text: "⚠ Session history was corrupted. I've reset the conversation - please try again!",
           },
         };
       }
@@ -514,10 +514,10 @@ export async function runAgentTurnWithFallback(params: {
       defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
       const trimmedMessage = message.replace(/\.\s*$/, "");
       const fallbackText = isContextOverflow
-        ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
+        ? "! Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
-          ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: zee logs --follow`;
+          ? "! Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
+          : `! Agent failed before reply: ${trimmedMessage}.\nLogs: zee logs --follow`;
 
       return {
         kind: "final",
