@@ -3,12 +3,12 @@ import type { Server } from "node:http";
 import express, { type Express } from "express";
 import { danger } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import { isValidMediaId, resolveMediaPath, safeReadFile } from "../security/fs-safe.js";
+import { SafeOpenError, isValidMediaId, openFileWithinRoot } from "../security/fs-safe.js";
 import { detectMime } from "./mime.js";
-import { cleanOldMedia, getMediaDir } from "./store.js";
+import { cleanOldMedia, getMediaDir, MEDIA_MAX_BYTES } from "./store.js";
 
 const DEFAULT_TTL_MS = 2 * 60 * 1000;
-const MAX_MEDIA_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_MEDIA_BYTES = MEDIA_MAX_BYTES;
 
 export function attachMediaRoutes(
   app: Express,
@@ -20,49 +20,65 @@ export function attachMediaRoutes(
   app.get("/media/:id", async (req, res) => {
     const id = req.params.id;
 
-    // Validate media ID format before any filesystem operations
     if (!isValidMediaId(id)) {
-      res.status(400).send("invalid media id");
+      res.status(400).send("invalid path");
       return;
     }
 
     try {
-      // Safely resolve the media path (validates within mediaDir)
-      const filePath = await resolveMediaPath(mediaDir, id);
-
-      // Check expiration before reading (stat via lstat to avoid symlink follow)
-      const lstat = await fs.lstat(filePath);
-      if (Date.now() - lstat.mtimeMs > ttlMs) {
-        await fs.rm(filePath).catch(() => {});
-        res.status(410).send("expired");
-        return;
-      }
-
-      // Safely read file with symlink protection and size limits
-      const result = await safeReadFile(filePath, {
-        maxSize: MAX_MEDIA_SIZE,
+      const { handle, realPath, stat } = await openFileWithinRoot({
         rootDir: mediaDir,
+        relativePath: id,
       });
 
-      const mime = await detectMime({ buffer: result.data, filePath });
-      if (mime) res.type(mime);
-      res.send(result.data);
+      let closed = false;
+      const closeHandle = async () => {
+        if (closed) return;
+        closed = true;
+        await handle.close().catch(() => {});
+      };
 
-      // best-effort single-use cleanup after response ends
-      res.on("finish", () => {
-        setTimeout(() => {
-          fs.rm(filePath).catch(() => {});
-        }, 50);
-      });
-    } catch (err) {
-      const msg = String(err);
-      if (msg.includes("symlink") || msg.includes("traversal") || msg.includes("invalid media")) {
-        res.status(400).send("invalid path");
-      } else if (msg.includes("too large")) {
-        res.status(413).send("file too large");
-      } else {
-        res.status(404).send("not found");
+      try {
+        if (stat.size > MAX_MEDIA_BYTES) {
+          await closeHandle();
+          res.status(413).send("too large");
+          return;
+        }
+
+        if (Date.now() - stat.mtimeMs > ttlMs) {
+          // Close before deletion for better cross-platform behavior.
+          await closeHandle();
+          await fs.rm(realPath).catch(() => {});
+          res.status(410).send("expired");
+          return;
+        }
+
+        const data = await handle.readFile();
+        const mime = await detectMime({ buffer: data, filePath: realPath });
+        if (mime) res.type(mime);
+        res.send(data);
+
+        // best-effort single-use cleanup after response ends
+        res.on("finish", () => {
+          setTimeout(() => {
+            fs.rm(realPath).catch(() => {});
+          }, 50);
+        });
+      } finally {
+        await closeHandle();
       }
+    } catch (err) {
+      if (err instanceof SafeOpenError) {
+        if (err.code === "invalid-path") {
+          res.status(400).send("invalid path");
+          return;
+        }
+        if (err.code === "not-found") {
+          res.status(404).send("not found");
+          return;
+        }
+      }
+      res.status(404).send("not found");
     }
   });
 
