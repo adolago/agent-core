@@ -45,6 +45,7 @@ function buildSandboxBrowserResolvedConfig(params: {
   const cdpHost = "127.0.0.1";
   return {
     enabled: true,
+    evaluateEnabled: true,
     controlUrl,
     controlHost,
     controlPort: params.controlPort,

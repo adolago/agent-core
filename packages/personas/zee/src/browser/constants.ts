@@ -1,4 +1,5 @@
 export const DEFAULT_ZEE_BROWSER_ENABLED = true;
+export const DEFAULT_ZEE_BROWSER_EVALUATE_ENABLED = true;
 export const DEFAULT_ZEE_BROWSER_CONTROL_URL = "http://127.0.0.1:18791";
 export const DEFAULT_ZEE_BROWSER_COLOR = "#FF4500";
 export const DEFAULT_ZEE_BROWSER_PROFILE_NAME = "zee";

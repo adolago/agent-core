@@ -14,6 +14,13 @@ export type BrowserSnapshotDefaults = {
 };
 export type BrowserConfig = {
   enabled?: boolean;
+  /**
+   * When false, disable script evaluation helpers (act:evaluate and wait --fn).
+   * Useful for hardened gateway deployments where arbitrary page evaluation is not allowed.
+   *
+   * Default: true
+   */
+  evaluateEnabled?: boolean;
   /** Base URL of the zee browser control server. Default: http://127.0.0.1:18791 */
   controlUrl?: string;
   /**

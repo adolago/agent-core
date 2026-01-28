@@ -276,6 +276,7 @@ const FIELD_LABELS: Record<string, string> = {
   "ui.assistant.name": "Assistant Name",
   "ui.assistant.avatar": "Assistant Avatar",
   "browser.controlUrl": "Browser Control URL",
+  "browser.evaluateEnabled": "Browser Evaluate Enabled",
   "browser.snapshotDefaults": "Browser Snapshot Defaults",
   "browser.snapshotDefaults.mode": "Browser Snapshot Mode",
   "browser.remoteCdpTimeoutMs": "Remote CDP Timeout (ms)",
@@ -396,6 +397,8 @@ const FIELD_HELP: Record<string, string> = {
   "nodeHost.browserProxy.enabled": "Expose the local browser control server via node proxy.",
   "nodeHost.browserProxy.allowProfiles":
     "Optional allowlist of browser profile names exposed via the node proxy.",
+  "browser.evaluateEnabled":
+    "Allow act:evaluate and wait --fn in the browser control API (default: true).",
   "diagnostics.flags":
     'Enable targeted diagnostics logs by flag (e.g. ["telegram.http"]). Supports wildcards like "telegram.*" or "*".',
   "diagnostics.cacheTrace.enabled":

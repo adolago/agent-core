@@ -7,6 +7,7 @@ import {
   DEFAULT_ZEE_BROWSER_COLOR,
   DEFAULT_ZEE_BROWSER_CONTROL_URL,
   DEFAULT_ZEE_BROWSER_ENABLED,
+  DEFAULT_ZEE_BROWSER_EVALUATE_ENABLED,
   DEFAULT_BROWSER_DEFAULT_PROFILE_NAME,
   DEFAULT_ZEE_BROWSER_PROFILE_NAME,
 } from "./constants.js";
@@ -14,6 +15,7 @@ import { CDP_PORT_RANGE_START, getUsedPorts } from "./profiles.js";
 
 export type ResolvedBrowserConfig = {
   enabled: boolean;
+  evaluateEnabled: boolean;
   controlUrl: string;
   controlHost: string;
   controlPort: number;
@@ -139,6 +141,7 @@ function ensureDefaultChromeExtensionProfile(
 }
 export function resolveBrowserConfig(cfg: BrowserConfig | undefined): ResolvedBrowserConfig {
   const enabled = cfg?.enabled ?? DEFAULT_ZEE_BROWSER_ENABLED;
+  const evaluateEnabled = cfg?.evaluateEnabled ?? DEFAULT_ZEE_BROWSER_EVALUATE_ENABLED;
   const envControlUrl = process.env.ZEE_BROWSER_CONTROL_URL?.trim();
   const controlToken = cfg?.controlToken?.trim() || undefined;
   const derivedControlPort = (() => {
@@ -211,6 +214,7 @@ export function resolveBrowserConfig(cfg: BrowserConfig | undefined): ResolvedBr
 
   return {
     enabled,
+    evaluateEnabled,
     controlUrl: controlInfo.normalized,
     controlHost: controlInfo.parsed.hostname,
     controlPort,

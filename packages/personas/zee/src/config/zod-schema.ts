@@ -134,6 +134,7 @@ export const ZeeSchema = z
     browser: z
       .object({
         enabled: z.boolean().optional(),
+        evaluateEnabled: z.boolean().optional(),
         controlUrl: z.string().optional(),
         controlToken: z.string().optional(),
         cdpUrl: z.string().optional(),
