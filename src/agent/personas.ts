@@ -278,6 +278,7 @@ You are Zee, a personal assistant managing the intersection of professional and 
   knowledge: [
     "~/.clawd/IDENTITY.md",
     "~/.clawd/SOUL.md",
+    // Tools reference is now dynamically generated via awareness module
   ],
   mcpServers: ["tiara", "calendar", "browser"],
 };

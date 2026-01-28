@@ -229,7 +229,12 @@ export namespace PermissionEvaluator {
 
   /**
    * Match a value against a wildcard pattern
-   * Supports trailing * for prefix matching
+   * Supports:
+   * - "*" for universal match
+   * - "prefix*" for prefix matching
+   * - "*suffix" for suffix matching
+   * - "prefix*suffix" for prefix AND suffix matching
+   * - Multiple wildcards are converted to regex (e.g., "a*b*c")
    */
   function wildcardMatch(value: string, pattern: string): boolean {
     // Universal wildcard
@@ -237,16 +242,35 @@ export namespace PermissionEvaluator {
       return true;
     }
 
-    // Trailing wildcard (prefix match)
+    // Check for multiple wildcards - use regex approach
+    const wildcardCount = (pattern.match(/\*/g) || []).length;
+    if (wildcardCount > 1) {
+      // Convert pattern to regex: escape special chars, replace * with .*
+      const escaped = pattern
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*");
+      const regex = new RegExp(`^${escaped}$`);
+      return regex.test(value);
+    }
+
+    // Single trailing wildcard (prefix match)
     if (pattern.endsWith("*")) {
       const prefix = pattern.slice(0, -1);
       return value.startsWith(prefix);
     }
 
-    // Leading wildcard (suffix match)
+    // Single leading wildcard (suffix match)
     if (pattern.startsWith("*")) {
       const suffix = pattern.slice(1);
       return value.endsWith(suffix);
+    }
+
+    // Mid-string single wildcard (prefix AND suffix match)
+    const wildcardIndex = pattern.indexOf("*");
+    if (wildcardIndex !== -1) {
+      const prefix = pattern.slice(0, wildcardIndex);
+      const suffix = pattern.slice(wildcardIndex + 1);
+      return value.startsWith(prefix) && value.endsWith(suffix) && value.length >= prefix.length + suffix.length;
     }
 
     // Exact match

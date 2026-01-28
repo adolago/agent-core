@@ -121,20 +121,21 @@ export class PersistenceManager {
 
   async getAgent(id: string): Promise<PersistedAgent | null> {
     const stmt = this.db.prepare('SELECT * FROM agents WHERE id = ?');
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as Record<string, unknown> | undefined;
 
     if (!row) return null;
 
+    // Explicit type checking to handle schema changes safely
     return {
-      id: row.id,
-      type: row.type,
-      name: row.name,
-      status: row.status,
-      capabilities: row.capabilities,
-      systemPrompt: row.system_prompt,
-      maxConcurrentTasks: row.max_concurrent_tasks,
-      priority: row.priority,
-      createdAt: row.created_at,
+      id: typeof row.id === 'string' ? row.id : String(row.id ?? ''),
+      type: typeof row.type === 'string' ? row.type : String(row.type ?? ''),
+      name: typeof row.name === 'string' ? row.name : String(row.name ?? ''),
+      status: typeof row.status === 'string' ? row.status : String(row.status ?? ''),
+      capabilities: typeof row.capabilities === 'string' ? row.capabilities : String(row.capabilities ?? ''),
+      systemPrompt: typeof row.system_prompt === 'string' ? row.system_prompt : String(row.system_prompt ?? ''),
+      maxConcurrentTasks: typeof row.max_concurrent_tasks === 'number' ? row.max_concurrent_tasks : 1,
+      priority: typeof row.priority === 'number' ? row.priority : 0,
+      createdAt: typeof row.created_at === 'number' ? row.created_at : Date.now(),
     };
   }
 
@@ -142,18 +143,18 @@ export class PersistenceManager {
     const stmt = this.db.prepare(
       "SELECT * FROM agents WHERE status IN ('active', 'idle') ORDER BY created_at DESC",
     );
-    const rows = stmt.all() as any[];
+    const rows = stmt.all() as Record<string, unknown>[];
 
     return rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      name: row.name,
-      status: row.status,
-      capabilities: row.capabilities,
-      systemPrompt: row.system_prompt,
-      maxConcurrentTasks: row.max_concurrent_tasks,
-      priority: row.priority,
-      createdAt: row.created_at,
+      id: typeof row.id === 'string' ? row.id : String(row.id ?? ''),
+      type: typeof row.type === 'string' ? row.type : String(row.type ?? ''),
+      name: typeof row.name === 'string' ? row.name : String(row.name ?? ''),
+      status: typeof row.status === 'string' ? row.status : String(row.status ?? ''),
+      capabilities: typeof row.capabilities === 'string' ? row.capabilities : String(row.capabilities ?? ''),
+      systemPrompt: typeof row.system_prompt === 'string' ? row.system_prompt : String(row.system_prompt ?? ''),
+      maxConcurrentTasks: typeof row.max_concurrent_tasks === 'number' ? row.max_concurrent_tasks : 1,
+      priority: typeof row.priority === 'number' ? row.priority : 0,
+      createdAt: typeof row.created_at === 'number' ? row.created_at : Date.now(),
     }));
   }
 
