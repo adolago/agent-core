@@ -66,17 +66,23 @@ describe("SessionProcessor", () => {
 
           const { SessionProcessor } = await import("../../src/session/processor")
           const controller = new AbortController()
+          const mockModel = {
+            providerID: "mock",
+            id: "mock-model",
+            name: "mock-model",
+            capabilities: { reasoning: false },
+          } as any
           const processor = SessionProcessor.create({
             assistantMessage: assistant,
             sessionID: session.id,
-            model: { providerID: "mock", id: "mock-model", name: "mock-model" } as any,
+            model: mockModel,
             abort: controller.signal,
           })
 
           const result = await processor.process({
             user,
             sessionID: session.id,
-            model: { providerID: "mock", id: "mock-model", name: "mock-model" } as any,
+            model: mockModel,
             agent: { name: "zee" } as any,
             system: [],
             messages: [],

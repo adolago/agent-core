@@ -14,7 +14,7 @@ describe("Carousel Spinner Animation", () => {
     expect(frames.length).toBe(13)
   })
 
-  test("blocks enter from left one-by-one", () => {
+  test("blocks enter from right one-by-one", () => {
     const frames = createFrames({
       animation: "carousel",
       width: 10,
@@ -23,13 +23,13 @@ describe("Carousel Spinner Animation", () => {
     })
 
     // Enter phase: frames 0-3
-    expect(frames[0]).toBe("■⬝⬝⬝⬝⬝⬝⬝⬝⬝") // 1 block
-    expect(frames[1]).toBe("■■⬝⬝⬝⬝⬝⬝⬝⬝") // 2 blocks
-    expect(frames[2]).toBe("■■■⬝⬝⬝⬝⬝⬝⬝") // 3 blocks
-    expect(frames[3]).toBe("■■■■⬝⬝⬝⬝⬝⬝") // 4 blocks (full group)
+    expect(frames[0]).toBe("⬝⬝⬝⬝⬝⬝⬝⬝⬝■") // 1 block
+    expect(frames[1]).toBe("⬝⬝⬝⬝⬝⬝⬝⬝■■") // 2 blocks
+    expect(frames[2]).toBe("⬝⬝⬝⬝⬝⬝⬝■■■") // 3 blocks
+    expect(frames[3]).toBe("⬝⬝⬝⬝⬝⬝■■■■") // 4 blocks (full group)
   })
 
-  test("full group traverses left-to-right", () => {
+  test("full group traverses right-to-left", () => {
     const frames = createFrames({
       animation: "carousel",
       width: 10,
@@ -37,15 +37,15 @@ describe("Carousel Spinner Animation", () => {
       style: "blocks",
     })
 
-    // Traverse phase: group slides right
-    expect(frames[3]).toBe("■■■■⬝⬝⬝⬝⬝⬝") // leftmost at 0
-    expect(frames[4]).toBe("⬝■■■■⬝⬝⬝⬝⬝") // leftmost at 1
-    expect(frames[5]).toBe("⬝⬝■■■■⬝⬝⬝⬝") // leftmost at 2
-    expect(frames[6]).toBe("⬝⬝⬝■■■■⬝⬝⬝") // leftmost at 3
-    expect(frames[9]).toBe("⬝⬝⬝⬝⬝⬝■■■■") // rightmost at 9
+    // Traverse phase: group slides left
+    expect(frames[3]).toBe("⬝⬝⬝⬝⬝⬝■■■■") // rightmost at 9
+    expect(frames[4]).toBe("⬝⬝⬝⬝⬝■■■■⬝") // head at 5
+    expect(frames[5]).toBe("⬝⬝⬝⬝■■■■⬝⬝") // head at 4
+    expect(frames[6]).toBe("⬝⬝⬝■■■■⬝⬝⬝") // head at 3
+    expect(frames[9]).toBe("■■■■⬝⬝⬝⬝⬝⬝") // leftmost at 0
   })
 
-  test("blocks exit on right one-by-one", () => {
+  test("blocks exit on left one-by-one", () => {
     const frames = createFrames({
       animation: "carousel",
       width: 10,
@@ -54,10 +54,10 @@ describe("Carousel Spinner Animation", () => {
     })
 
     // Exit phase: frames 9-12
-    expect(frames[9]).toBe("⬝⬝⬝⬝⬝⬝■■■■")  // 4 blocks at right edge
-    expect(frames[10]).toBe("⬝⬝⬝⬝⬝⬝⬝■■■") // 3 blocks (1 exited)
-    expect(frames[11]).toBe("⬝⬝⬝⬝⬝⬝⬝⬝■■") // 2 blocks (2 exited)
-    expect(frames[12]).toBe("⬝⬝⬝⬝⬝⬝⬝⬝⬝■") // 1 block (3 exited)
+    expect(frames[9]).toBe("■■■■⬝⬝⬝⬝⬝⬝")  // 4 blocks at left edge
+    expect(frames[10]).toBe("■■■⬝⬝⬝⬝⬝⬝⬝") // 3 blocks (1 exited)
+    expect(frames[11]).toBe("■■⬝⬝⬝⬝⬝⬝⬝⬝") // 2 blocks (2 exited)
+    expect(frames[12]).toBe("■⬝⬝⬝⬝⬝⬝⬝⬝⬝") // 1 block (3 exited)
   })
 
   test("each frame has correct number of active blocks", () => {

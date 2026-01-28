@@ -1,5 +1,6 @@
 import { $ } from "bun"
 import * as fs from "fs/promises"
+import { randomUUID } from "node:crypto"
 import os from "os"
 import path from "path"
 import type { Config } from "../../src/config/config"
@@ -15,8 +16,21 @@ type TmpDirOptions<T> = {
   init?: (dir: string) => Promise<T>
   dispose?: (dir: string) => Promise<T>
 }
-export async function tmpdir<T>(options?: TmpDirOptions<T>) {
-  const dirpath = sanitizePath(path.join(os.tmpdir(), "opencode-test-" + Math.random().toString(36).slice(2)))
+const hasNullByte = (value: unknown) => typeof value === "string" && value.includes("\0")
+const skipNullPathBug = Bun.version === "1.3.5"
+const shouldIgnoreNullBytePathError = (error: unknown) => {
+  if (!error || typeof error !== "object") return false
+  const code = (error as any).code
+  const pathValue = (error as any).path
+  const message = (error as any).message
+  return code === "ENOENT" && (hasNullByte(pathValue) || hasNullByte(message))
+}
+
+async function createTmpdir<T>(options: TmpDirOptions<T> | undefined) {
+  const baseDir = process.env["AGENT_CORE_TEST_HOME"] ?? os.tmpdir()
+  const rootDir = path.join(baseDir, "tmp")
+  await fs.mkdir(rootDir, { recursive: true })
+  const dirpath = sanitizePath(path.join(rootDir, "opencode-test-" + randomUUID()))
   await fs.mkdir(dirpath, { recursive: true })
   if (options?.git) {
     await $`git init`.cwd(dirpath).quiet()
@@ -32,14 +46,37 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
     )
   }
   const extra = await options?.init?.(dirpath)
-  const realpath = sanitizePath(await fs.realpath(dirpath))
+  let realpath = dirpath
+  try {
+    realpath = sanitizePath(await fs.realpath(dirpath))
+  } catch {
+    realpath = dirpath
+  }
   const result = {
     [Symbol.asyncDispose]: async () => {
-      await options?.dispose?.(dirpath)
-      await fs.rm(dirpath, { recursive: true, force: true })
+      try {
+        await options?.dispose?.(dirpath)
+      } catch (error) {
+        if (!shouldIgnoreNullBytePathError(error)) throw error
+      }
+      if (skipNullPathBug) return
+      try {
+        await fs.rm(dirpath, { recursive: true, force: true })
+      } catch (error) {
+        if (!shouldIgnoreNullBytePathError(error)) throw error
+      }
     },
     path: realpath,
     extra: extra as T,
   }
   return result
+}
+
+export async function tmpdir<T>(options?: TmpDirOptions<T>) {
+  try {
+    return await createTmpdir(options)
+  } catch (error) {
+    if (!shouldIgnoreNullBytePathError(error)) throw error
+    return await createTmpdir(options)
+  }
 }

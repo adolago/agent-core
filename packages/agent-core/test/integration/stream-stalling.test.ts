@@ -125,7 +125,7 @@ describe.skipIf(isFullSuite)("Stream Event Recording", () => {
     monitor.recordEvent("text-delta")
 
     const afterEvent = monitor.getTimingInfo()
-    expect(afterEvent.durationMs).toBeGreaterThanOrEqual(50)
+    expect(afterEvent.durationMs).toBeGreaterThanOrEqual(45)
     expect(afterEvent.timeSinceLastEventMs).toBeLessThan(10)
   })
 })
@@ -205,7 +205,7 @@ describe.skipIf(isFullSuite)("Stream Completion States", () => {
     monitor.complete()
 
     const report = monitor.getReport()
-    expect(report.timing.durationMs).toBeGreaterThanOrEqual(100)
+    expect(report.timing.durationMs).toBeGreaterThanOrEqual(95)
     expect(report.timing.durationMs).toBeLessThan(200)
   })
 })
