@@ -6,7 +6,6 @@ metadata:
   {
     "zee":
       {
-        "emoji": "💾",
         "events": ["command:new"],
         "requires": { "config": ["workspace.dir"] },
         "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Zee" }],

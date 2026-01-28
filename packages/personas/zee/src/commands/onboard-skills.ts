@@ -126,7 +126,7 @@ export async function setupSkills(
         },
         ...installable.map((skill) => ({
           value: skill.name,
-          label: `${skill.emoji ?? "🧩"} ${skill.name}`,
+          label: `${skill.emoji ?? "▸"} ${skill.name}`,
           hint: formatSkillHint(skill),
         })),
       ],

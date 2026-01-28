@@ -4,7 +4,7 @@ This directory contains hooks that ship with Zee. These hooks are automatically 
 
 ## Available Hooks
 
-### 💾 session-memory
+### session-memory
 
 Automatically saves session context to memory when you issue `/new`.
 
@@ -18,7 +18,7 @@ Automatically saves session context to memory when you issue `/new`.
 zee hooks enable session-memory
 ```
 
-### 📝 command-logger
+### command-logger
 
 Logs all command events to a centralized audit file.
 
@@ -32,7 +32,7 @@ Logs all command events to a centralized audit file.
 zee hooks enable command-logger
 ```
 
-### 😈 soul-evil
+### soul-evil
 
 Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by random chance.
 
@@ -47,7 +47,7 @@ Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by
 zee hooks enable soul-evil
 ```
 
-### 🚀 boot-md
+### boot-md
 
 Runs `BOOT.md` whenever the gateway starts (after channels start).
 
@@ -203,7 +203,7 @@ const myHandler: HookHandler = async (event) => {
   console.log("New command triggered!");
 
   // Optionally send message to user
-  event.messages.push("✨ Hook executed!");
+  event.messages.push("Hook executed!");
 };
 
 export default myHandler;

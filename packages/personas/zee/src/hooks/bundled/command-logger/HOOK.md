@@ -6,7 +6,6 @@ metadata:
   {
     "zee":
       {
-        "emoji": "📝",
         "events": ["command"],
         "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Zee" }],
       },

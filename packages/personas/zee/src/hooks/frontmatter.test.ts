@@ -42,7 +42,6 @@ description: "Save session context"
 metadata:
   {
     "zee": {
-      "emoji": "💾",
       "events": ["command:new"]
     }
   }
@@ -58,7 +57,6 @@ metadata:
 
     // Verify the metadata is valid JSON
     const parsed = JSON.parse(result.metadata as string);
-    expect(parsed.zee.emoji).toBe("💾");
     expect(parsed.zee.events).toEqual(["command:new"]);
   });
 
@@ -70,7 +68,6 @@ metadata:
   {
     "zee":
       {
-        "emoji": "📝",
         "events": ["command"],
         "requires": { "config": ["workspace.dir"] },
         "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled" }]
@@ -83,7 +80,6 @@ metadata:
     expect(result.metadata).toBeDefined();
 
     const parsed = JSON.parse(result.metadata as string);
-    expect(parsed.zee.emoji).toBe("📝");
     expect(parsed.zee.events).toEqual(["command"]);
     expect(parsed.zee.requires.config).toEqual(["workspace.dir"]);
     expect(parsed.zee.install[0].kind).toBe("bundled");
@@ -154,7 +150,6 @@ describe("resolveZeeMetadata", () => {
       name: "test-hook",
       metadata: JSON.stringify({
         zee: {
-          emoji: "🔥",
           events: ["command:new", "command:reset"],
           requires: {
             config: ["workspace.dir"],
@@ -166,7 +161,6 @@ describe("resolveZeeMetadata", () => {
 
     const result = resolveZeeMetadata(frontmatter);
     expect(result).toBeDefined();
-    expect(result?.emoji).toBe("🔥");
     expect(result?.events).toEqual(["command:new", "command:reset"]);
     expect(result?.requires?.config).toEqual(["workspace.dir"]);
     expect(result?.requires?.bins).toEqual(["git"]);
@@ -238,7 +232,6 @@ metadata:
   {
     "zee":
       {
-        "emoji": "💾",
         "events": ["command:new"],
         "requires": { "config": ["workspace.dir"] },
         "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Zee" }],
@@ -255,7 +248,6 @@ metadata:
 
     const zee = resolveZeeMetadata(frontmatter);
     expect(zee).toBeDefined();
-    expect(zee?.emoji).toBe("💾");
     expect(zee?.events).toEqual(["command:new"]);
     expect(zee?.requires?.config).toEqual(["workspace.dir"]);
     expect(zee?.install?.[0].kind).toBe("bundled");

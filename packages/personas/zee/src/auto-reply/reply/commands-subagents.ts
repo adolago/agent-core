@@ -84,7 +84,7 @@ function resolveSubagentTarget(
 
 function buildSubagentsHelp() {
   return [
-    "🧭 Subagents",
+    "> Subagents",
     "Usage:",
     "- /subagents list",
     "- /subagents stop <id|#|all>",
@@ -172,7 +172,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
 
   const requesterKey = resolveRequesterSessionKey(params);
   if (!requesterKey) {
-    return { shouldContinue: false, reply: { text: "⚠️ Missing session key." } };
+    return { shouldContinue: false, reply: { text: "⚠ Missing session key." } };
   }
   const runs = listSubagentRunsForRequester(requesterKey);
 
@@ -182,12 +182,12 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
 
   if (action === "list") {
     if (runs.length === 0) {
-      return { shouldContinue: false, reply: { text: "🧭 Subagents: none for this session." } };
+      return { shouldContinue: false, reply: { text: "▸ Subagents: none for this session." } };
     }
     const sorted = sortSubagentRuns(runs);
     const active = sorted.filter((entry) => !entry.endedAt);
     const done = sorted.length - active.length;
-    const lines = ["🧭 Subagents (current session)", `Active: ${active.length} · Done: ${done}`];
+    const lines = ["> Subagents (current session)", `Active: ${active.length} · Done: ${done}`];
     sorted.forEach((entry, index) => {
       const status = formatRunStatus(entry);
       const label = formatRunLabel(entry);
@@ -206,7 +206,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
   if (action === "stop") {
     const target = restTokens[0];
     if (!target) {
-      return { shouldContinue: false, reply: { text: "⚙️ Usage: /subagents stop <id|#|all>" } };
+      return { shouldContinue: false, reply: { text: "▸ Usage: /subagents stop <id|#|all>" } };
     }
     if (target === "all" || target === "*") {
       const { stopped } = stopSubagentsForRequester({
@@ -216,20 +216,20 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       const label = stopped === 1 ? "subagent" : "subagents";
       return {
         shouldContinue: false,
-        reply: { text: `⚙️ Stopped ${stopped} ${label}.` },
+        reply: { text: `▸ Stopped ${stopped} ${label}.` },
       };
     }
     const resolved = resolveSubagentTarget(runs, target);
     if (!resolved.entry) {
       return {
         shouldContinue: false,
-        reply: { text: `⚠️ ${resolved.error ?? "Unknown subagent."}` },
+        reply: { text: `⚠ ${resolved.error ?? "Unknown subagent."}` },
       };
     }
     if (resolved.entry.endedAt) {
       return {
         shouldContinue: false,
-        reply: { text: "⚙️ Subagent already finished." },
+        reply: { text: "▸ Subagent already finished." },
       };
     }
 
@@ -255,20 +255,20 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
     }
     return {
       shouldContinue: false,
-      reply: { text: `⚙️ Stop requested for ${formatRunLabel(resolved.entry)}.` },
+      reply: { text: `▸ Stop requested for ${formatRunLabel(resolved.entry)}.` },
     };
   }
 
   if (action === "info") {
     const target = restTokens[0];
     if (!target) {
-      return { shouldContinue: false, reply: { text: "ℹ️ Usage: /subagents info <id|#>" } };
+      return { shouldContinue: false, reply: { text: "Info: Usage: /subagents info <id|#>" } };
     }
     const resolved = resolveSubagentTarget(runs, target);
     if (!resolved.entry) {
       return {
         shouldContinue: false,
-        reply: { text: `⚠️ ${resolved.error ?? "Unknown subagent."}` },
+        reply: { text: `⚠ ${resolved.error ?? "Unknown subagent."}` },
       };
     }
     const run = resolved.entry;
@@ -281,7 +281,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       ? `${run.outcome.status}${run.outcome.error ? ` (${run.outcome.error})` : ""}`
       : "n/a";
     const lines = [
-      "ℹ️ Subagent info",
+      "Info: Subagent info",
       `Status: ${formatRunStatus(run)}`,
       `Label: ${formatRunLabel(run)}`,
       `Task: ${run.task}`,
@@ -304,7 +304,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
   if (action === "log") {
     const target = restTokens[0];
     if (!target) {
-      return { shouldContinue: false, reply: { text: "📜 Usage: /subagents log <id|#> [limit]" } };
+      return { shouldContinue: false, reply: { text: "Log: Usage: /subagents log <id|#> [limit]" } };
     }
     const includeTools = restTokens.some((token) => token.toLowerCase() === "tools");
     const limitToken = restTokens.find((token) => /^\d+$/.test(token));
@@ -313,7 +313,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
     if (!resolved.entry) {
       return {
         shouldContinue: false,
-        reply: { text: `⚠️ ${resolved.error ?? "Unknown subagent."}` },
+        reply: { text: `⚠ ${resolved.error ?? "Unknown subagent."}` },
       };
     }
     const history = (await callGateway({
@@ -323,7 +323,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
     const rawMessages = Array.isArray(history?.messages) ? history.messages : [];
     const filtered = includeTools ? rawMessages : stripToolMessages(rawMessages);
     const lines = formatLogLines(filtered as ChatMessage[]);
-    const header = `📜 Subagent log: ${formatRunLabel(resolved.entry)}`;
+    const header = `Log: Subagent log: ${formatRunLabel(resolved.entry)}`;
     if (lines.length === 0) {
       return { shouldContinue: false, reply: { text: `${header}\n(no messages)` } };
     }
@@ -336,14 +336,14 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
     if (!target || !message) {
       return {
         shouldContinue: false,
-        reply: { text: "✉️ Usage: /subagents send <id|#> <message>" },
+        reply: { text: "Send: Usage: /subagents send <id|#> <message>" },
       };
     }
     const resolved = resolveSubagentTarget(runs, target);
     if (!resolved.entry) {
       return {
         shouldContinue: false,
-        reply: { text: `⚠️ ${resolved.error ?? "Unknown subagent."}` },
+        reply: { text: `⚠ ${resolved.error ?? "Unknown subagent."}` },
       };
     }
     const idempotencyKey = crypto.randomUUID();
@@ -365,7 +365,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
     } catch (err) {
       const messageText =
         err instanceof Error ? err.message : typeof err === "string" ? err : "error";
-      return { shouldContinue: false, reply: { text: `⚠️ Send failed: ${messageText}` } };
+      return { shouldContinue: false, reply: { text: `⚠ Send failed: ${messageText}` } };
     }
 
     const waitMs = 30_000;
@@ -384,7 +384,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       return {
         shouldContinue: false,
         reply: {
-          text: `⚠️ Subagent error: ${wait.error ?? "unknown error"} (run ${runId.slice(0, 8)}).`,
+          text: `⚠ Subagent error: ${wait.error ?? "unknown error"} (run ${runId.slice(0, 8)}).`,
         },
       };
     }
@@ -400,7 +400,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       shouldContinue: false,
       reply: {
         text:
-          replyText ?? `✅ Sent to ${formatRunLabel(resolved.entry)} (run ${runId.slice(0, 8)}).`,
+          replyText ?? `+ Sent to ${formatRunLabel(resolved.entry)} (run ${runId.slice(0, 8)}).`,
       },
     };
   }

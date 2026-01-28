@@ -105,7 +105,7 @@ describe("sandboxListCommand", () => {
 
       await sandboxListCommand({ browser: false, json: false }, runtime as never);
 
-      expectLogContains(runtime, "📦 Sandbox Containers");
+      expectLogContains(runtime, "* Sandbox Containers");
       expectLogContains(runtime, container1.containerName);
       expectLogContains(runtime, container2.containerName);
       expectLogContains(runtime, "Total");
@@ -117,7 +117,7 @@ describe("sandboxListCommand", () => {
 
       await sandboxListCommand({ browser: true, json: false }, runtime as never);
 
-      expectLogContains(runtime, "🌐 Sandbox Browser Containers");
+      expectLogContains(runtime, "Browser Sandbox Browser Containers");
       expectLogContains(runtime, browser.containerName);
       expectLogContains(runtime, String(browser.cdpPort));
     });
@@ -128,7 +128,7 @@ describe("sandboxListCommand", () => {
 
       await sandboxListCommand({ browser: false, json: false }, runtime as never);
 
-      expectLogContains(runtime, "⚠️");
+      expectLogContains(runtime, "!");
       expectLogContains(runtime, "image mismatch");
       expectLogContains(runtime, "zee sandbox recreate --all");
     });

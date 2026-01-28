@@ -30,7 +30,7 @@ describe("tool meta formatting", () => {
       "note",
       "a→b",
     ]);
-    expect(out).toMatch(/^🧩 Fs/);
+    expect(out).toMatch(/^▸ Fs/);
     expect(out).toContain("~/dir/{a.txt, b.txt}");
     expect(out).toContain("note");
     expect(out).toContain("a→b");
@@ -47,12 +47,12 @@ describe("tool meta formatting", () => {
     const out = formatToolAggregate("exec", ["cd /Users/test/dir && gemini 2>&1 · elevated"], {
       markdown: true,
     });
-    expect(out).toBe("🛠️ Exec: elevated · `cd ~/dir && gemini 2>&1`");
+    expect(out).toBe("▸ Exec: elevated · `cd ~/dir && gemini 2>&1`");
   });
 
   it("formats prefixes with default labels", () => {
     vi.stubEnv("HOME", "/Users/test");
-    expect(formatToolPrefix(undefined, undefined)).toBe("🧩 Tool");
-    expect(formatToolPrefix("x", "/Users/test/a.txt")).toBe("🧩 X: ~/a.txt");
+    expect(formatToolPrefix(undefined, undefined)).toBe("▸ Tool");
+    expect(formatToolPrefix("x", "/Users/test/a.txt")).toBe("▸ X: ~/a.txt");
   });
 });

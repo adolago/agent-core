@@ -35,12 +35,12 @@ function appendZeeHubHint(output: string, json?: boolean): string {
 function formatSkillStatus(skill: SkillStatusEntry): string {
   if (skill.eligible) return theme.success("✓ ready");
   if (skill.disabled) return theme.warn("⏸ disabled");
-  if (skill.blockedByAllowlist) return theme.warn("🚫 blocked");
+  if (skill.blockedByAllowlist) return theme.warn("x blocked");
   return theme.error("✗ missing");
 }
 
 function formatSkillName(skill: SkillStatusEntry): string {
-  const emoji = skill.emoji ?? "📦";
+  const emoji = skill.emoji ?? "*";
   return `${emoji} ${theme.command(skill.name)}`;
 }
 
@@ -160,13 +160,13 @@ export function formatSkillInfo(
   }
 
   const lines: string[] = [];
-  const emoji = skill.emoji ?? "📦";
+  const emoji = skill.emoji ?? "*";
   const status = skill.eligible
     ? theme.success("✓ Ready")
     : skill.disabled
       ? theme.warn("⏸ Disabled")
       : skill.blockedByAllowlist
-        ? theme.warn("🚫 Blocked by allowlist")
+        ? theme.warn("x Blocked by allowlist")
         : theme.error("✗ Missing requirements");
 
   lines.push(`${emoji} ${theme.heading(skill.name)} ${status}`);
@@ -287,14 +287,14 @@ export function formatSkillsCheck(report: SkillStatusReport, opts: SkillsCheckOp
   lines.push(`${theme.muted("Total:")} ${report.skills.length}`);
   lines.push(`${theme.success("✓")} ${theme.muted("Eligible:")} ${eligible.length}`);
   lines.push(`${theme.warn("⏸")} ${theme.muted("Disabled:")} ${disabled.length}`);
-  lines.push(`${theme.warn("🚫")} ${theme.muted("Blocked by allowlist:")} ${blocked.length}`);
+  lines.push(`${theme.warn("x")} ${theme.muted("Blocked by allowlist:")} ${blocked.length}`);
   lines.push(`${theme.error("✗")} ${theme.muted("Missing requirements:")} ${missingReqs.length}`);
 
   if (eligible.length > 0) {
     lines.push("");
     lines.push(theme.heading("Ready to use:"));
     for (const skill of eligible) {
-      const emoji = skill.emoji ?? "📦";
+      const emoji = skill.emoji ?? "*";
       lines.push(`  ${emoji} ${skill.name}`);
     }
   }
@@ -303,7 +303,7 @@ export function formatSkillsCheck(report: SkillStatusReport, opts: SkillsCheckOp
     lines.push("");
     lines.push(theme.heading("Missing requirements:"));
     for (const skill of missingReqs) {
-      const emoji = skill.emoji ?? "📦";
+      const emoji = skill.emoji ?? "*";
       const missing: string[] = [];
       if (skill.missing.bins.length > 0) {
         missing.push(`bins: ${skill.missing.bins.join(", ")}`);
