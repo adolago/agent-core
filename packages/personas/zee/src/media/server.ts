@@ -1,13 +1,14 @@
 import fs from "node:fs/promises";
 import type { Server } from "node:http";
-import path from "node:path";
 import express, { type Express } from "express";
 import { danger } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { isValidMediaId, resolveMediaPath, safeReadFile } from "../security/fs-safe.js";
 import { detectMime } from "./mime.js";
 import { cleanOldMedia, getMediaDir } from "./store.js";
 
 const DEFAULT_TTL_MS = 2 * 60 * 1000;
+const MAX_MEDIA_SIZE = 50 * 1024 * 1024; // 50MB
 
 export function attachMediaRoutes(
   app: Express,
@@ -18,37 +19,50 @@ export function attachMediaRoutes(
 
   app.get("/media/:id", async (req, res) => {
     const id = req.params.id;
-    const mediaRoot = (await fs.realpath(mediaDir)) + path.sep;
-    const file = path.resolve(mediaRoot, id);
+
+    // Validate media ID format before any filesystem operations
+    if (!isValidMediaId(id)) {
+      res.status(400).send("invalid media id");
+      return;
+    }
+
     try {
-      const lstat = await fs.lstat(file);
-      if (lstat.isSymbolicLink()) {
-        res.status(400).send("invalid path");
-        return;
-      }
-      const realPath = await fs.realpath(file);
-      if (!realPath.startsWith(mediaRoot)) {
-        res.status(400).send("invalid path");
-        return;
-      }
-      const stat = await fs.stat(realPath);
-      if (Date.now() - stat.mtimeMs > ttlMs) {
-        await fs.rm(realPath).catch(() => {});
+      // Safely resolve the media path (validates within mediaDir)
+      const filePath = await resolveMediaPath(mediaDir, id);
+
+      // Check expiration before reading (stat via lstat to avoid symlink follow)
+      const lstat = await fs.lstat(filePath);
+      if (Date.now() - lstat.mtimeMs > ttlMs) {
+        await fs.rm(filePath).catch(() => {});
         res.status(410).send("expired");
         return;
       }
-      const data = await fs.readFile(realPath);
-      const mime = await detectMime({ buffer: data, filePath: realPath });
+
+      // Safely read file with symlink protection and size limits
+      const result = await safeReadFile(filePath, {
+        maxSize: MAX_MEDIA_SIZE,
+        rootDir: mediaDir,
+      });
+
+      const mime = await detectMime({ buffer: result.data, filePath });
       if (mime) res.type(mime);
-      res.send(data);
+      res.send(result.data);
+
       // best-effort single-use cleanup after response ends
       res.on("finish", () => {
         setTimeout(() => {
-          fs.rm(realPath).catch(() => {});
+          fs.rm(filePath).catch(() => {});
         }, 50);
       });
-    } catch {
-      res.status(404).send("not found");
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes("symlink") || msg.includes("traversal") || msg.includes("invalid media")) {
+        res.status(400).send("invalid path");
+      } else if (msg.includes("too large")) {
+        res.status(413).send("file too large");
+      } else {
+        res.status(404).send("not found");
+      }
     }
   });
 

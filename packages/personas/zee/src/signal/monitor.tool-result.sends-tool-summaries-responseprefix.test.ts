@@ -390,7 +390,7 @@ describe("monitorSignalProvider tool results", () => {
           sourceName: "Ada",
           timestamp: 1,
           reactionMessage: {
-            emoji: "✅",
+            emoji: "+",
             targetAuthor: "+15550002222",
             targetSentTimestamp: 2,
           },
@@ -445,7 +445,7 @@ describe("monitorSignalProvider tool results", () => {
           sourceName: "Ada",
           timestamp: 1,
           reactionMessage: {
-            emoji: "✅",
+            emoji: "+",
             targetAuthor: "+15550002222",
             targetAuthorUuid: "123e4567-e89b-12d3-a456-426614174000",
             targetSentTimestamp: 2,

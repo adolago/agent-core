@@ -149,14 +149,14 @@ describe("web outbound", () => {
   });
 
   it("sends reactions via active listener", async () => {
-    await sendReactionWhatsApp("1555@s.whatsapp.net", "msg123", "✅", {
+    await sendReactionWhatsApp("1555@s.whatsapp.net", "msg123", "+", {
       verbose: false,
       fromMe: false,
     });
     expect(sendReaction).toHaveBeenCalledWith(
       "1555@s.whatsapp.net",
       "msg123",
-      "✅",
+      "+",
       false,
       undefined,
     );

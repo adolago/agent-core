@@ -267,7 +267,7 @@ async function handleDiscordCommandArgInteraction(
   }
   const updated = await safeDiscordInteractionCall("command arg update", () =>
     interaction.update({
-      content: `✅ Selected ${parsed.value}.`,
+      content: `+ Selected ${parsed.value}.`,
       components: [],
     }),
   );

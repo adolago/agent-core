@@ -65,7 +65,7 @@ describe.skip("resolveHeartbeatIntervalMs", () => {
         ),
       );
 
-      replySpy.mockResolvedValue({ text: "HEARTBEAT_OK 🦞" });
+      replySpy.mockResolvedValue({ text: "HEARTBEAT_OK *" });
       const sendWhatsApp = vi.fn().mockResolvedValue({
         messageId: "m1",
         toJid: "jid",

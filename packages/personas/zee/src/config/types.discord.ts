@@ -8,7 +8,7 @@ import type {
 } from "./types.base.js";
 import type { ChannelHeartbeatVisibilityConfig } from "./types.channels.js";
 import type { DmConfig, ProviderCommandsConfig } from "./types.messages.js";
-import type { GroupToolPolicyConfig } from "./types.tools.js";
+import type { GroupToolPolicyConfig, SenderToolPolicyConfig } from "./types.tools.js";
 
 export type DiscordDmConfig = {
   /** If false, ignore all incoming Discord DMs. Default: true. */
@@ -28,6 +28,8 @@ export type DiscordGuildChannelConfig = {
   requireMention?: boolean;
   /** Optional tool policy overrides for this channel. */
   tools?: GroupToolPolicyConfig;
+  /** Per-sender tool policy overrides within this channel (keyed by user id or name). */
+  senders?: Record<string, SenderToolPolicyConfig>;
   /** If specified, only load these skills for this channel. Omit = all skills; empty = no skills. */
   skills?: string[];
   /** If false, disable the bot for this channel. */

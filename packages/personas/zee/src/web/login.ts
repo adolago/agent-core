@@ -22,7 +22,7 @@ export async function loginWeb(
   logInfo("Waiting for WhatsApp connection...", runtime);
   try {
     await wait(sock);
-    console.log(success("✅ Linked! Credentials saved for future sends."));
+    console.log(success("+ Linked! Credentials saved for future sends."));
   } catch (err) {
     const code =
       (err as { error?: { output?: { statusCode?: number } } })?.error?.output?.statusCode ??
@@ -43,7 +43,7 @@ export async function loginWeb(
       });
       try {
         await wait(retry);
-        console.log(success("✅ Linked after restart; web session ready."));
+        console.log(success("+ Linked after restart; web session ready."));
         return;
       } finally {
         setTimeout(() => retry.ws?.close(), 500);

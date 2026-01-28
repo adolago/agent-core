@@ -501,7 +501,7 @@ describe.skip("runCronIsolatedAgentTurn", () => {
       };
       // Short junk around HEARTBEAT_OK (<=30 chars) should still skip delivery.
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
-        payloads: [{ text: "HEARTBEAT_OK 🦞" }],
+        payloads: [{ text: "HEARTBEAT_OK *" }],
         meta: {
           durationMs: 5,
           agentMeta: { sessionId: "s", provider: "p", model: "m" },

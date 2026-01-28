@@ -586,7 +586,7 @@ export const registerTelegramHandlers = ({
         if (errMsg.includes("exceeds") && errMsg.includes("MB limit")) {
           const limitMb = Math.round(mediaMaxBytes / (1024 * 1024));
           await bot.api
-            .sendMessage(chatId, `⚠️ File too large. Maximum size is ${limitMb}MB.`, {
+            .sendMessage(chatId, `! File too large. Maximum size is ${limitMb}MB.`, {
               reply_to_message_id: msg.message_id,
             })
             .catch(() => {});

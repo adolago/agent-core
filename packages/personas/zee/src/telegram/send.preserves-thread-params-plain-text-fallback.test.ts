@@ -244,12 +244,12 @@ describe("reactMessageTelegram", () => {
       setMessageReaction: typeof setMessageReaction;
     };
 
-    await reactMessageTelegram("telegram:123", "456", "✅", {
+    await reactMessageTelegram("telegram:123", "456", "+", {
       token: "tok",
       api,
     });
 
-    expect(setMessageReaction).toHaveBeenCalledWith("123", 456, [{ type: "emoji", emoji: "✅" }]);
+    expect(setMessageReaction).toHaveBeenCalledWith("123", 456, [{ type: "emoji", emoji: "+" }]);
   });
 
   it("removes reactions when emoji is empty", async () => {
@@ -272,7 +272,7 @@ describe("reactMessageTelegram", () => {
       setMessageReaction: typeof setMessageReaction;
     };
 
-    await reactMessageTelegram("123", 456, "✅", {
+    await reactMessageTelegram("123", 456, "+", {
       token: "tok",
       api,
       remove: true,

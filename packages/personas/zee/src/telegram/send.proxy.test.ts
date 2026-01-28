@@ -205,7 +205,7 @@ describe.skip("telegram proxy client", () => {
     makeProxyFetch.mockReturnValue(proxyFetch as unknown as typeof fetch);
     resolveTelegramFetch.mockReturnValue(fetchImpl as unknown as typeof fetch);
 
-    await reactMessageTelegram("123", "456", "✅", { token: "tok", accountId: "foo" });
+    await reactMessageTelegram("123", "456", "+", { token: "tok", accountId: "foo" });
 
     expect(makeProxyFetch).toHaveBeenCalledWith(proxyUrl);
     expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch);

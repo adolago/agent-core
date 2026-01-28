@@ -14,13 +14,13 @@ describe("system events (session routing)", () => {
   });
 
   it("does not leak session-scoped events into main", async () => {
-    enqueueSystemEvent("Discord reaction added: ✅", {
+    enqueueSystemEvent("Discord reaction added: +", {
       sessionKey: "discord:group:123",
-      contextKey: "discord:reaction:added:msg:user:✅",
+      contextKey: "discord:reaction:added:msg:user:+",
     });
 
     expect(peekSystemEvents(mainKey)).toEqual([]);
-    expect(peekSystemEvents("discord:group:123")).toEqual(["Discord reaction added: ✅"]);
+    expect(peekSystemEvents("discord:group:123")).toEqual(["Discord reaction added: +"]);
 
     const main = await prependSystemEvents({
       cfg,
@@ -30,7 +30,7 @@ describe("system events (session routing)", () => {
       prefixedBodyBase: "hello",
     });
     expect(main).toBe("hello");
-    expect(peekSystemEvents("discord:group:123")).toEqual(["Discord reaction added: ✅"]);
+    expect(peekSystemEvents("discord:group:123")).toEqual(["Discord reaction added: +"]);
 
     const discord = await prependSystemEvents({
       cfg,
@@ -39,7 +39,7 @@ describe("system events (session routing)", () => {
       isNewSession: false,
       prefixedBodyBase: "hi",
     });
-    expect(discord).toMatch(/^System: \[[^\]]+\] Discord reaction added: ✅\n\nhi$/);
+    expect(discord).toMatch(/^System: \[[^\]]+\] Discord reaction added: +\n\nhi$/);
     expect(peekSystemEvents("discord:group:123")).toEqual([]);
   });
 
