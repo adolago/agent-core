@@ -15,3 +15,7 @@
 ## 2025-10-27 - Auto-expanding Textareas and Lit Refs
 **Learning:** Chat inputs that don't auto-expand are a common UX pain point. Implementing this in Lit requires imperative DOM manipulation. Using the `ref` directive allows executing logic on every render/update, which is crucial for handling external state resets (like clearing the draft after sending). Binding `style` attributes conditionally can be flaky if the attribute is removed by Lit, so direct DOM manipulation via `ref` is more robust for persistent visual state.
 **Action:** Use `ref` for auto-resize logic in Lit components to ensure the UI stays in sync with state, especially for "reset" scenarios.
+
+## 2025-02-14 - Manual Icon Buttons in Lit
+**Learning:** In the Lit-based UI (`zee` persona), icon-only buttons are often implemented as standard `<button>` elements with classes (e.g., `btn btn--icon`) rather than a dedicated component. These manual implementations frequently lack `aria-label`, relying only on `title` which is insufficient for all screen readers.
+**Action:** When working with `btn--icon` classes, explicitly verify that `aria-label` is present and descriptive.
