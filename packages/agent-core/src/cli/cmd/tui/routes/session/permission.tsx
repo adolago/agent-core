@@ -306,6 +306,7 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
   const dialog = useDialog()
 
   useKeyboard((evt) => {
+    // Ignore shortcuts while a dialog overlay is open to avoid accidental actions.
     if (dialog.stack.length > 0) return
     if (evt.name === "escape" || keybind.match("app_exit", evt)) {
       evt.preventDefault()
@@ -385,15 +386,16 @@ function Prompt<const T extends Record<string, string>>(props: {
   const dialog = useDialog()
 
   useKeyboard((evt) => {
+    // Ignore shortcuts while a dialog overlay is open to avoid accidental actions.
     if (dialog.stack.length > 0) return
-    if (evt.name === "left" || evt.name == "h") {
+    if (evt.name === "left" || evt.name === "h") {
       evt.preventDefault()
       const idx = keys.indexOf(store.selected)
       const next = keys[(idx - 1 + keys.length) % keys.length]
       setStore("selected", next)
     }
 
-    if (evt.name === "right" || evt.name == "l") {
+    if (evt.name === "right" || evt.name === "l") {
       evt.preventDefault()
       const idx = keys.indexOf(store.selected)
       const next = keys[(idx + 1) % keys.length]
