@@ -20,8 +20,9 @@ import {
 } from "../config/group-policy.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../globals.js";
-import { createSubsystemLogger } from "../logging/subsystem.js";
+import { formatUncaughtError } from "../infra/errors.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getChildLogger } from "../logging.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { resolveThreadSessionKeys } from "../routing/session-key.js";
@@ -139,6 +140,15 @@ export function createTelegramBot(opts: TelegramBotOptions) {
   const bot = new Bot(opts.token, client ? { client } : undefined);
   bot.api.config.use(apiThrottler());
   bot.use(sequentialize(getTelegramSequentialKey));
+  bot.catch((err) => {
+    runtime.error?.(danger(`telegram bot error: ${formatUncaughtError(err)}`));
+  });
+
+  // Catch all errors from bot middleware to prevent unhandled rejections
+  bot.catch((err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    runtime.error?.(danger(`telegram bot error: ${message}`));
+  });
 
   const recentUpdates = createTelegramUpdateDedupe();
   let lastUpdateId =
