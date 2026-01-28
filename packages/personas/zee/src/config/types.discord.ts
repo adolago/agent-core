@@ -47,6 +47,8 @@ export type DiscordGuildEntry = {
   requireMention?: boolean;
   /** Optional tool policy overrides for this guild (used when channel override is missing). */
   tools?: GroupToolPolicyConfig;
+  /** Per-sender tool policy overrides within this guild (keyed by user id or name). */
+  senders?: Record<string, SenderToolPolicyConfig>;
   /** Reaction notification mode (off|own|all|allowlist). Default: own. */
   reactionNotifications?: DiscordReactionNotificationMode;
   users?: Array<string | number>;
