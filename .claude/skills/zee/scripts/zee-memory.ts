@@ -171,7 +171,7 @@ async function searchMemory(query: string, limit: number, category?: string) {
     });
 
     console.log("\n" + "═".repeat(50));
-    console.log("🔍 MEMORY SEARCH");
+    console.log("MEMORY SEARCH");
     console.log("═".repeat(50));
     console.log(`\nQuery: "${query}"`);
     console.log(`Limit: ${limit}`);
@@ -184,7 +184,7 @@ async function searchMemory(query: string, limit: number, category?: string) {
 
     console.log(`\nFound ${results.length} memories:\n`);
     for (const mem of results) {
-      console.log(`📝 [${mem.category}] ${mem.content.slice(0, 80)}${mem.content.length > 80 ? "..." : ""}`);
+      console.log(`[${mem.category}] ${mem.content.slice(0, 80)}${mem.content.length > 80 ? "..." : ""}`);
       console.log(`   ID: ${mem.id}`);
       console.log(`   Score: ${mem.score.toFixed(3)}`);
       console.log(`   Created: ${new Date(mem.createdAt).toLocaleString()}`);
@@ -196,7 +196,7 @@ async function searchMemory(query: string, limit: number, category?: string) {
   const memories = loadMemories();
 
   console.log("\n" + "═".repeat(50));
-  console.log("🔍 MEMORY SEARCH");
+  console.log("MEMORY SEARCH");
   console.log("═".repeat(50));
   console.log(`\nQuery: "${query}"`);
   console.log(`Limit: ${limit}`);
@@ -221,7 +221,7 @@ async function searchMemory(query: string, limit: number, category?: string) {
 
   console.log(`\nFound ${results.length} memories:\n`);
   for (const mem of results) {
-    console.log(`📝 [${mem.category}] ${mem.content.slice(0, 80)}${mem.content.length > 80 ? "..." : ""}`);
+    console.log(`[${mem.category}] ${mem.content.slice(0, 80)}${mem.content.length > 80 ? "..." : ""}`);
     console.log(`   ID: ${mem.id}`);
     console.log(`   Tags: ${mem.tags.join(", ") || "none"}`);
     console.log(`   Created: ${new Date(mem.createdAt).toLocaleString()}`);

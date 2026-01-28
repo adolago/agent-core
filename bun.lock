@@ -20,7 +20,7 @@
     },
     "packages/agent-core": {
       "name": "@adolago/agent-core",
-      "version": "0.1.6-alpha",
+      "version": "0.2.0-alpha",
       "bin": {
         "agent-core": "./bin/agent-core",
       },

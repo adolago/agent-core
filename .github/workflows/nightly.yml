@@ -68,7 +68,19 @@ jobs:
         id: version
         run: |
           DATE=$(date +%Y%m%d)
-          VERSION="0.2.0-alpha.nightly.${DATE}"
+
+          # Read current version from package.json and increment patch
+          CURRENT=$(jq -r '.version' packages/agent-core/package.json)
+          # Strip any prerelease suffix (e.g., -alpha, -alpha.nightly.*)
+          BASE=$(echo "$CURRENT" | sed 's/-.*//')
+          # Parse major.minor.patch
+          MAJOR=$(echo "$BASE" | cut -d. -f1)
+          MINOR=$(echo "$BASE" | cut -d. -f2)
+          PATCH=$(echo "$BASE" | cut -d. -f3)
+          # Increment patch
+          PATCH=$((PATCH + 1))
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}-alpha.nightly.${DATE}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
           # Update package.json versions using sed (npm version fails on catalog: refs)

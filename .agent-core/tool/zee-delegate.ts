@@ -144,9 +144,9 @@ To continue this conversation: agent-core attach ${sessionId}`
 ${response}
 
 ---
-📎 Session: \`${sessionId}\`
-💡 To continue directly: \`agent-core attach ${sessionId}\`
-🔗 Or ask me to follow up with ${personaName}`
+Session: \`${sessionId}\`
+To continue directly: \`agent-core attach ${sessionId}\`
+Or ask me to follow up with ${personaName}`
       } catch (error) {
         clearTimeout(timeoutId)
 
