@@ -167,11 +167,31 @@ pnpm test:e2e
 
 ## Tracking
 
-- [ ] Phase 1: Security fixes
-- [ ] Phase 2: Telegram sticker vision
-- [ ] Phase 3: /help formatting
-- [ ] Phase 4: Tool policies (evaluate if needed)
+- [x] Phase 1: Security fixes (PATH injection + file serving hardening)
+- [x] Phase 2: Telegram sticker vision (complete)
+- [x] Phase 3: /help formatting (complete)
+- [x] Phase 4: Per-sender tool policies (complete)
+
+### Implementation Details
+
+**Phase 1A: PATH Injection Prevention**
+- Created `src/security/env-sanitize.ts` with validation functions
+- Updated `src/agents/bash-tools.exec.ts` to validate user-provided env
+- Added final sanitization pass after PATH manipulation
+
+**Phase 1B: File Serving Hardening**
+- Created `src/security/fs-safe.ts` with:
+  - `isValidMediaId()` - Character whitelist validation
+  - `safeReadFile()` - Inode-verified reads with size limits
+  - `resolveMediaPath()` - Path traversal protection
+- Updated `src/media/server.ts` to use safe file operations
+
+**Phase 4: Per-Sender Tool Policies**
+- Added `SenderToolPolicyConfig` type in `src/config/types.tools.ts`
+- Added `senders` field to group configs in Telegram, WhatsApp, Discord types
+- Implemented `resolveSenderToolsPolicy()` in `src/config/group-policy.ts`
+- Integrated in `src/agents/pi-tools.policy.ts`
 
 ---
 
-*Last updated: 2026-01-27*
+*Last updated: 2026-01-28*
