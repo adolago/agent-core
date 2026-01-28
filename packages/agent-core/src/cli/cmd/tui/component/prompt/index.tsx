@@ -319,7 +319,194 @@ export function Prompt(props: PromptProps) {
       dictationRecording = undefined
     }
     grammarChecker.cancel()
+    // Unregister vim command handler when component unmounts
+    keybind.registerVimCommandHandler(null)
   })
+
+  // Global vim command handler - handles vim commands when textarea is unfocused
+  // This is registered with the keybind context to enable vim mode to work globally
+  function handleVimCommand(key: string): boolean {
+    if (!vim.enabled || !vim.isNormal) return false
+
+    // Insert mode commands - these will auto-focus the textarea via vim.enterInsert()
+    if (key === "i") {
+      vim.enterInsert()
+      return true
+    }
+    if (key === "a") {
+      vim.enterInsert()
+      // Move cursor right (append after cursor)
+      if (input.cursorOffset < input.plainText.length) {
+        input.cursorOffset++
+      }
+      return true
+    }
+    if (key === "I") {
+      vim.enterInsert()
+      input.cursorOffset = 0
+      return true
+    }
+    if (key === "A") {
+      vim.enterInsert()
+      input.cursorOffset = input.plainText.length
+      return true
+    }
+    if (key === "o") {
+      vim.enterInsert()
+      input.cursorOffset = input.plainText.length
+      input.insertText("\n")
+      return true
+    }
+    if (key === "O") {
+      vim.enterInsert()
+      input.cursorOffset = 0
+      input.insertText("\n")
+      input.cursorOffset = 0
+      return true
+    }
+
+    // Navigation commands - these focus the textarea but stay in normal mode
+    const focusAndStayNormal = () => {
+      input.focus()
+    }
+
+    if (key === "h") {
+      focusAndStayNormal()
+      if (input.cursorOffset > 0) input.cursorOffset--
+      return true
+    }
+    if (key === "l") {
+      focusAndStayNormal()
+      if (input.cursorOffset < input.plainText.length) input.cursorOffset++
+      return true
+    }
+    if (key === "j") {
+      focusAndStayNormal()
+      const lines = input.plainText.split("\n")
+      if (lines.length > 1) {
+        const afterCursor = input.plainText.slice(input.cursorOffset)
+        const nextNewline = afterCursor.indexOf("\n")
+        if (nextNewline !== -1) {
+          input.cursorOffset += nextNewline + 1
+        } else {
+          input.cursorOffset = input.plainText.length
+        }
+      }
+      return true
+    }
+    if (key === "k") {
+      focusAndStayNormal()
+      const beforeCursor = input.plainText.slice(0, input.cursorOffset)
+      const lastNewline = beforeCursor.lastIndexOf("\n")
+      if (lastNewline !== -1) {
+        const prevNewline = beforeCursor.lastIndexOf("\n", lastNewline - 1)
+        input.cursorOffset = prevNewline + 1
+      } else {
+        input.cursorOffset = 0
+      }
+      return true
+    }
+
+    // Word motions
+    if (key === "w") {
+      focusAndStayNormal()
+      const text = input.plainText
+      let pos = input.cursorOffset
+      while (pos < text.length && /\w/.test(text[pos])) pos++
+      while (pos < text.length && /\s/.test(text[pos])) pos++
+      input.cursorOffset = pos
+      return true
+    }
+    if (key === "b") {
+      focusAndStayNormal()
+      const text = input.plainText
+      let pos = input.cursorOffset - 1
+      while (pos > 0 && /\s/.test(text[pos])) pos--
+      while (pos > 0 && /\w/.test(text[pos - 1])) pos--
+      input.cursorOffset = Math.max(0, pos)
+      return true
+    }
+    if (key === "e") {
+      focusAndStayNormal()
+      const text = input.plainText
+      let pos = input.cursorOffset + 1
+      while (pos < text.length && /\s/.test(text[pos])) pos++
+      while (pos < text.length && /\w/.test(text[pos])) pos++
+      input.cursorOffset = Math.min(text.length, pos)
+      return true
+    }
+
+    // Line motions
+    if (key === "0") {
+      focusAndStayNormal()
+      const beforeCursor = input.plainText.slice(0, input.cursorOffset)
+      const lastNewline = beforeCursor.lastIndexOf("\n")
+      input.cursorOffset = lastNewline + 1
+      return true
+    }
+    if (key === "$") {
+      focusAndStayNormal()
+      const afterCursor = input.plainText.slice(input.cursorOffset)
+      const nextNewline = afterCursor.indexOf("\n")
+      if (nextNewline !== -1) {
+        input.cursorOffset += nextNewline
+      } else {
+        input.cursorOffset = input.plainText.length
+      }
+      return true
+    }
+    if (key === "^") {
+      focusAndStayNormal()
+      const beforeCursor = input.plainText.slice(0, input.cursorOffset)
+      const lastNewline = beforeCursor.lastIndexOf("\n")
+      const lineStart = lastNewline + 1
+      const afterLineStart = input.plainText.slice(lineStart)
+      const firstNonSpace = afterLineStart.search(/\S/)
+      input.cursorOffset = lineStart + (firstNonSpace === -1 ? 0 : firstNonSpace)
+      return true
+    }
+
+    // Buffer motions
+    if (key === "g") {
+      focusAndStayNormal()
+      input.cursorOffset = 0
+      return true
+    }
+    if (key === "G") {
+      focusAndStayNormal()
+      input.cursorOffset = input.plainText.length
+      return true
+    }
+
+    // Delete commands
+    if (key === "x") {
+      focusAndStayNormal()
+      if (input.cursorOffset < input.plainText.length) {
+        const before = input.plainText.slice(0, input.cursorOffset)
+        const after = input.plainText.slice(input.cursorOffset + 1)
+        input.setText(before + after)
+        setStore("prompt", "input", before + after)
+      }
+      return true
+    }
+    if (key === "X") {
+      focusAndStayNormal()
+      if (input.cursorOffset > 0) {
+        const before = input.plainText.slice(0, input.cursorOffset - 1)
+        const after = input.plainText.slice(input.cursorOffset)
+        input.setText(before + after)
+        setStore("prompt", "input", before + after)
+        input.cursorOffset--
+      }
+      return true
+    }
+
+    return false
+  }
+
+  // Register the global vim command handler
+  keybind.registerVimCommandHandler(handleVimCommand)
+
   const fileStyleId = syntax().getStyleId("extmark.file")!
   const agentStyleId = syntax().getStyleId("extmark.agent")!
   const pasteStyleId = syntax().getStyleId("extmark.paste")!
@@ -1297,7 +1484,7 @@ export function Prompt(props: PromptProps) {
             flexGrow={1}
           >
             <textarea
-              placeholder={undefined}
+              placeholder={null}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}
               minHeight={1}
@@ -1542,6 +1729,12 @@ export function Prompt(props: PromptProps) {
                           input.cursorOffset--
                         }
                         e.preventDefault()
+                        return
+                      }
+
+                      // Allow leader key to pass through to activate leader mode
+                      if (keybind.match("leader", e)) {
+                        // Don't block - let it propagate to the global leader handler
                         return
                       }
 

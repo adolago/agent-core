@@ -53,6 +53,8 @@ export const { use: useVim, provider: VimProvider } = createSimpleContext({
       },
       enterInsert() {
         setStore("mode", "insert")
+        // Auto-focus the textarea when entering insert mode
+        focusCallback?.()
       },
       // Register a callback to be called when entering insert mode
       registerFocusCallback(fn: () => void) {

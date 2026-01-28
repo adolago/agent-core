@@ -15,11 +15,9 @@ import { Clipboard } from "@tui/util/clipboard"
 import { useToast } from "../ui/toast"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
-  opencode: 0,
-  anthropic: 1,
-  "github-copilot": 2,
-  openai: 3,
-  google: 4,
+  anthropic: 0,
+  openai: 1,
+  google: 2,
 }
 
 // Services that aren't AI model providers but can be configured
@@ -82,8 +80,7 @@ export function createDialogProviderOptions() {
           title: provider.name,
           value: provider.id,
           description: {
-            opencode: "(Recommended)",
-            anthropic: "(Claude Max or API key)",
+            anthropic: "(Recommended - Claude Max or API key)",
             openai: "(ChatGPT Plus/Pro or API key)",
           }[provider.id],
           category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Other",
@@ -298,11 +295,6 @@ function ApiMethod(props: ApiMethodProps) {
       placeholder="API key"
       description={() => (
         <box gap={1}>
-          {props.providerID === "opencode" ? (
-            <box gap={1}>
-              <text fg={theme.textMuted}>Hosted models are available with a single API key.</text>
-            </box>
-          ) : null}
           {error() ? <text fg={theme.error}>{error()}</text> : null}
         </box>
       )}
