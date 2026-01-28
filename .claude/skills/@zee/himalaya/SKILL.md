@@ -5,7 +5,7 @@ version: 1.0.0
 author: Artur
 tags: [email, cli, imap, zee]
 homepage: https://github.com/pimalaya/himalaya
-metadata: {"zee":{"emoji":"📧","requires":{"bins":["himalaya"]},"install":[{"id":"brew","kind":"brew","formula":"himalaya","bins":["himalaya"],"label":"Install Himalaya (brew)"}]}}
+metadata: {"zee":{"emoji":"📧","requires":{"bins":["himalaya"]},"install":[{"id":"pacman","kind":"pacman","package":"himalaya","bins":["himalaya"],"label":"Install Himalaya (pacman)"},{"id":"cargo","kind":"cargo","crate":"himalaya","bins":["himalaya"],"label":"Install Himalaya (cargo)"},{"id":"brew","kind":"brew","formula":"himalaya","bins":["himalaya"],"label":"Install Himalaya (brew)"}]}}
 ---
 
 # Himalaya Email CLI

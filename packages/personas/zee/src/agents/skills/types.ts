@@ -2,7 +2,7 @@ import type { Skill } from "@mariozechner/pi-coding-agent";
 
 export type SkillInstallSpec = {
   id?: string;
-  kind: "brew" | "node" | "go" | "uv" | "download";
+  kind: "brew" | "node" | "go" | "uv" | "download" | "pacman" | "cargo" | "apt" | "dnf" | "yay";
   label?: string;
   bins?: string[];
   os?: string[];
@@ -14,6 +14,8 @@ export type SkillInstallSpec = {
   extract?: boolean;
   stripComponents?: number;
   targetDir?: string;
+  /** Crate name for cargo installs */
+  crate?: string;
 };
 
 export type ZeeSkillMetadata = {

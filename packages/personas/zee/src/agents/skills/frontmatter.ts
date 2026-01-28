@@ -35,7 +35,8 @@ function parseInstallSpec(input: unknown): SkillInstallSpec | undefined {
   const kindRaw =
     typeof raw.kind === "string" ? raw.kind : typeof raw.type === "string" ? raw.type : "";
   const kind = kindRaw.trim().toLowerCase();
-  if (kind !== "brew" && kind !== "node" && kind !== "go" && kind !== "uv" && kind !== "download") {
+  const validKinds = ["brew", "node", "go", "uv", "download", "pacman", "cargo", "apt", "dnf", "yay"];
+  if (!validKinds.includes(kind)) {
     return undefined;
   }
 
@@ -57,6 +58,7 @@ function parseInstallSpec(input: unknown): SkillInstallSpec | undefined {
   if (typeof raw.extract === "boolean") spec.extract = raw.extract;
   if (typeof raw.stripComponents === "number") spec.stripComponents = raw.stripComponents;
   if (typeof raw.targetDir === "string") spec.targetDir = raw.targetDir;
+  if (typeof raw.crate === "string") spec.crate = raw.crate;
 
   return spec;
 }
