@@ -118,7 +118,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
   });
   const telegramCfg = account.config;
 
-  const fetchImpl = resolveTelegramFetch(opts.proxyFetch);
+  const fetchImpl = resolveTelegramFetch(opts.proxyFetch, {
+    network: telegramCfg?.network,
+  });
   const shouldProvideFetch = Boolean(fetchImpl);
   const timeoutSeconds =
     typeof telegramCfg?.timeoutSeconds === "number" && Number.isFinite(telegramCfg.timeoutSeconds)

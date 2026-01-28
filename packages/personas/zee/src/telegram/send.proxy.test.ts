@@ -149,6 +149,7 @@ vi.mock("../infra/errors.js", () => ({
 
 vi.mock("../globals.js", () => ({
   logVerbose: vi.fn(),
+  danger: (value: string) => value,
 }));
 
 vi.mock("./targets.js", () => ({
@@ -190,7 +191,7 @@ describe.skip("telegram proxy client", () => {
     await sendMessageTelegram("123", "hi", { token: "tok", accountId: "foo" });
 
     expect(makeProxyFetch).toHaveBeenCalledWith(proxyUrl);
-    expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch);
+    expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch, { network: undefined });
     expect(botCtorSpy).toHaveBeenCalledWith(
       "tok",
       expect.objectContaining({
@@ -208,7 +209,7 @@ describe.skip("telegram proxy client", () => {
     await reactMessageTelegram("123", "456", "+", { token: "tok", accountId: "foo" });
 
     expect(makeProxyFetch).toHaveBeenCalledWith(proxyUrl);
-    expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch);
+    expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch, { network: undefined });
     expect(botCtorSpy).toHaveBeenCalledWith(
       "tok",
       expect.objectContaining({
@@ -226,7 +227,7 @@ describe.skip("telegram proxy client", () => {
     await deleteMessageTelegram("123", "456", { token: "tok", accountId: "foo" });
 
     expect(makeProxyFetch).toHaveBeenCalledWith(proxyUrl);
-    expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch);
+    expect(resolveTelegramFetch).toHaveBeenCalledWith(proxyFetch, { network: undefined });
     expect(botCtorSpy).toHaveBeenCalledWith(
       "tok",
       expect.objectContaining({

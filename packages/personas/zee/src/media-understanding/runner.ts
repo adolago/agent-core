@@ -49,12 +49,14 @@ import {
 import { describeImageWithModel } from "./providers/image.js";
 import { estimateBase64Size, resolveVideoMaxBase64Bytes } from "./video.js";
 
-// Google only for media understanding (Gemini for image, audio, video)
-const AUTO_AUDIO_KEY_PROVIDERS = ["google"] as const;
-const AUTO_IMAGE_KEY_PROVIDERS = ["google"] as const;
+const AUTO_AUDIO_KEY_PROVIDERS = ["openai", "groq", "deepgram", "google"] as const;
+const AUTO_IMAGE_KEY_PROVIDERS = ["openai", "anthropic", "google", "minimax"] as const;
 const AUTO_VIDEO_KEY_PROVIDERS = ["google"] as const;
 const DEFAULT_IMAGE_MODELS: Record<string, string> = {
+  openai: "gpt-5-mini",
+  anthropic: "claude-opus-4-5",
   google: "gemini-3-flash-preview",
+  minimax: "MiniMax-VL-01",
 };
 
 export type ActiveMediaModel = {
@@ -408,6 +410,39 @@ async function resolveAutoEntries(params: {
   const keys = await resolveKeyEntry(params);
   if (keys) return [keys];
   return [];
+}
+
+export async function resolveAutoImageModel(params: {
+  cfg: ZeeConfig;
+  agentDir?: string;
+  activeModel?: ActiveMediaModel;
+}): Promise<ActiveMediaModel | null> {
+  const providerRegistry = buildProviderRegistry();
+  const toActive = (entry: MediaUnderstandingModelConfig | null): ActiveMediaModel | null => {
+    if (!entry || entry.type === "cli") return null;
+    const provider = entry.provider;
+    if (!provider) return null;
+    const model = entry.model ?? DEFAULT_IMAGE_MODELS[provider];
+    if (!model) return null;
+    return { provider, model };
+  };
+  const activeEntry = await resolveActiveModelEntry({
+    cfg: params.cfg,
+    agentDir: params.agentDir,
+    providerRegistry,
+    capability: "image",
+    activeModel: params.activeModel,
+  });
+  const resolvedActive = toActive(activeEntry);
+  if (resolvedActive) return resolvedActive;
+  const keyEntry = await resolveKeyEntry({
+    cfg: params.cfg,
+    agentDir: params.agentDir,
+    providerRegistry,
+    capability: "image",
+    activeModel: params.activeModel,
+  });
+  return toActive(keyEntry);
 }
 
 async function resolveActiveModelEntry(params: {
