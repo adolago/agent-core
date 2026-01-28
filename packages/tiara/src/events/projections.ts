@@ -267,6 +267,8 @@ export class TaskHistoryProjection extends EventEmitter implements IProjection {
   private readonly eventStore: IEventStore;
   private readonly tasks = new Map<string, TaskProjectionState>();
   private _initialized = false;
+  private _totalCompletedDuration = 0;
+  private _completedTaskCountWithDuration = 0;
 
   constructor(eventStore: IEventStore) {
     super();
@@ -308,6 +310,8 @@ export class TaskHistoryProjection extends EventEmitter implements IProjection {
   reset(): void {
     this.tasks.clear();
     this._initialized = false;
+    this._totalCompletedDuration = 0;
+    this._completedTaskCountWithDuration = 0;
   }
 
   // Query methods
@@ -333,9 +337,8 @@ export class TaskHistoryProjection extends EventEmitter implements IProjection {
   }
 
   getAverageTaskDuration(): number {
-    const completed = this.getTasksByStatus("completed").filter((t) => t.duration !== null);
-    if (completed.length === 0) return 0;
-    return completed.reduce((sum, t) => sum + t.duration!, 0) / completed.length;
+    if (this._completedTaskCountWithDuration === 0) return 0;
+    return this._totalCompletedDuration / this._completedTaskCountWithDuration;
   }
 
   // Event handlers
@@ -375,10 +378,19 @@ export class TaskHistoryProjection extends EventEmitter implements IProjection {
   private handleTaskCompleted(event: DomainEvent<TaskCompletedPayload>): void {
     const task = this.tasks.get(event.payload.taskId);
     if (task) {
+      // Handle potential re-completion or out-of-order events
+      if (task.status === "completed" && task.duration !== null) {
+        this._totalCompletedDuration -= task.duration;
+        this._completedTaskCountWithDuration--;
+      }
+
       task.status = "completed";
       task.completedAt = event.timestamp.getTime();
       task.duration = event.payload.duration;
       task.result = event.payload.result;
+
+      this._totalCompletedDuration += event.payload.duration;
+      this._completedTaskCountWithDuration++;
     }
   }
 
