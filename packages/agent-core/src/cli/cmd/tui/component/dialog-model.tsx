@@ -73,8 +73,11 @@ export function DialogModel(props: { providerID?: string }) {
       ]
     })
 
+    // Filter to only show providers with credentials (connected providers)
+    const connectedProviderIds = new Set(sync.data.provider_next.connected)
     const providerOptions = pipe(
       sync.data.provider,
+      filter((provider) => connectedProviderIds.has(provider.id)),
       sortBy((provider) => provider.name),
       flatMap((provider) => {
         const authIndicator = getAuthIndicator(provider.id)
