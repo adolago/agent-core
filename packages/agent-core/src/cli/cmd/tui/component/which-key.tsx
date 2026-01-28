@@ -43,6 +43,7 @@ const KEYBIND_META: Record<string, { category: string; description: string }> = 
   sidebar_toggle: { category: "UI", description: "side[b]ar" },
 
   // App
+  command_list: { category: "App", description: "[c]ommands" },
   app_exit: { category: "App", description: "[q]uit" },
 }
 
