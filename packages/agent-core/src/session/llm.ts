@@ -28,7 +28,7 @@ import { Auth } from "@/auth"
 export namespace LLM {
   const log = Log.create({ service: "llm" })
 
-  export const OUTPUT_TOKEN_MAX = Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
+  export const OUTPUT_TOKEN_MAX = Flag.AGENT_CORE_OUTPUT_TOKEN_MAX || 32_000
 
   function isUsageV3Shape(usage: any): boolean {
     return (
@@ -301,21 +301,13 @@ export namespace LLM {
       headers: {
         ...(isCodex
           ? {
-              originator: "opencode",
-              "User-Agent": `opencode/${Installation.VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
+              originator: "agent-core",
+              "User-Agent": `agent-core/${Installation.VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
               session_id: input.sessionID,
-            }
-          : undefined),
-        ...(input.model.providerID.startsWith("opencode")
-          ? {
-              "x-opencode-project": Instance.project.id,
-              "x-opencode-session": input.sessionID,
-              "x-opencode-request": input.user.id,
-              "x-opencode-client": Flag.OPENCODE_CLIENT,
             }
           : input.model.providerID !== "anthropic"
             ? {
-                "User-Agent": `opencode/${Installation.VERSION}`,
+                "User-Agent": `agent-core/${Installation.VERSION}`,
               }
             : undefined),
         ...input.model.headers,
@@ -381,7 +373,9 @@ export namespace LLM {
   async function resolveTools(input: Pick<StreamInput, "tools" | "agent" | "user">) {
     const disabled = PermissionNext.disabled(Object.keys(input.tools), input.agent.permission)
     for (const tool of Object.keys(input.tools)) {
-      if (input.user.tools?.[tool] === false || disabled.has(tool)) {
+      // Map edit-related tools to "edit" permission for user.tools check
+      const permission = PermissionNext.EDIT_TOOLS.includes(tool) ? "edit" : tool
+      if (input.user.tools?.[permission] === false || disabled.has(tool)) {
         delete input.tools[tool]
       }
     }

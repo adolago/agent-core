@@ -5,11 +5,9 @@ import { Log } from "../util/log"
 import { createOpencodeClient } from "@opencode-ai/sdk"
 import { BunProc } from "../bun"
 import { Instance } from "../project/instance"
-import { Flag } from "../flag/flag"
 import { CodexAuthPlugin } from "./codex"
 import { Session } from "../session"
 import { NamedError } from "@opencode-ai/util/error"
-import { CopilotAuthPlugin } from "./copilot"
 import { KimiAuthPlugin } from "./kimi"
 
 export namespace Plugin {
@@ -18,7 +16,7 @@ export namespace Plugin {
   const BUILTIN = ["opencode-anthropic-auth@0.0.11", "@gitlab/opencode-gitlab-auth@1.3.0"]
 
   // Built-in plugins that are directly imported (not installed from npm)
-  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, KimiAuthPlugin]
+  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, KimiAuthPlugin]
 
   const state = Instance.state(async () => {
     const { Server } = await import("../server/server")
@@ -44,14 +42,11 @@ export namespace Plugin {
       hooks.push(init)
     }
 
-    const plugins = [...(config.plugin ?? [])]
-    if (!Flag.OPENCODE_DISABLE_DEFAULT_PLUGINS) {
-      plugins.push(...BUILTIN)
-    }
+    const plugins = [...(config.plugin ?? []), ...BUILTIN]
 
     for (let plugin of plugins) {
       // ignore old codex plugin since it is supported first party now
-      if (plugin.includes("opencode-openai-codex-auth") || plugin.includes("opencode-copilot-auth")) continue
+      if (plugin.includes("opencode-openai-codex-auth")) continue
       log.info("loading plugin", { path: plugin })
       if (!plugin.startsWith("file://")) {
         const lastAtIndex = plugin.lastIndexOf("@")

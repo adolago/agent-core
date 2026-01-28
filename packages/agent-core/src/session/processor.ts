@@ -180,7 +180,7 @@ export namespace SessionProcessor {
                 currentReasoning = undefined
               }
               const streamStartTimeoutMs =
-                Flag.OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS ?? DEFAULT_LLM_STREAM_START_TIMEOUT_MS
+                Flag.AGENT_CORE_LLM_STREAM_START_TIMEOUT_MS ?? DEFAULT_LLM_STREAM_START_TIMEOUT_MS
               const streamStartController = new AbortController()
 	              const streamStartTimer = setTimeout(() => {
 	                streamStartController.abort(

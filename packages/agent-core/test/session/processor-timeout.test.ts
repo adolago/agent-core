@@ -26,8 +26,8 @@ afterAll(() => {
 
 describe("SessionProcessor", () => {
   test("errors if LLM stream never starts", async () => {
-    const previousTimeout = Flag.OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS
-    ;(Flag as any).OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS = 10
+    const previousTimeout = Flag.AGENT_CORE_LLM_STREAM_START_TIMEOUT_MS
+    ;(Flag as any).AGENT_CORE_LLM_STREAM_START_TIMEOUT_MS = 10
     try {
       await using tmp = await tmpdir()
       await Instance.provide({
@@ -94,7 +94,7 @@ describe("SessionProcessor", () => {
         },
       })
     } finally {
-      ;(Flag as any).OPENCODE_EXPERIMENTAL_LLM_STREAM_START_TIMEOUT_MS = previousTimeout
+      ;(Flag as any).AGENT_CORE_LLM_STREAM_START_TIMEOUT_MS = previousTimeout
     }
   })
 })

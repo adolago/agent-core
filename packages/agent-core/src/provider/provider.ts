@@ -20,7 +20,6 @@ import { Auth } from "../auth"
 import { Env } from "../env"
 import { Instance } from "../project/instance"
 import { State } from "../project/state"
-import { Flag } from "../flag/flag"
 import { iife } from "@/util/iife"
 import { THINKING_BUDGETS } from "./constants"
 
@@ -42,18 +41,6 @@ export namespace Provider {
    * Use config blacklist for per-user filtering instead.
    */
   const MODEL_BLACKLIST: Record<string, string[]> = {
-    opencode: [
-      "glm-4.6",
-      "gpt-5",
-      "gpt-5-codex",
-      "gpt-5-nano",
-      "gpt-5.1",
-      "gpt-5.1-codex",
-      "gpt-5.1-codex-max",
-      "gpt-5.1-codex-mini",
-      "kimi-k2",
-      "kimi-k2-thinking",
-    ],
     "kimi-for-coding": [
       "kimi-k2-thinking",
     ],
@@ -166,28 +153,6 @@ export namespace Provider {
               "claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
           },
         },
-      }
-    },
-    async opencode(input) {
-      const hasKey = await (async () => {
-        const env = Env.all()
-        if (input.env.some((item) => env[item])) return true
-        if (await Auth.get(input.id)) return true
-        const config = await Config.get()
-        if (config.provider?.["opencode"]?.options?.apiKey) return true
-        return false
-      })()
-
-      if (!hasKey) {
-        for (const [key, value] of Object.entries(input.models)) {
-          if (value.cost.input === 0) continue
-          delete input.models[key]
-        }
-      }
-
-      return {
-        autoload: Object.keys(input.models).length > 0,
-        options: hasKey ? {} : { apiKey: "public" },
       }
     },
     openai: async () => {
@@ -803,7 +768,6 @@ export namespace Provider {
         model.api.id = model.api.id ?? model.id ?? modelID
         if (modelID === "gpt-5-chat-latest" || (providerID === "openrouter" && modelID === "openai/gpt-5-chat"))
           delete provider.models[modelID]
-        if (model.status === "alpha" && !Flag.OPENCODE_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
         if (model.status === "deprecated") delete provider.models[modelID]
         // Hard-coded blacklist - permanently hidden models
         if (MODEL_BLACKLIST[providerID]?.includes(modelID)) delete provider.models[modelID]
@@ -1105,7 +1069,7 @@ export namespace Provider {
 
     const provider = await state().then((state) => state.providers[providerID])
     if (provider) {
-      let priority = [
+      const priority = [
         "claude-haiku-4-5",
         "claude-haiku-4.5",
         "3-5-haiku",
@@ -1114,9 +1078,6 @@ export namespace Provider {
         "gemini-2.5-flash",
         "gpt-5-nano",
       ]
-      if (providerID.startsWith("opencode")) {
-        priority = ["gpt-5-nano"]
-      }
       for (const item of priority) {
         for (const model of Object.keys(provider.models)) {
           if (model.includes(item)) return getModel(providerID, model)
@@ -1132,12 +1093,6 @@ export namespace Provider {
         [(m) => m.id, "desc"],
       )
       if (fallback) return getModel(providerID, fallback.id)
-    }
-
-    // Check if opencode provider is available before using it
-    const opencodeProvider = await state().then((state) => state.providers["opencode"])
-    if (opencodeProvider && opencodeProvider.models["gpt-5-nano"]) {
-      return getModel("opencode", "gpt-5-nano")
     }
 
     return undefined

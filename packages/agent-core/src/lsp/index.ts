@@ -9,7 +9,6 @@ import z from "zod"
 import { Config } from "../config/config"
 import { spawn } from "child_process"
 import { Instance } from "../project/instance"
-import { Flag } from "@/flag/flag"
 
 export namespace LSP {
   const log = Log.create({ service: "lsp" })
@@ -69,17 +68,10 @@ export namespace LSP {
   export type DocumentSymbol = z.infer<typeof DocumentSymbol>
 
   const filterExperimentalServers = (servers: Record<string, LSPServer.Info>) => {
-    if (Flag.OPENCODE_EXPERIMENTAL_LSP_TY) {
-      // If experimental flag is enabled, disable pyright
-      if (servers["pyright"]) {
-        log.info("LSP server pyright is disabled because OPENCODE_EXPERIMENTAL_LSP_TY is enabled")
-        delete servers["pyright"]
-      }
-    } else {
-      // If experimental flag is disabled, disable ty
-      if (servers["ty"]) {
-        delete servers["ty"]
-      }
+    // ty is the preferred Python LSP, disable pyright when both are available
+    if (servers["pyright"]) {
+      log.info("LSP server pyright is disabled in favor of ty")
+      delete servers["pyright"]
     }
   }
 

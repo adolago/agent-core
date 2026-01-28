@@ -196,11 +196,6 @@ export namespace Config {
 
     if (!result.keybinds) result.keybinds = Info.shape.keybinds.parse({})
 
-    // Apply flag overrides for compaction settings
-    if (Flag.OPENCODE_DISABLE_AUTOCOMPACT) {
-      result.compaction = { ...result.compaction, auto: false }
-    }
-
     // Migrate deprecated autoshare field to share field
     if (result.autoshare !== undefined && result.share === undefined) {
       result.share = result.autoshare ? "auto" : "manual"
@@ -737,6 +732,9 @@ export namespace Config {
         .describe("Scroll messages down by half page"),
       messages_first: z.string().optional().default("home").describe("Navigate to first message"),
       messages_last: z.string().optional().default("shift+g,end").describe("Navigate to last message"),
+      messages_next: z.string().optional().default("ctrl+alt+n").describe("Navigate to next message"),
+      messages_previous: z.string().optional().default("ctrl+alt+p").describe("Navigate to previous message"),
+      messages_last_user: z.string().optional().default("<leader>j").describe("Jump to last user message"),
       messages_copy: z.string().optional().default("<leader>y").describe("Copy message"),
       messages_undo: z.string().optional().default("<leader>u").describe("Undo message"),
       messages_redo: z.string().optional().default("<leader>r").describe("Redo message"),
@@ -749,7 +747,7 @@ export namespace Config {
       model_cycle_recent: z.string().optional().default("f2").describe("Next recently used model"),
       model_cycle_recent_reverse: z.string().optional().default("shift+f2").describe("Previous recently used model"),
       model_fallback_toggle: z.string().optional().default("f3").describe("Toggle between primary and fallback model"),
-      command_list: z.string().optional().default("<leader>c").describe("List available commands"),
+      command_list: z.string().optional().default("<leader>c,ctrl+p").describe("List available commands"),
       agent_list: z.string().optional().default("<leader>a").describe("List agents"),
       agent_cycle: z.string().optional().default("tab").describe("Next agent"),
       agent_cycle_reverse: z.string().optional().default("shift+tab").describe("Previous agent"),

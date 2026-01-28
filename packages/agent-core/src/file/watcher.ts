@@ -66,20 +66,18 @@ export namespace FileWatcher {
       const subs: ParcelWatcher.AsyncSubscription[] = []
       const cfgIgnores = cfg.watcher?.ignore ?? []
 
-      if (Flag.OPENCODE_EXPERIMENTAL_FILEWATCHER) {
-        const pending = watcher().subscribe(Instance.directory, subscribe, {
-          ignore: [...FileIgnore.PATTERNS, ...cfgIgnores],
-          backend,
+      const pending = watcher().subscribe(Instance.directory, subscribe, {
+        ignore: [...FileIgnore.PATTERNS, ...cfgIgnores],
+        backend,
+      })
+      const sub = await withTimeout(pending, SUBSCRIBE_TIMEOUT_MS).catch((err) => {
+        log.error("failed to subscribe to Instance.directory", { error: err })
+        pending.then((s) => s.unsubscribe()).catch((unsubErr) => {
+          log.debug("failed to unsubscribe after timeout", { dir: Instance.directory, error: String(unsubErr) })
         })
-        const sub = await withTimeout(pending, SUBSCRIBE_TIMEOUT_MS).catch((err) => {
-          log.error("failed to subscribe to Instance.directory", { error: err })
-          pending.then((s) => s.unsubscribe()).catch((unsubErr) => {
-            log.debug("failed to unsubscribe after timeout", { dir: Instance.directory, error: String(unsubErr) })
-          })
-          return undefined
-        })
-        if (sub) subs.push(sub)
-      }
+        return undefined
+      })
+      if (sub) subs.push(sub)
 
       const vcsDir = await $`git rev-parse --git-dir`
         .quiet()
@@ -120,7 +118,7 @@ export namespace FileWatcher {
   )
 
   export function init() {
-    if (Flag.OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER) {
+    if (Flag.AGENT_CORE_DISABLE_FILEWATCHER) {
       return
     }
     state()

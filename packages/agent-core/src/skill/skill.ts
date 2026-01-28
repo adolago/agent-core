@@ -7,7 +7,6 @@ import { ConfigMarkdown } from "../config/markdown"
 import { Log } from "../util/log"
 import { Global } from "@/global"
 import { Filesystem } from "@/util/filesystem"
-import { Flag } from "@/flag/flag"
 import { Bus } from "@/bus"
 import { TuiEvent } from "@/cli/cmd/tui/event"
 import { Session } from "@/session"
@@ -99,8 +98,7 @@ export namespace Skill {
       claudeDirs.push(globalClaude)
     }
 
-    if (!Flag.OPENCODE_DISABLE_CLAUDE_CODE_SKILLS) {
-      for (const dir of claudeDirs) {
+    for (const dir of claudeDirs) {
         const matches = await Array.fromAsync(
           CLAUDE_SKILL_GLOB.scan({
             cwd: dir,
@@ -118,7 +116,6 @@ export namespace Skill {
           await addSkill(match)
         }
       }
-    }
 
     // Scan .agent-core/skill/ directories
     for (const dir of await Config.directories()) {

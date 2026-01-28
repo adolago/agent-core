@@ -680,7 +680,7 @@ export function Session() {
       value: "session.line.up",
       keybind: "messages_line_up",
       category: "Session",
-      disabled: true,
+      hidden: true,
       onSelect: (dialog) => {
         scroll.scrollBy(-1)
         dialog.clear()
@@ -691,7 +691,7 @@ export function Session() {
       value: "session.line.down",
       keybind: "messages_line_down",
       category: "Session",
-      disabled: true,
+      hidden: true,
       onSelect: (dialog) => {
         scroll.scrollBy(1)
         dialog.clear()
@@ -1383,7 +1383,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
         </box>
       </Show>
       <Switch>
-        <Match when={props.last || final() || props.message.error?.name === "MessageAbortedError"}>
+        <Match when={final() || props.message.error?.name === "MessageAbortedError"}>
           <box paddingLeft={3}>
             <text marginTop={1}>
               <span
@@ -1451,18 +1451,14 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
 
 function TextPart(props: { last: boolean; part: TextPart; message: AssistantMessage }) {
   const ctx = use()
-  const { theme, syntax } = useTheme()
+  const { syntax } = useTheme()
   return (
     <Show when={props.part.text.trim()}>
       <box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexShrink={0}>
-        <code
-          filetype="markdown"
-          drawUnstyledText={false}
-          streaming={true}
+        <markdown
           syntaxStyle={syntax()}
           content={props.part.text.trim()}
           conceal={ctx.conceal()}
-          fg={theme.text}
         />
       </box>
     </Show>

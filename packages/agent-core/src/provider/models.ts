@@ -4,7 +4,6 @@ import path from "path"
 import z from "zod"
 import { data } from "./models-macro" with { type: "macro" }
 import { Installation } from "../installation"
-import { Flag } from "../flag/flag"
 
 export namespace ModelsDev {
   const log = Log.create({ service: "models.dev" })
@@ -95,24 +94,6 @@ export namespace ModelsDev {
     return (await response.json()) as Record<string, Provider>
   }
 
-  export async function refresh() {
-    if (Flag.OPENCODE_DISABLE_MODELS_FETCH) return
-    const file = Bun.file(getFilepath())
-    log.info("refreshing", {
-      file,
-    })
-    const result = await fetch(`${Global.Path.modelsDevUrl}/api.json`, {
-      headers: {
-        "User-Agent": Installation.USER_AGENT,
-      },
-      signal: AbortSignal.timeout(10 * 1000),
-    }).catch((e) => {
-      log.error("Failed to fetch models.dev", {
-        error: e,
-      })
-    })
-    if (result && result.ok) await Bun.write(file, await result.text())
-  }
+  // Models fetch disabled - use bundled models
+  export async function refresh() {}
 }
-
-setInterval(() => ModelsDev.refresh(), 60 * 1000 * 60).unref()

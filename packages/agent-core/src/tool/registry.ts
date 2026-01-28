@@ -110,9 +110,9 @@ export namespace ToolRegistry {
       CodeSearchTool,
       SkillTool,
       ApplyPatchTool,
-      ...(Flag.OPENCODE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
+      LspTool,
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
-      ...(Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE && Flag.OPENCODE_CLIENT === "cli" ? [HoldReleaseTool, HoldEnterTool] : []),
+      ...(Flag.OPENCODE_CLIENT === "cli" ? [HoldReleaseTool, HoldEnterTool] : []),
       ...custom,
     ]
   }
@@ -132,9 +132,9 @@ export namespace ToolRegistry {
     const result = await Promise.all(
       tools
         .filter((t) => {
-          // Enable websearch/codesearch for zen users OR via enable flag
+          // websearch/codesearch always enabled
           if (t.id === "codesearch" || t.id === "websearch") {
-            return model.providerID === "opencode" || Flag.OPENCODE_ENABLE_EXA
+            return true
           }
 
           // use apply tool in same format as codex
