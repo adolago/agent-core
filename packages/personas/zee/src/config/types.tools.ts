@@ -240,7 +240,7 @@ export type MemorySearchConfig = {
     /** Enable session transcript indexing (experimental, default: false). */
     sessionMemory?: boolean;
   };
-  /** Embedding provider mode. For Nebius embeddings, use "openai" with custom baseUrl. */
+  /** Embedding provider mode. For vLLM or other OpenAI-compatible servers, use "openai" with custom baseUrl. */
   provider?: "openai" | "gemini";
   remote?: {
     baseUrl?: string;

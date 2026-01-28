@@ -95,8 +95,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
 # OpenAI API key (optional)
 # OPENAI_API_KEY=your-key-here
 
-# Nebius API key (embeddings)
-# NEBIUS_API_KEY=your-key-here
+# Google/Gemini API key (embeddings)
+# GEMINI_API_KEY=your-key-here
 
 # =============================================================================
 # Tool API Keys

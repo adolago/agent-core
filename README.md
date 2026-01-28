@@ -82,9 +82,9 @@ Example memory + embeddings configuration:
       "collection": "personas_memory"
     },
     "embedding": {
-      "profile": "nebius/qwen3-embedding-8b",
-      "dimensions": 4096,
-      "apiKey": "{env:NEBIUS_API_KEY}"
+      "profile": "google/gemini-embedding-001",
+      "dimensions": 3072,
+      "apiKey": "{env:GEMINI_API_KEY}"
     }
   },
   "tiara": {
@@ -92,7 +92,7 @@ Example memory + embeddings configuration:
       "url": "http://localhost:6333",
       "stateCollection": "personas_state",
       "memoryCollection": "personas_memory",
-      "embeddingDimension": 4096
+      "embeddingDimension": 3072
     }
   }
 }
@@ -103,8 +103,8 @@ Set secrets via environment variables:
 ```bash
 export ANTHROPIC_API_KEY="..."
 export OPENAI_API_KEY="..."     # If using OpenAI embeddings
-export GOOGLE_API_KEY="..."     # If using Google embeddings
-export NEBIUS_API_KEY="..."     # If using Nebius embeddings
+export GEMINI_API_KEY="..."     # If using Google Gemini embeddings
+export VOYAGE_API_KEY="..."     # If using Voyage embeddings/reranking
 ```
 
 Optional: Google Antigravity (plugin-based OAuth):
@@ -126,10 +126,10 @@ docker run -p 6333:6333 qdrant/qdrant
 
 Common profiles you can set in `memory.embedding.profile`:
 
-- `nebius/qwen3-embedding-8b` (4096 dims)
+- `google/gemini-embedding-001` (3072 dims, recommended) + `google/gemini-embedding-001-1536` / `-768`
 - `openai/text-embedding-3-small` (1536 dims) + `openai/text-embedding-3-small-512` / `-1024`
 - `openai/text-embedding-3-large` (3072 dims) + `openai/text-embedding-3-large-1024` / `-1536`
-- `google/text-embedding-004` (768 dims)
+- `voyage/voyage-3-large` (1024 dims)
 
 You can also override with `provider`, `model`, `dimensions`, `baseUrl`, and `apiKey`.
 

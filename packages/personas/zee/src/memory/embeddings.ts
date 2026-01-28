@@ -2,11 +2,7 @@
  * Zee Embedding Providers
  *
  * Supports OpenAI and Gemini embedding providers.
- * For Nebius embeddings, use the OpenAI provider with:
- *   - baseUrl: https://api.tokenfactory.nebius.com/v1
- *   - model: Qwen/Qwen3-Embedding-8B
- *
- * Local llama embeddings have been removed - use Nebius or other remote providers.
+ * For vLLM or other OpenAI-compatible servers, use the OpenAI provider with custom baseUrl.
  */
 import type { ZeeConfig } from "../config/config.js";
 import { createGeminiEmbeddingProvider, type GeminiEmbeddingClient } from "./embeddings-gemini.js";

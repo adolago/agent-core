@@ -221,7 +221,7 @@ Never lose context when the daemon restarts:
 {
   "memory": {
     "qdrant": { "url": "http://localhost:6333" },
-    "embedding": { "profile": "nebius/qwen3-embedding-8b" }
+    "embedding": { "profile": "google/gemini-embedding-001" }
   }
 }
 ```

@@ -24,6 +24,7 @@ import { SystemPrompt } from "./system"
 import { Flag } from "@/flag/flag"
 import { PermissionNext } from "@/permission/next"
 import { Auth } from "@/auth"
+import { generateAwarenessSection } from "../../../../src/awareness"
 
 export namespace LLM {
   const log = Log.create({ service: "llm" })
@@ -125,6 +126,15 @@ export namespace LLM {
     const isCodex = provider.id === "openai" && auth?.type === "oauth"
 
     const system = SystemPrompt.header(input.model.providerID)
+
+    // Generate awareness section for persona (tool catalog, config state, knowledge)
+    let awarenessSection = ""
+    try {
+      awarenessSection = await generateAwarenessSection(input.agent)
+    } catch (e) {
+      l.warn("Failed to generate awareness section", { error: e })
+    }
+
     system.push(
       [
         // use agent prompt otherwise provider prompt
@@ -132,6 +142,8 @@ export namespace LLM {
         ...(input.agent.prompt ? [input.agent.prompt] : isCodex ? [] : SystemPrompt.provider(input.model)),
         // persona-specific system prompt additions (from AgentPersonaConfig)
         ...(input.agent.systemPromptAdditions ? [input.agent.systemPromptAdditions] : []),
+        // Dynamic awareness section (tool catalog, browser profiles, enabled services)
+        ...(awarenessSection ? [awarenessSection] : []),
         // any custom prompt passed into this call
         ...input.system,
         // any custom prompt from last user message

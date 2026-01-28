@@ -16,6 +16,13 @@ export type TelegramActionConfig = {
   sendMessage?: boolean;
   deleteMessage?: boolean;
   editMessage?: boolean;
+  /** Enable sticker actions (send and search). */
+  sticker?: boolean;
+};
+
+export type TelegramNetworkConfig = {
+  /** Override Node's autoSelectFamily behavior (true = enable, false = disable). */
+  autoSelectFamily?: boolean;
 };
 
 export type TelegramInlineButtonsScope = "off" | "dm" | "group" | "all" | "allowlist";
@@ -96,6 +103,8 @@ export type TelegramAccountConfig = {
   timeoutSeconds?: number;
   /** Retry policy for outbound Telegram API calls. */
   retry?: OutboundRetryConfig;
+  /** Network behavior overrides for Telegram fetch. */
+  network?: TelegramNetworkConfig;
   proxy?: string;
   webhookUrl?: string;
   webhookSecret?: string;

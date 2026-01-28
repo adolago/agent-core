@@ -126,7 +126,7 @@ export class PersistenceManager {
     if (!row) return null;
 
     // Explicit type checking to handle schema changes safely
-    return {
+    const result: PersistedAgent = {
       id: typeof row.id === 'string' ? row.id : String(row.id ?? ''),
       type: typeof row.type === 'string' ? row.type : String(row.type ?? ''),
       name: typeof row.name === 'string' ? row.name : String(row.name ?? ''),
@@ -137,6 +137,8 @@ export class PersistenceManager {
       priority: typeof row.priority === 'number' ? row.priority : 0,
       createdAt: typeof row.created_at === 'number' ? row.created_at : Date.now(),
     };
+
+    return result;
   }
 
   async getActiveAgents(): Promise<PersistedAgent[]> {

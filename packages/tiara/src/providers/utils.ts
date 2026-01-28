@@ -66,17 +66,6 @@ export function getDefaultProviderConfig(): ProviderManagerConfig {
         timeout: 60000,
         retryAttempts: 3,
       },
-      cohere: {
-        provider: 'cohere',
-        apiKey: process.env.COHERE_API_KEY,
-        model: 'command',
-        temperature: 0.7,
-        maxTokens: 4096,
-        enableStreaming: true,
-        enableCaching: true,
-        timeout: 60000,
-        retryAttempts: 3,
-      },
       ollama: {
         provider: 'ollama',
         apiUrl: process.env.OLLAMA_API_URL || 'http://localhost:11434',
@@ -146,24 +135,24 @@ function getDefaultFallbackStrategy(): FallbackStrategy {
     rules: [
       {
         condition: 'rate_limit',
-        fallbackProviders: ['openai', 'google', 'cohere', 'ollama'],
+        fallbackProviders: ['openai', 'google', 'ollama'],
         retryOriginal: true,
         retryDelay: 60000, // 1 minute
       },
       {
         condition: 'unavailable',
-        fallbackProviders: ['openai', 'google', 'anthropic', 'cohere'],
+        fallbackProviders: ['openai', 'google', 'anthropic'],
         retryOriginal: true,
         retryDelay: 30000, // 30 seconds
       },
       {
         condition: 'timeout',
-        fallbackProviders: ['anthropic', 'openai', 'cohere'],
+        fallbackProviders: ['anthropic', 'openai', 'google'],
         retryOriginal: false,
       },
       {
         condition: 'cost',
-        fallbackProviders: ['ollama', 'cohere', 'google'],
+        fallbackProviders: ['ollama', 'google'],
         retryOriginal: false,
       },
       {

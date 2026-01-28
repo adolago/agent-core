@@ -110,6 +110,12 @@ export const TelegramAccountSchemaBase = z
     mediaMaxMb: z.number().positive().optional(),
     timeoutSeconds: z.number().int().positive().optional(),
     retry: RetryConfigSchema,
+    network: z
+      .object({
+        autoSelectFamily: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     proxy: z.string().optional(),
     webhookUrl: z.string().optional(),
     webhookSecret: z.string().optional(),
@@ -120,6 +126,7 @@ export const TelegramAccountSchemaBase = z
         sendMessage: z.boolean().optional(),
         deleteMessage: z.boolean().optional(),
         editMessage: z.boolean().optional(),
+        sticker: z.boolean().optional(),
       })
       .strict()
       .optional(),

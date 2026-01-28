@@ -19,10 +19,9 @@
       "collection": "personas_memory"
     },
     "embedding": {
-      "profile": "nebius/qwen3-embedding-8b",
-      "dimensions": 4096,
-      "baseUrl": "https://api.tokenfactory.nebius.com/v1",
-      "apiKey": "{env:NEBIUS_API_KEY}"
+      "profile": "google/gemini-embedding-001",
+      "dimensions": 3072,
+      "apiKey": "{env:GEMINI_API_KEY}"
     }
   },
   "tiara": {
@@ -30,7 +29,7 @@
       "url": "http://localhost:6333",
       "stateCollection": "personas_state",
       "memoryCollection": "personas_memory",
-      "embeddingDimension": 4096
+      "embeddingDimension": 3072
     }
   },
   "zee": {

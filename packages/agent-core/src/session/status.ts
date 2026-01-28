@@ -5,6 +5,24 @@ import z from "zod"
 
 export namespace SessionStatus {
   /**
+   * Memory operations statistics for embedding/reranking visibility.
+   */
+  export const MemoryStats = z.object({
+    embedding: z.object({
+      calls: z.number(),
+      texts: z.number(),
+      estimatedTokens: z.number(),
+      provider: z.string().optional(),
+    }),
+    reranking: z.object({
+      calls: z.number(),
+      documents: z.number(),
+      provider: z.string().optional(),
+    }),
+  })
+  export type MemoryStats = z.infer<typeof MemoryStats>
+
+  /**
    * Stream health information for busy sessions.
    */
   export const StreamHealth = z.object({
@@ -18,6 +36,7 @@ export namespace SessionStatus {
     charsReceived: z.number().optional(), // Characters received for activity indication
     estimatedTokens: z.number().optional(), // Estimated output tokens (chars/4)
     requestCount: z.number().optional(), // Number of LLM API requests in this session
+    memoryStats: MemoryStats.optional(), // Embedding/reranking statistics
   })
   export type StreamHealth = z.infer<typeof StreamHealth>
 

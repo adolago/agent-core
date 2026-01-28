@@ -56,11 +56,11 @@ async function main(): Promise<void> {
 
   const namespace = typeof args.namespace === "string" ? args.namespace : "codex-healthcheck"
   const query =
-    typeof args.query === "string" ? args.query : "nebius qwen embedding check"
+    typeof args.query === "string" ? args.query : "memory embedding health check"
   const content =
     typeof args.content === "string"
       ? args.content
-      : `Nebius Qwen embedding health check ${new Date().toISOString()}`
+      : `Memory embedding health check ${new Date().toISOString()}`
   const category = (typeof args.category === "string" ? args.category : "note") as MemoryCategory
   const threshold = readNumber(args.threshold, 0.2)
   const limit = Math.max(1, Math.floor(readNumber(args.limit, 3)))

@@ -11,7 +11,14 @@ import * as crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { EmbeddingProvider, EmbeddingProviderType } from "./types";
+import type {
+  EmbeddingProvider,
+  EmbeddingProviderType,
+  MediaType,
+  MultimodalContent,
+} from "./types";
+import { getApiKeySync } from "../config/providers";
+import { recordSingleEmbedding, recordEmbedding } from "./stats";
 
 // =============================================================================
 // Configuration Types
@@ -34,43 +41,11 @@ export interface EmbeddingConfig {
 }
 
 // =============================================================================
-// Provider Auth Lookup
-// =============================================================================
-
-type StoredAuthEntry = {
-  type?: string;
-  key?: string;
-  access?: string;
-};
-
-function readAuthStoreApiKey(providerId: string): string | undefined {
-  const dataHome = process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local", "share");
-  const authPath = path.join(dataHome, "agent-core", "auth.json");
-
-  try {
-    const raw = fs.readFileSync(authPath, "utf8");
-    const parsed = JSON.parse(raw) as Record<string, StoredAuthEntry>;
-    const entry = parsed?.[providerId];
-    if (!entry) return undefined;
-    if (entry.type === "api" && typeof entry.key === "string" && entry.key.trim()) {
-      return entry.key.trim();
-    }
-    if (entry.type === "oauth" && typeof entry.access === "string" && entry.access.trim()) {
-      return entry.access.trim();
-    }
-  } catch {
-    return undefined;
-  }
-
-  return undefined;
-}
-
-// =============================================================================
 // LRU Cache
 // =============================================================================
 
 /**
- * Simple LRU cache for embeddings
+ * Simple LRU cache for embeddings (supports text and multimodal content)
  */
 class EmbeddingCache {
   private readonly cache = new Map<string, number[]>();
@@ -87,11 +62,55 @@ class EmbeddingCache {
     return crypto.createHash("sha256").update(text).digest("hex").slice(0, 16);
   }
 
+  /**
+   * Hash multimodal content to create cache key.
+   * Includes text content, image URLs/base64, video URLs+timerange.
+   */
+  hashMultimodal(content: MultimodalContent): string {
+    const parts: string[] = [];
+
+    for (const input of content.contents) {
+      switch (input.type) {
+        case "text":
+          parts.push(`text:${input.content}`);
+          break;
+        case "image":
+          if (input.url) {
+            parts.push(`image:url:${input.url}`);
+          } else if (input.base64) {
+            // Hash the base64 content for shorter key
+            const hash = crypto.createHash("sha256").update(input.base64).digest("hex").slice(0, 16);
+            parts.push(`image:base64:${hash}`);
+          }
+          break;
+        case "video":
+          parts.push(`video:${input.url}:${input.startTime ?? 0}:${input.endTime ?? "end"}`);
+          break;
+      }
+    }
+
+    return this.hash(parts.join("|"));
+  }
+
   get(text: string): number[] | undefined {
     const key = this.hash(text);
     const value = this.cache.get(key);
     if (value !== undefined) {
       // Move to end (most recently used)
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      this.hits++;
+      return value;
+    }
+    this.misses++;
+    return undefined;
+  }
+
+  /** Get cached embedding for multimodal content */
+  getMultimodal(content: MultimodalContent): number[] | undefined {
+    const key = this.hashMultimodal(content);
+    const value = this.cache.get(key);
+    if (value !== undefined) {
       this.cache.delete(key);
       this.cache.set(key, value);
       this.hits++;
@@ -108,6 +127,18 @@ class EmbeddingCache {
     this.cache.set(key, embedding);
 
     // Evict oldest entries if over capacity
+    while (this.cache.size > this.maxSize) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest) this.cache.delete(oldest);
+    }
+  }
+
+  /** Set cached embedding for multimodal content */
+  setMultimodal(content: MultimodalContent, embedding: number[]): void {
+    const key = this.hashMultimodal(content);
+    this.cache.delete(key);
+    this.cache.set(key, embedding);
+
     while (this.cache.size > this.maxSize) {
       const oldest = this.cache.keys().next().value;
       if (oldest) this.cache.delete(oldest);
@@ -141,29 +172,16 @@ class OpenAIEmbeddingProvider implements EmbeddingProvider {
   private readonly dimensionsParam?: number;
 
   constructor(config: EmbeddingConfig) {
-    const resolvedBaseUrl = (config.baseUrl ?? "https://api.openai.com/v1").replace(
-      /\/$/,
-      ""
-    );
-    const isNebius = resolvedBaseUrl.includes("nebius.com");
-    const nebiusAuthKey = isNebius ? readAuthStoreApiKey("nebius") : undefined;
-    this.apiKey = isNebius
-      ? nebiusAuthKey ?? ""
-      : config.apiKey ?? process.env.OPENAI_API_KEY ?? "";
+    this.baseUrl = (config.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
+    this.apiKey = config.apiKey ?? getApiKeySync("openai") ?? "";
     this.model = config.model ?? "text-embedding-3-small";
     this.dimensionsParam =
       typeof config.dimensions === "number" ? config.dimensions : undefined;
     this.dimension = this.dimensionsParam ?? 1536;
-    this.baseUrl = resolvedBaseUrl;
 
     if (!this.apiKey) {
-      if (isNebius) {
-        throw new Error(
-          "Nebius API key required: run `agent-core auth login` and select nebius."
-        );
-      }
       throw new Error(
-        "OpenAI API key required: set embedding.apiKey or OPENAI_API_KEY env"
+        "OpenAI API key required: run `agent-core auth login openai` or set OPENAI_API_KEY env"
       );
     }
   }
@@ -231,15 +249,11 @@ class GoogleEmbeddingProvider implements EmbeddingProvider {
   private readonly outputDimensionality?: number;
 
   constructor(config: EmbeddingConfig) {
-    this.apiKey =
-      config.apiKey ??
-      process.env.GOOGLE_API_KEY ??
-      process.env.GEMINI_API_KEY ??
-      "";
-    this.model = config.model ?? "text-embedding-004";
+    this.apiKey = config.apiKey ?? getApiKeySync("google") ?? "";
+    this.model = config.model ?? "gemini-embedding-001";
     this.outputDimensionality =
       typeof config.dimensions === "number" ? config.dimensions : undefined;
-    this.dimension = this.outputDimensionality ?? 768;
+    this.dimension = this.outputDimensionality ?? 3072; // gemini-embedding-001 default
     this.baseUrl = (config.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta").replace(
       /\/$/,
       ""
@@ -247,7 +261,7 @@ class GoogleEmbeddingProvider implements EmbeddingProvider {
 
     if (!this.apiKey) {
       throw new Error(
-        "Google API key required: set embedding.apiKey or GOOGLE_API_KEY/GEMINI_API_KEY env"
+        "Google API key required: run `agent-core auth login google` or set GOOGLE_API_KEY env"
       );
     }
   }
@@ -366,191 +380,7 @@ class VLLMEmbeddingProvider implements EmbeddingProvider {
   }
 }
 
-/**
- * Ollama embedding client for local models
- */
-class OllamaEmbeddingProvider implements EmbeddingProvider {
-  readonly id = "ollama";
-  readonly model: string;
-  dimension: number;
-  private readonly baseUrl: string;
 
-  constructor(config: EmbeddingConfig) {
-    this.model = config.model ?? "nomic-embed-text";
-    this.dimension = config.dimensions ?? 768;
-    this.baseUrl = config.baseUrl ?? "http://localhost:11434";
-  }
-
-  async embed(text: string): Promise<number[]> {
-    const response = await fetch(`${this.baseUrl}/api/embeddings`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.model,
-        prompt: text,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Ollama embedding failed (${response.status}): ${errorText}`
-      );
-    }
-
-    const data = (await response.json()) as { embedding: number[] };
-    return data.embedding;
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
-    // Ollama doesn't support batch - parallelize with concurrency limit
-    const concurrency = 5;
-    const results: number[][] = new Array(texts.length);
-
-    for (let i = 0; i < texts.length; i += concurrency) {
-      const batch = texts.slice(i, i + concurrency);
-      const batchResults = await Promise.all(batch.map((t) => this.embed(t)));
-      for (let j = 0; j < batchResults.length; j++) {
-        results[i + j] = batchResults[j];
-      }
-    }
-    return results;
-  }
-}
-
-/**
- * Local embedding provider using OpenAI-compatible API
- * Works with TEI, sentence-transformers server, etc.
- */
-class LocalEmbeddingProvider implements EmbeddingProvider {
-  readonly id = "local";
-  readonly model: string;
-  dimension: number;
-  private readonly apiKey: string;
-  private readonly baseUrl: string;
-
-  constructor(config: EmbeddingConfig) {
-    this.apiKey = config.apiKey ?? "local";
-    this.model = config.model ?? "all-MiniLM-L6-v2";
-    this.dimension = config.dimensions ?? 384;
-    this.baseUrl = config.baseUrl ?? "http://localhost:8080";
-  }
-
-  async embed(text: string): Promise<number[]> {
-    const result = await this.embedBatch([text]);
-    return result[0] ?? [];
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
-
-    // Support both /v1/embeddings (OpenAI-compatible) and /embeddings (TEI)
-    const endpoint = this.baseUrl.includes("/v1")
-      ? `${this.baseUrl}/embeddings`
-      : `${this.baseUrl}/v1/embeddings`;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.model,
-        input: texts,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Local embedding failed (${response.status}): ${errorText}`
-      );
-    }
-
-    const data = (await response.json()) as {
-      data: Array<{ embedding: number[]; index: number }>;
-    };
-
-    const sorted = data.data.sort((a, b) => a.index - b.index);
-    return sorted.map((item) => item.embedding);
-  }
-}
-
-/**
- * Nebius embedding client using OpenAI-compatible API
- * Uses Qwen/Qwen3-Embedding-8B with 4096 dimensions
- */
-class NebiusEmbeddingProvider implements EmbeddingProvider {
-  readonly id = "nebius";
-  readonly model: string;
-  dimension: number;
-  private readonly apiKey: string;
-  private readonly baseUrl: string;
-
-  constructor(config: EmbeddingConfig) {
-    // Try agent-core auth store first, then env
-    this.apiKey =
-      config.apiKey ??
-      readAuthStoreApiKey("nebius") ??
-      process.env.NEBIUS_API_KEY ??
-      "";
-    this.model = config.model ?? "Qwen/Qwen3-Embedding-8B";
-    this.dimension = config.dimensions ?? 4096;
-    this.baseUrl = (config.baseUrl ?? "https://api.tokenfactory.nebius.com/v1").replace(
-      /\/$/,
-      ""
-    );
-
-    if (!this.apiKey) {
-      throw new Error(
-        "Nebius API key required: run `agent-core auth login` and select nebius, or set NEBIUS_API_KEY env"
-      );
-    }
-  }
-
-  async embed(text: string): Promise<number[]> {
-    const result = await this.embedBatch([text]);
-    return result[0] ?? [];
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
-
-    const response = await fetch(`${this.baseUrl}/embeddings`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.model,
-        input: texts,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Nebius embedding failed (${response.status}): ${errorText}`
-      );
-    }
-
-    const data = (await response.json()) as {
-      data: Array<{ embedding: number[]; index: number }>;
-    };
-
-    const sorted = data.data.sort((a, b) => a.index - b.index);
-    if (sorted.length > 0) {
-      const length = sorted[0]?.embedding.length ?? 0;
-      if (length > 0) this.dimension = length;
-    }
-    return sorted.map((item) => item.embedding);
-  }
-}
 
 /**
  * Voyage AI embedding client
@@ -564,14 +394,14 @@ class VoyageEmbeddingProvider implements EmbeddingProvider {
   private readonly baseUrl: string;
 
   constructor(config: EmbeddingConfig) {
-    this.apiKey = config.apiKey ?? process.env.VOYAGE_API_KEY ?? "";
+    this.apiKey = config.apiKey ?? getApiKeySync("voyage") ?? "";
     this.model = config.model ?? "voyage-3-large";
     this.dimension = config.dimensions ?? 1024;
     this.baseUrl = config.baseUrl ?? "https://api.voyageai.com/v1";
 
     if (!this.apiKey) {
       throw new Error(
-        "Voyage API key required: set embedding.apiKey or VOYAGE_API_KEY env"
+        "Voyage API key required: run `agent-core auth login voyage` or set VOYAGE_API_KEY env"
       );
     }
   }
@@ -624,6 +454,8 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
   readonly id: string;
   readonly model: string;
   readonly dimension: number;
+  readonly supportsMultimodal?: boolean;
+  readonly supportedMediaTypes?: MediaType[];
   private readonly inner: EmbeddingProvider;
   private readonly cache: EmbeddingCache;
 
@@ -633,6 +465,8 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
     this.id = inner.id;
     this.model = inner.model;
     this.dimension = inner.dimension;
+    this.supportsMultimodal = inner.supportsMultimodal;
+    this.supportedMediaTypes = inner.supportedMediaTypes;
   }
 
   async embed(text: string): Promise<number[]> {
@@ -641,6 +475,10 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
 
     const embedding = await this.inner.embed(text);
     this.cache.set(text, embedding);
+
+    // Record stats for actual API call (not cache hit)
+    recordSingleEmbedding({ text, provider: this.id });
+
     return embedding;
   }
 
@@ -664,11 +502,62 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
     const uncachedTexts = uncachedIndices.map((i) => texts[i]);
     const fetched = await this.inner.embedBatch(uncachedTexts);
 
+    // Record stats for actual API calls (not cache hits)
+    if (uncachedTexts.length > 0) {
+      recordEmbedding({ texts: uncachedTexts, provider: this.id });
+    }
+
     // Merge results and update cache
     for (let j = 0; j < uncachedIndices.length; j++) {
       const i = uncachedIndices[j];
       results[i] = fetched[j];
       this.cache.set(texts[i], fetched[j]);
+    }
+
+    return results as number[][];
+  }
+
+  async embedMultimodal(content: MultimodalContent): Promise<number[]> {
+    if (!this.inner.embedMultimodal) {
+      throw new Error(`Provider ${this.id} does not support multimodal embeddings`);
+    }
+
+    const cached = this.cache.getMultimodal(content);
+    if (cached !== undefined) return cached;
+
+    const embedding = await this.inner.embedMultimodal(content);
+    this.cache.setMultimodal(content, embedding);
+    return embedding;
+  }
+
+  async embedMultimodalBatch(contents: MultimodalContent[]): Promise<number[][]> {
+    if (!this.inner.embedMultimodalBatch) {
+      throw new Error(`Provider ${this.id} does not support multimodal batch embeddings`);
+    }
+
+    if (contents.length === 0) return [];
+
+    // Check cache for each content
+    const results: (number[] | null)[] = contents.map(
+      (c) => this.cache.getMultimodal(c) ?? null
+    );
+    const uncachedIndices = results
+      .map((r, i) => (r === null ? i : -1))
+      .filter((i) => i >= 0);
+
+    if (uncachedIndices.length === 0) {
+      return results as number[][];
+    }
+
+    // Fetch uncached embeddings
+    const uncachedContents = uncachedIndices.map((i) => contents[i]);
+    const fetched = await this.inner.embedMultimodalBatch(uncachedContents);
+
+    // Merge results and update cache
+    for (let j = 0; j < uncachedIndices.length; j++) {
+      const i = uncachedIndices[j];
+      results[i] = fetched[j];
+      this.cache.setMultimodal(contents[i], fetched[j]);
     }
 
     return results as number[][];
@@ -686,6 +575,7 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
 // =============================================================================
 // Factory Function
 // =============================================================================
+
 
 /**
  * Create an embedding provider based on configuration.
@@ -712,14 +602,40 @@ export function createEmbeddingProvider(
     case "vllm":
       provider = new VLLMEmbeddingProvider(config);
       break;
-    case "ollama":
-      provider = new OllamaEmbeddingProvider(config);
+    default:
+      throw new Error(`Unknown embedding provider: ${providerType}`);
+  }
+
+  // Wrap with cache unless disabled
+  if (options?.noCache) {
+    return provider;
+  }
+  return new CachedEmbeddingProvider(provider, options?.cacheSize ?? 1000);
+}
+
+/**
+ * Create an embedding provider asynchronously.
+ * Required for providers that need async initialization (e.g., Qwen3-VL).
+ */
+export async function createEmbeddingProviderAsync(
+  config: EmbeddingConfig,
+  options?: { cacheSize?: number; noCache?: boolean }
+): Promise<EmbeddingProvider> {
+  const providerType = config.provider ?? "openai";
+
+  let provider: EmbeddingProvider;
+  switch (providerType) {
+    case "openai":
+      provider = new OpenAIEmbeddingProvider(config);
       break;
-    case "local":
-      provider = new LocalEmbeddingProvider(config);
+    case "google":
+      provider = new GoogleEmbeddingProvider(config);
       break;
-    case "nebius":
-      provider = new NebiusEmbeddingProvider(config);
+    case "voyage":
+      provider = new VoyageEmbeddingProvider(config);
+      break;
+    case "vllm":
+      provider = new VLLMEmbeddingProvider(config);
       break;
     default:
       throw new Error(`Unknown embedding provider: ${providerType}`);
@@ -740,10 +656,8 @@ export {
   EmbeddingCache,
   OpenAIEmbeddingProvider,
   GoogleEmbeddingProvider,
-  NebiusEmbeddingProvider,
   VoyageEmbeddingProvider,
   VLLMEmbeddingProvider,
-  OllamaEmbeddingProvider,
-  LocalEmbeddingProvider,
   CachedEmbeddingProvider,
 };
+

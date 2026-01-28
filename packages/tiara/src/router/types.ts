@@ -24,7 +24,6 @@ export type ProviderType =
   | "litellm"
   | "onnx"
   | "gemini"
-  | "cohere"
   | "bedrock"
   | "custom";
 

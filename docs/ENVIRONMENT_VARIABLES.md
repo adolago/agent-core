@@ -84,11 +84,10 @@ Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENAI_API_KEY` | - | OpenAI API key for embeddings (text-embedding-3-small) |
-| `NEBIUS_API_KEY` | - | Nebius API key for OpenAI-compatible embeddings (Qwen3) |
-| `GOOGLE_API_KEY` | - | Google API key for embeddings (text-embedding-004) |
+| `OPENAI_API_KEY` | - | OpenAI API key for embeddings (text-embedding-3-large) |
+| `GOOGLE_API_KEY` | - | Google API key for embeddings (gemini-embedding-001) |
 | `GEMINI_API_KEY` | - | Alternate Google API key name |
-| `VOYAGE_API_KEY` | - | Voyage AI API key for embeddings (alternative) |
+| `VOYAGE_API_KEY` | - | Voyage AI API key for embeddings and reranking |
 
 ---
 
@@ -306,8 +305,8 @@ Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection
 # Required for LLM functionality
 export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Embeddings (example: Nebius Qwen3)
-export NEBIUS_API_KEY="..."
+# Embeddings (example: Google Gemini)
+export GEMINI_API_KEY="..."
 
 # Configure memory in ~/.config/agent-core/agent-core.jsonc
 # (Qdrant config is config-only; API keys come from env)

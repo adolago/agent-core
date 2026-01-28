@@ -8,54 +8,20 @@ export type EmbeddingProfileConfig = {
 };
 
 export const EMBEDDING_PROFILES: Record<string, EmbeddingProfileConfig> = {
-  "openai/text-embedding-3-small": {
-    provider: "openai",
-    model: "text-embedding-3-small",
-    dimensions: 1536,
+  // Google Gemini embedding (recommended)
+  "google/gemini-embedding-001": {
+    provider: "google",
+    model: "gemini-embedding-001",
+    dimensions: 3072,
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
   },
-  "openai/text-embedding-3-small-512": {
-    provider: "openai",
-    model: "text-embedding-3-small",
-    dimensions: 512,
-  },
-  "openai/text-embedding-3-small-1024": {
-    provider: "openai",
-    model: "text-embedding-3-small",
-    dimensions: 1024,
-  },
+  // OpenAI large embedding
   "openai/text-embedding-3-large": {
     provider: "openai",
     model: "text-embedding-3-large",
     dimensions: 3072,
   },
-  "openai/text-embedding-3-large-1024": {
-    provider: "openai",
-    model: "text-embedding-3-large",
-    dimensions: 1024,
-  },
-  "openai/text-embedding-3-large-1536": {
-    provider: "openai",
-    model: "text-embedding-3-large",
-    dimensions: 1536,
-  },
-  "openai/text-embedding-ada-002": {
-    provider: "openai",
-    model: "text-embedding-ada-002",
-    dimensions: 1536,
-  },
-  "google/text-embedding-004": {
-    provider: "google",
-    model: "text-embedding-004",
-    dimensions: 768,
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
-  },
-  // Nebius config sourced from models-api.json - keep in sync
-  "nebius/qwen3-embedding-8b": {
-    provider: "nebius",
-    model: "Qwen/Qwen3-Embedding-8B", // models-api.json: nebius.models["Qwen/Qwen3-Embedding-8B"]
-    dimensions: 4096, // models-api.json: limit.output
-    baseUrl: "https://api.tokenfactory.nebius.com/v1", // models-api.json: nebius.api
-  },
+  // Voyage AI embedding
   "voyage/voyage-3-large": {
     provider: "voyage",
     model: "voyage-3-large",
