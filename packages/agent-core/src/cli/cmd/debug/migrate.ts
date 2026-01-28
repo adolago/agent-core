@@ -17,11 +17,6 @@ const DEPRECATIONS = [
     message: "The 'tools' field is deprecated. Use 'permission' instead.",
   },
   {
-    field: "autoshare",
-    replacement: "share",
-    message: "The 'autoshare' field is deprecated. Use 'share' instead.",
-  },
-  {
     field: "layout",
     replacement: null,
     message: "The 'layout' field is deprecated and no longer has any effect.",

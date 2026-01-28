@@ -63,11 +63,7 @@ export namespace SystemPrompt {
     ]
   }
 
-  const LOCAL_RULE_FILES = [
-    "AGENTS.md",
-    "CLAUDE.md",
-    "CONTEXT.md", // deprecated
-  ]
+  const LOCAL_RULE_FILES = ["AGENTS.md", "CLAUDE.md"]
   const GLOBAL_RULE_FILES = [
     path.join(Global.Path.config, "AGENTS.md"),
     path.join(os.homedir(), ".claude", "CLAUDE.md"),
