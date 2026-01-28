@@ -147,10 +147,10 @@ function createFakeAgent() {
           data: {
             providers: [
               {
-                id: "opencode",
-                name: "opencode",
+                id: "zai-coding-plan",
+                name: "Z.AI Coding Plan",
                 models: {
-                  "big-pickle": { id: "big-pickle", name: "big-pickle" },
+                  "glm-4.7": { id: "glm-4.7", name: "GLM-4.7" },
                 },
               },
             ],
@@ -185,7 +185,7 @@ function createFakeAgent() {
 
   const agent = new ACP.Agent(connection, {
     sdk,
-    defaultModel: { providerID: "opencode", modelID: "big-pickle" },
+    defaultModel: { providerID: "zai-coding-plan", modelID: "glm-4.7" },
   } as any)
 
   const stop = () => {

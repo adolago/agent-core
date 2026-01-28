@@ -778,11 +778,11 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
   })
 
   test("preserves metadata using providerID key when store is false", () => {
-    const opencodeModel = {
+    const testModel = {
       ...openaiModel,
-      providerID: "opencode",
+      providerID: "test-provider",
       api: {
-        id: "opencode-test",
+        id: "test-provider-model",
         url: "https://api.example.invalid",
         npm: "@ai-sdk/openai-compatible",
       },
@@ -795,7 +795,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
             type: "text",
             text: "Hello",
             providerOptions: {
-              opencode: {
+              "test-provider": {
                 itemId: "msg_123",
                 otherOption: "value",
               },
@@ -805,18 +805,18 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
       },
     ] as any[]
 
-    const result = ProviderTransform.message(msgs, opencodeModel, { store: false }) as any[]
+    const result = ProviderTransform.message(msgs, testModel, { store: false }) as any[]
 
-    expect(result[0].content[0].providerOptions?.opencode?.itemId).toBe("msg_123")
-    expect(result[0].content[0].providerOptions?.opencode?.otherOption).toBe("value")
+    expect(result[0].content[0].providerOptions?.["test-provider"]?.itemId).toBe("msg_123")
+    expect(result[0].content[0].providerOptions?.["test-provider"]?.otherOption).toBe("value")
   })
 
   test("preserves itemId across all providerOptions keys", () => {
-    const opencodeModel = {
+    const testModel = {
       ...openaiModel,
-      providerID: "opencode",
+      providerID: "test-provider",
       api: {
-        id: "opencode-test",
+        id: "test-provider-model",
         url: "https://api.example.invalid",
         npm: "@ai-sdk/openai-compatible",
       },
@@ -826,7 +826,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
         role: "assistant",
         providerOptions: {
           openai: { itemId: "msg_root" },
-          opencode: { itemId: "msg_opencode" },
+          "test-provider": { itemId: "msg_test" },
           extra: { itemId: "msg_extra" },
         },
         content: [
@@ -835,7 +835,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
             text: "Hello",
             providerOptions: {
               openai: { itemId: "msg_openai_part" },
-              opencode: { itemId: "msg_opencode_part" },
+              "test-provider": { itemId: "msg_test_part" },
               extra: { itemId: "msg_extra_part" },
             },
           },
@@ -843,13 +843,13 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
       },
     ] as any[]
 
-    const result = ProviderTransform.message(msgs, opencodeModel, { store: false }) as any[]
+    const result = ProviderTransform.message(msgs, testModel, { store: false }) as any[]
 
     expect(result[0].providerOptions?.openai?.itemId).toBe("msg_root")
-    expect(result[0].providerOptions?.opencode?.itemId).toBe("msg_opencode")
+    expect(result[0].providerOptions?.["test-provider"]?.itemId).toBe("msg_test")
     expect(result[0].providerOptions?.extra?.itemId).toBe("msg_extra")
     expect(result[0].content[0].providerOptions?.openai?.itemId).toBe("msg_openai_part")
-    expect(result[0].content[0].providerOptions?.opencode?.itemId).toBe("msg_opencode_part")
+    expect(result[0].content[0].providerOptions?.["test-provider"]?.itemId).toBe("msg_test_part")
     expect(result[0].content[0].providerOptions?.extra?.itemId).toBe("msg_extra_part")
   })
 
@@ -1273,106 +1273,6 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
-})
-
-describe("ProviderTransform.options - OpenCode Zen thinking", () => {
-  const sessionID = "test-session-123"
-
-  test("should enable thinking for OpenCode Claude models", () => {
-    const model = {
-      id: "opencode/claude-opus-4-5",
-      providerID: "opencode",
-      api: {
-        id: "claude-opus-4-5",
-        url: "https://opencode.example.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    } as any
-    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-    expect(result.thinking).toEqual({
-      type: "enabled",
-      clear_thinking: false,
-    })
-  })
-
-  test("should enable thinking for OpenCode Zen Claude Opus 4.5", () => {
-    const model = {
-      id: "opencode-zen/claude-opus-4-5-20251101",
-      providerID: "opencode-zen",
-      api: {
-        id: "claude-opus-4-5-20251101",
-        url: "https://opencode.example.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    } as any
-    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-    expect(result.thinking).toEqual({
-      type: "enabled",
-      clear_thinking: false,
-    })
-  })
-
-  test("should enable thinking for OpenCode Kimi K2 thinking models", () => {
-    const model = {
-      id: "opencode/kimi-k2-thinking",
-      providerID: "opencode",
-      api: {
-        id: "kimi-k2-thinking",
-        url: "https://opencode.example.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    } as any
-    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-    expect(result.thinking).toEqual({
-      type: "enabled",
-      clear_thinking: false,
-    })
-  })
-
-  test("should enable thinking for OpenCode GLM-4 models", () => {
-    const model = {
-      id: "opencode/glm-4-plus",
-      providerID: "opencode",
-      api: {
-        id: "glm-4-plus",
-        url: "https://opencode.example.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    } as any
-    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-    expect(result.thinking).toEqual({
-      type: "enabled",
-      clear_thinking: false,
-    })
-  })
-
-  test("should NOT enable thinking for OpenCode non-thinking models", () => {
-    const model = {
-      id: "opencode/gpt-4o",
-      providerID: "opencode",
-      api: {
-        id: "gpt-4o",
-        url: "https://opencode.example.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    } as any
-    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-    expect(result.thinking).toBeUndefined()
-  })
-
-  test("should NOT enable thinking for Kimi K2 without 'thinking' in name", () => {
-    const model = {
-      id: "opencode/kimi-k2",
-      providerID: "opencode",
-      api: {
-        id: "kimi-k2",
-        url: "https://opencode.example.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    } as any
-    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-    expect(result.thinking).toBeUndefined()
-  })
 })
 
 describe("ProviderTransform.options - persona thinking configs", () => {

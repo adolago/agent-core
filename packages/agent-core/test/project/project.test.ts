@@ -20,7 +20,7 @@ describe("Project.fromDirectory", () => {
     expect(project.vcs).toBe("git")
     expect(project.worktree).toBe(tmp.path)
 
-    const opencodeFile = path.join(tmp.path, ".git", "opencode")
+    const opencodeFile = path.join(tmp.path, ".git", "agent-core")
     const fileExists = await Bun.file(opencodeFile).exists()
     expect(fileExists).toBe(false)
   })
@@ -35,7 +35,7 @@ describe("Project.fromDirectory", () => {
     expect(project.vcs).toBe("git")
     expect(project.worktree).toBe(tmp.path)
 
-    const opencodeFile = path.join(tmp.path, ".git", "opencode")
+    const opencodeFile = path.join(tmp.path, ".git", "agent-core")
     const fileExists = await Bun.file(opencodeFile).exists()
     expect(fileExists).toBe(true)
   })
