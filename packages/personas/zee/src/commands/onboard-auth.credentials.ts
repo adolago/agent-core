@@ -153,14 +153,3 @@ export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
   });
 }
 
-export async function setOpencodeZenApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "opencode:default",
-    credential: {
-      type: "api_key",
-      provider: "opencode",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}

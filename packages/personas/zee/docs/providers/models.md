@@ -37,7 +37,6 @@ See [Venice AI](/providers/venice).
 - [Vercel AI Gateway](/providers/vercel-ai-gateway)
 - [Moonshot AI (Kimi + Kimi Code)](/providers/moonshot)
 - [Synthetic](/providers/synthetic)
-- [OpenCode Zen](/providers/opencode)
 - [Z.AI](/providers/zai)
 - [GLM models](/providers/glm)
 - [MiniMax](/providers/minimax)

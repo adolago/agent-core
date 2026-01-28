@@ -27,9 +27,8 @@ export type AuthChoice =
   | "minimax"
   | "minimax-api"
   | "minimax-api-lightning"
-  | "opencode-zen"
-  | "github-copilot"
   | "copilot-proxy"
+  | "github-copilot"
   | "qwen-portal"
   | "skip";
 export type GatewayAuthChoice = "off" | "token" | "password";
@@ -70,7 +69,6 @@ export type OnboardOptions = {
   minimaxApiKey?: string;
   syntheticApiKey?: string;
   veniceApiKey?: string;
-  opencodeZenApiKey?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

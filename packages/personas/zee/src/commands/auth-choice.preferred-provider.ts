@@ -20,13 +20,11 @@ const PREFERRED_PROVIDER_BY_AUTH_CHOICE: Partial<Record<AuthChoice, string>> = {
   "zai-api-key": "zai-coding-plan",
   "synthetic-api-key": "synthetic",
   "venice-api-key": "venice",
-  "github-copilot": "github-copilot",
   "copilot-proxy": "copilot-proxy",
   "minimax-cloud": "minimax",
   "minimax-api": "minimax",
   "minimax-api-lightning": "minimax",
   minimax: "lmstudio",
-  "opencode-zen": "opencode",
   "qwen-portal": "qwen-portal",
 };
 

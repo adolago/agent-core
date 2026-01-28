@@ -230,57 +230,6 @@ describe("applyAuthChoice", () => {
     }
   });
 
-  it("does not override the default model when selecting opencode-zen without setDefaultModel", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-auth-"));
-    process.env.ZEE_STATE_DIR = tempStateDir;
-    process.env.ZEE_AGENT_DIR = path.join(tempStateDir, "agent");
-    process.env.PI_CODING_AGENT_DIR = process.env.ZEE_AGENT_DIR;
-
-    const text = vi.fn().mockResolvedValue("sk-opencode-zen-test");
-    const select: WizardPrompter["select"] = vi.fn(
-      async (params) => params.options[0]?.value as never,
-    );
-    const multiselect: WizardPrompter["multiselect"] = vi.fn(async () => []);
-    const prompter: WizardPrompter = {
-      intro: vi.fn(noopAsync),
-      outro: vi.fn(noopAsync),
-      note: vi.fn(noopAsync),
-      select,
-      multiselect,
-      text,
-      confirm: vi.fn(async () => false),
-      progress: vi.fn(() => ({ update: noop, stop: noop })),
-    };
-    const runtime: RuntimeEnv = {
-      log: vi.fn(),
-      error: vi.fn(),
-      exit: vi.fn((code: number) => {
-        throw new Error(`exit:${code}`);
-      }),
-    };
-
-    const result = await applyAuthChoice({
-      authChoice: "opencode-zen",
-      config: {
-        agents: {
-          defaults: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-          },
-        },
-      },
-      prompter,
-      runtime,
-      setDefaultModel: false,
-    });
-
-    expect(text).toHaveBeenCalledWith(
-      expect.objectContaining({ message: "Enter OpenCode Zen API key" }),
-    );
-    expect(result.config.agents?.defaults?.model?.primary).toBe("anthropic/claude-opus-4-5");
-    expect(result.config.models?.providers?.["opencode-zen"]).toBeUndefined();
-    expect(result.agentModelOverride).toBe("opencode/claude-opus-4-5");
-  });
-
   it("uses existing OPENROUTER_API_KEY when selecting openrouter-api-key", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-auth-"));
     process.env.ZEE_STATE_DIR = tempStateDir;

@@ -261,10 +261,6 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return { apiKey: envKey, source: "gcloud adc" };
   }
 
-  if (normalized === "opencode") {
-    return pick("OPENCODE_API_KEY") ?? pick("OPENCODE_ZEN_API_KEY");
-  }
-
   if (normalized === "qwen-portal") {
     return pick("QWEN_OAUTH_TOKEN") ?? pick("QWEN_PORTAL_API_KEY");
   }
@@ -276,7 +272,6 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     openrouter: "OPENROUTER_API_KEY",
     "kimi-code": "KIMICODE_API_KEY",
     minimax: "MINIMAX_API_KEY",
-    opencode: "OPENCODE_API_KEY",
   };
   const envVar = envMap[normalized];
   if (!envVar) return null;

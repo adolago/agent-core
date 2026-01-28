@@ -11,7 +11,7 @@ For model selection rules, see [/concepts/models](/concepts/models).
 
 ## Quick rules
 
-- Model refs use `provider/model` (example: `opencode/claude-opus-4-5`).
+- Model refs use `provider/model` (example: `anthropic/claude-opus-4-5`).
 - If you set `agents.defaults.models`, it becomes the allowlist.
 - CLI helpers: `zee onboard`, `zee models list`, `zee models set <provider/model>`.
 

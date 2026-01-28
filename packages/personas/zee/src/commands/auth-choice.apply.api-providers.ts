@@ -17,8 +17,6 @@ import {
   applyKimiCodeProviderConfig,
   applyMoonshotConfig,
   applyMoonshotProviderConfig,
-  applyOpencodeZenConfig,
-  applyOpencodeZenProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
   applySyntheticConfig,
@@ -37,7 +35,6 @@ import {
   setGeminiApiKey,
   setKimiCodeApiKey,
   setMoonshotApiKey,
-  setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
   setVeniceApiKey,
@@ -45,7 +42,6 @@ import {
   setZaiApiKey,
   ZAI_DEFAULT_MODEL_REF,
 } from "./onboard-auth.js";
-import { OPENCODE_ZEN_DEFAULT_MODEL } from "./opencode-zen-model-default.js";
 
 export async function applyAuthChoiceApiProviders(
   params: ApplyAuthChoiceParams,
@@ -83,8 +79,6 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "synthetic-api-key";
     } else if (params.opts.tokenProvider === "venice") {
       authChoice = "venice-api-key";
-    } else if (params.opts.tokenProvider === "opencode") {
-      authChoice = "opencode-zen";
     }
   }
 
@@ -513,63 +507,6 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyVeniceConfig,
         applyProviderConfig: applyVeniceProviderConfig,
         noteDefault: VENICE_DEFAULT_MODEL_REF,
-        noteAgentModel,
-        prompter: params.prompter,
-      });
-      nextConfig = applied.config;
-      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    }
-    return { config: nextConfig, agentModelOverride };
-  }
-
-  if (authChoice === "opencode-zen") {
-    let hasCredential = false;
-    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "opencode") {
-      await setOpencodeZenApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
-      hasCredential = true;
-    }
-
-    if (!hasCredential) {
-      await params.prompter.note(
-        [
-          "OpenCode Zen provides access to Claude, GPT, Gemini, and more models.",
-          "Get your API key at: https://opencode.ai/auth",
-          "Requires an active OpenCode Zen subscription.",
-        ].join("\n"),
-        "OpenCode Zen",
-      );
-    }
-    const envKey = resolveEnvApiKey("opencode");
-    if (envKey) {
-      const useExisting = await params.prompter.confirm({
-        message: `Use existing OPENCODE_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
-        initialValue: true,
-      });
-      if (useExisting) {
-        await setOpencodeZenApiKey(envKey.apiKey, params.agentDir);
-        hasCredential = true;
-      }
-    }
-    if (!hasCredential) {
-      const key = await params.prompter.text({
-        message: "Enter OpenCode Zen API key",
-        validate: validateApiKeyInput,
-      });
-      await setOpencodeZenApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "opencode:default",
-      provider: "opencode",
-      mode: "api_key",
-    });
-    {
-      const applied = await applyDefaultModelChoice({
-        config: nextConfig,
-        setDefaultModel: params.setDefaultModel,
-        defaultModel: OPENCODE_ZEN_DEFAULT_MODEL,
-        applyDefaultConfig: applyOpencodeZenConfig,
-        applyProviderConfig: applyOpencodeZenProviderConfig,
-        noteDefault: OPENCODE_ZEN_DEFAULT_MODEL,
         noteAgentModel,
         prompter: params.prompter,
       });

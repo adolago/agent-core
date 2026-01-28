@@ -18,7 +18,6 @@ export type AuthChoiceGroupId =
   | "ai-gateway"
   | "moonshot"
   | "zai-coding-plan"
-  | "opencode-zen"
   | "minimax"
   | "synthetic"
   | "venice"
@@ -108,12 +107,6 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "Z.AI Coding Plan (GLM 4.7)",
     hint: "API key",
     choices: ["zai-api-key"],
-  },
-  {
-    value: "opencode-zen",
-    label: "OpenCode Zen",
-    hint: "API key",
-    choices: ["opencode-zen"],
   },
 ];
 
@@ -226,12 +219,6 @@ export function buildAuthChoiceOptions(params: {
     hint: "Local proxy for VS Code Copilot models",
   });
   options.push({ value: "apiKey", label: "Anthropic API key" });
-  // Token flow is currently Anthropic-only; use CLI for advanced providers.
-  options.push({
-    value: "opencode-zen",
-    label: "OpenCode Zen (multi-model proxy)",
-    hint: "Claude, GPT, Gemini via opencode.ai/zen",
-  });
   options.push({ value: "minimax-api", label: "MiniMax M2.1" });
   options.push({
     value: "minimax-api-lightning",

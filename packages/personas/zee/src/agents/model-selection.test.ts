@@ -15,7 +15,6 @@ describe("model-selection", () => {
       expect(normalizeProviderId("Anthropic")).toBe("anthropic");
       expect(normalizeProviderId("Z.ai")).toBe("zai");
       expect(normalizeProviderId("z-ai")).toBe("zai");
-      expect(normalizeProviderId("OpenCode-Zen")).toBe("opencode");
       expect(normalizeProviderId("qwen")).toBe("qwen-portal");
     });
   });
