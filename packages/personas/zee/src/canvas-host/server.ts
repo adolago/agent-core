@@ -10,6 +10,7 @@ import { type WebSocket, WebSocketServer } from "ws";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { detectMime } from "../media/mime.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { SafeOpenError, openFileWithinRoot } from "../security/fs-safe.js";
 import { ensureDir, resolveUserPath } from "../utils.js";
 import {
   CANVAS_HOST_PATH,
@@ -145,30 +146,31 @@ async function resolveFilePath(rootReal: string, urlPath: string) {
   const rel = normalized.replace(/^\/+/, "");
   if (rel.split("/").some((p) => p === "..")) return null;
 
-  let candidate = path.join(rootReal, rel);
+  const tryOpen = async (relative: string) => {
+    try {
+      return await openFileWithinRoot({ rootDir: rootReal, relativePath: relative });
+    } catch (err) {
+      if (err instanceof SafeOpenError) return null;
+      throw err;
+    }
+  };
+
   if (normalized.endsWith("/")) {
-    candidate = path.join(candidate, "index.html");
+    return await tryOpen(path.posix.join(rel, "index.html"));
   }
 
+  const candidate = path.join(rootReal, rel);
   try {
-    const st = await fs.stat(candidate);
+    const st = await fs.lstat(candidate);
+    if (st.isSymbolicLink()) return null;
     if (st.isDirectory()) {
-      candidate = path.join(candidate, "index.html");
+      return await tryOpen(path.posix.join(rel, "index.html"));
     }
   } catch {
     // ignore
   }
 
-  const rootPrefix = rootReal.endsWith(path.sep) ? rootReal : `${rootReal}${path.sep}`;
-  try {
-    const lstat = await fs.lstat(candidate);
-    if (lstat.isSymbolicLink()) return null;
-    const real = await fs.realpath(candidate);
-    if (!real.startsWith(rootPrefix)) return null;
-    return real;
-  } catch {
-    return null;
-  }
+  return await tryOpen(rel);
 }
 
 function isDisabledByEnv() {
@@ -311,8 +313,8 @@ export async function createCanvasHostHandler(
         return true;
       }
 
-      const filePath = await resolveFilePath(rootReal, urlPath);
-      if (!filePath) {
+      const file = await resolveFilePath(rootReal, urlPath);
+      if (!file) {
         if (urlPath === "/" || urlPath.endsWith("/")) {
           res.statusCode = 404;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -327,23 +329,46 @@ export async function createCanvasHostHandler(
         return true;
       }
 
-      const lower = filePath.toLowerCase();
-      const mime =
-        lower.endsWith(".html") || lower.endsWith(".htm")
-          ? "text/html"
-          : ((await detectMime({ filePath })) ?? "application/octet-stream");
+      const { handle, realPath, stat } = file;
+      let closed = false;
+      const closeHandle = async () => {
+        if (closed) return;
+        closed = true;
+        await handle.close().catch(() => {});
+      };
+
+      const lower = realPath.toLowerCase();
+      const isHtml = lower.endsWith(".html") || lower.endsWith(".htm");
 
       res.setHeader("Cache-Control", "no-store");
-      if (mime === "text/html") {
-        const html = await fs.readFile(filePath, "utf8");
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(liveReload ? injectCanvasLiveReload(html) : html);
-        return true;
-      }
+      try {
+        if (isHtml) {
+          const html = await handle.readFile({ encoding: "utf8" });
+          const body = liveReload ? injectCanvasLiveReload(html) : html;
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.setHeader("Content-Length", String(Buffer.byteLength(body)));
+          if (req.method === "HEAD") {
+            res.end();
+            return true;
+          }
+          res.end(body);
+          return true;
+        }
 
-      res.setHeader("Content-Type", mime);
-      res.end(await fs.readFile(filePath));
-      return true;
+        const data = await handle.readFile();
+        const mime =
+          (await detectMime({ buffer: data, filePath: realPath })) ?? "application/octet-stream";
+        res.setHeader("Content-Type", mime);
+        res.setHeader("Content-Length", String(stat.size));
+        if (req.method === "HEAD") {
+          res.end();
+          return true;
+        }
+        res.end(data);
+        return true;
+      } finally {
+        await closeHandle();
+      }
     } catch (err) {
       opts.runtime.error(`canvasHost request failed: ${String(err)}`);
       res.statusCode = 500;

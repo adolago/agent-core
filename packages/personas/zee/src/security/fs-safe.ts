@@ -11,7 +11,8 @@
  */
 
 import fs from "node:fs/promises";
-import { constants } from "node:fs";
+import type { FileHandle } from "node:fs/promises";
+import { constants as fsConstants, type Stats } from "node:fs";
 import path from "node:path";
 
 const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -34,6 +35,108 @@ export type SafeReadOptions = {
   /** Root directory the file must be within */
   rootDir?: string;
 };
+
+export type SafeOpenErrorCode = "invalid-path" | "not-found";
+
+export class SafeOpenError extends Error {
+  code: SafeOpenErrorCode;
+
+  constructor(code: SafeOpenErrorCode, message: string) {
+    super(message);
+    this.code = code;
+    this.name = "SafeOpenError";
+  }
+}
+
+export type SafeOpenResult = {
+  handle: FileHandle;
+  realPath: string;
+  stat: Stats;
+};
+
+const NOT_FOUND_CODES = new Set(["ENOENT", "ENOTDIR"]);
+
+const ensureTrailingSep = (value: string) => (value.endsWith(path.sep) ? value : value + path.sep);
+
+const isNodeError = (err: unknown): err is NodeJS.ErrnoException =>
+  Boolean(err && typeof err === "object" && "code" in (err as Record<string, unknown>));
+
+const isNotFoundError = (err: unknown) =>
+  isNodeError(err) && typeof err.code === "string" && NOT_FOUND_CODES.has(err.code);
+
+const isSymlinkOpenError = (err: unknown) =>
+  isNodeError(err) && (err.code === "ELOOP" || err.code === "EINVAL" || err.code === "ENOTSUP");
+
+export async function openFileWithinRoot(params: {
+  rootDir: string;
+  relativePath: string;
+}): Promise<SafeOpenResult> {
+  let rootReal: string;
+  try {
+    rootReal = await fs.realpath(params.rootDir);
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      throw new SafeOpenError("not-found", "root dir not found");
+    }
+    throw err;
+  }
+
+  const rootWithSep = ensureTrailingSep(rootReal);
+  const resolved = path.resolve(rootWithSep, params.relativePath);
+  if (!resolved.startsWith(rootWithSep)) {
+    throw new SafeOpenError("invalid-path", "path escapes root");
+  }
+
+  const supportsNoFollow =
+    process.platform !== "win32" && "O_NOFOLLOW" in (fsConstants as Record<string, unknown>);
+  const flags =
+    fsConstants.O_RDONLY |
+    (supportsNoFollow ? (fsConstants as unknown as { O_NOFOLLOW: number }).O_NOFOLLOW : 0);
+
+  let handle: FileHandle;
+  try {
+    handle = await fs.open(resolved, flags);
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      throw new SafeOpenError("not-found", "file not found");
+    }
+    if (isSymlinkOpenError(err)) {
+      throw new SafeOpenError("invalid-path", "symlink open blocked");
+    }
+    throw err;
+  }
+
+  try {
+    const lstat = await fs.lstat(resolved).catch(() => null);
+    if (lstat?.isSymbolicLink()) {
+      throw new SafeOpenError("invalid-path", "symlink not allowed");
+    }
+
+    const realPath = await fs.realpath(resolved);
+    if (!realPath.startsWith(rootWithSep)) {
+      throw new SafeOpenError("invalid-path", "path escapes root");
+    }
+
+    const stat = await handle.stat();
+    if (!stat.isFile()) {
+      throw new SafeOpenError("invalid-path", "not a file");
+    }
+
+    const realStat = await fs.stat(realPath);
+    if (stat.ino !== realStat.ino || stat.dev !== realStat.dev) {
+      throw new SafeOpenError("invalid-path", "path mismatch");
+    }
+
+    return { handle, realPath, stat };
+  } catch (err) {
+    await handle.close().catch(() => {});
+    if (err instanceof SafeOpenError) throw err;
+    if (isNotFoundError(err)) {
+      throw new SafeOpenError("not-found", "file not found");
+    }
+    throw err;
+  }
+}
 
 /**
  * Validates a media ID contains only safe characters.
@@ -112,7 +215,7 @@ export async function safeReadFile(
   try {
     // Open for reading - on Linux with O_NOFOLLOW this would fail on symlink
     // but Node doesn't always support O_NOFOLLOW, so we rely on inode check
-    handle = await fs.open(filePath, constants.O_RDONLY);
+    handle = await fs.open(filePath, fsConstants.O_RDONLY);
 
     // Get stat from the open file handle
     const handleStat = await handle.stat();

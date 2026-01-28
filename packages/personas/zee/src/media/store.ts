@@ -8,7 +8,8 @@ import { resolveConfigDir } from "../utils.js";
 import { detectMime, extensionForMime } from "./mime.js";
 
 const resolveMediaDir = () => path.join(resolveConfigDir(), "media");
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB default
+export const MEDIA_MAX_BYTES = 5 * 1024 * 1024; // 5MB default
+const MAX_BYTES = MEDIA_MAX_BYTES;
 const DEFAULT_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 /**
@@ -54,7 +55,7 @@ export function getMediaDir() {
 
 export async function ensureMediaDir() {
   const mediaDir = resolveMediaDir();
-  await fs.mkdir(mediaDir, { recursive: true });
+  await fs.mkdir(mediaDir, { recursive: true, mode: 0o700 });
   return mediaDir;
 }
 
@@ -107,7 +108,7 @@ async function downloadToFile(
       let total = 0;
       const sniffChunks: Buffer[] = [];
       let sniffLen = 0;
-      const out = createWriteStream(dest);
+      const out = createWriteStream(dest, { mode: 0o600 });
       res.on("data", (chunk) => {
         total += chunk.length;
         if (sniffLen < 16384) {
@@ -150,7 +151,7 @@ export async function saveMediaSource(
 ): Promise<SavedMedia> {
   const baseDir = resolveMediaDir();
   const dir = subdir ? path.join(baseDir, subdir) : baseDir;
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   await cleanOldMedia();
   const baseId = crypto.randomUUID();
   if (looksLikeUrl(source)) {
@@ -180,7 +181,7 @@ export async function saveMediaSource(
   const ext = extensionForMime(mime) ?? path.extname(source);
   const id = ext ? `${baseId}${ext}` : baseId;
   const dest = path.join(dir, id);
-  await fs.writeFile(dest, buffer);
+  await fs.writeFile(dest, buffer, { mode: 0o600 });
   return { id, path: dest, size: stat.size, contentType: mime };
 }
 
@@ -195,7 +196,7 @@ export async function saveMediaBuffer(
     throw new Error(`Media exceeds ${(maxBytes / (1024 * 1024)).toFixed(0)}MB limit`);
   }
   const dir = path.join(resolveMediaDir(), subdir);
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   const uuid = crypto.randomUUID();
   const headerExt = extensionForMime(contentType?.split(";")[0]?.trim() ?? undefined);
   const mime = await detectMime({ buffer, headerMime: contentType });
@@ -213,6 +214,6 @@ export async function saveMediaBuffer(
   }
 
   const dest = path.join(dir, id);
-  await fs.writeFile(dest, buffer);
+  await fs.writeFile(dest, buffer, { mode: 0o600 });
   return { id, path: dest, size: buffer.byteLength, contentType: mime };
 }
