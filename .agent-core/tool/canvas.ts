@@ -175,11 +175,16 @@ function weztermEnabled(): boolean {
   return !["0", "false", "off", "no"].includes(raw)
 }
 
+function isPaneId(paneId: string | undefined): paneId is string {
+  if (!paneId) return false
+  return /^[0-9]+$/.test(paneId)
+}
+
 async function weztermAvailable(): Promise<boolean> {
   if (!weztermEnabled()) return false
   try {
-    await getWeztermPaneIds()
-    return true
+    const ids = await getWeztermPaneIds()
+    return ids.size > 0
   } catch {
     return false
   }
@@ -211,16 +216,22 @@ function getPaneId(entry: WeztermListEntry): string | undefined {
 }
 
 async function resolveTargetPaneId(): Promise<string | undefined> {
+  const list = await getWeztermList()
+  const paneIds = new Set<string>()
+  for (const entry of list) {
+    const paneId = getPaneId(entry)
+    if (paneId) paneIds.add(paneId)
+  }
+
   // 1. Explicit configuration takes priority
   const configured = process.env.AGENT_CORE_CANVAS_PANE_ID?.trim()
-  if (configured) return configured
+  if (configured && isPaneId(configured) && paneIds.has(configured)) return configured
 
   // 2. Environment variable from WezTerm (set when running in WezTerm terminal)
   const envPane = process.env.WEZTERM_PANE?.trim()
-  if (envPane) return envPane
+  if (envPane && isPaneId(envPane) && paneIds.has(envPane)) return envPane
 
   // 3. Find a pane in the same working directory (same project/tab)
-  const list = await getWeztermList()
   const cwd = process.cwd()
 
   // Filter panes that match our current working directory
@@ -239,6 +250,7 @@ async function resolveTargetPaneId(): Promise<string | undefined> {
 
   // 4. Last resort: use globally active pane (may be in wrong tab)
   // This maintains backwards compatibility but will likely open in wrong tab
+  if (list.length === 0) return undefined
   const active = list.find((x) => x.is_active) ?? list[0]
   return getPaneId(active)
 }
@@ -326,12 +338,23 @@ async function ensureCanvasPane(id: string, kind: CanvasKind): Promise<{ paneId:
 
   const targetPaneId = await resolveTargetPaneId()
 
-  // Start a "display" pane that doesn't echo input; content is rendered by sending text to stdin.
-  const splitArgs = ["split-pane", "--right", "--percent", String(percent)]
-  if (targetPaneId) splitArgs.push("--pane-id", targetPaneId)
-  splitArgs.push("--", "sh", "-c", "stty -echo 2>/dev/null; cat")
-  const { stdout } = await weztermCli(splitArgs, { timeoutMs: 5000 })
-  const paneId = stdout.trim()
+  const splitPane = async (paneId: string | undefined): Promise<string> => {
+    // Start a "display" pane that doesn't echo input; content is rendered by sending text to stdin.
+    const splitArgs = ["split-pane", "--right", "--percent", String(percent)]
+    if (paneId) splitArgs.push("--pane-id", paneId)
+    splitArgs.push("--", "sh", "-c", "stty -echo 2>/dev/null; cat")
+    const { stdout } = await weztermCli(splitArgs, { timeoutMs: 5000 })
+    return stdout.trim()
+  }
+
+  const paneId = await (async () => {
+    try {
+      return await splitPane(targetPaneId)
+    } catch (error) {
+      if (!targetPaneId) throw error
+      return await splitPane(undefined)
+    }
+  })()
   if (!paneId) throw new Error("wezterm did not return a pane id")
 
   state.canvases[id] = { paneId, kind, createdAt: Date.now() }
@@ -355,7 +378,7 @@ async function renderToPane(paneId: string, payload: string): Promise<void> {
 }
 
 // Canvas spawn tool
-export const canvasSpawn = tool({
+export const spawn = tool({
   description: `Spawn a canvas to display content in a WezTerm pane.
 
 Canvas types:
@@ -412,13 +435,19 @@ Note: WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm 
       return `${created ? "Canvas created" : "Canvas updated"}: "${args.id}" (${kind}) in WezTerm pane ${paneId}.`
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
-      return `Failed to render canvas in WezTerm: ${msg}`
+      return `=== ${title} ===
+(Canvas type: ${kind})
+
+${body}
+
+---
+Note: Failed to render canvas in WezTerm (${msg}). Content displayed inline.`
     }
   },
 })
 
 // Canvas update tool
-export const canvasUpdate = tool({
+export const update = tool({
   description: `Update an existing canvas's content.
 
 Examples:
@@ -445,13 +474,13 @@ WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm cli\` 
     const state = await loadCanvasState()
     const existing = state.canvases[args.id]
     if (!existing) {
-      return `Canvas "${args.id}" does not exist yet. Use canvasSpawn first.`
+      return `Canvas "${args.id}" does not exist yet. Use canvas_spawn first.`
     }
 
     if (!(await paneExists(existing.paneId))) {
       delete state.canvases[args.id]
       await saveCanvasState(state)
-      return `Canvas "${args.id}" pane is no longer available. Use canvasSpawn to recreate it.`
+      return `Canvas "${args.id}" pane is no longer available. Use canvas_spawn to recreate it.`
     }
 
     const { title, body } = buildCanvasBody(existing.kind, args.id, config)
@@ -462,7 +491,7 @@ WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm cli\` 
 })
 
 // Canvas close tool
-export const canvasClose = tool({
+export const close = tool({
   description: `Close a canvas pane.`,
   args: {
     id: tool.schema.string().describe("Canvas identifier to close"),
@@ -491,13 +520,27 @@ WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm cli\` 
 })
 
 // Canvas list tool
-export const canvasList = tool({
+export const list = tool({
   description: `List all active canvases.`,
   args: {},
   async execute() {
     const state = await loadCanvasState()
     const ids = Object.keys(state.canvases)
     if (ids.length === 0) return "No active canvases."
+
+    if (!(await weztermAvailable())) {
+      const lines = ids
+        .sort((a, b) => a.localeCompare(b))
+        .map((id) => {
+          const c = state.canvases[id]
+          if (!c) return null
+          return `- ${id} (${c.kind}) last known pane ${c.paneId}`
+        })
+        .filter(Boolean)
+        .join("\n")
+
+      return `${ids.length} canvas(es) in state (WezTerm unavailable, not verifying panes):\n${lines}`
+    }
 
     const live = new Map<string, { paneId: string; kind: CanvasKind; createdAt: number }>()
     for (const id of ids) {
