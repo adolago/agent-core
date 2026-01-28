@@ -235,6 +235,54 @@ describe("buildInlineKeyboard", () => {
       message_thread_id: 99,
     });
   });
+
+  it("uses reply_parameters when quoteText is provided", async () => {
+    const chatId = "-1001234567890";
+    const sendMessage = vi.fn().mockResolvedValue({
+      message_id: 61,
+      chat: { id: chatId },
+    });
+    const api = { sendMessage } as unknown as {
+      sendMessage: typeof sendMessage;
+    };
+
+    await sendMessageTelegram(chatId, "quoted reply", {
+      token: "tok",
+      api,
+      replyToMessageId: 321,
+      quoteText: "Quoted section",
+    });
+
+    expect(sendMessage).toHaveBeenCalledWith(chatId, "quoted reply", {
+      parse_mode: "HTML",
+      reply_parameters: {
+        message_id: 321,
+        quote: "Quoted section",
+      },
+    });
+  });
+
+  it("sets disable_notification when silent is true", async () => {
+    const chatId = "-1001234567890";
+    const sendMessage = vi.fn().mockResolvedValue({
+      message_id: 62,
+      chat: { id: chatId },
+    });
+    const api = { sendMessage } as unknown as {
+      sendMessage: typeof sendMessage;
+    };
+
+    await sendMessageTelegram(chatId, "quiet message", {
+      token: "tok",
+      api,
+      silent: true,
+    });
+
+    expect(sendMessage).toHaveBeenCalledWith(chatId, "quiet message", {
+      parse_mode: "HTML",
+      disable_notification: true,
+    });
+  });
 });
 
 describe("reactMessageTelegram", () => {

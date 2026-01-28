@@ -204,6 +204,10 @@ export const dispatchTelegramMessage = async ({
           await flushDraft();
           draftStream?.stop();
         }
+        const replyQuoteText =
+          ctxPayload.ReplyToIsQuote && ctxPayload.ReplyToBody
+            ? ctxPayload.ReplyToBody.trim() || undefined
+            : undefined;
         await deliverReplies({
           replies: [payload],
           chatId: String(chatId),
@@ -217,6 +221,7 @@ export const dispatchTelegramMessage = async ({
           chunkMode,
           onVoiceRecording: sendRecordVoice,
           linkPreview: telegramCfg.linkPreview,
+          replyQuoteText,
         });
       },
       onError: (err, info) => {
