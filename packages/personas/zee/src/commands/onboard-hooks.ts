@@ -41,7 +41,7 @@ export async function setupInternalHooks(
       { value: "__skip__", label: "Skip for now" },
       ...eligibleHooks.map((hook) => ({
         value: hook.name,
-        label: `${hook.emoji ?? "🔗"} ${hook.name}`,
+        label: `${hook.emoji ?? "~"} ${hook.name}`,
         hint: hook.description,
       })),
     ],

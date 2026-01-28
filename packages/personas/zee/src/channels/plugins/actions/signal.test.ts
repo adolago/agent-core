@@ -51,7 +51,7 @@ describe("signalMessageActions", () => {
     await expect(
       signalMessageActions.handleAction({
         action: "react",
-        params: { to: "+15550001111", messageId: "123", emoji: "✅" },
+        params: { to: "+15550001111", messageId: "123", emoji: "+" },
         cfg,
         accountId: undefined,
       }),
@@ -116,7 +116,7 @@ describe("signalMessageActions", () => {
     await expect(
       signalMessageActions.handleAction({
         action: "react",
-        params: { to: "signal:group:group-id", messageId: "123", emoji: "✅" },
+        params: { to: "signal:group:group-id", messageId: "123", emoji: "+" },
         cfg,
         accountId: undefined,
       }),
@@ -135,13 +135,13 @@ describe("signalMessageActions", () => {
         to: "signal:group:group-id",
         targetAuthor: "uuid:123e4567-e89b-12d3-a456-426614174000",
         messageId: "123",
-        emoji: "✅",
+        emoji: "+",
       },
       cfg,
       accountId: undefined,
     });
 
-    expect(sendReactionSignal).toHaveBeenCalledWith("", 123, "✅", {
+    expect(sendReactionSignal).toHaveBeenCalledWith("", 123, "+", {
       accountId: undefined,
       groupId: "group-id",
       targetAuthor: "uuid:123e4567-e89b-12d3-a456-426614174000",

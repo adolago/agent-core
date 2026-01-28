@@ -129,14 +129,14 @@ describe("config identity defaults", () => {
                   identity: {
                     name: "Samantha Sloth",
                     theme: "space lobster",
-                    emoji: "🦞",
+                    emoji: "*",
                   },
                   groupChat: { mentionPatterns: ["@zee"] },
                 },
               ],
             },
             messages: {
-              responsePrefix: "✅",
+              responsePrefix: "+",
             },
           },
           null,
@@ -149,7 +149,7 @@ describe("config identity defaults", () => {
       const { loadConfig } = await import("./config.js");
       const cfg = loadConfig();
 
-      expect(cfg.messages?.responsePrefix).toBe("✅");
+      expect(cfg.messages?.responsePrefix).toBe("+");
       expect(cfg.agents?.list?.[0]?.groupChat?.mentionPatterns).toEqual(["@zee"]);
     });
   });
@@ -164,7 +164,7 @@ describe("config identity defaults", () => {
           {
             messages: {
               messagePrefix: "[zee]",
-              responsePrefix: "🦞",
+              responsePrefix: "*",
             },
             channels: {
               whatsapp: { allowFrom: ["+15555550123"], textChunkLimit: 4444 },
@@ -329,7 +329,7 @@ describe("config identity defaults", () => {
                   identity: {
                     name: "Zee",
                     theme: "space lobster",
-                    emoji: "🦞",
+                    emoji: "*",
                   },
                 },
               ],

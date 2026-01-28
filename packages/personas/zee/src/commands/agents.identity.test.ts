@@ -142,7 +142,7 @@ describe("agents set-identity command", () => {
         workspace,
         fromIdentity: true,
         name: "Nova",
-        emoji: "🦞",
+        emoji: "*",
         avatar: "https://example.com/override.png",
       },
       runtime,
@@ -155,7 +155,7 @@ describe("agents set-identity command", () => {
     expect(main?.identity).toEqual({
       name: "Nova",
       theme: "space lobster",
-      emoji: "🦞",
+      emoji: "*",
       avatar: "https://example.com/override.png",
     });
   });
@@ -170,7 +170,7 @@ describe("agents set-identity command", () => {
       [
         "- **Name:** C-3PO",
         "- **Creature:** Flustered Protocol Droid",
-        "- **Emoji:** 🤖",
+        "- **Emoji:** @",
         "- **Avatar:** avatars/c3po.png",
         "",
       ].join("\n"),
@@ -191,7 +191,7 @@ describe("agents set-identity command", () => {
     expect(main?.identity).toEqual({
       name: "C-3PO",
       theme: "Flustered Protocol Droid",
-      emoji: "🤖",
+      emoji: "@",
       avatar: "avatars/c3po.png",
     });
   });

@@ -36,7 +36,7 @@ describe("sandbox-formatters", () => {
     });
 
     it("should format mismatched image", () => {
-      expect(formatImageMatch(false)).toBe("⚠️  mismatch");
+      expect(formatImageMatch(false)).toBe("!  mismatch");
     });
   });
 

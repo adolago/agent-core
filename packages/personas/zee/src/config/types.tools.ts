@@ -149,6 +149,28 @@ export type GroupToolPolicyConfig = {
   deny?: string[];
 };
 
+/**
+ * Per-sender tool policy overrides within a group.
+ * Allows granting or restricting tool access for specific senders.
+ */
+export type SenderToolPolicyConfig = {
+  /** Tools to allow for this sender (additive to group policy). */
+  allow?: string[];
+  /** Tools to deny for this sender (takes precedence). */
+  deny?: string[];
+};
+
+/**
+ * Group configuration with optional per-sender tool overrides.
+ * Used in channel-specific group configs (WhatsApp, Telegram, Discord, Signal).
+ */
+export type GroupConfigWithSenders = {
+  requireMention?: boolean;
+  tools?: GroupToolPolicyConfig;
+  /** Per-sender tool policy overrides (keyed by sender id). */
+  senders?: Record<string, SenderToolPolicyConfig>;
+};
+
 export type ExecToolConfig = {
   /** Exec host routing (default: sandbox). */
   host?: "sandbox" | "gateway" | "node";

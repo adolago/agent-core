@@ -356,40 +356,6 @@ describe("doctor command", () => {
     expect(String(stateNote?.[0])).toContain("CRITICAL");
   }, 30_000);
 
-  it("warns about opencode provider overrides", async () => {
-    readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/zee.json",
-      exists: true,
-      raw: "{}",
-      parsed: {},
-      valid: true,
-      config: {
-        models: {
-          providers: {
-            opencode: {
-              api: "openai-completions",
-              baseUrl: "https://opencode.ai/zen/v1",
-            },
-          },
-        },
-      },
-      issues: [],
-      legacyIssues: [],
-    });
-
-    const { doctorCommand } = await import("./doctor.js");
-    await doctorCommand(
-      { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
-      { nonInteractive: true, workspaceSuggestions: false },
-    );
-
-    const warned = note.mock.calls.some(
-      ([message, title]) =>
-        title === "OpenCode Zen" && String(message).includes("models.providers.opencode"),
-    );
-    expect(warned).toBe(true);
-  });
-
   it("skips gateway auth warning when ZEE_GATEWAY_TOKEN is set", async () => {
     readConfigFileSnapshot.mockResolvedValue({
       path: "/tmp/zee.json",

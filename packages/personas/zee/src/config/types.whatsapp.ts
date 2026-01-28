@@ -6,7 +6,7 @@ import type {
 } from "./types.base.js";
 import type { ChannelHeartbeatVisibilityConfig } from "./types.channels.js";
 import type { DmConfig } from "./types.messages.js";
-import type { GroupToolPolicyConfig } from "./types.tools.js";
+import type { GroupToolPolicyConfig, SenderToolPolicyConfig } from "./types.tools.js";
 
 export type WhatsAppActionConfig = {
   reactions?: boolean;
@@ -70,6 +70,8 @@ export type WhatsAppConfig = {
     {
       requireMention?: boolean;
       tools?: GroupToolPolicyConfig;
+      /** Per-sender tool policy overrides within this group (keyed by E.164 phone). */
+      senders?: Record<string, SenderToolPolicyConfig>;
     }
   >;
   /** Acknowledgment reaction sent immediately upon message receipt. */
@@ -135,6 +137,8 @@ export type WhatsAppAccountConfig = {
     {
       requireMention?: boolean;
       tools?: GroupToolPolicyConfig;
+      /** Per-sender tool policy overrides within this group (keyed by E.164 phone). */
+      senders?: Record<string, SenderToolPolicyConfig>;
     }
   >;
   /** Acknowledgment reaction sent immediately upon message receipt. */

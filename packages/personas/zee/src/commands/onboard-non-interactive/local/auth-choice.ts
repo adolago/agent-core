@@ -17,7 +17,6 @@ import {
   applyMinimaxApiConfig,
   applyMinimaxConfig,
   applyMoonshotConfig,
-  applyOpencodeZenConfig,
   applyOpenrouterConfig,
   applySyntheticConfig,
   applyVercelAiGatewayConfig,
@@ -27,7 +26,6 @@ import {
   setKimiCodeApiKey,
   setMinimaxApiKey,
   setMoonshotApiKey,
-  setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
   setVercelAiGatewayApiKey,
@@ -333,25 +331,6 @@ export async function applyNonInteractiveAuthChoice(params: {
   }
 
   if (authChoice === "minimax") return applyMinimaxConfig(nextConfig);
-
-  if (authChoice === "opencode-zen") {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "opencode",
-      cfg: baseConfig,
-      flagValue: opts.opencodeZenApiKey,
-      flagName: "--opencode-zen-api-key",
-      envVar: "OPENCODE_API_KEY (or OPENCODE_ZEN_API_KEY)",
-      runtime,
-    });
-    if (!resolved) return null;
-    if (resolved.source !== "profile") await setOpencodeZenApiKey(resolved.key);
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "opencode:default",
-      provider: "opencode",
-      mode: "api_key",
-    });
-    return applyOpencodeZenConfig(nextConfig);
-  }
 
   if (
     authChoice === "oauth" ||
