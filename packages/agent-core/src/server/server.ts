@@ -239,6 +239,17 @@ export namespace Server {
           } catch {
             return c.text("Not Found", 404)
           }
+
+          // Sentinel: Prevent SSRF by ensuring the proxy target matches the configured origin
+          try {
+            const allowed = new URL(proxyBase)
+            if (proxyUrl.origin !== allowed.origin) {
+              return c.text("Forbidden", 403)
+            }
+          } catch {
+            return c.text("Not Found", 404)
+          }
+
           const response = await proxy(proxyUrl.toString(), {
             ...c.req,
             headers: {

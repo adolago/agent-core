@@ -12,3 +12,8 @@
 **Vulnerability:** The `Ripgrep.search` function constructed a shell command by joining arguments into a string and executing it via `$` (Bun Shell) with `{ raw: command }`. This allowed arbitrary command injection via the `pattern` argument.
 **Learning:** Using `raw` mode in Bun Shell bypasses auto-escaping. Even when using modern runtimes like Bun, constructing commands as strings for shell execution is risky.
 **Prevention:** Use `Bun.spawn` with an argument array to execute binaries directly, bypassing the shell. This ensures arguments are treated literally and prevents injection.
+
+## 2026-05-28 - SSRF in Proxy Fallback via Protocol-Relative URLs
+**Vulnerability:** The `agent-core` server's proxy fallback used `new URL(c.req.path, proxyBase)` to construct the upstream URL. `new URL()` treats paths starting with `//` (e.g., `//evil.com`) as protocol-relative URLs, ignoring the `proxyBase` and allowing Server-Side Request Forgery (SSRF) to arbitrary origins.
+**Learning:** `new URL()` behavior with protocol-relative paths can be a subtle source of SSRF when combining a base URL with untrusted path input. Concatenating URLs or validating the resulting origin is crucial.
+**Prevention:** Always validate the `origin` of the constructed URL matches the expected `proxyBase` origin before making the request.
