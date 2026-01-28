@@ -17,9 +17,7 @@ function getAuthIndicator(_providerID: string): string {
 
 export function useConnected() {
   const sync = useSync()
-  return createMemo(() =>
-    sync.data.provider.some((x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0)),
-  )
+  return createMemo(() => sync.data.provider.length > 0)
 }
 
 export function DialogModel(props: { providerID?: string }) {
@@ -61,8 +59,6 @@ export function DialogModel(props: { providerID?: string }) {
           title: model.name ?? item.modelID,
           description: authIndicator + provider.name,
           category: "Recent",
-          disabled: provider.id === "opencode" && model.id.includes("-nano"),
-          footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
           onSelect: () => {
             dialog.clear()
             local.model.set(
@@ -79,10 +75,7 @@ export function DialogModel(props: { providerID?: string }) {
 
     const providerOptions = pipe(
       sync.data.provider,
-      sortBy(
-        (provider) => provider.id !== "opencode",
-        (provider) => provider.name,
-      ),
+      sortBy((provider) => provider.name),
       flatMap((provider) => {
         const authIndicator = getAuthIndicator(provider.id)
         return pipe(
@@ -99,8 +92,6 @@ export function DialogModel(props: { providerID?: string }) {
               value,
               title: info.name ?? model,
               category: connected() ? authIndicator + provider.name : undefined,
-              disabled: provider.id === "opencode" && model.includes("-nano"),
-              footer: info.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
               onSelect() {
                 dialog.clear()
                 local.model.set(
@@ -123,10 +114,7 @@ export function DialogModel(props: { providerID?: string }) {
             if (inRecents) return false
             return true
           }),
-          sortBy(
-            (x) => x.footer !== "Free",
-            (x) => x.title,
-          ),
+          sortBy((x) => x.title),
         )
       }),
     )

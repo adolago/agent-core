@@ -846,6 +846,9 @@ export namespace ACP {
     private async loadSessionMode(params: LoadSessionRequest) {
       const directory = params.cwd
       const model = await defaultModel(this.config, directory)
+      if (!model) {
+        throw new Error("No model available. Please configure a provider with available models.")
+      }
       const sessionId = params.sessionId
 
       const providers = await this.sdk.config.providers(withDirectory(directory)).then((x) => x.data!.providers)
@@ -993,6 +996,9 @@ export namespace ACP {
 
       const current = session.model
       const model = current ?? (await defaultModel(this.config, directory))
+      if (!model) {
+        throw new Error("No model available. Please configure a provider with available models.")
+      }
       if (!current) {
         this.sessionManager.setModel(session.id, model)
       }
@@ -1231,20 +1237,6 @@ export namespace ACP {
 
     if (specified && !providers.length) return specified
 
-    const opencodeProvider = providers.find((p) => p.id === "opencode")
-    if (opencodeProvider) {
-      if (opencodeProvider.models["big-pickle"]) {
-        return { providerID: "opencode", modelID: "big-pickle" }
-      }
-      const [best] = Provider.sort(Object.values(opencodeProvider.models))
-      if (best) {
-        return {
-          providerID: best.providerID,
-          modelID: best.id,
-        }
-      }
-    }
-
     const models = providers.flatMap((p) => Object.values(p.models))
     const [best] = Provider.sort(models)
     if (best) {
@@ -1254,9 +1246,7 @@ export namespace ACP {
       }
     }
 
-    if (specified) return specified
-
-    return { providerID: "opencode", modelID: "big-pickle" }
+    return specified
   }
 
   function parseUri(
