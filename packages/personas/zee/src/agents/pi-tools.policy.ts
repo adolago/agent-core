@@ -1,6 +1,6 @@
 import type { ZeeConfig } from "../config/config.js";
 import { getChannelDock } from "../channels/dock.js";
-import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
+import { resolveChannelGroupToolsPolicy, resolveSenderToolsPolicy } from "../config/group-policy.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxToolPolicy } from "./sandbox.js";
@@ -207,6 +207,8 @@ export function resolveGroupToolPolicy(params: {
   groupChannel?: string | null;
   groupSpace?: string | null;
   accountId?: string | null;
+  /** Optional sender ID for per-sender tool policy overrides. */
+  senderId?: string | null;
 }): SandboxToolPolicy | undefined {
   if (!params.config) return undefined;
   const sessionContext = resolveGroupContextFromSessionKey(params.sessionKey);
@@ -222,7 +224,9 @@ export function resolveGroupToolPolicy(params: {
   } catch {
     dock = undefined;
   }
-  const toolsConfig =
+
+  // First resolve group-level policy (or use dock-specific resolver)
+  const groupToolsConfig =
     dock?.groups?.resolveToolPolicy?.({
       cfg: params.config,
       groupId,
@@ -236,7 +240,24 @@ export function resolveGroupToolPolicy(params: {
       groupId,
       accountId: params.accountId,
     });
-  return pickToolPolicy(toolsConfig);
+
+  // If sender ID provided, apply sender-specific overrides
+  if (params.senderId) {
+    const senderToolsConfig = resolveSenderToolsPolicy({
+      cfg: params.config,
+      channel,
+      groupId,
+      accountId: params.accountId,
+      senderId: params.senderId,
+    });
+
+    // Sender policy takes precedence over group policy
+    if (senderToolsConfig) {
+      return pickToolPolicy(senderToolsConfig);
+    }
+  }
+
+  return pickToolPolicy(groupToolsConfig);
 }
 
 export function isToolAllowedByPolicies(
