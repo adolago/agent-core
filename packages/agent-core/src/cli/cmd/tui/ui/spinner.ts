@@ -54,9 +54,9 @@ function getCarouselState(
   const cycleLength = totalChars + activeCount - 1
   const cycleFrame = frameIndex % cycleLength
 
-  // Head position (leftmost active block) moves from totalChars + activeCount - 2 down to 0
-  // This reverses the direction to go right-to-left
-  const head = (cycleLength - 1) - cycleFrame
+  // Head position (leftmost active block) moves from (totalChars - 1) down to -(activeCount - 1)
+  // This keeps the first frame visible at the right edge and exits on the left
+  const head = (totalChars - 1) - cycleFrame
 
   return {
     offset: head, // Now represents head position

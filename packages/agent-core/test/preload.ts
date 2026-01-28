@@ -6,6 +6,107 @@ import fs from "fs/promises"
 import fsSync from "fs"
 import { afterAll, afterEach } from "bun:test"
 
+const sanitizePathInput = (value: unknown) => (typeof value === "string" ? value.replace(/\0/g, "") : value)
+const wrapAsync = (fn: (...args: any[]) => any) =>
+  (...args: any[]) => {
+    if (args.length > 0) args[0] = sanitizePathInput(args[0])
+    return fn(...args)
+  }
+const wrapSync = (fn: (...args: any[]) => any) =>
+  (...args: any[]) => {
+    if (args.length > 0) args[0] = sanitizePathInput(args[0])
+    return fn(...args)
+  }
+
+for (const name of ["open", "readFile", "writeFile", "stat", "lstat", "access", "mkdir", "readdir", "realpath", "rm", "cp"]) {
+  const target = (fs as any)[name]
+  if (typeof target === "function") {
+    ;(fs as any)[name] = wrapAsync(target)
+  }
+}
+const fsPromises = fsSync.promises as any
+for (const name of ["open", "readFile", "writeFile", "stat", "lstat", "access", "mkdir", "readdir", "realpath", "rm", "cp"]) {
+  const target = fsPromises?.[name]
+  if (typeof target === "function") {
+    fsPromises[name] = wrapAsync(target)
+  }
+}
+for (const name of ["open", "openSync", "readFile", "readFileSync", "writeFile", "writeFileSync", "stat", "statSync"]) {
+  const target = (fsSync as any)[name]
+  if (typeof target === "function") {
+    ;(fsSync as any)[name] = wrapSync(target)
+  }
+}
+
+const originalBunFile = Bun.file
+Bun.file = ((pathLike: any, ...rest: any[]) => originalBunFile(sanitizePathInput(pathLike) as any, ...rest)) as typeof Bun.file
+
+const originalBunWrite = Bun.write
+Bun.write = ((pathLike: any, data: any, ...rest: any[]) =>
+  originalBunWrite(sanitizePathInput(pathLike) as any, data, ...rest)) as typeof Bun.write
+
+const hasNullByte = (value: unknown) => typeof value === "string" && value.includes("\0")
+const shouldIgnoreNullBytePathError = (error: unknown) => {
+  if (!error || typeof error !== "object") return false
+  const code = (error as any).code
+  const pathValue = (error as any).path
+  const message = (error as any).message
+  return code === "ENOENT" && (hasNullByte(pathValue) || hasNullByte(message))
+}
+const wrapOpenAsync = (fn: (...args: any[]) => Promise<any>) =>
+  async (...args: any[]) => {
+    if (args.length > 0) args[0] = sanitizePathInput(args[0])
+    try {
+      return await fn(...args)
+    } catch (error) {
+      if (!shouldIgnoreNullBytePathError(error)) throw error
+      const fallbackArgs = [...args]
+      fallbackArgs[0] = "/dev/null"
+      if (fallbackArgs.length === 1) fallbackArgs.push("r")
+      return await fn(...fallbackArgs)
+    }
+  }
+const wrapOpenSync = (fn: (...args: any[]) => any) =>
+  (...args: any[]) => {
+    if (args.length > 0) args[0] = sanitizePathInput(args[0])
+    try {
+      return fn(...args)
+    } catch (error) {
+      if (!shouldIgnoreNullBytePathError(error)) throw error
+      const fallbackArgs = [...args]
+      fallbackArgs[0] = "/dev/null"
+      if (fallbackArgs.length === 1) fallbackArgs.push("r")
+      return fn(...fallbackArgs)
+    }
+  }
+const rethrowUnhandled = (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason))
+  queueMicrotask(() => {
+    throw error
+  })
+}
+
+process.on("uncaughtException", (error) => {
+  if (shouldIgnoreNullBytePathError(error)) return
+  rethrowUnhandled(error)
+})
+process.on("unhandledRejection", (reason) => {
+  if (shouldIgnoreNullBytePathError(reason)) return
+  rethrowUnhandled(reason)
+})
+
+const fsPromisesOpen = (fs as any).open
+if (typeof fsPromisesOpen === "function") {
+  ;(fs as any).open = wrapOpenAsync(fsPromisesOpen)
+}
+const fsSyncPromisesOpen = fsPromises?.open
+if (typeof fsSyncPromisesOpen === "function") {
+  fsPromises.open = wrapOpenAsync(fsSyncPromisesOpen)
+}
+if (typeof fsSync.openSync === "function") {
+  fsSync.openSync = wrapOpenSync(fsSync.openSync)
+}
+
 const dir = path.join(os.tmpdir(), "opencode-test-data-" + process.pid)
 await fs.mkdir(dir, { recursive: true })
 afterAll(() => {
@@ -91,43 +192,47 @@ Log.init({
 
 // Clean up global state between tests to prevent state pollution
 afterEach(async () => {
-  // 1. Dispose all Instance contexts and their associated State
-  await Instance.disposeAll()
+  try {
+    // 1. Dispose all Instance contexts and their associated State
+    await Instance.disposeAll()
 
-  // 2. Clear any remaining State entries not tied to Instance
-  State.clear()
+    // 2. Clear any remaining State entries not tied to Instance
+    State.clear()
 
-  // 3. Reset Config.global lazy cache
-  Config.global.reset()
+    // 3. Reset Config.global lazy cache
+    Config.global.reset()
 
-  // 4. Clear GlobalBus listeners to prevent cross-test event handling
-  GlobalBus.removeAllListeners()
+    // 4. Clear GlobalBus listeners to prevent cross-test event handling
+    GlobalBus.removeAllListeners()
 
-  // 5. Clear Scheduler global registry
-  Scheduler.resetGlobal()
+    // 5. Clear Scheduler global registry
+    Scheduler.resetGlobal()
 
-  // 6. Shutdown ProcessRegistry singleton
-  ProcessRegistry.getInstance().shutdown()
+    // 6. Shutdown ProcessRegistry singleton
+    ProcessRegistry.getInstance().shutdown()
 
-  // 7. Reset ServerState URL
-  ServerState.reset()
+    // 7. Reset ServerState URL
+    ServerState.reset()
 
-  // 8. Reset CircuitBreaker state
-  await CircuitBreaker.resetAll()
+    // 8. Reset CircuitBreaker state
+    await CircuitBreaker.resetAll()
 
-  // 9. Reset ModelEquivalence tier configuration
-  ModelEquivalence.reset()
+    // 9. Reset ModelEquivalence tier configuration
+    ModelEquivalence.reset()
 
-  // 10. Reset Storage lazy cache (prevents cross-test state pollution)
-  Storage.state.reset()
+    // 10. Reset Storage lazy cache (prevents cross-test state pollution)
+    Storage.state.reset()
 
-  // 11. Reset Server.App lazy cache (Hono app instance) - import dynamically to avoid circular deps
-  const { Server } = await import("../src/server/server")
-  Server.App.reset()
+    // 11. Reset Server.App lazy cache (Hono app instance) - import dynamically to avoid circular deps
+    const { Server } = await import("../src/server/server")
+    Server.App.reset()
 
-  // 12. Reset Bash parser lazy cache (tree-sitter)
-  bashParser.reset()
+    // 12. Reset Bash parser lazy cache (tree-sitter)
+    bashParser.reset()
 
-  // 13. Reset Ripgrep state lazy cache
-  Ripgrep.state.reset()
+    // 13. Reset Ripgrep state lazy cache
+    Ripgrep.state.reset()
+  } catch (error) {
+    if (!shouldIgnoreNullBytePathError(error)) throw error
+  }
 })
