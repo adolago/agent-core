@@ -80,7 +80,20 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     const result = pipe(
       props.options,
       filter((x) => x.disabled !== true),
-      (x) => (!needle ? x : fuzzysort.go(needle, x, { keys: ["title", "category"], scoreFn: (a) => Math.max(a[0] ? a[0].score : -Infinity, a[1] ? a[1].score - 100 : -Infinity) }).map((x) => x.obj)),
+      (x) => {
+        if (!needle) return x
+        return fuzzysort
+          .go(needle, x, {
+            keys: ["title", "category"],
+            // Prefer title matches over category matches.
+            scoreFn: (a) =>
+              Math.max(
+                a[0] ? a[0].score : -Infinity,
+                a[1] ? a[1].score - 100 : -Infinity,
+              ),
+          })
+          .map((x) => x.obj)
+      },
     )
     return result
   })
@@ -141,11 +154,17 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   }
 
   function moveTo(next: number, center = false) {
-    setStore("selected", next)
-    const sel = selected(); if (sel) props.onMove?.(sel)
+    const items = flat()
+    if (items.length === 0) return
+
+    const clamped = Math.max(0, Math.min(next, items.length - 1))
+    setStore("selected", clamped)
+
+    const sel = items[clamped]
+    props.onMove?.(sel)
     if (!scroll) return
     const target = scroll.getChildren().find((child) => {
-      return child.id === JSON.stringify(selected()?.value)
+      return child.id === JSON.stringify(sel.value)
     })
     if (!target) return
     const y = target.y - scroll.y
@@ -173,8 +192,8 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     if (evt.name === "down" || (evt.ctrl && evt.name === "n")) move(1)
     if (evt.name === "pageup") move(-10)
     if (evt.name === "pagedown") move(10)
-    if (evt.name === "home") moveTo(0)
-    if (evt.name === "end") moveTo(flat().length - 1)
+    if (evt.name === "home") moveTo(0, true)
+    if (evt.name === "end") moveTo(flat().length - 1, true)
 
     if (evt.name === "return") {
       const option = selected()
