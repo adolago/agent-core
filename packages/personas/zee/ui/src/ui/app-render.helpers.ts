@@ -109,7 +109,7 @@ export function renderChatControls(state: AppViewState) {
         title=${disableThinkingToggle
           ? "Disabled during onboarding"
           : "Toggle assistant thinking/working output"}
-        aria-label="Toggle assistant thinking"
+        aria-label="Toggle assistant thinking output"
       >
         ${icons.brain}
       </button>
