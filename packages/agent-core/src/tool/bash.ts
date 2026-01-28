@@ -21,6 +21,64 @@ const MAX_METADATA_LENGTH = 30_000
 const DEFAULT_TIMEOUT = Flag.OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
 
 export const log = Log.create({ service: "bash-tool" })
+// HOLD mode validation - detect file-modifying commands
+const FILE_MODIFYING_COMMANDS = new Set([
+  'rm', 'mv', 'cp', 'mkdir', 'rmdir', 'touch', 'chmod', 'chown',
+  'ln', 'unlink', 'install', 'shred', 'tee', 'dd', 'truncate',
+  'patch', 'ed', 'ex',
+])
+
+const FILE_MODIFYING_GIT_SUBCOMMANDS = new Set([
+  'add', 'commit', 'push', 'pull', 'merge', 'rebase', 'reset', 'checkout',
+  'branch', 'tag', 'stash', 'cherry-pick', 'revert', 'am', 'apply',
+  'mv', 'rm', 'clean', 'restore', 'switch',
+])
+
+export function isFileModifyingCommand(command: string): { modifying: boolean; reason?: string } {
+  const trimmed = command.trim()
+  
+  // Check for output redirection (> or >>) - but not stderr redirection (2>)
+  if (/(?<![2&])>>?\s*[^\s&|;]/.test(trimmed)) {
+    return { modifying: true, reason: 'output redirection to file' }
+  }
+  
+  // Check for pipe to tee
+  if (/\|\s*tee\s+/.test(trimmed)) {
+    return { modifying: true, reason: 'pipe to tee (writes to file)' }
+  }
+  
+  // Parse commands (handle pipes and &&)
+  const commands = trimmed.split(/\s*[|&;]\s*/).filter(Boolean)
+  
+  for (const part of commands) {
+    const parts = part.trim().split(/\s+/)
+    const cmd = parts[0]?.replace(/^.*\//, '') // Remove path prefix
+    
+    if (!cmd) continue
+    
+    // Check sed with -i flag
+    if (cmd === 'sed' && (parts.includes('-i') || parts.some(p => p.startsWith('-i')))) {
+      return { modifying: true, reason: 'sed with in-place edit (-i)' }
+    }
+    
+    // Check git subcommands
+    if (cmd === 'git') {
+      const subcommand = parts[1]
+      if (subcommand && FILE_MODIFYING_GIT_SUBCOMMANDS.has(subcommand)) {
+        return { modifying: true, reason: `git ${subcommand} modifies repository` }
+      }
+      continue
+    }
+    
+    // Check other file-modifying commands
+    if (FILE_MODIFYING_COMMANDS.has(cmd)) {
+      return { modifying: true, reason: `${cmd} modifies filesystem` }
+    }
+  }
+  
+  return { modifying: false }
+}
+
 
 const resolveWasm = (asset: string) => {
   if (asset.startsWith("file://")) return fileURLToPath(asset)
@@ -77,6 +135,28 @@ export const BashTool = Tool.define("bash", async () => {
     }),
     async execute(params, ctx) {
       const cwd = params.workdir || Instance.directory
+
+      // HOLD mode validation - block file-modifying commands
+      if (ctx.extra?.holdMode === true) {
+        const check = isFileModifyingCommand(params.command)
+        if (check.modifying) {
+          log.info("blocked file-modifying command in HOLD mode", { 
+            command: params.command, 
+            reason: check.reason 
+          })
+          const blockedOutput = `HOLD MODE: Command blocked because it would modify files (${check.reason}).\n\nIn HOLD mode, you cannot:\n- Edit files (sed -i, etc.)\n- Create/delete files (touch, rm, mkdir, etc.)\n- Use output redirection (>, >>)\n- Modify git state (git add, commit, push, etc.)\n\nYou can:\n- Read files (cat, head, tail)\n- Search (grep, find, rg)\n- View git state (git status, log, diff)\n- Run tests and builds\n\nTo modify files, the user must switch to RELEASE mode.`
+          return {
+            title: "Blocked in HOLD mode",
+            metadata: {
+              output: blockedOutput,
+              exit: 1 as number | null,
+              description: params.description,
+            },
+            output: blockedOutput,
+          }
+        }
+      }
+
       if (params.timeout !== undefined && params.timeout < 0) {
         throw new Error(`Invalid timeout value: ${params.timeout}. Timeout must be a positive number.`)
       }

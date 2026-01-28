@@ -19,6 +19,7 @@ import { SystemPrompt } from "./system"
 import { Plugin } from "../plugin"
 // NOTE: PROMPT_PLAN and BUILD_SWITCH removed - replaced by hold/release mode in TUI
 import MAX_STEPS from "../session/prompt/max-steps.txt"
+import HOLD_MODE_PROMPT from "./prompt/hold-mode.txt"
 import { defer } from "../util/defer"
 import { clone, mergeDeep } from "remeda"
 import { ToolRegistry } from "../tool/registry"
@@ -860,7 +861,7 @@ export namespace SessionPrompt {
         agent,
         abort,
         sessionID,
-        system: [...(await SystemPrompt.environment(model)), ...(await SystemPrompt.custom())],
+        system: [...(await SystemPrompt.environment(model)), ...(await SystemPrompt.custom()), ...(lastUser.tools?.edit === false ? [HOLD_MODE_PROMPT] : [])],
         messages: [
           ...(await MessageV2.toModelMessage(sessionMessages)),
           ...(isLastStep
@@ -943,7 +944,7 @@ export namespace SessionPrompt {
       messageID: input.processor.message.id,
       callID: options.toolCallId,
       directory: Instance.directory,
-      extra: { model: input.model, bypassAgentCheck: input.bypassAgentCheck },
+      extra: { model: input.model, bypassAgentCheck: input.bypassAgentCheck, holdMode: input.tools?.edit === false },
       agent: input.agent.name,
       metadata: async (val: { title?: string; metadata?: any }) => {
         const match = input.processor.partFromToolCall(options.toolCallId)
