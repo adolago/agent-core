@@ -2706,6 +2706,7 @@ scheme/host for profiles that only set `cdpPort`.
 
 Defaults:
 - enabled: `true`
+- evaluate enabled: `true` (set `browser.evaluateEnabled=false` to disable act:evaluate and wait --fn)
 - control URL: `http://127.0.0.1:18791` (CDP uses `18792`)
 - CDP URL: `http://127.0.0.1:18792` (control URL + 1, legacy single-profile)
 - profile color: `#FF4500` (lobster-orange)
