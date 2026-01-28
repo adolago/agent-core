@@ -3,7 +3,7 @@ import { cmd } from "./cmd"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
 import { ModelsDev } from "../../provider/models"
-import { map, pipe, sortBy, values } from "remeda"
+import { filter, map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
 import { Config } from "../../config/config"
@@ -296,44 +296,79 @@ export const AuthLoginCommand = cmd({
           }
         }
 
-        const priority: Record<string, number> = {
-          opencode: 0,
-          anthropic: 1,
-          "gemini-cli": 2,
-          "github-copilot": 3,
-          openai: 4,
-          google: 5,
-          openrouter: 6,
-          vercel: 7,
-        }
+        const existingCredentials = await Auth.all()
+        const credentialProviderIds = new Set(Object.keys(existingCredentials))
+
+        // Filter to only providers with existing credentials
+        const configuredProviders = pipe(
+          providers,
+          values(),
+          filter((x) => credentialProviderIds.has(x.id)),
+          sortBy((x) => x.name ?? x.id),
+        )
+
         let provider = providerArg ?? ""
         if (!provider) {
-          const selected = await prompts.autocomplete({
+          const ADD_NEW = "__add_new__"
+          const options = [
+            ...pipe(
+              configuredProviders,
+              map((x) => ({
+                label: x.name,
+                value: x.id,
+                hint: existingCredentials[x.id]?.type,
+              })),
+            ),
+            {
+              label: "Add new provider...",
+              value: ADD_NEW,
+            },
+          ]
+
+          const selected = await prompts.select({
             message: "Select provider",
-            maxItems: 8,
-            options: [
-              ...pipe(
-                providers,
-                values(),
-                sortBy(
-                  (x) => priority[x.id] ?? 99,
-                  (x) => x.name ?? x.id,
-                ),
-                map((x) => ({
-                  label: x.name,
-                  value: x.id,
-                  hint: {
-                    opencode: "recommended",
-                    anthropic: "Claude Max or API key",
-                    "gemini-cli": "Google OAuth (Antigravity)",
-                    openai: "ChatGPT Plus/Pro or API key",
-                  }[x.id],
-                })),
-              ),
-            ],
+            options,
           })
           if (prompts.isCancel(selected)) throw new UI.CancelledError()
-          provider = selected as string
+
+          if (selected === ADD_NEW) {
+            // Show all providers for adding new credential
+            const priority: Record<string, number> = {
+              anthropic: 0,
+              "gemini-cli": 1,
+              openai: 2,
+              google: 3,
+              openrouter: 4,
+            }
+            const newProvider = await prompts.autocomplete({
+              message: "Select provider to add",
+              maxItems: 8,
+              options: [
+                ...pipe(
+                  providers,
+                  values(),
+                  filter((x) => !credentialProviderIds.has(x.id)),
+                  sortBy(
+                    (x) => priority[x.id] ?? 99,
+                    (x) => x.name ?? x.id,
+                  ),
+                  map((x) => ({
+                    label: x.name,
+                    value: x.id,
+                    hint: {
+                      anthropic: "Recommended - Claude Max or API key",
+                      "gemini-cli": "Google OAuth (Antigravity)",
+                      openai: "ChatGPT Plus/Pro or API key",
+                    }[x.id],
+                  })),
+                ),
+              ],
+            })
+            if (prompts.isCancel(newProvider)) throw new UI.CancelledError()
+            provider = newProvider as string
+          } else {
+            provider = selected as string
+          }
         }
 
         const knownProvider = provider in providers
@@ -353,14 +388,6 @@ export const AuthLoginCommand = cmd({
         if (plugin && plugin.auth) {
           const handled = await handlePluginAuth({ auth: plugin.auth }, provider)
           if (handled) return
-        }
-
-        if (provider === "opencode") {
-          prompts.log.info("Create an API key in your provider dashboard")
-        }
-
-        if (provider === "vercel") {
-          prompts.log.info("You can create an api key at https://vercel.link/ai-gateway-token")
         }
 
         if (["cloudflare", "cloudflare-ai-gateway"].includes(provider)) {
