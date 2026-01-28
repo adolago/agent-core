@@ -319,3 +319,41 @@ describe("tool.bash truncation", () => {
     })
   })
 })
+
+describe("tool.bash.isFileModifyingCommand", () => {
+  const { isFileModifyingCommand } = require("../../src/tool/bash")
+
+  test("blocks process control commands", async () => {
+    expect((await isFileModifyingCommand("kill 123")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("pkill node")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("killall chrome")).modifying).toBe(true)
+  })
+
+  test("blocks wrapped process control commands", async () => {
+    expect((await isFileModifyingCommand("sudo kill 123")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("doas kill 123")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("env VAR=1 kill 123")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("sudo -u root kill 123")).modifying).toBe(true)
+  })
+
+  test("blocks system state commands", async () => {
+    expect((await isFileModifyingCommand("systemctl restart foo")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("shutdown -h now")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("mount /dev/sda1 /mnt")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("iptables -A INPUT -j DROP")).modifying).toBe(true)
+  })
+
+  test("blocks stderr and combined redirections", async () => {
+    expect((await isFileModifyingCommand("echo hi 2> err.txt")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("echo hi &> out.txt")).modifying).toBe(true)
+    expect((await isFileModifyingCommand("echo hi 2>> err.txt")).modifying).toBe(true)
+  })
+
+  test("allows read-only commands", async () => {
+    expect((await isFileModifyingCommand("ls -la")).modifying).toBe(false)
+    expect((await isFileModifyingCommand("cat file.txt")).modifying).toBe(false)
+    expect((await isFileModifyingCommand("git status")).modifying).toBe(false)
+    expect((await isFileModifyingCommand("ps aux")).modifying).toBe(false)
+    expect((await isFileModifyingCommand("top -bn1")).modifying).toBe(false)
+  })
+})

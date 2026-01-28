@@ -11,6 +11,7 @@ import { Filesystem } from "../util/filesystem"
 import { Instance } from "../project/instance"
 import { trimDiff } from "./edit"
 import { assertExternalDirectory } from "./external-directory"
+import { HoldMode } from "@/config/hold-mode"
 
 const MAX_DIAGNOSTICS_PER_FILE = 20
 const MAX_PROJECT_DIAGNOSTICS_FILES = 5
@@ -22,6 +23,13 @@ export const WriteTool = Tool.define("write", {
     filePath: z.string().describe("The absolute path to the file to write (must be absolute, not relative)"),
   }),
   async execute(params, ctx) {
+    if (ctx.extra?.holdMode === true) {
+      const allowed = await HoldMode.isToolAllowedInHold("write")
+      if (!allowed) {
+        throw new Error("HOLD MODE: Cannot write files. Switch to RELEASE mode to modify files.")
+      }
+    }
+
     const filepath = path.isAbsolute(params.filePath) ? params.filePath : path.join(Instance.directory, params.filePath)
     await assertExternalDirectory(ctx, filepath)
 

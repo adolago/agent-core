@@ -16,69 +16,34 @@ import { Shell } from "@/shell/shell"
 
 import { BashArity } from "@/permission/arity"
 import { Truncate } from "./truncation"
+import { HoldMode } from "@/config/hold-mode"
 
 const MAX_METADATA_LENGTH = 30_000
 const DEFAULT_TIMEOUT = Flag.AGENT_CORE_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
 
 export const log = Log.create({ service: "bash-tool" })
-// HOLD mode validation - detect file-modifying commands
-const FILE_MODIFYING_COMMANDS = new Set([
-  'rm', 'mv', 'cp', 'mkdir', 'rmdir', 'touch', 'chmod', 'chown',
-  'ln', 'unlink', 'install', 'shred', 'tee', 'dd', 'truncate',
-  'patch', 'ed', 'ex',
-])
 
-const FILE_MODIFYING_GIT_SUBCOMMANDS = new Set([
-  'add', 'commit', 'push', 'pull', 'merge', 'rebase', 'reset', 'checkout',
-  'branch', 'tag', 'stash', 'cherry-pick', 'revert', 'am', 'apply',
-  'mv', 'rm', 'clean', 'restore', 'switch',
-])
+/**
+ * Check if a command would modify state (files, processes, system).
+ * This is a compatibility wrapper that uses the unified hold-mode command checking.
+ * @deprecated Use HoldMode.checkCommand() instead for full hold-mode integration.
+ */
+export async function isFileModifyingCommand(
+  command: string,
+  options?: { blocklist?: Set<string> }
+): Promise<{ modifying: boolean; reason?: string }> {
+  // If a custom blocklist is provided, use the internal check
+  if (options?.blocklist) {
+    const result = await HoldMode.checkCommand(command, { holdMode: true })
+    // The result.blocked indicates if the command is blocked in hold mode
+    // which means it would modify state
+    return { modifying: result.blocked, reason: result.reason }
+  }
 
-export function isFileModifyingCommand(command: string): { modifying: boolean; reason?: string } {
-  const trimmed = command.trim()
-  
-  // Check for output redirection (> or >>) - but not stderr redirection (2>)
-  if (/(?<![2&])>>?\s*[^\s&|;]/.test(trimmed)) {
-    return { modifying: true, reason: 'output redirection to file' }
-  }
-  
-  // Check for pipe to tee
-  if (/\|\s*tee\s+/.test(trimmed)) {
-    return { modifying: true, reason: 'pipe to tee (writes to file)' }
-  }
-  
-  // Parse commands (handle pipes and &&)
-  const commands = trimmed.split(/\s*[|&;]\s*/).filter(Boolean)
-  
-  for (const part of commands) {
-    const parts = part.trim().split(/\s+/)
-    const cmd = parts[0]?.replace(/^.*\//, '') // Remove path prefix
-    
-    if (!cmd) continue
-    
-    // Check sed with -i flag
-    if (cmd === 'sed' && (parts.includes('-i') || parts.some(p => p.startsWith('-i')))) {
-      return { modifying: true, reason: 'sed with in-place edit (-i)' }
-    }
-    
-    // Check git subcommands
-    if (cmd === 'git') {
-      const subcommand = parts[1]
-      if (subcommand && FILE_MODIFYING_GIT_SUBCOMMANDS.has(subcommand)) {
-        return { modifying: true, reason: `git ${subcommand} modifies repository` }
-      }
-      continue
-    }
-    
-    // Check other file-modifying commands
-    if (FILE_MODIFYING_COMMANDS.has(cmd)) {
-      return { modifying: true, reason: `${cmd} modifies filesystem` }
-    }
-  }
-  
-  return { modifying: false }
+  // Default: use hold mode check which includes all profile-based blocking
+  const result = await HoldMode.checkCommand(command, { holdMode: true })
+  return { modifying: result.blocked, reason: result.reason }
 }
-
 
 const resolveWasm = (asset: string) => {
   if (asset.startsWith("file://")) return fileURLToPath(asset)
@@ -136,15 +101,52 @@ export const BashTool = Tool.define("bash", async () => {
     async execute(params, ctx) {
       const cwd = params.workdir || Instance.directory
 
-      // HOLD mode validation - block file-modifying commands
-      if (ctx.extra?.holdMode === true) {
-        const check = isFileModifyingCommand(params.command)
-        if (check.modifying) {
-          log.info("blocked file-modifying command in HOLD mode", { 
-            command: params.command, 
-            reason: check.reason 
+      // Use unified checkCommand for all hold-mode checks
+      const holdMode = ctx.extra?.holdMode === true
+      const checkResult = await HoldMode.checkCommand(params.command, { holdMode })
+
+      if (checkResult.blocked) {
+        // Command is blocked (either always_block or profile-based blocklist in HOLD mode)
+        if (checkResult.matchedPattern) {
+          // Blocked by always_block pattern
+          const blockedOutput = `BLOCKED: Command "${params.command}" is in always_block list and cannot be executed.`
+          log.info("blocked command from always_block list", { command: params.command, pattern: checkResult.matchedPattern })
+          return {
+            title: "Blocked by config",
+            metadata: {
+              output: blockedOutput,
+              exit: 1 as number | null,
+              description: params.description,
+            },
+            output: blockedOutput,
+          }
+        } else {
+          // Blocked by profile-based blocklist in HOLD mode
+          const holdConfig = await HoldMode.load()
+          log.info("blocked state-modifying command in HOLD mode", {
+            command: params.command,
+            reason: checkResult.reason,
+            profile: checkResult.profile,
           })
-          const blockedOutput = `HOLD MODE: Command blocked because it would modify files (${check.reason}).\n\nIn HOLD mode, you cannot:\n- Edit files (sed -i, etc.)\n- Create/delete files (touch, rm, mkdir, etc.)\n- Use output redirection (>, >>)\n- Modify git state (git add, commit, push, etc.)\n\nYou can:\n- Read files (cat, head, tail)\n- Search (grep, find, rg)\n- View git state (git status, log, diff)\n- Run tests and builds\n\nTo modify files, the user must switch to RELEASE mode.`
+          const blockedOutput = `HOLD MODE: Command blocked because it would modify state (${checkResult.reason}).
+
+In HOLD mode (profile: ${checkResult.profile}), you cannot:
+- Edit files (sed -i, etc.)
+- Create/delete files (touch, rm, mkdir, etc.)
+- Use output redirection (>, >>, 2>, &>)
+- Modify git state (git add, commit, push, etc.)
+- Control processes (kill, pkill, renice)
+- Modify system state (systemctl, shutdown, mount, iptables, etc.)
+${checkResult.profile === 'strict' ? '- Run interpreters (python, node, etc.)\n- Use network tools (curl, wget, ssh)\n- Schedule tasks (crontab, at)' : ''}
+
+You can:
+- Read files (cat, head, tail)
+- Search (grep, find, rg)
+- View git state (git status, log, diff)
+- Run tests and builds
+${holdConfig.hold_allow.length > 0 ? `- Allowed exceptions: ${holdConfig.hold_allow.join(', ')}` : ''}
+
+To modify state, the user must switch to RELEASE mode.`
           return {
             title: "Blocked in HOLD mode",
             metadata: {
@@ -153,6 +155,36 @@ export const BashTool = Tool.define("bash", async () => {
               description: params.description,
             },
             output: blockedOutput,
+          }
+        }
+      }
+
+      // Handle release_confirm (requires user confirmation)
+      if (checkResult.requiresConfirmation && checkResult.matchedPattern) {
+        log.info("command requires confirmation in RELEASE mode", { command: params.command, pattern: checkResult.matchedPattern })
+        try {
+          await ctx.ask({
+            permission: "release_confirm",
+            patterns: [params.command],
+            always: [],
+            metadata: {
+              matchedPattern: checkResult.matchedPattern,
+              message: `This command requires confirmation because it matches the pattern "${checkResult.matchedPattern}" in your release_confirm list.`,
+            },
+          })
+        } catch (error) {
+          // User denied the confirmation
+          const deniedOutput = `DENIED: Command "${params.command}" was blocked by user.
+The pattern "${checkResult.matchedPattern}" in your release_confirm list requires explicit confirmation for this command.`
+          log.info("user denied release_confirm command", { command: params.command, pattern: checkResult.matchedPattern })
+          return {
+            title: "Denied by user",
+            metadata: {
+              output: deniedOutput,
+              exit: 1 as number | null,
+              description: params.description,
+            },
+            output: deniedOutput,
           }
         }
       }

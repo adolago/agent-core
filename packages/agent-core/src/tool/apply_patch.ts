@@ -12,6 +12,7 @@ import { trimDiff } from "./edit"
 import { LSP } from "../lsp"
 import { Filesystem } from "../util/filesystem"
 import DESCRIPTION from "./apply_patch.txt"
+import { HoldMode } from "@/config/hold-mode"
 
 const PatchParams = z.object({
   patchText: z.string().describe("The full patch text that describes all changes to be made"),
@@ -21,6 +22,13 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
   description: DESCRIPTION,
   parameters: PatchParams,
   async execute(params, ctx) {
+    if (ctx.extra?.holdMode === true) {
+      const allowed = await HoldMode.isToolAllowedInHold("apply_patch")
+      if (!allowed) {
+        throw new Error("HOLD MODE: Cannot apply patches. Switch to RELEASE mode to modify files.")
+      }
+    }
+
     if (!params.patchText) {
       throw new Error("patchText is required")
     }

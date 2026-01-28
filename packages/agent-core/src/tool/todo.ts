@@ -2,6 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import DESCRIPTION_WRITE from "./todowrite.txt"
 import { Todo } from "../session/todo"
+import { HoldMode } from "@/config/hold-mode"
 
 export const TodoWriteTool = Tool.define("todowrite", {
   description: DESCRIPTION_WRITE,
@@ -9,6 +10,13 @@ export const TodoWriteTool = Tool.define("todowrite", {
     todos: z.array(z.object(Todo.InfoInput.shape)).describe("The updated todo list"),
   }),
   async execute(params, ctx) {
+    if (ctx.extra?.holdMode === true) {
+      const allowed = await HoldMode.isToolAllowedInHold("todowrite")
+      if (!allowed) {
+        throw new Error("HOLD MODE: Cannot modify todos. Switch to RELEASE mode to update todos.")
+      }
+    }
+
     await ctx.ask({
       permission: "todowrite",
       patterns: ["*"],

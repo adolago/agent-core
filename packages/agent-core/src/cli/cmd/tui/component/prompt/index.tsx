@@ -18,6 +18,7 @@ import { type AutocompleteRef, Autocomplete } from "./autocomplete"
 import { useCommandDialog } from "../dialog-command"
 import { useRenderer } from "@opentui/solid"
 import { Editor } from "@tui/util/editor"
+import { VimCommands } from "@tui/util/vim-commands"
 import { useExit } from "../../context/exit"
 import { Clipboard } from "../../util/clipboard"
 import type { FilePart } from "@opencode-ai/sdk/v2"
@@ -327,180 +328,32 @@ export function Prompt(props: PromptProps) {
     keybind.registerVimCommandHandler(null)
   })
 
+  // Create vim command context for the shared handler
+  function createVimContext(): VimCommands.VimCommandContext {
+    return {
+      getCursorOffset: () => input.cursorOffset,
+      setCursorOffset: (offset) => { input.cursorOffset = offset },
+      getText: () => input.plainText,
+      setText: (text) => input.setText(text),
+      insertText: (text) => input.insertText(text),
+      setStoreInput: (text) => setStore("prompt", "input", text),
+    }
+  }
+
   // Global vim command handler - handles vim commands when textarea is unfocused
   // This is registered with the keybind context to enable vim mode to work globally
   function handleVimCommand(key: string): boolean {
     if (!vim.enabled || !vim.isNormal) return false
 
-    // Insert mode commands - these will auto-focus the textarea via vim.enterInsert()
-    if (key === "i") {
-      vim.enterInsert()
-      return true
-    }
-    if (key === "a") {
-      vim.enterInsert()
-      // Move cursor right (append after cursor)
-      if (input.cursorOffset < input.plainText.length) {
-        input.cursorOffset++
-      }
-      return true
-    }
-    if (key === "I") {
-      vim.enterInsert()
-      input.cursorOffset = 0
-      return true
-    }
-    if (key === "A") {
-      vim.enterInsert()
-      input.cursorOffset = input.plainText.length
-      return true
-    }
-    if (key === "o") {
-      vim.enterInsert()
-      input.cursorOffset = input.plainText.length
-      input.insertText("\n")
-      return true
-    }
-    if (key === "O") {
-      vim.enterInsert()
-      input.cursorOffset = 0
-      input.insertText("\n")
-      input.cursorOffset = 0
-      return true
-    }
+    const ctx = createVimContext()
+    const result = VimCommands.handleNormalModeKey(ctx, key)
 
-    // Navigation commands - these focus the textarea but stay in normal mode
-    const focusAndStayNormal = () => {
-      input.focus()
-    }
-
-    if (key === "h") {
-      focusAndStayNormal()
-      if (input.cursorOffset > 0) input.cursorOffset--
-      return true
-    }
-    if (key === "l") {
-      focusAndStayNormal()
-      if (input.cursorOffset < input.plainText.length) input.cursorOffset++
-      return true
-    }
-    if (key === "j") {
-      focusAndStayNormal()
-      const lines = input.plainText.split("\n")
-      if (lines.length > 1) {
-        const afterCursor = input.plainText.slice(input.cursorOffset)
-        const nextNewline = afterCursor.indexOf("\n")
-        if (nextNewline !== -1) {
-          input.cursorOffset += nextNewline + 1
-        } else {
-          input.cursorOffset = input.plainText.length
-        }
-      }
-      return true
-    }
-    if (key === "k") {
-      focusAndStayNormal()
-      const beforeCursor = input.plainText.slice(0, input.cursorOffset)
-      const lastNewline = beforeCursor.lastIndexOf("\n")
-      if (lastNewline !== -1) {
-        const prevNewline = beforeCursor.lastIndexOf("\n", lastNewline - 1)
-        input.cursorOffset = prevNewline + 1
+    if (result.handled) {
+      if (result.enterInsert) {
+        vim.enterInsert()
       } else {
-        input.cursorOffset = 0
-      }
-      return true
-    }
-
-    // Word motions
-    if (key === "w") {
-      focusAndStayNormal()
-      const text = input.plainText
-      let pos = input.cursorOffset
-      while (pos < text.length && /\w/.test(text[pos])) pos++
-      while (pos < text.length && /\s/.test(text[pos])) pos++
-      input.cursorOffset = pos
-      return true
-    }
-    if (key === "b") {
-      focusAndStayNormal()
-      const text = input.plainText
-      let pos = input.cursorOffset - 1
-      while (pos > 0 && /\s/.test(text[pos])) pos--
-      while (pos > 0 && /\w/.test(text[pos - 1])) pos--
-      input.cursorOffset = Math.max(0, pos)
-      return true
-    }
-    if (key === "e") {
-      focusAndStayNormal()
-      const text = input.plainText
-      let pos = input.cursorOffset + 1
-      while (pos < text.length && /\s/.test(text[pos])) pos++
-      while (pos < text.length && /\w/.test(text[pos])) pos++
-      input.cursorOffset = Math.min(text.length, pos)
-      return true
-    }
-
-    // Line motions
-    if (key === "0") {
-      focusAndStayNormal()
-      const beforeCursor = input.plainText.slice(0, input.cursorOffset)
-      const lastNewline = beforeCursor.lastIndexOf("\n")
-      input.cursorOffset = lastNewline + 1
-      return true
-    }
-    if (key === "$") {
-      focusAndStayNormal()
-      const afterCursor = input.plainText.slice(input.cursorOffset)
-      const nextNewline = afterCursor.indexOf("\n")
-      if (nextNewline !== -1) {
-        input.cursorOffset += nextNewline
-      } else {
-        input.cursorOffset = input.plainText.length
-      }
-      return true
-    }
-    if (key === "^") {
-      focusAndStayNormal()
-      const beforeCursor = input.plainText.slice(0, input.cursorOffset)
-      const lastNewline = beforeCursor.lastIndexOf("\n")
-      const lineStart = lastNewline + 1
-      const afterLineStart = input.plainText.slice(lineStart)
-      const firstNonSpace = afterLineStart.search(/\S/)
-      input.cursorOffset = lineStart + (firstNonSpace === -1 ? 0 : firstNonSpace)
-      return true
-    }
-
-    // Buffer motions
-    if (key === "g") {
-      focusAndStayNormal()
-      input.cursorOffset = 0
-      return true
-    }
-    if (key === "G") {
-      focusAndStayNormal()
-      input.cursorOffset = input.plainText.length
-      return true
-    }
-
-    // Delete commands
-    if (key === "x") {
-      focusAndStayNormal()
-      if (input.cursorOffset < input.plainText.length) {
-        const before = input.plainText.slice(0, input.cursorOffset)
-        const after = input.plainText.slice(input.cursorOffset + 1)
-        input.setText(before + after)
-        setStore("prompt", "input", before + after)
-      }
-      return true
-    }
-    if (key === "X") {
-      focusAndStayNormal()
-      if (input.cursorOffset > 0) {
-        const before = input.plainText.slice(0, input.cursorOffset - 1)
-        const after = input.plainText.slice(input.cursorOffset)
-        input.setText(before + after)
-        setStore("prompt", "input", before + after)
-        input.cursorOffset--
+        // Navigation commands - focus the textarea but stay in normal mode
+        input.focus()
       }
       return true
     }
@@ -1538,200 +1391,12 @@ export function Prompt(props: PromptProps) {
                     if (e.name && e.name.length === 1 && !e.ctrl && !e.meta) {
                       const key = e.name
 
-                      // Insert mode commands
-                      if (key === "i") {
+                      // Allow `!` at position 0 to trigger shell mode
+                      // This must be checked before vim command handling
+                      if (key === "!" && input.cursorOffset === 0 && input.plainText === "") {
+                        // Enter insert mode first so user can type the shell command
                         vim.enterInsert()
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "a") {
-                        vim.enterInsert()
-                        // Move cursor right (append after cursor)
-                        if (input.cursorOffset < input.plainText.length) {
-                          input.cursorOffset++
-                        }
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "I") {
-                        vim.enterInsert()
-                        input.cursorOffset = 0
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "A") {
-                        vim.enterInsert()
-                        input.cursorOffset = input.plainText.length
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "o") {
-                        vim.enterInsert()
-                        // Insert newline at end and move cursor there
-                        input.cursorOffset = input.plainText.length
-                        input.insertText("\n")
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "O") {
-                        vim.enterInsert()
-                        // Insert newline at start and move cursor there
-                        input.cursorOffset = 0
-                        input.insertText("\n")
-                        input.cursorOffset = 0
-                        e.preventDefault()
-                        return
-                      }
-
-                      // Navigation commands
-                      if (key === "h") {
-                        if (input.cursorOffset > 0) input.cursorOffset--
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "l") {
-                        if (input.cursorOffset < input.plainText.length) input.cursorOffset++
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "j") {
-                        // Move down - delegate to textarea's internal handling
-                        // For now, just move to next line or end of buffer
-                        const lines = input.plainText.split("\n")
-                        if (lines.length > 1) {
-                          // Simple: move cursor down by finding next newline
-                          const afterCursor = input.plainText.slice(input.cursorOffset)
-                          const nextNewline = afterCursor.indexOf("\n")
-                          if (nextNewline !== -1) {
-                            input.cursorOffset += nextNewline + 1
-                          } else {
-                            input.cursorOffset = input.plainText.length
-                          }
-                        }
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "k") {
-                        // Move up - find previous line
-                        const beforeCursor = input.plainText.slice(0, input.cursorOffset)
-                        const lastNewline = beforeCursor.lastIndexOf("\n")
-                        if (lastNewline !== -1) {
-                          // Find the newline before that to get line start
-                          const prevNewline = beforeCursor.lastIndexOf("\n", lastNewline - 1)
-                          input.cursorOffset = prevNewline + 1
-                        } else {
-                          input.cursorOffset = 0
-                        }
-                        e.preventDefault()
-                        return
-                      }
-
-                      // Word motions
-                      if (key === "w") {
-                        // Move to next word start
-                        const text = input.plainText
-                        let pos = input.cursorOffset
-                        // Skip current word
-                        while (pos < text.length && /\w/.test(text[pos])) pos++
-                        // Skip whitespace
-                        while (pos < text.length && /\s/.test(text[pos])) pos++
-                        input.cursorOffset = pos
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "b") {
-                        // Move to previous word start
-                        const text = input.plainText
-                        let pos = input.cursorOffset - 1
-                        // Skip whitespace
-                        while (pos > 0 && /\s/.test(text[pos])) pos--
-                        // Skip word
-                        while (pos > 0 && /\w/.test(text[pos - 1])) pos--
-                        input.cursorOffset = Math.max(0, pos)
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "e") {
-                        // Move to end of word
-                        const text = input.plainText
-                        let pos = input.cursorOffset + 1
-                        // Skip whitespace
-                        while (pos < text.length && /\s/.test(text[pos])) pos++
-                        // Move to end of word
-                        while (pos < text.length && /\w/.test(text[pos])) pos++
-                        input.cursorOffset = Math.min(text.length, pos)
-                        e.preventDefault()
-                        return
-                      }
-
-                      // Line motions
-                      if (key === "0") {
-                        // Move to line start
-                        const beforeCursor = input.plainText.slice(0, input.cursorOffset)
-                        const lastNewline = beforeCursor.lastIndexOf("\n")
-                        input.cursorOffset = lastNewline + 1
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "$") {
-                        // Move to line end
-                        const afterCursor = input.plainText.slice(input.cursorOffset)
-                        const nextNewline = afterCursor.indexOf("\n")
-                        if (nextNewline !== -1) {
-                          input.cursorOffset += nextNewline
-                        } else {
-                          input.cursorOffset = input.plainText.length
-                        }
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "^") {
-                        // Move to first non-whitespace character of line
-                        const beforeCursor = input.plainText.slice(0, input.cursorOffset)
-                        const lastNewline = beforeCursor.lastIndexOf("\n")
-                        const lineStart = lastNewline + 1
-                        const afterLineStart = input.plainText.slice(lineStart)
-                        const firstNonSpace = afterLineStart.search(/\S/)
-                        input.cursorOffset = lineStart + (firstNonSpace === -1 ? 0 : firstNonSpace)
-                        e.preventDefault()
-                        return
-                      }
-
-                      // Buffer motions
-                      if (key === "g") {
-                        // gg - go to start (handled as single g for simplicity)
-                        input.cursorOffset = 0
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "G") {
-                        // G - go to end
-                        input.cursorOffset = input.plainText.length
-                        e.preventDefault()
-                        return
-                      }
-
-                      // Delete commands
-                      if (key === "x") {
-                        // Delete character under cursor
-                        if (input.cursorOffset < input.plainText.length) {
-                          const before = input.plainText.slice(0, input.cursorOffset)
-                          const after = input.plainText.slice(input.cursorOffset + 1)
-                          input.setText(before + after)
-                          setStore("prompt", "input", before + after)
-                        }
-                        e.preventDefault()
-                        return
-                      }
-                      if (key === "X") {
-                        // Delete character before cursor (like backspace)
-                        if (input.cursorOffset > 0) {
-                          const before = input.plainText.slice(0, input.cursorOffset - 1)
-                          const after = input.plainText.slice(input.cursorOffset)
-                          input.setText(before + after)
-                          setStore("prompt", "input", before + after)
-                          input.cursorOffset--
-                        }
+                        setStore("mode", "shell")
                         e.preventDefault()
                         return
                       }
@@ -1739,6 +1404,18 @@ export function Prompt(props: PromptProps) {
                       // Allow leader key to pass through to activate leader mode
                       if (keybind.match("leader", e)) {
                         // Don't block - let it propagate to the global leader handler
+                        return
+                      }
+
+                      // Use shared vim command handler
+                      const ctx = createVimContext()
+                      const result = VimCommands.handleNormalModeKey(ctx, key)
+
+                      if (result.handled) {
+                        if (result.enterInsert) {
+                          vim.enterInsert()
+                        }
+                        e.preventDefault()
                         return
                       }
 
