@@ -274,6 +274,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
                     paddingLeft={1}
                     paddingRight={1}
                     backgroundColor={isActive() ? theme.accent : theme.backgroundElement}
+                    onMouseDown={() => selectTab(index())}
                     onMouseUp={() => selectTab(index())}
                   >
                     <text fg={isActive() ? selectedForeground(theme, theme.accent) : isAnswered() ? theme.text : theme.textMuted}>
@@ -287,6 +288,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
               paddingLeft={1}
               paddingRight={1}
               backgroundColor={confirm() ? theme.accent : theme.backgroundElement}
+              onMouseDown={() => selectTab(questions().length)}
               onMouseUp={() => selectTab(questions().length)}
             >
               <text fg={confirm() ? selectedForeground(theme, theme.accent) : theme.textMuted}>Confirm</text>
