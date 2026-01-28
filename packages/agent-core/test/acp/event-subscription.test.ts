@@ -1,8 +1,10 @@
+import type { AgentSideConnection } from "@agentclientprotocol/sdk"
+import { randomUUID } from "node:crypto"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { describe, expect, test } from "bun:test"
 import { ACP } from "../../src/acp/agent"
-import type { AgentSideConnection } from "@agentclientprotocol/sdk"
 import { Instance } from "../../src/project/instance"
-import { tmpdir } from "../fixture/fixture"
 
 type SessionUpdateParams = Parameters<AgentSideConnection["sessionUpdate"]>[0]
 type RequestPermissionParams = Parameters<AgentSideConnection["requestPermission"]>[0]
@@ -196,12 +198,16 @@ function createFakeAgent() {
   return { agent, controller, calls, updates, chunks, stop, sdk, connection }
 }
 
+async function withInstance<T>(fn: () => Promise<T>) {
+  const baseDir = process.env["AGENT_CORE_TEST_HOME"] ?? process.cwd()
+  const directory = path.join(baseDir, ".agent-core-test", "acp", randomUUID())
+  await mkdir(directory, { recursive: true })
+  return Instance.provide({ directory, fn })
+}
+
 describe("acp.agent event subscription", () => {
   test("routes message.part.updated by the event sessionID (no cross-session pollution)", async () => {
-    await using tmp = await tmpdir()
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
+    await withInstance(async () => {
         const { agent, controller, updates, stop } = createFakeAgent()
         const cwd = "/tmp/opencode-acp-test"
 
@@ -230,15 +236,11 @@ describe("acp.agent event subscription", () => {
         expect((updates.get(sessionB) ?? []).includes("agent_message_chunk")).toBe(true)
 
         stop()
-      },
     })
   })
 
   test("keeps concurrent sessions isolated when message.part.updated events are interleaved", async () => {
-    await using tmp = await tmpdir()
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
+    await withInstance(async () => {
         const { agent, controller, chunks, stop } = createFakeAgent()
         const cwd = "/tmp/opencode-acp-test"
 
@@ -284,15 +286,11 @@ describe("acp.agent event subscription", () => {
         for (const part of tokenA) expect(b).not.toContain(part)
 
         stop()
-      },
     })
   })
 
   test("does not create additional event subscriptions on repeated loadSession()", async () => {
-    await using tmp = await tmpdir()
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
+    await withInstance(async () => {
         const { agent, calls, stop } = createFakeAgent()
         const cwd = "/tmp/opencode-acp-test"
 
@@ -306,15 +304,11 @@ describe("acp.agent event subscription", () => {
         expect(calls.eventSubscribe).toBe(1)
 
         stop()
-      },
     })
   })
 
   test("permission.asked events are handled and replied", async () => {
-    await using tmp = await tmpdir()
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
+    await withInstance(async () => {
         const permissionReplies: string[] = []
         const { agent, controller, stop, sdk } = createFakeAgent()
         sdk.permission.reply = async (params: any) => {
@@ -345,15 +339,11 @@ describe("acp.agent event subscription", () => {
         expect(permissionReplies).toContain("perm_1")
 
         stop()
-      },
     })
   })
 
   test("permission prompt on session A does not block message updates for session B", async () => {
-    await using tmp = await tmpdir()
-    await Instance.provide({
-      directory: tmp.path,
-      fn: async () => {
+    await withInstance(async () => {
         const permissionReplies: string[] = []
         let resolvePermissionA: (() => void) | undefined
         const permissionABlocking = new Promise<void>((r) => {
@@ -434,7 +424,6 @@ describe("acp.agent event subscription", () => {
         expect(permissionReplies).toContain("perm_a")
 
         stop()
-      },
     })
   })
 })
