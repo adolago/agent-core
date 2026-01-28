@@ -458,9 +458,13 @@ export const buildTelegramMessageContext = async ({
   const replyTarget = describeReplyTarget(msg);
   const forwardOrigin = normalizeForwardedContext(msg);
   const replySuffix = replyTarget
-    ? `\n\n[Replying to ${replyTarget.sender}${
-        replyTarget.id ? ` id:${replyTarget.id}` : ""
-      }]\n${replyTarget.body}\n[/Replying]`
+    ? replyTarget.kind === "quote"
+      ? `\n\n[Quoting ${replyTarget.sender}${replyTarget.id ? ` id:${replyTarget.id}` : ""}]\n"${
+          replyTarget.body
+        }"\n[/Quoting]`
+      : `\n\n[Replying to ${replyTarget.sender}${replyTarget.id ? ` id:${replyTarget.id}` : ""}]\n${
+          replyTarget.body
+        }\n[/Replying]`
     : "";
   const forwardPrefix = forwardOrigin
     ? `[Forwarded from ${forwardOrigin.from}${
@@ -543,6 +547,7 @@ export const buildTelegramMessageContext = async ({
     ReplyToId: replyTarget?.id,
     ReplyToBody: replyTarget?.body,
     ReplyToSender: replyTarget?.sender,
+    ReplyToIsQuote: replyTarget?.kind === "quote" ? true : undefined,
     ForwardedFrom: forwardOrigin?.from,
     ForwardedFromType: forwardOrigin?.fromType,
     ForwardedFromId: forwardOrigin?.fromId,
