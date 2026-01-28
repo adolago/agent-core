@@ -516,10 +516,11 @@ export namespace Provider {
       // Load for the main provider if auth exists
       if (auth) {
         const options = await plugin.auth.loader(() => Auth.get(providerID) as any, database[plugin.auth.provider])
-        mergeProvider(plugin.auth.provider, {
-          source: "custom",
-          options: options,
-        })
+        const opts = options ?? {}
+        const patch: Partial<Info> = providers[providerID]
+          ? { options: opts }
+          : { source: "custom", options: opts }
+        mergeProvider(providerID, patch)
 
         // If this is google plugin (antigravity), set up the provider properly
         // The plugin's fetch interceptor handles Claude/Gemini models via Google Cloud Code API
@@ -740,10 +741,11 @@ export namespace Provider {
       const result = await fn(data)
       if (result && (result.autoload || providers[providerID])) {
         if (result.getModel) modelLoaders[providerID] = result.getModel
-        mergeProvider(providerID, {
-          source: "custom",
-          options: result.options,
-        })
+        const opts = result.options ?? {}
+        const patch: Partial<Info> = providers[providerID]
+          ? { options: opts }
+          : { source: "custom", options: opts }
+        mergeProvider(providerID, patch)
       }
     }
 
