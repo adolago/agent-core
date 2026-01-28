@@ -205,8 +205,8 @@ export namespace Installation {
     })
 
     const npmPackages = NPM_PACKAGES
-    const brewPackages = ["agent-core", "adolago/tap/agent-core", "opencode"]
-    const winPackages = ["agent-core", "opencode"]
+    const brewPackages = ["agent-core", "adolago/tap/agent-core"]
+    const winPackages = ["agent-core"]
 
     for (const check of checks) {
       const output = await check.command()

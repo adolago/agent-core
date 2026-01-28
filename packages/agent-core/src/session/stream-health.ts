@@ -252,8 +252,8 @@ export class StreamHealthMonitor {
 
     // Track specific event types for more detailed metrics
     // Also track meaningful content for extended thinking timeout detection
-    const isMeaningfulContent = type === "text-delta" || type === "tool-call" || type === "tool-result"
     const isReasoningEvent = type.startsWith("reasoning")
+    const isMeaningfulContent = type === "text-delta" || type === "tool-call" || type === "tool-result" || isReasoningEvent
     if (type === "text-delta") {
       this.textDeltaEvents++
       this.phase = "generating"

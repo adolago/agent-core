@@ -13,17 +13,8 @@ const log = Log.create({ service: "transform" })
  * Get the actual provider npm package for filtering purposes.
  * When a model overrides api.npm, we still need to filter based on the
  * PROVIDER's actual backend, not the model's override.
- *
- * Example: OpenCode Zen provider uses @ai-sdk/openai-compatible, but GPT-5.2
- * model overrides api.npm to @ai-sdk/openai. For filtering, we need to use
- * the provider's actual backend (@ai-sdk/openai-compatible).
  */
 function getProviderNpm(model: Provider.Model): string {
-  // OpenCode providers use openai-compatible internally
-  // even when models override api.npm to @ai-sdk/openai
-  if (model.providerID.startsWith("opencode")) {
-    return "@ai-sdk/openai-compatible"
-  }
   return model.api.npm
 }
 
@@ -456,20 +447,6 @@ export namespace ProviderTransform {
       result["chat_template_args"] = { enable_thinking: true }
     }
 
-    // For OpenCode Zen models with thinking capability, use thinking param (like Z.AI)
-    // NOT chat_template_args which may not work on the openai-compatible backend
-    if (
-      input.model.providerID.startsWith("opencode") &&
-      ((input.model.api.id.includes("kimi-k2") && input.model.api.id.includes("thinking")) ||
-        input.model.api.id.includes("glm-4") ||
-        input.model.api.id.includes("claude"))
-    ) {
-      result["thinking"] = {
-        type: "enabled",
-        clear_thinking: false,
-      }
-    }
-
     // Enable thinking mode for Z.AI/ZhipuAI models
     // Use .includes() to match provider IDs like "zai-coding-plan"
     if (
@@ -500,13 +477,7 @@ export namespace ProviderTransform {
         result["store"] = false
       }
 
-      // Don't set reasoningEffort for OpenCode Zen - the backend may not support it
-      // and causes "Bad Request" errors when using openai-compatible with GPT-5 models
-      if (
-        !input.model.api.id.includes("codex") &&
-        !input.model.api.id.includes("gpt-5-pro") &&
-        !input.model.providerID.startsWith("opencode")
-      ) {
+      if (!input.model.api.id.includes("codex") && !input.model.api.id.includes("gpt-5-pro")) {
         result["reasoningEffort"] = "medium"
       }
 

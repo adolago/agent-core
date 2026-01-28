@@ -237,7 +237,8 @@ export namespace PermissionNext {
     return match ?? { action: "ask", permission, pattern: "*" }
   }
 
-  const EDIT_TOOLS = ["edit", "write", "patch", "multiedit"]
+  // Tools that are all controlled by the "edit" permission
+  export const EDIT_TOOLS = ["edit", "write", "multiedit", "apply_patch"]
 
   export function disabled(tools: string[], ruleset: Ruleset): Set<string> {
     const result = new Set<string>()

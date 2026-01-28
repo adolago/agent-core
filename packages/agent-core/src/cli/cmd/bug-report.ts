@@ -85,7 +85,7 @@ export const BugReportCommand = cmd({
 
       const { archivePath } = await generator.generate();
 
-      console.log("\n📎 Next steps:");
+      console.log("\n> Next steps:");
       console.log("   1. Review the report contents for any remaining sensitive data");
       console.log("   2. Create a GitHub issue at https://github.com/your-org/agent-core/issues");
       console.log("   3. Attach the report archive to the issue");

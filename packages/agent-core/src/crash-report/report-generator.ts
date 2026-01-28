@@ -77,7 +77,7 @@ export class ReportGenerator {
     console.log("\n  ▸ Creating archive...");
     const archivePath = await this.createArchive(report);
 
-    console.log(`\n✅ Report generated: ${archivePath}`);
+    console.log(`\n+ Report generated: ${archivePath}`);
     console.log(`   Redacted ${report.redactionStats.totalRedactions} sensitive items\n`);
 
     return { report, archivePath };

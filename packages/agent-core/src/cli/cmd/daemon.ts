@@ -337,10 +337,17 @@ export namespace GatewaySupervisor {
       packageJsonExists = false
     }
 
-    const pnpmAvailable = hasPnpm()
-    if (!pnpmAvailable) {
-      issues.push("pnpm not found on PATH")
+    // Check that the gateway entry point exists
+    let entryExists = false
+    if (repoExists) {
+      try {
+        await fs.access(path.join(ZEE_GATEWAY_DIR, "dist", "entry.js"))
+        entryExists = true
+      } catch {
+        issues.push(`Zee gateway dist/entry.js not found (run: cd ${ZEE_GATEWAY_DIR} && pnpm build)`)
+      }
     }
+    const pnpmAvailable = entryExists // Keep interface compat
 
     const configPath = await findZeeConfig()
     const envHints = getEnvHints()
@@ -451,9 +458,9 @@ export namespace GatewaySupervisor {
     log.info("starting zee gateway", { dir: ZEE_GATEWAY_DIR })
 
     try {
-      // Use pnpm to start the gateway
-      const pnpm = resolvedPnpmPath ?? "pnpm"
-      gatewayProcess = spawn(pnpm, ["zee", "gateway"], {
+      // Use node to run the built gateway directly
+      const entryPath = path.join(ZEE_GATEWAY_DIR, "dist", "entry.js")
+      gatewayProcess = spawn("node", [entryPath, "gateway"], {
         cwd: ZEE_GATEWAY_DIR,
         stdio: ["ignore", "pipe", "pipe"],
         detached: false,
