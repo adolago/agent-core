@@ -61,6 +61,12 @@ const DEFAULT_STALL_TIMEOUT_MS = 60_000 // 60s without events = hard timeout
 const DEFAULT_EARLY_STALL_MS = 5_000 // 5s without meaningful content = early warning
 const DEFAULT_NO_CONTENT_TIMEOUT_MS = 120_000 // 2 min of reasoning without text/tool = timeout
 
+// Extended timeouts for reasoning/thinking models (e.g., o1, claude-thinking, kimi-k2-thinking)
+// These models may take significantly longer before producing any output
+const REASONING_STALL_WARNING_MS = 60_000 // 1 min without events = stall warning
+const REASONING_STALL_TIMEOUT_MS = 300_000 // 5 min without events = hard timeout
+const REASONING_NO_CONTENT_TIMEOUT_MS = 600_000 // 10 min of reasoning without text/tool = timeout
+
 export type StreamStatus = "streaming" | "completed" | "error" | "stalled" | "timeout"
 
 export interface StreamHealthReport {
@@ -93,6 +99,11 @@ export interface StreamHealthReport {
 export interface StreamHealthMonitorOptions {
   sessionID: string
   messageID: string
+  /**
+   * Whether the model is a reasoning/thinking model.
+   * If true, longer timeouts are used to accommodate extended thinking periods.
+   */
+  isReasoningModel?: boolean
   /**
    * Optional status handler for dependency injection.
    * Defaults to SessionStatus.set() which requires Instance context.
@@ -169,6 +180,9 @@ export class StreamHealthMonitor {
   private errorMessage?: string
   private stallWarnings: number = 0
 
+  // Tool execution tracking - pause stall detection while tools are running
+  private activeTools: number = 0
+
   // Stall detection
   private stallWarningMs: number
   private stallTimeoutMs: number
@@ -197,12 +211,23 @@ export class StreamHealthMonitor {
     this.busPublisher = input.busPublisher ?? getDefaultBusPublisher()
 
     // Allow configuration via environment variables
+    // Use extended timeouts for reasoning/thinking models
+    const isReasoning = input.isReasoningModel ?? false
     this.stallWarningMs =
-      Flag.AGENT_CORE_STREAM_STALL_WARNING_MS ?? DEFAULT_STALL_WARNING_MS
+      Flag.AGENT_CORE_STREAM_STALL_WARNING_MS ?? (isReasoning ? REASONING_STALL_WARNING_MS : DEFAULT_STALL_WARNING_MS)
     this.stallTimeoutMs =
-      Flag.AGENT_CORE_STREAM_STALL_TIMEOUT_MS ?? DEFAULT_STALL_TIMEOUT_MS
+      Flag.AGENT_CORE_STREAM_STALL_TIMEOUT_MS ?? (isReasoning ? REASONING_STALL_TIMEOUT_MS : DEFAULT_STALL_TIMEOUT_MS)
     this.noContentTimeoutMs =
-      Flag.AGENT_CORE_STREAM_NO_CONTENT_TIMEOUT_MS ?? DEFAULT_NO_CONTENT_TIMEOUT_MS
+      Flag.AGENT_CORE_STREAM_NO_CONTENT_TIMEOUT_MS ?? (isReasoning ? REASONING_NO_CONTENT_TIMEOUT_MS : DEFAULT_NO_CONTENT_TIMEOUT_MS)
+
+    if (isReasoning) {
+      log.info("using extended timeouts for reasoning model", {
+        sessionID: this.sessionID,
+        stallWarningMs: this.stallWarningMs,
+        stallTimeoutMs: this.stallTimeoutMs,
+        noContentTimeoutMs: this.noContentTimeoutMs,
+      })
+    }
 
     this.startStallDetection()
   }
@@ -288,6 +313,11 @@ export class StreamHealthMonitor {
    */
   checkForStall(): boolean {
     if (this.status !== "streaming") {
+      return false
+    }
+
+    // Skip stall detection while tools are actively running
+    if (this.activeTools > 0) {
       return false
     }
 
@@ -568,6 +598,33 @@ export class StreamHealthMonitor {
       return false
     }
     return Date.now() - this.lastEventAt >= this.stallWarningMs
+  }
+
+  /**
+   * Mark that a tool has started executing.
+   * Stall detection is paused while tools are running.
+   */
+  toolStarted(): void {
+    this.activeTools++
+    // Reset last event time so we do not accumulate stall time during tool execution
+    this.lastEventAt = Date.now()
+  }
+
+  /**
+   * Mark that a tool has finished executing.
+   * Stall detection resumes when all tools complete.
+   */
+  toolCompleted(): void {
+    this.activeTools = Math.max(0, this.activeTools - 1)
+    // Reset last event time after tool completion
+    this.lastEventAt = Date.now()
+  }
+
+  /**
+   * Check if tools are currently running.
+   */
+  hasActiveTools(): boolean {
+    return this.activeTools > 0
   }
 
   /**

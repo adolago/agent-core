@@ -81,9 +81,11 @@ export namespace SessionProcessor {
           needsCompaction = false
           const shouldBreak = (await Config.get()).experimental?.continue_loop_on_deny !== true
           // Initialize stream health monitor - always enabled to detect hanging streams
+          // Pass model's reasoning capability for extended timeouts on thinking models
           const healthMonitor = StreamHealth.getOrCreate({
             sessionID: input.sessionID,
             messageID: input.assistantMessage.id,
+            isReasoningModel: input.model.capabilities.reasoning,
           })
 
           // Set up timeout abort controller to abort stream on timeout
@@ -314,6 +316,8 @@ export namespace SessionProcessor {
                         metadata: value.providerMetadata,
                       })
                       toolcalls[value.toolCallId] = part as MessageV2.ToolPart
+                      // Pause stall detection while tool is executing
+                      healthMonitor.toolStarted()
 
                       const parts = await MessageV2.parts(input.assistantMessage.id)
                       const lastThree = parts.slice(-DOOM_LOOP_THRESHOLD)
@@ -363,6 +367,8 @@ export namespace SessionProcessor {
                         },
                       })
 
+                      // Resume stall detection after tool completes
+                      healthMonitor.toolCompleted()
                       delete toolcalls[value.toolCallId]
                     }
                     break
@@ -391,6 +397,8 @@ export namespace SessionProcessor {
                       ) {
                         blocked = shouldBreak
                       }
+                      // Resume stall detection after tool errors
+                      healthMonitor.toolCompleted()
                       delete toolcalls[value.toolCallId]
                     }
                     break
