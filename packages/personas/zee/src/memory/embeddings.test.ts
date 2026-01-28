@@ -218,4 +218,4 @@ describe("embedding provider auto selection", () => {
 });
 
 // Local llama embedding tests removed - local provider has been deprecated.
-// Use Nebius (via OpenAI-compatible API) or other remote providers.
+// Use vLLM (via OpenAI-compatible API) or cloud providers (OpenAI, Gemini, Voyage).

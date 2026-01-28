@@ -31,14 +31,6 @@ const PROVIDERS: ProviderConfig[] = [
     timeout: 5000,
   },
   {
-    name: "Nebius (OpenAI-compatible)",
-    id: "nebius",
-    endpoint: "https://api.tokenfactory.nebius.com/v1/models",
-    envKey: "NEBIUS_API_KEY",
-    timeout: 5000,
-    authProviderId: "nebius",
-  },
-  {
     name: "Google Gemini",
     id: "gemini",
     endpoint: "https://generativelanguage.googleapis.com/v1/models",
@@ -110,9 +102,7 @@ async function checkProvider(provider: ProviderConfig): Promise<CheckResult> {
   }
 
   if (!isConfigured) {
-    const details = provider.authProviderId
-      ? "Run `agent-core auth login` and select nebius."
-      : `Set ${provider.envKey} environment variable`;
+    const details = `Set ${provider.envKey} environment variable`;
     return {
       id: `providers.${provider.id}`,
       name: provider.name,

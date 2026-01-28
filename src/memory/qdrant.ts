@@ -187,6 +187,10 @@ export class QdrantVectorStorage implements VectorStorage {
         field: "accessedAt",
         schema: { type: "integer", lookup: true, range: true },
       },
+      // Media metadata indexes for multimodal content
+      { field: "media.mediaType", schema: "keyword" },
+      { field: "media.sourceUrl", schema: "keyword" },
+      { field: "media.contentHash", schema: "keyword" },
     ];
 
     for (const { field, schema } of indexConfigs) {

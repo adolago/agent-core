@@ -58,7 +58,10 @@ export namespace Rpc {
         }
         handlers.add(handler)
         return () => {
-          handlers!.delete(handler)
+          const currentHandlers = listeners.get(event)
+          if (currentHandlers) {
+            currentHandlers.delete(handler)
+          }
         }
       },
     }

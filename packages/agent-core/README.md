@@ -27,9 +27,9 @@ Minimal memory configuration:
       "collection": "personas_memory"
     },
     "embedding": {
-      "profile": "nebius/qwen3-embedding-8b",
-      "dimensions": 4096,
-      "apiKey": "{env:NEBIUS_API_KEY}"
+      "profile": "google/gemini-embedding-001",
+      "dimensions": 3072,
+      "apiKey": "{env:GEMINI_API_KEY}"
     }
   }
 }

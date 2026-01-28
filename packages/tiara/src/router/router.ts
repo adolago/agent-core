@@ -431,7 +431,6 @@ export class ModelRouter extends EventEmitter {
       litellm: "gpt-4o",
       onnx: "phi-4",
       gemini: "gemini-2.0-flash",
-      cohere: "command-r-plus",
       bedrock: "anthropic.claude-sonnet-4-5-v2:0",
       custom: this.config.defaultModel,
     };

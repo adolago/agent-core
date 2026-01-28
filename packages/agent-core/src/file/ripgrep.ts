@@ -249,14 +249,19 @@ export namespace Ripgrep {
         buffer += decoder.decode(value, { stream: true })
         // Handle both Unix (\n) and Windows (\r\n) line endings
         const lines = buffer.split(/\r?\n/)
-        buffer = lines.pop() || ""
+        // Keep the last element as buffer (may be incomplete line or empty string)
+        buffer = lines.pop() ?? ""
 
         for (const line of lines) {
-          if (line) yield line
+          // Only yield non-empty lines
+          if (line.length > 0) yield line
         }
       }
 
-      if (buffer) yield buffer
+      // Flush any remaining decoder state
+      buffer += decoder.decode(undefined, { stream: false })
+      // Yield remaining buffer content if non-empty
+      if (buffer.length > 0) yield buffer
     } finally {
       reader.releaseLock()
       await proc.exited

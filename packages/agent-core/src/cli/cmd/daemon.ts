@@ -193,10 +193,16 @@ export namespace Daemon {
     const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"]
 
     for (const signal of signals) {
-      process.on(signal, async () => {
+      process.on(signal, () => {
         log.info("received signal, shutting down", { signal })
-        await cleanup(signal)
-        process.exit(0)
+        cleanup(signal)
+          .then(() => {
+            process.exit(0)
+          })
+          .catch((error) => {
+            log.error("error during signal cleanup", { signal, error: error instanceof Error ? error.message : String(error) })
+            process.exit(1)
+          })
       })
     }
   }

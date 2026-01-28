@@ -212,10 +212,9 @@ export namespace Persona {
   export function parseIdentityMd(content: string): Identity {
     const result: Partial<Identity> = {};
 
-    // Parse bullet points with bold labels
-    const labelRegex = /\*\*([^*]+)\*\*:\s*(.+)/g;
-    let match;
-    while ((match = labelRegex.exec(content)) !== null) {
+    // Parse bullet points with bold labels using matchAll to avoid lastIndex issues
+    const labelMatches = content.matchAll(/\*\*([^*]+)\*\*:\s*(.+)/g);
+    for (const match of labelMatches) {
       const label = match[1].toLowerCase();
       const value = match[2].trim();
 

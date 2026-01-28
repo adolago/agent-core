@@ -11,6 +11,13 @@ import { Global } from "../../global"
 import { Plugin } from "../../plugin"
 import { Instance } from "../../project/instance"
 import type { Hooks } from "@opencode-ai/plugin"
+import {
+  listProvidersByService,
+  hasCredentials,
+  getProviderStatus,
+  getProvider,
+  type ServiceType,
+} from "../../../../../src/config/providers"
 
 type PluginAuth = NonNullable<Hooks["auth"]>
 
@@ -163,7 +170,12 @@ export const AuthCommand = cmd({
   command: "auth",
   describe: "manage credentials",
   builder: (yargs) =>
-    yargs.command(AuthLoginCommand).command(AuthLogoutCommand).command(AuthListCommand).demandCommand(),
+    yargs
+      .command(AuthLoginCommand)
+      .command(AuthLogoutCommand)
+      .command(AuthListCommand)
+      .command(AuthProvidersCommand)
+      .demandCommand(),
   async handler() {},
 })
 
@@ -371,7 +383,8 @@ export const AuthLoginCommand = cmd({
           }
         }
 
-        const knownProvider = provider in providers
+        // Check if provider is known (either in LLM models database or unified provider registry)
+        const knownProvider = provider in providers || getProvider(provider) !== undefined
         if (!knownProvider) {
           provider = provider.replace(/^@ai-sdk\//, "")
           const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
@@ -406,6 +419,13 @@ export const AuthLoginCommand = cmd({
           key,
         })
 
+        // Show what services are enabled for multimedia providers
+        const registryProvider = getProvider(provider)
+        if (registryProvider && registryProvider.services.length > 0) {
+          const serviceNames = registryProvider.services.join(", ")
+          prompts.log.success(`${registryProvider.name} configured for: ${serviceNames}`)
+        }
+
         prompts.outro("Done")
       },
     })
@@ -434,5 +454,49 @@ export const AuthLogoutCommand = cmd({
     if (prompts.isCancel(providerID)) throw new UI.CancelledError()
     await Auth.remove(providerID)
     prompts.outro("Logout successful")
+  },
+})
+
+const SERVICE_LABELS: Record<ServiceType, string> = {
+  embedding: "Embedding",
+  reranking: "Reranking",
+  tts: "Text-to-Speech",
+  stt: "Speech-to-Text",
+  image: "Image Generation",
+}
+
+export const AuthProvidersCommand = cmd({
+  command: "providers",
+  describe: "list available providers by service type",
+  async handler() {
+    UI.empty()
+    prompts.intro("Available Providers")
+
+    const byService = listProvidersByService()
+    const authStore = await Auth.all()
+
+    for (const [service, providers] of Object.entries(byService)) {
+      if (providers.length === 0) continue
+
+      prompts.log.message("")
+      prompts.log.info(`${UI.Style.TEXT_NORMAL_BOLD}${SERVICE_LABELS[service as ServiceType]}${UI.Style.TEXT_NORMAL}`)
+
+      for (const provider of providers) {
+        const hasAuthStoreCredential = authStore[provider.id] !== undefined
+        const status = getProviderStatus(provider, hasAuthStoreCredential)
+        const statusText =
+          status === "configured"
+            ? `${UI.Style.TEXT_SUCCESS}[configured]${UI.Style.TEXT_NORMAL}`
+            : status === "local"
+              ? `${UI.Style.TEXT_INFO}[local]${UI.Style.TEXT_NORMAL}`
+              : `${UI.Style.TEXT_DIM}[not configured]${UI.Style.TEXT_NORMAL}`
+
+        prompts.log.info(`  ${provider.id.padEnd(12)} ${provider.name.padEnd(20)} ${statusText}`)
+      }
+    }
+
+    prompts.log.message("")
+    prompts.log.info(`${UI.Style.TEXT_DIM}Use 'agent-core auth login <provider>' to configure credentials${UI.Style.TEXT_NORMAL}`)
+    prompts.outro("")
   },
 })

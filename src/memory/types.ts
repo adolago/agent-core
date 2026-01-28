@@ -53,6 +53,8 @@ export interface MemoryEntry {
   embedding?: number[];
   /** Associated metadata */
   metadata: MemoryMetadata;
+  /** Media metadata for multimodal entries */
+  media?: MediaMetadata;
   /** Creation timestamp */
   createdAt: number;
   /** Last access timestamp */
@@ -71,6 +73,10 @@ export interface MemoryInput {
   content: string;
   summary?: string;
   metadata?: Partial<MemoryMetadata>;
+  /** Media metadata for multimodal entries */
+  media?: MediaMetadata;
+  /** Multimodal content for embedding (optional) */
+  multimodal?: MultimodalContent;
   ttl?: number;
   namespace?: string;
 }
@@ -274,6 +280,69 @@ export interface RelationshipService {
 }
 
 // =============================================================================
+// Multimodal Types
+// =============================================================================
+
+/** Media types for multimodal embeddings */
+export type MediaType = "text" | "image" | "video";
+
+/** Image input for multimodal embeddings */
+export interface ImageInput {
+  type: "image";
+  /** URL of the image (http/https or data:) */
+  url?: string;
+  /** Base64-encoded image data */
+  base64?: string;
+  /** MIME type of the image */
+  mimeType?: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "image/bmp";
+}
+
+/** Video input for multimodal embeddings */
+export interface VideoInput {
+  type: "video";
+  /** URL of the video */
+  url: string;
+  /** Start time in seconds for frame extraction */
+  startTime?: number;
+  /** End time in seconds for frame extraction */
+  endTime?: number;
+}
+
+/** Text input for multimodal embeddings */
+export interface TextInput {
+  type: "text";
+  /** Text content */
+  content: string;
+}
+
+/** Union of all multimodal input types */
+export type MultimodalInput = TextInput | ImageInput | VideoInput;
+
+/** Container for multimodal content */
+export interface MultimodalContent {
+  /** Array of content items (text, images, videos) */
+  contents: MultimodalInput[];
+}
+
+/** Media metadata stored with memory entries */
+export interface MediaMetadata {
+  /** Type of media */
+  mediaType: MediaType;
+  /** Source URL of the media */
+  sourceUrl?: string;
+  /** Width in pixels (for images/video) */
+  width?: number;
+  /** Height in pixels (for images/video) */
+  height?: number;
+  /** Duration in seconds (for video/audio) */
+  duration?: number;
+  /** File size in bytes */
+  sizeBytes?: number;
+  /** Content hash for deduplication */
+  contentHash?: string;
+}
+
+// =============================================================================
 // Embedding Types
 // =============================================================================
 
@@ -288,25 +357,31 @@ export interface EmbeddingProvider {
   /** Dimension of output vectors */
   dimension: number;
 
+  /** Whether this provider supports multimodal inputs */
+  supportsMultimodal?: boolean;
+
+  /** Supported media types for multimodal embeddings */
+  supportedMediaTypes?: MediaType[];
+
   /** Generate embedding for a single text */
   embed(text: string): Promise<number[]>;
 
   /** Generate embeddings for multiple texts */
   embedBatch(texts: string[]): Promise<number[][]>;
+
+  /** Generate embedding for multimodal content (optional) */
+  embedMultimodal?(content: MultimodalContent): Promise<number[]>;
+
+  /** Generate embeddings for multiple multimodal contents (optional) */
+  embedMultimodalBatch?(contents: MultimodalContent[]): Promise<number[][]>;
 }
 
 /** Supported embedding providers */
 export type EmbeddingProviderType =
   | "openai"
   | "google"
-  | "anthropic"
-  | "cohere"
   | "voyage"
-  | "vllm"
-  | "ollama"
-  | "nebius"
-  | "local"
-  | "custom";
+  | "vllm";
 
 // =============================================================================
 // Storage Types

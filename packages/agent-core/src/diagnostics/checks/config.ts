@@ -29,8 +29,8 @@ type RecommendedCredential = {
 const RECOMMENDED_CREDENTIALS: RecommendedCredential[] = [
   { label: "Anthropic", envVar: "ANTHROPIC_API_KEY", description: "Anthropic Claude API key" },
   { label: "OpenAI", envVar: "OPENAI_API_KEY", description: "OpenAI API key" },
-  { label: "Nebius", authProviderId: "nebius", description: "Nebius embeddings (agent-core auth login)" },
-  { label: "Google Gemini", envVar: "GOOGLE_API_KEY", description: "Google Gemini API key" },
+  { label: "Google Gemini", envVar: "GOOGLE_API_KEY", description: "Google Gemini API key (embeddings)" },
+  { label: "Voyage", envVar: "VOYAGE_API_KEY", description: "Voyage AI API key (embeddings/reranking)" },
 ];
 
 /**

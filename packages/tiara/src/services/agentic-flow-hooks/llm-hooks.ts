@@ -494,11 +494,11 @@ async function selectFallbackProvider(
   const fallbacks: Record<string, { provider: string; model: string }[]> = {
     'openai': [
       { provider: 'anthropic', model: 'claude-3' },
-      { provider: 'cohere', model: 'command' },
+      { provider: 'google', model: 'gemini-pro' },
     ],
     'anthropic': [
       { provider: 'openai', model: 'gpt-4' },
-      { provider: 'cohere', model: 'command' },
+      { provider: 'google', model: 'gemini-pro' },
     ],
   };
   

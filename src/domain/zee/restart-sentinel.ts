@@ -4,7 +4,7 @@
  * Persists session context to Qdrant on daemon shutdown and restores
  * it on startup, ensuring conversation continuity across restarts.
  *
- * Uses Nebius QWEN 8B embeddings (4096 dimensions) for semantic context.
+ * Uses Google Gemini embeddings (3072 dimensions) for semantic context.
  */
 
 import fs from "node:fs/promises";
@@ -99,12 +99,11 @@ const SENTINEL_FILE_PATH = path.join(
   "restart-sentinel.json"
 );
 
-// Nebius QWEN 8B embedding config
-const NEBIUS_EMBEDDING_CONFIG: EmbeddingConfig = {
-  provider: "nebius",
-  model: "Qwen/Qwen3-Embedding-8B",
-  dimensions: 4096,
-  baseUrl: "https://api.tokenfactory.nebius.com/v1",
+// Default embedding config (Google Gemini)
+const DEFAULT_EMBEDDING_CONFIG: EmbeddingConfig = {
+  provider: "google",
+  model: "gemini-embedding-001",
+  dimensions: 3072,
 };
 
 // =============================================================================
@@ -284,18 +283,17 @@ function getQdrantClient(): SentinelQdrantClient {
 function getEmbeddingProvider(): EmbeddingProvider {
   if (embeddingProvider) return embeddingProvider;
 
-  // Check if user has configured embedding, otherwise use Nebius
+  // Use user config if available, otherwise default to Google Gemini
   const userConfig = getMemoryEmbeddingConfig();
-  const config: EmbeddingConfig =
-    userConfig.provider === "nebius"
-      ? {
-          provider: "nebius",
-          model: userConfig.model ?? NEBIUS_EMBEDDING_CONFIG.model,
-          dimensions: userConfig.dimensions ?? NEBIUS_EMBEDDING_CONFIG.dimensions,
-          baseUrl: userConfig.baseUrl ?? NEBIUS_EMBEDDING_CONFIG.baseUrl,
-          apiKey: userConfig.apiKey,
-        }
-      : NEBIUS_EMBEDDING_CONFIG;
+  const config: EmbeddingConfig = userConfig.provider
+    ? {
+        provider: userConfig.provider,
+        model: userConfig.model,
+        dimensions: userConfig.dimensions,
+        baseUrl: userConfig.baseUrl,
+        apiKey: userConfig.apiKey,
+      }
+    : DEFAULT_EMBEDDING_CONFIG;
 
   embeddingProvider = createEmbeddingProvider(config);
   return embeddingProvider;
@@ -555,8 +553,8 @@ export async function getSentinelStatus(): Promise<{
   }
 
   // Get embedding info
-  let embeddingProvider = "nebius";
-  let embeddingDimension = 4096;
+  let embeddingProvider = "google";
+  let embeddingDimension = 3072;
   try {
     const provider = getEmbeddingProvider();
     embeddingProvider = provider.id;

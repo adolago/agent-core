@@ -12,7 +12,7 @@
 
 import { randomUUID } from "node:crypto";
 import { QdrantVectorStorage } from "./qdrant";
-import { createEmbeddingProvider, type EmbeddingConfig } from "./embedding";
+import { createEmbeddingProvider, createEmbeddingProviderAsync, type EmbeddingConfig } from "./embedding";
 import type {
   MemoryEntry,
   MemoryInput,
@@ -20,7 +20,10 @@ import type {
   MemorySearchResult,
   MemoryCategory,
   EmbeddingProvider,
+  MultimodalContent,
+  MediaMetadata,
 } from "./types";
+import type { Reranker, RerankerConfig, RerankResult } from "./reranker";
 import {
   QDRANT_URL,
   QDRANT_COLLECTION_MEMORY,
@@ -102,6 +105,8 @@ export interface MemoryConfig {
     collection?: string;
   };
   embedding: EmbeddingConfig;
+  /** Reranker configuration for two-stage retrieval */
+  reranker?: RerankerConfig;
   namespace?: string;
   maxKeyFacts?: number;
 }
@@ -341,8 +346,10 @@ export class Memory {
   private readonly instanceId: string;
   private readonly maxKeyFacts: number;
   private readonly configuredEmbeddingDimensions?: number;
+  private readonly rerankerConfig?: RerankerConfig;
   private embeddingDimension?: number;
   private initialized = false;
+  private reranker?: Reranker;
 
   // Current conversation state (for continuity)
   private currentConversation?: ConversationState;
@@ -364,6 +371,7 @@ export class Memory {
     this.namespace = config.namespace ?? "default";
     this.instanceId = generateInstanceId();
     this.maxKeyFacts = config.maxKeyFacts ?? CONTINUITY_MAX_KEY_FACTS;
+    this.rerankerConfig = config.reranker;
 
     const configuredDimensions = config.embedding?.dimensions ?? fileEmbedding.dimensions;
     const provider = (config.embedding?.provider ?? fileEmbedding.provider ?? "openai") as EmbeddingConfig["provider"];
@@ -721,6 +729,227 @@ export class Memory {
       type: "memory",
       expiresAt: { $lt: now, $gt: 0 },
     });
+  }
+
+  // ===========================================================================
+  // Multimodal Operations
+  // ===========================================================================
+
+  /**
+   * Save a memory entry with multimodal content.
+   * Uses multimodal embedding if provider supports it, falls back to text embedding.
+   */
+  async saveMultimodal(input: MemoryInput): Promise<MemoryEntry> {
+    await this.init();
+
+    if (!this.isAvailable()) {
+      log.warn("Memory saveMultimodal skipped - storage unavailable", { category: input.category });
+      return this.save(input); // Fallback to regular save
+    }
+
+    const id = randomUUID();
+    const now = Date.now();
+
+    // Generate embedding
+    let vector: number[];
+    if (input.multimodal && this.embedding.supportsMultimodal && this.embedding.embedMultimodal) {
+      // Use multimodal embedding
+      vector = await this.embedding.embedMultimodal(input.multimodal);
+    } else {
+      // Fallback to text embedding
+      vector = await this.embedding.embed(input.content);
+      if (input.multimodal) {
+        log.debug("Multimodal content provided but provider does not support it, using text embedding");
+      }
+    }
+
+    const entry: MemoryEntry = {
+      id,
+      category: input.category,
+      content: input.content,
+      summary: input.summary,
+      embedding: vector,
+      metadata: input.metadata ?? {},
+      media: input.media,
+      createdAt: now,
+      accessedAt: now,
+      ttl: input.ttl,
+      namespace: input.namespace ?? this.namespace,
+    };
+
+    await this.storage.insert([{
+      id,
+      vector,
+      payload: {
+        type: "memory" as EntryType,
+        category: entry.category,
+        content: entry.content,
+        summary: entry.summary,
+        metadata: entry.metadata,
+        media: entry.media,
+        createdAt: entry.createdAt,
+        accessedAt: entry.accessedAt,
+        ttl: entry.ttl,
+        expiresAt: entry.ttl ? entry.createdAt + entry.ttl : 0,
+        namespace: entry.namespace,
+      },
+    }]);
+
+    return entry;
+  }
+
+  /**
+   * Search memories using multimodal query.
+   * Uses multimodal embedding if provider supports it, falls back to text search.
+   */
+  async searchMultimodal(
+    query: string | MultimodalContent,
+    params?: Omit<MemorySearchParams, "query"> & {
+      /** Filter by media type */
+      mediaType?: "text" | "image" | "video";
+    }
+  ): Promise<MemorySearchResult[]> {
+    await this.init();
+
+    if (!this.isAvailable()) {
+      const queryText = typeof query === "string" ? query : "[multimodal]";
+      log.warn("Memory searchMultimodal skipped - storage unavailable", { query: queryText.slice(0, 50) });
+      return [];
+    }
+
+    // Generate query vector
+    let queryVector: number[];
+    if (typeof query === "string") {
+      queryVector = await this.embedding.embed(query);
+    } else if (this.embedding.supportsMultimodal && this.embedding.embedMultimodal) {
+      queryVector = await this.embedding.embedMultimodal(query);
+    } else {
+      // Fallback: extract text from multimodal content
+      const textContent = query.contents
+        .filter((c): c is { type: "text"; content: string } => c.type === "text")
+        .map((c) => c.content)
+        .join(" ");
+      queryVector = await this.embedding.embed(textContent || "search");
+      log.debug("Multimodal query provided but provider does not support it, using text embedding");
+    }
+
+    // Build filter
+    const filter: Record<string, unknown> = { type: "memory" };
+
+    if (params?.namespace === null) {
+      // Search all namespaces
+    } else {
+      filter.namespace = params?.namespace ?? this.namespace;
+    }
+
+    if (params?.category) {
+      if (Array.isArray(params.category)) {
+        filter.category = { $in: params.category };
+      } else {
+        filter.category = params.category;
+      }
+    }
+
+    if (params?.tags?.length) {
+      filter["metadata.tags"] = { $in: params.tags };
+    }
+
+    if (params?.mediaType) {
+      filter["media.mediaType"] = params.mediaType;
+    }
+
+    const results = await this.storage.search(queryVector, {
+      limit: params?.limit ?? 10,
+      threshold: params?.threshold ?? 0.5,
+      filter,
+    });
+
+    return results.map((r) => ({
+      entry: {
+        id: r.id,
+        category: r.payload.category as MemoryCategory,
+        content: r.payload.content as string,
+        summary: r.payload.summary as string | undefined,
+        metadata: r.payload.metadata as MemoryEntry["metadata"],
+        media: r.payload.media as MediaMetadata | undefined,
+        createdAt: r.payload.createdAt as number,
+        accessedAt: r.payload.accessedAt as number,
+        ttl: r.payload.ttl as number | undefined,
+        namespace: r.payload.namespace as string | undefined,
+      },
+      score: r.score,
+    }));
+  }
+
+  /**
+   * Two-stage retrieval: embedding search (recall) + reranking (precision).
+   * Fetches more candidates than needed, then reranks for better precision.
+   */
+  async searchWithRerank(
+    query: string | MultimodalContent,
+    params?: Omit<MemorySearchParams, "query"> & {
+      /** Enable reranking (requires configured reranker) */
+      rerank?: boolean;
+      /** Recall multiplier: how many extra candidates to fetch for reranking */
+      recallMultiplier?: number;
+      /** Filter by media type */
+      mediaType?: "text" | "image" | "video";
+    }
+  ): Promise<MemorySearchResult[]> {
+    const limit = params?.limit ?? 10;
+    const recallMultiplier = params?.recallMultiplier ?? 3;
+
+    // Stage 1: Embedding-based recall (fetch more candidates)
+    const candidates = await this.searchMultimodal(query, {
+      ...params,
+      limit: params?.rerank ? limit * recallMultiplier : limit,
+    });
+
+    if (!params?.rerank || candidates.length === 0) {
+      return candidates.slice(0, limit);
+    }
+
+    // Initialize reranker if needed
+    if (!this.reranker && this.rerankerConfig?.enabled) {
+      const { createReranker } = await import("./reranker");
+      this.reranker = createReranker(this.rerankerConfig) ?? undefined;
+    }
+
+    if (!this.reranker) {
+      log.debug("Rerank requested but no reranker configured");
+      return candidates.slice(0, limit);
+    }
+
+    // Stage 2: Rerank candidates
+    try {
+      const documents = candidates.map((c) => c.entry.content);
+      const queryText = typeof query === "string" ? query : this.extractTextFromMultimodal(query);
+
+      const reranked = await this.reranker.rerank(queryText, documents, { topK: limit });
+
+      return reranked.map((r) => ({
+        ...candidates[r.index],
+        score: r.score, // Replace embedding score with rerank score
+      }));
+    } catch (error) {
+      log.warn("Reranking failed, returning original results", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return candidates.slice(0, limit);
+    }
+  }
+
+  /** Extract text content from multimodal content */
+  private extractTextFromMultimodal(content: MultimodalContent): string {
+    return content.contents
+      .filter((c): c is { type: "text"; content: string } => c.type === "text")
+      .map((c) => c.content)
+      .join(" ");
+  }
+
+  /** Check if the embedding provider supports multimodal */
+  supportsMultimodal(): boolean {
+    return this.embedding.supportsMultimodal ?? false;
   }
 
   // ===========================================================================

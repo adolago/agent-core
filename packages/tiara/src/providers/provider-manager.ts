@@ -33,7 +33,6 @@ import {
 import { AnthropicProvider } from './anthropic-provider.js';
 import { OpenAIProvider } from './openai-provider.js';
 import { GoogleProvider } from './google-provider.js';
-import { CohereProvider } from './cohere-provider.js';
 import { OllamaProvider } from './ollama-provider.js';
 
 export interface ProviderManagerConfig {
@@ -123,9 +122,6 @@ export class ProviderManager extends EventEmitter {
           break;
         case 'google':
           provider = new GoogleProvider(providerOptions);
-          break;
-        case 'cohere':
-          provider = new CohereProvider(providerOptions);
           break;
         case 'ollama':
           provider = new OllamaProvider(providerOptions);

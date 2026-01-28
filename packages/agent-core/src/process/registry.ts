@@ -71,8 +71,9 @@ export class ProcessRegistry extends EventEmitter {
     if (this.processes.has(id)) {
       const existing = this.processes.get(id)!
       log.warn("Process already registered, updating", { id, name: existing.name })
+      // Preserve existing status to avoid race conditions in task assignment
+      // Only update capabilities and metadata, not status
       return this.update(id, {
-        status: "active",
         capabilities: input.capabilities,
         metadata: input.metadata,
       })!

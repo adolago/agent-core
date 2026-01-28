@@ -3,6 +3,7 @@ import { Flag } from "@/flag/flag"
 import { Bus } from "@/bus"
 import { StreamEvents } from "./stream-events"
 import { SessionStatus } from "./status"
+import { getStats as getMemoryStats } from "../../../../src/memory/stats"
 
 const log = Log.create({ service: "stream.health" })
 
@@ -164,6 +165,10 @@ export class StreamHealthMonitor {
     isThinking?: boolean
     timeSinceContentMs?: number
   }): SessionStatus.StreamHealth {
+    // Get memory stats for embedding/reranking visibility
+    const memStats = getMemoryStats()
+    const hasMemoryOps = memStats.embedding.calls > 0 || memStats.reranking.calls > 0
+
     return {
       ...overrides,
       eventsReceived: this.eventsReceived,
@@ -172,6 +177,19 @@ export class StreamHealthMonitor {
       charsReceived: this.charsReceived,
       estimatedTokens: Math.floor(this.charsReceived / 4), // ~4 chars per token
       requestCount: this.requestCount,
+      memoryStats: hasMemoryOps ? {
+        embedding: {
+          calls: memStats.embedding.calls,
+          texts: memStats.embedding.texts,
+          estimatedTokens: memStats.embedding.estimatedTokens,
+          provider: memStats.embedding.provider,
+        },
+        reranking: {
+          calls: memStats.reranking.calls,
+          documents: memStats.reranking.documents,
+          provider: memStats.reranking.provider,
+        },
+      } : undefined,
     }
   }
 

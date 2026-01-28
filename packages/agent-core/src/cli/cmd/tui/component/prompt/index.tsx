@@ -1,4 +1,4 @@
-import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, t, dim, fg } from "@opentui/core"
+import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, t, dim, fg, TextAttributes } from "@opentui/core"
 import { createEffect, createMemo, type JSX, onMount, createSignal, onCleanup, Show, Switch, Match } from "solid-js"
 import "opentui-spinner/solid"
 import { useLocal } from "@tui/context/local"
@@ -85,6 +85,10 @@ export function Prompt(props: PromptProps) {
     charsReceived?: number
     estimatedTokens?: number
     requestCount?: number
+    memoryStats?: {
+      embedding: { calls: number; texts: number; estimatedTokens: number; provider?: string }
+      reranking: { calls: number; documents: number; provider?: string }
+    }
   }
   const streamHealth = createMemo((): StreamHealthExtended | undefined => {
     const s = status()
@@ -2046,11 +2050,16 @@ export function Prompt(props: PromptProps) {
                       const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
                       return baseMessage + truncatedHint + retryInfo
                     }
-                    const formatTime = (s: number) => {
-                      const m = Math.floor(s / 60)
-                      const sec = s % 60
-                      const pad = (n: number) => n.toString().padStart(2, "0")
-                      return `${pad(m)}:${pad(sec)}`
+                    const formatElapsed = (s: number) => {
+                      if (s < 60) return `${s}s`
+                      if (s < 3600) {
+                        const m = Math.floor(s / 60)
+                        const sec = s % 60
+                        return sec > 0 ? `${m}m ${sec}s` : `${m}m`
+                      }
+                      const h = Math.floor(s / 3600)
+                      const m = Math.floor((s % 3600) / 60)
+                      return m > 0 ? `${h}h ${m}m` : `${h}h`
                     }
                     const phaseLabel = createMemo(() => {
                       const health = streamHealth()
@@ -2063,10 +2072,19 @@ export function Prompt(props: PromptProps) {
                       }
                     })
                     const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
-                    const estimatedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
+                    const receivedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
+                    // Get sent tokens from the last assistant message (current turn's input)
+                    const sentTokens = createMemo(() => {
+                      if (!props.sessionID) return 0
+                      const messages = sync.data.message[props.sessionID] ?? []
+                      const lastAssistant = messages.findLast((m): m is typeof m & { role: "assistant" } => m.role === "assistant")
+                      if (!lastAssistant?.tokens) return 0
+                      return lastAssistant.tokens.input + (lastAssistant.tokens.cache?.read ?? 0)
+                    })
+                    const memStats = createMemo(() => streamHealth()?.memoryStats)
                     const formatTokens = (n: number) => {
-                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                      return n.toString()
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}kt`
+                      return `${n}t`
                     }
                     const totalTime = () => completedWorkTime() + elapsed()
                     return (
@@ -2079,9 +2097,12 @@ export function Prompt(props: PromptProps) {
                         <Show when={!retry() && status().type === "busy"}>
                           <text fg={theme.textMuted}>
                             {phaseLabel()}
-                            <Show when={estimatedTokens() > 0}>{" ~"}{formatTokens(estimatedTokens())} tok</Show>
-                            <Show when={events() > 0 && estimatedTokens() === 0}>{" "}{events()} events</Show>
-                            {" "}{formatTime(totalTime())}
+                            <Show when={sentTokens() > 0}>{" sent "}{formatTokens(sentTokens())}</Show>
+                            <Show when={receivedTokens() > 0}>{" received "}{formatTokens(receivedTokens())}</Show>
+                            <Show when={events() > 0 && receivedTokens() === 0}>{" "}{events()} events</Show>
+                            <Show when={memStats()?.embedding.estimatedTokens}>{" emb "}{formatTokens(memStats()!.embedding.estimatedTokens)}</Show>
+                            <Show when={memStats()?.reranking.documents}>{" rerank "}{memStats()!.reranking.documents}d</Show>
+                            {" "}{formatElapsed(totalTime())}
                           </text>
                         </Show>
                       </>
@@ -2101,56 +2122,24 @@ export function Prompt(props: PromptProps) {
                 </box>
               </Match>
               <Match when={store.mode === "normal"}>
-                <text fg={theme.textMuted}>
-                  {local.model.parsed().model}{local.model.variant.current() ? ` (${local.model.variant.current()})` : ''} ({local.model.parsed().provider})
-                </text>
-                <text fg={theme.textMuted}>·</text>
                 {(() => {
-                  const [liveTime, setLiveTime] = createSignal(completedWorkTime())
-                  onMount(() => {
-                    const timer = setInterval(() => {
-                      setLiveTime(completedWorkTime())
-                    }, 1000)
-                    onCleanup(() => clearInterval(timer))
-                  })
-                  const formatTime = (s: number) => {
-                    if (s >= 3600) {
-                      const h = Math.floor(s / 3600)
-                      const m = Math.floor((s % 3600) / 60)
-                      return `${h}h${m}m`
-                    }
-                    if (s >= 60) {
-                      const m = Math.floor(s / 60)
-                      const sec = s % 60
-                      return `${m}m ${sec}s`
-                    }
-                    return `${s}s`
+                  const formatLimit = (n: number) => {
+                    if (n >= 1000000) return `${(n / 1000000).toFixed(0)}M`
+                    if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
+                    return n.toString()
                   }
+                  const usage = contextUsage()
+                  const color = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
                   return (
-                    <text fg={theme.textMuted}>
-                      {formatTime(liveTime())}
-                    </text>
+                    <>
+                      <Show when={usage}>
+                        <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
+                        <text fg={theme.textMuted}> · </text>
+                      </Show>
+                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{local.model.variant.current() || local.model.parsed().model}</text>
+                    </>
                   )
                 })()}
-                <Show when={contextUsage()}>
-                  {(() => {
-                    const formatTokens = (n: number) => {
-                      if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
-                      if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
-                      return n.toString()
-                    }
-                    const usage = contextUsage()!
-                    const color = usage.percent >= 80 ? theme.error : usage.percent >= 60 ? theme.warning : theme.textMuted
-                    return (
-                      <>
-                        <text fg={theme.textMuted}>·</text>
-                        <text fg={color}>
-                          {formatTokens(usage.count)}/{formatTokens(usage.limit)}
-                        </text>
-                      </>
-                    )
-                  })()}
-                </Show>
                 <Show when={status().type === "busy"}>
                   <box flexDirection="row" gap={1} marginLeft={2}>
                     <text fg={store.interrupt > 0 ? theme.primary : theme.text}>spc esc</text>

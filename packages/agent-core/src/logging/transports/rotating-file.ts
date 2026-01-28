@@ -158,7 +158,9 @@ export class RotatingFileTransport implements ITransport {
     const dir = path.dirname(this.filePath);
     const base = path.basename(this.filePath);
     const files = fs.readdirSync(dir);
-    const ext = this.compress ? ".gz" : "";
+
+    // Validate that dir is a resolved absolute path to prevent traversal
+    const resolvedDir = path.resolve(dir);
 
     const rotatedFiles = files
       .filter((f) => f.startsWith(base) && f !== base)
@@ -167,7 +169,18 @@ export class RotatingFileTransport implements ITransport {
 
     // Remove files beyond maxFiles
     for (let i = this.maxFiles; i < rotatedFiles.length; i++) {
-      fs.unlinkSync(path.join(dir, rotatedFiles[i]));
+      const filename = rotatedFiles[i];
+      // Validate filename doesn't contain path separators or traversal
+      if (filename.includes(path.sep) || filename.includes("..")) {
+        continue;
+      }
+      const targetPath = path.join(resolvedDir, filename);
+      // Ensure the resolved path is still within the expected directory
+      const resolvedTarget = path.resolve(targetPath);
+      if (!resolvedTarget.startsWith(resolvedDir + path.sep)) {
+        continue;
+      }
+      fs.unlinkSync(resolvedTarget);
     }
   }
 
