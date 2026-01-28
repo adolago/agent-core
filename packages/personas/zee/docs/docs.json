@@ -102,14 +102,6 @@
       "destination": "/providers/openrouter"
     },
     {
-      "source": "/opencode",
-      "destination": "/providers/opencode"
-    },
-    {
-      "source": "/opencode/",
-      "destination": "/providers/opencode"
-    },
-    {
       "source": "/mattermost",
       "destination": "/channels/mattermost"
     },
@@ -985,7 +977,6 @@
           "providers/minimax",
           "providers/openrouter",
           "providers/synthetic",
-          "providers/opencode",
           "providers/glm",
           "providers/zai"
         ]

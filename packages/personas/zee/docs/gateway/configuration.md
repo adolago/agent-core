@@ -2341,28 +2341,6 @@ Select the model via `agents.defaults.model.primary` (provider/model).
 }
 ```
 
-### OpenCode Zen (multi-model proxy)
-
-OpenCode Zen is a multi-model gateway with per-model endpoints. Zee uses
-the built-in `opencode` provider from pi-ai; set `OPENCODE_API_KEY` (or
-`OPENCODE_ZEN_API_KEY`) from https://opencode.ai/auth.
-
-Notes:
-- Model refs use `opencode/<modelId>` (example: `opencode/claude-opus-4-5`).
-- If you enable an allowlist via `agents.defaults.models`, add each model you plan to use.
-- Shortcut: `zee onboard --auth-choice opencode-zen`.
-
-```json5
-{
-  agents: {
-    defaults: {
-      model: { primary: "opencode/claude-opus-4-5" },
-      models: { "opencode/claude-opus-4-5": { alias: "Opus" } }
-    }
-  }
-}
-```
-
 ### Z.AI Coding Plan (GLM-4.7)
 
 Z.AI Coding Plan models are available via the built-in `zai-coding-plan` provider. Set `ZAI_API_KEY`

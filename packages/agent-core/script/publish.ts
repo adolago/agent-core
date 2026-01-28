@@ -44,7 +44,7 @@ console.log({
 // =============================================================================
 
 async function updateVersionAcrossRepos(version: string) {
-  console.log(`\n📦 Updating version to ${version} across repos...`)
+  console.log(`\n* Updating version to ${version} across repos...`)
 
   // Update packages/agent-core/package.json
   const agentCorePkgPath = path.join(dir, "package.json")
@@ -74,11 +74,11 @@ async function updateVersionAcrossRepos(version: string) {
 
 async function gitTagAndPush(version: string) {
   if (Script.preview) {
-    console.log(`\n🏷️  Would create git tag v${version} (dry-run)`)
+    console.log(`\n> Would create git tag v${version} (dry-run)`)
     return
   }
 
-  console.log(`\n🏷️  Creating git tag v${version}...`)
+  console.log(`\n> Creating git tag v${version}...`)
 
   // Commit version changes
   await $`git add -A`.cwd(repoRoot).quiet().nothrow()
@@ -108,7 +108,7 @@ const { binaries } = await import("./build.ts")
   const binarySuffix = process.env.OPENCODE_BINARY_SUFFIX?.trim()
   const osName = process.platform === "win32" ? "windows" : process.platform
   const name = [pkg.name, osName, process.arch, binarySuffix].filter(Boolean).join("-")
-  console.log(`\n🔍 Smoke test: running dist/${name}/bin/agent-core --version`)
+  console.log(`\n> Smoke test: running dist/${name}/bin/agent-core --version`)
   await $`./dist/${name}/bin/agent-core --version`
 }
 
@@ -116,7 +116,7 @@ const { binaries } = await import("./build.ts")
 // Prepare npm Package
 // =============================================================================
 
-console.log(`\n📦 Preparing npm package ${NPM_PACKAGE}...`)
+console.log(`\n* Preparing npm package ${NPM_PACKAGE}...`)
 
 await $`mkdir -p ./dist/${pkg.name}`
 await $`cp -r ./bin ./dist/${pkg.name}/bin`
@@ -157,7 +157,7 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 const tags = [Script.channel]
 const publishFlag = Script.preview ? "--dry-run" : ""
 
-console.log(`\n📤 Publishing platform binaries to npm...`)
+console.log(`\n> Publishing platform binaries to npm...`)
 const tasks = Object.entries(binaries).map(async ([name]) => {
   const pkgPath = `./dist/${name}/package.json`
   const raw = await Bun.file(pkgPath).text()
@@ -174,7 +174,7 @@ const tasks = Object.entries(binaries).map(async ([name]) => {
 })
 await Promise.all(tasks)
 
-console.log(`\n📤 Publishing main package ${NPM_PACKAGE}...`)
+console.log(`\n> Publishing main package ${NPM_PACKAGE}...`)
 for (const tag of tags) {
   await $`cd ./dist/${pkg.name} && bun pm pack && npm publish ${publishFlag} *.tgz --access public --tag ${tag} ${otpArgs}`
 }
@@ -189,7 +189,7 @@ if (!Script.preview) {
   await gitTagAndPush(Script.version)
 
   // Create archives for GitHub release (in dist/ directory)
-  console.log(`\n📦 Creating release archives...`)
+  console.log(`\n* Creating release archives...`)
   const archives: string[] = []
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
@@ -204,7 +204,7 @@ if (!Script.preview) {
 
   // Create GitHub release
   if (!skipGithub) {
-    console.log(`\n🚀 Creating GitHub release v${Script.version}...`)
+    console.log(`\n> Creating GitHub release v${Script.version}...`)
     const releaseNotes = `## Agent-Core TUI v${Script.version}
 
 ### Installation
@@ -229,7 +229,7 @@ See [CHANGELOG](https://github.com/${GITHUB_REPO}/blob/dev/CHANGELOG.md) for det
 
   // Build and push Docker image
   if (!skipDocker) {
-    console.log(`\n🐳 Building and pushing Docker image...`)
+    console.log(`\n> Building and pushing Docker image...`)
     const image = `ghcr.io/${GITHUB_REPO.split("/")[0]}/agent-core`
     const platforms = "linux/amd64,linux/arm64"
     const dockerTags = [`${image}:${Script.version}`, `${image}:latest`]
@@ -239,7 +239,7 @@ See [CHANGELOG](https://github.com/${GITHUB_REPO}/blob/dev/CHANGELOG.md) for det
   }
 }
 
-console.log(`\n✅ Publish complete!`)
+console.log(`\n+ Publish complete!`)
 if (Script.preview) {
   console.log(`   (This was a dry-run. Set AGENT_CORE_CHANNEL=stable to publish for real)`)
 } else {

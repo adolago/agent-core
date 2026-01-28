@@ -147,13 +147,13 @@ async function main() {
     if (result.error) console.log(`    Error:      ${result.error}`)
 
     if (result.passed) {
-      console.log(`\n  ✅ PASSED - Tool-only response triggered follow-up\n`)
+      console.log(`\n  + PASSED - Tool-only response triggered follow-up\n`)
     } else {
-      console.log(`\n  ❌ FAILED - ${result.error || "Missing text synthesis after tool call"}\n`)
+      console.log(`\n  x FAILED - ${result.error || "Missing text synthesis after tool call"}\n`)
       process.exit(1)
     }
   } catch (e) {
-    console.log(`\n  ❌ ERROR: ${e}\n`)
+    console.log(`\n  x ERROR: ${e}\n`)
     process.exit(1)
   }
 }

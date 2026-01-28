@@ -46,13 +46,13 @@ NO_DAEMON=false
 STATUS_ONLY=false
 CLEAN_BUILD=false
 FRESH_BUILD=false
-GATEWAY=false
+GATEWAY=true
 
 for arg in "$@"; do
   case $arg in
     --no-build) NO_BUILD=true ;;
     --no-daemon) NO_DAEMON=true ;;
-    --gateway) GATEWAY=true ;;
+    --no-gateway) GATEWAY=false ;;
     --status) STATUS_ONLY=true ;;
     --clean) CLEAN_BUILD=true ;;
     --fresh) FRESH_BUILD=true ;;
@@ -62,7 +62,7 @@ for arg in "$@"; do
       echo "Options:"
       echo "  --no-build   Skip rebuilding (just restart)"
       echo "  --no-daemon  Don't start daemon after reload"
-      echo "  --gateway    Start Zee messaging gateway with the daemon"
+      echo "  --no-gateway Skip starting Zee messaging gateway"
       echo "  --status     Show status and diagnostics only"
       echo "  --clean      Clean build artifacts before rebuilding"
       echo "  --fresh      Full fresh build: clean + clear turbo cache + reinstall deps"
@@ -73,7 +73,7 @@ for arg in "$@"; do
       echo "  $0 --clean          # Clean dist/, rebuild, restart"
       echo "  $0 --fresh          # Nuclear option: purge everything, rebuild from scratch"
       echo "  $0 --no-daemon      # Rebuild but don't start daemon"
-      echo "  $0 --gateway        # Rebuild and start daemon + gateway"
+      echo "  $0 --no-gateway     # Rebuild without messaging gateway"
       exit 0
       ;;
   esac
@@ -376,6 +376,8 @@ if ! $NO_DAEMON; then
   if $GATEWAY; then
     daemon_args+=(--gateway)
   fi
+  # Set bundled plugins dir for zee gateway to find channel plugins
+  export ZEE_BUNDLED_PLUGINS_DIR="$REPO_ROOT/packages/personas/zee/extensions"
   nohup "$AGENT_BIN" "${daemon_args[@]}" > /tmp/agent-core-daemon.log 2>&1 &
   DAEMON_PID=$!
   sleep 2
