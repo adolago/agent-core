@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Product = require('./product.model');
 
 const orderItemSchema = new mongoose.Schema({
   product: {
@@ -366,7 +367,14 @@ orderSchema.methods.cancel = async function(reason, userId) {
   
   await this.updateStatus('cancelled', reason, userId);
   
-  // TODO: Trigger inventory restoration
+  // Trigger inventory restoration
+  for (const item of this.items) {
+    const product = await Product.findById(item.product);
+    if (product) {
+      await product.updateInventory(item.quantity, 'increment');
+    }
+  }
+
   // TODO: Trigger payment refund if applicable
   
   return this;
