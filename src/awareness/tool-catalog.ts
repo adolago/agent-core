@@ -1,9 +1,11 @@
 /**
- * Tool Catalog Generator
+ * Tool Catalog Generator - Enhanced for Assertive Tool Use
  *
- * Generates a concise, structured catalog of available tools
- * from the tool registry at runtime. This ensures personas
- * know their full capabilities including action variants.
+ * Generates a tiered, concise catalog of available tools that:
+ * 1. Prioritizes persona-specific tools with full details + examples
+ * 2. Shows core tools in compact format
+ * 3. Lists available MCP tools briefly
+ * 4. Stays within token budget to avoid context bloat
  */
 
 import { ToolRegistry } from "../../packages/agent-core/src/tool/registry"
@@ -15,6 +17,8 @@ export interface ToolCatalogEntry {
   description: string
   actions?: string[]
   category?: string
+  priority?: "primary" | "secondary" | "available"
+  example?: string
 }
 
 export interface ToolCatalog {
@@ -24,23 +28,88 @@ export interface ToolCatalog {
   generatedAt: number
 }
 
+// Primary tools per persona - these get full details + examples
+const PERSONA_PRIMARY_TOOLS: Record<string, string[]> = {
+  zee: [
+    "zee:splitwise",
+    "zee:browser",
+    "zee:calendar",
+    "zee:contacts",
+    "zee:email",
+    "zee:memory",
+    "telegram",
+    "whatsapp",
+    "signal",
+  ],
+  stanley: [
+    "stanley:portfolio",
+    "stanley:market",
+    "stanley:backtest",
+    "stanley:sec",
+    "stanley:analysis",
+  ],
+  johny: [
+    "johny:knowledge",
+    "johny:mastery",
+    "johny:review",
+    "johny:practice",
+    "johny:curriculum",
+  ],
+}
+
+// Core tools that are always relevant (secondary tier)
+const CORE_TOOLS = [
+  "bash",
+  "read",
+  "write",
+  "edit",
+  "glob",
+  "grep",
+  "task",
+  "webfetch",
+  "websearch",
+]
+
+// Usage examples for primary tools - makes models assertive
+const TOOL_EXAMPLES: Record<string, string> = {
+  "zee:splitwise": 'Use { action: "create-expense", group: "Apartment", amount: 50, description: "Groceries" }',
+  "zee:browser": 'Use { action: "navigate", url: "...", profile: "personal" } for authenticated sessions',
+  "zee:calendar": 'Use { action: "list", days: 7 } to see upcoming events',
+  "zee:memory": 'Use { action: "search", query: "..." } to recall past conversations',
+  bash: "Run commands directly. For git: git status, git diff, git commit",
+  read: "Read files with absolute paths. Supports images, PDFs, notebooks",
+  edit: 'Use { old_string: "...", new_string: "..." } for precise edits',
+  glob: 'Find files: { pattern: "**/*.ts" } or { pattern: "src/**/*.test.ts" }',
+  grep: 'Search content: { pattern: "function.*", path: "src/" }',
+  task: "Spawn agents for complex tasks. Use subagent_type: Explore for codebase research",
+  webfetch: "Fetch and analyze web content. Provide URL and prompt",
+  websearch: "Search the web for current information",
+}
+
 /**
- * Generate tool catalog for a specific agent/persona
+ * Generate tool catalog with tiered prioritization
  */
 export async function generateToolCatalog(agent: Agent.Info): Promise<ToolCatalog> {
   const registry = await ToolRegistry.tools({ providerID: "", modelID: "" }, agent)
+  const personaName = agent.name.toLowerCase()
+  const primaryToolIds = PERSONA_PRIMARY_TOOLS[personaName] ?? []
 
   const tools: ToolCatalogEntry[] = []
 
   for (const tool of registry) {
     if (tool.id === "invalid") continue
 
+    const isPrimary = primaryToolIds.some((p) => tool.id.includes(p) || tool.id === p)
+    const isCore = CORE_TOOLS.includes(tool.id)
+    const isPersonaTool = tool.id.startsWith(`${personaName}:`)
+
     const entry: ToolCatalogEntry = {
       id: tool.id,
-      description: extractDescription(tool.description ?? ""),
+      description: extractDescription(tool.description ?? "", isPrimary || isPersonaTool),
+      priority: isPrimary || isPersonaTool ? "primary" : isCore ? "secondary" : "available",
     }
 
-    // Extract actions for multi-action tools
+    // Add actions for multi-action tools
     const actions = extractActions(tool.description ?? "")
     if (actions.length > 0) {
       entry.actions = actions
@@ -51,8 +120,22 @@ export async function generateToolCatalog(agent: Agent.Info): Promise<ToolCatalo
       entry.category = tool.id.split(":")[0]
     }
 
+    // Add usage example for primary/core tools
+    const exampleKey = Object.keys(TOOL_EXAMPLES).find(
+      (k) => tool.id === k || tool.id.includes(k)
+    )
+    if (exampleKey && (isPrimary || isCore)) {
+      entry.example = TOOL_EXAMPLES[exampleKey]
+    }
+
     tools.push(entry)
   }
+
+  // Sort: primary first, then secondary, then available
+  tools.sort((a, b) => {
+    const order = { primary: 0, secondary: 1, available: 2 }
+    return (order[a.priority ?? "available"] ?? 2) - (order[b.priority ?? "available"] ?? 2)
+  })
 
   return {
     persona: agent.name,
@@ -63,108 +146,143 @@ export async function generateToolCatalog(agent: Agent.Info): Promise<ToolCatalo
 }
 
 /**
- * Format catalog for system prompt injection
+ * Format catalog with tiered display to control context size
  */
-export function formatCatalogForPrompt(catalog: ToolCatalog): string {
+export function formatCatalogForPrompt(catalog: ToolCatalog, maxTokens: number = 2000): string {
   if (catalog.tools.length === 0) return ""
 
-  const lines: string[] = ["## Available Tools & Capabilities", ""]
+  const lines: string[] = []
+  const approxCharsPerToken = 4
+  const maxChars = maxTokens * approxCharsPerToken
+  let currentChars = 0
 
-  // Group tools by category
-  const grouped = groupToolsByCategory(catalog.tools)
+  // Group by priority
+  const primary = catalog.tools.filter((t) => t.priority === "primary")
+  const secondary = catalog.tools.filter((t) => t.priority === "secondary")
+  const available = catalog.tools.filter((t) => t.priority === "available")
 
-  // First show uncategorized (core) tools
-  const core = grouped[""] ?? []
-  if (core.length > 0) {
-    lines.push("### Core Tools")
-    for (const tool of core.slice(0, 15)) {
-      lines.push(formatToolEntry(tool))
-    }
-    if (core.length > 15) {
-      lines.push(`  _(and ${core.length - 15} more core tools)_`)
+  // === PRIMARY TOOLS (Full details + examples) ===
+  if (primary.length > 0) {
+    lines.push("## Your Primary Tools")
+    lines.push("Use these tools assertively - they are your main capabilities:")
+    lines.push("")
+
+    for (const tool of primary) {
+      const entry = formatPrimaryTool(tool)
+      if (currentChars + entry.length > maxChars * 0.6) break // Reserve space
+      lines.push(entry)
+      currentChars += entry.length
     }
     lines.push("")
   }
 
-  // Then show persona-specific tools with full detail
-  const personaPrefix = catalog.persona.toLowerCase()
-  const personaTools = grouped[personaPrefix] ?? []
-  if (personaTools.length > 0) {
-    lines.push(`### ${capitalize(personaPrefix)} Tools`)
-    for (const tool of personaTools) {
-      lines.push(formatToolEntry(tool))
+  // === CORE TOOLS (Compact format) ===
+  if (secondary.length > 0 && currentChars < maxChars * 0.8) {
+    lines.push("## Core Tools")
+    lines.push("")
+
+    for (const tool of secondary) {
+      const entry = formatSecondaryTool(tool)
+      if (currentChars + entry.length > maxChars * 0.9) break
+      lines.push(entry)
+      currentChars += entry.length
     }
     lines.push("")
   }
 
-  // Show other prefixed tools briefly
-  for (const [prefix, tools] of Object.entries(grouped)) {
-    if (prefix === "" || prefix === personaPrefix) continue
-    if (tools.length > 0) {
-      lines.push(`### ${capitalize(prefix)} Tools`)
-      for (const tool of tools.slice(0, 5)) {
-        lines.push(formatToolEntry(tool))
+  // === AVAILABLE TOOLS (Just names) ===
+  if (available.length > 0 && currentChars < maxChars * 0.95) {
+    // Group by category for compact display
+    const byCategory = groupByCategory(available)
+    const categoryEntries: string[] = []
+
+    for (const [category, tools] of Object.entries(byCategory)) {
+      const names = tools.map((t) => t.id.split(":").pop() ?? t.id).join(", ")
+      if (category) {
+        categoryEntries.push(`${category}: ${names}`)
+      } else {
+        categoryEntries.push(names)
       }
-      if (tools.length > 5) {
-        lines.push(`  _(and ${tools.length - 5} more ${prefix} tools)_`)
-      }
+    }
+
+    if (categoryEntries.length > 0) {
+      lines.push("## Also Available")
+      lines.push(categoryEntries.join(" | "))
       lines.push("")
     }
   }
 
-  // Add enabled services section
+  // === ENABLED SERVICES ===
   if (catalog.enabledServices.length > 0) {
-    lines.push("### Enabled Integrations")
+    lines.push("## Active Integrations")
     for (const service of catalog.enabledServices) {
       lines.push(`- ${service}`)
     }
-    lines.push("")
   }
 
   return lines.join("\n")
 }
 
-function formatToolEntry(tool: ToolCatalogEntry): string {
-  const actionList = tool.actions?.length ? ` [${tool.actions.join(", ")}]` : ""
-  return `- **${tool.id}**: ${tool.description}${actionList}`
+function formatPrimaryTool(tool: ToolCatalogEntry): string {
+  const lines: string[] = []
+  lines.push(`### ${tool.id}`)
+  lines.push(tool.description)
+
+  if (tool.actions && tool.actions.length > 0) {
+    lines.push(`**Actions:** ${tool.actions.join(", ")}`)
+  }
+
+  if (tool.example) {
+    lines.push(`**Example:** ${tool.example}`)
+  }
+
+  lines.push("")
+  return lines.join("\n")
 }
 
-function extractDescription(rawDescription: string): string {
+function formatSecondaryTool(tool: ToolCatalogEntry): string {
+  const actionHint = tool.actions?.length ? ` [${tool.actions.slice(0, 3).join(", ")}${tool.actions.length > 3 ? "..." : ""}]` : ""
+  const exampleHint = tool.example ? ` - ${tool.example}` : ""
+  return `- **${tool.id}**: ${tool.description}${actionHint}${exampleHint}`
+}
+
+function extractDescription(rawDescription: string, fullLength: boolean = false): string {
   if (!rawDescription) return "(no description)"
 
-  // Take first sentence or first 120 chars
   const firstLine = rawDescription.split("\n")[0]?.trim() ?? ""
   const parts = firstLine.split(/\.\s/)
   const firstSentence = parts[0] ?? ""
 
+  // Primary tools get longer descriptions
+  const maxLen = fullLength ? 200 : 80
   const desc = firstSentence.length < firstLine.length ? firstSentence + "." : firstLine
 
-  return desc.length > 120 ? desc.slice(0, 117) + "..." : desc
+  return desc.length > maxLen ? desc.slice(0, maxLen - 3) + "..." : desc
 }
 
 function extractActions(description: string): string[] {
   if (!description) return []
 
   // Look for action enums in description
-  // Pattern: "action": { "enum": ["create-expense", "update-expense", ...] }
   const enumMatch = description.match(/["']?action["']?\s*:\s*\{[^}]*["']?enum["']?\s*:\s*\[([^\]]+)\]/i)
   if (enumMatch && enumMatch[1]) {
     return enumMatch[1]
       .split(",")
       .map((s) => s.replace(/["'\s]/g, ""))
       .filter(Boolean)
+      .slice(0, 10) // Limit to avoid bloat
   }
 
   // Pattern: Actions: create-expense, update-expense
   const actionListMatch = description.match(/Actions?:?\s*([a-z-]+(?:,\s*[a-z-]+)*)/i)
   if (actionListMatch && actionListMatch[1]) {
-    return actionListMatch[1].split(",").map((s) => s.trim()).filter(Boolean)
+    return actionListMatch[1].split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10)
   }
 
   return []
 }
 
-function groupToolsByCategory(tools: ToolCatalogEntry[]): Record<string, ToolCatalogEntry[]> {
+function groupByCategory(tools: ToolCatalogEntry[]): Record<string, ToolCatalogEntry[]> {
   const grouped: Record<string, ToolCatalogEntry[]> = {}
 
   for (const tool of tools) {
@@ -185,7 +303,7 @@ function getEnabledServices(persona: string): string[] {
     try {
       const splitwise = getZeeSplitwiseConfig()
       if (splitwise.enabled) {
-        services.push("Splitwise (expense tracking: create-expense, update-expense, delete-expense, create-payment, groups, friends, expenses)")
+        services.push("Splitwise (expenses, payments, groups)")
       }
     } catch {
       // Config not available
@@ -194,7 +312,7 @@ function getEnabledServices(persona: string): string[] {
     try {
       const browser = getZeeBrowserConfig()
       if (browser.enabled !== false) {
-        services.push("Browser automation (with configured profiles)")
+        services.push("Browser automation")
       }
     } catch {
       // Config not available
@@ -203,7 +321,7 @@ function getEnabledServices(persona: string): string[] {
     try {
       const codexbar = getZeeCodexbarConfig()
       if (codexbar.enabled) {
-        services.push("CodexBar (API usage tracking)")
+        services.push("CodexBar (usage tracking)")
       }
     } catch {
       // Config not available
@@ -211,8 +329,4 @@ function getEnabledServices(persona: string): string[] {
   }
 
   return services
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1)
 }
