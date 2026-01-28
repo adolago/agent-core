@@ -26,6 +26,19 @@ test("ask - returns pending promise", async () => {
   })
 })
 
+test("schema accepts long headers and option labels", () => {
+  const longHeader = "Header " + "x".repeat(200)
+  const longLabel = "Label " + "y".repeat(200)
+
+  expect(() =>
+    Question.Info.parse({
+      question: "Select one:",
+      header: longHeader,
+      options: [{ label: longLabel, description: "Long values should not break tool calls" }],
+    }),
+  ).not.toThrow()
+})
+
 test("ask - adds to pending list", async () => {
   await using tmp = await tmpdir({ git: true })
   await Instance.provide({
