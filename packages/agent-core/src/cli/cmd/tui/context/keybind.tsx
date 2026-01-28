@@ -53,6 +53,13 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
     let vimCommandHandler: ((key: string, evt: ParsedKey) => boolean) | null = null
 
     let focus: Renderable | null
+    function isRenderableInTree(root: Renderable, target: Renderable): boolean {
+      if (root === target) return true
+      for (const child of root.getChildren()) {
+        if (isRenderableInTree(child, target)) return true
+      }
+      return false
+    }
     function leader(active: boolean) {
       if (active) {
         setStore("leader", true)
@@ -62,10 +69,15 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       }
 
       if (!active) {
-        if (focus && !renderer.currentFocusedRenderable) {
-          focus.focus()
-        }
+        const previousFocus = focus
         setStore("leader", false)
+        if (!previousFocus) return
+        setTimeout(() => {
+          if (previousFocus.isDestroyed) return
+          if (renderer.currentFocusedRenderable?.focused) return
+          if (!isRenderableInTree(renderer.root, previousFocus)) return
+          previousFocus.focus()
+        }, 1)
       }
     }
 
