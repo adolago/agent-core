@@ -160,6 +160,7 @@ export const dispatchTelegramMessage = async ({
         imagePath: ctxPayload.MediaPath,
         cfg,
         agentDir,
+        agentId: route.agentId,
       });
     }
     if (description) {
