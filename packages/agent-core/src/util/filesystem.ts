@@ -3,14 +3,15 @@ import { realpath } from "fs/promises"
 import { dirname, join, relative } from "path"
 
 export namespace Filesystem {
+  export const sanitizePath = (value: string) => value.replace(/\0/g, "")
   export const exists = (p: string) =>
-    Bun.file(p)
+    Bun.file(sanitizePath(p))
       .stat()
       .then(() => true)
       .catch(() => false)
 
   export const isDir = (p: string) =>
-    Bun.file(p)
+    Bun.file(sanitizePath(p))
       .stat()
       .then((s) => s.isDirectory())
       .catch(() => false)
@@ -22,6 +23,8 @@ export namespace Filesystem {
    * @returns true if the resolved child path is within the resolved parent
    */
   export async function containsResolved(parent: string, child: string): Promise<boolean> {
+    parent = sanitizePath(parent)
+    child = sanitizePath(child)
     try {
       // Resolve both paths to their real locations (following symlinks)
       const resolvedParent = await realpath(parent).catch(() => parent)
@@ -37,6 +40,8 @@ export namespace Filesystem {
    * Synchronous version of containsResolved for cases where async isn't possible.
    */
   export function containsResolvedSync(parent: string, child: string): boolean {
+    parent = sanitizePath(parent)
+    child = sanitizePath(child)
     try {
       const resolvedParent = realpathSync(parent)
       const resolvedChild = realpathSync(child)
@@ -51,6 +56,7 @@ export namespace Filesystem {
    * may return paths with different casing than what we send them.
    */
   export function normalizePath(p: string): string {
+    p = sanitizePath(p)
     if (process.platform !== "win32") return p
     try {
       return realpathSync.native(p)
@@ -59,22 +65,28 @@ export namespace Filesystem {
     }
   }
   export function overlaps(a: string, b: string) {
+    a = sanitizePath(a)
+    b = sanitizePath(b)
     const relA = relative(a, b)
     const relB = relative(b, a)
     return !relA || !relA.startsWith("..") || !relB || !relB.startsWith("..")
   }
 
   export function contains(parent: string, child: string) {
+    parent = sanitizePath(parent)
+    child = sanitizePath(child)
     return !relative(parent, child).startsWith("..")
   }
 
   export async function findUp(target: string, start: string, stop?: string) {
-    let current = start
+    let current = sanitizePath(start)
+    const sanitizedStop = stop ? sanitizePath(stop) : undefined
+    target = sanitizePath(target)
     const result = []
     while (true) {
       const search = join(current, target)
       if (await exists(search)) result.push(search)
-      if (stop === current) break
+      if (sanitizedStop === current) break
       const parent = dirname(current)
       if (parent === current) break
       current = parent
@@ -83,11 +95,13 @@ export namespace Filesystem {
   }
 
   export async function findFirstUp(target: string, start: string, stop?: string): Promise<string | undefined> {
-    let current = start
+    let current = sanitizePath(start)
+    const sanitizedStop = stop ? sanitizePath(stop) : undefined
+    target = sanitizePath(target)
     while (true) {
       const search = join(current, target)
       if (await exists(search)) return search
-      if (stop === current) break
+      if (sanitizedStop === current) break
       const parent = dirname(current)
       if (parent === current) break
       current = parent
@@ -97,13 +111,15 @@ export namespace Filesystem {
 
   export async function* up(options: { targets: string[]; start: string; stop?: string }) {
     const { targets, start, stop } = options
-    let current = start
+    let current = sanitizePath(start)
+    const sanitizedStop = stop ? sanitizePath(stop) : undefined
+    const sanitizedTargets = targets.map((target) => sanitizePath(target))
     while (true) {
-      for (const target of targets) {
+      for (const target of sanitizedTargets) {
         const search = join(current, target)
         if (await exists(search)) yield search
       }
-      if (stop === current) break
+      if (sanitizedStop === current) break
       const parent = dirname(current)
       if (parent === current) break
       current = parent
@@ -111,7 +127,9 @@ export namespace Filesystem {
   }
 
   export async function globUp(pattern: string, start: string, stop?: string) {
-    let current = start
+    let current = sanitizePath(start)
+    const sanitizedStop = stop ? sanitizePath(stop) : undefined
+    pattern = sanitizePath(pattern)
     const result = []
     while (true) {
       try {
@@ -128,7 +146,7 @@ export namespace Filesystem {
       } catch {
         // Skip invalid glob patterns
       }
-      if (stop === current) break
+      if (sanitizedStop === current) break
       const parent = dirname(current)
       if (parent === current) break
       current = parent

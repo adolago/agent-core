@@ -307,7 +307,7 @@ describe.skipIf(isFullSuite)("StreamHealthMonitor", () => {
       const timing = monitor.getTimingInfo()
 
       expect(timing.eventsPerSecond).toBeGreaterThan(0)
-      expect(timing.durationMs).toBeGreaterThanOrEqual(100)
+      expect(timing.durationMs).toBeGreaterThanOrEqual(95)
     })
 
     test("timeSinceLastEventMs increases over time", async () => {

@@ -135,10 +135,11 @@ export namespace Config {
     }
 
     for (const dir of unique(directories)) {
-      if (dir.endsWith(".agent-core") || dir === Flag.OPENCODE_CONFIG_DIR) {
+      const safeDir = Filesystem.sanitizePath(dir)
+      if (safeDir.endsWith(".agent-core") || safeDir === Flag.OPENCODE_CONFIG_DIR) {
         for (const file of ["agent-core.jsonc", "agent-core.json"]) {
-          log.debug(`loading config from ${path.join(dir, file)}`)
-          result = mergeConfigConcatArrays(result, await loadFile(path.join(dir, file)))
+          log.debug(`loading config from ${path.join(safeDir, file)}`)
+          result = mergeConfigConcatArrays(result, await loadFile(path.join(safeDir, file)))
           // to satisfy the type checker
           result.agent ??= {}
           result.mode ??= {}
@@ -146,14 +147,14 @@ export namespace Config {
         }
       }
 
-      const exists = existsSync(path.join(dir, "node_modules"))
-      const installing = installDependencies(dir)
+      const exists = existsSync(path.join(safeDir, "node_modules"))
+      const installing = installDependencies(safeDir)
       if (!exists) await installing
 
-      result.command = mergeDeep(result.command ?? {}, await loadCommand(dir))
-      result.agent = mergeDeep(result.agent, await loadAgent(dir))
-      result.agent = mergeDeep(result.agent, await loadMode(dir))
-      result.plugin.push(...(await loadPlugin(dir)))
+      result.command = mergeDeep(result.command ?? {}, await loadCommand(safeDir))
+      result.agent = mergeDeep(result.agent, await loadAgent(safeDir))
+      result.agent = mergeDeep(result.agent, await loadMode(safeDir))
+      result.plugin.push(...(await loadPlugin(safeDir)))
     }
 
     // Migrate deprecated mode field to agent field
@@ -1450,15 +1451,16 @@ export namespace Config {
   })
 
   async function loadFile(filepath: string): Promise<Info> {
-    log.info("loading", { path: filepath })
-    let text = await Bun.file(filepath)
+    const safePath = Filesystem.sanitizePath(filepath)
+    log.info("loading", { path: safePath })
+    let text = await Bun.file(safePath)
       .text()
       .catch((err) => {
         if (err.code === "ENOENT") return
-        throw new JsonError({ path: filepath }, { cause: err })
+        throw new JsonError({ path: safePath }, { cause: err })
       })
     if (!text) return {}
-    return load(text, filepath)
+    return load(text, safePath)
   }
 
   async function load(text: string, configFilepath: string) {
