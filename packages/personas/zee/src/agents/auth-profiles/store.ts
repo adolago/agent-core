@@ -4,6 +4,7 @@ import lockfile from "proper-lockfile";
 import { resolveOAuthPath } from "../../config/paths.js";
 import { loadJsonFile, saveJsonFile } from "../../infra/json-file.js";
 import { AUTH_STORE_LOCK_OPTIONS, AUTH_STORE_VERSION, log } from "./constants.js";
+import { syncAgentCoreCredentials } from "./agent-core-sync.js";
 import { syncExternalCliCredentials } from "./external-cli-sync.js";
 import { ensureAuthStoreFile, resolveAuthStorePath, resolveLegacyAuthStorePath } from "./paths.js";
 import type { AuthProfileCredential, AuthProfileStore, ProfileUsageStats } from "./types.js";
@@ -167,8 +168,9 @@ export function loadAuthProfileStore(): AuthProfileStore {
   const raw = loadJsonFile(authPath);
   const asStore = coerceAuthStore(raw);
   if (asStore) {
-    // Sync from external CLI tools on every load
-    const synced = syncExternalCliCredentials(asStore);
+    // Sync from external sources on every load
+    let synced = syncExternalCliCredentials(asStore);
+    synced = syncAgentCoreCredentials(asStore) || synced;
     if (synced) {
       saveJsonFile(authPath, asStore);
     }
@@ -214,11 +216,13 @@ export function loadAuthProfileStore(): AuthProfileStore {
       }
     }
     syncExternalCliCredentials(store);
+    syncAgentCoreCredentials(store);
     return store;
   }
 
   const store: AuthProfileStore = { version: AUTH_STORE_VERSION, profiles: {} };
   syncExternalCliCredentials(store);
+  syncAgentCoreCredentials(store);
   return store;
 }
 
@@ -230,8 +234,9 @@ function loadAuthProfileStoreForAgent(
   const raw = loadJsonFile(authPath);
   const asStore = coerceAuthStore(raw);
   if (asStore) {
-    // Sync from external CLI tools on every load
-    const synced = syncExternalCliCredentials(asStore);
+    // Sync from external sources on every load
+    let synced = syncExternalCliCredentials(asStore);
+    synced = syncAgentCoreCredentials(asStore) || synced;
     if (synced) {
       saveJsonFile(authPath, asStore);
     }
@@ -293,7 +298,8 @@ function loadAuthProfileStoreForAgent(
 
   const mergedOAuth = mergeOAuthFileIntoStore(store);
   const syncedCli = syncExternalCliCredentials(store);
-  const shouldWrite = legacy !== null || mergedOAuth || syncedCli;
+  const syncedAgentCore = syncAgentCoreCredentials(store);
+  const shouldWrite = legacy !== null || mergedOAuth || syncedCli || syncedAgentCore;
   if (shouldWrite) {
     saveJsonFile(authPath, store);
   }
