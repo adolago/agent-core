@@ -8,6 +8,7 @@ use gpui::*;
 use crate::api::types::{
     Message, Model, Part, PermissionRequest, Provider, QuestionRequest, Session, SessionStatus,
 };
+use crate::update::{default_feed_url, UpdateCheck, UpdateInfo, UpdateStatus};
 
 #[cfg(feature = "trading")]
 use stanley_core::{Portfolio, RiskMetrics, paper_trade::PaperTradingStatus};
@@ -53,6 +54,13 @@ pub struct AppState {
     pub active_persona: Persona,
     pub sidebar_collapsed: bool,
     pub current_theme_id: String,
+
+    // Update state
+    pub update_feed_url: String,
+    pub update_status: UpdateStatus,
+    pub update_info: Option<UpdateInfo>,
+    pub update_error: Option<String>,
+    pub update_last_checked: Option<i64>,
 
     // Dialog state
     pub dialog_stack: Vec<DialogType>,
@@ -108,6 +116,12 @@ impl Default for AppState {
             active_persona: Persona::Zee,
             sidebar_collapsed: false,
             current_theme_id: "opencode".to_string(),
+
+            update_feed_url: default_feed_url(),
+            update_status: UpdateStatus::Idle,
+            update_info: None,
+            update_error: None,
+            update_last_checked: None,
 
             dialog_stack: Vec::new(),
 
@@ -560,6 +574,21 @@ impl AppState {
     /// Get parts for a message
     pub fn get_parts(&self, message_id: &str) -> Option<&Vec<Part>> {
         self.parts.get(message_id)
+    }
+
+    // ========================================================================
+    // Update State
+    // ========================================================================
+
+    pub fn apply_update_check(&mut self, check: UpdateCheck) {
+        self.update_status = check.status;
+        self.update_info = check.info;
+        self.update_error = check.error;
+        self.update_last_checked = check.checked_at;
+    }
+
+    pub fn set_update_status(&mut self, status: UpdateStatus) {
+        self.update_status = status;
     }
 
     // ========================================================================

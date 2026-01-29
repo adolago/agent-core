@@ -1,4 +1,4 @@
-const THEME_STORAGE_KEY = "zee:theme";
+const THEME_STORAGE_KEY = "moltbot:theme";
 
 function safeGet(key) {
   try {

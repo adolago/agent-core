@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import util from "node:util";
 
-import type { ZeeConfig } from "../config/types.js";
+import type { MoltbotConfig } from "../config/types.js";
 import { isVerbose } from "../globals.js";
 import { stripAnsi } from "../terminal/ansi.js";
 import { type LogLevel, normalizeLogLevel } from "./levels.js";
@@ -32,7 +32,7 @@ function normalizeConsoleStyle(style?: string): ConsoleStyle {
 }
 
 function resolveConsoleSettings(): ConsoleSettings {
-  let cfg: ZeeConfig["logging"] | undefined =
+  let cfg: MoltbotConfig["logging"] | undefined =
     (loggingState.overrideSettings as LoggerSettings | null) ?? readLoggingConfig();
   if (!cfg) {
     if (loggingState.resolvingConsoleSettings) {
@@ -41,7 +41,7 @@ function resolveConsoleSettings(): ConsoleSettings {
       loggingState.resolvingConsoleSettings = true;
       try {
         const loaded = requireConfig("../config/config.js") as {
-          loadConfig?: () => ZeeConfig;
+          loadConfig?: () => MoltbotConfig;
         };
         cfg = loaded.loadConfig?.().logging;
       } catch {

@@ -23,10 +23,10 @@ import { rawDataToString } from "../../../infra/ws.js";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { isGatewayCliClient, isWebchatClient } from "../../../utils/message-channel.js";
 import type { ResolvedGatewayAuth } from "../../auth.js";
-import { authorizeGatewayConnect } from "../../auth.js";
+import { authorizeGatewayConnect, isLocalDirectRequest } from "../../auth.js";
 import { loadConfig } from "../../../config/config.js";
 import { buildDeviceAuthPayload } from "../../device-auth.js";
-import { isLocalGatewayAddress, isTrustedProxyAddress, resolveGatewayClientIp } from "../../net.js";
+import { isLoopbackAddress, isTrustedProxyAddress, resolveGatewayClientIp } from "../../net.js";
 import { resolveNodeCommandAllowlist } from "../../node-command-policy.js";
 import {
   type ConnectParams,
@@ -59,6 +59,17 @@ import type { GatewayWsClient } from "../ws-types.js";
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
 const DEVICE_SIGNATURE_SKEW_MS = 10 * 60 * 1000;
+
+function resolveHostName(hostHeader?: string): string {
+  const host = (hostHeader ?? "").trim().toLowerCase();
+  if (!host) return "";
+  if (host.startsWith("[")) {
+    const end = host.indexOf("]");
+    if (end !== -1) return host.slice(1, end);
+  }
+  const [name] = host.split(":");
+  return name ?? "";
+}
 
 type AuthProvidedKind = "token" | "password" | "none";
 
@@ -100,6 +111,10 @@ function formatGatewayAuthFailureMessage(params: {
       return "unauthorized: tailscale identity missing (use Tailscale Serve auth or gateway token/password)";
     case "tailscale_proxy_missing":
       return "unauthorized: tailscale proxy headers missing (use Tailscale Serve or gateway token/password)";
+    case "tailscale_whois_failed":
+      return "unauthorized: tailscale identity check failed (use Tailscale Serve auth or gateway token/password)";
+    case "tailscale_user_mismatch":
+      return "unauthorized: tailscale identity mismatch (use Tailscale Serve auth or gateway token/password)";
     default:
       break;
   }
@@ -185,14 +200,30 @@ export function attachGatewayWsMessageHandler(params: {
   const hasProxyHeaders = Boolean(forwardedFor || realIp);
   const remoteIsTrustedProxy = isTrustedProxyAddress(remoteAddr, trustedProxies);
   const hasUntrustedProxyHeaders = hasProxyHeaders && !remoteIsTrustedProxy;
-  const isLocalClient = !hasUntrustedProxyHeaders && isLocalGatewayAddress(clientIp);
-  const reportedClientIp = hasUntrustedProxyHeaders ? undefined : clientIp;
+  const hostName = resolveHostName(requestHost);
+  const hostIsLocal = hostName === "localhost" || hostName === "127.0.0.1" || hostName === "::1";
+  const hostIsTailscaleServe = hostName.endsWith(".ts.net");
+  const hostIsLocalish = hostIsLocal || hostIsTailscaleServe;
+  const isLocalClient = isLocalDirectRequest(upgradeReq, trustedProxies);
+  const reportedClientIp =
+    isLocalClient || hasUntrustedProxyHeaders
+      ? undefined
+      : clientIp && !isLoopbackAddress(clientIp)
+        ? clientIp
+        : undefined;
 
   if (hasUntrustedProxyHeaders) {
     logWsControl.warn(
       "Proxy headers detected from untrusted address. " +
         "Connection will not be treated as local. " +
         "Configure gateway.trustedProxies to restore local client detection behind your proxy.",
+    );
+  }
+  if (!hostIsLocalish && isLoopbackAddress(remoteAddr) && !hasProxyHeaders) {
+    logWsControl.warn(
+      "Loopback connection with non-local Host header. " +
+        "Treating it as remote. If you're behind a reverse proxy, " +
+        "set gateway.trustedProxies and forward X-Forwarded-For/X-Real-IP.",
     );
   }
 
@@ -343,32 +374,6 @@ export function attachGatewayWsMessageHandler(params: {
           isControlUi && configSnapshot.gateway?.controlUi?.dangerouslyDisableDeviceAuth === true;
         const allowControlUiBypass = allowInsecureControlUi || disableControlUiDeviceAuth;
         const device = disableControlUiDeviceAuth ? null : deviceRaw;
-        if (hasUntrustedProxyHeaders && resolvedAuth.mode === "none") {
-          setHandshakeState("failed");
-          setCloseCause("proxy-auth-required", {
-            client: connectParams.client.id,
-            clientDisplayName: connectParams.client.displayName,
-            mode: connectParams.client.mode,
-            version: connectParams.client.version,
-          });
-          send({
-            type: "res",
-            id: frame.id,
-            ok: false,
-            error: errorShape(
-              ErrorCodes.INVALID_REQUEST,
-              "gateway auth required behind reverse proxy",
-              {
-                details: {
-                  hint: "set gateway.auth or configure gateway.trustedProxies",
-                },
-              },
-            ),
-          });
-          close(1008, "gateway auth required");
-          return;
-        }
-
         if (!device) {
           const canSkipDevice = allowControlUiBypass ? hasSharedAuth : hasTokenAuth;
 
@@ -566,7 +571,8 @@ export function attachGatewayWsMessageHandler(params: {
           trustedProxies,
         });
         let authOk = authResult.ok;
-        let authMethod = authResult.method ?? "none";
+        let authMethod =
+          authResult.method ?? (resolvedAuth.mode === "password" ? "password" : "token");
         if (!authOk && connectParams.auth?.token && device) {
           const tokenCheck = await verifyDeviceToken({
             deviceId: device.id,
@@ -736,9 +742,7 @@ export function attachGatewayWsMessageHandler(params: {
         const shouldTrackPresence = !isGatewayCliClient(connectParams.client);
         const clientId = connectParams.client.id;
         const instanceId = connectParams.client.instanceId;
-        const presenceKey = shouldTrackPresence
-          ? (device?.id ?? instanceId ?? connId)
-          : undefined;
+        const presenceKey = shouldTrackPresence ? (device?.id ?? instanceId ?? connId) : undefined;
 
         logWs("in", "connect", {
           connId,
@@ -785,7 +789,7 @@ export function attachGatewayWsMessageHandler(params: {
           type: "hello-ok",
           protocol: PROTOCOL_VERSION,
           server: {
-            version: process.env.ZEE_VERSION ?? process.env.npm_package_version ?? "dev",
+            version: process.env.CLAWDBOT_VERSION ?? process.env.npm_package_version ?? "dev",
             commit: process.env.GIT_COMMIT,
             host: os.hostname(),
             connId,
@@ -819,7 +823,9 @@ export function attachGatewayWsMessageHandler(params: {
         setHandshakeState("connected");
         if (role === "node") {
           const context = buildRequestContext();
-          const nodeSession = context.nodeRegistry.register(nextClient, { remoteIp: reportedClientIp });
+          const nodeSession = context.nodeRegistry.register(nextClient, {
+            remoteIp: reportedClientIp,
+          });
           const instanceIdRaw = connectParams.client.instanceId;
           const instanceId = typeof instanceIdRaw === "string" ? instanceIdRaw.trim() : "";
           const nodeIdsForPairing = new Set<string>([nodeSession.nodeId]);

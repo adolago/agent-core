@@ -64,6 +64,11 @@ Maturity and ownership for experimental flags are tracked in
 | `HTTPS_PROXY` | - | HTTPS proxy URL |
 | `http_proxy` | - | HTTP proxy URL (lowercase variant) |
 | `https_proxy` | - | HTTPS proxy URL (lowercase variant) |
+| `AGENT_CORE_CORS_ALLOWLIST` | - | Comma-separated list of additional origins allowed by the API server CORS policy |
+| `AGENT_CORE_HOSTED_ORIGINS` | - | Alias for `AGENT_CORE_CORS_ALLOWLIST` (useful for hosted domains) |
+| `AGENT_CORE_CORS_ORIGINS` | - | Alias for `AGENT_CORE_CORS_ALLOWLIST` |
+| `AGENT_CORE_SHARE_BASE_URL` | - | Base URL used when generating share links (falls back to server URL) |
+| `SHARE_BASE_URL` | - | Legacy alias for `AGENT_CORE_SHARE_BASE_URL` |
 
 ### XDG Directories
 
@@ -88,6 +93,40 @@ Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection
 | `GOOGLE_API_KEY` | - | Google API key for embeddings (gemini-embedding-001) |
 | `GEMINI_API_KEY` | - | Alternate Google API key name |
 | `VOYAGE_API_KEY` | - | Voyage AI API key for embeddings and reranking |
+
+---
+
+## Hosted Platform
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HOSTED_HOST` | `127.0.0.1` | Hostname for the hosted service |
+| `HOSTED_PORT` | `8787` | Port for the hosted service |
+| `HOSTED_BASE_URL` | `http://HOSTED_HOST:HOSTED_PORT` | Base URL for share links and redirects |
+| `HOSTED_DATA_DIR` | `./data` | Data directory for hosted storage |
+| `HOSTED_DB_PATH` | `HOSTED_DATA_DIR/hosted.db` | SQLite database path |
+| `HOSTED_ALLOW_SIGNUP` | `true` | Allow new user registrations |
+| `HOSTED_API_KEY` | - | Single API key for share creation (alias for `HOSTED_API_KEYS`) |
+| `HOSTED_API_KEYS` | - | Comma-separated API keys for share creation |
+| `HOSTED_VAULT_KEY` | - | Vault encryption key for provider credentials |
+| `AGENT_CORE_HOSTED_VAULT_KEY` | - | Alternate name for `HOSTED_VAULT_KEY` |
+| `HOSTED_SESSION_TTL_HOURS` | `168` | Console session lifetime (hours) |
+| `HOSTED_SHARE_TTL_HOURS` | `720` | Share expiry in hours |
+| `HOSTED_RATE_LIMIT_PER_MINUTE` | `60` | Share creation rate limit per IP per minute |
+| `HOSTED_RETENTION_LOGS_DAYS` | `30` | Retention period for log events |
+| `HOSTED_RETENTION_TELEMETRY_DAYS` | `30` | Retention period for telemetry events |
+| `HOSTED_RETENTION_USAGE_DAYS` | `180` | Retention period for usage events |
+| `HOSTED_BILLING_PORTAL_URL` | - | External billing portal URL |
+| `HOSTED_DEFAULT_PLAN` | `free` | Default plan ID for new workspaces |
+| `HOSTED_BOOTSTRAP_EMAIL` | - | Bootstrap user email (first run) |
+| `HOSTED_BOOTSTRAP_PASSWORD` | - | Bootstrap user password (first run) |
+| `HOSTED_CORS_ORIGINS` | - | Comma-separated CORS origins for hosted APIs |
+| `HOSTED_OAUTH_<PROVIDER>_AUTHORIZE_URL` | - | OAuth authorize URL for a provider (example: `HOSTED_OAUTH_OPENAI_AUTHORIZE_URL`) |
+| `HOSTED_OAUTH_<PROVIDER>_TOKEN_URL` | - | OAuth token exchange URL for a provider |
+| `HOSTED_OAUTH_<PROVIDER>_CLIENT_ID` | - | OAuth client ID for a provider |
+| `HOSTED_OAUTH_<PROVIDER>_CLIENT_SECRET` | - | OAuth client secret for a provider |
+| `HOSTED_OAUTH_<PROVIDER>_SCOPES` | - | OAuth scopes to request |
+| `HOSTED_OAUTH_<PROVIDER>_BASE_URL` | - | Base API URL to use after OAuth completes |
 
 ---
 

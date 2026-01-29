@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatHealthCheckFailure } from "./health-format.js";
 
 const ansiEscape = String.fromCharCode(27);
-const ansiRegex = new RegExp(`${ansiEscape}\[zee\][[0-9;]*m`, "g");
+const ansiRegex = new RegExp(`${ansiEscape}\\[[0-9;]*m`, "g");
 const stripAnsi = (input: string) => input.replace(ansiRegex, "");
 
 describe("formatHealthCheckFailure", () => {
@@ -20,7 +20,7 @@ describe("formatHealthCheckFailure", () => {
         "gateway closed (1006 abnormal closure (no close frame)): no close reason",
         "Gateway target: ws://127.0.0.1:19001",
         "Source: local loopback",
-        "Config: /Users/steipete/.zee-dev/zee.json",
+        "Config: /Users/steipete/.clawdbot-dev/moltbot.json",
         "Bind: loopback",
       ].join("\n"),
     );
@@ -30,7 +30,7 @@ describe("formatHealthCheckFailure", () => {
         "Health check failed: gateway closed (1006 abnormal closure (no close frame)): no close reason",
         "  Gateway target: ws://127.0.0.1:19001",
         "  Source: local loopback",
-        "  Config: /Users/steipete/.zee-dev/zee.json",
+        "  Config: /Users/steipete/.clawdbot-dev/moltbot.json",
         "  Bind: loopback",
       ].join("\n"),
     );

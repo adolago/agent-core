@@ -81,36 +81,36 @@ vi.mock("./progress.js", () => ({
 
 describe("daemon-cli coverage", () => {
   const originalEnv = {
-    ZEE_STATE_DIR: process.env.ZEE_STATE_DIR,
-    ZEE_CONFIG_PATH: process.env.ZEE_CONFIG_PATH,
-    ZEE_GATEWAY_PORT: process.env.ZEE_GATEWAY_PORT,
-    ZEE_PROFILE: process.env.ZEE_PROFILE,
+    CLAWDBOT_STATE_DIR: process.env.CLAWDBOT_STATE_DIR,
+    CLAWDBOT_CONFIG_PATH: process.env.CLAWDBOT_CONFIG_PATH,
+    CLAWDBOT_GATEWAY_PORT: process.env.CLAWDBOT_GATEWAY_PORT,
+    CLAWDBOT_PROFILE: process.env.CLAWDBOT_PROFILE,
   };
 
   beforeEach(() => {
-    process.env.ZEE_STATE_DIR = "/tmp/zee-cli-state";
-    process.env.ZEE_CONFIG_PATH = "/tmp/zee-cli-state/zee.json";
-    delete process.env.ZEE_GATEWAY_PORT;
-    delete process.env.ZEE_PROFILE;
+    process.env.CLAWDBOT_STATE_DIR = "/tmp/moltbot-cli-state";
+    process.env.CLAWDBOT_CONFIG_PATH = "/tmp/moltbot-cli-state/moltbot.json";
+    delete process.env.CLAWDBOT_GATEWAY_PORT;
+    delete process.env.CLAWDBOT_PROFILE;
     serviceReadCommand.mockResolvedValue(null);
   });
 
   afterEach(() => {
-    if (originalEnv.ZEE_STATE_DIR !== undefined)
-      process.env.ZEE_STATE_DIR = originalEnv.ZEE_STATE_DIR;
-    else delete process.env.ZEE_STATE_DIR;
+    if (originalEnv.CLAWDBOT_STATE_DIR !== undefined)
+      process.env.CLAWDBOT_STATE_DIR = originalEnv.CLAWDBOT_STATE_DIR;
+    else delete process.env.CLAWDBOT_STATE_DIR;
 
-    if (originalEnv.ZEE_CONFIG_PATH !== undefined)
-      process.env.ZEE_CONFIG_PATH = originalEnv.ZEE_CONFIG_PATH;
-    else delete process.env.ZEE_CONFIG_PATH;
+    if (originalEnv.CLAWDBOT_CONFIG_PATH !== undefined)
+      process.env.CLAWDBOT_CONFIG_PATH = originalEnv.CLAWDBOT_CONFIG_PATH;
+    else delete process.env.CLAWDBOT_CONFIG_PATH;
 
-    if (originalEnv.ZEE_GATEWAY_PORT !== undefined)
-      process.env.ZEE_GATEWAY_PORT = originalEnv.ZEE_GATEWAY_PORT;
-    else delete process.env.ZEE_GATEWAY_PORT;
+    if (originalEnv.CLAWDBOT_GATEWAY_PORT !== undefined)
+      process.env.CLAWDBOT_GATEWAY_PORT = originalEnv.CLAWDBOT_GATEWAY_PORT;
+    else delete process.env.CLAWDBOT_GATEWAY_PORT;
 
-    if (originalEnv.ZEE_PROFILE !== undefined)
-      process.env.ZEE_PROFILE = originalEnv.ZEE_PROFILE;
-    else delete process.env.ZEE_PROFILE;
+    if (originalEnv.CLAWDBOT_PROFILE !== undefined)
+      process.env.CLAWDBOT_PROFILE = originalEnv.CLAWDBOT_PROFILE;
+    else delete process.env.CLAWDBOT_PROFILE;
   });
 
   it("probes gateway status by default", async () => {
@@ -140,12 +140,12 @@ describe("daemon-cli coverage", () => {
     serviceReadCommand.mockResolvedValueOnce({
       programArguments: ["/bin/node", "cli", "gateway", "--port", "19001"],
       environment: {
-        ZEE_PROFILE: "dev",
-        ZEE_STATE_DIR: "/tmp/zee-daemon-state",
-        ZEE_CONFIG_PATH: "/tmp/zee-daemon-state/zee.json",
-        ZEE_GATEWAY_PORT: "19001",
+        CLAWDBOT_PROFILE: "dev",
+        CLAWDBOT_STATE_DIR: "/tmp/moltbot-daemon-state",
+        CLAWDBOT_CONFIG_PATH: "/tmp/moltbot-daemon-state/moltbot.json",
+        CLAWDBOT_GATEWAY_PORT: "19001",
       },
-      sourcePath: "/tmp/com.zee.gateway.plist",
+      sourcePath: "/tmp/bot.molt.gateway.plist",
     });
 
     const { registerDaemonCli } = await import("./daemon-cli.js");

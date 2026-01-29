@@ -24,7 +24,7 @@ import type {
   StatusSummary,
   NostrProfile,
 } from "./types";
-import { type ChatQueueItem, type CronFormState } from "./ui-types";
+import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types";
 import type { EventLogEntry } from "./app-events";
 import { DEFAULT_CRON_FORM, DEFAULT_LOG_LEVEL_FILTERS } from "./app-defaults";
 import type {
@@ -81,7 +81,7 @@ import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./contro
 
 declare global {
   interface Window {
-    __ZEEBOT_CONTROL_UI_BASE_PATH__?: string;
+    __CLAWDBOT_CONTROL_UI_BASE_PATH__?: string;
   }
 }
 
@@ -96,8 +96,8 @@ function resolveOnboardingMode(): boolean {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
-@customElement("zeebot-app")
-export class ZeebotApp extends LitElement {
+@customElement("moltbot-app")
+export class MoltbotApp extends LitElement {
   @state() settings: UiSettings = loadSettings();
   @state() password = "";
   @state() tab: Tab = "chat";
@@ -129,6 +129,7 @@ export class ZeebotApp extends LitElement {
   @state() chatAvatarUrl: string | null = null;
   @state() chatThinkingLevel: string | null = null;
   @state() chatQueue: ChatQueueItem[] = [];
+  @state() chatAttachments: ChatAttachment[] = [];
   // Sidebar state for tool output viewing
   @state() sidebarOpen = false;
   @state() sidebarContent: string | null = null;
@@ -151,6 +152,7 @@ export class ZeebotApp extends LitElement {
   @state() execApprovalQueue: ExecApprovalRequest[] = [];
   @state() execApprovalBusy = false;
   @state() execApprovalError: string | null = null;
+  @state() pendingGatewayUrl: string | null = null;
 
   @state() configLoading = false;
   @state() configRaw = "{\n}\n";
@@ -445,6 +447,21 @@ export class ZeebotApp extends LitElement {
     } finally {
       this.execApprovalBusy = false;
     }
+  }
+
+  handleGatewayUrlConfirm() {
+    const nextGatewayUrl = this.pendingGatewayUrl;
+    if (!nextGatewayUrl) return;
+    this.pendingGatewayUrl = null;
+    applySettingsInternal(
+      this as unknown as Parameters<typeof applySettingsInternal>[0],
+      { ...this.settings, gatewayUrl: nextGatewayUrl },
+    );
+    this.connect();
+  }
+
+  handleGatewayUrlCancel() {
+    this.pendingGatewayUrl = null;
   }
 
   // Sidebar handlers for tool output viewing

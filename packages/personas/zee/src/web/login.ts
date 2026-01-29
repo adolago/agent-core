@@ -22,7 +22,7 @@ export async function loginWeb(
   logInfo("Waiting for WhatsApp connection...", runtime);
   try {
     await wait(sock);
-    console.log(success("+ Linked! Credentials saved for future sends."));
+    console.log(success("✅ Linked! Credentials saved for future sends."));
   } catch (err) {
     const code =
       (err as { error?: { output?: { statusCode?: number } } })?.error?.output?.statusCode ??
@@ -43,7 +43,7 @@ export async function loginWeb(
       });
       try {
         await wait(retry);
-        console.log(success("+ Linked after restart; web session ready."));
+        console.log(success("✅ Linked after restart; web session ready."));
         return;
       } finally {
         setTimeout(() => retry.ws?.close(), 500);
@@ -57,7 +57,7 @@ export async function loginWeb(
       });
       console.error(
         danger(
-          `WhatsApp reported the session is logged out. Cleared cached web session; please rerun ${formatCliCommand("zee channels login")} and scan the QR again.`,
+          `WhatsApp reported the session is logged out. Cleared cached web session; please rerun ${formatCliCommand("moltbot channels login")} and scan the QR again.`,
         ),
       );
       throw new Error("Session logged out; cache cleared. Re-run login.");

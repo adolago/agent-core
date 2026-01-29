@@ -17,7 +17,7 @@ cron is the mechanism.
 
 ## TL;DR
 - Cron runs **inside the Gateway** (not inside the model).
-- Jobs persist under `~/.zee/cron/` so restarts don’t lose schedules.
+- Jobs persist under `~/.clawdbot/cron/` so restarts don’t lose schedules.
 - Two execution styles:
   - **Main session**: enqueue a system event, then run on the next heartbeat.
   - **Isolated**: run a dedicated agent turn in `cron:<jobId>`, optionally deliver output.
@@ -151,8 +151,8 @@ Prefixed targets like `telegram:...` / `telegram:group:...` are also accepted:
 - `telegram:group:-1001234567890:topic:123`
 
 ## Storage & history
-- Job store: `~/.zee/cron/jobs.json` (Gateway-managed JSON).
-- Run history: `~/.zee/cron/runs/<jobId>.jsonl` (JSONL, auto-pruned).
+- Job store: `~/.clawdbot/cron/jobs.json` (Gateway-managed JSON).
+- Run history: `~/.clawdbot/cron/runs/<jobId>.jsonl` (JSONL, auto-pruned).
 - Override store path: `cron.store` in config.
 
 ## Configuration
@@ -161,7 +161,7 @@ Prefixed targets like `telegram:...` / `telegram:group:...` are also accepted:
 {
   cron: {
     enabled: true, // default true
-    store: "~/.zee/cron/jobs.json",
+    store: "~/.clawdbot/cron/jobs.json",
     maxConcurrentRuns: 1 // default 1
   }
 }
@@ -169,13 +169,13 @@ Prefixed targets like `telegram:...` / `telegram:group:...` are also accepted:
 
 Disable cron entirely:
 - `cron.enabled: false` (config)
-- `ZEE_SKIP_CRON=1` (env)
+- `CLAWDBOT_SKIP_CRON=1` (env)
 
 ## CLI quickstart
 
 One-shot reminder (UTC ISO, auto-delete after success):
 ```bash
-zee cron add \
+moltbot cron add \
   --name "Send reminder" \
   --at "2026-01-12T18:00:00Z" \
   --session main \
@@ -186,7 +186,7 @@ zee cron add \
 
 One-shot reminder (main session, wake immediately):
 ```bash
-zee cron add \
+moltbot cron add \
   --name "Calendar check" \
   --at "20m" \
   --session main \
@@ -196,7 +196,7 @@ zee cron add \
 
 Recurring isolated job (deliver to WhatsApp):
 ```bash
-zee cron add \
+moltbot cron add \
   --name "Morning status" \
   --cron "0 7 * * *" \
   --tz "America/Los_Angeles" \
@@ -209,7 +209,7 @@ zee cron add \
 
 Recurring isolated job (deliver to a Telegram topic):
 ```bash
-zee cron add \
+moltbot cron add \
   --name "Nightly summary (topic)" \
   --cron "0 22 * * *" \
   --tz "America/Los_Angeles" \
@@ -222,7 +222,7 @@ zee cron add \
 
 Isolated job with model and thinking override:
 ```bash
-zee cron add \
+moltbot cron add \
   --name "Deep analysis" \
   --cron "0 6 * * 1" \
   --tz "America/Los_Angeles" \
@@ -237,22 +237,22 @@ zee cron add \
 Agent selection (multi-agent setups):
 ```bash
 # Pin a job to agent "ops" (falls back to default if that agent is missing)
-zee cron add --name "Ops sweep" --cron "0 6 * * *" --session isolated --message "Check ops queue" --agent ops
+moltbot cron add --name "Ops sweep" --cron "0 6 * * *" --session isolated --message "Check ops queue" --agent ops
 
 # Switch or clear the agent on an existing job
-zee cron edit <jobId> --agent ops
-zee cron edit <jobId> --clear-agent
+moltbot cron edit <jobId> --agent ops
+moltbot cron edit <jobId> --clear-agent
 ```
 ```
 
 Manual run (debug):
 ```bash
-zee cron run <jobId> --force
+moltbot cron run <jobId> --force
 ```
 
 Edit an existing job (patch fields):
 ```bash
-zee cron edit <jobId> \
+moltbot cron edit <jobId> \
   --message "Updated prompt" \
   --model "opus" \
   --thinking low
@@ -260,23 +260,23 @@ zee cron edit <jobId> \
 
 Run history:
 ```bash
-zee cron runs --id <jobId> --limit 50
+moltbot cron runs --id <jobId> --limit 50
 ```
 
 Immediate system event without creating a job:
 ```bash
-zee system event --mode now --text "Next heartbeat: check battery."
+moltbot system event --mode now --text "Next heartbeat: check battery."
 ```
 
 ## Gateway API surface
 - `cron.list`, `cron.status`, `cron.add`, `cron.update`, `cron.remove`
 - `cron.run` (force or due), `cron.runs`
-For immediate system events without a job, use [`zee system event`](/cli/system).
+For immediate system events without a job, use [`moltbot system event`](/cli/system).
 
 ## Troubleshooting
 
 ### “Nothing runs”
-- Check cron is enabled: `cron.enabled` and `ZEE_SKIP_CRON`.
+- Check cron is enabled: `cron.enabled` and `CLAWDBOT_SKIP_CRON`.
 - Check the Gateway is running continuously (cron runs inside the Gateway process).
 - For `cron` schedules: confirm timezone (`--tz`) vs the host timezone.
 

@@ -9,7 +9,7 @@ read_when:
 # Gateway protocol (WebSocket)
 
 The Gateway WS protocol is the **single control plane + node transport** for
-Zee. All clients (CLI, web UI, macOS app, iOS/Android nodes, headless
+Moltbot. All clients (CLI, web UI, macOS app, iOS/Android nodes, headless
 nodes) connect over WebSocket and declare their **role** + **scope** at
 handshake time.
 
@@ -53,7 +53,7 @@ Client → Gateway:
     "permissions": {},
     "auth": { "token": "…" },
     "locale": "en-US",
-    "userAgent": "zee-cli/1.2.3",
+    "userAgent": "moltbot-cli/1.2.3",
     "device": {
       "id": "device_fingerprint",
       "publicKey": "…",
@@ -111,7 +111,7 @@ When a device token is issued, `hello-ok` also includes:
     "permissions": { "camera.capture": true, "screen.record": false },
     "auth": { "token": "…" },
     "locale": "en-US",
-    "userAgent": "zee-ios/1.2.3",
+    "userAgent": "moltbot-ios/1.2.3",
     "device": {
       "id": "device_fingerprint",
       "publicKey": "…",
@@ -180,7 +180,7 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 
 ## Auth
 
-- If `ZEE_GATEWAY_TOKEN` (or `--token`) is set, `connect.params.auth.token`
+- If `CLAWDBOT_GATEWAY_TOKEN` (or `--token`) is set, `connect.params.auth.token`
   must match or the socket is closed.
 - After pairing, the Gateway issues a **device token** scoped to the connection
   role + scopes. It is returned in `hello-ok.auth.deviceToken` and should be
@@ -198,7 +198,8 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 - **Local** connects include loopback and the gateway host’s own tailnet address
   (so same‑host tailnet binds can still auto‑approve).
 - All WS clients must include `device` identity during `connect` (operator + node).
-  Control UI can omit it **only** when `gateway.controlUi.allowInsecureAuth` is enabled.
+  Control UI can omit it **only** when `gateway.controlUi.allowInsecureAuth` is enabled
+  (or `gateway.controlUi.dangerouslyDisableDeviceAuth` for break-glass use).
 - Non-local connections must sign the server-provided `connect.challenge` nonce.
 
 ## TLS + pinning

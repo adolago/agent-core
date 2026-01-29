@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "Zee",
+  "name": "Moltbot",
   "theme": "mint",
   "logo": {
     "light": "/assets/pixel-lobster.svg",
@@ -13,11 +13,11 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/zee/zee"
+      "url": "https://github.com/moltbot/moltbot"
     },
     {
       "name": "Releases",
-      "url": "https://github.com/zee/zee/releases"
+      "url": "https://github.com/moltbot/moltbot/releases"
     }
   ],
   "redirects": [
@@ -102,12 +102,28 @@
       "destination": "/providers/openrouter"
     },
     {
+      "source": "/opencode",
+      "destination": "/providers/opencode"
+    },
+    {
+      "source": "/opencode/",
+      "destination": "/providers/opencode"
+    },
+    {
       "source": "/mattermost",
       "destination": "/channels/mattermost"
     },
     {
       "source": "/mattermost/",
       "destination": "/channels/mattermost"
+    },
+    {
+      "source": "/line",
+      "destination": "/channels/line"
+    },
+    {
+      "source": "/line/",
+      "destination": "/channels/line"
     },
     {
       "source": "/glm",
@@ -188,6 +204,14 @@
     {
       "source": "/providers/msteams/",
       "destination": "/channels/msteams"
+    },
+    {
+      "source": "/providers/line",
+      "destination": "/channels/line"
+    },
+    {
+      "source": "/providers/line/",
+      "destination": "/channels/line"
     },
     {
       "source": "/providers/signal",
@@ -322,20 +346,16 @@
       "destination": "/automation/auth-monitoring"
     },
     {
-      "source": "/scripts",
-      "destination": "/scripts"
-    },
-    {
       "source": "/camera",
       "destination": "/nodes/camera"
     },
     {
-      "source": "/zee",
-      "destination": "/start/zee"
+      "source": "/clawd",
+      "destination": "/start/clawd"
     },
     {
-      "source": "/zeehub",
-      "destination": "/tools/zeehub"
+      "source": "/clawdhub",
+      "destination": "/tools/clawdhub"
     },
     {
       "source": "/configuration",
@@ -780,6 +800,18 @@
     {
       "source": "/install/railway/",
       "destination": "/railway"
+    },
+    {
+      "source": "/install/northflank/",
+      "destination": "/northflank"
+    },
+    {
+      "source": "/gcp",
+      "destination": "/platforms/gcp"
+    },
+    {
+      "source": "/gcp/",
+      "destination": "/platforms/gcp"
     }
   ],
   "navigation": {
@@ -792,7 +824,7 @@
           "start/wizard",
           "start/setup",
           "start/pairing",
-          "start/zee",
+          "start/clawd",
           "start/showcase",
           "start/hubs",
           "start/onboarding",
@@ -819,6 +851,8 @@
           "install/nix",
           "install/docker",
           "railway",
+          "render",
+          "northflank",
           "install/bun"
         ]
       },
@@ -922,6 +956,7 @@
           "gateway/doctor",
           "gateway/logging",
           "gateway/security",
+          "security/formal-verification",
           "gateway/sandbox-vs-tool-policy-vs-elevated",
           "gateway/sandboxing",
           "gateway/troubleshooting",
@@ -957,6 +992,7 @@
           "channels/signal",
           "channels/imessage",
           "channels/msteams",
+          "channels/line",
           "channels/matrix",
           "channels/zalo",
           "channels/zalouser",
@@ -975,8 +1011,10 @@
           "bedrock",
           "providers/moonshot",
           "providers/minimax",
+          "providers/vercel-ai-gateway",
           "providers/openrouter",
           "providers/synthetic",
+          "providers/opencode",
           "providers/glm",
           "providers/zai"
         ]
@@ -1019,7 +1057,7 @@
           "tools/reactions",
           "tools/skills",
           "tools/skills-config",
-          "tools/zeehub"
+          "tools/clawdhub"
         ]
       },
       {
@@ -1046,6 +1084,7 @@
           "platforms/linux",
           "platforms/fly",
           "platforms/hetzner",
+          "platforms/gcp",
           "platforms/exe-dev"
         ]
       },

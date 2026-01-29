@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Onboarding
-    url: https://discord.gg/zee
-    about: New to Zee? Join Discord for setup guidance from Krill in #help.
+    url: https://discord.gg/clawd
+    about: New to Clawdbot? Join Discord for setup guidance from Krill in #help.
   - name: Support
-    url: https://discord.gg/zee
+    url: https://discord.gg/clawd
     about: Get help from Krill and the community on Discord in #help.

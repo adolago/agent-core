@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { resolveEntriesWithActiveFallback, resolveModelEntries } from "./resolve.js";
 
 const providerRegistry = new Map([
-  ["google", { capabilities: ["image", "video", "audio"] }],
+  ["openai", { capabilities: ["image"] }],
+  ["groq", { capabilities: ["audio"] }],
 ]);
 
 describe("resolveModelEntries", () => {
   it("uses provider capabilities for shared entries without explicit caps", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       tools: {
         media: {
-          models: [{ provider: "google", model: "gemini-3-flash" }],
+          models: [{ provider: "openai", model: "gpt-5.2" }],
         },
       },
     };
@@ -24,21 +25,20 @@ describe("resolveModelEntries", () => {
     });
     expect(imageEntries).toHaveLength(1);
 
-    // Google now has all capabilities (image, video, audio)
     const audioEntries = resolveModelEntries({
       cfg,
       capability: "audio",
       providerRegistry,
     });
-    expect(audioEntries).toHaveLength(1);
+    expect(audioEntries).toHaveLength(0);
   });
 
   it("keeps per-capability entries even without explicit caps", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       tools: {
         media: {
           image: {
-            models: [{ provider: "google", model: "gemini-3-flash" }],
+            models: [{ provider: "openai", model: "gpt-5.2" }],
           },
         },
       },
@@ -54,7 +54,7 @@ describe("resolveModelEntries", () => {
   });
 
   it("skips shared CLI entries without capabilities", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       tools: {
         media: {
           models: [{ type: "cli", command: "gemini", args: ["--file", "{{MediaPath}}"] }],
@@ -73,7 +73,7 @@ describe("resolveModelEntries", () => {
 
 describe("resolveEntriesWithActiveFallback", () => {
   it("uses active model when enabled and no models are configured", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       tools: {
         media: {
           audio: { enabled: true },
@@ -86,17 +86,17 @@ describe("resolveEntriesWithActiveFallback", () => {
       capability: "audio",
       config: cfg.tools?.media?.audio,
       providerRegistry,
-      activeModel: { provider: "google", model: "chirp_2" },
+      activeModel: { provider: "groq", model: "whisper-large-v3" },
     });
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.provider).toBe("google");
+    expect(entries[0]?.provider).toBe("groq");
   });
 
   it("ignores active model when configured entries exist", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       tools: {
         media: {
-          audio: { enabled: true, models: [{ provider: "google", model: "chirp_2" }] },
+          audio: { enabled: true, models: [{ provider: "openai", model: "whisper-1" }] },
         },
       },
     };
@@ -106,14 +106,14 @@ describe("resolveEntriesWithActiveFallback", () => {
       capability: "audio",
       config: cfg.tools?.media?.audio,
       providerRegistry,
-      activeModel: { provider: "google", model: "chirp_2" },
+      activeModel: { provider: "groq", model: "whisper-large-v3" },
     });
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.provider).toBe("google");
+    expect(entries[0]?.provider).toBe("openai");
   });
 
-  it("skips active model when provider is not in registry", () => {
-    const cfg: ZeeConfig = {
+  it("skips active model when provider lacks capability", () => {
+    const cfg: MoltbotConfig = {
       tools: {
         media: {
           video: { enabled: true },
@@ -126,8 +126,7 @@ describe("resolveEntriesWithActiveFallback", () => {
       capability: "video",
       config: cfg.tools?.media?.video,
       providerRegistry,
-      // Use a provider that doesn't exist in registry
-      activeModel: { provider: "unknown-provider", model: "some-model" },
+      activeModel: { provider: "groq", model: "whisper-large-v3" },
     });
     expect(entries).toHaveLength(0);
   });

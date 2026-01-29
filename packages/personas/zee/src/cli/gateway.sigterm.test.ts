@@ -77,22 +77,22 @@ describe("gateway SIGTERM", () => {
   });
 
   it("exits 0 on SIGTERM", { timeout: 180_000 }, async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee.*gateway-test-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-gateway-test-"));
     const out: string[] = [];
     const err: string[] = [];
 
     const nodeBin = process.execPath;
     const env = {
       ...process.env,
-      ZEE_NO_RESPAWN: "1",
-      ZEE_STATE_DIR: stateDir,
-      ZEE_SKIP_CHANNELS: "1",
-      ZEE_SKIP_GMAIL_WATCHER: "1",
-      ZEE_SKIP_CRON: "1",
-      ZEE_SKIP_BROWSER_CONTROL_SERVER: "1",
-      ZEE_SKIP_CANVAS_HOST: "1",
+      CLAWDBOT_NO_RESPAWN: "1",
+      CLAWDBOT_STATE_DIR: stateDir,
+      CLAWDBOT_SKIP_CHANNELS: "1",
+      CLAWDBOT_SKIP_GMAIL_WATCHER: "1",
+      CLAWDBOT_SKIP_CRON: "1",
+      CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER: "1",
+      CLAWDBOT_SKIP_CANVAS_HOST: "1",
     };
-    const bootstrapPath = path.join(stateDir, "zee-entry-bootstrap.mjs");
+    const bootstrapPath = path.join(stateDir, "moltbot-entry-bootstrap.mjs");
     const runLoopPath = path.resolve("src/cli/gateway-cli/run-loop.ts");
     const runtimePath = path.resolve("src/runtime.ts");
     fs.writeFileSync(
@@ -105,7 +105,7 @@ describe("gateway SIGTERM", () => {
         "const { defaultRuntime } = await import(runtimeUrl);",
         "await runGatewayLoop({",
         "  start: async () => {",
-        '    process.stdout.write("READY\[zee\]\[zee\]n");',
+        '    process.stdout.write("READY\\\\n");',
         "    if (process.send) process.send({ ready: true });",
         "    const keepAlive = setInterval(() => {}, 1000);",
         "    return { close: async () => clearInterval(keepAlive) };",

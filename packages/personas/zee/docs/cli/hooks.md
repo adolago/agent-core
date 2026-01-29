@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `zee hooks` (agent hooks)"
+summary: "CLI reference for `moltbot hooks` (agent hooks)"
 read_when:
   - You want to manage agent hooks
   - You want to install or update hooks
 ---
 
-# `zee hooks`
+# `moltbot hooks`
 
 Manage agent hooks (event-driven automations for commands like `/new`, `/reset`, and gateway startup).
 
@@ -16,7 +16,7 @@ Related:
 ## List All Hooks
 
 ```bash
-zee hooks list
+moltbot hooks list
 ```
 
 List all discovered hooks from workspace, managed, and bundled directories.
@@ -41,7 +41,7 @@ Ready:
 **Example (verbose):**
 
 ```bash
-zee hooks list --verbose
+moltbot hooks list --verbose
 ```
 
 Shows missing requirements for ineligible hooks.
@@ -49,7 +49,7 @@ Shows missing requirements for ineligible hooks.
 **Example (JSON):**
 
 ```bash
-zee hooks list --json
+moltbot hooks list --json
 ```
 
 Returns structured JSON for programmatic use.
@@ -57,7 +57,7 @@ Returns structured JSON for programmatic use.
 ## Get Hook Information
 
 ```bash
-zee hooks info <name>
+moltbot hooks info <name>
 ```
 
 Show detailed information about a specific hook.
@@ -71,7 +71,7 @@ Show detailed information about a specific hook.
 **Example:**
 
 ```bash
-zee hooks info session-memory
+moltbot hooks info session-memory
 ```
 
 **Output:**
@@ -82,10 +82,10 @@ zee hooks info session-memory
 Save session context to memory when /new command is issued
 
 Details:
-  Source: zee-bundled
-  Path: /path/to/zee/hooks/bundled/session-memory/HOOK.md
-  Handler: /path/to/zee/hooks/bundled/session-memory/handler.ts
-  Homepage: https://docs.zee.bot/hooks#session-memory
+  Source: moltbot-bundled
+  Path: /path/to/moltbot/hooks/bundled/session-memory/HOOK.md
+  Handler: /path/to/moltbot/hooks/bundled/session-memory/handler.ts
+  Homepage: https://docs.molt.bot/hooks#session-memory
   Events: command:new
 
 Requirements:
@@ -95,7 +95,7 @@ Requirements:
 ## Check Hooks Eligibility
 
 ```bash
-zee hooks check
+moltbot hooks check
 ```
 
 Show summary of hook eligibility status (how many are ready vs. not ready).
@@ -116,12 +116,12 @@ Not ready: 0
 ## Enable a Hook
 
 ```bash
-zee hooks enable <name>
+moltbot hooks enable <name>
 ```
 
-Enable a specific hook by adding it to your config (`~/.zee/config.json`).
+Enable a specific hook by adding it to your config (`~/.clawdbot/config.json`).
 
-**Note:** Hooks managed by plugins show `plugin:<id>` in `zee hooks list` and
+**Note:** Hooks managed by plugins show `plugin:<id>` in `moltbot hooks list` and
 can’t be enabled/disabled here. Enable/disable the plugin instead.
 
 **Arguments:**
@@ -130,7 +130,7 @@ can’t be enabled/disabled here. Enable/disable the plugin instead.
 **Example:**
 
 ```bash
-zee hooks enable session-memory
+moltbot hooks enable session-memory
 ```
 
 **Output:**
@@ -150,7 +150,7 @@ zee hooks enable session-memory
 ## Disable a Hook
 
 ```bash
-zee hooks disable <name>
+moltbot hooks disable <name>
 ```
 
 Disable a specific hook by updating your config.
@@ -161,7 +161,7 @@ Disable a specific hook by updating your config.
 **Example:**
 
 ```bash
-zee hooks disable command-logger
+moltbot hooks disable command-logger
 ```
 
 **Output:**
@@ -176,13 +176,13 @@ zee hooks disable command-logger
 ## Install Hooks
 
 ```bash
-zee hooks install <path-or-spec>
+moltbot hooks install <path-or-spec>
 ```
 
 Install a hook pack from a local folder/archive or npm.
 
 **What it does:**
-- Copies the hook pack into `~/.zee/hooks/<id>`
+- Copies the hook pack into `~/.clawdbot/hooks/<id>`
 - Enables the installed hooks in `hooks.internal.entries.*`
 - Records the install under `hooks.internal.installs`
 
@@ -195,23 +195,23 @@ Install a hook pack from a local folder/archive or npm.
 
 ```bash
 # Local directory
-zee hooks install ./my-hook-pack
+moltbot hooks install ./my-hook-pack
 
 # Local archive
-zee hooks install ./my-hook-pack.zip
+moltbot hooks install ./my-hook-pack.zip
 
 # NPM package
-zee hooks install @zee/my-hook-pack
+moltbot hooks install @moltbot/my-hook-pack
 
 # Link a local directory without copying
-zee hooks install -l ./my-hook-pack
+moltbot hooks install -l ./my-hook-pack
 ```
 
 ## Update Hooks
 
 ```bash
-zee hooks update <id>
-zee hooks update --all
+moltbot hooks update <id>
+moltbot hooks update --all
 ```
 
 Update installed hook packs (npm installs only).
@@ -229,10 +229,10 @@ Saves session context to memory when you issue `/new`.
 **Enable:**
 
 ```bash
-zee hooks enable session-memory
+moltbot hooks enable session-memory
 ```
 
-**Output:** `~/zee/memory/YYYY-MM-DD-slug.md`
+**Output:** `~/clawd/memory/YYYY-MM-DD-slug.md`
 
 **See:** [session-memory documentation](/hooks#session-memory)
 
@@ -243,22 +243,22 @@ Logs all command events to a centralized audit file.
 **Enable:**
 
 ```bash
-zee hooks enable command-logger
+moltbot hooks enable command-logger
 ```
 
-**Output:** `~/.zee/logs/commands.log`
+**Output:** `~/.clawdbot/logs/commands.log`
 
 **View logs:**
 
 ```bash
 # Recent commands
-tail -n 20 ~/.zee/logs/commands.log
+tail -n 20 ~/.clawdbot/logs/commands.log
 
 # Pretty-print
-cat ~/.zee/logs/commands.log | jq .
+cat ~/.clawdbot/logs/commands.log | jq .
 
 # Filter by action
-grep '"action":"new"' ~/.zee/logs/commands.log | jq .
+grep '"action":"new"' ~/.clawdbot/logs/commands.log | jq .
 ```
 
 **See:** [command-logger documentation](/hooks#command-logger)
@@ -270,7 +270,7 @@ Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by
 **Enable:**
 
 ```bash
-zee hooks enable soul-evil
+moltbot hooks enable soul-evil
 ```
 
 **See:** [SOUL Evil Hook](/hooks/soul-evil)
@@ -284,7 +284,7 @@ Runs `BOOT.md` when the gateway starts (after channels start).
 **Enable**:
 
 ```bash
-zee hooks enable boot-md
+moltbot hooks enable boot-md
 ```
 
 **See:** [boot-md documentation](/hooks#boot-md)

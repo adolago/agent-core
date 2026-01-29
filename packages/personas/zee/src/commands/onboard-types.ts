@@ -27,11 +27,12 @@ export type AuthChoice =
   | "minimax"
   | "minimax-api"
   | "minimax-api-lightning"
-  | "copilot-proxy"
+  | "opencode-zen"
   | "github-copilot"
+  | "copilot-proxy"
   | "qwen-portal"
   | "skip";
-export type GatewayAuthChoice = "off" | "token" | "password";
+export type GatewayAuthChoice = "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
 export type GatewayBind = "loopback" | "lan" | "auto" | "custom" | "tailnet";
 export type TailscaleMode = "off" | "serve" | "funnel";
@@ -69,6 +70,7 @@ export type OnboardOptions = {
   minimaxApiKey?: string;
   syntheticApiKey?: string;
   veniceApiKey?: string;
+  opencodeZenApiKey?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

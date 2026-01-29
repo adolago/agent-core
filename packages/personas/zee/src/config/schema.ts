@@ -1,6 +1,6 @@
 import { CHANNEL_IDS } from "../channels/registry.js";
 import { VERSION } from "../version.js";
-import { ZeeSchema } from "./zod-schema.js";
+import { MoltbotSchema } from "./zod-schema.js";
 
 export type ConfigUiHint = {
   label?: string;
@@ -15,7 +15,7 @@ export type ConfigUiHint = {
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;
 
-export type ConfigSchema = ReturnType<typeof ZeeSchema.toJSONSchema>;
+export type ConfigSchema = ReturnType<typeof MoltbotSchema.toJSONSchema>;
 
 type JsonSchemaNode = Record<string, unknown>;
 
@@ -165,7 +165,9 @@ const FIELD_LABELS: Record<string, string> = {
   "tools.links.models": "Link Understanding Models",
   "tools.links.scope": "Link Understanding Scope",
   "tools.profile": "Tool Profile",
+  "tools.alsoAllow": "Tool Allowlist Additions",
   "agents.list[].tools.profile": "Agent Tool Profile",
+  "agents.list[].tools.alsoAllow": "Agent Tool Allowlist Additions",
   "tools.byProvider": "Tool Policy by Provider",
   "agents.list[].tools.byProvider": "Agent Tool Policy by Provider",
   "tools.exec.applyPatch.enabled": "Enable apply_patch",
@@ -220,6 +222,7 @@ const FIELD_LABELS: Record<string, string> = {
   "agents.defaults.memorySearch": "Memory Search",
   "agents.defaults.memorySearch.enabled": "Enable Memory Search",
   "agents.defaults.memorySearch.sources": "Memory Search Sources",
+  "agents.defaults.memorySearch.extraPaths": "Extra Memory Paths",
   "agents.defaults.memorySearch.experimental.sessionMemory":
     "Memory Search Session Index (Experimental)",
   "agents.defaults.memorySearch.provider": "Memory Search Provider",
@@ -229,6 +232,7 @@ const FIELD_LABELS: Record<string, string> = {
   "agents.defaults.memorySearch.remote.batch.concurrency": "Remote Batch Concurrency",
   "agents.defaults.memorySearch.model": "Memory Search Model",
   "agents.defaults.memorySearch.fallback": "Memory Search Fallback",
+  "agents.defaults.memorySearch.local.modelPath": "Local Embedding Model Path",
   "agents.defaults.memorySearch.store.path": "Memory Search Index Path",
   "agents.defaults.memorySearch.store.vector.enabled": "Memory Search Vector Index",
   "agents.defaults.memorySearch.store.vector.extensionPath": "Memory Search Vector Extension Path",
@@ -276,7 +280,6 @@ const FIELD_LABELS: Record<string, string> = {
   "ui.seamColor": "Accent Color",
   "ui.assistant.name": "Assistant Name",
   "ui.assistant.avatar": "Assistant Avatar",
-  "browser.controlUrl": "Browser Control URL",
   "browser.evaluateEnabled": "Browser Evaluate Enabled",
   "browser.snapshotDefaults": "Browser Snapshot Defaults",
   "browser.snapshotDefaults.mode": "Browser Snapshot Mode",
@@ -308,6 +311,7 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.telegram.retry.minDelayMs": "Telegram Retry Min Delay (ms)",
   "channels.telegram.retry.maxDelayMs": "Telegram Retry Max Delay (ms)",
   "channels.telegram.retry.jitter": "Telegram Retry Jitter",
+  "channels.telegram.network.autoSelectFamily": "Telegram autoSelectFamily",
   "channels.telegram.timeoutSeconds": "Telegram API Timeout (seconds)",
   "channels.telegram.capabilities.inlineButtons": "Telegram Inline Buttons",
   "channels.whatsapp.dmPolicy": "WhatsApp DM Policy",
@@ -322,6 +326,8 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.discord.retry.maxDelayMs": "Discord Retry Max Delay (ms)",
   "channels.discord.retry.jitter": "Discord Retry Jitter",
   "channels.discord.maxLinesPerMessage": "Discord Max Lines Per Message",
+  "channels.discord.intents.presence": "Discord Presence Intent",
+  "channels.discord.intents.guildMembers": "Discord Guild Members Intent",
   "channels.slack.dm.policy": "Slack DM Policy",
   "channels.slack.allowBots": "Slack Allow Bot Messages",
   "channels.discord.token": "Discord Bot Token",
@@ -339,6 +345,7 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.signal.account": "Signal Account",
   "channels.imessage.cliPath": "iMessage CLI Path",
   "agents.list[].identity.avatar": "Agent Avatar",
+  "discovery.mdns.mode": "mDNS Discovery Mode",
   "plugins.enabled": "Enable Plugins",
   "plugins.allow": "Plugin Allowlist",
   "plugins.deny": "Plugin Denylist",
@@ -355,13 +362,10 @@ const FIELD_LABELS: Record<string, string> = {
   "plugins.installs.*.installPath": "Plugin Install Path",
   "plugins.installs.*.version": "Plugin Install Version",
   "plugins.installs.*.installedAt": "Plugin Install Time",
-  "discovery.wideArea.enabled": "Wide Area Discovery Enabled",
-  "discovery.mdns.enabled": "mDNS Discovery Enabled",
-  "discovery.mdns.minimal": "mDNS Discovery Minimal Mode",
 };
 
 const FIELD_HELP: Record<string, string> = {
-  "meta.lastTouchedVersion": "Auto-set when Zee writes the config.",
+  "meta.lastTouchedVersion": "Auto-set when Moltbot writes the config.",
   "meta.lastTouchedAt": "ISO timestamp of the last config write (auto-set).",
   "update.channel": 'Update channel for git + npm installs ("stable", "beta", or "dev").',
   "update.checkOnStart": "Check for npm updates when the gateway starts (default: true).",
@@ -371,21 +375,19 @@ const FIELD_HELP: Record<string, string> = {
   "gateway.remote.sshTarget":
     "Remote gateway over SSH (tunnels the gateway port to localhost). Format: user@host or user@host:port.",
   "gateway.remote.sshIdentity": "Optional SSH identity file path (passed to ssh -i).",
-  "discovery.wideArea.enabled":
-    "Enable wide-area discovery via unicast DNS-SD zone updates (tailnet).",
-  "discovery.mdns.enabled": "Enable mDNS/Bonjour discovery broadcasts (default: true).",
-  "discovery.mdns.minimal":
-    "When true (default), omit cliPath/sshPort from mDNS TXT records for better operational security.",
   "agents.list[].identity.avatar":
     "Avatar image path (relative to the agent workspace only) or a remote URL/data URL.",
-  "gateway.auth.token": "Recommended for all gateways; required for non-loopback binds.",
+  "discovery.mdns.mode":
+    'mDNS broadcast mode ("minimal" default, "full" includes cliPath/sshPort, "off" disables mDNS).',
+  "gateway.auth.token":
+    "Required by default for gateway access (unless using Tailscale Serve identity); required for non-loopback binds.",
   "gateway.auth.password": "Required for Tailscale funnel.",
   "gateway.controlUi.basePath":
-    "Optional URL prefix where the Control UI is served (e.g. /zee).",
+    "Optional URL prefix where the Control UI is served (e.g. /moltbot).",
   "gateway.controlUi.allowInsecureAuth":
     "Allow Control UI auth over insecure HTTP (token-only; not recommended).",
   "gateway.controlUi.dangerouslyDisableDeviceAuth":
-    "DANGEROUS: Disable device identity checks for the Control UI (default: false).",
+    "DANGEROUS. Disable Control UI device identity checks (token/password only).",
   "gateway.http.endpoints.chatCompletions.enabled":
     "Enable the OpenAI-compatible `POST /v1/chat/completions` endpoint (default: false).",
   "gateway.reload.mode": 'Hot reload strategy for config changes ("hybrid" recommended).',
@@ -400,14 +402,12 @@ const FIELD_HELP: Record<string, string> = {
   "nodeHost.browserProxy.enabled": "Expose the local browser control server via node proxy.",
   "nodeHost.browserProxy.allowProfiles":
     "Optional allowlist of browser profile names exposed via the node proxy.",
-  "browser.evaluateEnabled":
-    "Allow act:evaluate and wait --fn in the browser control API (default: true).",
   "diagnostics.flags":
     'Enable targeted diagnostics logs by flag (e.g. ["telegram.http"]). Supports wildcards like "telegram.*" or "*".',
   "diagnostics.cacheTrace.enabled":
     "Log cache trace snapshots for embedded agent runs (default: false).",
   "diagnostics.cacheTrace.filePath":
-    "JSONL output path for cache trace logs (default: $ZEE_STATE_DIR/logs/cache-trace.jsonl).",
+    "JSONL output path for cache trace logs (default: $CLAWDBOT_STATE_DIR/logs/cache-trace.jsonl).",
   "diagnostics.cacheTrace.includeMessages":
     "Include full message payloads in trace output (default: true).",
   "diagnostics.cacheTrace.includePrompt": "Include prompt text in trace output (default: true).",
@@ -500,9 +500,11 @@ const FIELD_HELP: Record<string, string> = {
     "Vector search over MEMORY.md and memory/*.md (per-agent overrides supported).",
   "agents.defaults.memorySearch.sources":
     'Sources to index for memory search (default: ["memory"]; add "sessions" to include session transcripts).',
+  "agents.defaults.memorySearch.extraPaths":
+    "Extra paths to include in memory search (directories or .md files; relative paths resolved from workspace).",
   "agents.defaults.memorySearch.experimental.sessionMemory":
     "Enable experimental session transcript indexing for memory search (default: false).",
-  "agents.defaults.memorySearch.provider": 'Embedding provider ("openai" or "gemini"). For vLLM, use "openai" with custom baseUrl.',
+  "agents.defaults.memorySearch.provider": 'Embedding provider ("openai", "gemini", or "local").',
   "agents.defaults.memorySearch.remote.baseUrl":
     "Custom base URL for remote embeddings (OpenAI-compatible proxies or Gemini overrides).",
   "agents.defaults.memorySearch.remote.apiKey": "Custom API key for the remote embedding provider.",
@@ -518,10 +520,12 @@ const FIELD_HELP: Record<string, string> = {
     "Polling interval in ms for batch status (default: 2000).",
   "agents.defaults.memorySearch.remote.batch.timeoutMinutes":
     "Timeout in minutes for batch indexing (default: 60).",
+  "agents.defaults.memorySearch.local.modelPath":
+    "Local GGUF model path or hf: URI (node-llama-cpp).",
   "agents.defaults.memorySearch.fallback":
-    'Fallback provider when embeddings fail ("openai", "gemini", or "none").',
+    'Fallback provider when embeddings fail ("openai", "gemini", "local", or "none").',
   "agents.defaults.memorySearch.store.path":
-    "SQLite index path (default: ~/.zee/memory/{agentId}.sqlite).",
+    "SQLite index path (default: ~/.clawdbot/memory/{agentId}.sqlite).",
   "agents.defaults.memorySearch.store.vector.enabled":
     "Enable sqlite-vec extension for vector search (default: true).",
   "agents.defaults.memorySearch.store.vector.extensionPath":
@@ -556,12 +560,12 @@ const FIELD_HELP: Record<string, string> = {
   "plugins.entries.*.enabled": "Overrides plugin enable/disable for this entry (restart required).",
   "plugins.entries.*.config": "Plugin-defined config payload (schema is provided by the plugin).",
   "plugins.installs":
-    "CLI-managed install metadata (used by `zee plugins update` to locate install sources).",
+    "CLI-managed install metadata (used by `moltbot plugins update` to locate install sources).",
   "plugins.installs.*.source": 'Install source ("npm", "archive", or "path").',
   "plugins.installs.*.spec": "Original npm spec used for install (if source is npm).",
   "plugins.installs.*.sourcePath": "Original archive/path used for install (if any).",
   "plugins.installs.*.installPath":
-    "Resolved install directory (usually ~/.zee/extensions/<id>).",
+    "Resolved install directory (usually ~/.clawdbot/extensions/<id>).",
   "plugins.installs.*.version": "Version recorded at install time (if available).",
   "plugins.installs.*.installedAt": "ISO timestamp of last install/update.",
   "agents.list.*.identity.avatar":
@@ -590,7 +594,7 @@ const FIELD_HELP: Record<string, string> = {
   "commands.restart": "Allow /restart and gateway restart tool actions (default: false).",
   "commands.useAccessGroups": "Enforce access-group allowlists/policies for commands.",
   "session.dmScope":
-    'DM session scoping: "main" keeps continuity; "per-peer" or "per-channel-peer" isolates DM history (recommended for shared inboxes).',
+    'DM session scoping: "main" keeps continuity; "per-peer", "per-channel-peer", or "per-account-channel-peer" isolates DM history (recommended for shared inboxes/multi-account).',
   "session.identityLinks":
     "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":
@@ -643,6 +647,8 @@ const FIELD_HELP: Record<string, string> = {
   "channels.telegram.retry.maxDelayMs":
     "Maximum retry delay cap in ms for Telegram outbound calls.",
   "channels.telegram.retry.jitter": "Jitter factor (0-1) applied to Telegram retry delays.",
+  "channels.telegram.network.autoSelectFamily":
+    "Override Node autoSelectFamily for Telegram (true=enable, false=disable).",
   "channels.telegram.timeoutSeconds":
     "Max seconds before Telegram API requests are aborted (default: 500 per grammY).",
   "channels.whatsapp.dmPolicy":
@@ -664,6 +670,10 @@ const FIELD_HELP: Record<string, string> = {
   "channels.discord.retry.maxDelayMs": "Maximum retry delay cap in ms for Discord outbound calls.",
   "channels.discord.retry.jitter": "Jitter factor (0-1) applied to Discord retry delays.",
   "channels.discord.maxLinesPerMessage": "Soft max line count per Discord message (default: 17).",
+  "channels.discord.intents.presence":
+    "Enable the Guild Presences privileged intent. Must also be enabled in the Discord Developer Portal. Allows tracking user activities (e.g. Spotify). Default: false.",
+  "channels.discord.intents.guildMembers":
+    "Enable the Guild Members privileged intent. Must also be enabled in the Discord Developer Portal. Default: false.",
   "channels.slack.dm.policy":
     'Direct message access control ("pairing" recommended). "open" requires channels.slack.dm.allowFrom=["*"].',
 };
@@ -672,9 +682,9 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.remote.url": "ws://host:18789",
   "gateway.remote.tlsFingerprint": "sha256:ab12cd34…",
   "gateway.remote.sshTarget": "user@host",
-  "gateway.controlUi.basePath": "/zee",
+  "gateway.controlUi.basePath": "/moltbot",
   "channels.mattermost.baseUrl": "https://chat.example.com",
-  "agents.list[].identity.avatar": "avatars/zee.png",
+  "agents.list[].identity.avatar": "avatars/clawd.png",
 };
 
 const SENSITIVE_PATTERNS = [/token/i, /password/i, /secret/i, /api.?key/i];
@@ -941,11 +951,11 @@ function stripChannelSchema(schema: ConfigSchema): ConfigSchema {
 
 function buildBaseConfigSchema(): ConfigSchemaResponse {
   if (cachedBase) return cachedBase;
-  const schema = ZeeSchema.toJSONSchema({
+  const schema = MoltbotSchema.toJSONSchema({
     target: "draft-07",
     unrepresentable: "any",
   });
-  schema.title = "ZeeConfig";
+  schema.title = "MoltbotConfig";
   const hints = applySensitiveHints(buildBaseHints());
   const next = {
     schema: stripChannelSchema(schema),

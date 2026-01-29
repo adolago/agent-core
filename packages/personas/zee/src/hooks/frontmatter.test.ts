@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseFrontmatter,
-  resolveZeeMetadata,
+  resolveMoltbotMetadata,
   resolveHookInvocationPolicy,
 } from "./frontmatter.js";
 
@@ -41,7 +41,8 @@ name: session-memory
 description: "Save session context"
 metadata:
   {
-    "zee": {
+    "moltbot": {
+      "emoji": "💾",
       "events": ["command:new"]
     }
   }
@@ -57,7 +58,8 @@ metadata:
 
     // Verify the metadata is valid JSON
     const parsed = JSON.parse(result.metadata as string);
-    expect(parsed.zee.events).toEqual(["command:new"]);
+    expect(parsed.moltbot.emoji).toBe("💾");
+    expect(parsed.moltbot.events).toEqual(["command:new"]);
   });
 
   it("parses multi-line metadata with complex nested structure", () => {
@@ -66,8 +68,9 @@ name: command-logger
 description: "Log all command events"
 metadata:
   {
-    "zee":
+    "moltbot":
       {
+        "emoji": "📝",
         "events": ["command"],
         "requires": { "config": ["workspace.dir"] },
         "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled" }]
@@ -80,20 +83,21 @@ metadata:
     expect(result.metadata).toBeDefined();
 
     const parsed = JSON.parse(result.metadata as string);
-    expect(parsed.zee.events).toEqual(["command"]);
-    expect(parsed.zee.requires.config).toEqual(["workspace.dir"]);
-    expect(parsed.zee.install[0].kind).toBe("bundled");
+    expect(parsed.moltbot.emoji).toBe("📝");
+    expect(parsed.moltbot.events).toEqual(["command"]);
+    expect(parsed.moltbot.requires.config).toEqual(["workspace.dir"]);
+    expect(parsed.moltbot.install[0].kind).toBe("bundled");
   });
 
   it("handles single-line metadata (inline JSON)", () => {
     const content = `---
 name: simple-hook
-metadata: {"zee": {"events": ["test"]}}
+metadata: {"moltbot": {"events": ["test"]}}
 ---
 `;
     const result = parseFrontmatter(content);
     expect(result.name).toBe("simple-hook");
-    expect(result.metadata).toBe('{"zee": {"events": ["test"]}}');
+    expect(result.metadata).toBe('{"moltbot": {"events": ["test"]}}');
   });
 
   it("handles mixed single-line and multi-line values", () => {
@@ -103,7 +107,7 @@ description: "A hook with mixed values"
 homepage: https://example.com
 metadata:
   {
-    "zee": {
+    "moltbot": {
       "events": ["command:new"]
     }
   }
@@ -144,12 +148,13 @@ description: 'single-quoted'
   });
 });
 
-describe("resolveZeeMetadata", () => {
-  it("extracts zee metadata from parsed frontmatter", () => {
+describe("resolveMoltbotMetadata", () => {
+  it("extracts moltbot metadata from parsed frontmatter", () => {
     const frontmatter = {
       name: "test-hook",
       metadata: JSON.stringify({
-        zee: {
+        moltbot: {
+          emoji: "🔥",
           events: ["command:new", "command:reset"],
           requires: {
             config: ["workspace.dir"],
@@ -159,8 +164,9 @@ describe("resolveZeeMetadata", () => {
       }),
     };
 
-    const result = resolveZeeMetadata(frontmatter);
+    const result = resolveMoltbotMetadata(frontmatter);
     expect(result).toBeDefined();
+    expect(result?.emoji).toBe("🔥");
     expect(result?.events).toEqual(["command:new", "command:reset"]);
     expect(result?.requires?.config).toEqual(["workspace.dir"]);
     expect(result?.requires?.bins).toEqual(["git"]);
@@ -168,15 +174,15 @@ describe("resolveZeeMetadata", () => {
 
   it("returns undefined when metadata is missing", () => {
     const frontmatter = { name: "no-metadata" };
-    const result = resolveZeeMetadata(frontmatter);
+    const result = resolveMoltbotMetadata(frontmatter);
     expect(result).toBeUndefined();
   });
 
-  it("returns undefined when zee key is missing", () => {
+  it("returns undefined when moltbot key is missing", () => {
     const frontmatter = {
       metadata: JSON.stringify({ other: "data" }),
     };
-    const result = resolveZeeMetadata(frontmatter);
+    const result = resolveMoltbotMetadata(frontmatter);
     expect(result).toBeUndefined();
   });
 
@@ -184,41 +190,41 @@ describe("resolveZeeMetadata", () => {
     const frontmatter = {
       metadata: "not valid json {",
     };
-    const result = resolveZeeMetadata(frontmatter);
+    const result = resolveMoltbotMetadata(frontmatter);
     expect(result).toBeUndefined();
   });
 
   it("handles install specs", () => {
     const frontmatter = {
       metadata: JSON.stringify({
-        zee: {
+        moltbot: {
           events: ["command"],
           install: [
-            { id: "bundled", kind: "bundled", label: "Bundled with Zee" },
-            { id: "npm", kind: "npm", package: "@zee/hook" },
+            { id: "bundled", kind: "bundled", label: "Bundled with Moltbot" },
+            { id: "npm", kind: "npm", package: "@moltbot/hook" },
           ],
         },
       }),
     };
 
-    const result = resolveZeeMetadata(frontmatter);
+    const result = resolveMoltbotMetadata(frontmatter);
     expect(result?.install).toHaveLength(2);
     expect(result?.install?.[0].kind).toBe("bundled");
     expect(result?.install?.[1].kind).toBe("npm");
-    expect(result?.install?.[1].package).toBe("@zee/hook");
+    expect(result?.install?.[1].package).toBe("@moltbot/hook");
   });
 
   it("handles os restrictions", () => {
     const frontmatter = {
       metadata: JSON.stringify({
-        zee: {
+        moltbot: {
           events: ["command"],
           os: ["darwin", "linux"],
         },
       }),
     };
 
-    const result = resolveZeeMetadata(frontmatter);
+    const result = resolveMoltbotMetadata(frontmatter);
     expect(result?.os).toEqual(["darwin", "linux"]);
   });
 
@@ -227,14 +233,15 @@ describe("resolveZeeMetadata", () => {
     const content = `---
 name: session-memory
 description: "Save session context to memory when /new command is issued"
-homepage: https://docs.zee.bot/hooks#session-memory
+homepage: https://docs.molt.bot/hooks#session-memory
 metadata:
   {
-    "zee":
+    "moltbot":
       {
+        "emoji": "💾",
         "events": ["command:new"],
         "requires": { "config": ["workspace.dir"] },
-        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Zee" }],
+        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Moltbot" }],
       },
   }
 ---
@@ -246,27 +253,28 @@ metadata:
     expect(frontmatter.name).toBe("session-memory");
     expect(frontmatter.metadata).toBeDefined();
 
-    const zee = resolveZeeMetadata(frontmatter);
-    expect(zee).toBeDefined();
-    expect(zee?.events).toEqual(["command:new"]);
-    expect(zee?.requires?.config).toEqual(["workspace.dir"]);
-    expect(zee?.install?.[0].kind).toBe("bundled");
+    const moltbot = resolveMoltbotMetadata(frontmatter);
+    expect(moltbot).toBeDefined();
+    expect(moltbot?.emoji).toBe("💾");
+    expect(moltbot?.events).toEqual(["command:new"]);
+    expect(moltbot?.requires?.config).toEqual(["workspace.dir"]);
+    expect(moltbot?.install?.[0].kind).toBe("bundled");
   });
 
   it("parses YAML metadata map", () => {
     const content = `---
 name: yaml-metadata
 metadata:
-  zee:
+  moltbot:
     emoji: disk
     events:
       - command:new
 ---
 `;
     const frontmatter = parseFrontmatter(content);
-    const zee = resolveZeeMetadata(frontmatter);
-    expect(zee?.emoji).toBe("disk");
-    expect(zee?.events).toEqual(["command:new"]);
+    const moltbot = resolveMoltbotMetadata(frontmatter);
+    expect(moltbot?.emoji).toBe("disk");
+    expect(moltbot?.events).toEqual(["command:new"]);
   });
 });
 

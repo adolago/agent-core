@@ -3,15 +3,15 @@ import { complete } from "@mariozechner/pi-ai";
 import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
 
 import { getApiKeyForModel, requireApiKey } from "../../agents/model-auth.js";
-import { ensureZeeModelsJson } from "../../agents/models-config.js";
+import { ensureMoltbotModelsJson } from "../../agents/models-config.js";
+import { minimaxUnderstandImage } from "../../agents/minimax-vlm.js";
 import { coerceImageAssistantText } from "../../agents/tools/image-tool.helpers.js";
 import type { ImageDescriptionRequest, ImageDescriptionResult } from "../types.js";
 
-// Media understanding: Google only (Gemini for vision)
 export async function describeImageWithModel(
   params: ImageDescriptionRequest,
 ): Promise<ImageDescriptionResult> {
-  await ensureZeeModelsJson(params.cfg, params.agentDir);
+  await ensureMoltbotModelsJson(params.cfg, params.agentDir);
   const authStorage = discoverAuthStorage(params.agentDir);
   const modelRegistry = discoverModels(authStorage, params.agentDir);
   const model = modelRegistry.find(params.provider, params.model) as Model<Api> | null;
@@ -32,6 +32,16 @@ export async function describeImageWithModel(
   authStorage.setRuntimeApiKey(model.provider, apiKey);
 
   const base64 = params.buffer.toString("base64");
+  if (model.provider === "minimax") {
+    const text = await minimaxUnderstandImage({
+      apiKey,
+      prompt: params.prompt ?? "Describe the image.",
+      imageDataUrl: `data:${params.mime ?? "image/jpeg"};base64,${base64}`,
+      modelBaseUrl: model.baseUrl,
+    });
+    return { text, model: model.id };
+  }
+
   const context: Context = {
     messages: [
       {

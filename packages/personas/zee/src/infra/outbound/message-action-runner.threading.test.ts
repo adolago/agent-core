@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { slackPlugin } from "../../../extensions/slack/src/channel.js";
 
 const mocks = vi.hoisted(() => ({
   executeSendAction: vi.fn(),
@@ -31,18 +32,6 @@ vi.mock("../../config/sessions.js", async () => {
 
 import { runMessageAction } from "./message-action-runner.js";
 
-// Create a mock Slack plugin for testing
-const slackPlugin = createOutboundTestPlugin({
-  id: "slack",
-  label: "Slack",
-  outbound: {
-    prepareMessage: async ({ ctx }) => ({ ok: true, messageCtx: ctx }),
-    sendText: async () => ({ ok: true, messageId: "mock-id" }),
-    sendMedia: async () => ({ ok: true, messageId: "mock-id" }),
-  },
-  capabilities: { chatTypes: ["direct", "group"], media: true },
-});
-
 const slackConfig = {
   channels: {
     slack: {
@@ -50,10 +39,14 @@ const slackConfig = {
       appToken: "xapp-test",
     },
   },
-} as ZeeConfig;
+} as MoltbotConfig;
 
 describe("runMessageAction Slack threading", () => {
   beforeEach(async () => {
+    const { createPluginRuntime } = await import("../../plugins/runtime/index.js");
+    const { setSlackRuntime } = await import("../../../extensions/slack/src/runtime.js");
+    const runtime = createPluginRuntime();
+    setSlackRuntime(runtime);
     setActivePluginRegistry(
       createTestRegistry([
         {

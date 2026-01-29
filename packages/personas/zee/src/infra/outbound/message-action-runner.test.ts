@@ -1,14 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import {
-  createIMessageTestPlugin,
-  createTestRegistry,
-  slackPlugin,
-  telegramPlugin,
-  whatsappPlugin,
-} from "../../test-utils/channel-plugins.js";
+import { createIMessageTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { slackPlugin } from "../../../extensions/slack/src/channel.js";
+import { telegramPlugin } from "../../../extensions/telegram/src/channel.js";
+import { whatsappPlugin } from "../../../extensions/whatsapp/src/channel.js";
 import { loadWebMedia } from "../../web/media.js";
 import { runMessageAction } from "./message-action-runner.js";
 import { jsonResult } from "../../agents/tools/common.js";
@@ -29,7 +26,7 @@ const slackConfig = {
       appToken: "xapp-test",
     },
   },
-} as ZeeConfig;
+} as MoltbotConfig;
 
 const whatsappConfig = {
   channels: {
@@ -37,10 +34,18 @@ const whatsappConfig = {
       allowFrom: ["*"],
     },
   },
-} as ZeeConfig;
+} as MoltbotConfig;
 
 describe("runMessageAction context isolation", () => {
   beforeEach(async () => {
+    const { createPluginRuntime } = await import("../../plugins/runtime/index.js");
+    const { setSlackRuntime } = await import("../../../extensions/slack/src/runtime.js");
+    const { setTelegramRuntime } = await import("../../../extensions/telegram/src/runtime.js");
+    const { setWhatsAppRuntime } = await import("../../../extensions/whatsapp/src/runtime.js");
+    const runtime = createPluginRuntime();
+    setSlackRuntime(runtime);
+    setTelegramRuntime(runtime);
+    setWhatsAppRuntime(runtime);
     setActivePluginRegistry(
       createTestRegistry([
         {
@@ -258,7 +263,7 @@ describe("runMessageAction context isolation", () => {
           token: "tg-test",
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
 
     const result = await runMessageAction({
       cfg: multiConfig,
@@ -300,7 +305,7 @@ describe("runMessageAction context isolation", () => {
           },
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
 
     await expect(
       runMessageAction({
@@ -418,7 +423,7 @@ describe("runMessageAction sendAttachment hydration", () => {
           password: "test-password",
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
 
     const result = await runMessageAction({
       cfg,
@@ -486,7 +491,7 @@ describe("runMessageAction accountId defaults", () => {
 
   it("propagates defaultAccountId into params", async () => {
     await runMessageAction({
-      cfg: {} as ZeeConfig,
+      cfg: {} as MoltbotConfig,
       action: "send",
       params: {
         channel: "discord",

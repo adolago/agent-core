@@ -108,7 +108,7 @@ describe("gateway server hooks", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-zee-token": "hook-secret",
+          "x-moltbot-token": "hook-secret",
         },
         body: JSON.stringify({ text: "Header auth" }),
       });

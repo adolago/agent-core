@@ -1,9 +1,9 @@
 ---
-summary: "Schema-accurate configuration examples for common Zee setups"
+summary: "Schema-accurate configuration examples for common Moltbot setups"
 read_when:
-  - Learning how to configure Zee
+  - Learning how to configure Moltbot
   - Looking for configuration examples
-  - Setting up Zee for the first time
+  - Setting up Moltbot for the first time
 ---
 # Configuration Examples
 
@@ -14,23 +14,23 @@ Examples below are aligned with the current config schema. For the exhaustive re
 ### Absolute minimum
 ```json5
 {
-  agent: { workspace: "~/zee" },
+  agent: { workspace: "~/clawd" },
   channels: { whatsapp: { allowFrom: ["+15555550123"] } }
 }
 ```
 
-Save to `~/.zee/zee.json` and you can DM the bot from that number.
+Save to `~/.clawdbot/moltbot.json` and you can DM the bot from that number.
 
 ### Recommended starter
 ```json5
 {
   identity: {
-    name: "Zee",
+    name: "Clawd",
     theme: "helpful assistant",
     emoji: "🦞"
   },
   agent: {
-    workspace: "~/zee",
+    workspace: "~/clawd",
     model: { primary: "anthropic/claude-sonnet-4-5" }
   },
   channels: {
@@ -85,7 +85,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
   // Logging
   logging: {
     level: "info",
-    file: "/tmp/zee/zee.log",
+    file: "/tmp/moltbot/moltbot.log",
     consoleLevel: "info",
     consoleStyle: "pretty",
     redactSensitive: "tools"
@@ -93,7 +93,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
 
   // Message formatting
   messages: {
-    messagePrefix: "[zee]",
+    messagePrefix: "[moltbot]",
     responsePrefix: ">",
     ackReaction: "👀",
     ackReactionScope: "group-mentions"
@@ -102,7 +102,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
   // Routing + queue
   routing: {
     groupChat: {
-      mentionPatterns: ["@zee", "zee"],
+      mentionPatterns: ["@clawd", "moltbot"],
       historyLimit: 50
     },
     queue: {
@@ -155,7 +155,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       discord: { mode: "idle", idleMinutes: 10080 }
     },
     resetTriggers: ["/new", "/reset"],
-    store: "~/.zee/agents/default/sessions/sessions.json",
+    store: "~/.clawdbot/agents/default/sessions/sessions.json",
     typingIntervalSeconds: 5,
     sendPolicy: {
       default: "allow",
@@ -190,7 +190,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       dm: { enabled: true, allowFrom: ["steipete"] },
       guilds: {
         "123456789012345678": {
-          slug: "friends-of-zee",
+          slug: "friends-of-clawd",
           requireMention: false,
           channels: {
             general: { allow: true },
@@ -210,7 +210,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       dm: { enabled: true, allowFrom: ["U123"] },
       slashCommand: {
         enabled: true,
-        name: "zee",
+        name: "clawd",
         sessionPrefix: "slack:slash",
         ephemeral: true
       }
@@ -220,7 +220,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
   // Agent runtime
   agents: {
     defaults: {
-      workspace: "~/zee",
+      workspace: "~/clawd",
       userTimezone: "America/Chicago",
       model: {
         primary: "anthropic/claude-sonnet-4-5",
@@ -267,14 +267,15 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
         model: "gemini-embedding-001",
         remote: {
           apiKey: "${GEMINI_API_KEY}"
-        }
+        },
+        extraPaths: ["../team-docs", "/srv/shared-notes"]
       },
       sandbox: {
         mode: "non-main",
         perSession: true,
-        workspaceRoot: "~/.zee/sandboxes",
+        workspaceRoot: "~/.clawdbot/sandboxes",
         docker: {
-          image: "zee-sandbox:bookworm-slim",
+          image: "moltbot-sandbox:bookworm-slim",
           workdir: "/workspace",
           readOnlyRoot: true,
           tmpfs: ["/tmp", "/var/tmp", "/run"],
@@ -339,7 +340,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
   // Cron jobs
   cron: {
     enabled: true,
-    store: "~/.zee/cron/cron.json",
+    store: "~/.clawdbot/cron/cron.json",
     maxConcurrentRuns: 2
   },
 
@@ -349,7 +350,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     path: "/hooks",
     token: "shared-secret",
     presets: ["gmail"],
-    transformsDir: "~/.zee/hooks",
+    transformsDir: "~/.clawdbot/hooks",
     mappings: [
       {
         id: "gmail-hook",
@@ -369,7 +370,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       }
     ],
     gmail: {
-      account: "zee@gmail.com",
+      account: "moltbot@gmail.com",
       label: "INBOX",
       topic: "projects/<project-id>/topics/gog-gmail-watch",
       subscription: "gog-gmail-watch-push",
@@ -388,7 +389,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     mode: "local",
     port: 18789,
     bind: "loopback",
-    controlUi: { enabled: true, basePath: "/zee" },
+    controlUi: { enabled: true, basePath: "/moltbot" },
     auth: {
       mode: "token",
       token: "gateway-token",
@@ -425,7 +426,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
 ### Multi-platform setup
 ```json5
 {
-  agent: { workspace: "~/zee" },
+  agent: { workspace: "~/clawd" },
   channels: {
     whatsapp: { allowFrom: ["+15555550123"] },
     telegram: {
@@ -462,7 +463,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     }
   },
   agent: {
-    workspace: "~/zee",
+    workspace: "~/clawd",
     model: {
       primary: "anthropic/claude-sonnet-4-5",
       fallbacks: ["anthropic/claude-opus-4-5"]
@@ -500,7 +501,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     }
   },
   agent: {
-    workspace: "~/zee",
+    workspace: "~/clawd",
     model: {
       primary: "anthropic/claude-opus-4-5",
       fallbacks: ["minimax/MiniMax-M2.1"]
@@ -517,7 +518,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     theme: "professional assistant"
   },
   agent: {
-    workspace: "~/work-zee",
+    workspace: "~/work-clawd",
     elevated: { enabled: false }
   },
   channels: {
@@ -537,7 +538,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
 ```json5
 {
   agent: {
-    workspace: "~/zee",
+    workspace: "~/clawd",
     model: { primary: "lmstudio/minimax-m2.1-gs32" }
   },
   models: {

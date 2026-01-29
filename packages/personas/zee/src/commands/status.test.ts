@@ -1,4 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+let previousProfile: string | undefined;
+
+beforeAll(() => {
+  previousProfile = process.env.CLAWDBOT_PROFILE;
+  process.env.CLAWDBOT_PROFILE = "isolated";
+});
+
+afterAll(() => {
+  if (previousProfile === undefined) {
+    delete process.env.CLAWDBOT_PROFILE;
+  } else {
+    process.env.CLAWDBOT_PROFILE = previousProfile;
+  }
+});
 
 const mocks = vi.hoisted(() => ({
   loadSessionStore: vi.fn().mockReturnValue({
@@ -79,7 +94,7 @@ vi.mock("../memory/manager.js", () => ({
         files: 2,
         chunks: 3,
         dirty: false,
-        workspaceDir: "/tmp/zee",
+        workspaceDir: "/tmp/clawd",
         dbPath: "/tmp/memory.sqlite",
         provider: "openai",
         model: "text-embedding-3-small",
@@ -189,8 +204,8 @@ vi.mock("../gateway/call.js", async (importOriginal) => {
 vi.mock("../gateway/session-utils.js", () => ({
   listAgentsForGateway: mocks.listAgentsForGateway,
 }));
-vi.mock("../infra/zee-root.js", () => ({
-  resolveZeePackageRoot: vi.fn().mockResolvedValue("/tmp/zee"),
+vi.mock("../infra/moltbot-root.js", () => ({
+  resolveMoltbotPackageRoot: vi.fn().mockResolvedValue("/tmp/moltbot"),
 }));
 vi.mock("../infra/os-summary.js", () => ({
   resolveOsSummary: () => ({
@@ -202,11 +217,11 @@ vi.mock("../infra/os-summary.js", () => ({
 }));
 vi.mock("../infra/update-check.js", () => ({
   checkUpdateStatus: vi.fn().mockResolvedValue({
-    root: "/tmp/zee",
+    root: "/tmp/moltbot",
     installKind: "git",
     packageManager: "pnpm",
     git: {
-      root: "/tmp/zee",
+      root: "/tmp/moltbot",
       branch: "main",
       upstream: "origin/main",
       dirty: false,
@@ -217,8 +232,8 @@ vi.mock("../infra/update-check.js", () => ({
     deps: {
       manager: "pnpm",
       status: "ok",
-      lockfilePath: "/tmp/zee/pnpm-lock.yaml",
-      markerPath: "/tmp/zee/node_modules/.modules.yaml",
+      lockfilePath: "/tmp/moltbot/pnpm-lock.yaml",
+      markerPath: "/tmp/moltbot/node_modules/.modules.yaml",
     },
     registry: { latestVersion: "0.0.0" },
   }),
@@ -240,7 +255,7 @@ vi.mock("../daemon/service.js", () => ({
     readRuntime: async () => ({ status: "running", pid: 1234 }),
     readCommand: async () => ({
       programArguments: ["node", "dist/entry.js", "gateway"],
-      sourcePath: "/tmp/Library/LaunchAgents/com.zee.gateway.plist",
+      sourcePath: "/tmp/Library/LaunchAgents/bot.molt.gateway.plist",
     }),
   }),
 }));
@@ -253,7 +268,7 @@ vi.mock("../daemon/node-service.js", () => ({
     readRuntime: async () => ({ status: "running", pid: 4321 }),
     readCommand: async () => ({
       programArguments: ["node", "dist/entry.js", "node-host"],
-      sourcePath: "/tmp/Library/LaunchAgents/com.zee.node.plist",
+      sourcePath: "/tmp/Library/LaunchAgents/bot.molt.node.plist",
     }),
   }),
 }));
@@ -295,7 +310,7 @@ describe("statusCommand", () => {
     (runtime.log as vi.Mock).mockClear();
     await statusCommand({}, runtime as never);
     const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
-    expect(logs.some((l) => l.includes("Zee status"))).toBe(true);
+    expect(logs.some((l) => l.includes("Moltbot status"))).toBe(true);
     expect(logs.some((l) => l.includes("Overview"))).toBe(true);
     expect(logs.some((l) => l.includes("Security audit"))).toBe(true);
     expect(logs.some((l) => l.includes("Summary:"))).toBe(true);
@@ -312,12 +327,20 @@ describe("statusCommand", () => {
     expect(logs.some((l) => l.includes("FAQ:"))).toBe(true);
     expect(logs.some((l) => l.includes("Troubleshooting:"))).toBe(true);
     expect(logs.some((l) => l.includes("Next steps:"))).toBe(true);
-    expect(logs.some((l) => l.includes("zee status --all"))).toBe(true);
+    expect(
+      logs.some(
+        (l) =>
+          l.includes("moltbot status --all") ||
+          l.includes("moltbot --profile isolated status --all") ||
+          l.includes("moltbot status --all") ||
+          l.includes("moltbot --profile isolated status --all"),
+      ),
+    ).toBe(true);
   });
 
   it("shows gateway auth when reachable", async () => {
-    const prevToken = process.env.ZEE_GATEWAY_TOKEN;
-    process.env.ZEE_GATEWAY_TOKEN = "abcd1234";
+    const prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+    process.env.CLAWDBOT_GATEWAY_TOKEN = "abcd1234";
     try {
       mocks.probeGateway.mockResolvedValueOnce({
         ok: true,
@@ -335,8 +358,8 @@ describe("statusCommand", () => {
       const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
       expect(logs.some((l) => l.includes("auth token"))).toBe(true);
     } finally {
-      if (prevToken === undefined) delete process.env.ZEE_GATEWAY_TOKEN;
-      else process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      if (prevToken === undefined) delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+      else process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 

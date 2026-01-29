@@ -1,10 +1,10 @@
 ---
-summary: "CLI reference for `zee onboard` (interactive onboarding wizard)"
+summary: "CLI reference for `moltbot onboard` (interactive onboarding wizard)"
 read_when:
   - You want guided setup for gateway, workspace, auth, channels, and skills
 ---
 
-# `zee onboard`
+# `moltbot onboard`
 
 Interactive onboarding wizard (local or remote Gateway setup).
 
@@ -14,12 +14,13 @@ Related:
 ## Examples
 
 ```bash
-zee onboard
-zee onboard --flow quickstart
-zee onboard --flow manual
-zee onboard --mode remote --remote-url ws://gateway-host:18789
+moltbot onboard
+moltbot onboard --flow quickstart
+moltbot onboard --flow manual
+moltbot onboard --mode remote --remote-url ws://gateway-host:18789
 ```
 
 Flow notes:
 - `quickstart`: minimal prompts, auto-generates a gateway token.
 - `manual`: full prompts for port/bind/auth (alias of `advanced`).
+- Fastest first chat: `moltbot dashboard` (Control UI, no channel setup).

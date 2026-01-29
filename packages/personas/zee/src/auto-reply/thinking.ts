@@ -9,12 +9,12 @@ export type UsageDisplayLevel = "off" | "tokens" | "full";
 function normalizeProviderId(provider?: string | null): string {
   if (!provider) return "";
   const normalized = provider.trim().toLowerCase();
-  if (normalized === "z.ai" || normalized === "z-ai" || normalized === "zai") return "zai-coding-plan";
+  if (normalized === "z.ai" || normalized === "z-ai") return "zai";
   return normalized;
 }
 
 export function isBinaryThinkingProvider(provider?: string | null): boolean {
-  return normalizeProviderId(provider) === "zai-coding-plan";
+  return normalizeProviderId(provider) === "zai";
 }
 
 export const XHIGH_MODEL_REFS = [

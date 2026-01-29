@@ -27,7 +27,7 @@ const NodeHostSchema = z
   .strict()
   .optional();
 
-export const ZeeSchema = z
+export const MoltbotSchema = z
   .object({
     meta: z
       .object({
@@ -135,8 +135,6 @@ export const ZeeSchema = z
       .object({
         enabled: z.boolean().optional(),
         evaluateEnabled: z.boolean().optional(),
-        controlUrl: z.string().optional(),
-        controlToken: z.string().optional(),
         cdpUrl: z.string().optional(),
         remoteCdpTimeoutMs: z.number().int().nonnegative().optional(),
         remoteCdpHandshakeTimeoutMs: z.number().int().nonnegative().optional(),
@@ -156,7 +154,7 @@ export const ZeeSchema = z
               .object({
                 cdpPort: z.number().int().min(1).max(65535).optional(),
                 cdpUrl: z.string().optional(),
-                driver: z.union([z.literal("zee"), z.literal("extension")]).optional(),
+                driver: z.union([z.literal("clawd"), z.literal("extension")]).optional(),
                 color: HexColorSchema,
               })
               .strict()
@@ -275,8 +273,7 @@ export const ZeeSchema = z
           .optional(),
         mdns: z
           .object({
-            enabled: z.boolean().optional(),
-            minimal: z.boolean().optional(),
+            mode: z.enum(["off", "minimal", "full"]).optional(),
           })
           .strict()
           .optional(),

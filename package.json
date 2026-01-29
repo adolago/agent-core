@@ -19,7 +19,8 @@
       "packages/tiara",
       "packages/personas/zee",
       "packages/personas/stanley",
-      "packages/sdk"
+      "packages/sdk",
+      "packages/hosted"
     ],
     "catalog": {
       "@types/bun": "1.3.5",

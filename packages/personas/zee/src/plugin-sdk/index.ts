@@ -59,15 +59,20 @@ export type {
 } from "../channels/plugins/types.js";
 export type { ChannelConfigSchema, ChannelPlugin } from "../channels/plugins/types.plugin.js";
 export type {
-  ZeePluginApi,
-  ZeePluginService,
-  ZeePluginServiceContext,
+  MoltbotPluginApi,
+  MoltbotPluginService,
+  MoltbotPluginServiceContext,
 } from "../plugins/types.js";
+export type {
+  GatewayRequestHandler,
+  GatewayRequestHandlerOptions,
+  RespondFn,
+} from "../gateway/server-methods/types.js";
 export type { PluginRuntime } from "../plugins/runtime/types.js";
 export { normalizePluginHttpPath } from "../plugins/http-path.js";
 export { registerPluginHttpRoute } from "../plugins/http-registry.js";
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
-export type { ZeeConfig } from "../config/config.js";
+export type { MoltbotConfig } from "../config/config.js";
 export type { ChannelDock } from "../channels/dock.js";
 export { getChatChannelMeta } from "../channels/registry.js";
 export type {
@@ -76,6 +81,7 @@ export type {
   DmConfig,
   GroupPolicy,
   GroupToolPolicyConfig,
+  GroupToolPolicyBySenderConfig,
   MarkdownConfig,
   MarkdownTableMode,
   GoogleChatAccountConfig,
@@ -116,6 +122,7 @@ export { resolveAckReaction } from "../agents/identity.js";
 export type { ReplyPayload } from "../auto-reply/types.js";
 export type { ChunkMode } from "../auto-reply/chunk.js";
 export { SILENT_REPLY_TOKEN, isSilentReplyText } from "../auto-reply/tokens.js";
+export { resolveToolsBySender } from "../config/group-policy.js";
 export {
   buildPendingHistoryContextFromMap,
   clearHistoryEntries,
@@ -197,12 +204,6 @@ export {
 } from "../channels/plugins/setup-helpers.js";
 export { formatPairingApproveHint } from "../channels/plugins/helpers.js";
 export { PAIRING_APPROVED_MESSAGE } from "../channels/plugins/pairing-message.js";
-export {
-  listIMessageAccountIds,
-  resolveDefaultIMessageAccountId,
-  resolveIMessageAccount,
-  type ResolvedIMessageAccount,
-} from "../imessage/accounts.js";
 
 export type {
   ChannelOnboardingAdapter,
@@ -210,7 +211,6 @@ export type {
 } from "../channels/plugins/onboarding-types.js";
 export { addWildcardAllowFrom, promptAccountId } from "../channels/plugins/onboarding/helpers.js";
 export { promptChannelAccessConfig } from "../channels/plugins/onboarding/channel-access.js";
-export { imessageOnboardingAdapter } from "../channels/plugins/onboarding/imessage.js";
 
 export {
   createActionGate,
@@ -263,6 +263,19 @@ export {
   normalizeDiscordMessagingTarget,
 } from "../channels/plugins/normalize/discord.js";
 export { collectDiscordStatusIssues } from "../channels/plugins/status-issues/discord.js";
+
+// Channel: iMessage
+export {
+  listIMessageAccountIds,
+  resolveDefaultIMessageAccountId,
+  resolveIMessageAccount,
+  type ResolvedIMessageAccount,
+} from "../imessage/accounts.js";
+export { imessageOnboardingAdapter } from "../channels/plugins/onboarding/imessage.js";
+export {
+  looksLikeIMessageTargetId,
+  normalizeIMessageMessagingTarget,
+} from "../channels/plugins/normalize/imessage.js";
 
 // Channel: Slack
 export {

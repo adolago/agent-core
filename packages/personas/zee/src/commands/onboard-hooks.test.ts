@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { setupInternalHooks } from "./onboard-hooks.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { HookStatusReport } from "../hooks/hooks-status.js";
@@ -42,18 +42,18 @@ describe("onboard-hooks", () => {
 
   const createMockHookReport = (eligible = true): HookStatusReport => ({
     workspaceDir: "/mock/workspace",
-    managedHooksDir: "/mock/.zee/hooks",
+    managedHooksDir: "/mock/.clawdbot/hooks",
     hooks: [
       {
         name: "session-memory",
         description: "Save session context to memory when /new command is issued",
-        source: "zee-bundled",
+        source: "moltbot-bundled",
         pluginId: undefined,
         filePath: "/mock/workspace/hooks/session-memory/HOOK.md",
         baseDir: "/mock/workspace/hooks/session-memory",
         handlerPath: "/mock/workspace/hooks/session-memory/handler.js",
         hookKey: "session-memory",
-        emoji: undefined,
+        emoji: "💾",
         events: ["command:new"],
         homepage: undefined,
         always: false,
@@ -80,13 +80,13 @@ describe("onboard-hooks", () => {
       {
         name: "command-logger",
         description: "Log all command events to a centralized audit file",
-        source: "zee-bundled",
+        source: "moltbot-bundled",
         pluginId: undefined,
         filePath: "/mock/workspace/hooks/command-logger/HOOK.md",
         baseDir: "/mock/workspace/hooks/command-logger",
         handlerPath: "/mock/workspace/hooks/command-logger/handler.js",
         hookKey: "command-logger",
-        emoji: undefined,
+        emoji: "📝",
         events: ["command"],
         homepage: undefined,
         always: false,
@@ -118,7 +118,7 @@ describe("onboard-hooks", () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport());
 
-      const cfg: ZeeConfig = {};
+      const cfg: MoltbotConfig = {};
       const prompter = createMockPrompter(["session-memory"]);
       const runtime = createMockRuntime();
 
@@ -135,12 +135,12 @@ describe("onboard-hooks", () => {
           { value: "__skip__", label: "Skip for now" },
           {
             value: "session-memory",
-            label: "~ session-memory",
+            label: "💾 session-memory",
             hint: "Save session context to memory when /new command is issued",
           },
           {
             value: "command-logger",
-            label: "~ command-logger",
+            label: "📝 command-logger",
             hint: "Log all command events to a centralized audit file",
           },
         ],
@@ -151,7 +151,7 @@ describe("onboard-hooks", () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport());
 
-      const cfg: ZeeConfig = {};
+      const cfg: MoltbotConfig = {};
       const prompter = createMockPrompter(["__skip__"]);
       const runtime = createMockRuntime();
 
@@ -165,7 +165,7 @@ describe("onboard-hooks", () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport(false));
 
-      const cfg: ZeeConfig = {};
+      const cfg: MoltbotConfig = {};
       const prompter = createMockPrompter([]);
       const runtime = createMockRuntime();
 
@@ -183,7 +183,7 @@ describe("onboard-hooks", () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport());
 
-      const cfg: ZeeConfig = {
+      const cfg: MoltbotConfig = {
         hooks: {
           enabled: true,
           path: "/webhook",
@@ -208,7 +208,7 @@ describe("onboard-hooks", () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport());
 
-      const cfg: ZeeConfig = {
+      const cfg: MoltbotConfig = {
         agents: { defaults: { workspace: "/workspace" } },
       };
       const prompter = createMockPrompter(["__skip__"]);
@@ -224,7 +224,7 @@ describe("onboard-hooks", () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport());
 
-      const cfg: ZeeConfig = {};
+      const cfg: MoltbotConfig = {};
       const prompter = createMockPrompter(["session-memory"]);
       const runtime = createMockRuntime();
 
@@ -239,7 +239,7 @@ describe("onboard-hooks", () => {
 
       // Second note should confirm configuration
       expect(noteCalls[1][0]).toContain("Enabled 1 hook: session-memory");
-      expect(noteCalls[1][0]).toContain("zee hooks list");
+      expect(noteCalls[1][0]).toMatch(/(?:moltbot|moltbot)( --profile isolated)? hooks list/);
     });
   });
 });

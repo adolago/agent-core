@@ -43,6 +43,8 @@ extract_version_section() {
 
 markdown_to_html() {
   local text=$1
+  text=$(echo "$text" | sed 's/^##### \(.*\)$/<h5>\1<\/h5>/')
+  text=$(echo "$text" | sed 's/^#### \(.*\)$/<h4>\1<\/h4>/')
   text=$(echo "$text" | sed 's/^### \(.*\)$/<h3>\1<\/h3>/')
   text=$(echo "$text" | sed 's/^## \(.*\)$/<h2>\1<\/h2>/')
   text=$(echo "$text" | sed 's/^- \*\*\([^*]*\)\*\*\(.*\)$/<li><strong>\1<\/strong>\2<\/li>/')
@@ -55,13 +57,13 @@ markdown_to_html() {
 
 version_content=$(extract_version_section "$VERSION" "$CHANGELOG_FILE")
 if [[ -z "$version_content" ]]; then
-  echo "<h2>Zeebot $VERSION</h2>"
-  echo "<p>Latest Zeebot update.</p>"
-  echo "<p><a href=\"https://github.com/zeebot/zeebot/blob/main/CHANGELOG.md\">View full changelog</a></p>"
+  echo "<h2>Moltbot $VERSION</h2>"
+  echo "<p>Latest Moltbot update.</p>"
+  echo "<p><a href=\"https://github.com/moltbot/moltbot/blob/main/CHANGELOG.md\">View full changelog</a></p>"
   exit 0
 fi
 
-echo "<h2>Zeebot $VERSION</h2>"
+echo "<h2>Moltbot $VERSION</h2>"
 
 in_list=false
 while IFS= read -r line; do
@@ -86,4 +88,4 @@ if [[ "$in_list" == true ]]; then
   echo "</ul>"
 fi
 
-echo "<p><a href=\"https://github.com/zeebot/zeebot/blob/main/CHANGELOG.md\">View full changelog</a></p>"
+echo "<p><a href=\"https://github.com/moltbot/moltbot/blob/main/CHANGELOG.md\">View full changelog</a></p>"

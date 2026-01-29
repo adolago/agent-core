@@ -14,5 +14,5 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "ZeeNodeAndroid"
+rootProject.name = "MoltbotNodeAndroid"
 include(":app")

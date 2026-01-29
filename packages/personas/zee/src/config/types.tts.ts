@@ -1,4 +1,4 @@
-export type TtsProvider = "elevenlabs" | "openai" | "edge" | "minimax";
+export type TtsProvider = "elevenlabs" | "openai" | "edge";
 
 export type TtsMode = "final" | "all";
 
@@ -72,24 +72,6 @@ export type TtsConfig = {
     saveSubtitles?: boolean;
     proxy?: string;
     timeoutMs?: number;
-  };
-  /** MiniMax TTS configuration. */
-  minimax?: {
-    apiKey?: string;
-    /** TTS model (default: speech-2.8-hd). */
-    model?: string;
-    /** Voice ID (default: English_Graceful_Lady). */
-    voice?: string;
-    /** Speech speed (0.5-2.0, default: 1.0). */
-    speed?: number;
-    /** Volume (0.1-10.0, default: 1.0). */
-    volume?: number;
-    /** Pitch adjustment (-12 to 12, default: 0). */
-    pitch?: number;
-    /** Sample rate (default: 32000). */
-    sampleRate?: number;
-    /** Bitrate (default: 128000). */
-    bitrate?: number;
   };
   /** Optional path for local TTS user preferences JSON. */
   prefsPath?: string;

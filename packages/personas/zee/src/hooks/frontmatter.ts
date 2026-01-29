@@ -1,9 +1,10 @@
 import JSON5 from "json5";
 
+import { LEGACY_MANIFEST_KEY } from "../compat/legacy-names.js";
 import { parseFrontmatterBlock } from "../markdown/frontmatter.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import type {
-  ZeeHookMetadata,
+  MoltbotHookMetadata,
   HookEntry,
   HookInstallSpec,
   HookInvocationPolicy,
@@ -62,35 +63,35 @@ function parseFrontmatterBool(value: string | undefined, fallback: boolean): boo
   return parsed === undefined ? fallback : parsed;
 }
 
-export function resolveZeeMetadata(
+export function resolveMoltbotMetadata(
   frontmatter: ParsedHookFrontmatter,
-): ZeeHookMetadata | undefined {
+): MoltbotHookMetadata | undefined {
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON5.parse(raw) as { zee?: unknown };
+    const parsed = JSON5.parse(raw) as { moltbot?: unknown } & Partial<
+      Record<typeof LEGACY_MANIFEST_KEY, unknown>
+    >;
     if (!parsed || typeof parsed !== "object") return undefined;
-    // Support both "zee" (new) and "zeedis" (legacy) keys
-    const zeeData = (parsed as { zee?: unknown; zeedis?: unknown }).zee ??
-                    (parsed as { zee?: unknown; zeedis?: unknown }).zeedis;
-    if (!zeeData || typeof zeeData !== "object") return undefined;
-    const zeeObj = zeeData as Record<string, unknown>;
+    const metadataRaw = parsed.moltbot ?? parsed[LEGACY_MANIFEST_KEY];
+    if (!metadataRaw || typeof metadataRaw !== "object") return undefined;
+    const metadataObj = metadataRaw as Record<string, unknown>;
     const requiresRaw =
-      typeof zeeObj.requires === "object" && zeeObj.requires !== null
-        ? (zeeObj.requires as Record<string, unknown>)
+      typeof metadataObj.requires === "object" && metadataObj.requires !== null
+        ? (metadataObj.requires as Record<string, unknown>)
         : undefined;
-    const installRaw = Array.isArray(zeeObj.install) ? (zeeObj.install as unknown[]) : [];
+    const installRaw = Array.isArray(metadataObj.install) ? (metadataObj.install as unknown[]) : [];
     const install = installRaw
       .map((entry) => parseInstallSpec(entry))
       .filter((entry): entry is HookInstallSpec => Boolean(entry));
-    const osRaw = normalizeStringList(zeeObj.os);
-    const eventsRaw = normalizeStringList(zeeObj.events);
+    const osRaw = normalizeStringList(metadataObj.os);
+    const eventsRaw = normalizeStringList(metadataObj.events);
     return {
-      always: typeof zeeObj.always === "boolean" ? zeeObj.always : undefined,
-      emoji: typeof zeeObj.emoji === "string" ? zeeObj.emoji : undefined,
-      homepage: typeof zeeObj.homepage === "string" ? zeeObj.homepage : undefined,
-      hookKey: typeof zeeObj.hookKey === "string" ? zeeObj.hookKey : undefined,
-      export: typeof zeeObj.export === "string" ? zeeObj.export : undefined,
+      always: typeof metadataObj.always === "boolean" ? metadataObj.always : undefined,
+      emoji: typeof metadataObj.emoji === "string" ? metadataObj.emoji : undefined,
+      homepage: typeof metadataObj.homepage === "string" ? metadataObj.homepage : undefined,
+      hookKey: typeof metadataObj.hookKey === "string" ? metadataObj.hookKey : undefined,
+      export: typeof metadataObj.export === "string" ? metadataObj.export : undefined,
       os: osRaw.length > 0 ? osRaw : undefined,
       events: eventsRaw.length > 0 ? eventsRaw : [],
       requires: requiresRaw
@@ -117,5 +118,5 @@ export function resolveHookInvocationPolicy(
 }
 
 export function resolveHookKey(hookName: string, entry?: HookEntry): string {
-  return entry?.zee?.hookKey ?? hookName;
+  return entry?.metadata?.hookKey ?? hookName;
 }

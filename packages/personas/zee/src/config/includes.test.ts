@@ -11,17 +11,17 @@ import {
 
 const ROOT_DIR = path.parse(process.cwd()).root;
 const CONFIG_DIR = path.join(ROOT_DIR, "config");
-const ETC_ZEE_DIR = path.join(ROOT_DIR, "etc", "zee");
+const ETC_CLAWDBOT_DIR = path.join(ROOT_DIR, "etc", "moltbot");
 const SHARED_DIR = path.join(ROOT_DIR, "shared");
 
-const DEFAULT_BASE_PATH = path.join(CONFIG_DIR, "zee.json");
+const DEFAULT_BASE_PATH = path.join(CONFIG_DIR, "moltbot.json");
 
 function configPath(...parts: string[]) {
   return path.join(CONFIG_DIR, ...parts);
 }
 
-function etcZeePath(...parts: string[]) {
-  return path.join(ETC_ZEE_DIR, ...parts);
+function etcMoltbotPath(...parts: string[]) {
+  return path.join(ETC_CLAWDBOT_DIR, ...parts);
 }
 
 function sharedPath(...parts: string[]) {
@@ -70,7 +70,7 @@ describe("resolveConfigIncludes", () => {
   });
 
   it("resolves absolute path $include", () => {
-    const absolute = etcZeePath("agents.json");
+    const absolute = etcMoltbotPath("agents.json");
     const files = { [absolute]: { list: [{ id: "main" }] } };
     const obj = { agents: { $include: absolute } };
     expect(resolve(obj, files)).toEqual({
@@ -283,7 +283,7 @@ describe("resolveConfigIncludes", () => {
   it("resolves parent directory references", () => {
     const files = { [sharedPath("common.json")]: { shared: true } };
     const obj = { $include: "../../shared/common.json" };
-    expect(resolve(obj, files, configPath("sub", "zee.json"))).toEqual({
+    expect(resolve(obj, files, configPath("sub", "moltbot.json"))).toEqual({
       shared: true,
     });
   });

@@ -21,14 +21,10 @@ vi.mock("../runtime.js", () => ({
 
 describe("browser extension install", () => {
   it("installs into the state dir (never node_modules)", async () => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zee-ext-"));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-ext-"));
     const { installChromeExtension } = await import("./browser-cli-extension.js");
 
-    // Create a mock source directory with manifest.json
-    const sourceDir = path.join(tmp, "mock-source");
-    fs.mkdirSync(sourceDir, { recursive: true });
-    fs.writeFileSync(path.join(sourceDir, "manifest.json"), JSON.stringify({ manifest_version: 3 }));
-
+    const sourceDir = path.resolve(process.cwd(), "assets/chrome-extension");
     const result = await installChromeExtension({ stateDir: tmp, sourceDir });
 
     expect(result.path).toBe(path.join(tmp, "browser", "chrome-extension"));
@@ -37,9 +33,9 @@ describe("browser extension install", () => {
   });
 
   it("copies extension path to clipboard", async () => {
-    const prev = process.env.ZEE_STATE_DIR;
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zee-ext-path-"));
-    process.env.ZEE_STATE_DIR = tmp;
+    const prev = process.env.CLAWDBOT_STATE_DIR;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-ext-path-"));
+    process.env.CLAWDBOT_STATE_DIR = tmp;
 
     try {
       copyToClipboard.mockReset();
@@ -67,8 +63,8 @@ describe("browser extension install", () => {
 
       expect(copyToClipboard).toHaveBeenCalledWith(dir);
     } finally {
-      if (prev === undefined) delete process.env.ZEE_STATE_DIR;
-      else process.env.ZEE_STATE_DIR = prev;
+      if (prev === undefined) delete process.env.CLAWDBOT_STATE_DIR;
+      else process.env.CLAWDBOT_STATE_DIR = prev;
     }
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChannelOutboundAdapter, ChannelPlugin } from "../../channels/plugins/types.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { PluginRegistry } from "../../plugins/registry.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
@@ -13,6 +13,7 @@ import { discordOutbound } from "../../channels/plugins/outbound/discord.js";
 import { imessageOutbound } from "../../channels/plugins/outbound/imessage.js";
 import { signalOutbound } from "../../channels/plugins/outbound/signal.js";
 import { slackOutbound } from "../../channels/plugins/outbound/slack.js";
+import { telegramOutbound } from "../../channels/plugins/outbound/telegram.js";
 import { whatsappOutbound } from "../../channels/plugins/outbound/whatsapp.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
 
@@ -63,7 +64,6 @@ const actualDeliver = await vi.importActual<typeof import("../../infra/outbound/
 );
 
 const { routeReply } = await import("./route-reply.js");
-const { telegramOutbound } = await import("../../channels/plugins/outbound/telegram.js");
 
 const createRegistry = (channels: PluginRegistry["channels"]): PluginRegistry => ({
   plugins: [],
@@ -172,8 +172,8 @@ describe("routeReply", () => {
   it("applies responsePrefix when routing", async () => {
     mocks.sendMessageSlack.mockClear();
     const cfg = {
-      messages: { responsePrefix: "[zee]" },
-    } as unknown as ZeeConfig;
+      messages: { responsePrefix: "[moltbot]" },
+    } as unknown as MoltbotConfig;
     await routeReply({
       payload: { text: "hi" },
       channel: "slack",
@@ -182,7 +182,7 @@ describe("routeReply", () => {
     });
     expect(mocks.sendMessageSlack).toHaveBeenCalledWith(
       "channel:C123",
-      "[zee] hi",
+      "[moltbot] hi",
       expect.any(Object),
     );
   });
@@ -199,7 +199,7 @@ describe("routeReply", () => {
         ],
       },
       messages: {},
-    } as unknown as ZeeConfig;
+    } as unknown as MoltbotConfig;
     await routeReply({
       payload: { text: "hi" },
       channel: "slack",
@@ -234,7 +234,6 @@ describe("routeReply", () => {
       to: "telegram:123",
       threadId: 42,
       cfg: {} as never,
-      deps: { sendTelegram: mocks.sendMessageTelegram },
     });
     expect(mocks.sendMessageTelegram).toHaveBeenCalledWith(
       "telegram:123",
@@ -250,7 +249,6 @@ describe("routeReply", () => {
       channel: "telegram",
       to: "telegram:123",
       cfg: {} as never,
-      deps: { sendTelegram: mocks.sendMessageTelegram },
     });
     expect(mocks.sendMessageTelegram).toHaveBeenCalledWith(
       "telegram:123",
@@ -348,7 +346,7 @@ describe("routeReply", () => {
           enabled: true,
         },
       },
-    } as unknown as ZeeConfig;
+    } as unknown as MoltbotConfig;
     await routeReply({
       payload: { text: "hi" },
       channel: "msteams",

@@ -5,15 +5,15 @@
  * These commands are processed before built-in commands and before agent invocation.
  */
 
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type {
-  ZeePluginCommandDefinition,
+  MoltbotPluginCommandDefinition,
   PluginCommandContext,
   PluginCommandResult,
 } from "./types.js";
 import { logVerbose } from "../globals.js";
 
-type RegisteredPluginCommand = ZeePluginCommandDefinition & {
+type RegisteredPluginCommand = MoltbotPluginCommandDefinition & {
   pluginId: string;
 };
 
@@ -104,7 +104,7 @@ export type CommandRegistrationResult = {
  */
 export function registerPluginCommand(
   pluginId: string,
-  command: ZeePluginCommandDefinition,
+  command: MoltbotPluginCommandDefinition,
 ): CommandRegistrationResult {
   // Prevent registration while commands are being processed
   if (registryLocked) {
@@ -221,7 +221,7 @@ export async function executePluginCommand(params: {
   channel: string;
   isAuthorizedSender: boolean;
   commandBody: string;
-  config: ZeeConfig;
+  config: MoltbotConfig;
 }): Promise<PluginCommandResult> {
   const { command, args, senderId, channel, isAuthorizedSender, commandBody, config } = params;
 
@@ -231,7 +231,7 @@ export async function executePluginCommand(params: {
     logVerbose(
       `Plugin command /${command.name} blocked: unauthorized sender ${senderId || "<unknown>"}`,
     );
-    return { text: "⚠ This command requires authorization." };
+    return { text: "⚠️ This command requires authorization." };
   }
 
   // Sanitize args before passing to handler
@@ -258,7 +258,7 @@ export async function executePluginCommand(params: {
     const error = err as Error;
     logVerbose(`Plugin command /${command.name} error: ${error.message}`);
     // Don't leak internal error details - return a safe generic message
-    return { text: "⚠ Command failed. Please try again later." };
+    return { text: "⚠️ Command failed. Please try again later." };
   } finally {
     registryLocked = false;
   }

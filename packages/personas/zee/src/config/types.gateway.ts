@@ -17,14 +17,16 @@ export type WideAreaDiscoveryConfig = {
   enabled?: boolean;
 };
 
+export type MdnsDiscoveryMode = "off" | "minimal" | "full";
+
 export type MdnsDiscoveryConfig = {
-  /** Enable mDNS/Bonjour discovery broadcasts (default: true). */
-  enabled?: boolean;
   /**
-   * When true (default), omit sensitive fields (like cliPath/sshPort) from TXT records.
-   * Set to false for full discovery details.
+   * mDNS/Bonjour discovery broadcast mode (default: minimal).
+   * - off: disable mDNS entirely
+   * - minimal: omit cliPath/sshPort from TXT records
+   * - full: include cliPath/sshPort in TXT records
    */
-  minimal?: boolean;
+  mode?: MdnsDiscoveryMode;
 };
 
 export type DiscoveryConfig = {
@@ -34,7 +36,7 @@ export type DiscoveryConfig = {
 
 export type CanvasHostConfig = {
   enabled?: boolean;
-  /** Directory to serve (default: ~/zee/canvas). */
+  /** Directory to serve (default: ~/clawd/canvas). */
   root?: string;
   /** HTTP port to listen on (default: 18793). */
   port?: number;
@@ -60,7 +62,7 @@ export type TalkConfig = {
 export type GatewayControlUiConfig = {
   /** If false, the Gateway will not serve the Control UI (default /). */
   enabled?: boolean;
-  /** Optional base path prefix for the Control UI (e.g. "/zee"). */
+  /** Optional base path prefix for the Control UI (e.g. "/moltbot"). */
   basePath?: string;
   /** Allow token-only auth over insecure HTTP (default: false). */
   allowInsecureAuth?: boolean;

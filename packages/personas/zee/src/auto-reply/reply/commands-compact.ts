@@ -4,7 +4,7 @@ import {
   isEmbeddedPiRunActive,
   waitForEmbeddedPiRunEnd,
 } from "../../agents/pi-embedded.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
@@ -16,7 +16,7 @@ import { incrementCompactionCount } from "./session-updates.js";
 function extractCompactInstructions(params: {
   rawBody?: string;
   ctx: import("../templating.js").MsgContext;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentId?: string;
   isGroup: boolean;
 }): string | undefined {
@@ -48,7 +48,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
   if (!params.sessionEntry?.sessionId) {
     return {
       shouldContinue: false,
-      reply: { text: "▸ Compaction unavailable (missing session id)." },
+      reply: { text: "⚙️ Compaction unavailable (missing session id)." },
     };
   }
   const sessionId = params.sessionEntry.sessionId;
@@ -121,5 +121,5 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     ? `${compactLabel}: ${reason} • ${contextSummary}`
     : `${compactLabel} • ${contextSummary}`;
   enqueueSystemEvent(line, { sessionKey: params.sessionKey });
-  return { shouldContinue: false, reply: { text: `▸ ${line}` } };
+  return { shouldContinue: false, reply: { text: `⚙️ ${line}` } };
 };

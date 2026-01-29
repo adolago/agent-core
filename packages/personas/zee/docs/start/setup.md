@@ -1,5 +1,5 @@
 ---
-summary: "Setup guide: keep your Zee setup tailored while staying up-to-date"
+summary: "Setup guide: keep your Moltbot setup tailored while staying up-to-date"
 read_when:
   - Setting up a new machine
   - You want “latest + greatest” without breaking your personal setup
@@ -10,7 +10,7 @@ read_when:
 Last updated: 2026-01-01
 
 ## TL;DR
-- **Tailoring lives outside the repo:** `~/zee` (workspace) + `~/.zee/zee.json` (config).
+- **Tailoring lives outside the repo:** `~/clawd` (workspace) + `~/.clawdbot/moltbot.json` (config).
 - **Stable workflow:** install the macOS app; let it run the bundled Gateway.
 - **Bleeding edge workflow:** run the Gateway yourself via `pnpm gateway:watch`, then let the macOS app attach in Local mode.
 
@@ -23,42 +23,42 @@ Last updated: 2026-01-01
 
 If you want “100% tailored to me” *and* easy updates, keep your customization in:
 
-- **Config:** `~/.zee/zee.json` (JSON/JSON5-ish)
-- **Workspace:** `~/zee` (skills, prompts, memories; make it a private git repo)
+- **Config:** `~/.clawdbot/moltbot.json` (JSON/JSON5-ish)
+- **Workspace:** `~/clawd` (skills, prompts, memories; make it a private git repo)
 
 Bootstrap once:
 
 ```bash
-zee setup
+moltbot setup
 ```
 
 From inside this repo, use the local CLI entry:
 
 ```bash
-zee setup
+moltbot setup
 ```
 
-If you don’t have a global install yet, run it via `pnpm zee setup`.
+If you don’t have a global install yet, run it via `pnpm moltbot setup`.
 
 ## Stable workflow (macOS app first)
 
-1) Install + launch **Zee.app** (menu bar).
+1) Install + launch **Moltbot.app** (menu bar).
 2) Complete the onboarding/permissions checklist (TCC prompts).
 3) Ensure Gateway is **Local** and running (the app manages it).
 4) Link surfaces (example: WhatsApp):
 
 ```bash
-zee channels login
+moltbot channels login
 ```
 
 5) Sanity check:
 
 ```bash
-zee health
+moltbot health
 ```
 
 If onboarding is not available in your build:
-- Run `zee setup`, then `zee channels login`, then start the Gateway manually (`zee gateway`).
+- Run `moltbot setup`, then `moltbot channels login`, then start the Gateway manually (`moltbot gateway`).
 
 ## Bleeding edge workflow (Gateway in a terminal)
 
@@ -83,7 +83,7 @@ pnpm gateway:watch
 
 ### 2) Point the macOS app at your running Gateway
 
-In **Zee.app**:
+In **Moltbot.app**:
 
 - Connection Mode: **Local**
 The app will attach to the running gateway on the configured port.
@@ -94,19 +94,32 @@ The app will attach to the running gateway on the configured port.
 - Or via CLI:
 
 ```bash
-zee health
+moltbot health
 ```
 
 ### Common footguns
 - **Wrong port:** Gateway WS defaults to `ws://127.0.0.1:18789`; keep app + CLI on the same port.
 - **Where state lives:**
-  - Credentials: `~/.zee/credentials/`
-  - Sessions: `~/.zee/agents/<agentId>/sessions/`
-  - Logs: `/tmp/zee/`
+  - Credentials: `~/.clawdbot/credentials/`
+  - Sessions: `~/.clawdbot/agents/<agentId>/sessions/`
+  - Logs: `/tmp/moltbot/`
+
+## Credential storage map
+
+Use this when debugging auth or deciding what to back up:
+
+- **WhatsApp**: `~/.clawdbot/credentials/whatsapp/<accountId>/creds.json`
+- **Telegram bot token**: config/env or `channels.telegram.tokenFile`
+- **Discord bot token**: config/env (token file not yet supported)
+- **Slack tokens**: config/env (`channels.slack.*`)
+- **Pairing allowlists**: `~/.clawdbot/credentials/<channel>-allowFrom.json`
+- **Model auth profiles**: `~/.clawdbot/agents/<agentId>/agent/auth-profiles.json`
+- **Legacy OAuth import**: `~/.clawdbot/credentials/oauth.json`
+More detail: [Security](/gateway/security#credential-storage-map).
 
 ## Updating (without wrecking your setup)
 
-- Keep `~/zee` and `~/.zee/` as “your stuff”; don’t put personal prompts/config into the `zee` repo.
+- Keep `~/clawd` and `~/.clawdbot/` as “your stuff”; don’t put personal prompts/config into the `moltbot` repo.
 - Updating source: `git pull` + `pnpm install` (when lockfile changed) + keep using `pnpm gateway:watch`.
 
 ## Linux (systemd user service)
@@ -127,5 +140,5 @@ user service (no lingering needed). See [Gateway runbook](/gateway) for the syst
 - [Gateway runbook](/gateway) (flags, supervision, ports)
 - [Gateway configuration](/gateway/configuration) (config schema + examples)
 - [Discord](/channels/discord) and [Telegram](/channels/telegram) (reply tags + replyToMode settings)
-- [Zee assistant setup](/start/zee)
+- [Moltbot assistant setup](/start/clawd)
 - [macOS app](/platforms/macos) (gateway lifecycle)

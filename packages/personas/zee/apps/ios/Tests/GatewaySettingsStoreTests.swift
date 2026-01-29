@@ -1,14 +1,14 @@
 import Foundation
 import Testing
-@testable import Zee
+@testable import Moltbot
 
 private struct KeychainEntry: Hashable {
     let service: String
     let account: String
 }
 
-private let gatewayService = "com.zee.gateway"
-private let nodeService = "com.zee.node"
+private let gatewayService = "bot.molt.gateway"
+private let nodeService = "bot.molt.node"
 private let instanceIdEntry = KeychainEntry(service: nodeService, account: "instanceId")
 private let preferredGatewayEntry = KeychainEntry(service: gatewayService, account: "preferredStableID")
 private let lastGatewayEntry = KeychainEntry(service: gatewayService, account: "lastDiscoveredStableID")

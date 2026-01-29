@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 
 import {
-  CLAUDE_CLI_PROFILE_ID,
   ensureAuthProfileStore,
   listProfilesForProvider,
   resolveApiKeyForProfile,
@@ -37,16 +36,17 @@ function resolveZaiApiKey(): string | undefined {
   const envDirect = process.env.ZAI_API_KEY?.trim() || process.env.Z_AI_API_KEY?.trim();
   if (envDirect) return envDirect;
 
-  const envResolved = resolveEnvApiKey("zai-coding-plan");
+  const envResolved = resolveEnvApiKey("zai");
   if (envResolved?.apiKey) return envResolved.apiKey;
 
   const cfg = loadConfig();
-  const key = getCustomProviderApiKey(cfg, "zai-coding-plan");
+  const key = getCustomProviderApiKey(cfg, "zai") || getCustomProviderApiKey(cfg, "z-ai");
   if (key) return key;
 
   const store = ensureAuthProfileStore();
   const apiProfile = [
-    ...listProfilesForProvider(store, "zai-coding-plan"),
+    ...listProfilesForProvider(store, "zai"),
+    ...listProfilesForProvider(store, "z-ai"),
   ].find((id) => store.profiles[id]?.type === "api_key");
   if (apiProfile) {
     const cred = store.profiles[apiProfile];
@@ -62,7 +62,7 @@ function resolveZaiApiKey(): string | undefined {
       string,
       { access?: string }
     >;
-    return data["zai-coding-plan"]?.access;
+    return data["z-ai"]?.access || data.zai?.access;
   } catch {
     return undefined;
   }
@@ -110,9 +110,7 @@ async function resolveOAuthToken(params: {
     provider: params.provider,
   });
 
-  // Claude Code CLI creds are the only Anthropic tokens that reliably include the
-  // `user:profile` scope required for the OAuth usage endpoint.
-  const candidates = params.provider === "anthropic" ? [CLAUDE_CLI_PROFILE_ID, ...order] : order;
+  const candidates = order;
   const deduped: string[] = [];
   for (const entry of candidates) {
     if (!deduped.includes(entry)) deduped.push(entry);
@@ -191,7 +189,7 @@ export async function resolveProviderAuths(params: {
   const auths: ProviderAuth[] = [];
 
   for (const provider of params.providers) {
-    if (provider === "zai-coding-plan") {
+    if (provider === "zai") {
       const apiKey = resolveZaiApiKey();
       if (apiKey) auths.push({ provider, token: apiKey });
       continue;

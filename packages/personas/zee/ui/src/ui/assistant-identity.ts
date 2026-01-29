@@ -12,8 +12,8 @@ export type AssistantIdentity = {
 
 declare global {
   interface Window {
-    __ZEEBOT_ASSISTANT_NAME__?: string;
-    __ZEEBOT_ASSISTANT_AVATAR__?: string;
+    __CLAWDBOT_ASSISTANT_NAME__?: string;
+    __CLAWDBOT_ASSISTANT_AVATAR__?: string;
   }
 }
 
@@ -43,7 +43,7 @@ export function resolveInjectedAssistantIdentity(): AssistantIdentity {
     return normalizeAssistantIdentity({});
   }
   return normalizeAssistantIdentity({
-    name: window.__ZEEBOT_ASSISTANT_NAME__,
-    avatar: window.__ZEEBOT_ASSISTANT_AVATAR__,
+    name: window.__CLAWDBOT_ASSISTANT_NAME__,
+    avatar: window.__CLAWDBOT_ASSISTANT_AVATAR__,
   });
 }

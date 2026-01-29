@@ -27,20 +27,20 @@ export type SkillsCheckOptions = {
   json?: boolean;
 };
 
-function appendZeeHubHint(output: string, json?: boolean): string {
+function appendClawdHubHint(output: string, json?: boolean): string {
   if (json) return output;
-  return `${output}\n\nTip: use \`npx zeehub\` to search, install, and sync skills.`;
+  return `${output}\n\nTip: use \`npx clawdhub\` to search, install, and sync skills.`;
 }
 
 function formatSkillStatus(skill: SkillStatusEntry): string {
   if (skill.eligible) return theme.success("✓ ready");
   if (skill.disabled) return theme.warn("⏸ disabled");
-  if (skill.blockedByAllowlist) return theme.warn("x blocked");
+  if (skill.blockedByAllowlist) return theme.warn("🚫 blocked");
   return theme.error("✗ missing");
 }
 
 function formatSkillName(skill: SkillStatusEntry): string {
-  const emoji = skill.emoji ?? "*";
+  const emoji = skill.emoji ?? "📦";
   return `${emoji} ${theme.command(skill.name)}`;
 }
 
@@ -92,9 +92,9 @@ export function formatSkillsList(report: SkillStatusReport, opts: SkillsListOpti
 
   if (skills.length === 0) {
     const message = opts.eligible
-      ? `No eligible skills found. Run \`${formatCliCommand("zee skills list")}\` to see all skills.`
+      ? `No eligible skills found. Run \`${formatCliCommand("moltbot skills list")}\` to see all skills.`
       : "No skills found.";
-    return appendZeeHubHint(message, opts.json);
+    return appendClawdHubHint(message, opts.json);
   }
 
   const eligible = skills.filter((s) => s.eligible);
@@ -132,7 +132,7 @@ export function formatSkillsList(report: SkillStatusReport, opts: SkillsListOpti
     }).trimEnd(),
   );
 
-  return appendZeeHubHint(lines.join("\n"), opts.json);
+  return appendClawdHubHint(lines.join("\n"), opts.json);
 }
 
 /**
@@ -149,8 +149,8 @@ export function formatSkillInfo(
     if (opts.json) {
       return JSON.stringify({ error: "not found", skill: skillName }, null, 2);
     }
-    return appendZeeHubHint(
-      `Skill "${skillName}" not found. Run \`${formatCliCommand("zee skills list")}\` to see available skills.`,
+    return appendClawdHubHint(
+      `Skill "${skillName}" not found. Run \`${formatCliCommand("moltbot skills list")}\` to see available skills.`,
       opts.json,
     );
   }
@@ -160,13 +160,13 @@ export function formatSkillInfo(
   }
 
   const lines: string[] = [];
-  const emoji = skill.emoji ?? "*";
+  const emoji = skill.emoji ?? "📦";
   const status = skill.eligible
     ? theme.success("✓ Ready")
     : skill.disabled
       ? theme.warn("⏸ Disabled")
       : skill.blockedByAllowlist
-        ? theme.warn("x Blocked by allowlist")
+        ? theme.warn("🚫 Blocked by allowlist")
         : theme.error("✗ Missing requirements");
 
   lines.push(`${emoji} ${theme.heading(skill.name)} ${status}`);
@@ -243,7 +243,7 @@ export function formatSkillInfo(
     }
   }
 
-  return appendZeeHubHint(lines.join("\n"), opts.json);
+  return appendClawdHubHint(lines.join("\n"), opts.json);
 }
 
 /**
@@ -287,14 +287,14 @@ export function formatSkillsCheck(report: SkillStatusReport, opts: SkillsCheckOp
   lines.push(`${theme.muted("Total:")} ${report.skills.length}`);
   lines.push(`${theme.success("✓")} ${theme.muted("Eligible:")} ${eligible.length}`);
   lines.push(`${theme.warn("⏸")} ${theme.muted("Disabled:")} ${disabled.length}`);
-  lines.push(`${theme.warn("x")} ${theme.muted("Blocked by allowlist:")} ${blocked.length}`);
+  lines.push(`${theme.warn("🚫")} ${theme.muted("Blocked by allowlist:")} ${blocked.length}`);
   lines.push(`${theme.error("✗")} ${theme.muted("Missing requirements:")} ${missingReqs.length}`);
 
   if (eligible.length > 0) {
     lines.push("");
     lines.push(theme.heading("Ready to use:"));
     for (const skill of eligible) {
-      const emoji = skill.emoji ?? "*";
+      const emoji = skill.emoji ?? "📦";
       lines.push(`  ${emoji} ${skill.name}`);
     }
   }
@@ -303,7 +303,7 @@ export function formatSkillsCheck(report: SkillStatusReport, opts: SkillsCheckOp
     lines.push("");
     lines.push(theme.heading("Missing requirements:"));
     for (const skill of missingReqs) {
-      const emoji = skill.emoji ?? "*";
+      const emoji = skill.emoji ?? "📦";
       const missing: string[] = [];
       if (skill.missing.bins.length > 0) {
         missing.push(`bins: ${skill.missing.bins.join(", ")}`);
@@ -324,7 +324,7 @@ export function formatSkillsCheck(report: SkillStatusReport, opts: SkillsCheckOp
     }
   }
 
-  return appendZeeHubHint(lines.join("\n"), opts.json);
+  return appendClawdHubHint(lines.join("\n"), opts.json);
 }
 
 /**
@@ -337,7 +337,7 @@ export function registerSkillsCli(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/skills", "docs.zee.bot/cli/skills")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/skills", "docs.molt.bot/cli/skills")}\n`,
     );
 
   skills

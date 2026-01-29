@@ -2,6 +2,7 @@ import { resolveCommitHash } from "../infra/git-commit.js";
 import { visibleWidth } from "../terminal/ansi.js";
 import { isRich, theme } from "../terminal/theme.js";
 import { pickTagline, type TaglineOptions } from "./tagline.js";
+import { resolveCliName } from "./cli-name.js";
 
 type BannerOptions = TaglineOptions & {
   argv?: string[];
@@ -37,8 +38,9 @@ export function formatCliBannerLine(version: string, options: BannerOptions = {}
   const commitLabel = commit ?? "unknown";
   const tagline = pickTagline(options);
   const rich = options.richTty ?? isRich();
-  const title = "Zee";
-  const prefix = "    ";
+  const cliName = resolveCliName(options.argv ?? process.argv, options.env);
+  const title = cliName === "moltbot" ? "🦞 Moltbot" : "🦞 Moltbot";
+  const prefix = "🦞 ";
   const columns = options.columns ?? process.stdout.columns ?? 120;
   const plainFullLine = `${title} ${version} (${commitLabel}) — ${tagline}`;
   const fitsOnOneLine = visibleWidth(plainFullLine) <= columns;
@@ -63,12 +65,13 @@ export function formatCliBannerLine(version: string, options: BannerOptions = {}
 }
 
 const LOBSTER_ASCII = [
-  "░████░█░░░░░█████░█░░░█░███░░████░░████░░▀█▀",
-  "█░░░░░█░░░░░█░░░█░█░█░█░█░░█░█░░░█░█░░░█░░█░",
-  "█░░░░░█░░░░░█████░█░█░█░█░░█░████░░█░░░█░░█░",
-  "█░░░░░█░░░░░█░░░█░█░█░█░█░░█░█░░█░░█░░░█░░█░",
-  "░████░█████░█░░░█░░█░█░░███░░████░░░███░░░█░",
-  "               FRESH DAILY",
+  "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄",
+  "██░▄▀▄░██░▄▄▄░██░████▄▄░▄▄██░▄▄▀██░▄▄▄░█▄▄░▄▄██",
+  "██░█░█░██░███░██░██████░████░▄▄▀██░███░███░████",
+  "██░███░██░▀▀▀░██░▀▀░███░████░▀▀░██░▀▀▀░███░████",
+  "▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀",
+  "               🦞 FRESH DAILY 🦞               ",
+  " ",
 ];
 
 export function formatCliBannerArt(options: BannerOptions = {}): string {
@@ -84,7 +87,12 @@ export function formatCliBannerArt(options: BannerOptions = {}): string {
 
   const colored = LOBSTER_ASCII.map((line) => {
     if (line.includes("FRESH DAILY")) {
-      return theme.muted("               ") + theme.info("FRESH DAILY");
+      return (
+        theme.muted("              ") +
+        theme.accent("🦞") +
+        theme.info(" FRESH DAILY ") +
+        theme.accent("🦞")
+      );
     }
     return splitGraphemes(line).map(colorChar).join("");
   });

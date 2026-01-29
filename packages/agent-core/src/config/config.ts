@@ -1145,6 +1145,38 @@ export namespace Config {
       ref: "ZeeConfig",
     })
 
+  export const Messages = z
+    .object({
+      tts: z
+        .object({
+          provider: z.enum(["minimax", "openai"]).optional().describe("TTS provider to use"),
+          auto: z
+            .enum(["always", "never", "on-request"])
+            .optional()
+            .describe("When to automatically speak responses"),
+          minimax: z
+            .object({
+              voice: z.string().optional().describe("MiniMax voice ID"),
+              model: z.string().optional().describe("MiniMax TTS model"),
+            })
+            .optional()
+            .describe("MiniMax TTS configuration"),
+          openai: z
+            .object({
+              voice: z.string().optional().describe("OpenAI TTS voice"),
+              model: z.string().optional().describe("OpenAI TTS model"),
+            })
+            .optional()
+            .describe("OpenAI TTS configuration"),
+        })
+        .optional()
+        .describe("Text-to-speech configuration"),
+    })
+    .strict()
+    .meta({
+      ref: "MessagesConfig",
+    })
+
   export const Info = z
     .object({
       $schema: z.string().optional().describe("JSON schema reference for configuration validation"),
@@ -1252,6 +1284,7 @@ export namespace Config {
       memory: Memory.optional().describe("Memory and storage configuration"),
       tiara: Tiara.optional().describe("Tiara orchestration configuration"),
       zee: Zee.optional().describe("Zee integration configuration"),
+      messages: Messages.optional().describe("Messaging and TTS configuration"),
       formatter: z
         .union([
           z.literal(false),

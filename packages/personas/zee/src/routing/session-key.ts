@@ -11,6 +11,12 @@ export const DEFAULT_AGENT_ID = "main";
 export const DEFAULT_MAIN_KEY = "main";
 export const DEFAULT_ACCOUNT_ID = "default";
 
+// Pre-compiled regex
+const VALID_ID_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+const INVALID_CHARS_RE = /[^a-z0-9_-]+/g;
+const LEADING_DASH_RE = /^-+/;
+const TRAILING_DASH_RE = /-+$/;
+
 function normalizeToken(value: string | undefined | null): string {
   return (value ?? "").trim().toLowerCase();
 }
@@ -52,14 +58,14 @@ export function normalizeAgentId(value: string | undefined | null): string {
   const trimmed = (value ?? "").trim();
   if (!trimmed) return DEFAULT_AGENT_ID;
   // Keep it path-safe + shell-friendly.
-  if (/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(trimmed)) return trimmed.toLowerCase();
+  if (VALID_ID_RE.test(trimmed)) return trimmed.toLowerCase();
   // Best-effort fallback: collapse invalid characters to "-"
   return (
     trimmed
       .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "")
+      .replace(INVALID_CHARS_RE, "-")
+      .replace(LEADING_DASH_RE, "")
+      .replace(TRAILING_DASH_RE, "")
       .slice(0, 64) || DEFAULT_AGENT_ID
   );
 }
@@ -67,13 +73,13 @@ export function normalizeAgentId(value: string | undefined | null): string {
 export function sanitizeAgentId(value: string | undefined | null): string {
   const trimmed = (value ?? "").trim();
   if (!trimmed) return DEFAULT_AGENT_ID;
-  if (/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(trimmed)) return trimmed.toLowerCase();
+  if (VALID_ID_RE.test(trimmed)) return trimmed.toLowerCase();
   return (
     trimmed
       .toLowerCase()
-      .replace(/[^a-z0-9_-]+/gi, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "")
+      .replace(INVALID_CHARS_RE, "-")
+      .replace(LEADING_DASH_RE, "")
+      .replace(TRAILING_DASH_RE, "")
       .slice(0, 64) || DEFAULT_AGENT_ID
   );
 }
@@ -81,13 +87,13 @@ export function sanitizeAgentId(value: string | undefined | null): string {
 export function normalizeAccountId(value: string | undefined | null): string {
   const trimmed = (value ?? "").trim();
   if (!trimmed) return DEFAULT_ACCOUNT_ID;
-  if (/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(trimmed)) return trimmed.toLowerCase();
+  if (VALID_ID_RE.test(trimmed)) return trimmed.toLowerCase();
   return (
     trimmed
       .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "")
+      .replace(INVALID_CHARS_RE, "-")
+      .replace(LEADING_DASH_RE, "")
+      .replace(TRAILING_DASH_RE, "")
       .slice(0, 64) || DEFAULT_ACCOUNT_ID
   );
 }
@@ -105,11 +111,12 @@ export function buildAgentPeerSessionKey(params: {
   agentId: string;
   mainKey?: string | undefined;
   channel: string;
+  accountId?: string | null;
   peerKind?: "dm" | "group" | "channel" | null;
   peerId?: string | null;
   identityLinks?: Record<string, string[]>;
   /** DM session scope. */
-  dmScope?: "main" | "per-peer" | "per-channel-peer";
+  dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
 }): string {
   const peerKind = params.peerKind ?? "dm";
   if (peerKind === "dm") {
@@ -125,6 +132,11 @@ export function buildAgentPeerSessionKey(params: {
           });
     if (linkedPeerId) peerId = linkedPeerId;
     peerId = peerId.toLowerCase();
+    if (dmScope === "per-account-channel-peer" && peerId) {
+      const channel = (params.channel ?? "").trim().toLowerCase() || "unknown";
+      const accountId = normalizeAccountId(params.accountId);
+      return `agent:${normalizeAgentId(params.agentId)}:${channel}:${accountId}:dm:${peerId}`;
+    }
     if (dmScope === "per-channel-peer" && peerId) {
       const channel = (params.channel ?? "").trim().toLowerCase() || "unknown";
       return `agent:${normalizeAgentId(params.agentId)}:${channel}:dm:${peerId}`;

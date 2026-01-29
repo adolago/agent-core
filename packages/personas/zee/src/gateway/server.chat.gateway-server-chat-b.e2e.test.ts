@@ -39,8 +39,7 @@ const sendReq = (
     }),
   );
 };
-// Skip: E2E tests are flaky and timeout intermittently in CI environments
-describe.skip("gateway server chat", () => {
+describe("gateway server chat", () => {
   const timeoutMs = 120_000;
   test(
     "handles history, abort, idempotency, and ordering flows",
@@ -57,7 +56,7 @@ describe.skip("gateway server chat", () => {
         const historyMaxBytes = 192 * 1024;
         __setMaxChatHistoryMessagesBytesForTest(historyMaxBytes);
         await connectOk(ws);
-        const sessionDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-"));
+        const sessionDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gw-"));
         tempDirs.push(sessionDir);
         testState.sessionStorePath = path.join(sessionDir, "sessions.json");
         const writeStore = async (

@@ -140,36 +140,25 @@ export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 
 export type ToolPolicyConfig = {
   allow?: string[];
+  /**
+   * Additional allowlist entries merged into the effective allowlist.
+   *
+   * Intended for additive configuration (e.g., "also allow lobster") without forcing
+   * users to replace/duplicate an existing allowlist or profile.
+   */
+  alsoAllow?: string[];
   deny?: string[];
   profile?: ToolProfileId;
 };
 
 export type GroupToolPolicyConfig = {
   allow?: string[];
+  /** Additional allowlist entries merged into allow. */
+  alsoAllow?: string[];
   deny?: string[];
 };
 
-/**
- * Per-sender tool policy overrides within a group.
- * Allows granting or restricting tool access for specific senders.
- */
-export type SenderToolPolicyConfig = {
-  /** Tools to allow for this sender (additive to group policy). */
-  allow?: string[];
-  /** Tools to deny for this sender (takes precedence). */
-  deny?: string[];
-};
-
-/**
- * Group configuration with optional per-sender tool overrides.
- * Used in channel-specific group configs (WhatsApp, Telegram, Discord, Signal).
- */
-export type GroupConfigWithSenders = {
-  requireMention?: boolean;
-  tools?: GroupToolPolicyConfig;
-  /** Per-sender tool policy overrides (keyed by sender id). */
-  senders?: Record<string, SenderToolPolicyConfig>;
-};
+export type GroupToolPolicyBySenderConfig = Record<string, GroupToolPolicyConfig>;
 
 export type ExecToolConfig = {
   /** Exec host routing (default: sandbox). */
@@ -210,6 +199,8 @@ export type AgentToolsConfig = {
   /** Base tool profile applied before allow/deny lists. */
   profile?: ToolProfileId;
   allow?: string[];
+  /** Additional allowlist entries merged into allow and/or profile allowlist. */
+  alsoAllow?: string[];
   deny?: string[];
   /** Optional tool policy overrides keyed by provider id or "provider/model". */
   byProvider?: Record<string, ToolPolicyConfig>;
@@ -235,13 +226,15 @@ export type MemorySearchConfig = {
   enabled?: boolean;
   /** Sources to index and search (default: ["memory"]). */
   sources?: Array<"memory" | "sessions">;
+  /** Extra paths to include in memory search (directories or .md files). */
+  extraPaths?: string[];
   /** Experimental memory search settings. */
   experimental?: {
     /** Enable session transcript indexing (experimental, default: false). */
     sessionMemory?: boolean;
   };
-  /** Embedding provider mode. For vLLM or other OpenAI-compatible servers, use "openai" with custom baseUrl. */
-  provider?: "openai" | "gemini";
+  /** Embedding provider mode. */
+  provider?: "openai" | "gemini" | "local";
   remote?: {
     baseUrl?: string;
     apiKey?: string;
@@ -260,9 +253,16 @@ export type MemorySearchConfig = {
     };
   };
   /** Fallback behavior when embeddings fail. */
-  fallback?: "openai" | "gemini" | "none";
-  /** Embedding model id. */
+  fallback?: "openai" | "gemini" | "local" | "none";
+  /** Embedding model id (remote) or alias (local). */
   model?: string;
+  /** Local embedding settings (node-llama-cpp). */
+  local?: {
+    /** GGUF model path or hf: URI. */
+    modelPath?: string;
+    /** Optional cache directory for local models. */
+    modelCacheDir?: string;
+  };
   /** Index storage configuration. */
   store?: {
     driver?: "sqlite";
@@ -327,6 +327,8 @@ export type ToolsConfig = {
   /** Base tool profile applied before allow/deny lists. */
   profile?: ToolProfileId;
   allow?: string[];
+  /** Additional allowlist entries merged into allow and/or profile allowlist. */
+  alsoAllow?: string[];
   deny?: string[];
   /** Optional tool policy overrides keyed by provider id or "provider/model". */
   byProvider?: Record<string, ToolPolicyConfig>;

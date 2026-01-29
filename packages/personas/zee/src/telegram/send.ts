@@ -46,6 +46,8 @@ type TelegramSendOpts = {
   silent?: boolean;
   /** Message ID to reply to (for threading) */
   replyToMessageId?: number;
+  /** Quote text for Telegram reply_parameters. */
+  quoteText?: string;
   /** Forum topic thread ID (for forum supergroups) */
   messageThreadId?: number;
   /** Inline keyboard buttons (reply markup). */
@@ -198,9 +200,17 @@ export async function sendMessageTelegram(
   const messageThreadId =
     opts.messageThreadId != null ? opts.messageThreadId : target.messageThreadId;
   const threadIdParams = buildTelegramThreadParams(messageThreadId);
-  const threadParams: Record<string, number> = threadIdParams ? { ...threadIdParams } : {};
+  const threadParams: Record<string, unknown> = threadIdParams ? { ...threadIdParams } : {};
+  const quoteText = opts.quoteText?.trim();
   if (opts.replyToMessageId != null) {
-    threadParams.reply_to_message_id = Math.trunc(opts.replyToMessageId);
+    if (quoteText) {
+      threadParams.reply_parameters = {
+        message_id: Math.trunc(opts.replyToMessageId),
+        quote: quoteText,
+      };
+    } else {
+      threadParams.reply_to_message_id = Math.trunc(opts.replyToMessageId);
+    }
   }
   const hasThreadParams = Object.keys(threadParams).length > 0;
   const request = createTelegramRetryRunner({
@@ -544,7 +554,6 @@ export async function editMessageTelegram(
     retry: opts.retry,
     configRetry: account.config.retry,
     verbose: opts.verbose,
-    shouldRetry: (err) => isRecoverableTelegramNetworkError(err, { context: "send" }),
   });
   const logHttpError = createTelegramHttpLogger(cfg);
   const requestWithDiag = <T>(fn: () => Promise<T>, label?: string) =>
@@ -565,9 +574,9 @@ export async function editMessageTelegram(
   const htmlText = renderTelegramHtmlText(text, { textMode, tableMode });
 
   // Reply markup semantics:
-  // - buttons === undefined -> do not send reply_markup (keep existing)
-  // - buttons is [] (or filters to empty) -> send { inline_keyboard: [] } (remove)
-  // - otherwise -> send built inline keyboard
+  // - buttons === undefined → don't send reply_markup (keep existing)
+  // - buttons is [] (or filters to empty) → send { inline_keyboard: [] } (remove)
+  // - otherwise → send built inline keyboard
   const shouldTouchButtons = opts.buttons !== undefined;
   const builtKeyboard = shouldTouchButtons ? buildInlineKeyboard(opts.buttons) : undefined;
   const replyMarkup = shouldTouchButtons ? (builtKeyboard ?? { inline_keyboard: [] }) : undefined;

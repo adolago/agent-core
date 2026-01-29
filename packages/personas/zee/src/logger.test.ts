@@ -70,11 +70,11 @@ describe("logger helpers", () => {
   it("uses daily rolling default log file and prunes old ones", () => {
     resetLogger();
     setLoggerOverride({}); // force defaults regardless of user config
-    const today = new Date().toISOString().slice(0, 10);
-    const todayPath = path.join(DEFAULT_LOG_DIR, `zee-${today}.log`);
+    const today = localDateString(new Date());
+    const todayPath = path.join(DEFAULT_LOG_DIR, `moltbot-${today}.log`);
 
     // create an old file to be pruned
-    const oldPath = path.join(DEFAULT_LOG_DIR, "zee-2000-01-01.log");
+    const oldPath = path.join(DEFAULT_LOG_DIR, "moltbot-2000-01-01.log");
     fs.mkdirSync(DEFAULT_LOG_DIR, { recursive: true });
     fs.writeFileSync(oldPath, "old");
     fs.utimesSync(oldPath, new Date(0), new Date(0));
@@ -91,7 +91,7 @@ describe("logger helpers", () => {
 });
 
 function pathForTest() {
-  const file = path.join(os.tmpdir(), `zee-log-${crypto.randomUUID()}.log`);
+  const file = path.join(os.tmpdir(), `moltbot-log-${crypto.randomUUID()}.log`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   return file;
 }
@@ -102,4 +102,11 @@ function cleanup(file: string) {
   } catch {
     // ignore
   }
+}
+
+function localDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

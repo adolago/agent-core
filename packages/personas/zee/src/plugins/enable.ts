@@ -1,12 +1,12 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 
 export type PluginEnableResult = {
-  config: ZeeConfig;
+  config: MoltbotConfig;
   enabled: boolean;
   reason?: string;
 };
 
-function ensureAllowlisted(cfg: ZeeConfig, pluginId: string): ZeeConfig {
+function ensureAllowlisted(cfg: MoltbotConfig, pluginId: string): MoltbotConfig {
   const allow = cfg.plugins?.allow;
   if (!Array.isArray(allow) || allow.includes(pluginId)) return cfg;
   return {
@@ -18,7 +18,7 @@ function ensureAllowlisted(cfg: ZeeConfig, pluginId: string): ZeeConfig {
   };
 }
 
-export function enablePluginInConfig(cfg: ZeeConfig, pluginId: string): PluginEnableResult {
+export function enablePluginInConfig(cfg: MoltbotConfig, pluginId: string): PluginEnableResult {
   if (cfg.plugins?.enabled === false) {
     return { config: cfg, enabled: false, reason: "plugins disabled" };
   }
@@ -33,7 +33,7 @@ export function enablePluginInConfig(cfg: ZeeConfig, pluginId: string): PluginEn
       enabled: true,
     },
   };
-  let next: ZeeConfig = {
+  let next: MoltbotConfig = {
     ...cfg,
     plugins: {
       ...cfg.plugins,

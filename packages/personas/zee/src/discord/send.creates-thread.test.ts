@@ -172,8 +172,8 @@ describe("uploadStickerDiscord", () => {
     await uploadStickerDiscord(
       {
         guildId: "g1",
-        name: "zee_wave",
-        description: "Zeebot waving",
+        name: "moltbot_wave",
+        description: "Moltbot waving",
         tags: "👋",
         mediaUrl: "file:///tmp/wave.png",
       },
@@ -183,8 +183,8 @@ describe("uploadStickerDiscord", () => {
       Routes.guildStickers("g1"),
       expect.objectContaining({
         body: {
-          name: "zee_wave",
-          description: "Zeebot waving",
+          name: "moltbot_wave",
+          description: "Moltbot waving",
           tags: "👋",
           files: [
             expect.objectContaining({

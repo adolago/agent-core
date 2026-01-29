@@ -647,6 +647,7 @@ export namespace SessionPrompt {
           abort,
           callID: part.callID,
           directory: Instance.directory,
+          worktree: Instance.worktree,
           extra: { bypassAgentCheck: true },
           async metadata(input) {
             await Session.updatePart({
@@ -944,6 +945,7 @@ export namespace SessionPrompt {
       messageID: input.processor.message.id,
       callID: options.toolCallId,
       directory: Instance.directory,
+      worktree: Instance.worktree,
       extra: { model: input.model, bypassAgentCheck: input.bypassAgentCheck, holdMode: input.tools?.edit === false },
       agent: input.agent.name,
       metadata: async (val: { title?: string; metadata?: any }) => {
@@ -1308,6 +1310,7 @@ export namespace SessionPrompt {
                       agent: input.agent!,
                       messageID: info.id,
                       directory: Instance.directory,
+                      worktree: Instance.worktree,
                       extra: { bypassCwdCheck: true, model },
                       metadata: async () => {},
                       ask: async () => {},
@@ -1370,6 +1373,7 @@ export namespace SessionPrompt {
                   agent: input.agent!,
                   messageID: info.id,
                   directory: Instance.directory,
+                  worktree: Instance.worktree,
                   extra: { bypassCwdCheck: true },
                   metadata: async () => {},
                   ask: async () => {},

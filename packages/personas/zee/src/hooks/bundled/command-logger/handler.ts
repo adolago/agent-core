@@ -39,7 +39,7 @@ const logCommand: HookHandler = async (event) => {
 
   try {
     // Create log directory
-    const logDir = path.join(os.homedir(), ".zee", "logs");
+    const logDir = path.join(os.homedir(), ".clawdbot", "logs");
     await fs.mkdir(logDir, { recursive: true });
 
     // Append to command log file

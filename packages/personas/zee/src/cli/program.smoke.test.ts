@@ -80,7 +80,7 @@ describe("cli program (smoke)", () => {
         "--message-id",
         "1737630212345",
         "--emoji",
-        "+",
+        "✅",
         "--target-author-uuid",
         "123e4567-e89b-12d3-a456-426614174000",
       ],
@@ -146,6 +146,12 @@ describe("cli program (smoke)", () => {
 
   it("passes auth api keys to onboard", async () => {
     const cases = [
+      {
+        authChoice: "opencode-zen",
+        flag: "--opencode-zen-api-key",
+        key: "sk-opencode-zen-test",
+        field: "opencodeZenApiKey",
+      },
       {
         authChoice: "openrouter-api-key",
         flag: "--openrouter-api-key",

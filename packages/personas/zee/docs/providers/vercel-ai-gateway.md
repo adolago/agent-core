@@ -1,7 +1,8 @@
 ---
+title: "Vercel AI Gateway"
 summary: "Vercel AI Gateway setup (auth + model selection)"
 read_when:
-  - You want to use Vercel AI Gateway with Zee
+  - You want to use Vercel AI Gateway with Moltbot
   - You need the API key env var or CLI auth choice
 ---
 # Vercel AI Gateway
@@ -18,7 +19,7 @@ The [Vercel AI Gateway](https://vercel.com/ai-gateway) provides a unified API to
 1) Set the API key (recommended: store it for the Gateway):
 
 ```bash
-zee onboard --auth-choice ai-gateway-api-key
+moltbot onboard --auth-choice ai-gateway-api-key
 ```
 
 2) Set a default model:
@@ -36,7 +37,7 @@ zee onboard --auth-choice ai-gateway-api-key
 ## Non-interactive example
 
 ```bash
-zee onboard --non-interactive \
+moltbot onboard --non-interactive \
   --mode local \
   --auth-choice ai-gateway-api-key \
   --ai-gateway-api-key "$AI_GATEWAY_API_KEY"
@@ -45,5 +46,5 @@ zee onboard --non-interactive \
 ## Environment note
 
 If the Gateway runs as a daemon (launchd/systemd), make sure `AI_GATEWAY_API_KEY`
-is available to that process (for example, in `~/.zee/.env` or via
+is available to that process (for example, in `~/.clawdbot/.env` or via
 `env.shellEnv`).

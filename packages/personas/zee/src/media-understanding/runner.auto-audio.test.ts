@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { MsgContext } from "../auto-reply/templating.js";
 import {
   buildProviderRegistry,
@@ -16,8 +16,9 @@ import {
 describe("runCapability auto audio entries", () => {
   it("uses provider keys to auto-enable audio transcription", async () => {
     const originalPath = process.env.PATH;
-    process.env.PATH = "/usr/bin:/bin";
-    const tmpPath = path.join(os.tmpdir(), `zee-auto-audio-${Date.now()}.wav`);
+    const emptyPathDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-empty-path-"));
+    process.env.PATH = emptyPathDir;
+    const tmpPath = path.join(os.tmpdir(), `moltbot-auto-audio-${Date.now()}.wav`);
     await fs.writeFile(tmpPath, Buffer.from("RIFF"));
     const ctx: MsgContext = { MediaPath: tmpPath, MediaType: "audio/wav" };
     const media = normalizeMediaAttachments(ctx);
@@ -25,9 +26,9 @@ describe("runCapability auto audio entries", () => {
 
     let seenModel: string | undefined;
     const providerRegistry = buildProviderRegistry({
-      google: {
-        id: "google",
-        capabilities: ["audio", "image", "video"],
+      openai: {
+        id: "openai",
+        capabilities: ["audio"],
         transcribeAudio: async (req) => {
           seenModel = req.model;
           return { text: "ok", model: req.model };
@@ -38,21 +39,13 @@ describe("runCapability auto audio entries", () => {
     const cfg = {
       models: {
         providers: {
-          google: {
+          openai: {
             apiKey: "test-key",
             models: [],
           },
         },
       },
-      tools: {
-        media: {
-          audio: {
-            // Explicitly configure the model to skip auto-discovery which probes local binaries
-            models: [{ type: "provider", provider: "google" }],
-          },
-        },
-      },
-    } as unknown as ZeeConfig;
+    } as unknown as MoltbotConfig;
 
     try {
       const result = await runCapability({
@@ -64,10 +57,11 @@ describe("runCapability auto audio entries", () => {
         providerRegistry,
       });
       expect(result.outputs[0]?.text).toBe("ok");
-      expect(seenModel).toBe("gemini-3-flash-preview");
+      expect(seenModel).toBe("gpt-4o-mini-transcribe");
       expect(result.decision.outcome).toBe("success");
     } finally {
       process.env.PATH = originalPath;
+      await fs.rm(emptyPathDir, { recursive: true, force: true });
       await cache.cleanup();
       await fs.unlink(tmpPath).catch(() => {});
     }
@@ -75,25 +69,26 @@ describe("runCapability auto audio entries", () => {
 
   it("skips auto audio when disabled", async () => {
     const originalPath = process.env.PATH;
-    process.env.PATH = "/usr/bin:/bin";
-    const tmpPath = path.join(os.tmpdir(), `zee-auto-audio-${Date.now()}.wav`);
+    const emptyPathDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-empty-path-"));
+    process.env.PATH = emptyPathDir;
+    const tmpPath = path.join(os.tmpdir(), `moltbot-auto-audio-${Date.now()}.wav`);
     await fs.writeFile(tmpPath, Buffer.from("RIFF"));
     const ctx: MsgContext = { MediaPath: tmpPath, MediaType: "audio/wav" };
     const media = normalizeMediaAttachments(ctx);
     const cache = createMediaAttachmentCache(media);
 
     const providerRegistry = buildProviderRegistry({
-      google: {
-        id: "google",
-        capabilities: ["audio", "image", "video"],
-        transcribeAudio: async () => ({ text: "ok", model: "gemini-3-flash-preview" }),
+      openai: {
+        id: "openai",
+        capabilities: ["audio"],
+        transcribeAudio: async () => ({ text: "ok", model: "whisper-1" }),
       },
     });
 
     const cfg = {
       models: {
         providers: {
-          google: {
+          openai: {
             apiKey: "test-key",
             models: [],
           },
@@ -106,7 +101,7 @@ describe("runCapability auto audio entries", () => {
           },
         },
       },
-    } as unknown as ZeeConfig;
+    } as unknown as MoltbotConfig;
 
     try {
       const result = await runCapability({
@@ -121,6 +116,7 @@ describe("runCapability auto audio entries", () => {
       expect(result.decision.outcome).toBe("disabled");
     } finally {
       process.env.PATH = originalPath;
+      await fs.rm(emptyPathDir, { recursive: true, force: true });
       await cache.cleanup();
       await fs.unlink(tmpPath).catch(() => {});
     }

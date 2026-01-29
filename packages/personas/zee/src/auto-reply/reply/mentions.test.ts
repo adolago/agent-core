@@ -2,11 +2,24 @@ import { describe, expect, it } from "vitest";
 import { matchesMentionWithExplicit } from "./mentions.js";
 
 describe("matchesMentionWithExplicit", () => {
-  const mentionRegexes = [/\bzee\b/i];
+  const mentionRegexes = [/\bclawd\b/i];
 
-  it("prefers explicit mentions when other mentions are present", () => {
+  it("checks mentionPatterns even when explicit mention is available", () => {
     const result = matchesMentionWithExplicit({
-      text: "@zee hello",
+      text: "@clawd hello",
+      mentionRegexes,
+      explicit: {
+        hasAnyMention: true,
+        isExplicitlyMentioned: false,
+        canResolveExplicit: true,
+      },
+    });
+    expect(result).toBe(true);
+  });
+
+  it("returns false when explicit is false and no regex match", () => {
+    const result = matchesMentionWithExplicit({
+      text: "<@999999> hello",
       mentionRegexes,
       explicit: {
         hasAnyMention: true,
@@ -32,7 +45,7 @@ describe("matchesMentionWithExplicit", () => {
 
   it("falls back to regex matching when explicit mention cannot be resolved", () => {
     const result = matchesMentionWithExplicit({
-      text: "zee please",
+      text: "clawd please",
       mentionRegexes,
       explicit: {
         hasAnyMention: true,

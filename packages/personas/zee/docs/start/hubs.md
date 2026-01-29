@@ -1,5 +1,5 @@
 ---
-summary: "Hubs that link to every Zee doc"
+summary: "Hubs that link to every Moltbot doc"
 read_when:
   - You want a complete map of the documentation
 ---
@@ -18,7 +18,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Help](/help)
 - [Configuration](/gateway/configuration)
 - [Configuration examples](/gateway/configuration-examples)
-- [Zee assistant (Zee)](/start/zee)
+- [Moltbot assistant (Clawd)](/start/clawd)
 - [Showcase](/start/showcase)
 - [Lore](/start/lore)
 
@@ -156,7 +156,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 ## Workspace + templates
 
 - [Skills](/tools/skills)
-- [ZeeHub](/tools/zeehub)
+- [ClawdHub](/tools/clawdhub)
 - [Skills config](/tools/skills-config)
 - [Default AGENTS](/reference/AGENTS.default)
 - [Templates: AGENTS](/reference/templates/AGENTS)

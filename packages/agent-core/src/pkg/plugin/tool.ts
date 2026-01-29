@@ -5,6 +5,8 @@ export type ToolContext = {
   messageID: string
   agent: string
   abort: AbortSignal
+  directory?: string
+  worktree?: string
   metadata(input: { title?: string; metadata?: { [key: string]: any } }): void
   ask(input: AskInput): Promise<void>
 }

@@ -1,8 +1,8 @@
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { AuthProfileStore } from "./types.js";
 
 export function resolveAuthProfileDisplayLabel(params: {
-  cfg?: ZeeConfig;
+  cfg?: MoltbotConfig;
   store: AuthProfileStore;
   profileId: string;
 }): string {

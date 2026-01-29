@@ -247,12 +247,12 @@ describe("resolveConfigEnvVars", () => {
       const config = {
         gateway: {
           auth: {
-            token: "${ZEE_GATEWAY_TOKEN}",
+            token: "${CLAWDBOT_GATEWAY_TOKEN}",
           },
         },
       };
       const result = resolveConfigEnvVars(config, {
-        ZEE_GATEWAY_TOKEN: "secret-token",
+        CLAWDBOT_GATEWAY_TOKEN: "secret-token",
       });
       expect(result).toEqual({
         gateway: {

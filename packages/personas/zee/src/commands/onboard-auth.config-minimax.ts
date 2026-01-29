@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import {
   buildMinimaxApiModelDefinition,
   buildMinimaxModelDefinition,
@@ -12,7 +12,7 @@ import {
   MINIMAX_LM_STUDIO_COST,
 } from "./onboard-auth.models.js";
 
-export function applyMinimaxProviderConfig(cfg: ZeeConfig): ZeeConfig {
+export function applyMinimaxProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models["anthropic/claude-opus-4-5"] = {
     ...models["anthropic/claude-opus-4-5"],
@@ -59,9 +59,9 @@ export function applyMinimaxProviderConfig(cfg: ZeeConfig): ZeeConfig {
 }
 
 export function applyMinimaxHostedProviderConfig(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   params?: { baseUrl?: string },
-): ZeeConfig {
+): MoltbotConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[MINIMAX_HOSTED_MODEL_REF] = {
     ...models[MINIMAX_HOSTED_MODEL_REF],
@@ -103,7 +103,7 @@ export function applyMinimaxHostedProviderConfig(
   };
 }
 
-export function applyMinimaxConfig(cfg: ZeeConfig): ZeeConfig {
+export function applyMinimaxConfig(cfg: MoltbotConfig): MoltbotConfig {
   const next = applyMinimaxProviderConfig(cfg);
   return {
     ...next,
@@ -126,9 +126,9 @@ export function applyMinimaxConfig(cfg: ZeeConfig): ZeeConfig {
 }
 
 export function applyMinimaxHostedConfig(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   params?: { baseUrl?: string },
-): ZeeConfig {
+): MoltbotConfig {
   const next = applyMinimaxHostedProviderConfig(cfg, params);
   return {
     ...next,
@@ -147,9 +147,9 @@ export function applyMinimaxHostedConfig(
 
 // MiniMax Anthropic-compatible API (platform.minimax.io/anthropic)
 export function applyMinimaxApiProviderConfig(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   modelId: string = "MiniMax-M2.1",
-): ZeeConfig {
+): MoltbotConfig {
   const providers = { ...cfg.models?.providers };
   const existingProvider = providers.minimax;
   const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
@@ -190,9 +190,9 @@ export function applyMinimaxApiProviderConfig(
 }
 
 export function applyMinimaxApiConfig(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   modelId: string = "MiniMax-M2.1",
-): ZeeConfig {
+): MoltbotConfig {
   const next = applyMinimaxApiProviderConfig(cfg, modelId);
   return {
     ...next,

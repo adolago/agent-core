@@ -1,4 +1,4 @@
-app_identifier("com.zee.ios")
+app_identifier("bot.molt.ios")
 
 # Auth is expected via App Store Connect API key.
 # Provide either:

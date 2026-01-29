@@ -86,8 +86,8 @@ done`;
     });
 
     it("should handle code with special characters", () => {
-      const code = `const regex = /\[zee\]d+/g;
-const str = "Hello\[zee\]nWorld";`;
+      const code = `const regex = /\\d+/g;
+const str = "Hello\\nWorld";`;
       const result = markdownTheme.highlightCode!(code, "javascript");
 
       expect(result).toHaveLength(2);
@@ -103,7 +103,7 @@ console.log(message);`;
 
       // Strip ANSI codes to verify content is preserved
       const stripAnsi = (str: string) =>
-        str.replace(new RegExp(`${String.fromCharCode(27)}\[zee\][[0-9;]*m`, "g"), "");
+        str.replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g"), "");
       expect(stripAnsi(result[0])).toBe(`const message = "Hello, World!";`);
       expect(stripAnsi(result[1])).toBe("console.log(message);");
     });

@@ -3,7 +3,7 @@ import { parseReplyDirectives } from "../../../auto-reply/reply/reply-directives
 import type { ReasoningLevel, VerboseLevel } from "../../../auto-reply/thinking.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../../../auto-reply/tokens.js";
 import { formatToolAggregate } from "../../../auto-reply/tool-meta.js";
-import type { ZeeConfig } from "../../../config/config.js";
+import type { MoltbotConfig } from "../../../config/config.js";
 import {
   formatAssistantErrorText,
   formatRawAssistantErrorForUi,
@@ -25,7 +25,7 @@ export function buildEmbeddedRunPayloads(params: {
   toolMetas: ToolMetaEntry[];
   lastAssistant: AssistantMessage | undefined;
   lastToolError?: { toolName: string; meta?: string; error?: string };
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   sessionKey: string;
   verboseLevel?: VerboseLevel;
   reasoningLevel?: ReasoningLevel;
@@ -203,7 +203,7 @@ export function buildEmbeddedRunPayloads(params: {
       );
       const errorSuffix = params.lastToolError.error ? `: ${params.lastToolError.error}` : "";
       replyItems.push({
-        text: `⚠ ${toolSummary} failed${errorSuffix}`,
+        text: `⚠️ ${toolSummary} failed${errorSuffix}`,
         isError: true,
       });
     }

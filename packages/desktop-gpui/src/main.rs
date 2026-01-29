@@ -8,9 +8,11 @@ mod app;
 mod components;
 mod dialogs;
 mod events;
+mod i18n;
 mod keyboard;
 mod state;
 mod theme;
+mod update;
 mod views;
 
 use anyhow::Result;
@@ -29,6 +31,9 @@ fn main() -> Result<()> {
 
     // Initialize GPUI application
     Application::new().run(|cx: &mut App| {
+        // Initialize i18n before views
+        i18n::init(cx);
+
         // Initialize state management
         state::init(cx);
 

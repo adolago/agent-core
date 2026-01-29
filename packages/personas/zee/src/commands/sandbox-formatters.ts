@@ -11,7 +11,7 @@ export function formatSimpleStatus(running: boolean): string {
 }
 
 export function formatImageMatch(matches: boolean): string {
-  return matches ? "✓" : "!  mismatch";
+  return matches ? "✓" : "⚠️  mismatch";
 }
 
 export function formatAge(ms: number): string {

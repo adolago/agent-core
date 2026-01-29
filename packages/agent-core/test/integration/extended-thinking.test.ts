@@ -2,7 +2,7 @@
  * Extended Thinking Model Tests
  *
  * Tests for models with extended thinking capabilities:
- * - Claude Opus 4.5 (Anthropic, OpenCode Zen)
+ * - Claude Opus 4.5 (Anthropic)
  * - GPT-5.2 (OpenAI)
  * - Kimi K2 Thinking (Moonshot)
  * - Gemini 3 (Google)
@@ -116,7 +116,7 @@ describe("Anthropic Claude Extended Thinking", () => {
     // Max variant should have higher budgetTokens
     expect(variants.max.thinking).toEqual({
       type: "enabled",
-      budgetTokens: 32000,
+      budgetTokens: 31999,
     })
   })
 })
@@ -359,21 +359,6 @@ describe("Non-Reasoning Models", () => {
         npm: "@ai-sdk/openai",
       },
       capabilities: { reasoning: false },
-    })
-
-    const variants = ProviderTransform.variants(model)
-    expect(variants).toEqual({})
-  })
-
-  test("DeepSeek models return empty variants", () => {
-    const model = createMockModel({
-      id: "deepseek/deepseek-chat",
-      providerID: "deepseek",
-      api: {
-        id: "deepseek-chat",
-        url: "https://api.deepseek.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
     })
 
     const variants = ProviderTransform.variants(model)

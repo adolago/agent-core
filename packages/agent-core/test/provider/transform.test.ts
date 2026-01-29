@@ -103,6 +103,64 @@ describe("ProviderTransform.options - setCacheKey", () => {
   })
 })
 
+describe("ProviderTransform.variants - mapping parity", () => {
+  test("excludes minimax and glm models from reasoning variants", () => {
+    const minimaxModel = {
+      id: "minimax-model",
+      providerID: "minimax",
+      api: { id: "minimax-model", npm: "@ai-sdk/openai-compatible" },
+      capabilities: { reasoning: true },
+    } as any
+    const glmModel = {
+      id: "glm-4-plus",
+      providerID: "zhipu",
+      api: { id: "glm-4-plus", npm: "@ai-sdk/openai-compatible" },
+      capabilities: { reasoning: true },
+    } as any
+
+    expect(Object.keys(ProviderTransform.variants(minimaxModel))).toHaveLength(0)
+    expect(Object.keys(ProviderTransform.variants(glmModel))).toHaveLength(0)
+  })
+
+  test("xai and openai-compatible models return reasoning variants", () => {
+    const grokModel = {
+      id: "grok-3",
+      providerID: "xai",
+      api: { id: "grok-3", npm: "@ai-sdk/xai" },
+      capabilities: { reasoning: true },
+    } as any
+
+    expect(Object.keys(ProviderTransform.variants(grokModel))).toEqual(["low", "medium", "high"])
+  })
+
+  test("adds azure reasoning variants with minimal for gpt-5", () => {
+    const azureModel = {
+      id: "gpt-5",
+      providerID: "azure",
+      api: { id: "gpt-5", npm: "@ai-sdk/azure" },
+      capabilities: { reasoning: true },
+      release_date: "2025-12-01",
+    } as any
+
+    const variants = ProviderTransform.variants(azureModel)
+    expect(Object.keys(variants)).toContain("minimal")
+    expect(Object.keys(variants)).toContain("high")
+  })
+
+  test("anthropic thinking budgets match default limits", () => {
+    const anthropicModel = {
+      id: "claude-3-5-sonnet",
+      providerID: "anthropic",
+      api: { id: "claude-3-5-sonnet", npm: "@ai-sdk/anthropic" },
+      capabilities: { reasoning: true },
+    } as any
+
+    const variants = ProviderTransform.variants(anthropicModel)
+    expect(variants.high.thinking.budgetTokens).toBe(16000)
+    expect(variants.max.thinking.budgetTokens).toBe(31999)
+  })
+})
+
 describe("ProviderTransform.maxOutputTokens", () => {
   test("returns 32k when modelLimit > 32k", () => {
     const modelLimit = 100000
@@ -194,74 +252,7 @@ describe("ProviderTransform.schema - gemini array items", () => {
 })
 
 describe("ProviderTransform.message - interleaved reasoning fields", () => {
-  test("DeepSeek with tool calls includes reasoning_content in providerOptions", () => {
-    const msgs = [
-      {
-        role: "assistant",
-        content: [
-          { type: "reasoning", text: "Let me think about this..." },
-          {
-            type: "tool-call",
-            toolCallId: "test",
-            toolName: "bash",
-            input: { command: "echo hello" },
-          },
-        ],
-      },
-    ] as any[]
-
-    const result = ProviderTransform.message(
-      msgs,
-      {
-        id: "deepseek/deepseek-chat",
-        providerID: "deepseek",
-        api: {
-          id: "deepseek-chat",
-          url: "https://api.deepseek.com",
-          npm: "@ai-sdk/openai-compatible",
-        },
-        name: "DeepSeek Chat",
-        capabilities: {
-          temperature: true,
-          reasoning: true,
-          attachment: false,
-          toolcall: true,
-          input: { text: true, audio: false, image: false, video: false, pdf: false },
-          output: { text: true, audio: false, image: false, video: false, pdf: false },
-          interleaved: {
-            field: "reasoning_content",
-          },
-        },
-        cost: {
-          input: 0.001,
-          output: 0.002,
-          cache: { read: 0.0001, write: 0.0002 },
-        },
-        limit: {
-          context: 128000,
-          output: 8192,
-        },
-        status: "active",
-        options: {},
-        headers: {},
-        release_date: "2023-04-01",
-      },
-      {},
-    )
-
-    expect(result).toHaveLength(1)
-    expect(result[0].content).toEqual([
-      {
-        type: "tool-call",
-        toolCallId: "test",
-        toolName: "bash",
-        input: { command: "echo hello" },
-      },
-    ])
-    expect(result[0].providerOptions?.openaiCompatible?.reasoning_content).toBe("Let me think about this...")
-  })
-
-  test("Non-DeepSeek providers leave reasoning content unchanged", () => {
+  test("Non-interleaved providers leave reasoning content unchanged", () => {
     const msgs = [
       {
         role: "assistant",
@@ -958,20 +949,6 @@ describe("ProviderTransform.variants", () => {
     expect(result).toEqual({})
   })
 
-  test("deepseek returns empty object", () => {
-    const model = createMockModel({
-      id: "deepseek/deepseek-chat",
-      providerID: "deepseek",
-      api: {
-        id: "deepseek-chat",
-        url: "https://api.deepseek.com",
-        npm: "@ai-sdk/openai-compatible",
-      },
-    })
-    const result = ProviderTransform.variants(model)
-    expect(result).toEqual({})
-  })
-
   test("minimax returns empty object", () => {
     const model = createMockModel({
       id: "minimax/minimax-model",
@@ -1077,8 +1054,7 @@ describe("ProviderTransform.variants", () => {
   })
 
   describe("xai (via openai-compatible)", () => {
-    test("grok-3 returns low/medium/high with reasoningEffort", () => {
-      // xAI now uses openai-compatible instead of dedicated SDK
+    test("grok-3 returns WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
       const model = createMockModel({
         id: "xai/grok-3",
         providerID: "xai",
@@ -1217,7 +1193,7 @@ describe("ProviderTransform.variants", () => {
       expect(result.max).toEqual({
         thinking: {
           type: "enabled",
-          budgetTokens: 32000,
+          budgetTokens: 31999,
         },
       })
     })
@@ -1245,7 +1221,7 @@ describe("ProviderTransform.variants", () => {
       expect(result.max).toEqual({
         thinkingConfig: {
           includeThoughts: true,
-          thinkingBudget: 32000,
+          thinkingBudget: 24576,
         },
       })
     })
@@ -1315,8 +1291,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
   })
 
   describe("Stanley (Grok 4.1 via xAI openai-compatible)", () => {
-    test("xAI models support reasoningEffort variants via openai-compatible", () => {
-      // xAI now uses openai-compatible instead of dedicated SDK
+    test("grok models return WIDELY_SUPPORTED_EFFORTS with reasoningEffort", () => {
       const model = {
         id: "x-ai/grok-4.1-fast",
         providerID: "x-ai",
@@ -1332,6 +1307,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
       } as any
       const variants = ProviderTransform.variants(model)
       expect(Object.keys(variants)).toEqual(["low", "medium", "high"])
+      expect(variants.low).toEqual({ reasoningEffort: "low" })
       expect(variants.high).toEqual({ reasoningEffort: "high" })
     })
   })

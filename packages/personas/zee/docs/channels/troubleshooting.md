@@ -9,8 +9,8 @@ read_when:
 Start with:
 
 ```bash
-zee doctor
-zee channels status --probe
+moltbot doctor
+moltbot channels status --probe
 ```
 
 `channels status --probe` prints warnings when it can detect common channel misconfigurations, and includes small live checks (credentials, some permissions/membership).

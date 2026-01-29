@@ -1,7 +1,7 @@
 import Foundation
 import SwabbleKit
 import Testing
-@testable import Zee
+@testable import Moltbot
 
 @Suite(.serialized) struct VoiceWakeManagerStateTests {
     @Test @MainActor func suspendAndResumeCycleUpdatesState() async {
@@ -35,7 +35,7 @@ import Testing
 
     @Test @MainActor func handleRecognitionCallbackDispatchesCommand() async {
         let manager = VoiceWakeManager()
-        manager.triggerWords = ["zee"]
+        manager.triggerWords = ["clawd"]
         manager.isEnabled = true
 
         actor CaptureBox {
@@ -47,11 +47,11 @@ import Testing
             await capture.set(cmd)
         }
 
-        let transcript = "zee hello"
-        let zeeRange = transcript.range(of: "zee")!
+        let transcript = "clawd hello"
+        let clawdRange = transcript.range(of: "clawd")!
         let helloRange = transcript.range(of: "hello")!
         let segments = [
-            WakeWordSegment(text: "zee", start: 0.0, duration: 0.2, range: zeeRange),
+            WakeWordSegment(text: "clawd", start: 0.0, duration: 0.2, range: clawdRange),
             WakeWordSegment(text: "hello", start: 0.8, duration: 0.2, range: helloRange),
         ]
 

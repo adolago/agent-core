@@ -1,5 +1,5 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
 import {
   deleteMessageTelegram,
@@ -69,7 +69,7 @@ export function readTelegramButtons(
 
 export async function handleTelegramAction(
   params: Record<string, unknown>,
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
 ): Promise<AgentToolResult<unknown>> {
   const action = readStringParam(params, "action", { required: true });
   const accountId = readStringParam(params, "accountId");
@@ -165,7 +165,7 @@ export async function handleTelegramAction(
     const messageThreadId = readNumberParam(params, "messageThreadId", {
       integer: true,
     });
-    const silent = typeof params.silent === "boolean" ? params.silent : undefined;
+    const quoteText = readStringParam(params, "quoteText");
     const token = resolveTelegramToken(cfg, { accountId }).token;
     if (!token) {
       throw new Error(
@@ -179,8 +179,9 @@ export async function handleTelegramAction(
       buttons,
       replyToMessageId: replyToMessageId ?? undefined,
       messageThreadId: messageThreadId ?? undefined,
+      quoteText: quoteText ?? undefined,
       asVoice: typeof params.asVoice === "boolean" ? params.asVoice : undefined,
-      silent,
+      silent: typeof params.silent === "boolean" ? params.silent : undefined,
     });
     return jsonResult({
       ok: true,
@@ -229,6 +230,17 @@ export async function handleTelegramAction(
       allowEmpty: false,
     });
     const buttons = readTelegramButtons(params);
+    if (buttons) {
+      const inlineButtonsScope = resolveTelegramInlineButtonsScope({
+        cfg,
+        accountId: accountId ?? undefined,
+      });
+      if (inlineButtonsScope === "off") {
+        throw new Error(
+          'Telegram inline buttons are disabled. Set channels.telegram.capabilities.inlineButtons to "dm", "group", "all", or "allowlist".',
+        );
+      }
+    }
     const token = resolveTelegramToken(cfg, { accountId }).token;
     if (!token) {
       throw new Error(

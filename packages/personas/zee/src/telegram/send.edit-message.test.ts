@@ -1,21 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const botApi = {
-  editMessageText: vi.fn(),
-};
-
-vi.mock("./accounts.js", () => ({
-  resolveTelegramAccount: vi.fn(() => ({
-    accountId: "default",
-    config: {},
-    enabled: true,
-    token: "",
-    tokenSource: "none",
-  })),
+const { botApi, botCtorSpy } = vi.hoisted(() => ({
+  botApi: {
+    editMessageText: vi.fn(),
+  },
+  botCtorSpy: vi.fn(),
 }));
 
-vi.mock("../infra/retry-policy.js", () => ({
-  createTelegramRetryRunner: vi.fn(() => async (fn: () => Promise<unknown>) => fn()),
+vi.mock("grammy", () => ({
+  Bot: class {
+    api = botApi;
+    constructor(public token: string) {
+      botCtorSpy(token);
+    }
+  },
+  InputFile: class {},
 }));
 
 import { editMessageTelegram } from "./send.js";
@@ -23,6 +22,7 @@ import { editMessageTelegram } from "./send.js";
 describe("editMessageTelegram", () => {
   beforeEach(() => {
     botApi.editMessageText.mockReset();
+    botCtorSpy.mockReset();
   });
 
   it("keeps existing buttons when buttons is undefined (no reply_markup)", async () => {
@@ -31,9 +31,9 @@ describe("editMessageTelegram", () => {
     await editMessageTelegram("123", 1, "hi", {
       token: "tok",
       cfg: {},
-      api: botApi,
     });
 
+    expect(botCtorSpy).toHaveBeenCalledWith("tok");
     expect(botApi.editMessageText).toHaveBeenCalledTimes(1);
     const call = botApi.editMessageText.mock.calls[0] ?? [];
     const params = call[3] as Record<string, unknown>;
@@ -48,7 +48,6 @@ describe("editMessageTelegram", () => {
       token: "tok",
       cfg: {},
       buttons: [],
-      api: botApi,
     });
 
     expect(botApi.editMessageText).toHaveBeenCalledTimes(1);
@@ -70,7 +69,6 @@ describe("editMessageTelegram", () => {
       token: "tok",
       cfg: {},
       buttons: [],
-      api: botApi,
     });
 
     expect(botApi.editMessageText).toHaveBeenCalledTimes(2);

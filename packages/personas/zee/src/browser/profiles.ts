@@ -69,7 +69,7 @@ export function getUsedPorts(
 }
 
 export const PROFILE_COLORS = [
-  "#FF4500", // Orange-red (zee default)
+  "#FF4500", // Orange-red (clawd default)
   "#0066CC", // Blue
   "#00AA00", // Green
   "#9933FF", // Purple

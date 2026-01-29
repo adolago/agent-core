@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_BUNDLE="${1:-dist/Zeebot.app}"
+APP_BUNDLE="${1:-dist/Moltbot.app}"
 IDENTITY="${SIGN_IDENTITY:-}"
 TIMESTAMP_MODE="${CODESIGN_TIMESTAMP:-auto}"
-ENT_TMP_BASE=$(mktemp -t zeebot-entitlements-base.XXXXXX)
-ENT_TMP_APP=$(mktemp -t zeebot-entitlements-app.XXXXXX)
-ENT_TMP_APP_BASE=$(mktemp -t zeebot-entitlements-app-base.XXXXXX)
-ENT_TMP_BUN=$(mktemp -t zeebot-entitlements-bun.XXXXXX)
+DISABLE_LIBRARY_VALIDATION="${DISABLE_LIBRARY_VALIDATION:-0}"
+SKIP_TEAM_ID_CHECK="${SKIP_TEAM_ID_CHECK:-0}"
+ENT_TMP_BASE=$(mktemp -t moltbot-entitlements-base.XXXXXX)
+ENT_TMP_APP_BASE=$(mktemp -t moltbot-entitlements-app-base.XXXXXX)
+ENT_TMP_RUNTIME=$(mktemp -t moltbot-entitlements-runtime.XXXXXX)
+
+if [[ "${APP_BUNDLE}" == "--help" || "${APP_BUNDLE}" == "-h" ]]; then
+  cat <<'HELP'
+Usage: scripts/codesign-mac-app.sh [app-bundle]
+
+Env:
+  SIGN_IDENTITY="Apple Development: Your Name (TEAMID)"
+  ALLOW_ADHOC_SIGNING=1
+  CODESIGN_TIMESTAMP=auto|on|off
+  DISABLE_LIBRARY_VALIDATION=1      # dev-only Sparkle Team ID workaround
+  SKIP_TEAM_ID_CHECK=1              # bypass Team ID audit
+HELP
+  exit 0
+fi
 
 if [ ! -d "$APP_BUNDLE" ]; then
   echo "App bundle not found: $APP_BUNDLE" >&2
@@ -146,11 +161,13 @@ cat > "$ENT_TMP_APP_BASE" <<'PLIST'
     <true/>
     <key>com.apple.security.device.camera</key>
     <true/>
+    <key>com.apple.security.personal-information.location</key>
+    <true/>
 </dict>
 </plist>
 PLIST
 
-cat > "$ENT_TMP_BUN" <<'PLIST'
+cat > "$ENT_TMP_RUNTIME" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -163,33 +180,13 @@ cat > "$ENT_TMP_BUN" <<'PLIST'
 </plist>
 PLIST
 
-cat > "$ENT_TMP_APP" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>com.apple.developer.usernotifications.time-sensitive</key>
-    <true/>
-    <key>com.apple.security.automation.apple-events</key>
-    <true/>
-    <key>com.apple.security.device.audio-input</key>
-    <true/>
-    <key>com.apple.security.device.camera</key>
-    <true/>
-</dict>
-</plist>
-PLIST
-
-# The time-sensitive entitlement is restricted and requires explicit enablement
-# (and typically a matching provisioning profile). It is *not* safe to enable
-# unconditionally for local debug packaging since AMFI will refuse to launch.
-APP_ENTITLEMENTS="$ENT_TMP_APP_BASE"
-if [[ "${ENABLE_TIME_SENSITIVE_NOTIFICATIONS:-}" == "1" ]]; then
-  APP_ENTITLEMENTS="$ENT_TMP_APP"
-else
-  echo "Note: Time Sensitive Notifications entitlement disabled."
-  echo "      To force it: ENABLE_TIME_SENSITIVE_NOTIFICATIONS=1 scripts/codesign-mac-app.sh <app>"
+if [[ "$DISABLE_LIBRARY_VALIDATION" == "1" ]]; then
+  /usr/libexec/PlistBuddy -c "Add :com.apple.security.cs.disable-library-validation bool true" "$ENT_TMP_APP_BASE" >/dev/null 2>&1 || \
+    /usr/libexec/PlistBuddy -c "Set :com.apple.security.cs.disable-library-validation true" "$ENT_TMP_APP_BASE"
+  echo "Note: disable-library-validation entitlement enabled (DISABLE_LIBRARY_VALIDATION=1)."
 fi
+
+APP_ENTITLEMENTS="$ENT_TMP_APP_BASE"
 
 # clear extended attributes to avoid stale signatures
 xattr -cr "$APP_BUNDLE" 2>/dev/null || true
@@ -205,25 +202,65 @@ sign_plain_item() {
   codesign --force ${options_args+"${options_args[@]}"} "${timestamp_args[@]}" --sign "$IDENTITY" "$target"
 }
 
-# Sign main binary
-if [ -f "$APP_BUNDLE/Contents/MacOS/Zeebot" ]; then
-  echo "Signing main binary"; sign_item "$APP_BUNDLE/Contents/MacOS/Zeebot" "$APP_ENTITLEMENTS"
-fi
+team_id_for() {
+  codesign -dv --verbose=4 "$1" 2>&1 | awk -F= '/^TeamIdentifier=/{print $2; exit}'
+}
 
-# Sign bundled gateway payload (native addons, libvips dylibs)
-if [ -d "$APP_BUNDLE/Contents/Resources/Relay" ]; then
-  find "$APP_BUNDLE/Contents/Resources/Relay" -type f \( -name "*.node" -o -name "*.dylib" \) -print0 | while IFS= read -r -d '' f; do
-    echo "Signing gateway payload: $f"; sign_item "$f" "$ENT_TMP_BASE"
-  done
-  if [ -f "$APP_BUNDLE/Contents/Resources/Relay/zeebot" ]; then
-    echo "Signing embedded relay"; sign_item "$APP_BUNDLE/Contents/Resources/Relay/zeebot" "$ENT_TMP_BUN"
+verify_team_ids() {
+  if [[ "$SKIP_TEAM_ID_CHECK" == "1" ]]; then
+    echo "Note: skipping Team ID audit (SKIP_TEAM_ID_CHECK=1)."
+    return 0
   fi
+
+  local expected
+  expected="$(team_id_for "$APP_BUNDLE" || true)"
+  if [[ -z "$expected" ]]; then
+    echo "WARN: TeamIdentifier missing on app bundle; skipping Team ID audit."
+    return 0
+  fi
+
+  local mismatches=()
+  while IFS= read -r -d '' f; do
+    if /usr/bin/file "$f" | /usr/bin/grep -q "Mach-O"; then
+      local team
+      team="$(team_id_for "$f" || true)"
+      if [[ -z "$team" ]]; then
+        team="not set"
+      fi
+      if [[ "$expected" == "not set" ]]; then
+        if [[ "$team" != "not set" ]]; then
+          mismatches+=("$f (TeamIdentifier=$team)")
+        fi
+      elif [[ "$team" != "$expected" ]]; then
+        mismatches+=("$f (TeamIdentifier=$team)")
+      fi
+    fi
+  done < <(find "$APP_BUNDLE" -type f -print0)
+
+  if [[ "${#mismatches[@]}" -gt 0 ]]; then
+    echo "ERROR: Team ID mismatch detected (expected: $expected)"
+    for entry in "${mismatches[@]}"; do
+      echo " - $entry"
+    done
+    echo "Hint: re-sign embedded frameworks or set DISABLE_LIBRARY_VALIDATION=1 for dev builds."
+    exit 1
+  fi
+}
+
+# Sign main binary
+if [ -f "$APP_BUNDLE/Contents/MacOS/Moltbot" ]; then
+  echo "Signing main binary"; sign_item "$APP_BUNDLE/Contents/MacOS/Moltbot" "$APP_ENTITLEMENTS"
 fi
 
 # Sign Sparkle deeply if present
 SPARKLE="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
 if [ -d "$SPARKLE" ]; then
   echo "Signing Sparkle framework and helpers"
+  find "$SPARKLE" -type f -print0 | while IFS= read -r -d '' f; do
+    if /usr/bin/file "$f" | /usr/bin/grep -q "Mach-O"; then
+      sign_plain_item "$f"
+    fi
+  done
   sign_plain_item "$SPARKLE/Versions/B/Sparkle"
   sign_plain_item "$SPARKLE/Versions/B/Autoupdate"
   sign_plain_item "$SPARKLE/Versions/B/Updater.app/Contents/MacOS/Updater"
@@ -246,5 +283,7 @@ fi
 # Finally sign the bundle
 sign_item "$APP_BUNDLE" "$APP_ENTITLEMENTS"
 
-rm -f "$ENT_TMP_BASE" "$ENT_TMP_APP_BASE" "$ENT_TMP_APP" "$ENT_TMP_BUN"
+verify_team_ids
+
+rm -f "$ENT_TMP_BASE" "$ENT_TMP_APP_BASE" "$ENT_TMP_RUNTIME"
 echo "Codesign complete for $APP_BUNDLE"

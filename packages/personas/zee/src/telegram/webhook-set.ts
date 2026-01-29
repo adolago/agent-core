@@ -25,7 +25,10 @@ export async function setTelegramWebhook(opts: {
   });
 }
 
-export async function deleteTelegramWebhook(opts: { token: string; network?: TelegramNetworkConfig }) {
+export async function deleteTelegramWebhook(opts: {
+  token: string;
+  network?: TelegramNetworkConfig;
+}) {
   const fetchImpl = resolveTelegramFetch(undefined, { network: opts.network });
   const client: ApiClientOptions | undefined = fetchImpl
     ? { fetch: fetchImpl as unknown as ApiClientOptions["fetch"] }

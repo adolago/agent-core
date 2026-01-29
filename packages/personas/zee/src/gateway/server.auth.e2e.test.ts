@@ -34,7 +34,7 @@ const openWs = async (port: number) => {
 };
 
 describe("gateway server auth/connect", () => {
-  describe("default auth", () => {
+  describe("default auth (token)", () => {
     let server: Awaited<ReturnType<typeof startGatewayServer>>;
     let port: number;
 
@@ -49,8 +49,8 @@ describe("gateway server auth/connect", () => {
 
     test("closes silent handshakes after timeout", { timeout: 60_000 }, async () => {
       vi.useRealTimers();
-      const prevHandshakeTimeout = process.env.ZEE_TEST_HANDSHAKE_TIMEOUT_MS;
-      process.env.ZEE_TEST_HANDSHAKE_TIMEOUT_MS = "50";
+      const prevHandshakeTimeout = process.env.CLAWDBOT_TEST_HANDSHAKE_TIMEOUT_MS;
+      process.env.CLAWDBOT_TEST_HANDSHAKE_TIMEOUT_MS = "50";
       try {
         const ws = await openWs(port);
         const handshakeTimeoutMs = getHandshakeTimeoutMs();
@@ -58,15 +58,15 @@ describe("gateway server auth/connect", () => {
         expect(closed).toBe(true);
       } finally {
         if (prevHandshakeTimeout === undefined) {
-          delete process.env.ZEE_TEST_HANDSHAKE_TIMEOUT_MS;
+          delete process.env.CLAWDBOT_TEST_HANDSHAKE_TIMEOUT_MS;
         } else {
-          process.env.ZEE_TEST_HANDSHAKE_TIMEOUT_MS = prevHandshakeTimeout;
+          process.env.CLAWDBOT_TEST_HANDSHAKE_TIMEOUT_MS = prevHandshakeTimeout;
         }
       }
     });
 
     test("connect (req) handshake returns hello-ok payload", async () => {
-      const { CONFIG_PATH_ZEEBOT, STATE_DIR_ZEEBOT } = await import("../config/config.js");
+      const { CONFIG_PATH, STATE_DIR } = await import("../config/config.js");
       const ws = await openWs(port);
 
       const res = await connectReq(ws);
@@ -78,8 +78,8 @@ describe("gateway server auth/connect", () => {
           }
         | undefined;
       expect(payload?.type).toBe("hello-ok");
-      expect(payload?.snapshot?.configPath).toBe(CONFIG_PATH_ZEEBOT);
-      expect(payload?.snapshot?.stateDir).toBe(STATE_DIR_ZEEBOT);
+      expect(payload?.snapshot?.configPath).toBe(CONFIG_PATH);
+      expect(payload?.snapshot?.stateDir).toBe(STATE_DIR);
 
       ws.close();
     });
@@ -119,6 +119,18 @@ describe("gateway server auth/connect", () => {
         (o) => o.type === "res" && o.id === "h1",
       );
       expect(res.ok).toBe(false);
+      await new Promise<void>((resolve) => ws.once("close", () => resolve()));
+    });
+
+    test("requires nonce when host is non-local", async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
+        headers: { host: "example.com" },
+      });
+      await new Promise<void>((resolve) => ws.once("open", resolve));
+
+      const res = await connectReq(ws);
+      expect(res.ok).toBe(false);
+      expect(res.error?.message).toBe("device nonce required");
       await new Promise<void>((resolve) => ws.once("close", () => resolve()));
     });
 
@@ -208,8 +220,8 @@ describe("gateway server auth/connect", () => {
     let prevToken: string | undefined;
 
     beforeAll(async () => {
-      prevToken = process.env.ZEE_GATEWAY_TOKEN;
-      process.env.ZEE_GATEWAY_TOKEN = "secret";
+      prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = "secret";
       port = await getFreePort();
       server = await startGatewayServer(port);
     });
@@ -217,9 +229,9 @@ describe("gateway server auth/connect", () => {
     afterAll(async () => {
       await server.close();
       if (prevToken === undefined) {
-        delete process.env.ZEE_GATEWAY_TOKEN;
+        delete process.env.CLAWDBOT_GATEWAY_TOKEN;
       } else {
-        process.env.ZEE_GATEWAY_TOKEN = prevToken;
+        process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
       }
     });
 
@@ -234,6 +246,7 @@ describe("gateway server auth/connect", () => {
     test("returns control ui hint when token is missing", async () => {
       const ws = await openWs(port);
       const res = await connectReq(ws, {
+        skipDefaultAuth: true,
         client: {
           id: GATEWAY_CLIENT_NAMES.CONTROL_UI,
           version: "1.0.0",
@@ -281,22 +294,23 @@ describe("gateway server auth/connect", () => {
     ws.close();
     await server.close();
     if (prevToken === undefined) {
-      delete process.env.ZEE_GATEWAY_TOKEN;
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
     } else {
-      process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 
   test("allows control ui with device identity when insecure auth is enabled", async () => {
     testState.gatewayControlUi = { allowInsecureAuth: true };
+    testState.gatewayAuth = { mode: "token", token: "secret" };
     const { writeConfigFile } = await import("../config/config.js");
     await writeConfigFile({
       gateway: {
         trustedProxies: ["127.0.0.1"],
       },
     } as any);
-    const prevToken = process.env.ZEE_GATEWAY_TOKEN;
-    process.env.ZEE_GATEWAY_TOKEN = "secret";
+    const prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+    process.env.CLAWDBOT_GATEWAY_TOKEN = "secret";
     const port = await getFreePort();
     const server = await startGatewayServer(port);
     const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
@@ -345,16 +359,17 @@ describe("gateway server auth/connect", () => {
     ws.close();
     await server.close();
     if (prevToken === undefined) {
-      delete process.env.ZEE_GATEWAY_TOKEN;
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
     } else {
-      process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 
   test("allows control ui with stale device identity when device auth is disabled", async () => {
     testState.gatewayControlUi = { dangerouslyDisableDeviceAuth: true };
-    const prevToken = process.env.ZEE_GATEWAY_TOKEN;
-    process.env.ZEE_GATEWAY_TOKEN = "secret";
+    testState.gatewayAuth = { mode: "token", token: "secret" };
+    const prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+    process.env.CLAWDBOT_GATEWAY_TOKEN = "secret";
     const port = await getFreePort();
     const server = await startGatewayServer(port);
     const ws = await openWs(port);
@@ -392,9 +407,9 @@ describe("gateway server auth/connect", () => {
     ws.close();
     await server.close();
     if (prevToken === undefined) {
-      delete process.env.ZEE_GATEWAY_TOKEN;
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
     } else {
-      process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 
@@ -428,9 +443,9 @@ describe("gateway server auth/connect", () => {
     ws2.close();
     await server.close();
     if (prevToken === undefined) {
-      delete process.env.ZEE_GATEWAY_TOKEN;
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
     } else {
-      process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 
@@ -446,7 +461,7 @@ describe("gateway server auth/connect", () => {
     const { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } =
       await import("../utils/message-channel.js");
     const { server, ws, port, prevToken } = await startServerWithClient("secret");
-    const identityDir = await mkdtemp(join(tmpdir(), "zee-device-scope-"));
+    const identityDir = await mkdtemp(join(tmpdir(), "moltbot-device-scope-"));
     const identity = loadOrCreateDeviceIdentity(join(identityDir, "device.json"));
     const client = {
       id: GATEWAY_CLIENT_NAMES.TEST,
@@ -507,9 +522,9 @@ describe("gateway server auth/connect", () => {
     ws2.close();
     await server.close();
     if (prevToken === undefined) {
-      delete process.env.ZEE_GATEWAY_TOKEN;
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
     } else {
-      process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 
@@ -545,9 +560,9 @@ describe("gateway server auth/connect", () => {
     ws2.close();
     await server.close();
     if (prevToken === undefined) {
-      delete process.env.ZEE_GATEWAY_TOKEN;
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
     } else {
-      process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
   });
 

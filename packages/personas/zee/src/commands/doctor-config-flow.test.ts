@@ -9,10 +9,10 @@ import { loadAndMaybeMigrateDoctorConfig } from "./doctor-config-flow.js";
 describe("doctor config flow", () => {
   it("preserves invalid config for doctor repairs", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".zee");
+      const configDir = path.join(home, ".clawdbot");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "zee.json"),
+        path.join(configDir, "moltbot.json"),
         JSON.stringify(
           {
             gateway: { auth: { mode: "token", token: 123 } },
@@ -37,10 +37,10 @@ describe("doctor config flow", () => {
 
   it("drops unknown keys on repair", async () => {
     await withTempHome(async (home) => {
-      const configDir = path.join(home, ".zee");
+      const configDir = path.join(home, ".clawdbot");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
-        path.join(configDir, "zee.json"),
+        path.join(configDir, "moltbot.json"),
         JSON.stringify(
           {
             bridge: { bind: "auto" },

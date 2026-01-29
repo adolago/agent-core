@@ -213,6 +213,18 @@ type ExecErrorDetails = {
   code?: unknown;
 };
 
+export type TailscaleWhoisIdentity = {
+  login: string;
+  name?: string;
+};
+
+type TailscaleWhoisCacheEntry = {
+  value: TailscaleWhoisIdentity | null;
+  expiresAt: number;
+};
+
+const whoisCache = new Map<string, TailscaleWhoisCacheEntry>();
+
 function extractExecErrorText(err: unknown) {
   const errOutput = err as ExecErrorDetails;
   const stdout = typeof errOutput.stdout === "string" ? errOutput.stdout : "";
@@ -333,7 +345,7 @@ export async function ensureFunnel(
     runtime.error("Failed to enable Tailscale Funnel. Is it allowed on your tailnet?");
     runtime.error(
       info(
-        `Tip: Funnel is optional for ZEE. You can keep running the web gateway without it: \`${formatCliCommand("zee gateway")}\``,
+        `Tip: Funnel is optional for Moltbot. You can keep running the web gateway without it: \`${formatCliCommand("moltbot gateway")}\``,
       ),
     );
     if (shouldLogVerbose()) {
@@ -381,18 +393,6 @@ export async function disableTailscaleFunnel(exec: typeof runExec = runExec) {
     timeoutMs: 15_000,
   });
 }
-
-export type TailscaleWhoisIdentity = {
-  login: string;
-  name?: string;
-};
-
-type TailscaleWhoisCacheEntry = {
-  value: TailscaleWhoisIdentity | null;
-  expiresAt: number;
-};
-
-const whoisCache = new Map<string, TailscaleWhoisCacheEntry>();
 
 function getString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;

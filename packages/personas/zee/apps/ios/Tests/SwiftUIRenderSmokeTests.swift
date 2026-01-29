@@ -1,8 +1,8 @@
-import ZeeKit
+import MoltbotKit
 import SwiftUI
 import Testing
 import UIKit
-@testable import Zee
+@testable import Moltbot
 
 @Suite struct SwiftUIRenderSmokeTests {
     @MainActor private static func host(_ view: some View) -> UIWindow {
@@ -75,7 +75,7 @@ import UIKit
     }
 
     @Test @MainActor func voiceWakeToastBuildsAViewHierarchy() {
-        let root = VoiceWakeToast(command: "zee: do something")
+        let root = VoiceWakeToast(command: "moltbot: do something")
         _ = Self.host(root)
     }
 }

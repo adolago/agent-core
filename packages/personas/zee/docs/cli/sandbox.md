@@ -11,29 +11,29 @@ Manage Docker-based sandbox containers for isolated agent execution.
 
 ## Overview
 
-Zee can run agents in isolated Docker containers for security. The `sandbox` commands help you manage these containers, especially after updates or configuration changes.
+Moltbot can run agents in isolated Docker containers for security. The `sandbox` commands help you manage these containers, especially after updates or configuration changes.
 
 ## Commands
 
-### `zee sandbox explain`
+### `moltbot sandbox explain`
 
 Inspect the **effective** sandbox mode/scope/workspace access, sandbox tool policy, and elevated gates (with fix-it config key paths).
 
 ```bash
-zee sandbox explain
-zee sandbox explain --session agent:main:main
-zee sandbox explain --agent work
-zee sandbox explain --json
+moltbot sandbox explain
+moltbot sandbox explain --session agent:main:main
+moltbot sandbox explain --agent work
+moltbot sandbox explain --json
 ```
 
-### `zee sandbox list`
+### `moltbot sandbox list`
 
 List all sandbox containers with their status and configuration.
 
 ```bash
-zee sandbox list
-zee sandbox list --browser  # List only browser containers
-zee sandbox list --json     # JSON output
+moltbot sandbox list
+moltbot sandbox list --browser  # List only browser containers
+moltbot sandbox list --json     # JSON output
 ```
 
 **Output includes:**
@@ -43,16 +43,16 @@ zee sandbox list --json     # JSON output
 - Idle time (time since last use)
 - Associated session/agent
 
-### `zee sandbox recreate`
+### `moltbot sandbox recreate`
 
 Remove sandbox containers to force recreation with updated images/config.
 
 ```bash
-zee sandbox recreate --all                # Recreate all containers
-zee sandbox recreate --session main       # Specific session
-zee sandbox recreate --agent mybot        # Specific agent
-zee sandbox recreate --browser            # Only browser containers
-zee sandbox recreate --all --force        # Skip confirmation
+moltbot sandbox recreate --all                # Recreate all containers
+moltbot sandbox recreate --session main       # Specific session
+moltbot sandbox recreate --agent mybot        # Specific agent
+moltbot sandbox recreate --browser            # Only browser containers
+moltbot sandbox recreate --all --force        # Skip confirmation
 ```
 
 **Options:**
@@ -70,14 +70,14 @@ zee sandbox recreate --all --force        # Skip confirmation
 
 ```bash
 # Pull new image
-docker pull zee-sandbox:latest
-docker tag zee-sandbox:latest zee-sandbox:bookworm-slim
+docker pull moltbot-sandbox:latest
+docker tag moltbot-sandbox:latest moltbot-sandbox:bookworm-slim
 
 # Update config to use new image
 # Edit config: agents.defaults.sandbox.docker.image (or agents.list[].sandbox.docker.image)
 
 # Recreate containers
-zee sandbox recreate --all
+moltbot sandbox recreate --all
 ```
 
 ### After changing sandbox configuration
@@ -86,15 +86,15 @@ zee sandbox recreate --all
 # Edit config: agents.defaults.sandbox.* (or agents.list[].sandbox.*)
 
 # Recreate to apply new config
-zee sandbox recreate --all
+moltbot sandbox recreate --all
 ```
 
 ### After changing setupCommand
 
 ```bash
-zee sandbox recreate --all
+moltbot sandbox recreate --all
 # or just one agent:
-zee sandbox recreate --agent family
+moltbot sandbox recreate --agent family
 ```
 
 
@@ -102,7 +102,7 @@ zee sandbox recreate --agent family
 
 ```bash
 # Update only one agent's containers
-zee sandbox recreate --agent alfred
+moltbot sandbox recreate --agent alfred
 ```
 
 ## Why is this needed?
@@ -112,14 +112,14 @@ zee sandbox recreate --agent alfred
 - Containers are only pruned after 24h of inactivity
 - Regularly-used agents keep old containers running indefinitely
 
-**Solution:** Use `zee sandbox recreate` to force removal of old containers. They'll be recreated automatically with current settings when next needed.
+**Solution:** Use `moltbot sandbox recreate` to force removal of old containers. They'll be recreated automatically with current settings when next needed.
 
-Tip: prefer `zee sandbox recreate` over manual `docker rm`. It uses the
+Tip: prefer `moltbot sandbox recreate` over manual `docker rm`. It uses the
 Gateway’s container naming and avoids mismatches when scope/session keys change.
 
 ## Configuration
 
-Sandbox settings live in `~/.zee/zee.json` under `agents.defaults.sandbox` (per-agent overrides go in `agents.list[].sandbox`):
+Sandbox settings live in `~/.clawdbot/moltbot.json` under `agents.defaults.sandbox` (per-agent overrides go in `agents.list[].sandbox`):
 
 ```jsonc
 {
@@ -129,8 +129,8 @@ Sandbox settings live in `~/.zee/zee.json` under `agents.defaults.sandbox` (per-
         "mode": "all",                    // off, non-main, all
         "scope": "agent",                 // session, agent, shared
         "docker": {
-          "image": "zee-sandbox:bookworm-slim",
-          "containerPrefix": "zee-sbx-"
+          "image": "moltbot-sandbox:bookworm-slim",
+          "containerPrefix": "moltbot-sbx-"
           // ... more Docker options
         },
         "prune": {

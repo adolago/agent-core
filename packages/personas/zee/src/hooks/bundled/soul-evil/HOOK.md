@@ -1,14 +1,15 @@
 ---
 name: soul-evil
 description: "Swap SOUL.md with SOUL_EVIL.md during a purge window or by random chance"
-homepage: https://docs.zee.bot/hooks/soul-evil
+homepage: https://docs.molt.bot/hooks/soul-evil
 metadata:
   {
-    "zee":
+    "moltbot":
       {
+        "emoji": "😈",
         "events": ["agent:bootstrap"],
         "requires": { "config": ["hooks.internal.entries.soul-evil.enabled"] },
-        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Zee" }],
+        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Moltbot" }],
       },
   }
 ---
@@ -30,7 +31,7 @@ You can change the filename via hook config.
 
 ## Configuration
 
-Add this to your config (`~/.zee/zee.json`):
+Add this to your config (`~/.clawdbot/moltbot.json`):
 
 ```json
 {
@@ -66,5 +67,5 @@ Add this to your config (`~/.zee/zee.json`):
 ## Enable
 
 ```bash
-zee hooks enable soul-evil
+moltbot hooks enable soul-evil
 ```

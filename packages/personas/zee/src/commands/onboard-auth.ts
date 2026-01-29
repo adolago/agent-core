@@ -29,12 +29,17 @@ export {
 } from "./onboard-auth.config-minimax.js";
 
 export {
+  applyOpencodeZenConfig,
+  applyOpencodeZenProviderConfig,
+} from "./onboard-auth.config-opencode.js";
+export {
   OPENROUTER_DEFAULT_MODEL_REF,
   setAnthropicApiKey,
   setGeminiApiKey,
   setKimiCodeApiKey,
   setMinimaxApiKey,
   setMoonshotApiKey,
+  setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
   setVeniceApiKey,

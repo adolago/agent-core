@@ -1,74 +1,116 @@
-import { HttpError } from "grammy";
-
 import { extractErrorCode, formatErrorMessage } from "../infra/errors.js";
 
-const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
-const RETRYABLE_ERROR_CODES = new Set([
-  "ETIMEDOUT",
-  "ESOCKETTIMEDOUT",
+const RECOVERABLE_ERROR_CODES = new Set([
   "ECONNRESET",
   "ECONNREFUSED",
-  "EAI_AGAIN",
-  "ENOTFOUND",
+  "EPIPE",
+  "ETIMEDOUT",
+  "ESOCKETTIMEDOUT",
   "ENETUNREACH",
   "EHOSTUNREACH",
-  "EPIPE",
-  "ERR_SOCKET_TIMEOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
   "UND_ERR_CONNECT_TIMEOUT",
   "UND_ERR_HEADERS_TIMEOUT",
-  "UND_ERR_SOCKET",
   "UND_ERR_BODY_TIMEOUT",
-  "UND_ERR_REQUEST_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "UND_ERR_ABORTED",
+  "ECONNABORTED",
+  "ERR_NETWORK",
 ]);
-const RETRYABLE_MESSAGE_RE =
-  /(?:429|timeout|timed out|connect|reset|closed|unavailable|temporar(?:ily|y)|socket hang up|network)/i;
 
-function isAbortError(err: unknown): boolean {
-  if (!err) return false;
-  if (err instanceof Error && err.name === "AbortError") return true;
-  if (typeof err === "object" && "name" in err && err.name === "AbortError") return true;
-  const code = extractErrorCode(err);
-  return code === "ABORT_ERR" || code === "ERR_ABORTED";
+const RECOVERABLE_ERROR_NAMES = new Set([
+  "AbortError",
+  "TimeoutError",
+  "ConnectTimeoutError",
+  "HeadersTimeoutError",
+  "BodyTimeoutError",
+]);
+
+const RECOVERABLE_MESSAGE_SNIPPETS = [
+  "fetch failed",
+  "typeerror: fetch failed",
+  "undici",
+  "network error",
+  "network request",
+  "client network socket disconnected",
+  "socket hang up",
+  "getaddrinfo",
+];
+
+function normalizeCode(code?: string): string {
+  return code?.trim().toUpperCase() ?? "";
 }
 
-function getErrorStatus(err: unknown): number | undefined {
-  if (!err || typeof err !== "object") return undefined;
-  if ("status" in err && typeof err.status === "number") return err.status;
-  if ("response" in err && err.response && typeof err.response === "object") {
-    const status = (err.response as { status?: unknown }).status;
-    if (typeof status === "number") return status;
-  }
-  if ("error_code" in err && typeof err.error_code === "number") return err.error_code;
-  if ("error" in err && err.error && typeof err.error === "object") {
-    const nestedStatus = (err.error as { error_code?: unknown }).error_code;
-    if (typeof nestedStatus === "number") return nestedStatus;
-  }
-  if (err instanceof HttpError) {
-    const status = err.response?.status;
-    if (typeof status === "number") return status;
-  }
-  return undefined;
+function getErrorName(err: unknown): string {
+  if (!err || typeof err !== "object") return "";
+  return "name" in err ? String(err.name) : "";
 }
 
 function getErrorCode(err: unknown): string | undefined {
-  let current: unknown = err;
-  for (let i = 0; i < 3; i += 1) {
-    const code = extractErrorCode(current);
-    if (code) return code;
-    if (!current || typeof current !== "object" || !("cause" in current)) break;
-    current = (current as { cause?: unknown }).cause;
-  }
+  const direct = extractErrorCode(err);
+  if (direct) return direct;
+  if (!err || typeof err !== "object") return undefined;
+  const errno = (err as { errno?: unknown }).errno;
+  if (typeof errno === "string") return errno;
+  if (typeof errno === "number") return String(errno);
   return undefined;
 }
 
+function collectErrorCandidates(err: unknown): unknown[] {
+  const queue = [err];
+  const seen = new Set<unknown>();
+  const candidates: unknown[] = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current == null || seen.has(current)) continue;
+    seen.add(current);
+    candidates.push(current);
+
+    if (typeof current === "object") {
+      const cause = (current as { cause?: unknown }).cause;
+      if (cause && !seen.has(cause)) queue.push(cause);
+      const reason = (current as { reason?: unknown }).reason;
+      if (reason && !seen.has(reason)) queue.push(reason);
+      const errors = (current as { errors?: unknown }).errors;
+      if (Array.isArray(errors)) {
+        for (const nested of errors) {
+          if (nested && !seen.has(nested)) queue.push(nested);
+        }
+      }
+    }
+  }
+
+  return candidates;
+}
+
+export type TelegramNetworkErrorContext = "polling" | "send" | "webhook" | "unknown";
+
 export function isRecoverableTelegramNetworkError(
   err: unknown,
-  _options?: { context?: string },
+  options: { context?: TelegramNetworkErrorContext; allowMessageMatch?: boolean } = {},
 ): boolean {
-  if (isAbortError(err)) return false;
-  const status = getErrorStatus(err);
-  if (typeof status === "number" && RETRYABLE_STATUS_CODES.has(status)) return true;
-  const code = getErrorCode(err);
-  if (code && RETRYABLE_ERROR_CODES.has(code)) return true;
-  return RETRYABLE_MESSAGE_RE.test(formatErrorMessage(err));
+  if (!err) return false;
+  const allowMessageMatch =
+    typeof options.allowMessageMatch === "boolean"
+      ? options.allowMessageMatch
+      : options.context !== "send";
+
+  for (const candidate of collectErrorCandidates(err)) {
+    const code = normalizeCode(getErrorCode(candidate));
+    if (code && RECOVERABLE_ERROR_CODES.has(code)) return true;
+
+    const name = getErrorName(candidate);
+    if (name && RECOVERABLE_ERROR_NAMES.has(name)) return true;
+
+    if (allowMessageMatch) {
+      const message = formatErrorMessage(candidate).toLowerCase();
+      if (message && RECOVERABLE_MESSAGE_SNIPPETS.some((snippet) => message.includes(snippet))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }

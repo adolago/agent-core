@@ -316,10 +316,11 @@ export namespace ProviderTransform {
     if (!model.capabilities.reasoning) return {}
 
     const id = model.id.toLowerCase()
-    if (id.includes("deepseek") || id.includes("minimax") || id.includes("glm")) return {}
+    if (id.includes("minimax") || id.includes("glm")) return {}
 
     // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
-    if (id.includes("grok") && id.includes("grok-3-mini")) {
+    // grok-3-mini only supports low/high
+    if (id.includes("grok-3-mini")) {
       if (model.api.npm === "@openrouter/ai-sdk-provider") {
         return {
           low: { reasoning: { effort: "low" } },
@@ -337,8 +338,50 @@ export namespace ProviderTransform {
         if (!model.id.includes("gpt") && !model.id.includes("gemini-3")) return {}
         return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoning: { effort } }]))
 
+      case "@ai-sdk/gateway":
+        return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+
+      case "@ai-sdk/github-copilot": {
+        const copilotEfforts = iife(() => {
+          if (id.includes("5.1-codex-max") || id.includes("5.2")) return [...WIDELY_SUPPORTED_EFFORTS, "xhigh"]
+          return WIDELY_SUPPORTED_EFFORTS
+        })
+        return Object.fromEntries(
+          copilotEfforts.map((effort) => [
+            effort,
+            {
+              reasoningEffort: effort,
+              reasoningSummary: "auto",
+              include: ["reasoning.encrypted_content"],
+            },
+          ]),
+        )
+      }
+
+      case "@ai-sdk/cerebras":
+      case "@ai-sdk/togetherai":
+      case "@ai-sdk/xai":
+      case "@ai-sdk/deepinfra":
       case "@ai-sdk/openai-compatible":
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+
+      case "@ai-sdk/azure": {
+        if (id === "o1-mini") return {}
+        const azureEfforts = ["low", "medium", "high"]
+        if (id.includes("gpt-5-") || id === "gpt-5") {
+          azureEfforts.unshift("minimal")
+        }
+        return Object.fromEntries(
+          azureEfforts.map((effort) => [
+            effort,
+            {
+              reasoningEffort: effort,
+              reasoningSummary: "auto",
+              include: ["reasoning.encrypted_content"],
+            },
+          ]),
+        )
+      }
 
       case "@ai-sdk/openai":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/openai
@@ -378,17 +421,48 @@ export namespace ProviderTransform {
           high: {
             thinking: {
               type: "enabled",
-              budgetTokens: THINKING_BUDGETS.medium,
+              budgetTokens: 16000,
             },
           },
           max: {
             thinking: {
               type: "enabled",
-              budgetTokens: THINKING_BUDGETS.high,
+              budgetTokens: 31999,
             },
           },
         }
 
+      case "@ai-sdk/amazon-bedrock":
+        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock
+        if (model.api.id.includes("anthropic")) {
+          return {
+            high: {
+              reasoningConfig: {
+                type: "enabled",
+                budgetTokens: 16000,
+              },
+            },
+            max: {
+              reasoningConfig: {
+                type: "enabled",
+                budgetTokens: 31999,
+              },
+            },
+          }
+        }
+        return Object.fromEntries(
+          WIDELY_SUPPORTED_EFFORTS.map((effort) => [
+            effort,
+            {
+              reasoningConfig: {
+                type: "enabled",
+                maxReasoningEffort: effort,
+              },
+            },
+          ]),
+        )
+
+      case "@ai-sdk/google-vertex":
       case "@ai-sdk/google":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
         if (id.includes("2.5")) {
@@ -396,13 +470,13 @@ export namespace ProviderTransform {
             high: {
               thinkingConfig: {
                 includeThoughts: true,
-                thinkingBudget: THINKING_BUDGETS.medium,
+                thinkingBudget: 16000,
               },
             },
             max: {
               thinkingConfig: {
                 includeThoughts: true,
-                thinkingBudget: THINKING_BUDGETS.high,
+                thinkingBudget: 24576,
               },
             },
           }
@@ -417,6 +491,32 @@ export namespace ProviderTransform {
           ]),
         )
 
+      case "@ai-sdk/mistral":
+        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/mistral
+        return {}
+
+      case "@ai-sdk/cohere":
+        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/cohere
+        return {}
+
+      case "@ai-sdk/groq": {
+        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/groq
+        const groqEffort = ["none", ...WIDELY_SUPPORTED_EFFORTS]
+        return Object.fromEntries(
+          groqEffort.map((effort) => [
+            effort,
+            {
+              includeThoughts: true,
+              thinkingLevel: effort,
+            },
+          ]),
+        )
+      }
+
+      case "@ai-sdk/perplexity":
+        // https://v5.ai-sdk.dev/providers/ai-sdk-providers/perplexity
+        return {}
+
     }
     return {}
   }
@@ -429,7 +529,11 @@ export namespace ProviderTransform {
     const result: Record<string, any> = {}
 
     // openai and providers using openai package should set store to false by default.
-    if (input.model.providerID === "openai" || input.model.api.npm === "@ai-sdk/openai") {
+    if (
+      input.model.providerID === "openai" ||
+      input.model.api.npm === "@ai-sdk/openai" ||
+      input.model.api.npm === "@ai-sdk/github-copilot"
+    ) {
       result["store"] = false
     }
 
@@ -463,7 +567,7 @@ export namespace ProviderTransform {
       result["promptCacheKey"] = input.sessionID
     }
 
-    if (input.model.api.npm === "@ai-sdk/google") {
+    if (input.model.api.npm === "@ai-sdk/google" || input.model.api.npm === "@ai-sdk/google-vertex") {
       result["thinkingConfig"] = {
         includeThoughts: true,
       }
@@ -481,18 +585,22 @@ export namespace ProviderTransform {
         result["reasoningEffort"] = "medium"
       }
 
-      if (input.model.api.id.endsWith("gpt-5.") && input.model.providerID !== "azure") {
+      if (input.model.api.id.includes("gpt-5.") && input.model.providerID !== "azure") {
         result["textVerbosity"] = "low"
       }
 
       // GPT-5 specific params for native OpenAI SDK only
-      // These params are NOT supported by @ai-sdk/openai-compatible (used by OpenCode Zen)
+      // These params are NOT supported by @ai-sdk/openai-compatible
       // and cause "Bad Request" errors if sent to openai-compatible backends
       if (input.model.providerID === "openai" && input.model.api.npm === "@ai-sdk/openai") {
         result["promptCacheKey"] = input.sessionID
         result["include"] = ["reasoning.encrypted_content"]
         result["reasoningSummary"] = "auto"
       }
+    }
+
+    if (input.model.providerID === "venice") {
+      result["promptCacheKey"] = input.sessionID
     }
     return result
   }

@@ -7,6 +7,7 @@ use gpui::*;
 
 use crate::api::types::{PermissionDecision, PermissionReplyRequest, PermissionRequest};
 use crate::api::ApiState;
+use crate::i18n::I18n;
 use crate::theme::Theme;
 
 /// Render a permission prompt overlay
@@ -66,6 +67,7 @@ fn render_permission_card(
     theme: &Theme,
     cx: &mut App,
 ) -> impl IntoElement {
+    let i18n = cx.global::<I18n>();
     // Clone values for button closures
     let request_id_allow = request_id.clone();
     let request_id_deny = request_id.clone();
@@ -109,7 +111,7 @@ fn render_permission_card(
                             div()
                                 .text_lg()
                                 .text_color(theme.warning)
-                                .child("⚠"),
+                                .child("!"),
                         ),
                 )
                 .child(
@@ -121,13 +123,13 @@ fn render_permission_card(
                             div()
                                 .text_lg()
                                 .font_weight(FontWeight::SEMIBOLD)
-                                .child("Permission Required"),
+                                .child(i18n.t("permission.title")),
                         )
                         .child(
                             div()
                                 .text_sm()
                                 .text_color(theme.text_muted)
-                                .child(format!("Tool: {}", permission)),
+                                .child(i18n.format("permission.tool", &[("tool", permission.as_str())])),
                         ),
                 ),
         )
@@ -151,7 +153,7 @@ fn render_permission_card(
                                     .text_sm()
                                     .font_weight(FontWeight::MEDIUM)
                                     .text_color(theme.text_muted)
-                                    .child("Requested patterns:"),
+                                    .child(i18n.t("permission.patterns")),
                             )
                             .child(
                                 div()
@@ -185,7 +187,7 @@ fn render_permission_card(
                                     .text_sm()
                                     .font_weight(FontWeight::MEDIUM)
                                     .text_color(theme.text_muted)
-                                    .child("Details:"),
+                                    .child(i18n.t("permission.details")),
                             )
                             .child(
                                 div()
@@ -206,7 +208,10 @@ fn render_permission_card(
                         div()
                             .text_xs()
                             .text_color(theme.text_muted)
-                            .child(format!("Call ID: {}", tool_info.clone().unwrap_or_default())),
+                            .child(i18n.format(
+                                "permission.call_id",
+                                &[("id", tool_info.clone().unwrap_or_default().as_str())],
+                            )),
                     )
                 }),
         )
@@ -230,7 +235,7 @@ fn render_permission_card(
                             el.child(
                                 create_action_button(
                                     "always-allow",
-                                    "Always Allow",
+                                    &i18n.t("permission.always_allow"),
                                     theme.background_element,
                                     theme.text,
                                     request_id_always,
@@ -249,7 +254,7 @@ fn render_permission_card(
                         .gap(px(8.0))
                         .child(create_action_button(
                             "deny",
-                            "Deny",
+                            &i18n.t("permission.deny"),
                             theme.background_element,
                             theme.text,
                             request_id_deny,
@@ -259,7 +264,7 @@ fn render_permission_card(
                         ))
                         .child(create_action_button(
                             "allow",
-                            "Allow",
+                            &i18n.t("permission.allow"),
                             theme.primary,
                             theme.background,
                             request_id_allow,

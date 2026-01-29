@@ -35,7 +35,7 @@ vi.mock("../config/sessions.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config/sessions.js")>();
   return {
     ...actual,
-    resolveStorePath: vi.fn(() => "/tmp/zee-sessions.json"),
+    resolveStorePath: vi.fn(() => "/tmp/moltbot-sessions.json"),
     updateLastRoute: (...args: unknown[]) => updateLastRouteMock(...args),
     resolveSessionKey: vi.fn(),
   };
@@ -60,10 +60,10 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       messages: { responsePrefix: "PFX" },
       channels: { discord: { dm: { enabled: true, policy: "open" } } },
     } as ReturnType<typeof import("../config/config.js").loadConfig>;
@@ -129,10 +129,10 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       channels: { discord: { dm: { enabled: true, policy: "open" } } },
     } as ReturnType<typeof import("../config/config.js").loadConfig>;
 
@@ -208,10 +208,10 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       channels: { discord: { dm: { enabled: true, policy: "open" } } },
     } as ReturnType<typeof import("../config/config.js").loadConfig>;
 
@@ -298,10 +298,10 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },
@@ -389,10 +389,10 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       channels: {
         discord: {
           dm: { enabled: true, policy: "open" },
@@ -473,10 +473,10 @@ describe("discord tool result dispatch", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-5",
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       channels: {
         discord: { dm: { enabled: true, policy: "pairing", allowFrom: [] } },
       },

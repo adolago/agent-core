@@ -2,6 +2,8 @@ import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
+import { Filesystem } from "../../src/util/filesystem";
+import { Instance } from "../../src/project/instance";
 
 // Setup filesystem
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "agent-core-test-"));
@@ -78,17 +80,21 @@ const FakeFilesystem = {
   }
 };
 
-// Mock modules
-const filesystemPath = path.resolve(__dirname, "../../src/util/filesystem.ts");
-mock.module(filesystemPath, () => ({ Filesystem: FakeFilesystem }));
+const originalFilesystem = {
+  findUp: Filesystem.findUp,
+  findFirstUp: Filesystem.findFirstUp,
+  up: Filesystem.up,
+};
 
-const instancePath = path.resolve(__dirname, "../../src/project/instance.ts");
-mock.module(instancePath, () => ({
-    Instance: {
-        directory: projectDir,
-        worktree: worktree
-    }
-}));
+Filesystem.findUp = FakeFilesystem.findUp;
+Filesystem.findFirstUp = FakeFilesystem.findFirstUp;
+Filesystem.up = FakeFilesystem.up;
+
+const withInstance = async <T>(fn: () => Promise<T>) =>
+  Instance.provide({
+    directory: projectDir,
+    fn,
+  });
 
 // Import formatter after mocking
 const { prettier, oxfmt, ruff } = await import("../../src/format/formatter");
@@ -104,12 +110,23 @@ describe("Formatter Performance", () => {
     });
 
     afterAll(() => {
+        Filesystem.findUp = originalFilesystem.findUp;
+        Filesystem.findFirstUp = originalFilesystem.findFirstUp;
+        Filesystem.up = originalFilesystem.up;
         fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
     test("prettier.enabled() checks", async () => {
-        const enabled = await prettier.enabled();
+        const enabled = await withInstance(() => prettier.enabled());
         expect(enabled).toBe(true);
+        // Verify we are using the optimized path
+        expect(stats.findUp).toBe(0);
+        expect(stats.up).toBeGreaterThan(0);
+    });
+
+    test("oxfmt.enabled() checks", async () => {
+        const enabled = await withInstance(() => oxfmt.enabled());
+        expect(enabled).toBe(false);
         // Verify we are using the optimized path
         expect(stats.findUp).toBe(0);
         expect(stats.up).toBeGreaterThan(0);
@@ -119,7 +136,7 @@ describe("Formatter Performance", () => {
         // Ruff might fail due to Bun.which("ruff") not being mockable/false.
         // We just check if it runs without error.
         try {
-            await ruff.enabled();
+            await withInstance(() => ruff.enabled());
         } catch (e) {
             // ignore
         }

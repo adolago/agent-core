@@ -15,7 +15,7 @@ import {
   resolveMainSessionAlias,
 } from "../../agents/tools/sessions-helpers.js";
 import { normalizeProviderId } from "../../agents/model-selection.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { SessionEntry, SessionScope } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import {
@@ -43,7 +43,7 @@ function formatApiKeySnippet(apiKey: string): string {
 
 function resolveModelAuthLabel(
   provider?: string,
-  cfg?: ZeeConfig,
+  cfg?: MoltbotConfig,
   sessionEntry?: SessionEntry,
   agentDir?: string,
 ): string | undefined {
@@ -97,7 +97,7 @@ function resolveModelAuthLabel(
 }
 
 export async function buildStatusReply(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   command: CommandContext;
   sessionEntry?: SessionEntry;
   sessionKey: string;
@@ -161,7 +161,7 @@ export async function buildStatusReply(params: {
           maxWindows: 2,
           includeResets: true,
         });
-        if (summaryLine) usageLine = `◆ Usage: ${summaryLine}`;
+        if (summaryLine) usageLine = `📊 Usage: ${summaryLine}`;
       }
     } catch {
       usageLine = null;
@@ -193,9 +193,9 @@ export async function buildStatusReply(params: {
           .filter(Boolean)
           .slice(0, 3);
         const labelText = labels.length ? ` (${labels.join(", ")})` : "";
-        subagentsLine = `@ Subagents: ${active.length} active${labelText} · ${done} done`;
+        subagentsLine = `🤖 Subagents: ${active.length} active${labelText} · ${done} done`;
       } else if (active.length > 0) {
-        subagentsLine = `@ Subagents: ${active.length} active`;
+        subagentsLine = `🤖 Subagents: ${active.length} active`;
       }
     }
   }

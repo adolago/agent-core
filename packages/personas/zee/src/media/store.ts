@@ -5,8 +5,8 @@ import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import { resolvePinnedHostname } from "../infra/net/ssrf.js";
 import { resolveConfigDir } from "../utils.js";
+import { resolvePinnedHostname } from "../infra/net/ssrf.js";
 import { detectMime, extensionForMime } from "./mime.js";
 
 const resolveMediaDir = () => path.join(resolveConfigDir(), "media");
@@ -20,10 +20,9 @@ const DEFAULT_TTL_MS = 2 * 60 * 1000; // 2 minutes
  * Keeps: alphanumeric, dots, hyphens, underscores, Unicode letters/numbers.
  */
 function sanitizeFilename(name: string): string {
-  // Remove: < > : " / \ | ? * and control chars (U+0000-U+001F)
-  // oxlint-disable-next-line no-control-regex -- Intentionally matching control chars
-  const unsafe = /[<>:"/\\|?*\x00-\x1f]/g;
-  const sanitized = name.trim().replace(unsafe, "_").replace(/\s+/g, "_"); // Replace whitespace runs with underscore
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  const sanitized = trimmed.replace(/[^\p{L}\p{N}._-]+/gu, "_");
   // Collapse multiple underscores, trim leading/trailing, limit length
   return sanitized.replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, 60);
 }
@@ -102,9 +101,7 @@ async function downloadToFile(
       reject(new Error(`Invalid URL protocol: ${parsedUrl.protocol}. Only HTTP/HTTPS allowed.`));
       return;
     }
-
     const requestImpl = parsedUrl.protocol === "https:" ? httpsRequest : httpRequest;
-
     resolvePinnedHostname(parsedUrl.hostname)
       .then((pinned) => {
         const req = requestImpl(parsedUrl, { headers, lookup: pinned.lookup }, (res) => {

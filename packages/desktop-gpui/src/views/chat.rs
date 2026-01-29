@@ -7,6 +7,7 @@ use gpui::*;
 use crate::api::types::{Message, MessagePart, MessageRole, SendMessageRequest};
 use crate::api::ApiState;
 use crate::components::prompt_input::{PromptInput, SendMessage};
+use crate::i18n::I18n;
 use crate::state::{AppState, StreamingMessage, ToolCallStatus};
 use crate::theme::Theme;
 
@@ -96,6 +97,7 @@ impl ChatView {
 
     fn render_no_session(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex_1()
@@ -116,24 +118,25 @@ impl ChatView {
                     .child(
                         div()
                             .text_3xl()
-                            .child("💬")
+                            .child(i18n.t("chat.empty_icon"))
                     )
             )
             .child(
                 div()
                     .text_xl()
                     .font_weight(FontWeight::MEDIUM)
-                    .child("No Session Selected")
+                    .child(i18n.t("chat.no_session_title"))
             )
             .child(
                 div()
                     .text_color(theme.text_muted)
-                    .child("Select a session from the sidebar or create a new one")
+                    .child(i18n.t("chat.no_session_subtitle"))
             )
     }
 
     fn render_messages(&self, messages: &[Message], streaming: &Option<StreamingMessage>, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .id("messages-scroll")
@@ -144,15 +147,15 @@ impl ChatView {
             .flex_col()
             .gap(px(16.0))
             .children(
-                messages.iter().map(|msg| self.render_message(msg, theme))
+                messages.iter().map(|msg| self.render_message(msg, theme, i18n))
             )
             .when(streaming.is_some(), |el| {
                 let streaming = streaming.as_ref().unwrap();
-                el.child(self.render_streaming_message(streaming, theme))
+                el.child(self.render_streaming_message(streaming, theme, i18n))
             })
     }
 
-    fn render_message(&self, message: &Message, theme: &Theme) -> impl IntoElement {
+    fn render_message(&self, message: &Message, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         let is_user = message.role == MessageRole::User;
 
         let (align, bg, border_radius) = if is_user {
@@ -178,7 +181,7 @@ impl ChatView {
                             .flex_col()
                             .gap(px(8.0))
                             // Message content
-                            .children(self.render_message_parts(&message.parts, theme))
+                            .children(self.render_message_parts(&message.parts, theme, i18n))
                             // Message summary/body fallback
                             .when(message.parts.is_empty() && message.summary.is_some(), |el| {
                                 let body = message.summary.as_ref()
@@ -193,7 +196,7 @@ impl ChatView {
             )
     }
 
-    fn render_message_parts(&self, parts: &[MessagePart], theme: &Theme) -> Vec<impl IntoElement> {
+    fn render_message_parts(&self, parts: &[MessagePart], theme: &Theme, i18n: &I18n) -> Vec<impl IntoElement> {
         parts.iter().map(|part| {
             match part {
                 MessagePart::Text { text } => {
@@ -202,22 +205,22 @@ impl ChatView {
                         .into_any_element()
                 }
                 MessagePart::ToolUse { id, name, input } => {
-                    self.render_tool_use(id, name, input, theme)
+                    self.render_tool_use(id, name, input, theme, i18n)
                         .into_any_element()
                 }
                 MessagePart::ToolResult { tool_use_id, content, is_error } => {
-                    self.render_tool_result(tool_use_id, content, *is_error, theme)
+                    self.render_tool_result(tool_use_id, content, *is_error, theme, i18n)
                         .into_any_element()
                 }
                 MessagePart::Reasoning { text } => {
-                    self.render_reasoning(text, theme)
+                    self.render_reasoning(text, theme, i18n)
                         .into_any_element()
                 }
             }
         }).collect()
     }
 
-    fn render_tool_use(&self, _id: &str, name: &str, input: &serde_json::Value, theme: &Theme) -> impl IntoElement {
+    fn render_tool_use(&self, _id: &str, name: &str, input: &serde_json::Value, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .w_full()
             .rounded(px(8.0))
@@ -267,17 +270,17 @@ impl ChatView {
                             .py(px(8.0))
                             .text_xs()
                             .text_color(theme.text_muted)
-                            .child("[Input truncated]")
+                            .child(i18n.t("chat.input_truncated"))
                     )
                 }
             })
     }
 
-    fn render_tool_result(&self, _tool_use_id: &str, content: &str, is_error: bool, theme: &Theme) -> impl IntoElement {
+    fn render_tool_result(&self, _tool_use_id: &str, content: &str, is_error: bool, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         let (status_color, status_text) = if is_error {
-            (theme.error, "Error")
+            (theme.error, i18n.t("tool.status.error"))
         } else {
-            (theme.success, "Success")
+            (theme.success, i18n.t("tool.status.success"))
         };
 
         div()
@@ -327,7 +330,7 @@ impl ChatView {
             })
     }
 
-    fn render_reasoning(&self, text: &str, theme: &Theme) -> impl IntoElement {
+    fn render_reasoning(&self, text: &str, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .w_full()
             .rounded(px(8.0))
@@ -349,7 +352,7 @@ impl ChatView {
                                     .text_xs()
                                     .font_weight(FontWeight::MEDIUM)
                                     .text_color(theme.secondary)
-                                    .child("Thinking...")
+                                    .child(i18n.t("chat.thinking"))
                             )
                     )
                     .child(
@@ -361,7 +364,7 @@ impl ChatView {
             )
     }
 
-    fn render_streaming_message(&self, streaming: &StreamingMessage, theme: &Theme) -> impl IntoElement {
+    fn render_streaming_message(&self, streaming: &StreamingMessage, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .w_full()
             .flex()
@@ -380,12 +383,12 @@ impl ChatView {
                             // Reasoning section
                             .when(streaming.reasoning.is_some(), |el| {
                                 let reasoning = streaming.reasoning.as_ref().unwrap();
-                                el.child(self.render_reasoning(reasoning, theme))
+                                el.child(self.render_reasoning(reasoning, theme, i18n))
                             })
                             // Tool calls
                             .children(
                                 streaming.tool_calls.iter().map(|tc| {
-                                    self.render_streaming_tool_call(tc, theme)
+                                    self.render_streaming_tool_call(tc, theme, i18n)
                                 })
                             )
                             // Content
@@ -412,7 +415,7 @@ impl ChatView {
                                         .child(
                                             div()
                                                 .text_color(theme.text_muted)
-                                                .child("Generating...")
+                                                .child(i18n.t("chat.generating"))
                                         )
                                 )
                             })
@@ -420,12 +423,12 @@ impl ChatView {
             )
     }
 
-    fn render_streaming_tool_call(&self, tc: &crate::state::StreamingToolCall, theme: &Theme) -> impl IntoElement {
+    fn render_streaming_tool_call(&self, tc: &crate::state::StreamingToolCall, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         let (status_color, status_text) = match tc.status {
-            ToolCallStatus::Pending => (theme.text_muted, "Pending"),
-            ToolCallStatus::Running => (theme.warning, "Running"),
-            ToolCallStatus::Success => (theme.success, "Success"),
-            ToolCallStatus::Error => (theme.error, "Error"),
+            ToolCallStatus::Pending => (theme.text_muted, i18n.t("tool.status.pending")),
+            ToolCallStatus::Running => (theme.warning, i18n.t("tool.status.running")),
+            ToolCallStatus::Success => (theme.success, i18n.t("tool.status.success")),
+            ToolCallStatus::Error => (theme.error, i18n.t("tool.status.error")),
         };
 
         div()
@@ -529,12 +532,28 @@ impl ChatView {
     fn render_empty_chat(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
         let persona = state.active_persona;
 
         let persona_accent = match persona {
             crate::state::Persona::Zee => theme.zee_accent,
             crate::state::Persona::Stanley => theme.stanley_accent,
             crate::state::Persona::Johny => theme.johny_accent,
+        };
+
+        let (persona_name, persona_description) = match persona {
+            crate::state::Persona::Zee => (
+                i18n.t("persona.zee.name"),
+                i18n.t("persona.zee.description"),
+            ),
+            crate::state::Persona::Stanley => (
+                i18n.t("persona.stanley.name"),
+                i18n.t("persona.stanley.description"),
+            ),
+            crate::state::Persona::Johny => (
+                i18n.t("persona.johny.name"),
+                i18n.t("persona.johny.description"),
+            ),
         };
 
         div()
@@ -557,26 +576,30 @@ impl ChatView {
                         div()
                             .text_3xl()
                             .text_color(persona_accent)
-                            .child(persona.name().chars().next().unwrap_or('?').to_string())
+                            .child(persona_name.chars().next().unwrap_or('?').to_string())
                     )
             )
             .child(
                 div()
                     .text_xl()
                     .font_weight(FontWeight::MEDIUM)
-                    .child(format!("Chat with {}", persona.name()))
+                    .child(i18n.format("chat.empty_title", &[("persona", persona_name.as_str())]))
             )
             .child(
                 div()
                     .text_color(theme.text_muted)
                     .text_center()
                     .max_w(px(400.0))
-                    .child(format!("{} - {}", persona.name(), persona.description()))
+                    .child(i18n.format(
+                        "chat.empty_subtitle",
+                        &[("persona", persona_name.as_str()), ("description", persona_description.as_str())],
+                    ))
             )
     }
 
     fn render_loading(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex_1()
@@ -600,7 +623,7 @@ impl ChatView {
                     .child(
                         div()
                             .text_color(theme.text_muted)
-                            .child("Loading messages...")
+                            .child(i18n.t("chat.loading_messages"))
                     )
             )
     }

@@ -6,14 +6,14 @@ read_when:
 ---
 # Hooks
 
-Hooks provide an extensible event-driven system for automating actions in response to agent commands and events. Hooks are automatically discovered from directories and can be managed via CLI commands, similar to how skills work in Zee.
+Hooks provide an extensible event-driven system for automating actions in response to agent commands and events. Hooks are automatically discovered from directories and can be managed via CLI commands, similar to how skills work in Moltbot.
 
 ## Getting Oriented
 
 Hooks are small scripts that run when something happens. There are two kinds:
 
 - **Hooks** (this page): run inside the Gateway when agent events fire, like `/new`, `/reset`, `/stop`, or lifecycle events.
-- **Webhooks**: external HTTP webhooks that let other systems trigger work in Zee. See [Webhook Hooks](/automation/webhook) or use `zee webhooks` for Gmail helper commands.
+- **Webhooks**: external HTTP webhooks that let other systems trigger work in Moltbot. See [Webhook Hooks](/automation/webhook) or use `moltbot webhooks` for Gmail helper commands.
   
 Hooks can also be bundled inside plugins; see [Plugins](/plugin#plugin-hooks).
 
@@ -31,54 +31,54 @@ The hooks system allows you to:
 - Save session context to memory when `/new` is issued
 - Log all commands for auditing
 - Trigger custom automations on agent lifecycle events
-- Extend Zee's behavior without modifying core code
+- Extend Moltbot's behavior without modifying core code
 
 ## Getting Started
 
 ### Bundled Hooks
 
-Zee ships with four bundled hooks that are automatically discovered:
+Moltbot ships with four bundled hooks that are automatically discovered:
 
-- **💾 session-memory**: Saves session context to your agent workspace (default `~/zee/memory/`) when you issue `/new`
-- **📝 command-logger**: Logs all command events to `~/.zee/logs/commands.log`
+- **💾 session-memory**: Saves session context to your agent workspace (default `~/clawd/memory/`) when you issue `/new`
+- **📝 command-logger**: Logs all command events to `~/.clawdbot/logs/commands.log`
 - **🚀 boot-md**: Runs `BOOT.md` when the gateway starts (requires internal hooks enabled)
 - **😈 soul-evil**: Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by random chance
 
 List available hooks:
 
 ```bash
-zee hooks list
+moltbot hooks list
 ```
 
 Enable a hook:
 
 ```bash
-zee hooks enable session-memory
+moltbot hooks enable session-memory
 ```
 
 Check hook status:
 
 ```bash
-zee hooks check
+moltbot hooks check
 ```
 
 Get detailed information:
 
 ```bash
-zee hooks info session-memory
+moltbot hooks info session-memory
 ```
 
 ### Onboarding
 
-During onboarding (`zee onboard`), you'll be prompted to enable recommended hooks. The wizard automatically discovers eligible hooks and presents them for selection.
+During onboarding (`moltbot onboard`), you'll be prompted to enable recommended hooks. The wizard automatically discovers eligible hooks and presents them for selection.
 
 ## Hook Discovery
 
 Hooks are automatically discovered from three directories (in order of precedence):
 
 1. **Workspace hooks**: `<workspace>/hooks/` (per-agent, highest precedence)
-2. **Managed hooks**: `~/.zee/hooks/` (user-installed, shared across workspaces)
-3. **Bundled hooks**: `<zee>/dist/hooks/bundled/` (shipped with Zee)
+2. **Managed hooks**: `~/.clawdbot/hooks/` (user-installed, shared across workspaces)
+3. **Bundled hooks**: `<moltbot>/dist/hooks/bundled/` (shipped with Moltbot)
 
 Managed hook directories can be either a **single hook** or a **hook pack** (package directory).
 
@@ -92,11 +92,11 @@ my-hook/
 
 ## Hook Packs (npm/archives)
 
-Hook packs are standard npm packages that export one or more hooks via `zee.hooks` in
+Hook packs are standard npm packages that export one or more hooks via `moltbot.hooks` in
 `package.json`. Install them with:
 
 ```bash
-zee hooks install <path-or-spec>
+moltbot hooks install <path-or-spec>
 ```
 
 Example `package.json`:
@@ -105,14 +105,14 @@ Example `package.json`:
 {
   "name": "@acme/my-hooks",
   "version": "0.1.0",
-  "zee": {
+  "moltbot": {
     "hooks": ["./hooks/my-hook", "./hooks/other-hook"]
   }
 }
 ```
 
 Each entry points to a hook directory containing `HOOK.md` and `handler.ts` (or `index.ts`).
-Hook packs can ship dependencies; they will be installed under `~/.zee/hooks/<id>`.
+Hook packs can ship dependencies; they will be installed under `~/.clawdbot/hooks/<id>`.
 
 ## Hook Structure
 
@@ -124,8 +124,8 @@ The `HOOK.md` file contains metadata in YAML frontmatter plus Markdown documenta
 ---
 name: my-hook
 description: "Short description of what this hook does"
-homepage: https://docs.zee.bot/hooks#my-hook
-metadata: {"zee":{"emoji":"🔗","events":["command:new"],"requires":{"bins":["node"]}}}
+homepage: https://docs.molt.bot/hooks#my-hook
+metadata: {"moltbot":{"emoji":"🔗","events":["command:new"],"requires":{"bins":["node"]}}}
 ---
 
 # My Hook
@@ -149,7 +149,7 @@ No configuration needed.
 
 ### Metadata Fields
 
-The `metadata.zee` object supports:
+The `metadata.moltbot` object supports:
 
 - **`emoji`**: Display emoji for CLI (e.g., `"💾"`)
 - **`events`**: Array of events to listen for (e.g., `["command:new", "command:reset"]`)
@@ -209,7 +209,7 @@ Each event includes:
     senderId?: string,
     workspaceDir?: string,
     bootstrapFiles?: WorkspaceBootstrapFile[],
-    cfg?: ZeeConfig
+    cfg?: MoltbotConfig
   }
 }
 ```
@@ -237,7 +237,7 @@ Triggered when the gateway starts:
 
 ### Tool Result Hooks (Plugin API)
 
-These hooks are not event-stream listeners; they let plugins synchronously adjust tool results before Zee persists them.
+These hooks are not event-stream listeners; they let plugins synchronously adjust tool results before Moltbot persists them.
 
 - **`tool_result_persist`**: transform tool results before they are written to the session transcript. Must be synchronous; return the updated tool result payload or `undefined` to keep it as-is. See [Agent Loop](/concepts/agent-loop).
 
@@ -256,13 +256,13 @@ Planned event types:
 ### 1. Choose Location
 
 - **Workspace hooks** (`<workspace>/hooks/`): Per-agent, highest precedence
-- **Managed hooks** (`~/.zee/hooks/`): Shared across workspaces
+- **Managed hooks** (`~/.clawdbot/hooks/`): Shared across workspaces
 
 ### 2. Create Directory Structure
 
 ```bash
-mkdir -p ~/.zee/hooks/my-hook
-cd ~/.zee/hooks/my-hook
+mkdir -p ~/.clawdbot/hooks/my-hook
+cd ~/.clawdbot/hooks/my-hook
 ```
 
 ### 3. Create HOOK.md
@@ -271,7 +271,7 @@ cd ~/.zee/hooks/my-hook
 ---
 name: my-hook
 description: "Does something useful"
-metadata: {"zee":{"emoji":"🎯","events":["command:new"]}}
+metadata: {"moltbot":{"emoji":"🎯","events":["command:new"]}}
 ---
 
 # My Custom Hook
@@ -300,10 +300,10 @@ export default handler;
 
 ```bash
 # Verify hook is discovered
-zee hooks list
+moltbot hooks list
 
 # Enable it
-zee hooks enable my-hook
+moltbot hooks enable my-hook
 
 # Restart your gateway process (menu bar app restart on macOS, or restart your dev process)
 
@@ -397,46 +397,46 @@ The old config format still works for backwards compatibility:
 
 ```bash
 # List all hooks
-zee hooks list
+moltbot hooks list
 
 # Show only eligible hooks
-zee hooks list --eligible
+moltbot hooks list --eligible
 
 # Verbose output (show missing requirements)
-zee hooks list --verbose
+moltbot hooks list --verbose
 
 # JSON output
-zee hooks list --json
+moltbot hooks list --json
 ```
 
 ### Hook Information
 
 ```bash
 # Show detailed info about a hook
-zee hooks info session-memory
+moltbot hooks info session-memory
 
 # JSON output
-zee hooks info session-memory --json
+moltbot hooks info session-memory --json
 ```
 
 ### Check Eligibility
 
 ```bash
 # Show eligibility summary
-zee hooks check
+moltbot hooks check
 
 # JSON output
-zee hooks check --json
+moltbot hooks check --json
 ```
 
 ### Enable/Disable
 
 ```bash
 # Enable a hook
-zee hooks enable session-memory
+moltbot hooks enable session-memory
 
 # Disable a hook
-zee hooks disable command-logger
+moltbot hooks disable command-logger
 ```
 
 ## Bundled Hooks
@@ -449,7 +449,7 @@ Saves session context to memory when you issue `/new`.
 
 **Requirements**: `workspace.dir` must be configured
 
-**Output**: `<workspace>/memory/YYYY-MM-DD-slug.md` (defaults to `~/zee`)
+**Output**: `<workspace>/memory/YYYY-MM-DD-slug.md` (defaults to `~/clawd`)
 
 **What it does**:
 1. Uses the pre-reset session entry to locate the correct transcript
@@ -475,7 +475,7 @@ Saves session context to memory when you issue `/new`.
 **Enable**:
 
 ```bash
-zee hooks enable session-memory
+moltbot hooks enable session-memory
 ```
 
 ### command-logger
@@ -486,7 +486,7 @@ Logs all command events to a centralized audit file.
 
 **Requirements**: None
 
-**Output**: `~/.zee/logs/commands.log`
+**Output**: `~/.clawdbot/logs/commands.log`
 
 **What it does**:
 1. Captures event details (command action, timestamp, session key, sender ID, source)
@@ -504,19 +504,19 @@ Logs all command events to a centralized audit file.
 
 ```bash
 # View recent commands
-tail -n 20 ~/.zee/logs/commands.log
+tail -n 20 ~/.clawdbot/logs/commands.log
 
 # Pretty-print with jq
-cat ~/.zee/logs/commands.log | jq .
+cat ~/.clawdbot/logs/commands.log | jq .
 
 # Filter by action
-grep '"action":"new"' ~/.zee/logs/commands.log | jq .
+grep '"action":"new"' ~/.clawdbot/logs/commands.log | jq .
 ```
 
 **Enable**:
 
 ```bash
-zee hooks enable command-logger
+moltbot hooks enable command-logger
 ```
 
 ### soul-evil
@@ -532,7 +532,7 @@ Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by
 **Enable**:
 
 ```bash
-zee hooks enable soul-evil
+moltbot hooks enable soul-evil
 ```
 
 **Config**:
@@ -572,7 +572,7 @@ Internal hooks must be enabled for this to run.
 **Enable**:
 
 ```bash
-zee hooks enable boot-md
+moltbot hooks enable boot-md
 ```
 
 ## Best Practices
@@ -629,13 +629,13 @@ const handler: HookHandler = async (event) => {
 Specify exact events in metadata when possible:
 
 ```yaml
-metadata: {"zee":{"events":["command:new"]}}  # Specific
+metadata: {"moltbot":{"events":["command:new"]}}  # Specific
 ```
 
 Rather than:
 
 ```yaml
-metadata: {"zee":{"events":["command"]}}      # General - more overhead
+metadata: {"moltbot":{"events":["command"]}}      # General - more overhead
 ```
 
 ## Debugging
@@ -655,7 +655,7 @@ Registered hook: boot-md -> gateway:startup
 List all discovered hooks:
 
 ```bash
-zee hooks list --verbose
+moltbot hooks list --verbose
 ```
 
 ### Check Registration
@@ -674,7 +674,7 @@ const handler: HookHandler = async (event) => {
 Check why a hook isn't eligible:
 
 ```bash
-zee hooks info my-hook
+moltbot hooks info my-hook
 ```
 
 Look for missing requirements in the output.
@@ -690,7 +690,7 @@ Monitor gateway logs to see hook execution:
 ./scripts/clawlog.sh -f
 
 # Other platforms
-tail -f ~/.zee/gateway.log
+tail -f ~/.clawdbot/gateway.log
 ```
 
 ### Test Hooks Directly
@@ -765,19 +765,19 @@ Session reset
 
 1. Check directory structure:
    ```bash
-   ls -la ~/.zee/hooks/my-hook/
+   ls -la ~/.clawdbot/hooks/my-hook/
    # Should show: HOOK.md, handler.ts
    ```
 
 2. Verify HOOK.md format:
    ```bash
-   cat ~/.zee/hooks/my-hook/HOOK.md
+   cat ~/.clawdbot/hooks/my-hook/HOOK.md
    # Should have YAML frontmatter with name and metadata
    ```
 
 3. List all discovered hooks:
    ```bash
-   zee hooks list
+   moltbot hooks list
    ```
 
 ### Hook Not Eligible
@@ -785,7 +785,7 @@ Session reset
 Check requirements:
 
 ```bash
-zee hooks info my-hook
+moltbot hooks info my-hook
 ```
 
 Look for missing:
@@ -798,7 +798,7 @@ Look for missing:
 
 1. Verify hook is enabled:
    ```bash
-   zee hooks list
+   moltbot hooks list
    # Should show ✓ next to enabled hooks
    ```
 
@@ -844,8 +844,8 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
 1. Create hook directory:
    ```bash
-   mkdir -p ~/.zee/hooks/my-hook
-   mv ./hooks/handlers/my-handler.ts ~/.zee/hooks/my-hook/handler.ts
+   mkdir -p ~/.clawdbot/hooks/my-hook
+   mv ./hooks/handlers/my-handler.ts ~/.clawdbot/hooks/my-hook/handler.ts
    ```
 
 2. Create HOOK.md:
@@ -853,7 +853,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
    ---
    name: my-hook
    description: "My custom hook"
-   metadata: {"zee":{"emoji":"🎯","events":["command:new"]}}
+   metadata: {"moltbot":{"emoji":"🎯","events":["command:new"]}}
    ---
 
    # My Hook
@@ -877,7 +877,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
 4. Verify and restart your gateway process:
    ```bash
-   zee hooks list
+   moltbot hooks list
    # Should show: 🎯 my-hook ✓
    ```
 
@@ -891,6 +891,6 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 ## See Also
 
 - [CLI Reference: hooks](/cli/hooks)
-- [Bundled Hooks README](https://github.com/zee/zee/tree/main/src/hooks/bundled)
+- [Bundled Hooks README](https://github.com/moltbot/moltbot/tree/main/src/hooks/bundled)
 - [Webhook Hooks](/automation/webhook)
 - [Configuration](/gateway/configuration#hooks)

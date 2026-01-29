@@ -4,6 +4,7 @@
 
 use gpui::prelude::*;
 use gpui::*;
+use crate::i18n::I18n;
 use crate::theme::Theme;
 
 /// Event emitted when user wants to send a message
@@ -24,11 +25,12 @@ pub struct PromptInput {
 
 impl PromptInput {
     pub fn new(cx: &mut Context<Self>) -> Self {
+        let i18n = cx.global::<I18n>();
         Self {
             focus_handle: cx.focus_handle(),
             text: String::new(),
             cursor_position: 0,
-            placeholder: "Type a message...".to_string(),
+            placeholder: i18n.t("prompt.placeholder"),
             disabled: false,
             loading: false,
         }

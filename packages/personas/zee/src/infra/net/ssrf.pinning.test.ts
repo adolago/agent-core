@@ -61,4 +61,3 @@ describe("ssrf pinning", () => {
     expect(result.address).toBe("1.2.3.4");
   });
 });
-

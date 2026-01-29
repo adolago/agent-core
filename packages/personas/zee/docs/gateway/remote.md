@@ -34,7 +34,7 @@ This is ideal when your laptop sleeps often but you want the agent always-on.
 
 The laptop does **not** run the agent. It connects remotely:
 
-- Use the macOS app’s **Remote over SSH** mode (Settings → General → “Zee runs”).
+- Use the macOS app’s **Remote over SSH** mode (Settings → General → “Moltbot runs”).
 - The app opens and manages the tunnel, so WebChat + health checks “just work.”
 
 Runbook: [macOS remote access](/platforms/mac/remote).
@@ -71,10 +71,10 @@ ssh -N -L 18789:127.0.0.1:18789 user@host
 ```
 
 With the tunnel up:
-- `zee health` and `zee status --deep` now reach the remote gateway via `ws://127.0.0.1:18789`.
-- `zee gateway {status,health,send,agent,call}` can also target the forwarded URL via `--url` when needed.
+- `moltbot health` and `moltbot status --deep` now reach the remote gateway via `ws://127.0.0.1:18789`.
+- `moltbot gateway {status,health,send,agent,call}` can also target the forwarded URL via `--url` when needed.
 
-Note: replace `18789` with your configured `gateway.port` (or `--port`/`ZEE_GATEWAY_PORT`).
+Note: replace `18789` with your configured `gateway.port` (or `--port`/`CLAWDBOT_GATEWAY_PORT`).
 
 ## CLI remote defaults
 
@@ -117,6 +117,6 @@ Short version: **keep the Gateway loopback-only** unless you’re sure you need 
 - `gateway.remote.tlsFingerprint` pins the remote TLS cert when using `wss://`.
 - **Tailscale Serve** can authenticate via identity headers when `gateway.auth.allowTailscale: true`.
   Set it to `false` if you want tokens/passwords instead.
-- Treat `browser.controlUrl` like an admin API: tailnet-only + token auth.
+- Treat browser control like operator access: tailnet-only + deliberate node pairing.
 
 Deep dive: [Security](/gateway/security).

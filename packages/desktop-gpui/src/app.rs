@@ -12,8 +12,10 @@ use crate::api::ApiState;
 use crate::components::sidebar::Sidebar;
 use crate::dialogs::permission_prompt::render_permission_prompt;
 use crate::dialogs::question_prompt::{render_question_prompt, QuestionState};
+use crate::i18n::I18n;
 use crate::state::{ActiveView, AppState, ConfirmAction, DialogType, Persona};
 use crate::theme::Theme;
+use crate::update::{self, UpdateCheck, UpdateStatus};
 use crate::views::chat::ChatView;
 use crate::views::sessions::SessionsView;
 use crate::views::settings::SettingsView;
@@ -106,6 +108,37 @@ impl AppRoot {
                     });
                 }
             }
+
+            let update_feed = {
+                let state = cx.global::<AppState>();
+                state.update_feed_url.clone()
+            };
+            if !update_feed.trim().is_empty() {
+                let _ = cx.update(|cx| {
+                    let state = cx.global_mut::<AppState>();
+                    state.set_update_status(UpdateStatus::Checking);
+                });
+
+                let runtime_updates = runtime.clone();
+                let update_result = runtime_updates
+                    .spawn(async move { update::check(&update_feed).await })
+                    .await;
+
+                let check = match update_result {
+                    Ok(check) => check,
+                    Err(err) => UpdateCheck {
+                        status: UpdateStatus::Error,
+                        info: None,
+                        error: Some(err.to_string()),
+                        checked_at: None,
+                    },
+                };
+
+                let _ = cx.update(|cx| {
+                    let state = cx.global_mut::<AppState>();
+                    state.apply_update_check(check);
+                });
+            }
         }).detach();
     }
 
@@ -195,11 +228,12 @@ impl AppRoot {
 
     fn render_header(&self, state: &AppState, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
         let persona = state.active_persona;
         let view_name = match state.active_view {
-            ActiveView::Sessions => "Sessions",
-            ActiveView::Chat => "Chat",
-            ActiveView::Settings => "Settings",
+            ActiveView::Sessions => i18n.t("header.view.sessions"),
+            ActiveView::Chat => i18n.t("header.view.chat"),
+            ActiveView::Settings => i18n.t("header.view.settings"),
         };
 
         let persona_accent = match persona {
@@ -209,11 +243,11 @@ impl AppRoot {
         };
 
         let connection_status = if state.connected {
-            ("Connected", theme.success)
+            (i18n.t("status.connected"), theme.success)
         } else if state.connecting {
-            ("Connecting...", theme.warning)
+            (i18n.t("status.connecting"), theme.warning)
         } else {
-            ("Disconnected", theme.error)
+            (i18n.t("status.disconnected"), theme.error)
         };
 
         div()
@@ -350,8 +384,10 @@ impl AppRoot {
 
     fn render_model_picker_dialog(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
         let models = state.models.clone();
         let selected_model_id = state.selected_model_id.clone();
+        let selected_marker = i18n.t("ui.selected_marker");
 
         div()
             .w(px(500.0))
@@ -377,7 +413,7 @@ impl AppRoot {
                         div()
                             .text_lg()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child("Select Model")
+                            .child(i18n.t("dialogs.model_picker.title"))
                     )
                     .child(
                         div()
@@ -393,7 +429,7 @@ impl AppRoot {
                             .on_click(cx.listener(|this, _event, _window, cx| {
                                 this.close_dialog(cx);
                             }))
-                            .child("×")
+                            .child("x")
                     )
             )
             .child(
@@ -410,7 +446,7 @@ impl AppRoot {
                             .border_1()
                             .border_color(theme.border)
                             .text_color(theme.text_muted)
-                            .child("Search models...")
+                            .child(i18n.t("dialogs.model_picker.search"))
                     )
             )
             .child(
@@ -465,7 +501,7 @@ impl AppRoot {
                                         el.child(
                                             div()
                                                 .text_color(theme.primary)
-                                                .child("✓")
+                                                .child(selected_marker.clone())
                                         )
                                     })
                             )
@@ -475,6 +511,7 @@ impl AppRoot {
 
     fn render_provider_dialog(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
         let providers = state.providers.clone();
 
         div()
@@ -500,7 +537,7 @@ impl AppRoot {
                         div()
                             .text_lg()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child("Configure Providers")
+                            .child(i18n.t("dialogs.provider.title"))
                     )
                     .child(
                         div()
@@ -516,7 +553,7 @@ impl AppRoot {
                             .on_click(cx.listener(|this, _event, _window, cx| {
                                 this.close_dialog(cx);
                             }))
-                            .child("×")
+                            .child("x")
                     )
             )
             .child(
@@ -531,7 +568,7 @@ impl AppRoot {
                                     .py(px(24.0))
                                     .text_color(theme.text_muted)
                                     .text_center()
-                                    .child("No providers available. Start the daemon to load providers.")
+                                    .child(i18n.t("dialogs.provider.none"))
                                     .into_any_element()
                             ]
                         } else {
@@ -581,7 +618,11 @@ impl AppRoot {
                                                                 div()
                                                                     .text_xs()
                                                                     .text_color(theme.text_muted)
-                                                                    .child(if provider.has_api_key { "API key configured" } else { "Not configured" })
+                                                                    .child(if provider.has_api_key {
+                                                                        i18n.t("dialogs.provider.configured")
+                                                                    } else {
+                                                                        i18n.t("dialogs.provider.not_configured")
+                                                                    })
                                                             )
                                                     )
                                             )
@@ -597,7 +638,11 @@ impl AppRoot {
                                                     .text_sm()
                                                     .cursor_pointer()
                                                     .hover(|s| s.bg(theme.background_panel))
-                                                    .child(if provider.has_api_key { "Edit Key" } else { "Add Key" })
+                                                    .child(if provider.has_api_key {
+                                                        i18n.t("dialogs.provider.edit_key")
+                                                    } else {
+                                                        i18n.t("dialogs.provider.add_key")
+                                                    })
                                             )
                                     )
                                     .into_any_element()
@@ -608,6 +653,7 @@ impl AppRoot {
     }
 
     fn render_settings_dialog(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = cx.global::<I18n>();
         div()
             .w(px(600.0))
             .h(px(500.0))
@@ -631,7 +677,7 @@ impl AppRoot {
                         div()
                             .text_lg()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child("Settings")
+                            .child(i18n.t("dialogs.settings.title"))
                     )
                     .child(
                         div()
@@ -647,7 +693,7 @@ impl AppRoot {
                             .on_click(cx.listener(|this, _event, _window, cx| {
                                 this.close_dialog(cx);
                             }))
-                            .child("×")
+                            .child("x")
                     )
             )
             .child(
@@ -662,7 +708,7 @@ impl AppRoot {
                     .child(
                         div()
                             .text_color(theme.text_muted)
-                            .child("Use the Settings view for full configuration options")
+                            .child(i18n.t("dialogs.settings.help"))
                     )
                     .child(
                         div()
@@ -678,22 +724,56 @@ impl AppRoot {
                                 this.set_view(ActiveView::Settings, cx);
                                 this.close_dialog(cx);
                             }))
-                            .child("Go to Settings")
+                            .child(i18n.t("dialogs.settings.open"))
                     )
             )
     }
 
     fn render_command_palette(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = cx.global::<I18n>();
+
         // Define commands
         let commands = vec![
-            ("New Session", "Create a new chat session", "new-session"),
-            ("Select Model", "Choose an AI model", "model-picker"),
-            ("Select Theme", "Change the color theme", "theme-picker"),
-            ("Configure Providers", "Manage API keys", "provider-config"),
-            ("Go to Sessions", "View all sessions", "view-sessions"),
-            ("Go to Chat", "Open chat view", "view-chat"),
-            ("Go to Settings", "Open settings", "view-settings"),
-            ("Toggle Sidebar", "Collapse or expand sidebar", "toggle-sidebar"),
+            (
+                i18n.t("commands.new_session.title"),
+                i18n.t("commands.new_session.description"),
+                "new-session",
+            ),
+            (
+                i18n.t("commands.select_model.title"),
+                i18n.t("commands.select_model.description"),
+                "model-picker",
+            ),
+            (
+                i18n.t("commands.select_theme.title"),
+                i18n.t("commands.select_theme.description"),
+                "theme-picker",
+            ),
+            (
+                i18n.t("commands.configure_providers.title"),
+                i18n.t("commands.configure_providers.description"),
+                "provider-config",
+            ),
+            (
+                i18n.t("commands.go_sessions.title"),
+                i18n.t("commands.go_sessions.description"),
+                "view-sessions",
+            ),
+            (
+                i18n.t("commands.go_chat.title"),
+                i18n.t("commands.go_chat.description"),
+                "view-chat",
+            ),
+            (
+                i18n.t("commands.go_settings.title"),
+                i18n.t("commands.go_settings.description"),
+                "view-settings",
+            ),
+            (
+                i18n.t("commands.toggle_sidebar.title"),
+                i18n.t("commands.toggle_sidebar.description"),
+                "toggle-sidebar",
+            ),
         ];
 
         div()
@@ -721,7 +801,7 @@ impl AppRoot {
                             .border_1()
                             .border_color(theme.border)
                             .text_color(theme.text_muted)
-                            .child("Type a command...")
+                            .child(i18n.t("dialogs.command_palette.placeholder"))
                     )
             )
             .child(
@@ -782,13 +862,13 @@ impl AppRoot {
                                     .child(
                                         div()
                                             .font_weight(FontWeight::MEDIUM)
-                                            .child(*name)
+                                            .child(name.clone())
                                     )
                                     .child(
                                         div()
                                             .text_xs()
                                             .text_color(theme.text_muted)
-                                            .child(*desc)
+                                            .child(desc.clone())
                                     )
                             )
                     }))
@@ -796,11 +876,13 @@ impl AppRoot {
     }
 
     fn render_theme_picker(&self, theme: &Theme, cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = cx.global::<I18n>();
         let registry = cx.global::<crate::theme::ThemeRegistry>();
         let state = cx.global::<AppState>();
         let current_theme_id = state.current_theme_id.clone();
         let dark_themes: Vec<_> = registry.dark_themes().into_iter().cloned().collect();
         let light_themes: Vec<_> = registry.light_themes().into_iter().cloned().collect();
+        let selected_marker = i18n.t("ui.selected_marker");
 
         div()
             .w(px(500.0))
@@ -825,7 +907,7 @@ impl AppRoot {
                         div()
                             .text_lg()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child("Select Theme")
+                            .child(i18n.t("dialogs.theme_picker.title"))
                     )
                     .child(
                         div()
@@ -841,7 +923,7 @@ impl AppRoot {
                             .on_click(cx.listener(|this, _event, _window, cx| {
                                 this.close_dialog(cx);
                             }))
-                            .child("×")
+                            .child("x")
                     )
             )
             .child(
@@ -853,7 +935,7 @@ impl AppRoot {
                     .text_xs()
                     .text_color(theme.text_muted)
                     .font_weight(FontWeight::MEDIUM)
-                    .child("DARK THEMES")
+                    .child(i18n.t("dialogs.theme_picker.dark"))
             )
             .child(
                 div()
@@ -890,7 +972,7 @@ impl AppRoot {
                                         el.child(
                                             div()
                                                 .text_color(theme.primary)
-                                                .child("✓")
+                                                .child(selected_marker.clone())
                                         )
                                     })
                             )
@@ -905,7 +987,7 @@ impl AppRoot {
                     .text_xs()
                     .text_color(theme.text_muted)
                     .font_weight(FontWeight::MEDIUM)
-                    .child("LIGHT THEMES")
+                    .child(i18n.t("dialogs.theme_picker.light"))
             )
             .child(
                 div()
@@ -943,7 +1025,7 @@ impl AppRoot {
                                         el.child(
                                             div()
                                                 .text_color(theme.primary)
-                                                .child("✓")
+                                                .child(selected_marker.clone())
                                         )
                                     })
                             )
@@ -953,10 +1035,11 @@ impl AppRoot {
 
     fn render_rename_dialog(&self, theme: &Theme, session_id: &str, cx: &mut Context<Self>) -> impl IntoElement {
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
         let current_title = state.sessions.iter()
             .find(|s| s.id == session_id)
             .and_then(|s| s.title.clone())
-            .unwrap_or_else(|| "Untitled Session".to_string());
+            .unwrap_or_else(|| i18n.t("sessions.untitled"));
 
         div()
             .w(px(420.0))
@@ -973,7 +1056,7 @@ impl AppRoot {
                 div()
                     .text_lg()
                     .font_weight(FontWeight::SEMIBOLD)
-                    .child("Rename Session")
+                    .child(i18n.t("dialogs.rename_session.title"))
             )
             .child(
                 div()
@@ -984,7 +1067,7 @@ impl AppRoot {
                         div()
                             .text_sm()
                             .text_color(theme.text_muted)
-                            .child("Session Title")
+                            .child(i18n.t("dialogs.rename_session.label"))
                     )
                     .child(
                         div()
@@ -1015,7 +1098,7 @@ impl AppRoot {
                             .on_click(cx.listener(|this, _event, _window, cx| {
                                 this.close_dialog(cx);
                             }))
-                            .child("Cancel")
+                            .child(i18n.t("dialogs.rename_session.cancel"))
                     )
                     .child(
                         div()
@@ -1031,12 +1114,13 @@ impl AppRoot {
                                 // TODO: Actually save the new title via API
                                 this.close_dialog(cx);
                             }))
-                            .child("Save")
+                            .child(i18n.t("dialogs.rename_session.save"))
                     )
             )
     }
 
     fn render_confirm_dialog(&self, theme: &Theme, title: &str, message: &str, confirm_label: &str, on_confirm: ConfirmAction, cx: &mut Context<Self>) -> impl IntoElement {
+        let i18n = cx.global::<I18n>();
         div()
             .w(px(420.0))
             .bg(theme.background_panel)
@@ -1098,7 +1182,7 @@ impl AppRoot {
                             .on_click(cx.listener(|this, _event, _window, cx| {
                                 this.close_dialog(cx);
                             }))
-                            .child("Cancel")
+                            .child(i18n.t("dialogs.confirm.cancel"))
                     )
                     .child(
                         div()

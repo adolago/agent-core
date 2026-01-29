@@ -272,7 +272,7 @@ export async function monitorWebChannel(
         };
 
         if (minutesSinceLastMessage && minutesSinceLastMessage > 30) {
-          heartbeatLogger.warn(logData, "! web gateway heartbeat - no messages in 30+ minutes");
+          heartbeatLogger.warn(logData, "⚠️ web gateway heartbeat - no messages in 30+ minutes");
         } else {
           heartbeatLogger.info(logData, "web gateway heartbeat");
         }
@@ -376,7 +376,7 @@ export async function monitorWebChannel(
 
     if (loggedOut) {
       runtime.error(
-        `WhatsApp session logged out. Run \`${formatCliCommand("zee channels login --channel web")}\` to relink.`,
+        `WhatsApp session logged out. Run \`${formatCliCommand("moltbot channels login --channel web")}\` to relink.`,
       );
       await closeListener();
       break;

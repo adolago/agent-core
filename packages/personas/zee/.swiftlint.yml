@@ -1,8 +1,7 @@
 # SwiftLint configuration adapted from Peekaboo defaults (Swift 6 friendly)
 
 included:
-  - apps/ios/Sources
-  - apps/shared/ZeeKit/Sources
+  - apps/macos/Sources
 
 excluded:
   - .build
@@ -18,6 +17,8 @@ excluded:
   - dist
   - coverage
   - "*.playground"
+  # Generated (protocol-gen-swift.ts)
+  - apps/macos/Sources/MoltbotProtocol/GatewayModels.swift
 
 analyzer_rules:
   - unused_declaration

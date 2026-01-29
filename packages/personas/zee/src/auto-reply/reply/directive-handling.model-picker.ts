@@ -1,5 +1,5 @@
 import { type ModelRef, normalizeProviderId } from "../../agents/model-selection.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 
 export type ModelPickerCatalogEntry = {
   provider: string;
@@ -16,9 +16,15 @@ const MODEL_PICK_PROVIDER_PREFERENCE = [
   "minimax",
   "synthetic",
   "google",
-  "zai-coding-plan",
+  "zai",
   "openrouter",
+  "opencode",
+  "github-copilot",
+  "groq",
+  "cerebras",
+  "mistral",
   "xai",
+  "lmstudio",
 ] as const;
 
 const PROVIDER_RANK = new Map<string, number>(
@@ -62,7 +68,7 @@ export function buildModelPickerItems(catalog: ModelPickerCatalogEntry[]): Model
 
 export function resolveProviderEndpointLabel(
   provider: string,
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
 ): { endpoint?: string; api?: string } {
   const normalized = normalizeProviderId(provider);
   const providers = (cfg.models?.providers ?? {}) as Record<

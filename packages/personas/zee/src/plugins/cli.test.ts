@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./loader.js", () => ({
-  loadZeePlugins: () => ({
+  loadMoltbotPlugins: () => ({
     cliRegistrars: [
       {
         pluginId: "memory-core",

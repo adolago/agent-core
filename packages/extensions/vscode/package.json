@@ -1,0 +1,48 @@
+{
+  "name": "agent-core-vscode",
+  "displayName": "Agent-Core",
+  "description": "VS Code integration for agent-core sessions and prompts.",
+  "version": "0.1.0",
+  "publisher": "adolago",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentCore.connect",
+        "title": "Agent-Core: Connect to Daemon"
+      },
+      {
+        "command": "agentCore.newSession",
+        "title": "Agent-Core: New Session"
+      },
+      {
+        "command": "agentCore.sendPrompt",
+        "title": "Agent-Core: Send Prompt"
+      },
+      {
+        "command": "agentCore.sendSelection",
+        "title": "Agent-Core: Send Selection"
+      }
+    ],
+    "configuration": {
+      "title": "Agent-Core",
+      "properties": {
+        "agentCore.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:3210",
+          "description": "Base URL for the agent-core daemon."
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onCommand:agentCore.connect",
+    "onCommand:agentCore.newSession",
+    "onCommand:agentCore.sendPrompt",
+    "onCommand:agentCore.sendSelection"
+  ]
+}

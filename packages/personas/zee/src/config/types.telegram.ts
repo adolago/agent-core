@@ -9,7 +9,7 @@ import type {
 } from "./types.base.js";
 import type { ChannelHeartbeatVisibilityConfig } from "./types.channels.js";
 import type { DmConfig, ProviderCommandsConfig } from "./types.messages.js";
-import type { GroupToolPolicyConfig, SenderToolPolicyConfig } from "./types.tools.js";
+import type { GroupToolPolicyBySenderConfig, GroupToolPolicyConfig } from "./types.tools.js";
 
 export type TelegramActionConfig = {
   reactions?: boolean;
@@ -103,7 +103,7 @@ export type TelegramAccountConfig = {
   timeoutSeconds?: number;
   /** Retry policy for outbound Telegram API calls. */
   retry?: OutboundRetryConfig;
-  /** Network behavior overrides for Telegram fetch. */
+  /** Network transport overrides for Telegram. */
   network?: TelegramNetworkConfig;
   proxy?: string;
   webhookUrl?: string;
@@ -134,10 +134,6 @@ export type TelegramAccountConfig = {
 
 export type TelegramTopicConfig = {
   requireMention?: boolean;
-  /** Optional tool policy overrides for this topic. */
-  tools?: GroupToolPolicyConfig;
-  /** Per-sender tool policy overrides within this topic (keyed by user id or username). */
-  senders?: Record<string, SenderToolPolicyConfig>;
   /** If specified, only load these skills for this topic. Omit = all skills; empty = no skills. */
   skills?: string[];
   /** If false, disable the bot for this topic. */
@@ -152,8 +148,7 @@ export type TelegramGroupConfig = {
   requireMention?: boolean;
   /** Optional tool policy overrides for this group. */
   tools?: GroupToolPolicyConfig;
-  /** Per-sender tool policy overrides within this group (keyed by user id or username). */
-  senders?: Record<string, SenderToolPolicyConfig>;
+  toolsBySender?: GroupToolPolicyBySenderConfig;
   /** If specified, only load these skills for this group (when no topic). Omit = all skills; empty = no skills. */
   skills?: string[];
   /** Per-topic configuration (key is message_thread_id as string) */

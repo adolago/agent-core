@@ -1,34 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
-import { whatsappOutbound } from "../../channels/plugins/outbound/whatsapp.js";
-import { telegramOutbound } from "../../channels/plugins/outbound/telegram.js";
+import { createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { telegramPlugin } from "../../../extensions/telegram/src/channel.js";
+import { whatsappPlugin } from "../../../extensions/whatsapp/src/channel.js";
 import { resolveOutboundTarget, resolveSessionDeliveryTarget } from "./targets.js";
-
-// Create mock plugins using core outbound adapters
-const whatsappPlugin = {
-  ...createOutboundTestPlugin({
-    id: "whatsapp",
-    label: "WhatsApp",
-    outbound: whatsappOutbound,
-    capabilities: { chatTypes: ["direct", "group"], media: true },
-  }),
-  config: {
-    listAccountIds: () => [],
-    resolveAccount: () => ({}),
-    resolveAllowFrom: ({ cfg }: { cfg: ZeeConfig }) =>
-      cfg.channels?.whatsapp?.allowFrom ?? [],
-  },
-};
-
-const telegramPlugin = createOutboundTestPlugin({
-  id: "telegram",
-  label: "Telegram",
-  outbound: telegramOutbound,
-  capabilities: { chatTypes: ["direct", "group"], media: true },
-});
 
 describe("resolveOutboundTarget", () => {
   beforeEach(() => {
@@ -41,7 +18,7 @@ describe("resolveOutboundTarget", () => {
   });
 
   it("falls back to whatsapp allowFrom via config", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       channels: { whatsapp: { allowFrom: ["+1555"] } },
     };
     const res = resolveOutboundTarget({

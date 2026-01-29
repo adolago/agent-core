@@ -1,12 +1,7 @@
-import {
-  CLAUDE_CLI_PROFILE_ID,
-  CODEX_CLI_PROFILE_ID,
-  ensureAuthProfileStore,
-  upsertAuthProfile,
-} from "../../../agents/auth-profiles.js";
+import { upsertAuthProfile } from "../../../agents/auth-profiles.js";
 import { normalizeProviderId } from "../../../agents/model-selection.js";
 import { parseDurationMs } from "../../../cli/parse-duration.js";
-import type { ZeeConfig } from "../../../config/config.js";
+import type { MoltbotConfig } from "../../../config/config.js";
 import { upsertSharedEnvVar } from "../../../infra/env-file.js";
 import type { RuntimeEnv } from "../../../runtime.js";
 import { buildTokenProfileId, validateAnthropicSetupToken } from "../../auth-token.js";
@@ -17,8 +12,10 @@ import {
   applyMinimaxApiConfig,
   applyMinimaxConfig,
   applyMoonshotConfig,
+  applyOpencodeZenConfig,
   applyOpenrouterConfig,
   applySyntheticConfig,
+  applyVeniceConfig,
   applyVercelAiGatewayConfig,
   applyZaiConfig,
   setAnthropicApiKey,
@@ -26,25 +23,48 @@ import {
   setKimiCodeApiKey,
   setMinimaxApiKey,
   setMoonshotApiKey,
+  setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
+  setVeniceApiKey,
   setVercelAiGatewayApiKey,
   setZaiApiKey,
 } from "../../onboard-auth.js";
 import type { AuthChoice, OnboardOptions } from "../../onboard-types.js";
-import { applyOpenAICodexModelDefault } from "../../openai-codex-model-default.js";
 import { resolveNonInteractiveApiKey } from "../api-keys.js";
 import { shortenHomePath } from "../../../utils.js";
 
 export async function applyNonInteractiveAuthChoice(params: {
-  nextConfig: ZeeConfig;
+  nextConfig: MoltbotConfig;
   authChoice: AuthChoice;
   opts: OnboardOptions;
   runtime: RuntimeEnv;
-  baseConfig: ZeeConfig;
-}): Promise<ZeeConfig | null> {
+  baseConfig: MoltbotConfig;
+}): Promise<MoltbotConfig | null> {
   const { authChoice, opts, runtime, baseConfig } = params;
   let nextConfig = params.nextConfig;
+
+  if (authChoice === "claude-cli" || authChoice === "codex-cli") {
+    runtime.error(
+      [
+        `Auth choice "${authChoice}" is deprecated.`,
+        'Use "--auth-choice token" (Anthropic setup-token) or "--auth-choice openai-codex".',
+      ].join("\n"),
+    );
+    runtime.exit(1);
+    return null;
+  }
+
+  if (authChoice === "setup-token") {
+    runtime.error(
+      [
+        'Auth choice "setup-token" requires interactive mode.',
+        'Use "--auth-choice token" with --token and --token-provider anthropic.',
+      ].join("\n"),
+    );
+    runtime.exit(1);
+    return null;
+  }
 
   if (authChoice === "apiKey") {
     const resolved = await resolveNonInteractiveApiKey({
@@ -140,7 +160,7 @@ export async function applyNonInteractiveAuthChoice(params: {
 
   if (authChoice === "zai-api-key") {
     const resolved = await resolveNonInteractiveApiKey({
-      provider: "zai-coding-plan",
+      provider: "zai",
       cfg: baseConfig,
       flagValue: opts.zaiApiKey,
       flagName: "--zai-api-key",
@@ -150,8 +170,8 @@ export async function applyNonInteractiveAuthChoice(params: {
     if (!resolved) return null;
     if (resolved.source !== "profile") await setZaiApiKey(resolved.key);
     nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "zai-coding-plan:default",
-      provider: "zai-coding-plan",
+      profileId: "zai:default",
+      provider: "zai",
       mode: "api_key",
     });
     return applyZaiConfig(nextConfig);
@@ -270,6 +290,25 @@ export async function applyNonInteractiveAuthChoice(params: {
     return applySyntheticConfig(nextConfig);
   }
 
+  if (authChoice === "venice-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "venice",
+      cfg: baseConfig,
+      flagValue: opts.veniceApiKey,
+      flagName: "--venice-api-key",
+      envVar: "VENICE_API_KEY",
+      runtime,
+    });
+    if (!resolved) return null;
+    if (resolved.source !== "profile") await setVeniceApiKey(resolved.key);
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "venice:default",
+      provider: "venice",
+      mode: "api_key",
+    });
+    return applyVeniceConfig(nextConfig);
+  }
+
   if (
     authChoice === "minimax-cloud" ||
     authChoice === "minimax-api" ||
@@ -295,42 +334,26 @@ export async function applyNonInteractiveAuthChoice(params: {
     return applyMinimaxApiConfig(nextConfig, modelId);
   }
 
-  if (authChoice === "claude-cli") {
-    const store = ensureAuthProfileStore(undefined, {
-      allowKeychainPrompt: false,
-    });
-    if (!store.profiles[CLAUDE_CLI_PROFILE_ID]) {
-      runtime.error(
-        process.platform === "darwin"
-          ? 'No Claude Code CLI credentials found. Run interactive onboarding to approve Keychain access for "Claude Code-credentials".'
-          : "No Claude Code CLI credentials found at ~/.claude/.credentials.json",
-      );
-      runtime.exit(1);
-      return null;
-    }
-    return applyAuthProfileConfig(nextConfig, {
-      profileId: CLAUDE_CLI_PROFILE_ID,
-      provider: "anthropic",
-      mode: "oauth",
-    });
-  }
-
-  if (authChoice === "codex-cli") {
-    const store = ensureAuthProfileStore();
-    if (!store.profiles[CODEX_CLI_PROFILE_ID]) {
-      runtime.error("No Codex CLI credentials found at ~/.codex/auth.json");
-      runtime.exit(1);
-      return null;
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: CODEX_CLI_PROFILE_ID,
-      provider: "openai-codex",
-      mode: "oauth",
-    });
-    return applyOpenAICodexModelDefault(nextConfig).next;
-  }
-
   if (authChoice === "minimax") return applyMinimaxConfig(nextConfig);
+
+  if (authChoice === "opencode-zen") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "opencode",
+      cfg: baseConfig,
+      flagValue: opts.opencodeZenApiKey,
+      flagName: "--opencode-zen-api-key",
+      envVar: "OPENCODE_API_KEY (or OPENCODE_ZEN_API_KEY)",
+      runtime,
+    });
+    if (!resolved) return null;
+    if (resolved.source !== "profile") await setOpencodeZenApiKey(resolved.key);
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "opencode:default",
+      provider: "opencode",
+      mode: "api_key",
+    });
+    return applyOpencodeZenConfig(nextConfig);
+  }
 
   if (
     authChoice === "oauth" ||

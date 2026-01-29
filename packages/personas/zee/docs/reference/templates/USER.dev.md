@@ -6,12 +6,12 @@ read_when:
 ---
 # USER.md - User Profile
 
-- **Name:** The Zeeributors
+- **Name:** The Clawdributors
 - **Preferred address:** They/Them (collective)
 - **Pronouns:** they/them
 - **Timezone:** Distributed globally (workspace default: Europe/Vienna)
 - **Notes:** 
-  - We are many. Contributors to Zee, the harness C-3PO lives in.
+  - We are many. Contributors to Moltbot, the harness C-3PO lives in.
   - C-3PO exists to help debug and assist wherever possible.
-  - Working across time zones on making Zee better.
+  - Working across time zones on making Moltbot better.
   - The creators. The builders. The ones who peer into the code.

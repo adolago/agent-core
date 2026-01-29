@@ -27,10 +27,10 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
     },
     {
       env: {
-        ZEE_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
-        PI_CODING_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
+        CLAWDBOT_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
+        PI_CODING_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
       },
-      prefix: "zee-reply-",
+      prefix: "moltbot-reply-",
     },
   );
 }
@@ -89,7 +89,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -132,7 +132,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -156,7 +156,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -179,7 +179,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           session: { store: path.join(home, "sessions.json") },
@@ -187,7 +187,7 @@ describe("directive behavior", () => {
       );
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toMatch(/^> Verbose logging enabled\./);
+      expect(text).toMatch(/^⚙️ Verbose logging enabled\./);
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -203,7 +203,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           session: { store: storePath },
@@ -229,7 +229,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
               thinkingDefault: "high",
             },
           },
@@ -254,7 +254,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           session: { store: path.join(home, "sessions.json") },

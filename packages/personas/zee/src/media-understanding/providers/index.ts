@@ -1,20 +1,24 @@
 import { normalizeProviderId } from "../../agents/model-selection.js";
 import type { MediaUnderstandingProvider } from "../types.js";
+import { anthropicProvider } from "./anthropic/index.js";
+import { deepgramProvider } from "./deepgram/index.js";
 import { googleProvider } from "./google/index.js";
+import { groqProvider } from "./groq/index.js";
+import { minimaxProvider } from "./minimax/index.js";
+import { openaiProvider } from "./openai/index.js";
 
-// Media understanding: Google only (Gemini for image, audio, video)
-// All use GEMINI_API_KEY via standard auth
 const PROVIDERS: MediaUnderstandingProvider[] = [
+  groqProvider,
+  openaiProvider,
   googleProvider,
+  anthropicProvider,
+  minimaxProvider,
+  deepgramProvider,
 ];
 
 export function normalizeMediaProviderId(id: string): string {
   const normalized = normalizeProviderId(id);
-  // All Google aliases → google (uses Gemini for image, audio, video)
-  if (normalized === "gemini" || normalized === "google-stt" ||
-      normalized === "chirp" || normalized === "chirp2" || normalized === "chirp-2" || normalized === "chirp_2") {
-    return "google";
-  }
+  if (normalized === "gemini") return "google";
   return normalized;
 }
 

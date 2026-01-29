@@ -6,6 +6,7 @@
 use gpui::prelude::*;
 use gpui::*;
 use crate::app::AppRoot;
+use crate::i18n::I18n;
 use crate::state::{ActiveView, Persona};
 use crate::theme::Theme;
 
@@ -42,6 +43,7 @@ impl Sidebar {
 
     fn render_header(collapsed: bool, cx: &Context<AppRoot>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .h(px(48.0))
@@ -56,7 +58,7 @@ impl Sidebar {
                         .text_lg()
                         .font_weight(FontWeight::BOLD)
                         .text_color(theme.primary)
-                        .child("AC")
+                        .child(i18n.t("app.short_name"))
                 } else {
                     div()
                         .flex()
@@ -76,14 +78,14 @@ impl Sidebar {
                                         .text_sm()
                                         .font_weight(FontWeight::BOLD)
                                         .text_color(theme.background)
-                                        .child("AC")
+                                        .child(i18n.t("app.short_name"))
                                 )
                         )
                         .child(
                             div()
                                 .text_lg()
                                 .font_weight(FontWeight::BOLD)
-                                .child("Agent Core")
+                                .child(i18n.t("app.name"))
                         )
                 }
             )
@@ -95,6 +97,7 @@ impl Sidebar {
         cx: &mut Context<AppRoot>,
     ) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .p(px(8.0))
@@ -108,7 +111,7 @@ impl Sidebar {
                     .text_xs()
                     .text_color(theme.text_muted)
                     .font_weight(FontWeight::MEDIUM)
-                    .child(if collapsed { "" } else { "PERSONAS" })
+                    .child(if collapsed { "" } else { i18n.t("nav.personas") })
             )
             .child(Self::render_persona_item(Persona::Zee, active_persona, collapsed, cx))
             .child(Self::render_persona_item(Persona::Stanley, active_persona, collapsed, cx))
@@ -122,6 +125,7 @@ impl Sidebar {
         cx: &mut Context<AppRoot>,
     ) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
         let is_active = active_persona == persona;
 
         let accent = match persona {
@@ -138,8 +142,20 @@ impl Sidebar {
 
         let hover_bg = theme.background_element;
         let text_muted = theme.text_muted;
-        let name = persona.name().to_string();
-        let desc = persona.description().to_string();
+        let (name, desc) = match persona {
+            Persona::Zee => (
+                i18n.t("persona.zee.name"),
+                i18n.t("persona.zee.description"),
+            ),
+            Persona::Stanley => (
+                i18n.t("persona.stanley.name"),
+                i18n.t("persona.stanley.description"),
+            ),
+            Persona::Johny => (
+                i18n.t("persona.johny.name"),
+                i18n.t("persona.johny.description"),
+            ),
+        };
 
         div()
             .id(SharedString::from(format!("persona-{:?}", persona)))
@@ -191,6 +207,7 @@ impl Sidebar {
         cx: &mut Context<AppRoot>,
     ) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex_1()
@@ -205,11 +222,11 @@ impl Sidebar {
                     .text_xs()
                     .text_color(theme.text_muted)
                     .font_weight(FontWeight::MEDIUM)
-                    .child(if collapsed { "" } else { "NAVIGATION" })
+                    .child(if collapsed { "" } else { i18n.t("nav.navigation") })
             )
-            .child(Self::render_nav_item("Sessions", "S", ActiveView::Sessions, active_view, collapsed, cx))
-            .child(Self::render_nav_item("Chat", "C", ActiveView::Chat, active_view, collapsed, cx))
-            .child(Self::render_nav_item("Settings", "G", ActiveView::Settings, active_view, collapsed, cx))
+            .child(Self::render_nav_item(&i18n.t("nav.sessions"), "S", ActiveView::Sessions, active_view, collapsed, cx))
+            .child(Self::render_nav_item(&i18n.t("nav.chat"), "C", ActiveView::Chat, active_view, collapsed, cx))
+            .child(Self::render_nav_item(&i18n.t("nav.settings"), "G", ActiveView::Settings, active_view, collapsed, cx))
     }
 
     fn render_nav_item(
@@ -263,9 +280,14 @@ impl Sidebar {
 
     fn render_footer(collapsed: bool, cx: &mut Context<AppRoot>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
         let hover_bg = theme.background_element;
         let text_muted = theme.text_muted;
-        let label = if collapsed { ">>" } else { "<< Collapse" };
+        let label = if collapsed {
+            format!(">> {}", i18n.t("nav.expand"))
+        } else {
+            format!("<< {}", i18n.t("nav.collapse"))
+        };
 
         div()
             .p(px(8.0))

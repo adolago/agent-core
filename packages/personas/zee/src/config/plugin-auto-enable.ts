@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "./config.js";
+import type { MoltbotConfig } from "./config.js";
 import {
   getChatChannelMeta,
   listChatChannels,
@@ -17,7 +17,7 @@ type PluginEnableChange = {
 };
 
 export type PluginAutoEnableResult = {
-  config: ZeeConfig;
+  config: MoltbotConfig;
   changes: string[];
 };
 
@@ -59,7 +59,7 @@ function accountsHaveKeys(value: unknown, keys: string[]): boolean {
 }
 
 function resolveChannelConfig(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   channelId: string,
 ): Record<string, unknown> | null {
   const channels = cfg.channels as Record<string, unknown> | undefined;
@@ -67,7 +67,7 @@ function resolveChannelConfig(
   return isRecord(entry) ? entry : null;
 }
 
-function isTelegramConfigured(cfg: ZeeConfig, env: NodeJS.ProcessEnv): boolean {
+function isTelegramConfigured(cfg: MoltbotConfig, env: NodeJS.ProcessEnv): boolean {
   if (hasNonEmptyString(env.TELEGRAM_BOT_TOKEN)) return true;
   const entry = resolveChannelConfig(cfg, "telegram");
   if (!entry) return false;
@@ -76,7 +76,7 @@ function isTelegramConfigured(cfg: ZeeConfig, env: NodeJS.ProcessEnv): boolean {
   return recordHasKeys(entry);
 }
 
-function isDiscordConfigured(cfg: ZeeConfig, env: NodeJS.ProcessEnv): boolean {
+function isDiscordConfigured(cfg: MoltbotConfig, env: NodeJS.ProcessEnv): boolean {
   if (hasNonEmptyString(env.DISCORD_BOT_TOKEN)) return true;
   const entry = resolveChannelConfig(cfg, "discord");
   if (!entry) return false;
@@ -85,7 +85,7 @@ function isDiscordConfigured(cfg: ZeeConfig, env: NodeJS.ProcessEnv): boolean {
   return recordHasKeys(entry);
 }
 
-function isSlackConfigured(cfg: ZeeConfig, env: NodeJS.ProcessEnv): boolean {
+function isSlackConfigured(cfg: MoltbotConfig, env: NodeJS.ProcessEnv): boolean {
   if (
     hasNonEmptyString(env.SLACK_BOT_TOKEN) ||
     hasNonEmptyString(env.SLACK_APP_TOKEN) ||
@@ -106,7 +106,7 @@ function isSlackConfigured(cfg: ZeeConfig, env: NodeJS.ProcessEnv): boolean {
   return recordHasKeys(entry);
 }
 
-function isSignalConfigured(cfg: ZeeConfig): boolean {
+function isSignalConfigured(cfg: MoltbotConfig): boolean {
   const entry = resolveChannelConfig(cfg, "signal");
   if (!entry) return false;
   if (
@@ -122,27 +122,27 @@ function isSignalConfigured(cfg: ZeeConfig): boolean {
   return recordHasKeys(entry);
 }
 
-function isIMessageConfigured(cfg: ZeeConfig): boolean {
+function isIMessageConfigured(cfg: MoltbotConfig): boolean {
   const entry = resolveChannelConfig(cfg, "imessage");
   if (!entry) return false;
   if (hasNonEmptyString(entry.cliPath)) return true;
   return recordHasKeys(entry);
 }
 
-function isWhatsAppConfigured(cfg: ZeeConfig): boolean {
+function isWhatsAppConfigured(cfg: MoltbotConfig): boolean {
   if (hasAnyWhatsAppAuth(cfg)) return true;
   const entry = resolveChannelConfig(cfg, "whatsapp");
   if (!entry) return false;
   return recordHasKeys(entry);
 }
 
-function isGenericChannelConfigured(cfg: ZeeConfig, channelId: string): boolean {
+function isGenericChannelConfigured(cfg: MoltbotConfig, channelId: string): boolean {
   const entry = resolveChannelConfig(cfg, channelId);
   return recordHasKeys(entry);
 }
 
 export function isChannelConfigured(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   channelId: string,
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
@@ -164,7 +164,7 @@ export function isChannelConfigured(
   }
 }
 
-function collectModelRefs(cfg: ZeeConfig): string[] {
+function collectModelRefs(cfg: MoltbotConfig): string[] {
   const refs: string[] = [];
   const pushModelRef = (value: unknown) => {
     if (typeof value === "string" && value.trim()) refs.push(value.trim());
@@ -208,7 +208,7 @@ function extractProviderFromModelRef(value: string): string | null {
   return normalizeProviderId(trimmed.slice(0, slash));
 }
 
-function isProviderConfigured(cfg: ZeeConfig, providerId: string): boolean {
+function isProviderConfigured(cfg: MoltbotConfig, providerId: string): boolean {
   const normalized = normalizeProviderId(providerId);
 
   const profiles = cfg.auth?.profiles;
@@ -237,7 +237,7 @@ function isProviderConfigured(cfg: ZeeConfig, providerId: string): boolean {
 }
 
 function resolveConfiguredPlugins(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   env: NodeJS.ProcessEnv,
 ): PluginEnableChange[] {
   const changes: PluginEnableChange[] = [];
@@ -269,12 +269,12 @@ function resolveConfiguredPlugins(
   return changes;
 }
 
-function isPluginExplicitlyDisabled(cfg: ZeeConfig, pluginId: string): boolean {
+function isPluginExplicitlyDisabled(cfg: MoltbotConfig, pluginId: string): boolean {
   const entry = cfg.plugins?.entries?.[pluginId];
   return entry?.enabled === false;
 }
 
-function isPluginDenied(cfg: ZeeConfig, pluginId: string): boolean {
+function isPluginDenied(cfg: MoltbotConfig, pluginId: string): boolean {
   const deny = cfg.plugins?.deny;
   return Array.isArray(deny) && deny.includes(pluginId);
 }
@@ -289,7 +289,7 @@ function resolvePreferredOverIds(pluginId: string): string[] {
 }
 
 function shouldSkipPreferredPluginAutoEnable(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   entry: PluginEnableChange,
   configured: PluginEnableChange[],
 ): boolean {
@@ -305,7 +305,7 @@ function shouldSkipPreferredPluginAutoEnable(
   return false;
 }
 
-function ensureAllowlisted(cfg: ZeeConfig, pluginId: string): ZeeConfig {
+function ensureAllowlisted(cfg: MoltbotConfig, pluginId: string): MoltbotConfig {
   const allow = cfg.plugins?.allow;
   if (!Array.isArray(allow) || allow.includes(pluginId)) return cfg;
   return {
@@ -317,7 +317,7 @@ function ensureAllowlisted(cfg: ZeeConfig, pluginId: string): ZeeConfig {
   };
 }
 
-function enablePluginEntry(cfg: ZeeConfig, pluginId: string): ZeeConfig {
+function enablePluginEntry(cfg: MoltbotConfig, pluginId: string): MoltbotConfig {
   const entries = {
     ...cfg.plugins?.entries,
     [pluginId]: {
@@ -346,7 +346,7 @@ function formatAutoEnableChange(entry: PluginEnableChange): string {
 }
 
 export function applyPluginAutoEnable(params: {
-  config: ZeeConfig;
+  config: MoltbotConfig;
   env?: NodeJS.ProcessEnv;
 }): PluginAutoEnableResult {
   const env = params.env ?? process.env;

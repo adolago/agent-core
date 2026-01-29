@@ -363,7 +363,7 @@ export async function statusCommand(
     },
   ];
 
-  runtime.log(theme.heading("Zee status"));
+  runtime.log(theme.heading("Moltbot status"));
   runtime.log("");
   runtime.log(theme.heading("Overview"));
   runtime.log(
@@ -412,8 +412,8 @@ export async function statusCommand(
       runtime.log(theme.muted(`… +${sorted.length - shown.length} more`));
     }
   }
-  runtime.log(theme.muted(`Full report: ${formatCliCommand("zee security audit")}`));
-  runtime.log(theme.muted(`Deep probe: ${formatCliCommand("zee security audit --deep")}`));
+  runtime.log(theme.muted(`Full report: ${formatCliCommand("moltbot security audit")}`));
+  runtime.log(theme.muted(`Deep probe: ${formatCliCommand("moltbot security audit --deep")}`));
 
   runtime.log("");
   runtime.log(theme.heading("Channels"));
@@ -560,8 +560,8 @@ export async function statusCommand(
   }
 
   runtime.log("");
-  runtime.log("FAQ: https://docs.zee.bot/faq");
-  runtime.log("Troubleshooting: https://docs.zee.bot/troubleshooting");
+  runtime.log("FAQ: https://docs.molt.bot/faq");
+  runtime.log("Troubleshooting: https://docs.molt.bot/troubleshooting");
   runtime.log("");
   const updateHint = formatUpdateAvailableHint(update);
   if (updateHint) {
@@ -569,11 +569,11 @@ export async function statusCommand(
     runtime.log("");
   }
   runtime.log("Next steps:");
-  runtime.log(`  Need to share?      ${formatCliCommand("zee status --all")}`);
-  runtime.log(`  Need to debug live? ${formatCliCommand("zee logs --follow")}`);
+  runtime.log(`  Need to share?      ${formatCliCommand("moltbot status --all")}`);
+  runtime.log(`  Need to debug live? ${formatCliCommand("moltbot logs --follow")}`);
   if (gatewayReachable) {
-    runtime.log(`  Need to test channels? ${formatCliCommand("zee status --deep")}`);
+    runtime.log(`  Need to test channels? ${formatCliCommand("moltbot status --deep")}`);
   } else {
-    runtime.log(`  Fix reachability first: ${formatCliCommand("zee gateway probe")}`);
+    runtime.log(`  Fix reachability first: ${formatCliCommand("moltbot gateway probe")}`);
   }
 }

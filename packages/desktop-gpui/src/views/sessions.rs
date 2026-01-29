@@ -5,6 +5,7 @@
 use gpui::prelude::*;
 use gpui::*;
 use crate::api::{types::CreateSessionRequest, ApiState};
+use crate::i18n::I18n;
 use crate::state::AppState;
 use crate::theme::Theme;
 
@@ -56,6 +57,7 @@ impl SessionsView {
 
     fn render_header(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex()
@@ -66,7 +68,7 @@ impl SessionsView {
                 div()
                     .text_xl()
                     .font_weight(FontWeight::BOLD)
-                    .child("Sessions")
+                    .child(i18n.t("sessions.title"))
             )
             .child(
                 div()
@@ -82,12 +84,13 @@ impl SessionsView {
                     .on_click(cx.listener(|this, _event, _window, cx| {
                         this.create_new_session(cx);
                     }))
-                    .child("+ New Session")
+                    .child(format!("+ {}", i18n.t("sessions.new")))
             )
     }
 
     fn render_search(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .mb(px(16.0))
@@ -104,7 +107,7 @@ impl SessionsView {
                         if self.search_query.is_empty() {
                             div()
                                 .text_color(theme.text_muted)
-                                .child("Search sessions...")
+                                .child(i18n.t("sessions.search_placeholder"))
                         } else {
                             div().child(self.search_query.clone())
                         }
@@ -115,6 +118,7 @@ impl SessionsView {
     fn render_sessions_list(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let state = cx.global::<AppState>();
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         if state.sessions_loading {
             return div()
@@ -141,7 +145,7 @@ impl SessionsView {
                         .child(
                             div()
                                 .text_color(theme.text_muted)
-                                .child("Loading sessions...")
+                                .child(i18n.t("sessions.loading"))
                         )
                 )
                 .into_any_element();
@@ -170,20 +174,20 @@ impl SessionsView {
                             div()
                                 .text_2xl()
                                 .text_color(theme.text_muted)
-                                .child("📝")
+                                .child(i18n.t("sessions.empty_icon"))
                         )
                 )
                 .child(
                     div()
                         .text_lg()
                         .text_color(theme.text_muted)
-                        .child("No sessions yet")
+                        .child(i18n.t("sessions.empty_title"))
                 )
                 .child(
                     div()
                         .text_sm()
                         .text_color(theme.text_muted)
-                        .child("Create a new session to get started")
+                        .child(i18n.t("sessions.empty_subtitle"))
                 )
                 .into_any_element();
         }
@@ -200,7 +204,7 @@ impl SessionsView {
                     .map(|(index, session)| {
                         let session_id = session.id.clone();
                         let is_selected = state.active_session_id.as_ref() == Some(&session_id);
-                        let title = session.title.clone().unwrap_or_else(|| "Untitled Session".to_string());
+                        let title = session.title.clone().unwrap_or_else(|| i18n.t("sessions.untitled"));
                         let message_count = session.message_count;
                         let created_at = format_timestamp(session.created_at);
 

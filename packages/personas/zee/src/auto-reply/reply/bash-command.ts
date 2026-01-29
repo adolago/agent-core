@@ -3,7 +3,7 @@ import { getFinishedSession, getSession, markExited } from "../../agents/bash-pr
 import { createExecTool } from "../../agents/bash-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { killProcessTree } from "../../agents/shell-utils.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { logVerbose } from "../../globals.js";
 import { clampInt } from "../../utils.js";
@@ -33,7 +33,7 @@ type ActiveBashJob =
 
 let activeJob: ActiveBashJob | null = null;
 
-function resolveForegroundMs(cfg: ZeeConfig): number {
+function resolveForegroundMs(cfg: MoltbotConfig): number {
   const raw = cfg.commands?.bashForegroundMs;
   if (typeof raw !== "number" || Number.isNaN(raw)) return DEFAULT_FOREGROUND_MS;
   return clampInt(raw, 0, MAX_FOREGROUND_MS);
@@ -87,7 +87,7 @@ function parseBashRequest(raw: string): BashRequest | null {
 
 function resolveRawCommandBody(params: {
   ctx: MsgContext;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentId?: string;
   isGroup: boolean;
 }) {
@@ -137,7 +137,7 @@ function attachActiveWatcher(sessionId: string) {
 function buildUsageReply(): ReplyPayload {
   return {
     text: [
-      "> Usage:",
+      "⚙️ Usage:",
       "- ! <command>",
       "- !poll | ! poll",
       "- !stop | ! stop",
@@ -169,7 +169,7 @@ function formatElevatedUnavailableMessage(params: {
   lines.push("- agents.list[].tools.elevated.allowFrom.<provider>");
   if (params.sessionKey) {
     lines.push(
-      `See: ${formatCliCommand(`zee sandbox explain --session ${params.sessionKey}`)}`,
+      `See: ${formatCliCommand(`moltbot sandbox explain --session ${params.sessionKey}`)}`,
     );
   }
   return lines.join("\n");
@@ -177,7 +177,7 @@ function formatElevatedUnavailableMessage(params: {
 
 export async function handleBashChatCommand(params: {
   ctx: MsgContext;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentId?: string;
   sessionKey: string;
   isGroup: boolean;
@@ -189,7 +189,7 @@ export async function handleBashChatCommand(params: {
 }): Promise<ReplyPayload> {
   if (params.cfg.commands?.bash !== true) {
     return {
-      text: "⚠ bash is disabled. Set commands.bash=true to enable. Docs: https://docs.zee.bot/tools/slash-commands#config",
+      text: "⚠️ bash is disabled. Set commands.bash=true to enable. Docs: https://docs.molt.bot/tools/slash-commands#config",
     };
   }
 
@@ -222,7 +222,7 @@ export async function handleBashChatCommand(params: {
   }).trim();
   const request = parseBashRequest(rawBody);
   if (!request) {
-    return { text: "⚠ Unrecognized bash request." };
+    return { text: "⚠️ Unrecognized bash request." };
   }
 
   const liveJob = ensureActiveJobState();
@@ -235,7 +235,7 @@ export async function handleBashChatCommand(params: {
     const sessionId =
       request.sessionId?.trim() || (liveJob?.state === "running" ? liveJob.sessionId : "");
     if (!sessionId) {
-      return { text: "▸ No active bash job." };
+      return { text: "⚙️ No active bash job." };
     }
     const { running, finished } = getScopedSession(sessionId);
     if (running) {
@@ -244,7 +244,7 @@ export async function handleBashChatCommand(params: {
       const tail = running.tail || "(no output yet)";
       return {
         text: [
-          `> bash still running (session ${formatSessionSnippet(sessionId)}, ${runtimeSec}s).`,
+          `⚙️ bash still running (session ${formatSessionSnippet(sessionId)}, ${runtimeSec}s).`,
           formatOutputBlock(tail),
           "Hint: !stop (or /bash stop)",
         ].join("\n"),
@@ -257,7 +257,7 @@ export async function handleBashChatCommand(params: {
       const exitLabel = finished.exitSignal
         ? `signal ${String(finished.exitSignal)}`
         : `code ${String(finished.exitCode ?? 0)}`;
-      const prefix = finished.status === "completed" ? ">" : "!";
+      const prefix = finished.status === "completed" ? "⚙️" : "⚠️";
       return {
         text: [
           `${prefix} bash finished (session ${formatSessionSnippet(sessionId)}).`,
@@ -270,7 +270,7 @@ export async function handleBashChatCommand(params: {
       activeJob = null;
     }
     return {
-      text: `▸ No bash session found for ${formatSessionSnippet(sessionId)}.`,
+      text: `⚙️ No bash session found for ${formatSessionSnippet(sessionId)}.`,
     };
   }
 
@@ -278,7 +278,7 @@ export async function handleBashChatCommand(params: {
     const sessionId =
       request.sessionId?.trim() || (liveJob?.state === "running" ? liveJob.sessionId : "");
     if (!sessionId) {
-      return { text: "▸ No active bash job." };
+      return { text: "⚙️ No active bash job." };
     }
     const { running } = getScopedSession(sessionId);
     if (!running) {
@@ -286,12 +286,12 @@ export async function handleBashChatCommand(params: {
         activeJob = null;
       }
       return {
-        text: `▸ No running bash job found for ${formatSessionSnippet(sessionId)}.`,
+        text: `⚙️ No running bash job found for ${formatSessionSnippet(sessionId)}.`,
       };
     }
     if (!running.backgrounded) {
       return {
-        text: `⚠ Session ${formatSessionSnippet(sessionId)} is not backgrounded.`,
+        text: `⚠️ Session ${formatSessionSnippet(sessionId)} is not backgrounded.`,
       };
     }
     const pid = running.pid ?? running.child?.pid;
@@ -303,7 +303,7 @@ export async function handleBashChatCommand(params: {
       activeJob = null;
     }
     return {
-      text: `▸ bash stopped (session ${formatSessionSnippet(sessionId)}).`,
+      text: `⚙️ bash stopped (session ${formatSessionSnippet(sessionId)}).`,
     };
   }
 
@@ -312,7 +312,7 @@ export async function handleBashChatCommand(params: {
     const label =
       liveJob.state === "running" ? formatSessionSnippet(liveJob.sessionId) : "starting";
     return {
-      text: `⚠ A bash job is already running (${label}). Use !poll / !stop (or /bash poll / /bash stop).`,
+      text: `⚠️ A bash job is already running (${label}). Use !poll / !stop (or /bash poll / /bash stop).`,
     };
   }
 
@@ -363,7 +363,7 @@ export async function handleBashChatCommand(params: {
       const snippet = formatSessionSnippet(sessionId);
       logVerbose(`Started bash session ${snippet}: ${commandText}`);
       return {
-        text: `▸ bash started (session ${sessionId}). Still running; use !poll / !stop (or /bash poll / /bash stop).`,
+        text: `⚙️ bash started (session ${sessionId}). Still running; use !poll / !stop (or /bash poll / /bash stop).`,
       };
     }
 
@@ -376,7 +376,7 @@ export async function handleBashChatCommand(params: {
         : result.content.map((chunk) => (chunk.type === "text" ? chunk.text : "")).join("\n");
     return {
       text: [
-        `> bash: ${commandText}`,
+        `⚙️ bash: ${commandText}`,
         `Exit: ${exitCode}`,
         formatOutputBlock(output || "(no output)"),
       ].join("\n"),
@@ -385,7 +385,7 @@ export async function handleBashChatCommand(params: {
     activeJob = null;
     const message = err instanceof Error ? err.message : String(err);
     return {
-      text: [`! bash failed: ${commandText}`, formatOutputBlock(message)].join("\n"),
+      text: [`⚠️ bash failed: ${commandText}`, formatOutputBlock(message)].join("\n"),
     };
   }
 }

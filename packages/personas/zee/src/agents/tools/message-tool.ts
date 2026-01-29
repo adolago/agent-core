@@ -9,7 +9,7 @@ import {
   type ChannelMessageActionName,
 } from "../../channels/plugins/types.js";
 import { BLUEBUBBLES_GROUP_ACTIONS } from "../../channels/plugins/bluebubbles-actions.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "../../gateway/protocol/client-info.js";
 import { normalizeTargetForProvider } from "../../infra/outbound/target-normalization.js";
@@ -242,7 +242,7 @@ const MessageToolSchema = buildMessageToolSchemaFromActions(AllMessageActions, {
 type MessageToolOptions = {
   agentAccountId?: string;
   agentSessionKey?: string;
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   currentChannelId?: string;
   currentChannelProvider?: string;
   currentThreadTs?: string;
@@ -250,7 +250,7 @@ type MessageToolOptions = {
   hasRepliedRef?: { value: boolean };
 };
 
-function buildMessageToolSchema(cfg: ZeeConfig) {
+function buildMessageToolSchema(cfg: MoltbotConfig) {
   const actions = listChannelMessageActions(cfg);
   const includeButtons = supportsChannelMessageButtons(cfg);
   const includeCards = supportsChannelMessageCards(cfg);
@@ -288,7 +288,7 @@ function filterActionsForContext(params: {
 }
 
 function buildMessageToolDescription(options?: {
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   currentChannel?: string;
   currentChannelId?: string;
 }): string {

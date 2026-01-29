@@ -4,19 +4,24 @@ import {
   createInboundDebouncer,
   resolveInboundDebounceMs,
 } from "../auto-reply/inbound-debounce.js";
+import { buildCommandsPaginationKeyboard } from "../auto-reply/reply/commands-info.js";
+import { buildCommandsMessagePaginated } from "../auto-reply/status.js";
+import { listSkillCommandsForAgents } from "../auto-reply/skill-commands.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadConfig } from "../config/config.js";
 import { writeConfigFile } from "../config/io.js";
 import { danger, logVerbose, warn } from "../globals.js";
 import { resolveMedia } from "./bot/delivery.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { resolveTelegramForumThreadId } from "./bot/helpers.js";
-import type { StickerMetadata, TelegramMessage } from "./bot/types.js";
+import type { TelegramMessage } from "./bot/types.js";
 import { firstDefined, isSenderAllowed, normalizeAllowFromWithStore } from "./bot-access.js";
 import { MEDIA_GROUP_TIMEOUT_MS, type MediaGroupEntry } from "./bot-updates.js";
 import { migrateTelegramGroupConfig } from "./group-migration.js";
 import { resolveTelegramInlineButtonsScope } from "./inline-buttons.js";
 import { readTelegramAllowFromStore } from "./pairing-store.js";
 import { resolveChannelConfigWrites } from "../channels/plugins/config-writes.js";
+import { buildInlineKeyboard } from "./send.js";
 
 export const registerTelegramHandlers = ({
   cfg,
@@ -54,7 +59,7 @@ export const registerTelegramHandlers = ({
   type TelegramDebounceEntry = {
     ctx: unknown;
     msg: TelegramMessage;
-    allMedia: Array<{ path: string; contentType?: string; stickerMetadata?: StickerMetadata }>;
+    allMedia: Array<{ path: string; contentType?: string }>;
     storeAllowFrom: string[];
     debounceKey: string | null;
     botUsername?: string;
@@ -115,7 +120,7 @@ export const registerTelegramHandlers = ({
       const allMedia: Array<{
         path: string;
         contentType?: string;
-        stickerMetadata?: StickerMetadata;
+        stickerMetadata?: { emoji?: string; setName?: string; fileId?: string };
       }> = [];
       for (const { ctx } of entry.messages) {
         const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
@@ -321,6 +326,47 @@ export const registerTelegramHandlers = ({
               }));
           if (!allowed) return;
         }
+      }
+
+      const paginationMatch = data.match(/^commands_page_(\d+|noop)(?::(.+))?$/);
+      if (paginationMatch) {
+        const pageValue = paginationMatch[1];
+        if (pageValue === "noop") return;
+
+        const page = Number.parseInt(pageValue, 10);
+        if (Number.isNaN(page) || page < 1) return;
+
+        const agentId = paginationMatch[2]?.trim() || resolveDefaultAgentId(cfg) || undefined;
+        const skillCommands = listSkillCommandsForAgents({
+          cfg,
+          agentIds: agentId ? [agentId] : undefined,
+        });
+        const result = buildCommandsMessagePaginated(cfg, skillCommands, {
+          page,
+          surface: "telegram",
+        });
+
+        const keyboard =
+          result.totalPages > 1
+            ? buildInlineKeyboard(
+                buildCommandsPaginationKeyboard(result.currentPage, result.totalPages, agentId),
+              )
+            : undefined;
+
+        try {
+          await bot.api.editMessageText(
+            callbackMessage.chat.id,
+            callbackMessage.message_id,
+            result.text,
+            keyboard ? { reply_markup: keyboard } : undefined,
+          );
+        } catch (editErr) {
+          const errStr = String(editErr);
+          if (!errStr.includes("message is not modified")) {
+            throw editErr;
+          }
+        }
+        return;
       }
 
       const syntheticMessage: TelegramMessage = {
@@ -594,7 +640,7 @@ export const registerTelegramHandlers = ({
             operation: "sendMessage",
             runtime,
             fn: () =>
-              bot.api.sendMessage(chatId, `File too large. Maximum size is ${limitMb}MB.`, {
+              bot.api.sendMessage(chatId, `⚠️ File too large. Maximum size is ${limitMb}MB.`, {
                 reply_to_message_id: msg.message_id,
               }),
           }).catch(() => {});
@@ -603,6 +649,15 @@ export const registerTelegramHandlers = ({
         }
         throw mediaErr;
       }
+
+      // Skip sticker-only messages where the sticker was skipped (animated/video)
+      // These have no media and no text content to process.
+      const hasText = Boolean((msg.text ?? msg.caption ?? "").trim());
+      if (msg.sticker && !media && !hasText) {
+        logVerbose("telegram: skipping sticker-only message (unsupported sticker type)");
+        return;
+      }
+
       const allMedia = media
         ? [
             {

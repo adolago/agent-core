@@ -233,7 +233,7 @@ describe("parseLineDirectives", () => {
         contents?: { footer?: { contents?: unknown[] } };
       };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Music: Bohemian Rhapsody - Queen");
+      expect(flexMessage?.altText).toBe("🎵 Bohemian Rhapsody - Queen");
       const contents = flexMessage?.contents as { footer?: { contents?: unknown[] } };
       expect(contents.footer?.contents?.length).toBeGreaterThan(0);
       expect(result.text).toBe("Now playing:");
@@ -246,7 +246,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Music: Unknown Track");
+      expect(flexMessage?.altText).toBe("🎵 Unknown Track");
     });
 
     it("handles paused status", () => {
@@ -271,7 +271,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Event: Team Meeting - January 24, 2026 2:00 PM - 3:00 PM");
+      expect(flexMessage?.altText).toBe("📅 Team Meeting - January 24, 2026 2:00 PM - 3:00 PM");
     });
 
     it("parses event with minimal fields", () => {
@@ -281,7 +281,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Event: Birthday Party - March 15");
+      expect(flexMessage?.altText).toBe("📅 Birthday Party - March 15");
     });
   });
 
@@ -293,7 +293,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Agenda: Today's Schedule (3 events)");
+      expect(flexMessage?.altText).toBe("📋 Today's Schedule (3 events)");
     });
 
     it("parses agenda with events without times", () => {
@@ -303,7 +303,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Agenda: Tasks (3 events)");
+      expect(flexMessage?.altText).toBe("📋 Tasks (3 events)");
     });
   });
 
@@ -315,7 +315,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Device: TV: Playing");
+      expect(flexMessage?.altText).toBe("📱 TV: Playing");
     });
 
     it("parses device with minimal fields", () => {
@@ -325,7 +325,7 @@ describe("parseLineDirectives", () => {
 
       const flexMessage = getLineData(result).flexMessage as { altText?: string };
       expect(flexMessage).toBeDefined();
-      expect(flexMessage?.altText).toBe("Device: Speaker");
+      expect(flexMessage?.altText).toBe("📱 Speaker");
     });
   });
 

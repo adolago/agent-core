@@ -1,5 +1,7 @@
 node_modules
+**/node_modules/
 .env
+docker-compose.extra.yml
 dist
 *.bun-build
 pnpm-lock.yaml
@@ -16,19 +18,30 @@ ui/test-results/
 
 # Bun build artifacts
 *.bun-build
-apps/shared/ZeeKit/.build/
+apps/macos/.build/
+apps/shared/MoltbotKit/.build/
 **/ModuleCache/
 bin/
+bin/clawdbot-mac
 bin/docs-list
-apps/shared/ZeeKit/.swiftpm/
+apps/macos/.build-local/
+apps/macos/.swiftpm/
+apps/shared/MoltbotKit/.swiftpm/
 Core/
 apps/ios/*.xcodeproj/
 apps/ios/*.xcworkspace/
 apps/ios/.swiftpm/
 vendor/
+apps/ios/Clawdbot.xcodeproj/
+apps/ios/Clawdbot.xcodeproj/**
+apps/macos/.build/**
+**/*.bun-build
+apps/ios/*.xcfilelist
 
 # Vendor build artifacts
 vendor/a2ui/renderers/lit/dist/
+src/canvas-host/a2ui/*.bundle.js
+src/canvas-host/a2ui/*.map
 .bundle.hash
 
 # fastlane (iOS)
@@ -38,6 +51,8 @@ apps/ios/fastlane/Preview.html
 apps/ios/fastlane/screenshots/
 apps/ios/fastlane/test_output/
 apps/ios/fastlane/logs/
+apps/ios/fastlane/.env
+apps/ios/fastlane/report.xml
 
 # fastlane build artifacts (local)
 apps/ios/*.ipa
@@ -46,18 +61,13 @@ apps/ios/*.dSYM.zip
 # provisioning profiles (local)
 apps/ios/*.mobileprovision
 .env
-.swarm/
 
 # Local untracked files
 .local/
+.vscode/
+IDENTITY.md
+USER.md
+.tgz
 
-# Legacy systemd units (avoid accidental upstream diffs)
-**/zeedis-gateway.service
-**/zee.service
-
-# iOS build artifacts (keep source files tracked)
-apps/ios/build/
-apps/ios/DerivedData/
-Peekaboo/
-Swabble/
-.agent-core/
+# local tooling
+.serena/

@@ -36,7 +36,7 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
       vi.mocked(runEmbeddedPiAgent).mockReset();
       return await fn(home);
     },
-    { prefix: "zee-queue-" },
+    { prefix: "moltbot-queue-" },
   );
 }
 
@@ -45,7 +45,7 @@ function makeCfg(home: string, queue?: Record<string, unknown>) {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: path.join(home, "zee"),
+        workspace: path.join(home, "clawd"),
       },
     },
     channels: { whatsapp: { allowFrom: ["*"] } },

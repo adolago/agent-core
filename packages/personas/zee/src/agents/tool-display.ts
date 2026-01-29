@@ -31,7 +31,7 @@ export type ToolDisplay = {
 };
 
 const TOOL_DISPLAY_CONFIG = TOOL_DISPLAY_JSON as ToolDisplayConfig;
-const FALLBACK = TOOL_DISPLAY_CONFIG.fallback ?? { emoji: "▸" };
+const FALLBACK = TOOL_DISPLAY_CONFIG.fallback ?? { emoji: "🧩" };
 const TOOL_MAP = TOOL_DISPLAY_CONFIG.tools ?? {};
 const DETAIL_LABEL_OVERRIDES: Record<string, string> = {
   agentId: "agent",
@@ -187,7 +187,7 @@ export function resolveToolDisplay(params: {
   const name = normalizeToolName(params.name);
   const key = name.toLowerCase();
   const spec = TOOL_MAP[key];
-  const emoji = spec?.emoji ?? FALLBACK.emoji ?? "▸";
+  const emoji = spec?.emoji ?? FALLBACK.emoji ?? "🧩";
   const title = spec?.title ?? defaultTitle(name);
   const label = spec?.label ?? title;
   const actionRaw =

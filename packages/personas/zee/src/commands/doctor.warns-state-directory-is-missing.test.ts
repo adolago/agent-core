@@ -26,7 +26,7 @@ beforeEach(() => {
 
   readConfigFileSnapshot.mockReset();
   writeConfigFile.mockReset().mockResolvedValue(undefined);
-  resolveZeePackageRoot.mockReset().mockResolvedValue(null);
+  resolveMoltbotPackageRoot.mockReset().mockResolvedValue(null);
   runGatewayUpdate.mockReset().mockResolvedValue({
     status: "skipped",
     mode: "unknown",
@@ -34,7 +34,7 @@ beforeEach(() => {
     durationMs: 0,
   });
   legacyReadConfigFileSnapshot.mockReset().mockResolvedValue({
-    path: "/tmp/zee.json",
+    path: "/tmp/moltbot.json",
     exists: false,
     raw: null,
     parsed: {},
@@ -75,11 +75,11 @@ beforeEach(() => {
 
   originalIsTTY = process.stdin.isTTY;
   setStdinTty(true);
-  originalStateDir = process.env.ZEE_STATE_DIR;
-  originalUpdateInProgress = process.env.ZEE_UPDATE_IN_PROGRESS;
-  process.env.ZEE_UPDATE_IN_PROGRESS = "1";
-  tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-doctor-state-"));
-  process.env.ZEE_STATE_DIR = tempStateDir;
+  originalStateDir = process.env.CLAWDBOT_STATE_DIR;
+  originalUpdateInProgress = process.env.CLAWDBOT_UPDATE_IN_PROGRESS;
+  process.env.CLAWDBOT_UPDATE_IN_PROGRESS = "1";
+  tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-doctor-state-"));
+  process.env.CLAWDBOT_STATE_DIR = tempStateDir;
   fs.mkdirSync(path.join(tempStateDir, "agents", "main", "sessions"), {
     recursive: true,
   });
@@ -89,14 +89,14 @@ beforeEach(() => {
 afterEach(() => {
   setStdinTty(originalIsTTY);
   if (originalStateDir === undefined) {
-    delete process.env.ZEE_STATE_DIR;
+    delete process.env.CLAWDBOT_STATE_DIR;
   } else {
-    process.env.ZEE_STATE_DIR = originalStateDir;
+    process.env.CLAWDBOT_STATE_DIR = originalStateDir;
   }
   if (originalUpdateInProgress === undefined) {
-    delete process.env.ZEE_UPDATE_IN_PROGRESS;
+    delete process.env.CLAWDBOT_UPDATE_IN_PROGRESS;
   } else {
-    process.env.ZEE_UPDATE_IN_PROGRESS = originalUpdateInProgress;
+    process.env.CLAWDBOT_UPDATE_IN_PROGRESS = originalUpdateInProgress;
   }
   if (tempStateDir) {
     fs.rmSync(tempStateDir, { recursive: true, force: true });
@@ -109,7 +109,7 @@ const confirm = vi.fn().mockResolvedValue(true);
 const select = vi.fn().mockResolvedValue("node");
 const note = vi.fn();
 const writeConfigFile = vi.fn().mockResolvedValue(undefined);
-const resolveZeePackageRoot = vi.fn().mockResolvedValue(null);
+const resolveMoltbotPackageRoot = vi.fn().mockResolvedValue(null);
 const runGatewayUpdate = vi.fn().mockResolvedValue({
   status: "skipped",
   mode: "unknown",
@@ -133,7 +133,7 @@ const runCommandWithTimeout = vi.fn().mockResolvedValue({
 const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {} });
 
 const legacyReadConfigFileSnapshot = vi.fn().mockResolvedValue({
-  path: "/tmp/zee.json",
+  path: "/tmp/moltbot.json",
   exists: false,
   raw: null,
   parsed: {},
@@ -173,14 +173,14 @@ vi.mock("../agents/skills-status.js", () => ({
 }));
 
 vi.mock("../plugins/loader.js", () => ({
-  loadZeePlugins: () => ({ plugins: [], diagnostics: [] }),
+  loadMoltbotPlugins: () => ({ plugins: [], diagnostics: [] }),
 }));
 
 vi.mock("../config/config.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    CONFIG_PATH_ZEEBOT: "/tmp/zee.json",
+    CONFIG_PATH: "/tmp/moltbot.json",
     createConfigIO,
     readConfigFileSnapshot,
     writeConfigFile,
@@ -215,8 +215,8 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("../infra/zee-root.js", () => ({
-  resolveZeePackageRoot,
+vi.mock("../infra/moltbot-root.js", () => ({
+  resolveMoltbotPackageRoot,
 }));
 
 vi.mock("../infra/update-runner.js", () => ({
@@ -291,6 +291,12 @@ vi.mock("./onboard-helpers.js", () => ({
 }));
 
 vi.mock("./doctor-state-migrations.js", () => ({
+  autoMigrateLegacyStateDir: vi.fn().mockResolvedValue({
+    migrated: false,
+    skipped: false,
+    changes: [],
+    warnings: [],
+  }),
   detectLegacyStateMigrations: vi.fn().mockResolvedValue({
     targetAgentId: "main",
     targetMainKey: "main",
@@ -330,7 +336,7 @@ vi.mock("./doctor-update.js", () => ({
 describe("doctor command", () => {
   it("warns when the state directory is missing", async () => {
     readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/zee.json",
+      path: "/tmp/moltbot.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -340,9 +346,9 @@ describe("doctor command", () => {
       legacyIssues: [],
     });
 
-    const missingDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-missing-state-"));
+    const missingDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-missing-state-"));
     fs.rmSync(missingDir, { recursive: true, force: true });
-    process.env.ZEE_STATE_DIR = missingDir;
+    process.env.CLAWDBOT_STATE_DIR = missingDir;
     note.mockClear();
 
     const { doctorCommand } = await import("./doctor.js");
@@ -356,9 +362,43 @@ describe("doctor command", () => {
     expect(String(stateNote?.[0])).toContain("CRITICAL");
   }, 30_000);
 
-  it("skips gateway auth warning when ZEE_GATEWAY_TOKEN is set", async () => {
+  it("warns about opencode provider overrides", async () => {
     readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/zee.json",
+      path: "/tmp/moltbot.json",
+      exists: true,
+      raw: "{}",
+      parsed: {},
+      valid: true,
+      config: {
+        models: {
+          providers: {
+            opencode: {
+              api: "openai-completions",
+              baseUrl: "https://opencode.ai/zen/v1",
+            },
+          },
+        },
+      },
+      issues: [],
+      legacyIssues: [],
+    });
+
+    const { doctorCommand } = await import("./doctor.js");
+    await doctorCommand(
+      { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
+      { nonInteractive: true, workspaceSuggestions: false },
+    );
+
+    const warned = note.mock.calls.some(
+      ([message, title]) =>
+        title === "OpenCode Zen" && String(message).includes("models.providers.opencode"),
+    );
+    expect(warned).toBe(true);
+  });
+
+  it("skips gateway auth warning when CLAWDBOT_GATEWAY_TOKEN is set", async () => {
+    readConfigFileSnapshot.mockResolvedValue({
+      path: "/tmp/moltbot.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -370,8 +410,8 @@ describe("doctor command", () => {
       legacyIssues: [],
     });
 
-    const prevToken = process.env.ZEE_GATEWAY_TOKEN;
-    process.env.ZEE_GATEWAY_TOKEN = "env-token-1234567890";
+    const prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+    process.env.CLAWDBOT_GATEWAY_TOKEN = "env-token-1234567890";
     note.mockClear();
 
     try {
@@ -381,8 +421,8 @@ describe("doctor command", () => {
         { nonInteractive: true, workspaceSuggestions: false },
       );
     } finally {
-      if (prevToken === undefined) delete process.env.ZEE_GATEWAY_TOKEN;
-      else process.env.ZEE_GATEWAY_TOKEN = prevToken;
+      if (prevToken === undefined) delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+      else process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
     }
 
     const warned = note.mock.calls.some(([message]) =>

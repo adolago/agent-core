@@ -6,12 +6,12 @@ import { promisify } from "node:util";
 import {
   GATEWAY_SERVICE_KIND,
   GATEWAY_SERVICE_MARKER,
-  LEGACY_GATEWAY_LAUNCH_AGENT_LABELS,
   LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES,
   LEGACY_GATEWAY_WINDOWS_TASK_NAMES,
   resolveGatewayLaunchAgentLabel,
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
+  resolveLegacyGatewayLaunchAgentLabels,
 } from "./constants.js";
 
 export type ExtraGatewayService = {
@@ -25,13 +25,13 @@ export type FindExtraGatewayServicesOptions = {
   deep?: boolean;
 };
 
-const EXTRA_MARKERS = ["zee"];
+const EXTRA_MARKERS = ["moltbot"];
 const execFileAsync = promisify(execFile);
 
 export function renderGatewayServiceCleanupHints(
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): string[] {
-  const profile = env.ZEE_PROFILE;
+  const profile = env.CLAWDBOT_PROFILE;
   switch (process.platform) {
     case "darwin": {
       const label = resolveGatewayLaunchAgentLabel(profile);
@@ -67,31 +67,31 @@ function containsMarker(content: string): boolean {
 function hasGatewayServiceMarker(content: string): boolean {
   const lower = content.toLowerCase();
   return (
-    lower.includes("zee_service_marker") &&
+    lower.includes("moltbot_service_marker") &&
     lower.includes(GATEWAY_SERVICE_MARKER.toLowerCase()) &&
-    lower.includes("zee_service_kind") &&
+    lower.includes("moltbot_service_kind") &&
     lower.includes(GATEWAY_SERVICE_KIND.toLowerCase())
   );
 }
 
-function isZeeGatewayLaunchdService(label: string, contents: string): boolean {
+function isMoltbotGatewayLaunchdService(label: string, contents: string): boolean {
   if (hasGatewayServiceMarker(contents)) return true;
   const lowerContents = contents.toLowerCase();
   if (!lowerContents.includes("gateway")) return false;
-  return label.startsWith("com.zee.");
+  return label.startsWith("bot.molt.") || label.startsWith("com.clawdbot.");
 }
 
-function isZeeGatewaySystemdService(name: string, contents: string): boolean {
+function isMoltbotGatewaySystemdService(name: string, contents: string): boolean {
   if (hasGatewayServiceMarker(contents)) return true;
-  if (!name.startsWith("zee-gateway")) return false;
+  if (!name.startsWith("moltbot-gateway")) return false;
   return contents.toLowerCase().includes("gateway");
 }
 
-function isZeeGatewayTaskName(name: string): boolean {
+function isMoltbotGatewayTaskName(name: string): boolean {
   const normalized = name.trim().toLowerCase();
   if (!normalized) return false;
   const defaultName = resolveGatewayWindowsTaskName().toLowerCase();
-  return normalized === defaultName || normalized.startsWith("zee gateway");
+  return normalized === defaultName || normalized.startsWith("moltbot gateway");
 }
 
 function tryExtractPlistLabel(contents: string): string | null {
@@ -102,7 +102,8 @@ function tryExtractPlistLabel(contents: string): string | null {
 
 function isIgnoredLaunchdLabel(label: string): boolean {
   return (
-    label === resolveGatewayLaunchAgentLabel() || LEGACY_GATEWAY_LAUNCH_AGENT_LABELS.includes(label)
+    label === resolveGatewayLaunchAgentLabel() ||
+    resolveLegacyGatewayLaunchAgentLabels(process.env.CLAWDBOT_PROFILE).includes(label)
   );
 }
 
@@ -139,7 +140,7 @@ async function scanLaunchdDir(params: {
     if (!containsMarker(contents)) continue;
     const label = tryExtractPlistLabel(contents) ?? labelFromName;
     if (isIgnoredLaunchdLabel(label)) continue;
-    if (isZeeGatewayLaunchdService(label, contents)) continue;
+    if (isMoltbotGatewayLaunchdService(label, contents)) continue;
     results.push({
       platform: "darwin",
       label,
@@ -175,7 +176,7 @@ async function scanSystemdDir(params: {
       continue;
     }
     if (!containsMarker(contents)) continue;
-    if (isZeeGatewaySystemdService(name, contents)) continue;
+    if (isMoltbotGatewaySystemdService(name, contents)) continue;
     results.push({
       platform: "linux",
       label: entry,
@@ -335,7 +336,7 @@ export async function findExtraGatewayServices(
     for (const task of tasks) {
       const name = task.name.trim();
       if (!name) continue;
-      if (isZeeGatewayTaskName(name)) continue;
+      if (isMoltbotGatewayTaskName(name)) continue;
       if (LEGACY_GATEWAY_WINDOWS_TASK_NAMES.includes(name)) continue;
       const lowerName = name.toLowerCase();
       const lowerCommand = task.taskToRun?.toLowerCase() ?? "";

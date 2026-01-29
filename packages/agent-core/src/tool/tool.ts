@@ -19,6 +19,7 @@ export namespace Tool {
     agent: string
     abort: AbortSignal
     directory: string
+    worktree: string
     callID?: string
     extra?: { [key: string]: any }
     metadata(input: { title?: string; metadata?: M }): void

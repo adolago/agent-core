@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -8,7 +9,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 import { resolveAgentDir, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import type { ResolvedMemorySearchConfig } from "../agents/memory-search.js";
 import { resolveMemorySearchConfig } from "../agents/memory-search.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { onSessionTranscriptUpdate } from "../sessions/transcript-events.js";
@@ -35,9 +36,9 @@ import {
   hashText,
   isMemoryPath,
   listMemoryFiles,
+  normalizeExtraMemoryPaths,
   type MemoryChunk,
   type MemoryFileEntry,
-  normalizeRelPath,
   parseEmbedding,
 } from "./internal.js";
 import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js";
@@ -104,7 +105,9 @@ const BATCH_FAILURE_LIMIT = 2;
 const SESSION_DELTA_READ_CHUNK_BYTES = 64 * 1024;
 const VECTOR_LOAD_TIMEOUT_MS = 30_000;
 const EMBEDDING_QUERY_TIMEOUT_REMOTE_MS = 60_000;
+const EMBEDDING_QUERY_TIMEOUT_LOCAL_MS = 5 * 60_000;
 const EMBEDDING_BATCH_TIMEOUT_REMOTE_MS = 2 * 60_000;
+const EMBEDDING_BATCH_TIMEOUT_LOCAL_MS = 10 * 60_000;
 
 const log = createSubsystemLogger("memory");
 
@@ -115,13 +118,13 @@ const vectorToBlob = (embedding: number[]): Buffer =>
 
 export class MemoryIndexManager {
   private readonly cacheKey: string;
-  private readonly cfg: ZeeConfig;
+  private readonly cfg: MoltbotConfig;
   private readonly agentId: string;
   private readonly workspaceDir: string;
   private readonly settings: ResolvedMemorySearchConfig;
   private provider: EmbeddingProvider;
-  private readonly requestedProvider: "openai" | "gemini" | "auto";
-  private fallbackFrom?: "openai" | "gemini";
+  private readonly requestedProvider: "openai" | "local" | "gemini" | "auto";
+  private fallbackFrom?: "openai" | "local" | "gemini";
   private fallbackReason?: string;
   private openAi?: OpenAiEmbeddingClient;
   private gemini?: GeminiEmbeddingClient;
@@ -171,7 +174,7 @@ export class MemoryIndexManager {
   private syncing: Promise<void> | null = null;
 
   static async get(params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     agentId: string;
   }): Promise<MemoryIndexManager | null> {
     const { cfg, agentId } = params;
@@ -188,6 +191,7 @@ export class MemoryIndexManager {
       remote: settings.remote,
       model: settings.model,
       fallback: settings.fallback,
+      local: settings.local,
     });
     const manager = new MemoryIndexManager({
       cacheKey: key,
@@ -203,7 +207,7 @@ export class MemoryIndexManager {
 
   private constructor(params: {
     cacheKey: string;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     agentId: string;
     workspaceDir: string;
     settings: ResolvedMemorySearchConfig;
@@ -393,13 +397,52 @@ export class MemoryIndexManager {
     from?: number;
     lines?: number;
   }): Promise<{ text: string; path: string }> {
-    const relPath = normalizeRelPath(params.relPath);
-    if (!relPath || !isMemoryPath(relPath)) {
+    const rawPath = params.relPath.trim();
+    if (!rawPath) {
       throw new Error("path required");
     }
-    const absPath = path.resolve(this.workspaceDir, relPath);
-    if (!absPath.startsWith(this.workspaceDir)) {
-      throw new Error("path escapes workspace");
+    const absPath = path.isAbsolute(rawPath)
+      ? path.resolve(rawPath)
+      : path.resolve(this.workspaceDir, rawPath);
+    const relPath = path.relative(this.workspaceDir, absPath).replace(/\\/g, "/");
+    const inWorkspace =
+      relPath.length > 0 && !relPath.startsWith("..") && !path.isAbsolute(relPath);
+    const allowedWorkspace = inWorkspace && isMemoryPath(relPath);
+    let allowedAdditional = false;
+    if (!allowedWorkspace && this.settings.extraPaths.length > 0) {
+      const additionalPaths = normalizeExtraMemoryPaths(
+        this.workspaceDir,
+        this.settings.extraPaths,
+      );
+      for (const additionalPath of additionalPaths) {
+        try {
+          const stat = await fs.lstat(additionalPath);
+          if (stat.isSymbolicLink()) continue;
+          if (stat.isDirectory()) {
+            if (absPath === additionalPath || absPath.startsWith(`${additionalPath}${path.sep}`)) {
+              allowedAdditional = true;
+              break;
+            }
+            continue;
+          }
+          if (stat.isFile()) {
+            if (absPath === additionalPath && absPath.endsWith(".md")) {
+              allowedAdditional = true;
+              break;
+            }
+          }
+        } catch {}
+      }
+    }
+    if (!allowedWorkspace && !allowedAdditional) {
+      throw new Error("path required");
+    }
+    if (!absPath.endsWith(".md")) {
+      throw new Error("path required");
+    }
+    const stat = await fs.lstat(absPath);
+    if (stat.isSymbolicLink() || !stat.isFile()) {
+      throw new Error("path required");
     }
     const content = await fs.readFile(absPath, "utf-8");
     if (!params.from && !params.lines) {
@@ -422,6 +465,7 @@ export class MemoryIndexManager {
     model: string;
     requestedProvider: string;
     sources: MemorySource[];
+    extraPaths: string[];
     sourceCounts: Array<{ source: MemorySource; files: number; chunks: number }>;
     cache?: { enabled: boolean; entries?: number; maxEntries?: number };
     fts?: { enabled: boolean; available: boolean; error?: string };
@@ -495,6 +539,7 @@ export class MemoryIndexManager {
       model: this.provider.model,
       requestedProvider: this.requestedProvider,
       sources: Array.from(this.sources),
+      extraPaths: this.settings.extraPaths,
       sourceCounts,
       cache: this.cache.enabled
         ? {
@@ -514,7 +559,7 @@ export class MemoryIndexManager {
         error: this.fts.loadError,
       },
       fallback: this.fallbackReason
-        ? { from: this.fallbackFrom ?? "openai", reason: this.fallbackReason }
+        ? { from: this.fallbackFrom ?? "local", reason: this.fallbackReason }
         : undefined,
       vector: {
         enabled: this.vector.enabled,
@@ -766,11 +811,23 @@ export class MemoryIndexManager {
 
   private ensureWatcher() {
     if (!this.sources.has("memory") || !this.settings.sync.watch || this.watcher) return;
-    const watchPaths = [
+    const additionalPaths = normalizeExtraMemoryPaths(this.workspaceDir, this.settings.extraPaths)
+      .map((entry) => {
+        try {
+          const stat = fsSync.lstatSync(entry);
+          return stat.isSymbolicLink() ? null : entry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((entry): entry is string => Boolean(entry));
+    const watchPaths = new Set<string>([
       path.join(this.workspaceDir, "MEMORY.md"),
+      path.join(this.workspaceDir, "memory.md"),
       path.join(this.workspaceDir, "memory"),
-    ];
-    this.watcher = chokidar.watch(watchPaths, {
+      ...additionalPaths,
+    ]);
+    this.watcher = chokidar.watch(Array.from(watchPaths), {
       ignoreInitial: true,
       awaitWriteFinish: {
         stabilityThreshold: this.settings.sync.watchDebounceMs,
@@ -972,7 +1029,7 @@ export class MemoryIndexManager {
     needsFullReindex: boolean;
     progress?: MemorySyncProgressState;
   }) {
-    const files = await listMemoryFiles(this.workspaceDir);
+    const files = await listMemoryFiles(this.workspaceDir, this.settings.extraPaths);
     const fileEntries = await Promise.all(
       files.map(async (file) => buildFileEntry(file, this.workspaceDir)),
     );
@@ -1261,12 +1318,14 @@ export class MemoryIndexManager {
     const fallback = this.settings.fallback;
     if (!fallback || fallback === "none" || fallback === this.provider.id) return false;
     if (this.fallbackFrom) return false;
-    const fallbackFrom = this.provider.id as "openai" | "gemini";
+    const fallbackFrom = this.provider.id as "openai" | "gemini" | "local";
 
     const fallbackModel =
       fallback === "gemini"
         ? DEFAULT_GEMINI_EMBEDDING_MODEL
-        : DEFAULT_OPENAI_EMBEDDING_MODEL;
+        : fallback === "openai"
+          ? DEFAULT_OPENAI_EMBEDDING_MODEL
+          : this.settings.model;
 
     const fallbackResult = await createEmbeddingProvider({
       config: this.cfg,
@@ -1275,6 +1334,7 @@ export class MemoryIndexManager {
       remote: this.settings.remote,
       model: fallbackModel,
       fallback: "none",
+      local: this.settings.local,
     });
 
     this.fallbackFrom = fallbackFrom;
@@ -1899,11 +1959,11 @@ export class MemoryIndexManager {
   }
 
   private resolveEmbeddingTimeout(kind: "query" | "batch"): number {
-    // All providers are now remote (local llama removed)
+    const isLocal = this.provider.id === "local";
     if (kind === "query") {
-      return EMBEDDING_QUERY_TIMEOUT_REMOTE_MS;
+      return isLocal ? EMBEDDING_QUERY_TIMEOUT_LOCAL_MS : EMBEDDING_QUERY_TIMEOUT_REMOTE_MS;
     }
-    return EMBEDDING_BATCH_TIMEOUT_REMOTE_MS;
+    return isLocal ? EMBEDDING_BATCH_TIMEOUT_LOCAL_MS : EMBEDDING_BATCH_TIMEOUT_REMOTE_MS;
   }
 
   private async embedQueryWithTimeout(text: string): Promise<number[]> {

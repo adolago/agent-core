@@ -2,17 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RuntimeEnv } from "../runtime.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
-import {
-  createIMessageTestPlugin,
-  createTestRegistry,
-  discordPlugin,
-  signalPlugin,
-  slackPlugin,
-  telegramPlugin,
-  whatsappPlugin,
-} from "../test-utils/channel-plugins.js";
-
-const imessagePlugin = createIMessageTestPlugin();
+import { createTestRegistry } from "../test-utils/channel-plugins.js";
+import { discordPlugin } from "../../extensions/discord/src/channel.js";
+import { imessagePlugin } from "../../extensions/imessage/src/channel.js";
+import { signalPlugin } from "../../extensions/signal/src/channel.js";
+import { slackPlugin } from "../../extensions/slack/src/channel.js";
+import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
+import { whatsappPlugin } from "../../extensions/whatsapp/src/channel.js";
 
 const configMocks = vi.hoisted(() => ({
   readConfigFileSnapshot: vi.fn(),
@@ -54,7 +50,7 @@ const runtime: RuntimeEnv = {
 };
 
 const baseSnapshot = {
-  path: "/tmp/zee.json",
+  path: "/tmp/moltbot.json",
   exists: true,
   raw: "{}",
   parsed: {},
@@ -64,8 +60,7 @@ const baseSnapshot = {
   legacyIssues: [],
 };
 
-// Skip: Tests rely on complex plugin registry configuration that doesn't match current implementation
-describe.skip("channels command", () => {
+describe("channels command", () => {
   beforeEach(() => {
     configMocks.readConfigFileSnapshot.mockReset();
     configMocks.writeConfigFile.mockClear();
@@ -249,7 +244,7 @@ describe.skip("channels command", () => {
     authMocks.loadAuthProfileStore.mockReturnValue({
       version: 1,
       profiles: {
-        "anthropic:claude-cli": {
+        "anthropic:default": {
           type: "oauth",
           provider: "anthropic",
           access: "token",
@@ -257,7 +252,7 @@ describe.skip("channels command", () => {
           expires: 0,
           created: 0,
         },
-        "openai-codex:codex-cli": {
+        "openai-codex:default": {
           type: "oauth",
           provider: "openai",
           access: "token",
@@ -273,8 +268,8 @@ describe.skip("channels command", () => {
       auth?: Array<{ id: string }>;
     };
     const ids = payload.auth?.map((entry) => entry.id) ?? [];
-    expect(ids).toContain("anthropic:claude-cli");
-    expect(ids).toContain("openai-codex:codex-cli");
+    expect(ids).toContain("anthropic:default");
+    expect(ids).toContain("openai-codex:default");
   });
 
   it("stores default account names in accounts when multiple accounts exist", async () => {
@@ -375,7 +370,7 @@ describe.skip("channels command", () => {
     });
     expect(lines.join("\n")).toMatch(/Warnings:/);
     expect(lines.join("\n")).toMatch(/Message Content Intent is disabled/i);
-    expect(lines.join("\n")).toMatch(/Run: zee doctor/);
+    expect(lines.join("\n")).toMatch(/Run: (?:moltbot|moltbot)( --profile isolated)? doctor/);
   });
 
   it("surfaces Discord permission audit issues in channels status output", () => {
@@ -430,12 +425,12 @@ describe.skip("channels command", () => {
             accountId: "default",
             enabled: true,
             configured: true,
-            probe: { ok: true, bot: { username: "zee_bot" } },
+            probe: { ok: true, bot: { username: "moltbot_bot" } },
           },
         ],
       },
     });
-    expect(lines.join("\n")).toMatch(/bot:@zee_bot/);
+    expect(lines.join("\n")).toMatch(/bot:@moltbot_bot/);
   });
 
   it("surfaces Telegram group membership audit issues in channels status output", () => {

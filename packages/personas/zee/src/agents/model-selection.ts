@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
 import { normalizeGoogleModelId } from "./models-config.providers.js";
 import { resolveAgentModelPrimary } from "./agent-scope.js";
@@ -26,12 +26,13 @@ export function modelKey(provider: string, model: string) {
 
 export function normalizeProviderId(provider: string): string {
   const normalized = provider.trim().toLowerCase();
-  if (normalized === "z.ai" || normalized === "z-ai" || normalized === "zai") return "zai-coding-plan";
+  if (normalized === "z.ai" || normalized === "z-ai") return "zai";
+  if (normalized === "opencode-zen") return "opencode";
   if (normalized === "qwen") return "qwen-portal";
   return normalized;
 }
 
-export function isCliProvider(provider: string, cfg?: ZeeConfig): boolean {
+export function isCliProvider(provider: string, cfg?: MoltbotConfig): boolean {
   const normalized = normalizeProviderId(provider);
   if (normalized === "claude-cli") return true;
   if (normalized === "codex-cli") return true;
@@ -72,7 +73,7 @@ export function parseModelRef(raw: string, defaultProvider: string): ModelRef | 
 }
 
 export function buildModelAliasIndex(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   defaultProvider: string;
 }): ModelAliasIndex {
   const byAlias = new Map<string, { alias: string; ref: ModelRef }>();
@@ -115,7 +116,7 @@ export function resolveModelRefFromString(params: {
 }
 
 export function resolveConfiguredModelRef(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   defaultProvider: string;
   defaultModel: string;
 }): ModelRef {
@@ -137,7 +138,7 @@ export function resolveConfiguredModelRef(params: {
 
       // Default to anthropic if no provider is specified, but warn as this is deprecated.
       console.warn(
-        `[zee] Model "${trimmed}" specified without provider. Falling back to "anthropic/${trimmed}". Please use "anthropic/${trimmed}" in your config.`,
+        `[moltbot] Model "${trimmed}" specified without provider. Falling back to "anthropic/${trimmed}". Please use "anthropic/${trimmed}" in your config.`,
       );
       return { provider: "anthropic", model: trimmed };
     }
@@ -153,7 +154,7 @@ export function resolveConfiguredModelRef(params: {
 }
 
 export function resolveDefaultModelForAgent(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentId?: string;
 }): ModelRef {
   const agentModelOverride = params.agentId
@@ -185,7 +186,7 @@ export function resolveDefaultModelForAgent(params: {
 }
 
 export function buildAllowedModelSet(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   catalog: ModelCatalogEntry[];
   defaultProvider: string;
   defaultModel?: string;
@@ -261,7 +262,7 @@ export type ModelRefStatus = {
 };
 
 export function getModelRefStatus(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   catalog: ModelCatalogEntry[];
   ref: ModelRef;
   defaultProvider: string;
@@ -283,7 +284,7 @@ export function getModelRefStatus(params: {
 }
 
 export function resolveAllowedModelRef(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   catalog: ModelCatalogEntry[];
   raw: string;
   defaultProvider: string;
@@ -322,7 +323,7 @@ export function resolveAllowedModelRef(params: {
 }
 
 export function resolveThinkingDefault(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   provider: string;
   model: string;
   catalog?: ModelCatalogEntry[];
@@ -341,7 +342,7 @@ export function resolveThinkingDefault(params: {
  * Returns null if hooks.gmail.model is not set.
  */
 export function resolveHooksGmailModel(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   defaultProvider: string;
 }): ModelRef | null {
   const hooksModel = params.cfg.hooks?.gmail?.model;

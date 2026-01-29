@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { peekSystemEvents, resetSystemEventsForTest } from "../infra/system-events.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { normalizeE164 } from "../utils.js";
@@ -39,7 +39,7 @@ vi.mock("../pairing/pairing-store.js", () => ({
 }));
 
 vi.mock("../config/sessions.js", () => ({
-  resolveStorePath: vi.fn(() => "/tmp/zee-sessions.json"),
+  resolveStorePath: vi.fn(() => "/tmp/moltbot-sessions.json"),
   updateLastRoute: (...args: unknown[]) => updateLastRouteMock(...args),
   readSessionUpdatedAt: vi.fn(() => undefined),
   recordSessionMetaFromInbound: vi.fn().mockResolvedValue(undefined),
@@ -390,7 +390,7 @@ describe("monitorSignalProvider tool results", () => {
           sourceName: "Ada",
           timestamp: 1,
           reactionMessage: {
-            emoji: "+",
+            emoji: "✅",
             targetAuthor: "+15550002222",
             targetSentTimestamp: 2,
           },
@@ -412,7 +412,7 @@ describe("monitorSignalProvider tool results", () => {
     await flush();
 
     const route = resolveAgentRoute({
-      cfg: config as ZeeConfig,
+      cfg: config as MoltbotConfig,
       channel: "signal",
       accountId: "default",
       peer: { kind: "dm", id: normalizeE164("+15550001111") },
@@ -445,7 +445,7 @@ describe("monitorSignalProvider tool results", () => {
           sourceName: "Ada",
           timestamp: 1,
           reactionMessage: {
-            emoji: "+",
+            emoji: "✅",
             targetAuthor: "+15550002222",
             targetAuthorUuid: "123e4567-e89b-12d3-a456-426614174000",
             targetSentTimestamp: 2,
@@ -468,7 +468,7 @@ describe("monitorSignalProvider tool results", () => {
     await flush();
 
     const route = resolveAgentRoute({
-      cfg: config as ZeeConfig,
+      cfg: config as MoltbotConfig,
       channel: "signal",
       accountId: "default",
       peer: { kind: "dm", id: normalizeE164("+15550001111") },

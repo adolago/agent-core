@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
-import type { ZeeConfig } from "../config/config.js";
-import { ensureZeeModelsJson } from "./models-config.js";
+import type { MoltbotConfig } from "../config/config.js";
+import { ensureMoltbotModelsJson } from "./models-config.js";
 import { buildEmbeddedSandboxInfo } from "./pi-embedded-runner.js";
 import type { SandboxContext } from "./sandbox.js";
 
@@ -68,10 +68,10 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
         },
       },
     },
-  }) satisfies ZeeConfig;
+  }) satisfies MoltbotConfig;
 
-const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
-  ensureZeeModelsJson(cfg, agentDir) as unknown;
+const _ensureModels = (cfg: MoltbotConfig, agentDir: string) =>
+  ensureMoltbotModelsJson(cfg, agentDir) as unknown;
 
 const _textFromContent = (content: unknown) => {
   if (typeof content === "string") return content;
@@ -105,14 +105,14 @@ describe("buildEmbeddedSandboxInfo", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "session:test",
-      workspaceDir: "/tmp/zee-sandbox",
-      agentWorkspaceDir: "/tmp/zee-workspace",
+      workspaceDir: "/tmp/moltbot-sandbox",
+      agentWorkspaceDir: "/tmp/moltbot-workspace",
       workspaceAccess: "none",
-      containerName: "zee-sbx-test",
+      containerName: "moltbot-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "zee-sandbox:bookworm-slim",
-        containerPrefix: "zee-sbx-",
+        image: "moltbot-sandbox:bookworm-slim",
+        containerPrefix: "moltbot-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: ["/tmp"],
@@ -127,18 +127,18 @@ describe("buildEmbeddedSandboxInfo", () => {
       },
       browserAllowHostControl: true,
       browser: {
-        controlUrl: "http://localhost:9222",
+        bridgeUrl: "http://localhost:9222",
         noVncUrl: "http://localhost:6080",
-        containerName: "zee-sbx-browser-test",
+        containerName: "moltbot-sbx-browser-test",
       },
     } satisfies SandboxContext;
 
     expect(buildEmbeddedSandboxInfo(sandbox)).toEqual({
       enabled: true,
-      workspaceDir: "/tmp/zee-sandbox",
+      workspaceDir: "/tmp/moltbot-sandbox",
       workspaceAccess: "none",
       agentWorkspaceMount: undefined,
-      browserControlUrl: "http://localhost:9222",
+      browserBridgeUrl: "http://localhost:9222",
       browserNoVncUrl: "http://localhost:6080",
       hostBrowserAllowed: true,
     });
@@ -147,14 +147,14 @@ describe("buildEmbeddedSandboxInfo", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "session:test",
-      workspaceDir: "/tmp/zee-sandbox",
-      agentWorkspaceDir: "/tmp/zee-workspace",
+      workspaceDir: "/tmp/moltbot-sandbox",
+      agentWorkspaceDir: "/tmp/moltbot-workspace",
       workspaceAccess: "none",
-      containerName: "zee-sbx-test",
+      containerName: "moltbot-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "zee-sandbox:bookworm-slim",
-        containerPrefix: "zee-sbx-",
+        image: "moltbot-sandbox:bookworm-slim",
+        containerPrefix: "moltbot-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: ["/tmp"],
@@ -178,7 +178,7 @@ describe("buildEmbeddedSandboxInfo", () => {
       }),
     ).toEqual({
       enabled: true,
-      workspaceDir: "/tmp/zee-sandbox",
+      workspaceDir: "/tmp/moltbot-sandbox",
       workspaceAccess: "none",
       agentWorkspaceMount: undefined,
       hostBrowserAllowed: false,

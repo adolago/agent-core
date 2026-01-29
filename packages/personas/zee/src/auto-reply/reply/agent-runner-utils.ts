@@ -2,7 +2,7 @@ import type { NormalizedUsage } from "../../agents/usage.js";
 import { getChannelDock } from "../../channels/dock.js";
 import type { ChannelId, ChannelThreadingToolContext } from "../../channels/plugins/types.js";
 import { normalizeAnyChannelId, normalizeChannelId } from "../../channels/registry.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { estimateUsageCost, formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import type { TemplateContext } from "../templating.js";
@@ -16,7 +16,7 @@ const BUN_FETCH_SOCKET_ERROR_RE = /socket connection was closed unexpectedly/i;
  */
 export function buildThreadingToolContext(params: {
   sessionCtx: TemplateContext;
-  config: ZeeConfig | undefined;
+  config: MoltbotConfig | undefined;
   hasRepliedRef: { value: boolean } | undefined;
 }): ChannelThreadingToolContext {
   const { sessionCtx, config, hasRepliedRef } = params;
@@ -60,7 +60,7 @@ export const isBunFetchSocketError = (message?: string) =>
 export const formatBunFetchSocketError = (message: string) => {
   const trimmed = message.trim();
   return [
-    "! LLM connection failed. This could be due to server issues, network problems, or context length exceeded (e.g., with local LLMs like LM Studio). Original error:",
+    "⚠️ LLM connection failed. This could be due to server issues, network problems, or context length exceeded (e.g., with local LLMs like LM Studio). Original error:",
     "```",
     trimmed || "Unknown error",
     "```",

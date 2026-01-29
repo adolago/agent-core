@@ -3,7 +3,7 @@ import type { SessionEntry } from "../../config/sessions.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
-import { scheduleGatewaySigusr1Restart, triggerZeeRestart } from "../../infra/restart.js";
+import { scheduleGatewaySigusr1Restart, triggerMoltbotRestart } from "../../infra/restart.js";
 import { parseActivationCommand } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
 import { normalizeUsageDisplay, resolveResponseUsageMode } from "../thinking.js";
@@ -54,7 +54,7 @@ export const handleActivationCommand: CommandHandler = async (params, allowTextC
   if (!params.isGroup) {
     return {
       shouldContinue: false,
-      reply: { text: "▸ Group activation only applies to group chats." },
+      reply: { text: "⚙️ Group activation only applies to group chats." },
     };
   }
   if (!params.command.isAuthorizedSender) {
@@ -66,7 +66,7 @@ export const handleActivationCommand: CommandHandler = async (params, allowTextC
   if (!activationCommand.mode) {
     return {
       shouldContinue: false,
-      reply: { text: "▸ Usage: /activation mention|always" },
+      reply: { text: "⚙️ Usage: /activation mention|always" },
     };
   }
   if (params.sessionEntry && params.sessionStore && params.sessionKey) {
@@ -83,7 +83,7 @@ export const handleActivationCommand: CommandHandler = async (params, allowTextC
   return {
     shouldContinue: false,
     reply: {
-      text: `▸ Group activation set to ${activationCommand.mode}.`,
+      text: `⚙️ Group activation set to ${activationCommand.mode}.`,
     },
   };
 };
@@ -101,7 +101,7 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
   if (!sendPolicyCommand.mode) {
     return {
       shouldContinue: false,
-      reply: { text: "▸ Usage: /send on|off|inherit" },
+      reply: { text: "⚙️ Usage: /send on|off|inherit" },
     };
   }
   if (params.sessionEntry && params.sessionStore && params.sessionKey) {
@@ -126,7 +126,7 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
         : "off";
   return {
     shouldContinue: false,
-    reply: { text: `▸ Send policy set to ${label}.` },
+    reply: { text: `⚙️ Send policy set to ${label}.` },
   };
 };
 
@@ -177,14 +177,14 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
 
     return {
       shouldContinue: false,
-      reply: { text: `$ Usage cost\n${sessionLine}\n${todayLine}\n${last30Line}` },
+      reply: { text: `💸 Usage cost\n${sessionLine}\n${todayLine}\n${last30Line}` },
     };
   }
 
   if (rawArgs && !requested) {
     return {
       shouldContinue: false,
-      reply: { text: "▸ Usage: /usage off|tokens|full|cost" },
+      reply: { text: "⚙️ Usage: /usage off|tokens|full|cost" },
     };
   }
 
@@ -209,7 +209,7 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
   return {
     shouldContinue: false,
     reply: {
-      text: `▸ Usage footer: ${next}.`,
+      text: `⚙️ Usage footer: ${next}.`,
     },
   };
 };
@@ -227,7 +227,7 @@ export const handleRestartCommand: CommandHandler = async (params, allowTextComm
     return {
       shouldContinue: false,
       reply: {
-        text: "⚠ /restart is disabled. Set commands.restart=true to enable.",
+        text: "⚠️ /restart is disabled. Set commands.restart=true to enable.",
       },
     };
   }
@@ -237,24 +237,24 @@ export const handleRestartCommand: CommandHandler = async (params, allowTextComm
     return {
       shouldContinue: false,
       reply: {
-        text: "▸ Restarting zee in-process (SIGUSR1); back in a few seconds.",
+        text: "⚙️ Restarting moltbot in-process (SIGUSR1); back in a few seconds.",
       },
     };
   }
-  const restartMethod = triggerZeeRestart();
+  const restartMethod = triggerMoltbotRestart();
   if (!restartMethod.ok) {
     const detail = restartMethod.detail ? ` Details: ${restartMethod.detail}` : "";
     return {
       shouldContinue: false,
       reply: {
-        text: `⚠ Restart failed (${restartMethod.method}).${detail}`,
+        text: `⚠️ Restart failed (${restartMethod.method}).${detail}`,
       },
     };
   }
   return {
     shouldContinue: false,
     reply: {
-      text: `▸ Restarting zee via ${restartMethod.method}; give me a few seconds to come back online.`,
+      text: `⚙️ Restarting moltbot via ${restartMethod.method}; give me a few seconds to come back online.`,
     },
   };
 };
@@ -342,5 +342,5 @@ export const handleAbortTrigger: CommandHandler = async (params, allowTextComman
   } else if (params.command.abortKey) {
     setAbortMemory(params.command.abortKey, true);
   }
-  return { shouldContinue: false, reply: { text: "▸ Agent was aborted." } };
+  return { shouldContinue: false, reply: { text: "⚙️ Agent was aborted." } };
 };

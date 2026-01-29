@@ -1,4 +1,4 @@
-# fastlane setup (Zeebot iOS)
+# fastlane setup (Moltbot iOS)
 
 Install:
 

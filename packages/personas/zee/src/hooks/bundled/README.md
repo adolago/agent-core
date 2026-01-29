@@ -1,53 +1,53 @@
 # Bundled Hooks
 
-This directory contains hooks that ship with Zee. These hooks are automatically discovered and can be enabled/disabled via CLI or configuration.
+This directory contains hooks that ship with Clawdbot. These hooks are automatically discovered and can be enabled/disabled via CLI or configuration.
 
 ## Available Hooks
 
-### session-memory
+### 💾 session-memory
 
 Automatically saves session context to memory when you issue `/new`.
 
 **Events**: `command:new`
 **What it does**: Creates a dated memory file with LLM-generated slug based on conversation content.
-**Output**: `<workspace>/memory/YYYY-MM-DD-slug.md` (defaults to `~/zee`)
+**Output**: `<workspace>/memory/YYYY-MM-DD-slug.md` (defaults to `~/clawd`)
 
 **Enable**:
 
 ```bash
-zee hooks enable session-memory
+clawdbot hooks enable session-memory
 ```
 
-### command-logger
+### 📝 command-logger
 
 Logs all command events to a centralized audit file.
 
 **Events**: `command` (all commands)
 **What it does**: Appends JSONL entries to command log file.
-**Output**: `~/.zee/logs/commands.log`
+**Output**: `~/.clawdbot/logs/commands.log`
 
 **Enable**:
 
 ```bash
-zee hooks enable command-logger
+clawdbot hooks enable command-logger
 ```
 
-### soul-evil
+### 😈 soul-evil
 
 Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by random chance.
 
 **Events**: `agent:bootstrap`
 **What it does**: Overrides the injected SOUL content before the system prompt is built.
 **Output**: No files written; swaps happen in-memory only.
-**Docs**: https://docs.zee.bot/hooks/soul-evil
+**Docs**: https://docs.molt.bot/hooks/soul-evil
 
 **Enable**:
 
 ```bash
-zee hooks enable soul-evil
+clawdbot hooks enable soul-evil
 ```
 
-### boot-md
+### 🚀 boot-md
 
 Runs `BOOT.md` whenever the gateway starts (after channels start).
 
@@ -58,7 +58,7 @@ Runs `BOOT.md` whenever the gateway starts (after channels start).
 **Enable**:
 
 ```bash
-zee hooks enable boot-md
+clawdbot hooks enable boot-md
 ```
 
 ## Hook Structure
@@ -82,9 +82,9 @@ session-memory/
 ---
 name: my-hook
 description: "Short description"
-homepage: https://docs.zee.bot/hooks#my-hook
+homepage: https://docs.molt.bot/hooks#my-hook
 metadata:
-  { "zee": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
+  { "clawdbot": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
 ---
 # Hook Title
 
@@ -108,7 +108,7 @@ Documentation goes here...
 To create your own hooks, place them in:
 
 - **Workspace hooks**: `<workspace>/hooks/` (highest precedence)
-- **Managed hooks**: `~/.zee/hooks/` (shared across workspaces)
+- **Managed hooks**: `~/.clawdbot/hooks/` (shared across workspaces)
 
 Custom hooks follow the same structure as bundled hooks.
 
@@ -117,31 +117,31 @@ Custom hooks follow the same structure as bundled hooks.
 List all hooks:
 
 ```bash
-zee hooks list
+clawdbot hooks list
 ```
 
 Show hook details:
 
 ```bash
-zee hooks info session-memory
+clawdbot hooks info session-memory
 ```
 
 Check hook status:
 
 ```bash
-zee hooks check
+clawdbot hooks check
 ```
 
 Enable/disable:
 
 ```bash
-zee hooks enable session-memory
-zee hooks disable command-logger
+clawdbot hooks enable session-memory
+clawdbot hooks disable command-logger
 ```
 
 ## Configuration
 
-Hooks can be configured in `~/.zee/zee.json`:
+Hooks can be configured in `~/.clawdbot/clawdbot.json`:
 
 ```json
 {
@@ -203,7 +203,7 @@ const myHandler: HookHandler = async (event) => {
   console.log("New command triggered!");
 
   // Optionally send message to user
-  event.messages.push("Hook executed!");
+  event.messages.push("✨ Hook executed!");
 };
 
 export default myHandler;
@@ -214,11 +214,11 @@ export default myHandler;
 Test your hooks by:
 
 1. Place hook in workspace hooks directory
-2. Restart gateway: `pkill -9 -f 'zee.*gateway' && pnpm zee gateway`
-3. Enable the hook: `zee hooks enable my-hook`
+2. Restart gateway: `pkill -9 -f 'clawdbot.*gateway' && pnpm clawdbot gateway`
+3. Enable the hook: `clawdbot hooks enable my-hook`
 4. Trigger the event (e.g., send `/new` command)
 5. Check gateway logs for hook execution
 
 ## Documentation
 
-Full documentation: https://docs.zee.bot/hooks
+Full documentation: https://docs.molt.bot/hooks

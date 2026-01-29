@@ -1,10 +1,10 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { getChannelPlugin, listChannelPlugins } from "./index.js";
 import type { ChannelMessageActionContext, ChannelMessageActionName } from "./types.js";
 
-export function listChannelMessageActions(cfg: ZeeConfig): ChannelMessageActionName[] {
+export function listChannelMessageActions(cfg: MoltbotConfig): ChannelMessageActionName[] {
   const actions = new Set<ChannelMessageActionName>(["send", "broadcast"]);
   for (const plugin of listChannelPlugins()) {
     const list = plugin.actions?.listActions?.({ cfg });
@@ -14,14 +14,14 @@ export function listChannelMessageActions(cfg: ZeeConfig): ChannelMessageActionN
   return Array.from(actions);
 }
 
-export function supportsChannelMessageButtons(cfg: ZeeConfig): boolean {
+export function supportsChannelMessageButtons(cfg: MoltbotConfig): boolean {
   for (const plugin of listChannelPlugins()) {
     if (plugin.actions?.supportsButtons?.({ cfg })) return true;
   }
   return false;
 }
 
-export function supportsChannelMessageCards(cfg: ZeeConfig): boolean {
+export function supportsChannelMessageCards(cfg: MoltbotConfig): boolean {
   for (const plugin of listChannelPlugins()) {
     if (plugin.actions?.supportsCards?.({ cfg })) return true;
   }

@@ -90,7 +90,6 @@ export function renderChatControls(state: AppViewState) {
           void loadChatHistory(state);
         }}
         title="Refresh chat history"
-        aria-label="Refresh chat history"
       >
         ${refreshIcon}
       </button>
@@ -109,7 +108,6 @@ export function renderChatControls(state: AppViewState) {
         title=${disableThinkingToggle
           ? "Disabled during onboarding"
           : "Toggle assistant thinking/working output"}
-        aria-label="Toggle assistant thinking output"
       >
         ${icons.brain}
       </button>
@@ -127,7 +125,6 @@ export function renderChatControls(state: AppViewState) {
         title=${disableFocusToggle
           ? "Disabled during onboarding"
           : "Toggle focus mode (hide sidebar + page header)"}
-        aria-label="Toggle focus mode"
       >
         ${focusIcon}
       </button>

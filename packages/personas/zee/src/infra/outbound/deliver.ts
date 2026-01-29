@@ -1,5 +1,5 @@
 import {
-  chunkByNewline,
+  chunkByParagraph,
   chunkMarkdownTextWithMode,
   resolveChunkMode,
   resolveTextChunkLimit,
@@ -8,7 +8,7 @@ import type { ReplyPayload } from "../../auto-reply/types.js";
 import { resolveChannelMediaMaxBytes } from "../../channels/plugins/media-limits.js";
 import { loadChannelOutboundAdapter } from "../../channels/plugins/outbound/load.js";
 import type { ChannelOutboundAdapter } from "../../channels/plugins/types.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { resolveMarkdownTableMode } from "../../config/markdown-tables.js";
 import type { sendMessageDiscord } from "../../discord/send.js";
 import type { sendMessageIMessage } from "../../imessage/send.js";
@@ -82,7 +82,7 @@ function throwIfAborted(abortSignal?: AbortSignal): void {
 
 // Channel docking: outbound delivery delegates to plugin.outbound adapters.
 async function createChannelHandler(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   channel: Exclude<OutboundChannel, "none">;
   to: string;
   accountId?: string;
@@ -114,7 +114,7 @@ async function createChannelHandler(params: {
 
 function createPluginHandler(params: {
   outbound?: ChannelOutboundAdapter;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   channel: Exclude<OutboundChannel, "none">;
   to: string;
   accountId?: string;
@@ -175,7 +175,7 @@ function createPluginHandler(params: {
 }
 
 export async function deliverOutboundPayloads(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   channel: Exclude<OutboundChannel, "none">;
   to: string;
   accountId?: string;
@@ -239,14 +239,15 @@ export async function deliverOutboundPayloads(params: {
     }
     if (chunkMode === "newline") {
       const mode = handler.chunkerMode ?? "text";
-      const lineChunks =
+      const blockChunks =
         mode === "markdown"
           ? chunkMarkdownTextWithMode(text, textLimit, "newline")
-          : chunkByNewline(text, textLimit, { splitLongLines: false });
-      if (!lineChunks.length && text) lineChunks.push(text);
-      for (const lineChunk of lineChunks) {
-        const chunks = handler.chunker(lineChunk, textLimit);
-        if (!chunks.length && lineChunk) chunks.push(lineChunk);
+          : chunkByParagraph(text, textLimit);
+
+      if (!blockChunks.length && text) blockChunks.push(text);
+      for (const blockChunk of blockChunks) {
+        const chunks = handler.chunker(blockChunk, textLimit);
+        if (!chunks.length && blockChunk) chunks.push(blockChunk);
         for (const chunk of chunks) {
           throwIfAborted(abortSignal);
           results.push(await handler.sendText(chunk));

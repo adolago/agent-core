@@ -1,6 +1,4 @@
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
-import { CLAUDE_CLI_PROFILE_ID, CODEX_CLI_PROFILE_ID } from "../agents/auth-profiles.js";
-import { colorize, isRich, theme } from "../terminal/theme.js";
 import type { AuthChoice } from "./onboard-types.js";
 
 export type AuthChoiceOption = {
@@ -17,7 +15,8 @@ export type AuthChoiceGroupId =
   | "openrouter"
   | "ai-gateway"
   | "moonshot"
-  | "zai-coding-plan"
+  | "zai"
+  | "opencode-zen"
   | "minimax"
   | "synthetic"
   | "venice"
@@ -40,13 +39,13 @@ const AUTH_CHOICE_GROUP_DEFS: {
     value: "openai",
     label: "OpenAI",
     hint: "Codex OAuth + API key",
-    choices: ["codex-cli", "openai-codex", "openai-api-key"],
+    choices: ["openai-codex", "openai-api-key"],
   },
   {
     value: "anthropic",
     label: "Anthropic",
-    hint: "Claude Code CLI + API key",
-    choices: ["token", "claude-cli", "apiKey"],
+    hint: "setup-token + API key",
+    choices: ["token", "apiKey"],
   },
   {
     value: "minimax",
@@ -103,72 +102,25 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["moonshot-api-key", "kimi-code-api-key"],
   },
   {
-    value: "zai-coding-plan",
-    label: "Z.AI Coding Plan (GLM 4.7)",
+    value: "zai",
+    label: "Z.AI (GLM 4.7)",
     hint: "API key",
     choices: ["zai-api-key"],
   },
+  {
+    value: "opencode-zen",
+    label: "OpenCode Zen",
+    hint: "API key",
+    choices: ["opencode-zen"],
+  },
 ];
-
-function formatOAuthHint(expires?: number, opts?: { allowStale?: boolean }): string {
-  const rich = isRich();
-  if (!expires) {
-    return colorize(rich, theme.muted, "token unavailable");
-  }
-  const now = Date.now();
-  const remaining = expires - now;
-  if (remaining <= 0) {
-    if (opts?.allowStale) {
-      return colorize(rich, theme.warn, "token present · refresh on use");
-    }
-    return colorize(rich, theme.error, "token expired");
-  }
-  const minutes = Math.round(remaining / (60 * 1000));
-  const duration =
-    minutes >= 120
-      ? `${Math.round(minutes / 60)}h`
-      : minutes >= 60
-        ? "1h"
-        : `${Math.max(minutes, 1)}m`;
-  const label = `token ok · expires in ${duration}`;
-  if (minutes <= 10) {
-    return colorize(rich, theme.warn, label);
-  }
-  return colorize(rich, theme.success, label);
-}
 
 export function buildAuthChoiceOptions(params: {
   store: AuthProfileStore;
   includeSkip: boolean;
-  includeClaudeCliIfMissing?: boolean;
-  platform?: NodeJS.Platform;
 }): AuthChoiceOption[] {
+  void params.store;
   const options: AuthChoiceOption[] = [];
-  const platform = params.platform ?? process.platform;
-
-  const codexCli = params.store.profiles[CODEX_CLI_PROFILE_ID];
-  if (codexCli?.type === "oauth") {
-    options.push({
-      value: "codex-cli",
-      label: "OpenAI Codex OAuth (Codex CLI)",
-      hint: formatOAuthHint(codexCli.expires, { allowStale: true }),
-    });
-  }
-
-  const claudeCli = params.store.profiles[CLAUDE_CLI_PROFILE_ID];
-  if (claudeCli?.type === "oauth" || claudeCli?.type === "token") {
-    options.push({
-      value: "claude-cli",
-      label: "Anthropic token (Claude Code CLI)",
-      hint: `reuses existing Claude Code auth · ${formatOAuthHint(claudeCli.expires)}`,
-    });
-  } else if (params.includeClaudeCliIfMissing && platform === "darwin") {
-    options.push({
-      value: "claude-cli",
-      label: "Anthropic token (Claude Code CLI)",
-      hint: "reuses existing Claude Code auth · requires Keychain access",
-    });
-  }
 
   options.push({
     value: "token",
@@ -219,6 +171,12 @@ export function buildAuthChoiceOptions(params: {
     hint: "Local proxy for VS Code Copilot models",
   });
   options.push({ value: "apiKey", label: "Anthropic API key" });
+  // Token flow is currently Anthropic-only; use CLI for advanced providers.
+  options.push({
+    value: "opencode-zen",
+    label: "OpenCode Zen (multi-model proxy)",
+    hint: "Claude, GPT, Gemini via opencode.ai/zen",
+  });
   options.push({ value: "minimax-api", label: "MiniMax M2.1" });
   options.push({
     value: "minimax-api-lightning",
@@ -232,12 +190,7 @@ export function buildAuthChoiceOptions(params: {
   return options;
 }
 
-export function buildAuthChoiceGroups(params: {
-  store: AuthProfileStore;
-  includeSkip: boolean;
-  includeClaudeCliIfMissing?: boolean;
-  platform?: NodeJS.Platform;
-}): {
+export function buildAuthChoiceGroups(params: { store: AuthProfileStore; includeSkip: boolean }): {
   groups: AuthChoiceGroup[];
   skipOption?: AuthChoiceOption;
 } {

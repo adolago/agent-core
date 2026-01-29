@@ -21,11 +21,11 @@ vi.mock("./trash.js", () => ({
 }));
 
 vi.mock("./chrome.js", () => ({
-  resolveZeeUserDataDir: vi.fn(() => "/tmp/zee-test/zee/user-data"),
+  resolveClawdUserDataDir: vi.fn(() => "/tmp/clawd-test/clawd/user-data"),
 }));
 
 import { loadConfig, writeConfigFile } from "../config/config.js";
-import { resolveZeeUserDataDir } from "./chrome.js";
+import { resolveClawdUserDataDir } from "./chrome.js";
 import { movePathToTrash } from "./trash.js";
 
 function createCtx(resolved: BrowserServerState["resolved"]) {
@@ -49,9 +49,7 @@ function createCtx(resolved: BrowserServerState["resolved"]) {
 
 describe("BrowserProfilesService", () => {
   it("allocates next local port for new profiles", async () => {
-    const resolved = resolveBrowserConfig({
-      controlUrl: "http://127.0.0.1:18791",
-    });
+    const resolved = resolveBrowserConfig({});
     const { ctx, state } = createCtx(resolved);
 
     vi.mocked(loadConfig).mockReturnValue({ browser: { profiles: {} } });
@@ -66,9 +64,7 @@ describe("BrowserProfilesService", () => {
   });
 
   it("accepts per-profile cdpUrl for remote Chrome", async () => {
-    const resolved = resolveBrowserConfig({
-      controlUrl: "http://127.0.0.1:18791",
-    });
+    const resolved = resolveBrowserConfig({});
     const { ctx } = createCtx(resolved);
 
     vi.mocked(loadConfig).mockReturnValue({ browser: { profiles: {} } });
@@ -97,7 +93,6 @@ describe("BrowserProfilesService", () => {
 
   it("deletes remote profiles without stopping or removing local data", async () => {
     const resolved = resolveBrowserConfig({
-      controlUrl: "http://127.0.0.1:18791",
       profiles: {
         remote: { cdpUrl: "http://10.0.0.42:9222", color: "#0066CC" },
       },
@@ -106,9 +101,9 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(loadConfig).mockReturnValue({
       browser: {
-        defaultProfile: "zee",
+        defaultProfile: "clawd",
         profiles: {
-          zee: { cdpPort: 18800, color: "#FF4500" },
+          clawd: { cdpPort: 18800, color: "#FF4500" },
           remote: { cdpUrl: "http://10.0.0.42:9222", color: "#0066CC" },
         },
       },
@@ -124,7 +119,6 @@ describe("BrowserProfilesService", () => {
 
   it("deletes local profiles and moves data to Trash", async () => {
     const resolved = resolveBrowserConfig({
-      controlUrl: "http://127.0.0.1:18791",
       profiles: {
         work: { cdpPort: 18801, color: "#0066CC" },
       },
@@ -133,18 +127,18 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(loadConfig).mockReturnValue({
       browser: {
-        defaultProfile: "zee",
+        defaultProfile: "clawd",
         profiles: {
-          zee: { cdpPort: 18800, color: "#FF4500" },
+          clawd: { cdpPort: 18800, color: "#FF4500" },
           work: { cdpPort: 18801, color: "#0066CC" },
         },
       },
     });
 
-    const tempDir = fs.mkdtempSync(path.join("/tmp", "zee-profile-"));
+    const tempDir = fs.mkdtempSync(path.join("/tmp", "clawd-profile-"));
     const userDataDir = path.join(tempDir, "work", "user-data");
     fs.mkdirSync(path.dirname(userDataDir), { recursive: true });
-    vi.mocked(resolveZeeUserDataDir).mockReturnValue(userDataDir);
+    vi.mocked(resolveClawdUserDataDir).mockReturnValue(userDataDir);
 
     const service = createBrowserProfilesService(ctx);
     const result = await service.deleteProfile("work");

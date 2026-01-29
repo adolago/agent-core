@@ -4,8 +4,12 @@
 
 use gpui::prelude::*;
 use gpui::*;
+use chrono::{Local, TimeZone};
+use crate::api::ApiState;
+use crate::i18n::I18n;
 use crate::state::AppState;
 use crate::theme::{Theme, ThemeRegistry};
+use crate::update::{self, UpdateCheck, UpdateStatus};
 
 /// Settings view with tabs
 pub struct SettingsView {
@@ -31,13 +35,14 @@ impl SettingsView {
 
     fn render_tabs(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         let tabs = [
-            (SettingsTab::General, "General"),
-            (SettingsTab::Appearance, "Appearance"),
-            (SettingsTab::Providers, "Providers"),
-            (SettingsTab::Keyboard, "Keyboard"),
-            (SettingsTab::About, "About"),
+            (SettingsTab::General, i18n.t("settings.tabs.general")),
+            (SettingsTab::Appearance, i18n.t("settings.tabs.appearance")),
+            (SettingsTab::Providers, i18n.t("settings.tabs.providers")),
+            (SettingsTab::Keyboard, i18n.t("settings.tabs.keyboard")),
+            (SettingsTab::About, i18n.t("settings.tabs.about")),
         ];
 
         div()
@@ -66,11 +71,11 @@ impl SettingsView {
                     .font_weight(if is_active { FontWeight::MEDIUM } else { FontWeight::NORMAL })
                     .cursor_pointer()
                     .hover(|s| s.bg(theme.background_element))
-                    .child(*label)
+                    .child(label.clone())
             }))
     }
 
-    fn render_section(&self, title: &str, description: Option<&str>, cx: &Context<Self>) -> Div {
+    fn render_section(&self, title: String, description: Option<String>, cx: &Context<Self>) -> Div {
         let theme = cx.global::<Theme>();
 
         let section = div()
@@ -91,7 +96,7 @@ impl SettingsView {
                         div()
                             .text_lg()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child(title.to_string())
+                            .child(title)
                     )
             );
 
@@ -100,7 +105,7 @@ impl SettingsView {
                 div()
                     .text_sm()
                     .text_color(theme.text_muted)
-                    .child(desc.to_string())
+                    .child(desc)
             )
         } else {
             section
@@ -110,19 +115,24 @@ impl SettingsView {
     fn render_general_tab(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex()
             .flex_col()
             .gap(px(16.0))
             .child(
-                self.render_section("Connection", Some("Configure daemon connection settings"), cx)
+                self.render_section(
+                    i18n.t("settings.connection.title"),
+                    Some(i18n.t("settings.connection.description")),
+                    cx,
+                )
                     .child(
                         div()
                             .flex()
                             .items_center()
                             .justify_between()
-                            .child(div().child("Daemon URL"))
+                            .child(div().child(i18n.t("settings.connection.daemon_url")))
                             .child(
                                 div()
                                     .px(px(12.0))
@@ -140,7 +150,7 @@ impl SettingsView {
                             .flex()
                             .items_center()
                             .justify_between()
-                            .child(div().child("Status"))
+                            .child(div().child(i18n.t("settings.connection.status")))
                             .child(
                                 div()
                                     .flex()
@@ -156,20 +166,43 @@ impl SettingsView {
                                     .child(
                                         div()
                                             .text_sm()
-                                            .child(if state.connected { "Connected" } else { "Disconnected" })
+                                            .child(if state.connected {
+                                                i18n.t("status.connected")
+                                            } else {
+                                                i18n.t("status.disconnected")
+                                            })
                                     )
                             )
                     )
             )
             .child(
-                self.render_section("Default Persona", Some("Select the default persona for new sessions"), cx)
+                self.render_section(
+                    i18n.t("settings.persona.title"),
+                    Some(i18n.t("settings.persona.description")),
+                    cx,
+                )
                     .child(
                         div()
                             .flex()
                             .gap(px(8.0))
-                            .child(self.render_persona_button("Zee", state.active_persona == crate::state::Persona::Zee, theme.zee_accent, cx))
-                            .child(self.render_persona_button("Stanley", state.active_persona == crate::state::Persona::Stanley, theme.stanley_accent, cx))
-                            .child(self.render_persona_button("Johny", state.active_persona == crate::state::Persona::Johny, theme.johny_accent, cx))
+                            .child(self.render_persona_button(
+                                &i18n.t("persona.zee.name"),
+                                state.active_persona == crate::state::Persona::Zee,
+                                theme.zee_accent,
+                                cx,
+                            ))
+                            .child(self.render_persona_button(
+                                &i18n.t("persona.stanley.name"),
+                                state.active_persona == crate::state::Persona::Stanley,
+                                theme.stanley_accent,
+                                cx,
+                            ))
+                            .child(self.render_persona_button(
+                                &i18n.t("persona.johny.name"),
+                                state.active_persona == crate::state::Persona::Johny,
+                                theme.johny_accent,
+                                cx,
+                            ))
                     )
             )
     }
@@ -207,19 +240,24 @@ impl SettingsView {
         let theme = cx.global::<Theme>();
         let state = cx.global::<AppState>();
         let registry = cx.global::<ThemeRegistry>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex()
             .flex_col()
             .gap(px(16.0))
             .child(
-                self.render_section("Theme", Some("Choose your preferred color theme"), cx)
+                self.render_section(
+                    i18n.t("settings.appearance.title"),
+                    Some(i18n.t("settings.appearance.description")),
+                    cx,
+                )
                     .child(
                         div()
                             .flex()
                             .items_center()
                             .justify_between()
-                            .child(div().child("Current Theme"))
+                            .child(div().child(i18n.t("settings.appearance.current")))
                             .child(
                                 div()
                                     .px(px(12.0))
@@ -240,7 +278,7 @@ impl SettingsView {
                                 div()
                                     .text_sm()
                                     .text_color(theme.text_muted)
-                                    .child("Dark Themes")
+                                    .child(i18n.t("settings.appearance.dark"))
                             )
                             .child(
                                 div()
@@ -267,7 +305,7 @@ impl SettingsView {
                                     .text_sm()
                                     .text_color(theme.text_muted)
                                     .mt(px(8.0))
-                                    .child("Light Themes")
+                                    .child(i18n.t("settings.appearance.light"))
                             )
                             .child(
                                 div()
@@ -292,13 +330,13 @@ impl SettingsView {
                     )
             )
             .child(
-                self.render_section("Sidebar", None, cx)
+                self.render_section(i18n.t("settings.appearance.sidebar_title"), None, cx)
                     .child(
                         div()
                             .flex()
                             .items_center()
                             .justify_between()
-                            .child(div().child("Sidebar Collapsed"))
+                            .child(div().child(i18n.t("settings.appearance.sidebar_collapsed")))
                             .child(
                                 div()
                                     .w(px(48.0))
@@ -325,13 +363,18 @@ impl SettingsView {
     fn render_providers_tab(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex()
             .flex_col()
             .gap(px(16.0))
             .child(
-                self.render_section("AI Providers", Some("Configure API keys for AI providers"), cx)
+                self.render_section(
+                    i18n.t("settings.providers.title"),
+                    Some(i18n.t("settings.providers.description")),
+                    cx,
+                )
                     .children(
                         if state.providers.is_empty() {
                             vec![
@@ -339,7 +382,7 @@ impl SettingsView {
                                     .py(px(12.0))
                                     .text_color(theme.text_muted)
                                     .text_center()
-                                    .child("No providers available. Start the daemon to load providers.")
+                                    .child(i18n.t("settings.providers.none"))
                                     .into_any_element()
                             ]
                         } else {
@@ -377,7 +420,11 @@ impl SettingsView {
                                                         div()
                                                             .text_xs()
                                                             .text_color(theme.text_muted)
-                                                            .child(if has_key { "API key configured" } else { "Not configured" })
+                                                            .child(if has_key {
+                                                                i18n.t("dialogs.provider.configured")
+                                                            } else {
+                                                                i18n.t("dialogs.provider.not_configured")
+                                                            })
                                                     )
                                             )
                                     )
@@ -392,7 +439,11 @@ impl SettingsView {
                                             .cursor_pointer()
                                             .hover(|s| s.bg(theme.background_element))
                                             .text_sm()
-                                            .child(if has_key { "Edit" } else { "Add Key" })
+                                            .child(if has_key {
+                                                i18n.t("dialogs.provider.edit_key")
+                                            } else {
+                                                i18n.t("dialogs.provider.add_key")
+                                            })
                                     )
                                     .into_any_element()
                             }).collect()
@@ -400,13 +451,17 @@ impl SettingsView {
                     )
             )
             .child(
-                self.render_section("Models", Some("Available AI models"), cx)
+                self.render_section(
+                    i18n.t("settings.models.title"),
+                    Some(i18n.t("settings.models.description")),
+                    cx,
+                )
                     .child(
                         div()
                             .flex()
                             .items_center()
                             .justify_between()
-                            .child(div().child("Total Models"))
+                            .child(div().child(i18n.t("settings.providers.total_models")))
                             .child(
                                 div()
                                     .px(px(8.0))
@@ -414,7 +469,10 @@ impl SettingsView {
                                     .rounded(px(4.0))
                                     .bg(theme.background)
                                     .text_sm()
-                                    .child(format!("{} available", state.models.len()))
+                                    .child(i18n.format(
+                                        "settings.models.available",
+                                        &[("count", &state.models.len().to_string())],
+                                    ))
                             )
                     )
                     .when(state.selected_model_name().is_some(), |el| {
@@ -423,7 +481,7 @@ impl SettingsView {
                                 .flex()
                                 .items_center()
                                 .justify_between()
-                                .child(div().child("Selected Model"))
+                                .child(div().child(i18n.t("settings.providers.selected_model")))
                                 .child(
                                     div()
                                         .px(px(8.0))
@@ -440,32 +498,45 @@ impl SettingsView {
     }
 
     fn render_keyboard_tab(&self, cx: &Context<Self>) -> impl IntoElement {
-        let shortcuts = [
-            ("Navigation", vec![
-                ("Switch to Sessions", "Ctrl+1"),
-                ("Switch to Chat", "Ctrl+2"),
-                ("Switch to Settings", "Ctrl+,"),
-                ("Previous Session", "Ctrl+["),
-                ("Next Session", "Ctrl+]"),
-            ]),
-            ("Session", vec![
-                ("New Session", "Ctrl+N"),
-                ("Close Session", "Ctrl+W"),
-                ("Rename Session", "Ctrl+R"),
-            ]),
-            ("Chat", vec![
-                ("Send Message", "Enter"),
-                ("New Line", "Shift+Enter"),
-                ("Clear Chat", "Ctrl+L"),
-                ("History Up", "Up"),
-                ("History Down", "Down"),
-            ]),
-            ("Dialogs", vec![
-                ("Command Palette", "Ctrl+K"),
-                ("Model Picker", "Ctrl+M"),
-                ("Theme Picker", "Ctrl+T"),
-                ("Close Dialog", "Escape"),
-            ]),
+        let i18n = cx.global::<I18n>();
+        let shortcuts = vec![
+            (
+                i18n.t("keyboard.category.navigation"),
+                vec![
+                    (i18n.t("keyboard.action.switch_sessions"), "Ctrl+1"),
+                    (i18n.t("keyboard.action.switch_chat"), "Ctrl+2"),
+                    (i18n.t("keyboard.action.switch_settings"), "Ctrl+,"),
+                    (i18n.t("keyboard.action.prev_session"), "Ctrl+["),
+                    (i18n.t("keyboard.action.next_session"), "Ctrl+]"),
+                ],
+            ),
+            (
+                i18n.t("keyboard.category.session"),
+                vec![
+                    (i18n.t("keyboard.action.new_session"), "Ctrl+N"),
+                    (i18n.t("keyboard.action.close_session"), "Ctrl+W"),
+                    (i18n.t("keyboard.action.rename_session"), "Ctrl+R"),
+                ],
+            ),
+            (
+                i18n.t("keyboard.category.chat"),
+                vec![
+                    (i18n.t("keyboard.action.send_message"), "Enter"),
+                    (i18n.t("keyboard.action.new_line"), "Shift+Enter"),
+                    (i18n.t("keyboard.action.clear_chat"), "Ctrl+L"),
+                    (i18n.t("keyboard.action.history_up"), "Up"),
+                    (i18n.t("keyboard.action.history_down"), "Down"),
+                ],
+            ),
+            (
+                i18n.t("keyboard.category.dialogs"),
+                vec![
+                    (i18n.t("keyboard.action.command_palette"), "Ctrl+K"),
+                    (i18n.t("keyboard.action.model_picker"), "Ctrl+M"),
+                    (i18n.t("keyboard.action.theme_picker"), "Ctrl+T"),
+                    (i18n.t("keyboard.action.close_dialog"), "Escape"),
+                ],
+            ),
         ];
 
         div()
@@ -473,7 +544,7 @@ impl SettingsView {
             .flex_col()
             .gap(px(16.0))
             .children(shortcuts.iter().map(|(category, bindings)| {
-                self.render_section(category, None, cx)
+                self.render_section(category.clone(), None, cx)
                     .children(bindings.iter().map(|(action, keys)| {
                         self.render_shortcut(action, keys, cx)
                     }))
@@ -510,15 +581,66 @@ impl SettingsView {
             )
     }
 
+    fn check_for_updates(&self, cx: &mut Context<Self>) {
+        let api_state = cx.global::<ApiState>();
+        let runtime = api_state.runtime.clone();
+        let feed_url = cx.global::<AppState>().update_feed_url.clone();
+
+        cx.update_global::<AppState, _>(|state, _cx| {
+            state.set_update_status(UpdateStatus::Checking);
+        });
+
+        cx.spawn(async move |_this, cx| {
+            let result = runtime.spawn(async move { update::check(&feed_url).await }).await;
+            let check = match result {
+                Ok(check) => check,
+                Err(err) => UpdateCheck {
+                    status: UpdateStatus::Error,
+                    info: None,
+                    error: Some(err.to_string()),
+                    checked_at: None,
+                },
+            };
+            let _ = cx.update(|cx| {
+                let state = cx.global_mut::<AppState>();
+                state.apply_update_check(check);
+            });
+        }).detach();
+    }
+
     fn render_about_tab(&self, cx: &Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
+        let version = update::current_version();
+        let update_status = state.update_status;
+        let update_info = state.update_info.clone();
+        let last_checked = state
+            .update_last_checked
+            .map(format_checked_at)
+            .unwrap_or_else(|| "-".to_string());
+
+        let status_label = match update_status {
+            UpdateStatus::Idle => i18n.t("settings.about.update_check"),
+            UpdateStatus::Checking => i18n.t("settings.about.update_checking"),
+            UpdateStatus::Available => i18n.t("settings.about.update_available"),
+            UpdateStatus::UpToDate => i18n.t("settings.about.up_to_date"),
+            UpdateStatus::Error => i18n.t("settings.about.update_error"),
+        };
+
+        let status_color = match update_status {
+            UpdateStatus::Available => theme.success,
+            UpdateStatus::Error => theme.error,
+            UpdateStatus::Checking => theme.warning,
+            _ => theme.text_muted,
+        };
 
         div()
             .flex()
             .flex_col()
             .gap(px(16.0))
             .child(
-                self.render_section("Agent Core Desktop", None, cx)
+                self.render_section(i18n.t("settings.about.title"), None, cx)
                     .child(
                         div()
                             .flex()
@@ -540,19 +662,19 @@ impl SettingsView {
                                             .text_2xl()
                                             .font_weight(FontWeight::BOLD)
                                             .text_color(theme.background)
-                                            .child("AC")
+                                            .child(i18n.t("app.short_name"))
                                     )
                             )
                             .child(
                                 div()
                                     .text_xl()
                                     .font_weight(FontWeight::BOLD)
-                                    .child("Agent Core")
+                                    .child(i18n.t("settings.about.product_name"))
                             )
                             .child(
                                 div()
                                     .text_color(theme.text_muted)
-                                    .child("Version 0.1.0")
+                                    .child(i18n.format("settings.about.version", &[("version", version)]))
                             )
                             .child(
                                 div()
@@ -560,12 +682,92 @@ impl SettingsView {
                                     .text_color(theme.text_muted)
                                     .text_center()
                                     .max_w(px(400.0))
-                                    .child("A native desktop interface for Agent Core, featuring the Personas triad (Zee, Stanley, Johny) and full agent capabilities.")
+                                    .child(i18n.t("settings.about.description"))
                             )
                     )
             )
             .child(
-                self.render_section("Built With", None, cx)
+                self.render_section(i18n.t("settings.about.update_section"), None, cx)
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .justify_between()
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .text_color(status_color)
+                                    .child(status_label.clone())
+                            )
+                            .child(
+                                div()
+                                    .id("update-check")
+                                    .px(px(12.0))
+                                    .py(px(6.0))
+                                    .rounded(px(6.0))
+                                    .bg(theme.primary)
+                                    .text_color(theme.background)
+                                    .text_sm()
+                                    .cursor_pointer()
+                                    .hover(|s| s.opacity(0.9))
+                                    .on_click(cx.listener(|this, _event, _window, cx| {
+                                        this.check_for_updates(cx);
+                                    }))
+                                    .child(i18n.t("settings.about.update_check"))
+                            )
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .gap(px(6.0))
+                            .mt(px(8.0))
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(theme.text_muted)
+                                    .child(format!(
+                                        "{}: {}",
+                                        i18n.t("settings.about.feed_url"),
+                                        state.update_feed_url
+                                    ))
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(theme.text_muted)
+                                    .child(format!(
+                                        "{}: {}",
+                                        i18n.t("settings.about.last_checked"),
+                                        last_checked
+                                    ))
+                            )
+                    )
+                    .when(update_info.is_some(), |el| {
+                        let info = update_info.clone().unwrap();
+                        el.child(
+                            div()
+                                .mt(px(8.0))
+                                .flex()
+                                .items_center()
+                                .justify_between()
+                                .child(
+                                    div()
+                                        .text_sm()
+                                        .text_color(theme.text_muted)
+                                        .child(i18n.t("settings.about.latest_version"))
+                                )
+                                .child(
+                                    div()
+                                        .text_sm()
+                                        .font_weight(FontWeight::MEDIUM)
+                                        .child(info.version)
+                                )
+                        )
+                    })
+            )
+            .child(
+                self.render_section(i18n.t("settings.about.built_with"), None, cx)
                     .child(
                         div()
                             .flex()
@@ -590,6 +792,7 @@ impl SettingsView {
 impl Render for SettingsView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex()
@@ -608,7 +811,7 @@ impl Render for SettingsView {
                         div()
                             .text_2xl()
                             .font_weight(FontWeight::BOLD)
-                            .child("Settings")
+                            .child(i18n.t("settings.title"))
                     )
             )
             .child(self.render_tabs(cx))
@@ -621,5 +824,13 @@ impl Render for SettingsView {
                     SettingsTab::About => self.render_about_tab(cx).into_any_element(),
                 }
             )
+    }
+}
+
+fn format_checked_at(ts: i64) -> String {
+    if let Some(dt) = Local.timestamp_opt(ts, 0).single() {
+        dt.format("%Y-%m-%d %H:%M").to_string()
+    } else {
+        ts.to_string()
     }
 }

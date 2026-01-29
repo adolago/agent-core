@@ -273,7 +273,7 @@ export async function waitForWebLogin(
     }
 
     if (login.connected) {
-      const message = "+ Linked! WhatsApp is ready.";
+      const message = "✅ Linked! WhatsApp is ready.";
       runtime.log(success(message));
       await resetActiveLogin(account.accountId);
       return { connected: true, message };

@@ -7,8 +7,8 @@ import { colorize, isRich, theme } from "../terminal/theme.js";
 import {
   formatGatewayServiceDescription,
   GATEWAY_LAUNCH_AGENT_LABEL,
-  LEGACY_GATEWAY_LAUNCH_AGENT_LABELS,
   resolveGatewayLaunchAgentLabel,
+  resolveLegacyGatewayLaunchAgentLabels,
 } from "./constants.js";
 import {
   buildLaunchAgentPlist as buildLaunchAgentPlistImpl,
@@ -27,9 +27,9 @@ const formatLine = (label: string, value: string) => {
 };
 
 function resolveLaunchAgentLabel(args?: { env?: Record<string, string | undefined> }): string {
-  const envLabel = args?.env?.ZEE_LAUNCHD_LABEL?.trim();
+  const envLabel = args?.env?.CLAWDBOT_LAUNCHD_LABEL?.trim();
   if (envLabel) return envLabel;
-  return resolveGatewayLaunchAgentLabel(args?.env?.ZEE_PROFILE);
+  return resolveGatewayLaunchAgentLabel(args?.env?.CLAWDBOT_PROFILE);
 }
 
 function resolveLaunchAgentPlistPathForLabel(
@@ -52,7 +52,7 @@ export function resolveGatewayLogPaths(env: Record<string, string | undefined>):
 } {
   const stateDir = resolveGatewayStateDir(env);
   const logDir = path.join(stateDir, "logs");
-  const prefix = env.ZEE_LOG_PREFIX?.trim() || "gateway";
+  const prefix = env.CLAWDBOT_LOG_PREFIX?.trim() || "gateway";
   return {
     logDir,
     stdoutPath: path.join(logDir, `${prefix}.log`),
@@ -248,7 +248,7 @@ export async function findLegacyLaunchAgents(
 ): Promise<LegacyLaunchAgent[]> {
   const domain = resolveGuiDomain();
   const results: LegacyLaunchAgent[] = [];
-  for (const label of LEGACY_GATEWAY_LAUNCH_AGENT_LABELS) {
+  for (const label of resolveLegacyGatewayLaunchAgentLabels(env.CLAWDBOT_PROFILE)) {
     const plistPath = resolveLaunchAgentPlistPathForLabel(env, label);
     const res = await execLaunchctl(["print", `${domain}/${label}`]);
     const loaded = res.code === 0;
@@ -384,7 +384,7 @@ export async function installLaunchAgent({
 
   const domain = resolveGuiDomain();
   const label = resolveLaunchAgentLabel({ env });
-  for (const legacyLabel of LEGACY_GATEWAY_LAUNCH_AGENT_LABELS) {
+  for (const legacyLabel of resolveLegacyGatewayLaunchAgentLabels(env.CLAWDBOT_PROFILE)) {
     const legacyPlistPath = resolveLaunchAgentPlistPathForLabel(env, legacyLabel);
     await execLaunchctl(["bootout", domain, legacyPlistPath]);
     await execLaunchctl(["unload", legacyPlistPath]);
@@ -401,8 +401,8 @@ export async function installLaunchAgent({
   const serviceDescription =
     description ??
     formatGatewayServiceDescription({
-      profile: env.ZEE_PROFILE,
-      version: environment?.ZEE_SERVICE_VERSION ?? env.ZEE_SERVICE_VERSION,
+      profile: env.CLAWDBOT_PROFILE,
+      version: environment?.CLAWDBOT_SERVICE_VERSION ?? env.CLAWDBOT_SERVICE_VERSION,
     });
   const plist = buildLaunchAgentPlist({
     label,

@@ -87,7 +87,7 @@ function normalizeSystemdUnit(raw?: string, profile?: string): string {
   return unit.endsWith(".service") ? unit : `${unit}.service`;
 }
 
-export function triggerZeeRestart(): RestartAttempt {
+export function triggerMoltbotRestart(): RestartAttempt {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return { ok: true, method: "supervisor", detail: "test mode" };
   }
@@ -95,8 +95,8 @@ export function triggerZeeRestart(): RestartAttempt {
   if (process.platform !== "darwin") {
     if (process.platform === "linux") {
       const unit = normalizeSystemdUnit(
-        process.env.ZEE_SYSTEMD_UNIT,
-        process.env.ZEE_PROFILE,
+        process.env.CLAWDBOT_SYSTEMD_UNIT,
+        process.env.CLAWDBOT_PROFILE,
       );
       const userArgs = ["--user", "restart", unit];
       tried.push(`systemctl ${userArgs.join(" ")}`);
@@ -130,8 +130,8 @@ export function triggerZeeRestart(): RestartAttempt {
   }
 
   const label =
-    process.env.ZEE_LAUNCHD_LABEL ||
-    resolveGatewayLaunchAgentLabel(process.env.ZEE_PROFILE);
+    process.env.CLAWDBOT_LAUNCHD_LABEL ||
+    resolveGatewayLaunchAgentLabel(process.env.CLAWDBOT_PROFILE);
   const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
   const target = uid !== undefined ? `gui/${uid}/${label}` : label;
   const args = ["kickstart", "-k", target];

@@ -5,15 +5,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 import type { CliDeps } from "../cli/deps.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
-import {
-  createTestRegistry,
-  discordPlugin,
-  telegramPlugin,
-  whatsappPlugin,
-} from "../test-utils/channel-plugins.js";
+import { createPluginRuntime } from "../plugins/runtime/index.js";
+import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import type { CronJob } from "./types.js";
+import { discordPlugin } from "../../extensions/discord/src/channel.js";
+import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
+import { whatsappPlugin } from "../../extensions/whatsapp/src/channel.js";
+import { setDiscordRuntime } from "../../extensions/discord/src/runtime.js";
+import { setTelegramRuntime } from "../../extensions/telegram/src/runtime.js";
+import { setWhatsAppRuntime } from "../../extensions/whatsapp/src/runtime.js";
 
 vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
@@ -29,11 +31,11 @@ import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "zee-cron-" });
+  return withTempHomeBase(fn, { prefix: "moltbot-cron-" });
 }
 
 async function writeSessionStore(home: string) {
-  const dir = path.join(home, ".zee", "sessions");
+  const dir = path.join(home, ".clawdbot", "sessions");
   await fs.mkdir(dir, { recursive: true });
   const storePath = path.join(dir, "sessions.json");
   await fs.writeFile(
@@ -58,17 +60,17 @@ async function writeSessionStore(home: string) {
 function makeCfg(
   home: string,
   storePath: string,
-  overrides: Partial<ZeeConfig> = {},
-): ZeeConfig {
-  const base: ZeeConfig = {
+  overrides: Partial<MoltbotConfig> = {},
+): MoltbotConfig {
+  const base: MoltbotConfig = {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: path.join(home, "zee"),
+        workspace: path.join(home, "clawd"),
       },
     },
     session: { store: storePath, mainKey: "main" },
-  } as ZeeConfig;
+  } as MoltbotConfig;
   return { ...base, ...overrides };
 }
 
@@ -88,11 +90,14 @@ function makeJob(payload: CronJob["payload"]): CronJob {
   };
 }
 
-// Skip: Tests rely on complex mocking of agent and delivery infrastructure
-describe.skip("runCronIsolatedAgentTurn", () => {
+describe("runCronIsolatedAgentTurn", () => {
   beforeEach(() => {
     vi.mocked(runEmbeddedPiAgent).mockReset();
     vi.mocked(loadModelCatalog).mockResolvedValue([]);
+    const runtime = createPluginRuntime();
+    setDiscordRuntime(runtime);
+    setTelegramRuntime(runtime);
+    setWhatsAppRuntime(runtime);
     setActivePluginRegistry(
       createTestRegistry([
         { pluginId: "whatsapp", plugin: whatsappPlugin, source: "test" },
@@ -501,7 +506,7 @@ describe.skip("runCronIsolatedAgentTurn", () => {
       };
       // Short junk around HEARTBEAT_OK (<=30 chars) should still skip delivery.
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
-        payloads: [{ text: "HEARTBEAT_OK *" }],
+        payloads: [{ text: "HEARTBEAT_OK 🦞" }],
         meta: {
           durationMs: 5,
           agentMeta: { sessionId: "s", provider: "p", model: "m" },

@@ -5,25 +5,25 @@ import { describe, expect, it } from "vitest";
 import { detectLegacyWorkspaceDirs } from "./doctor-workspace.js";
 
 describe("detectLegacyWorkspaceDirs", () => {
-  it("ignores ~/zee when it doesn't look like a workspace (e.g. install dir)", () => {
+  it("ignores ~/moltbot when it doesn't look like a workspace (e.g. install dir)", () => {
     const home = "/home/user";
-    const workspaceDir = path.join(home, ".zee"); // Active workspace is ~/.zee
-    const candidate = path.join(home, "zee"); // Check ~/zee
+    const workspaceDir = "/home/user/clawd";
+    const candidate = path.join(home, "moltbot");
 
     const detection = detectLegacyWorkspaceDirs({
       workspaceDir,
       homedir: () => home,
-      exists: (value) => value === candidate, // ~/zee exists but has no markers
+      exists: (value) => value === candidate,
     });
 
     expect(detection.activeWorkspace).toBe(path.resolve(workspaceDir));
-    expect(detection.legacyDirs).toEqual([]); // Not flagged because no workspace markers
+    expect(detection.legacyDirs).toEqual([]);
   });
 
-  it("flags ~/zee when it contains workspace markers", () => {
+  it("flags ~/moltbot when it contains workspace markers", () => {
     const home = "/home/user";
-    const workspaceDir = path.join(home, ".zee"); // Active workspace is ~/.zee
-    const candidate = path.join(home, "zee"); // Legacy dir is ~/zee
+    const workspaceDir = "/home/user/clawd";
+    const candidate = path.join(home, "moltbot");
     const agentsPath = path.join(candidate, "AGENTS.md");
 
     const detection = detectLegacyWorkspaceDirs({

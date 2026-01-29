@@ -1,7 +1,7 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
 import { listSubagentRunsForRequester } from "../../agents/subagent-registry.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import {
   loadSessionStore,
   resolveStorePath,
@@ -39,10 +39,10 @@ export function setAbortMemory(key: string, value: boolean): void {
 
 export function formatAbortReplyText(stoppedSubagents?: number): string {
   if (typeof stoppedSubagents !== "number" || stoppedSubagents <= 0) {
-    return "> Agent was aborted.";
+    return "⚙️ Agent was aborted.";
   }
   const label = stoppedSubagents === 1 ? "sub-agent" : "sub-agents";
-  return `> Agent was aborted. Stopped ${stoppedSubagents} ${label}.`;
+  return `⚙️ Agent was aborted. Stopped ${stoppedSubagents} ${label}.`;
 }
 
 function resolveSessionEntryForKey(
@@ -63,7 +63,7 @@ function resolveAbortTargetKey(ctx: MsgContext): string | undefined {
 }
 
 function normalizeRequesterSessionKey(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   key: string | undefined,
 ): string | undefined {
   const cleaned = key?.trim();
@@ -73,7 +73,7 @@ function normalizeRequesterSessionKey(
 }
 
 export function stopSubagentsForRequester(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   requesterSessionKey?: string;
 }): { stopped: number } {
   const requesterKey = normalizeRequesterSessionKey(params.cfg, params.requesterSessionKey);
@@ -116,7 +116,7 @@ export function stopSubagentsForRequester(params: {
 
 export async function tryFastAbortFromMessage(params: {
   ctx: FinalizedMsgContext;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
 }): Promise<{ handled: boolean; aborted: boolean; stoppedSubagents?: number }> {
   const { ctx, cfg } = params;
   const targetKey = resolveAbortTargetKey(ctx);

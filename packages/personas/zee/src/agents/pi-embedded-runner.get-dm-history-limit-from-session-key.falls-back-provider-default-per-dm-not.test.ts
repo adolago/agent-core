@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
-import type { ZeeConfig } from "../config/config.js";
-import { ensureZeeModelsJson } from "./models-config.js";
+import type { MoltbotConfig } from "../config/config.js";
+import { ensureMoltbotModelsJson } from "./models-config.js";
 import { getDmHistoryLimitFromSessionKey } from "./pi-embedded-runner.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
@@ -67,10 +67,10 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
         },
       },
     },
-  }) satisfies ZeeConfig;
+  }) satisfies MoltbotConfig;
 
-const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
-  ensureZeeModelsJson(cfg, agentDir);
+const _ensureModels = (cfg: MoltbotConfig, agentDir: string) =>
+  ensureMoltbotModelsJson(cfg, agentDir);
 
 const _textFromContent = (content: unknown) => {
   if (typeof content === "string") return content;
@@ -105,7 +105,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
           dms: { "456": { historyLimit: 5 } },
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
     expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(15);
   });
   it("returns per-DM override for agent-prefixed keys", () => {
@@ -116,7 +116,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
           dms: { "789": { historyLimit: 3 } },
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
     expect(getDmHistoryLimitFromSessionKey("agent:main:telegram:dm:789", config)).toBe(3);
   });
   it("handles userId with colons (e.g., email)", () => {
@@ -127,7 +127,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
           dms: { "user@example.com": { historyLimit: 7 } },
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
     expect(getDmHistoryLimitFromSessionKey("msteams:dm:user@example.com", config)).toBe(7);
   });
   it("returns undefined when per-DM historyLimit is not set", () => {
@@ -137,7 +137,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
           dms: { "123": {} },
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
     expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBeUndefined();
   });
   it("returns 0 when per-DM historyLimit is explicitly 0 (unlimited)", () => {
@@ -148,7 +148,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
           dms: { "123": { historyLimit: 0 } },
         },
       },
-    } as ZeeConfig;
+    } as MoltbotConfig;
     expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(0);
   });
 });

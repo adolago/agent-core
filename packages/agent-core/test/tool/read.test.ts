@@ -18,7 +18,7 @@ const baseCtx = {
   ask: async () => {},
 }
 // Helper to create context with directory
-const ctx = (dir: string) => ({ ...baseCtx, directory: dir })
+const ctx = (dir: string) => ({ ...baseCtx, directory: dir, worktree: dir })
 
 describe("tool.read external_directory permission", () => {
   test("allows reading absolute path inside project directory", async () => {

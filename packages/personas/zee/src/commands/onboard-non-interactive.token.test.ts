@@ -8,27 +8,27 @@ describe("onboard (non-interactive): token auth", () => {
   it("writes token profile config and stores the token", async () => {
     const prev = {
       home: process.env.HOME,
-      stateDir: process.env.ZEE_STATE_DIR,
-      configPath: process.env.ZEE_CONFIG_PATH,
-      skipChannels: process.env.ZEE_SKIP_CHANNELS,
-      skipGmail: process.env.ZEE_SKIP_GMAIL_WATCHER,
-      skipCron: process.env.ZEE_SKIP_CRON,
-      skipCanvas: process.env.ZEE_SKIP_CANVAS_HOST,
-      token: process.env.ZEE_GATEWAY_TOKEN,
-      password: process.env.ZEE_GATEWAY_PASSWORD,
+      stateDir: process.env.CLAWDBOT_STATE_DIR,
+      configPath: process.env.CLAWDBOT_CONFIG_PATH,
+      skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
+      skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
+      skipCron: process.env.CLAWDBOT_SKIP_CRON,
+      skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
+      token: process.env.CLAWDBOT_GATEWAY_TOKEN,
+      password: process.env.CLAWDBOT_GATEWAY_PASSWORD,
     };
 
-    process.env.ZEE_SKIP_CHANNELS = "1";
-    process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
-    process.env.ZEE_SKIP_CRON = "1";
-    process.env.ZEE_SKIP_CANVAS_HOST = "1";
-    delete process.env.ZEE_GATEWAY_TOKEN;
-    delete process.env.ZEE_GATEWAY_PASSWORD;
+    process.env.CLAWDBOT_SKIP_CHANNELS = "1";
+    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
+    process.env.CLAWDBOT_SKIP_CRON = "1";
+    process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
+    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    delete process.env.CLAWDBOT_GATEWAY_PASSWORD;
 
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "zee-onboard-token-"));
+    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-onboard-token-"));
     process.env.HOME = tempHome;
-    process.env.ZEE_STATE_DIR = tempHome;
-    process.env.ZEE_CONFIG_PATH = path.join(tempHome, "zee.json");
+    process.env.CLAWDBOT_STATE_DIR = tempHome;
+    process.env.CLAWDBOT_CONFIG_PATH = path.join(tempHome, "moltbot.json");
     vi.resetModules();
 
     const token = `sk-ant-oat01-${"a".repeat(80)}`;
@@ -59,8 +59,8 @@ describe("onboard (non-interactive): token auth", () => {
         runtime,
       );
 
-      const { CONFIG_PATH_ZEEBOT } = await import("../config/config.js");
-      const cfg = JSON.parse(await fs.readFile(CONFIG_PATH_ZEEBOT, "utf8")) as {
+      const { CONFIG_PATH } = await import("../config/config.js");
+      const cfg = JSON.parse(await fs.readFile(CONFIG_PATH, "utf8")) as {
         auth?: {
           profiles?: Record<string, { provider?: string; mode?: string }>;
         };
@@ -80,14 +80,14 @@ describe("onboard (non-interactive): token auth", () => {
     } finally {
       await fs.rm(tempHome, { recursive: true, force: true });
       process.env.HOME = prev.home;
-      process.env.ZEE_STATE_DIR = prev.stateDir;
-      process.env.ZEE_CONFIG_PATH = prev.configPath;
-      process.env.ZEE_SKIP_CHANNELS = prev.skipChannels;
-      process.env.ZEE_SKIP_GMAIL_WATCHER = prev.skipGmail;
-      process.env.ZEE_SKIP_CRON = prev.skipCron;
-      process.env.ZEE_SKIP_CANVAS_HOST = prev.skipCanvas;
-      process.env.ZEE_GATEWAY_TOKEN = prev.token;
-      process.env.ZEE_GATEWAY_PASSWORD = prev.password;
+      process.env.CLAWDBOT_STATE_DIR = prev.stateDir;
+      process.env.CLAWDBOT_CONFIG_PATH = prev.configPath;
+      process.env.CLAWDBOT_SKIP_CHANNELS = prev.skipChannels;
+      process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = prev.skipGmail;
+      process.env.CLAWDBOT_SKIP_CRON = prev.skipCron;
+      process.env.CLAWDBOT_SKIP_CANVAS_HOST = prev.skipCanvas;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = prev.token;
+      process.env.CLAWDBOT_GATEWAY_PASSWORD = prev.password;
     }
   }, 60_000);
 });

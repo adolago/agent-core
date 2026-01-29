@@ -5,7 +5,7 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
-import { resolveZeePackageRoot } from "../infra/zee-root.js";
+import { resolveMoltbotPackageRoot } from "../infra/moltbot-root.js";
 import {
   checkUpdateStatus,
   compareSemverStrings,
@@ -39,6 +39,7 @@ import { trimLogTail } from "../infra/restart-sentinel.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { formatCliCommand } from "./command-format.js";
+import { replaceCliName, resolveCliName } from "./cli-name.js";
 import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
 import { theme } from "../terminal/theme.js";
 import { renderTable } from "../terminal/table.js";
@@ -80,7 +81,7 @@ const STEP_LABELS: Record<string, string> = {
   "deps install": "Installing dependencies",
   build: "Building",
   "ui:build": "Building UI",
-  "zee doctor": "Running doctor checks",
+  "moltbot doctor": "Running doctor checks",
   "git rev-parse HEAD (after)": "Verifying update",
   "global update": "Updating via package manager",
   "global install": "Installing global package",
@@ -88,36 +89,43 @@ const STEP_LABELS: Record<string, string> = {
 
 const UPDATE_QUIPS = [
   "Leveled up! New skills unlocked. You're welcome.",
-  "Fresh code, same Zee. Miss me?",
+  "Fresh code, same lobster. Miss me?",
   "Back and better. Did you even notice I was gone?",
   "Update complete. I learned some new tricks while I was out.",
   "Upgraded! Now with 23% more sass.",
   "I've evolved. Try to keep up.",
   "New version, who dis? Oh right, still me but shinier.",
-  "Patched, polished, and ready to go. Let's do this.",
-  "Zee has evolved. Stronger than ever.",
+  "Patched, polished, and ready to pinch. Let's go.",
+  "The lobster has molted. Harder shell, sharper claws.",
   "Update done! Check the changelog or just trust me, it's good.",
-  "Reborn from the depths of npm. Stronger now.",
+  "Reborn from the boiling waters of npm. Stronger now.",
   "I went away and came back smarter. You should try it sometime.",
   "Update complete. The bugs feared me, so they left.",
   "New version installed. Old version sends its regards.",
   "Firmware fresh. Brain wrinkles: increased.",
   "I've seen things you wouldn't believe. Anyway, I'm updated.",
   "Back online. The changelog is long but our friendship is longer.",
-  "Upgraded! The team fixed stuff. Blame them if it breaks.",
-  "Evolution complete. Please admire my new form.",
+  "Upgraded! Peter fixed stuff. Blame him if it breaks.",
+  "Molting complete. Please don't look at my soft shell phase.",
   "Version bump! Same chaos energy, fewer crashes (probably).",
 ];
 
 const MAX_LOG_CHARS = 8000;
-const ZEE_REPO_URL = "https://github.com/zee/zee.git";
-const DEFAULT_GIT_DIR = path.join(os.homedir(), "zee");
+const DEFAULT_PACKAGE_NAME = "moltbot";
+const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME, "moltbot"]);
+const CLI_NAME = resolveCliName();
+const CLAWDBOT_REPO_URL = "https://github.com/moltbot/moltbot.git";
+const DEFAULT_GIT_DIR = path.join(os.homedir(), "moltbot");
 
 function normalizeTag(value?: string | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  return trimmed.startsWith("zee@") ? trimmed.slice("zee@".length) : trimmed;
+  if (trimmed.startsWith("moltbot@")) return trimmed.slice("moltbot@".length);
+  if (trimmed.startsWith(`${DEFAULT_PACKAGE_NAME}@`)) {
+    return trimmed.slice(`${DEFAULT_PACKAGE_NAME}@`.length);
+  }
+  return trimmed;
 }
 
 function pickUpdateQuip(): string {
@@ -157,14 +165,20 @@ async function isGitCheckout(root: string): Promise<boolean> {
   }
 }
 
-async function isZeePackage(root: string): Promise<boolean> {
+async function readPackageName(root: string): Promise<string | null> {
   try {
     const raw = await fs.readFile(path.join(root, "package.json"), "utf-8");
     const parsed = JSON.parse(raw) as { name?: string };
-    return parsed?.name === "zee";
+    const name = parsed?.name?.trim();
+    return name ? name : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function isCorePackage(root: string): Promise<boolean> {
+  const name = await readPackageName(root);
+  return Boolean(name && CORE_PACKAGE_NAMES.has(name));
 }
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -186,7 +200,7 @@ async function isEmptyDir(targetPath: string): Promise<boolean> {
 }
 
 function resolveGitInstallDir(): string {
-  const override = process.env.ZEE_GIT_DIR?.trim();
+  const override = process.env.CLAWDBOT_GIT_DIR?.trim();
   if (override) return path.resolve(override);
   return DEFAULT_GIT_DIR;
 }
@@ -247,7 +261,7 @@ async function ensureGitCheckout(params: {
   if (!dirExists) {
     return await runUpdateStep({
       name: "git clone",
-      argv: ["git", "clone", ZEE_REPO_URL, params.dir],
+      argv: ["git", "clone", CLAWDBOT_REPO_URL, params.dir],
       timeoutMs: params.timeoutMs,
       progress: params.progress,
     });
@@ -257,20 +271,20 @@ async function ensureGitCheckout(params: {
     const empty = await isEmptyDir(params.dir);
     if (!empty) {
       throw new Error(
-        `ZEE_GIT_DIR points at a non-git directory: ${params.dir}. Set ZEE_GIT_DIR to an empty folder or a zee checkout.`,
+        `CLAWDBOT_GIT_DIR points at a non-git directory: ${params.dir}. Set CLAWDBOT_GIT_DIR to an empty folder or a moltbot checkout.`,
       );
     }
     return await runUpdateStep({
       name: "git clone",
-      argv: ["git", "clone", ZEE_REPO_URL, params.dir],
+      argv: ["git", "clone", CLAWDBOT_REPO_URL, params.dir],
       cwd: params.dir,
       timeoutMs: params.timeoutMs,
       progress: params.progress,
     });
   }
 
-  if (!(await isZeePackage(params.dir))) {
-    throw new Error(`ZEE_GIT_DIR does not look like a zee checkout: ${params.dir}.`);
+  if (!(await isCorePackage(params.dir))) {
+    throw new Error(`CLAWDBOT_GIT_DIR does not look like a core checkout: ${params.dir}.`);
   }
 
   return null;
@@ -322,7 +336,7 @@ export async function updateStatusCommand(opts: UpdateStatusOptions): Promise<vo
   }
 
   const root =
-    (await resolveZeePackageRoot({
+    (await resolveMoltbotPackageRoot({
       moduleUrl: import.meta.url,
       argv1: process.argv[1],
       cwd: process.cwd(),
@@ -397,7 +411,7 @@ export async function updateStatusCommand(opts: UpdateStatusOptions): Promise<vo
     },
   ];
 
-  defaultRuntime.log(theme.heading("Zee update status"));
+  defaultRuntime.log(theme.heading("Moltbot update status"));
   defaultRuntime.log("");
   defaultRuntime.log(
     renderTable({
@@ -562,7 +576,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   }
 
   const root =
-    (await resolveZeePackageRoot({
+    (await resolveMoltbotPackageRoot({
       moduleUrl: import.meta.url,
       argv1: process.argv[1],
       cwd: process.cwd(),
@@ -671,7 +685,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   const showProgress = !opts.json && process.stdout.isTTY;
 
   if (!opts.json) {
-    defaultRuntime.log(theme.heading("Updating Zee..."));
+    defaultRuntime.log(theme.heading("Updating Moltbot..."));
     defaultRuntime.log("");
   }
 
@@ -691,10 +705,13 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       return { stdout: res.stdout, stderr: res.stderr, code: res.code };
     };
     const pkgRoot = await resolveGlobalPackageRoot(manager, runCommand, timeoutMs ?? 20 * 60_000);
+    const packageName =
+      (pkgRoot ? await readPackageName(pkgRoot) : await readPackageName(root)) ??
+      DEFAULT_PACKAGE_NAME;
     const beforeVersion = pkgRoot ? await readPackageVersion(pkgRoot) : null;
     const updateStep = await runUpdateStep({
       name: "global update",
-      argv: globalInstallArgs(manager, `zee@${tag}`),
+      argv: globalInstallArgs(manager, `${packageName}@${tag}`),
       timeoutMs: timeoutMs ?? 20 * 60_000,
       progress,
     });
@@ -705,7 +722,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       const entryPath = path.join(pkgRoot, "dist", "entry.js");
       if (await pathExists(entryPath)) {
         const doctorStep = await runUpdateStep({
-          name: "zee doctor",
+          name: `${CLI_NAME} doctor`,
           argv: [resolveNodeRunner(), entryPath, "doctor", "--non-interactive"],
           timeoutMs: timeoutMs ?? 20 * 60_000,
           progress,
@@ -806,11 +823,13 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     if (result.reason === "not-git-install") {
       defaultRuntime.log(
         theme.warn(
-          `Skipped: this Zee install isn't a git checkout, and the package manager couldn't be detected. Update via your package manager, then run \`${formatCliCommand("zee doctor")}\` and \`${formatCliCommand("zee gateway restart")}\`.`,
+          `Skipped: this Moltbot install isn't a git checkout, and the package manager couldn't be detected. Update via your package manager, then run \`${replaceCliName(formatCliCommand("moltbot doctor"), CLI_NAME)}\` and \`${replaceCliName(formatCliCommand("moltbot gateway restart"), CLI_NAME)}\`.`,
         ),
       );
       defaultRuntime.log(
-        theme.muted("Examples: `npm i -g zee@latest` or `pnpm add -g zee@latest`"),
+        theme.muted(
+          `Examples: \`${replaceCliName("npm i -g moltbot@latest", CLI_NAME)}\` or \`${replaceCliName("pnpm add -g moltbot@latest", CLI_NAME)}\``,
+        ),
       );
     }
     defaultRuntime.exit(0);
@@ -910,7 +929,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       if (!opts.json && restarted) {
         defaultRuntime.log(theme.success("Daemon restarted successfully."));
         defaultRuntime.log("");
-        process.env.ZEE_UPDATE_IN_PROGRESS = "1";
+        process.env.CLAWDBOT_UPDATE_IN_PROGRESS = "1";
         try {
           const { doctorCommand } = await import("../commands/doctor.js");
           const interactiveDoctor = Boolean(process.stdin.isTTY) && !opts.json && opts.yes !== true;
@@ -918,7 +937,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
         } catch (err) {
           defaultRuntime.log(theme.warn(`Doctor failed: ${String(err)}`));
         } finally {
-          delete process.env.ZEE_UPDATE_IN_PROGRESS;
+          delete process.env.CLAWDBOT_UPDATE_IN_PROGRESS;
         }
       }
     } catch (err) {
@@ -926,7 +945,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
         defaultRuntime.log(theme.warn(`Daemon restart failed: ${String(err)}`));
         defaultRuntime.log(
           theme.muted(
-            `You may need to restart the service manually: ${formatCliCommand("zee gateway restart")}`,
+            `You may need to restart the service manually: ${replaceCliName(formatCliCommand("moltbot gateway restart"), CLI_NAME)}`,
           ),
         );
       }
@@ -936,13 +955,13 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     if (result.mode === "npm" || result.mode === "pnpm") {
       defaultRuntime.log(
         theme.muted(
-          `Tip: Run \`${formatCliCommand("zee doctor")}\`, then \`${formatCliCommand("zee gateway restart")}\` to apply updates to a running gateway.`,
+          `Tip: Run \`${replaceCliName(formatCliCommand("moltbot doctor"), CLI_NAME)}\`, then \`${replaceCliName(formatCliCommand("moltbot gateway restart"), CLI_NAME)}\` to apply updates to a running gateway.`,
         ),
       );
     } else {
       defaultRuntime.log(
         theme.muted(
-          `Tip: Run \`${formatCliCommand("zee gateway restart")}\` to apply updates to a running gateway.`,
+          `Tip: Run \`${replaceCliName(formatCliCommand("moltbot gateway restart"), CLI_NAME)}\` to apply updates to a running gateway.`,
         ),
       );
     }
@@ -956,7 +975,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promise<void> {
   if (!process.stdin.isTTY) {
     defaultRuntime.error(
-      "Update wizard requires a TTY. Use `zee update --channel <stable|beta|dev>` instead.",
+      "Update wizard requires a TTY. Use `moltbot update --channel <stable|beta|dev>` instead.",
     );
     defaultRuntime.exit(1);
     return;
@@ -970,7 +989,7 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
   }
 
   const root =
-    (await resolveZeePackageRoot({
+    (await resolveMoltbotPackageRoot({
       moduleUrl: import.meta.url,
       argv1: process.argv[1],
       cwd: process.cwd(),
@@ -1047,7 +1066,7 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
         const empty = await isEmptyDir(gitDir);
         if (!empty) {
           defaultRuntime.error(
-            `ZEE_GIT_DIR points at a non-git directory: ${gitDir}. Set ZEE_GIT_DIR to an empty folder or a zee checkout.`,
+            `CLAWDBOT_GIT_DIR points at a non-git directory: ${gitDir}. Set CLAWDBOT_GIT_DIR to an empty folder or a moltbot checkout.`,
           );
           defaultRuntime.exit(1);
           return;
@@ -1055,7 +1074,7 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
       }
       const ok = await confirm({
         message: stylePromptMessage(
-          `Create a git checkout at ${gitDir}? (override via ZEE_GIT_DIR)`,
+          `Create a git checkout at ${gitDir}? (override via CLAWDBOT_GIT_DIR)`,
         ),
         initialValue: true,
       });
@@ -1092,7 +1111,7 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
 export function registerUpdateCli(program: Command) {
   const update = program
     .command("update")
-    .description("Update Zee to the latest version")
+    .description("Update Moltbot to the latest version")
     .option("--json", "Output result as JSON", false)
     .option("--no-restart", "Skip restarting the gateway service after a successful update")
     .option("--channel <stable|beta|dev>", "Persist update channel (git + npm)")
@@ -1101,15 +1120,15 @@ export function registerUpdateCli(program: Command) {
     .option("--yes", "Skip confirmation prompts (non-interactive)", false)
     .addHelpText("after", () => {
       const examples = [
-        ["zee update", "Update a source checkout (git)"],
-        ["zee update --channel beta", "Switch to beta channel (git + npm)"],
-        ["zee update --channel dev", "Switch to dev channel (git + npm)"],
-        ["zee update --tag beta", "One-off update to a dist-tag or version"],
-        ["zee update --no-restart", "Update without restarting the service"],
-        ["zee update --json", "Output result as JSON"],
-        ["zee update --yes", "Non-interactive (accept downgrade prompts)"],
-        ["zee update wizard", "Interactive update wizard"],
-        ["zee --update", "Shorthand for zee update"],
+        ["moltbot update", "Update a source checkout (git)"],
+        ["moltbot update --channel beta", "Switch to beta channel (git + npm)"],
+        ["moltbot update --channel dev", "Switch to dev channel (git + npm)"],
+        ["moltbot update --tag beta", "One-off update to a dist-tag or version"],
+        ["moltbot update --no-restart", "Update without restarting the service"],
+        ["moltbot update --json", "Output result as JSON"],
+        ["moltbot update --yes", "Non-interactive (accept downgrade prompts)"],
+        ["moltbot update wizard", "Interactive update wizard"],
+        ["moltbot --update", "Shorthand for moltbot update"],
       ] as const;
       const fmtExamples = examples
         .map(([cmd, desc]) => `  ${theme.command(cmd)} ${theme.muted(`# ${desc}`)}`)
@@ -1121,7 +1140,7 @@ ${theme.heading("What this does:")}
 
 ${theme.heading("Switch channels:")}
   - Use --channel stable|beta|dev to persist the update channel in config
-  - Run zee update status to see the active channel and source
+  - Run moltbot update status to see the active channel and source
   - Use --tag <dist-tag|version> for a one-off npm update without persisting
 
 ${theme.heading("Non-interactive:")}
@@ -1137,7 +1156,7 @@ ${theme.heading("Notes:")}
   - Downgrades require confirmation (can break configuration)
   - Skips update if the working directory has uncommitted changes
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.zee.bot/cli/update")}`;
+${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/update")}`;
     })
     .action(async (opts) => {
       try {
@@ -1161,7 +1180,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.zee.bot/cli/update
     .option("--timeout <seconds>", "Timeout for each update step in seconds (default: 1200)")
     .addHelpText(
       "after",
-      `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.zee.bot/cli/update")}\n`,
+      `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/update")}\n`,
     )
     .action(async (opts) => {
       try {
@@ -1181,14 +1200,14 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.zee.bot/cli/update
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["zee update status", "Show channel + version status."],
-          ["zee update status --json", "JSON output."],
-          ["zee update status --timeout 10", "Custom timeout."],
+          ["moltbot update status", "Show channel + version status."],
+          ["moltbot update status --json", "JSON output."],
+          ["moltbot update status --timeout 10", "Custom timeout."],
         ])}\n\n${theme.heading("Notes:")}\n${theme.muted(
           "- Shows current update channel (stable/beta/dev) and source",
         )}\n${theme.muted("- Includes git tag/branch/SHA for source checkouts")}\n\n${theme.muted(
           "Docs:",
-        )} ${formatDocsLink("/cli/update", "docs.zee.bot/cli/update")}`,
+        )} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/update")}`,
     )
     .action(async (opts) => {
       try {

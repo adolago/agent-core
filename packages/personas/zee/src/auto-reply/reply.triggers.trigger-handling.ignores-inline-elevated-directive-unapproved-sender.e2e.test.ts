@@ -18,7 +18,7 @@ const usageMocks = vi.hoisted(() => ({
     updatedAt: 0,
     providers: [],
   }),
-  formatUsageSummaryLine: vi.fn().mockReturnValue("◆ Usage: Claude 80% left"),
+  formatUsageSummaryLine: vi.fn().mockReturnValue("📊 Usage: Claude 80% left"),
   resolveUsageProviderId: vi.fn((provider: string) => provider.split("/")[0]),
 }));
 
@@ -68,7 +68,7 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
       vi.mocked(abortEmbeddedPiRun).mockClear();
       return await fn(home);
     },
-    { prefix: "zee-triggers-" },
+    { prefix: "moltbot-triggers-" },
   );
 }
 
@@ -77,7 +77,7 @@ function makeCfg(home: string) {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: join(home, "zee"),
+        workspace: join(home, "clawd"),
       },
     },
     channels: {
@@ -107,7 +107,7 @@ describe("trigger handling", () => {
         agents: {
           defaults: {
             model: "anthropic/claude-opus-4-5",
-            workspace: join(home, "zee"),
+            workspace: join(home, "clawd"),
           },
         },
         tools: {
@@ -145,7 +145,7 @@ describe("trigger handling", () => {
         agents: {
           defaults: {
             model: "anthropic/claude-opus-4-5",
-            workspace: join(home, "zee"),
+            workspace: join(home, "clawd"),
           },
         },
         tools: { elevated: { allowFrom: { discord: ["steipete"] } } },
@@ -180,7 +180,7 @@ describe("trigger handling", () => {
         agents: {
           defaults: {
             model: "anthropic/claude-opus-4-5",
-            workspace: join(home, "zee"),
+            workspace: join(home, "clawd"),
           },
         },
         tools: {
@@ -223,7 +223,7 @@ describe("trigger handling", () => {
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toBe(
-        "! Context overflow — prompt too large for this model. Try a shorter message or a larger-context model.",
+        "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model.",
       );
       expect(runEmbeddedPiAgent).toHaveBeenCalledOnce();
     });

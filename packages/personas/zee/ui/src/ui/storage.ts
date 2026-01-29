@@ -1,4 +1,4 @@
-const KEY = "zeebot.control.settings.v1";
+const KEY = "moltbot.control.settings.v1";
 
 import type { ThemeMode } from "./theme";
 

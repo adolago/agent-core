@@ -7,7 +7,7 @@ import path from "node:path";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
 import { describe, it } from "vitest";
-import { resolveZeeAgentDir } from "../agents/agent-paths.js";
+import { resolveMoltbotAgentDir } from "../agents/agent-paths.js";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import {
   type AuthProfileStore,
@@ -21,9 +21,9 @@ import {
 } from "../agents/live-auth-keys.js";
 import { isModernModelRef } from "../agents/live-model-filter.js";
 import { getApiKeyForModel } from "../agents/model-auth.js";
-import { ensureZeeModelsJson } from "../agents/models-config.js";
+import { ensureMoltbotModelsJson } from "../agents/models-config.js";
 import { loadConfig } from "../config/config.js";
-import type { ZeeConfig, ModelProviderConfig } from "../config/types.js";
+import type { MoltbotConfig, ModelProviderConfig } from "../config/types.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
@@ -31,10 +31,10 @@ import { GatewayClient } from "./client.js";
 import { renderCatNoncePngBase64 } from "./live-image-probe.js";
 import { startGatewayServer } from "./server.js";
 
-const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.ZEE_LIVE_TEST);
-const GATEWAY_LIVE = isTruthyEnvValue(process.env.ZEE_LIVE_GATEWAY);
-const ZAI_FALLBACK = isTruthyEnvValue(process.env.ZEE_LIVE_GATEWAY_ZAI_FALLBACK);
-const PROVIDERS = parseFilter(process.env.ZEE_LIVE_GATEWAY_PROVIDERS);
+const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.CLAWDBOT_LIVE_TEST);
+const GATEWAY_LIVE = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_GATEWAY);
+const ZAI_FALLBACK = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_GATEWAY_ZAI_FALLBACK);
+const PROVIDERS = parseFilter(process.env.CLAWDBOT_LIVE_GATEWAY_PROVIDERS);
 const THINKING_LEVEL = "high";
 const THINKING_TAG_RE = /<\s*\/?\s*(?:think(?:ing)?|thought|antthinking)\s*>/i;
 const FINAL_TAG_RE = /<\s*\/?\s*final\s*>/i;
@@ -181,7 +181,7 @@ async function runAnthropicRefusalProbe(params: {
     phase: "refusal-probe",
     label: params.label,
   });
-  if (!/\[zee\]ok\[zee\]/i.test(probeText)) {
+  if (!/\bok\b/i.test(probeText)) {
     throw new Error(`refusal probe missing ok: ${probeText}`);
   }
 
@@ -207,7 +207,7 @@ async function runAnthropicRefusalProbe(params: {
     phase: "refusal-followup",
     label: params.label,
   });
-  if (!/\[zee\]still\[zee\]/i.test(followupText) || !/\[zee\]ok\[zee\]/i.test(followupText)) {
+  if (!/\bstill\b/i.test(followupText) || !/\bok\b/i.test(followupText)) {
     throw new Error(`refusal followup missing expected text: ${followupText}`);
   }
 }
@@ -331,7 +331,7 @@ async function connectClient(params: { url: string; token: string }) {
 
 type GatewayModelSuiteParams = {
   label: string;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   candidates: Array<Model<Api>>;
   extraToolProbes: boolean;
   extraImageProbes: boolean;
@@ -340,10 +340,10 @@ type GatewayModelSuiteParams = {
 };
 
 function buildLiveGatewayConfig(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   candidates: Array<Model<Api>>;
   providerOverrides?: Record<string, ModelProviderConfig>;
-}): ZeeConfig {
+}): MoltbotConfig {
   const providerOverrides = params.providerOverrides ?? {};
   const lmstudioProvider = params.cfg.models?.providers?.lmstudio;
   const baseProviders = params.cfg.models?.providers ?? {};
@@ -382,16 +382,16 @@ function buildLiveGatewayConfig(params: {
 }
 
 function sanitizeAuthConfig(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentDir: string;
-}): ZeeConfig["auth"] | undefined {
+}): MoltbotConfig["auth"] | undefined {
   const auth = params.cfg.auth;
   if (!auth) return auth;
   const store = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,
   });
 
-  let profiles: NonNullable<ZeeConfig["auth"]>["profiles"] | undefined;
+  let profiles: NonNullable<MoltbotConfig["auth"]>["profiles"] | undefined;
   if (auth.profiles) {
     profiles = {};
     for (const [profileId, profile] of Object.entries(auth.profiles)) {
@@ -421,7 +421,7 @@ function sanitizeAuthConfig(params: {
 }
 
 function buildMinimaxProviderOverride(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   api: "openai-completions" | "anthropic-messages";
   baseUrl: string;
 }): ModelProviderConfig | null {
@@ -436,29 +436,29 @@ function buildMinimaxProviderOverride(params: {
 
 async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
   const previous = {
-    configPath: process.env.ZEE_CONFIG_PATH,
-    token: process.env.ZEE_GATEWAY_TOKEN,
-    skipChannels: process.env.ZEE_SKIP_CHANNELS,
-    skipGmail: process.env.ZEE_SKIP_GMAIL_WATCHER,
-    skipCron: process.env.ZEE_SKIP_CRON,
-    skipCanvas: process.env.ZEE_SKIP_CANVAS_HOST,
-    agentDir: process.env.ZEE_AGENT_DIR,
+    configPath: process.env.CLAWDBOT_CONFIG_PATH,
+    token: process.env.CLAWDBOT_GATEWAY_TOKEN,
+    skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
+    skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
+    skipCron: process.env.CLAWDBOT_SKIP_CRON,
+    skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
+    agentDir: process.env.CLAWDBOT_AGENT_DIR,
     piAgentDir: process.env.PI_CODING_AGENT_DIR,
-    stateDir: process.env.ZEE_STATE_DIR,
+    stateDir: process.env.CLAWDBOT_STATE_DIR,
   };
   let tempAgentDir: string | undefined;
   let tempStateDir: string | undefined;
 
-  process.env.ZEE_SKIP_CHANNELS = "1";
-  process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
-  process.env.ZEE_SKIP_CRON = "1";
-  process.env.ZEE_SKIP_CANVAS_HOST = "1";
+  process.env.CLAWDBOT_SKIP_CHANNELS = "1";
+  process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
+  process.env.CLAWDBOT_SKIP_CRON = "1";
+  process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
 
   const token = `test-${randomUUID()}`;
-  process.env.ZEE_GATEWAY_TOKEN = token;
+  process.env.CLAWDBOT_GATEWAY_TOKEN = token;
   const agentId = "dev";
 
-  const hostAgentDir = resolveZeeAgentDir();
+  const hostAgentDir = resolveMoltbotAgentDir();
   const hostStore = ensureAuthProfileStore(hostAgentDir, {
     allowKeychainPrompt: false,
   });
@@ -471,26 +471,26 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
     lastGood: hostStore.lastGood ? { ...hostStore.lastGood } : undefined,
     usageStats: hostStore.usageStats ? { ...hostStore.usageStats } : undefined,
   };
-  tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-live-state-"));
-  process.env.ZEE_STATE_DIR = tempStateDir;
+  tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-live-state-"));
+  process.env.CLAWDBOT_STATE_DIR = tempStateDir;
   tempAgentDir = path.join(tempStateDir, "agents", DEFAULT_AGENT_ID, "agent");
   saveAuthProfileStore(sanitizedStore, tempAgentDir);
   const tempSessionAgentDir = path.join(tempStateDir, "agents", agentId, "agent");
   if (tempSessionAgentDir !== tempAgentDir) {
     saveAuthProfileStore(sanitizedStore, tempSessionAgentDir);
   }
-  process.env.ZEE_AGENT_DIR = tempAgentDir;
+  process.env.CLAWDBOT_AGENT_DIR = tempAgentDir;
   process.env.PI_CODING_AGENT_DIR = tempAgentDir;
 
   const workspaceDir = resolveAgentWorkspaceDir(params.cfg, agentId);
   await fs.mkdir(workspaceDir, { recursive: true });
   const nonceA = randomUUID();
   const nonceB = randomUUID();
-  const toolProbePath = path.join(workspaceDir, `.zee-live-tool-probe.${nonceA}.txt`);
+  const toolProbePath = path.join(workspaceDir, `.clawdbot-live-tool-probe.${nonceA}.txt`);
   await fs.writeFile(toolProbePath, `nonceA=${nonceA}\nnonceB=${nonceB}\n`);
 
-  const agentDir = resolveZeeAgentDir();
-  const sanitizedCfg: ZeeConfig = {
+  const agentDir = resolveMoltbotAgentDir();
+  const sanitizedCfg: MoltbotConfig = {
     ...params.cfg,
     auth: sanitizeAuthConfig({ cfg: params.cfg, agentDir }),
   };
@@ -499,12 +499,12 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
     candidates: params.candidates,
     providerOverrides: params.providerOverrides,
   });
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-live-"));
-  const tempConfigPath = path.join(tempDir, "zee.json");
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-live-"));
+  const tempConfigPath = path.join(tempDir, "moltbot.json");
   await fs.writeFile(tempConfigPath, `${JSON.stringify(nextCfg, null, 2)}\n`);
-  process.env.ZEE_CONFIG_PATH = tempConfigPath;
+  process.env.CLAWDBOT_CONFIG_PATH = tempConfigPath;
 
-  await ensureZeeModelsJson(nextCfg);
+  await ensureMoltbotModelsJson(nextCfg);
 
   const port = await getFreeGatewayPort();
   const server = await startGatewayServer(port, {
@@ -623,7 +623,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
             }
             throw new Error(`not meaningful: ${text}`);
           }
-          if (!/\[zee\]micro\s*-?\s*tasks?\[zee\]/i.test(text) || !/\[zee\]macro\s*-?\s*tasks?\[zee\]/i.test(text)) {
+          if (!/\bmicro\s*-?\s*tasks?\b/i.test(text) || !/\bmacro\s*-?\s*tasks?\b/i.test(text)) {
             throw new Error(`missing required keywords: ${text}`);
           }
 
@@ -636,7 +636,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
               sessionKey,
               idempotencyKey: `idem-${runIdTool}-tool`,
               message:
-                "Zee live tool probe (local, safe): " +
+                "Moltbot live tool probe (local, safe): " +
                 `use the tool named \`read\` (or \`Read\`) with JSON arguments {"path":"${toolProbePath}"}. ` +
                 "Then reply with the two nonce values you read (include both).",
               thinking: params.thinkingLevel,
@@ -676,7 +676,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
                 sessionKey,
                 idempotencyKey: `idem-${runIdTool}-exec-read`,
                 message:
-                  "Zee live tool probe (local, safe): " +
+                  "Moltbot live tool probe (local, safe): " +
                   "use the tool named `exec` (or `Exec`) to run this command: " +
                   `mkdir -p "${tempDir}" && printf '%s' '${nonceC}' > "${toolWritePath}". ` +
                   `Then use the tool named \`read\` (or \`Read\`) with JSON arguments {"path":"${toolWritePath}"}. ` +
@@ -756,7 +756,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
                   phase: "image",
                   label: params.label,
                 });
-                if (!/\[zee\]cat\[zee\]/i.test(imageText)) {
+                if (!/\bcat\b/i.test(imageText)) {
                   logProgress(`${progressLabel}: image skip (missing 'cat')`);
                 } else {
                   const candidates = imageText.toUpperCase().match(/[A-Z0-9]{6,20}/g) ?? [];
@@ -940,15 +940,15 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
       await fs.rm(tempStateDir, { recursive: true, force: true });
     }
 
-    process.env.ZEE_CONFIG_PATH = previous.configPath;
-    process.env.ZEE_GATEWAY_TOKEN = previous.token;
-    process.env.ZEE_SKIP_CHANNELS = previous.skipChannels;
-    process.env.ZEE_SKIP_GMAIL_WATCHER = previous.skipGmail;
-    process.env.ZEE_SKIP_CRON = previous.skipCron;
-    process.env.ZEE_SKIP_CANVAS_HOST = previous.skipCanvas;
-    process.env.ZEE_AGENT_DIR = previous.agentDir;
+    process.env.CLAWDBOT_CONFIG_PATH = previous.configPath;
+    process.env.CLAWDBOT_GATEWAY_TOKEN = previous.token;
+    process.env.CLAWDBOT_SKIP_CHANNELS = previous.skipChannels;
+    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = previous.skipGmail;
+    process.env.CLAWDBOT_SKIP_CRON = previous.skipCron;
+    process.env.CLAWDBOT_SKIP_CANVAS_HOST = previous.skipCanvas;
+    process.env.CLAWDBOT_AGENT_DIR = previous.agentDir;
     process.env.PI_CODING_AGENT_DIR = previous.piAgentDir;
-    process.env.ZEE_STATE_DIR = previous.stateDir;
+    process.env.CLAWDBOT_STATE_DIR = previous.stateDir;
   }
 }
 
@@ -957,9 +957,9 @@ describeLive("gateway live (dev agent, profile keys)", () => {
     "runs meaningful prompts across models with available keys",
     async () => {
       const cfg = loadConfig();
-      await ensureZeeModelsJson(cfg);
+      await ensureMoltbotModelsJson(cfg);
 
-      const agentDir = resolveZeeAgentDir();
+      const agentDir = resolveMoltbotAgentDir();
       const authStore = ensureAuthProfileStore(agentDir, {
         allowKeychainPrompt: false,
       });
@@ -967,7 +967,7 @@ describeLive("gateway live (dev agent, profile keys)", () => {
       const modelRegistry = discoverModels(authStorage, agentDir);
       const all = modelRegistry.getAll() as Array<Model<Api>>;
 
-      const rawModels = process.env.ZEE_LIVE_GATEWAY_MODELS?.trim();
+      const rawModels = process.env.CLAWDBOT_LIVE_GATEWAY_MODELS?.trim();
       const useModern = !rawModels || rawModels === "modern" || rawModels === "all";
       const useExplicit = Boolean(rawModels) && !useModern;
       const filter = useExplicit ? parseFilter(rawModels) : null;
@@ -1044,26 +1044,26 @@ describeLive("gateway live (dev agent, profile keys)", () => {
   it("z.ai fallback handles anthropic tool history", async () => {
     if (!ZAI_FALLBACK) return;
     const previous = {
-      configPath: process.env.ZEE_CONFIG_PATH,
-      token: process.env.ZEE_GATEWAY_TOKEN,
-      skipChannels: process.env.ZEE_SKIP_CHANNELS,
-      skipGmail: process.env.ZEE_SKIP_GMAIL_WATCHER,
-      skipCron: process.env.ZEE_SKIP_CRON,
-      skipCanvas: process.env.ZEE_SKIP_CANVAS_HOST,
+      configPath: process.env.CLAWDBOT_CONFIG_PATH,
+      token: process.env.CLAWDBOT_GATEWAY_TOKEN,
+      skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
+      skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
+      skipCron: process.env.CLAWDBOT_SKIP_CRON,
+      skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
     };
 
-    process.env.ZEE_SKIP_CHANNELS = "1";
-    process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
-    process.env.ZEE_SKIP_CRON = "1";
-    process.env.ZEE_SKIP_CANVAS_HOST = "1";
+    process.env.CLAWDBOT_SKIP_CHANNELS = "1";
+    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
+    process.env.CLAWDBOT_SKIP_CRON = "1";
+    process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
 
     const token = `test-${randomUUID()}`;
-    process.env.ZEE_GATEWAY_TOKEN = token;
+    process.env.CLAWDBOT_GATEWAY_TOKEN = token;
 
     const cfg = loadConfig();
-    await ensureZeeModelsJson(cfg);
+    await ensureMoltbotModelsJson(cfg);
 
-    const agentDir = resolveZeeAgentDir();
+    const agentDir = resolveMoltbotAgentDir();
     const authStorage = discoverAuthStorage(agentDir);
     const modelRegistry = discoverModels(authStorage, agentDir);
     const anthropic = modelRegistry.find("anthropic", "claude-opus-4-5") as Model<Api> | null;
@@ -1082,7 +1082,7 @@ describeLive("gateway live (dev agent, profile keys)", () => {
     await fs.mkdir(workspaceDir, { recursive: true });
     const nonceA = randomUUID();
     const nonceB = randomUUID();
-    const toolProbePath = path.join(workspaceDir, `.zee-live-zai-fallback.${nonceA}.txt`);
+    const toolProbePath = path.join(workspaceDir, `.clawdbot-live-zai-fallback.${nonceA}.txt`);
     await fs.writeFile(toolProbePath, `nonceA=${nonceA}\nnonceB=${nonceB}\n`);
 
     const port = await getFreeGatewayPort();
@@ -1173,12 +1173,12 @@ describeLive("gateway live (dev agent, profile keys)", () => {
       await server.close({ reason: "live test complete" });
       await fs.rm(toolProbePath, { force: true });
 
-      process.env.ZEE_CONFIG_PATH = previous.configPath;
-      process.env.ZEE_GATEWAY_TOKEN = previous.token;
-      process.env.ZEE_SKIP_CHANNELS = previous.skipChannels;
-      process.env.ZEE_SKIP_GMAIL_WATCHER = previous.skipGmail;
-      process.env.ZEE_SKIP_CRON = previous.skipCron;
-      process.env.ZEE_SKIP_CANVAS_HOST = previous.skipCanvas;
+      process.env.CLAWDBOT_CONFIG_PATH = previous.configPath;
+      process.env.CLAWDBOT_GATEWAY_TOKEN = previous.token;
+      process.env.CLAWDBOT_SKIP_CHANNELS = previous.skipChannels;
+      process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = previous.skipGmail;
+      process.env.CLAWDBOT_SKIP_CRON = previous.skipCron;
+      process.env.CLAWDBOT_SKIP_CANVAS_HOST = previous.skipCanvas;
     }
   }, 180_000);
 });

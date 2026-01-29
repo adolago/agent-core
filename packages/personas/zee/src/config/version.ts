@@ -1,4 +1,4 @@
-export type ZeeVersion = {
+export type MoltbotVersion = {
   major: number;
   minor: number;
   patch: number;
@@ -7,7 +7,7 @@ export type ZeeVersion = {
 
 const VERSION_RE = /^v?(\d+)\.(\d+)\.(\d+)(?:-(\d+))?/;
 
-export function parseZeeVersion(raw: string | null | undefined): ZeeVersion | null {
+export function parseMoltbotVersion(raw: string | null | undefined): MoltbotVersion | null {
   if (!raw) return null;
   const match = raw.trim().match(VERSION_RE);
   if (!match) return null;
@@ -20,12 +20,12 @@ export function parseZeeVersion(raw: string | null | undefined): ZeeVersion | nu
   };
 }
 
-export function compareZeeVersions(
+export function compareMoltbotVersions(
   a: string | null | undefined,
   b: string | null | undefined,
 ): number | null {
-  const parsedA = parseZeeVersion(a);
-  const parsedB = parseZeeVersion(b);
+  const parsedA = parseMoltbotVersion(a);
+  const parsedB = parseMoltbotVersion(b);
   if (!parsedA || !parsedB) return null;
   if (parsedA.major !== parsedB.major) return parsedA.major < parsedB.major ? -1 : 1;
   if (parsedA.minor !== parsedB.minor) return parsedA.minor < parsedB.minor ? -1 : 1;

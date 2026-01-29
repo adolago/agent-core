@@ -7,7 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HealthSummary } from "./health.js";
 import { getHealthSnapshot } from "./health.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
-import { createTestRegistry, telegramPlugin } from "../test-utils/channel-plugins.js";
+import { createTestRegistry } from "../test-utils/channel-plugins.js";
+import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
 
 let testConfig: Record<string, unknown> = {};
 let testStore: Record<string, { updatedAt?: number }> = {};
@@ -41,6 +42,9 @@ describe("getHealthSnapshot", () => {
     setActivePluginRegistry(
       createTestRegistry([{ pluginId: "telegram", plugin: telegramPlugin, source: "test" }]),
     );
+    const { createPluginRuntime } = await import("../plugins/runtime/index.js");
+    const { setTelegramRuntime } = await import("../../extensions/telegram/src/runtime.js");
+    setTelegramRuntime(createPluginRuntime());
   });
 
   afterEach(() => {
@@ -131,7 +135,7 @@ describe("getHealthSnapshot", () => {
   });
 
   it("treats telegram.tokenFile as configured", async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-health-"));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-health-"));
     const tokenFile = path.join(tmpDir, "telegram-token");
     fs.writeFileSync(tokenFile, "t-file\n", "utf-8");
     testConfig = { channels: { telegram: { tokenFile } } };

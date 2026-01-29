@@ -1,14 +1,14 @@
 import type { ChannelId } from "../channels/plugins/types.js";
 import { normalizeAccountId } from "../routing/session-key.js";
-import type { ZeeConfig } from "./config.js";
-import type { GroupToolPolicyConfig, SenderToolPolicyConfig } from "./types.tools.js";
+import type { MoltbotConfig } from "./config.js";
+import type { GroupToolPolicyBySenderConfig, GroupToolPolicyConfig } from "./types.tools.js";
 
 export type GroupPolicyChannel = ChannelId;
 
 export type ChannelGroupConfig = {
   requireMention?: boolean;
   tools?: GroupToolPolicyConfig;
-  senders?: Record<string, SenderToolPolicyConfig>;
+  toolsBySender?: GroupToolPolicyBySenderConfig;
 };
 
 export type ChannelGroupPolicy = {
@@ -20,8 +20,67 @@ export type ChannelGroupPolicy = {
 
 type ChannelGroups = Record<string, ChannelGroupConfig>;
 
+export type GroupToolPolicySender = {
+  senderId?: string | null;
+  senderName?: string | null;
+  senderUsername?: string | null;
+  senderE164?: string | null;
+};
+
+function normalizeSenderKey(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const withoutAt = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;
+  return withoutAt.toLowerCase();
+}
+
+export function resolveToolsBySender(
+  params: {
+    toolsBySender?: GroupToolPolicyBySenderConfig;
+  } & GroupToolPolicySender,
+): GroupToolPolicyConfig | undefined {
+  const toolsBySender = params.toolsBySender;
+  if (!toolsBySender) return undefined;
+  const entries = Object.entries(toolsBySender);
+  if (entries.length === 0) return undefined;
+
+  const normalized = new Map<string, GroupToolPolicyConfig>();
+  let wildcard: GroupToolPolicyConfig | undefined;
+  for (const [rawKey, policy] of entries) {
+    if (!policy) continue;
+    const key = normalizeSenderKey(rawKey);
+    if (!key) continue;
+    if (key === "*") {
+      wildcard = policy;
+      continue;
+    }
+    if (!normalized.has(key)) {
+      normalized.set(key, policy);
+    }
+  }
+
+  const candidates: string[] = [];
+  const pushCandidate = (value?: string | null) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return;
+    candidates.push(trimmed);
+  };
+  pushCandidate(params.senderId);
+  pushCandidate(params.senderE164);
+  pushCandidate(params.senderUsername);
+  pushCandidate(params.senderName);
+
+  for (const candidate of candidates) {
+    const key = normalizeSenderKey(candidate);
+    if (!key) continue;
+    const match = normalized.get(key);
+    if (match) return match;
+  }
+  return wildcard;
+}
+
 function resolveChannelGroups(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   channel: GroupPolicyChannel,
   accountId?: string | null,
 ): ChannelGroups | undefined {
@@ -44,7 +103,7 @@ function resolveChannelGroups(
 }
 
 export function resolveChannelGroupPolicy(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;
@@ -69,7 +128,7 @@ export function resolveChannelGroupPolicy(params: {
 }
 
 export function resolveChannelGroupRequireMention(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;
@@ -95,104 +154,32 @@ export function resolveChannelGroupRequireMention(params: {
   return true;
 }
 
-export function resolveChannelGroupToolsPolicy(params: {
-  cfg: ZeeConfig;
-  channel: GroupPolicyChannel;
-  groupId?: string | null;
-  accountId?: string | null;
-}): GroupToolPolicyConfig | undefined {
+export function resolveChannelGroupToolsPolicy(
+  params: {
+    cfg: MoltbotConfig;
+    channel: GroupPolicyChannel;
+    groupId?: string | null;
+    accountId?: string | null;
+  } & GroupToolPolicySender,
+): GroupToolPolicyConfig | undefined {
   const { groupConfig, defaultConfig } = resolveChannelGroupPolicy(params);
+  const groupSenderPolicy = resolveToolsBySender({
+    toolsBySender: groupConfig?.toolsBySender,
+    senderId: params.senderId,
+    senderName: params.senderName,
+    senderUsername: params.senderUsername,
+    senderE164: params.senderE164,
+  });
+  if (groupSenderPolicy) return groupSenderPolicy;
   if (groupConfig?.tools) return groupConfig.tools;
+  const defaultSenderPolicy = resolveToolsBySender({
+    toolsBySender: defaultConfig?.toolsBySender,
+    senderId: params.senderId,
+    senderName: params.senderName,
+    senderUsername: params.senderUsername,
+    senderE164: params.senderE164,
+  });
+  if (defaultSenderPolicy) return defaultSenderPolicy;
   if (defaultConfig?.tools) return defaultConfig.tools;
   return undefined;
-}
-
-/**
- * Resolve per-sender tool policy overrides within a group.
- *
- * Sender policies allow fine-grained control over which tools are available
- * to specific users within a group. The effective policy is computed by:
- * 1. Starting with the group-level tool policy (from resolveChannelGroupToolsPolicy)
- * 2. Applying sender-specific allow/deny overrides
- *
- * Precedence: sender deny > sender allow > group deny > group allow
- *
- * @param params - Resolution parameters
- * @returns Combined tool policy for the sender, or undefined if none configured
- */
-export function resolveSenderToolsPolicy(params: {
-  cfg: ZeeConfig;
-  channel: GroupPolicyChannel;
-  groupId?: string | null;
-  accountId?: string | null;
-  senderId?: string | null;
-}): GroupToolPolicyConfig | undefined {
-  const { groupConfig, defaultConfig } = resolveChannelGroupPolicy(params);
-  const senderId = params.senderId?.trim();
-
-  // Get group-level tools policy
-  const groupTools = groupConfig?.tools ?? defaultConfig?.tools;
-
-  // Get sender config from group or default
-  const senders = groupConfig?.senders ?? defaultConfig?.senders;
-  if (!senderId || !senders) {
-    return groupTools;
-  }
-
-  // Look up sender by exact match or case-insensitive
-  const senderConfig =
-    senders[senderId] ??
-    senders[
-      Object.keys(senders).find((key) => key.toLowerCase() === senderId.toLowerCase()) ?? ""
-    ];
-
-  if (!senderConfig) {
-    return groupTools;
-  }
-
-  // Merge sender overrides with group policy
-  // Sender deny takes highest precedence, then sender allow
-  const mergedAllow = mergeAllowLists(groupTools?.allow, senderConfig.allow);
-  const mergedDeny = mergeDenyLists(groupTools?.deny, senderConfig.deny);
-
-  if (!mergedAllow && !mergedDeny) {
-    return undefined;
-  }
-
-  return {
-    ...(mergedAllow ? { allow: mergedAllow } : {}),
-    ...(mergedDeny ? { deny: mergedDeny } : {}),
-  };
-}
-
-/**
- * Merge allow lists: sender allow extends group allow
- */
-function mergeAllowLists(
-  groupAllow?: string[],
-  senderAllow?: string[],
-): string[] | undefined {
-  if (!groupAllow && !senderAllow) return undefined;
-  if (!groupAllow) return senderAllow;
-  if (!senderAllow) return groupAllow;
-
-  // Combine both lists, remove duplicates
-  const combined = new Set([...groupAllow, ...senderAllow]);
-  return [...combined];
-}
-
-/**
- * Merge deny lists: sender deny extends group deny (both apply)
- */
-function mergeDenyLists(
-  groupDeny?: string[],
-  senderDeny?: string[],
-): string[] | undefined {
-  if (!groupDeny && !senderDeny) return undefined;
-  if (!groupDeny) return senderDeny;
-  if (!senderDeny) return groupDeny;
-
-  // Combine both lists, remove duplicates
-  const combined = new Set([...groupDeny, ...senderDeny]);
-  return [...combined];
 }

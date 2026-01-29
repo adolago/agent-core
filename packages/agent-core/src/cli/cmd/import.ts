@@ -6,6 +6,48 @@ import { Storage } from "../../storage/storage"
 import { Instance } from "../../project/instance"
 import { EOL } from "os"
 
+async function fetchShareData(base: string, slug: string, attempts = 3) {
+  const url = `${base}/api/share/${slug}`
+  let lastError: string | undefined
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
+        headers: { "Accept": "application/json" },
+      })
+
+      if (response.ok) {
+        return { ok: true as const, data: await response.json() }
+      }
+
+      if (response.status === 404) {
+        return { ok: false as const, status: 404, message: `Share not found: ${slug}` }
+      }
+      if (response.status === 401 || response.status === 403) {
+        return {
+          ok: false as const,
+          status: response.status,
+          message: "Unauthorized to access this share. Check link permissions.",
+        }
+      }
+      lastError = `Server responded with ${response.status} ${response.statusText}`
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt))
+    }
+  }
+
+  return {
+    ok: false as const,
+    status: 0,
+    message: `Failed to fetch share data after ${attempts} attempts: ${lastError ?? "unknown error"}`,
+  }
+}
+
 export const ImportCommand = cmd({
   command: "import <file>",
   describe: "import session data from JSON file or URL",
@@ -48,15 +90,14 @@ export const ImportCommand = cmd({
         }
 
         const slug = slugMatch[1]
-        const response = await fetch(`${parsed.origin}/api/share/${slug}`)
-
-        if (!response.ok) {
-          process.stdout.write(`Failed to fetch share data: ${response.statusText}`)
+        const result = await fetchShareData(parsed.origin, slug)
+        if (!result.ok) {
+          process.stdout.write(result.message)
           process.stdout.write(EOL)
           return
         }
 
-        const data = await response.json()
+        const data = result.data
 
         if (!data.info || !data.messages || Object.keys(data.messages).length === 0) {
           process.stdout.write(`Share not found: ${slug}`)

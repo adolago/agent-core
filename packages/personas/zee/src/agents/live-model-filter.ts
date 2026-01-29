@@ -54,7 +54,7 @@ export function isModernModelRef(ref: ModelRef): boolean {
     return matchesPrefix(id, GOOGLE_PREFIXES) || matchesPrefix(id, ANTHROPIC_PREFIXES);
   }
 
-  if (provider === "zai-coding-plan") {
+  if (provider === "zai") {
     return matchesPrefix(id, ZAI_PREFIXES);
   }
 
@@ -66,7 +66,14 @@ export function isModernModelRef(ref: ModelRef): boolean {
     return matchesPrefix(id, XAI_PREFIXES);
   }
 
-  if (provider === "openrouter") {
+  if (provider === "opencode" && id.endsWith("-free")) {
+    return false;
+  }
+  if (provider === "opencode" && id === "alpha-glm-4.7") {
+    return false;
+  }
+
+  if (provider === "openrouter" || provider === "opencode") {
     return matchesAny(id, [
       ...ANTHROPIC_PREFIXES,
       ...OPENAI_MODELS,

@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { DmPolicy } from "../../config/types.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
@@ -23,11 +23,11 @@ export type SetupChannelsOptions = {
 };
 
 export type PromptAccountIdParams = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   prompter: WizardPrompter;
   label: string;
   currentId?: string;
-  listAccountIds: (cfg: ZeeConfig) => string[];
+  listAccountIds: (cfg: MoltbotConfig) => string[];
   defaultAccountId: string;
 };
 
@@ -42,13 +42,13 @@ export type ChannelOnboardingStatus = {
 };
 
 export type ChannelOnboardingStatusContext = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   options?: SetupChannelsOptions;
   accountOverrides: Partial<Record<ChannelId, string>>;
 };
 
 export type ChannelOnboardingConfigureContext = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   runtime: RuntimeEnv;
   prompter: WizardPrompter;
   options?: SetupChannelsOptions;
@@ -58,7 +58,7 @@ export type ChannelOnboardingConfigureContext = {
 };
 
 export type ChannelOnboardingResult = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   accountId?: string;
 };
 
@@ -67,13 +67,13 @@ export type ChannelOnboardingDmPolicy = {
   channel: ChannelId;
   policyKey: string;
   allowFromKey: string;
-  getCurrent: (cfg: ZeeConfig) => DmPolicy;
-  setPolicy: (cfg: ZeeConfig, policy: DmPolicy) => ZeeConfig;
+  getCurrent: (cfg: MoltbotConfig) => DmPolicy;
+  setPolicy: (cfg: MoltbotConfig, policy: DmPolicy) => MoltbotConfig;
   promptAllowFrom?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     prompter: WizardPrompter;
     accountId?: string;
-  }) => Promise<ZeeConfig>;
+  }) => Promise<MoltbotConfig>;
 };
 
 export type ChannelOnboardingAdapter = {
@@ -82,5 +82,5 @@ export type ChannelOnboardingAdapter = {
   configure: (ctx: ChannelOnboardingConfigureContext) => Promise<ChannelOnboardingResult>;
   dmPolicy?: ChannelOnboardingDmPolicy;
   onAccountRecorded?: (accountId: string, options?: SetupChannelsOptions) => void;
-  disable?: (cfg: ZeeConfig) => ZeeConfig;
+  disable?: (cfg: MoltbotConfig) => MoltbotConfig;
 };

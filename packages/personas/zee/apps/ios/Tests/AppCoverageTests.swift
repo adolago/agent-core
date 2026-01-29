@@ -1,6 +1,6 @@
 import SwiftUI
 import Testing
-@testable import Zee
+@testable import Moltbot
 
 @Suite struct AppCoverageTests {
     @Test @MainActor func nodeAppModelUpdatesBackgroundedState() {

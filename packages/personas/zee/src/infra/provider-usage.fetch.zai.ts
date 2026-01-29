@@ -39,8 +39,8 @@ export async function fetchZaiUsage(
 
   if (!res.ok) {
     return {
-      provider: "zai-coding-plan",
-      displayName: PROVIDER_LABELS["zai-coding-plan"],
+      provider: "zai",
+      displayName: PROVIDER_LABELS.zai,
       windows: [],
       error: `HTTP ${res.status}`,
     };
@@ -49,8 +49,8 @@ export async function fetchZaiUsage(
   const data = (await res.json()) as ZaiUsageResponse;
   if (!data.success || data.code !== 200) {
     return {
-      provider: "zai-coding-plan",
-      displayName: PROVIDER_LABELS["zai-coding-plan"],
+      provider: "zai",
+      displayName: PROVIDER_LABELS.zai,
       windows: [],
       error: data.msg || "API error",
     };
@@ -84,8 +84,8 @@ export async function fetchZaiUsage(
 
   const planName = data.data?.planName || data.data?.plan || undefined;
   return {
-    provider: "zai-coding-plan",
-    displayName: PROVIDER_LABELS["zai-coding-plan"],
+    provider: "zai",
+    displayName: PROVIDER_LABELS.zai,
     windows,
     plan: planName,
   };

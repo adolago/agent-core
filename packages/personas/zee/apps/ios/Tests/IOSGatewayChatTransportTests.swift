@@ -1,6 +1,6 @@
-import ZeeKit
+import MoltbotKit
 import Testing
-@testable import Zee
+@testable import Moltbot
 
 @Suite struct IOSGatewayChatTransportTests {
     @Test func requestsFailFastWhenGatewayNotConnected() async {

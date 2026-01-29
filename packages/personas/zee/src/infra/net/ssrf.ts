@@ -240,4 +240,3 @@ export async function assertPublicHostname(
 ): Promise<void> {
   await resolvePinnedHostname(hostname, lookupFn);
 }
-

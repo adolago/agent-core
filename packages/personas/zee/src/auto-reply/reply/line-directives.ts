@@ -188,7 +188,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
       });
 
       lineData.flexMessage = {
-        altText: `Music: ${title}${artist ? ` - ${artist}` : ""}`,
+        altText: `🎵 ${title}${artist ? ` - ${artist}` : ""}`,
         contents: card,
       };
     }
@@ -211,7 +211,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
       });
 
       lineData.flexMessage = {
-        altText: `Event: ${title} - ${date}${time ? ` ${time}` : ""}`,
+        altText: `📅 ${title} - ${date}${time ? ` ${time}` : ""}`,
         contents: card,
       };
     }
@@ -246,7 +246,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
       });
 
       lineData.flexMessage = {
-        altText: `${deviceName || "Apple TV"} Remote`,
+        altText: `📺 ${deviceName || "Apple TV"} Remote`,
         contents: card,
       };
     }
@@ -278,7 +278,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
       });
 
       lineData.flexMessage = {
-        altText: `Agenda: ${title} (${events.length} events)`,
+        altText: `📋 ${title} (${events.length} events)`,
         contents: card,
       };
     }
@@ -309,7 +309,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
       });
 
       lineData.flexMessage = {
-        altText: `Device: ${deviceName}${status ? `: ${status}` : ""}`,
+        altText: `📱 ${deviceName}${status ? `: ${status}` : ""}`,
         contents: card,
       };
     }

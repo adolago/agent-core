@@ -1,4 +1,4 @@
-const DEFAULT_TAGLINE = "All your chats, one Zee.";
+const DEFAULT_TAGLINE = "All your chats, one Moltbot.";
 
 const HOLIDAY_TAGLINES = {
   newYear:
@@ -64,9 +64,9 @@ const TAGLINES: string[] = [
   "Shell yeah—I'm here to pinch the toil and leave you the glory.",
   "If it's repetitive, I'll automate it; if it's hard, I'll bring jokes and a rollback plan.",
   "Because texting yourself reminders is so 2024.",
-  "WhatsApp, but make it engineering.",
+  "WhatsApp, but make it ✨engineering✨.",
   'Turning "I\'ll reply later" into "my bot replied instantly".',
-  "The only crab in your contacts you actually want to hear from.",
+  "The only crab in your contacts you actually want to hear from. 🦞",
   "Chat automation for people who peaked at IRC.",
   "Because Siri wasn't answering at 3AM.",
   "IPC, but it's your phone.",
@@ -87,7 +87,7 @@ const TAGLINES: string[] = [
   "We ship features faster than Apple ships calculator updates.",
   "Your AI assistant, now without the $3,499 headset.",
   "Think different. Actually think.",
-  "Ah, the fruit tree company!",
+  "Ah, the fruit tree company! 🍎",
   "Greetings, Professor Falken",
   HOLIDAY_TAGLINES.newYear,
   HOLIDAY_TAGLINES.lunarNewYear,
@@ -241,7 +241,7 @@ export function activeTaglines(options: TaglineOptions = {}): string[] {
 
 export function pickTagline(options: TaglineOptions = {}): string {
   const env = options.env ?? process.env;
-  const override = env?.ZEE_TAGLINE_INDEX;
+  const override = env?.CLAWDBOT_TAGLINE_INDEX;
   if (override !== undefined) {
     const parsed = Number.parseInt(override, 10);
     if (!Number.isNaN(parsed) && parsed >= 0) {

@@ -2,13 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "zee-models-" });
+  return withTempHomeBase(fn, { prefix: "moltbot-models-" });
 }
 
-const _MODELS_CONFIG: ZeeConfig = {
+const _MODELS_CONFIG: MoltbotConfig = {
   models: {
     providers: {
       "custom-proxy": {
@@ -61,10 +61,10 @@ describe("models-config", () => {
           }),
         }));
 
-        const { ensureZeeModelsJson } = await import("./models-config.js");
+        const { ensureMoltbotModelsJson } = await import("./models-config.js");
 
         const agentDir = path.join(home, "agent-default-base-url");
-        await ensureZeeModelsJson({ models: { providers: {} } }, agentDir);
+        await ensureMoltbotModelsJson({ models: { providers: {} } }, agentDir);
 
         const raw = await fs.readFile(path.join(agentDir, "models.json"), "utf8");
         const parsed = JSON.parse(raw) as {
@@ -102,9 +102,9 @@ describe("models-config", () => {
           resolveCopilotApiToken,
         }));
 
-        const { ensureZeeModelsJson } = await import("./models-config.js");
+        const { ensureMoltbotModelsJson } = await import("./models-config.js");
 
-        await ensureZeeModelsJson({ models: { providers: {} } });
+        await ensureMoltbotModelsJson({ models: { providers: {} } });
 
         expect(resolveCopilotApiToken).toHaveBeenCalledWith(
           expect.objectContaining({ githubToken: "copilot-token" }),

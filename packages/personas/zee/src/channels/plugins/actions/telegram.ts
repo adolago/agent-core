@@ -23,6 +23,7 @@ function readTelegramSendParams(params: Record<string, unknown>) {
   const buttons = params.buttons;
   const asVoice = typeof params.asVoice === "boolean" ? params.asVoice : undefined;
   const silent = typeof params.silent === "boolean" ? params.silent : undefined;
+  const quoteText = readStringParam(params, "quoteText");
   return {
     to,
     content,
@@ -32,6 +33,7 @@ function readTelegramSendParams(params: Record<string, unknown>) {
     buttons,
     asVoice,
     silent,
+    quoteText: quoteText ?? undefined,
   };
 }
 
@@ -46,7 +48,7 @@ export const telegramMessageActions: ChannelMessageActionAdapter = {
     if (gate("reactions")) actions.add("react");
     if (gate("deleteMessage")) actions.add("delete");
     if (gate("editMessage")) actions.add("edit");
-    if (gate("sticker")) {
+    if (gate("sticker", false)) {
       actions.add("sticker");
       actions.add("sticker-search");
     }

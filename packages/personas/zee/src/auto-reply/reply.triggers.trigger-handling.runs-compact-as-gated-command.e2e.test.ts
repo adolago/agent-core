@@ -18,7 +18,7 @@ const usageMocks = vi.hoisted(() => ({
     updatedAt: 0,
     providers: [],
   }),
-  formatUsageSummaryLine: vi.fn().mockReturnValue("◆ Usage: Claude 80% left"),
+  formatUsageSummaryLine: vi.fn().mockReturnValue("📊 Usage: Claude 80% left"),
   resolveUsageProviderId: vi.fn((provider: string) => provider.split("/")[0]),
 }));
 
@@ -73,7 +73,7 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
       vi.mocked(abortEmbeddedPiRun).mockClear();
       return await fn(home);
     },
-    { prefix: "zee-triggers-" },
+    { prefix: "moltbot-triggers-" },
   );
 }
 
@@ -82,7 +82,7 @@ function makeCfg(home: string) {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: join(home, "zee"),
+        workspace: join(home, "clawd"),
       },
     },
     channels: {
@@ -101,7 +101,7 @@ afterEach(() => {
 describe("trigger handling", () => {
   it("runs /compact as a gated command", async () => {
     await withTempHome(async (home) => {
-      const storePath = join(tmpdir(), `zee-session-test-${Date.now()}.json`);
+      const storePath = join(tmpdir(), `moltbot-session-test-${Date.now()}.json`);
       vi.mocked(compactEmbeddedPiSession).mockResolvedValue({
         ok: true,
         compacted: true,
@@ -124,7 +124,7 @@ describe("trigger handling", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: join(home, "zee"),
+              workspace: join(home, "clawd"),
             },
           },
           channels: {
@@ -138,7 +138,7 @@ describe("trigger handling", () => {
         },
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text?.startsWith("> Compacted")).toBe(true);
+      expect(text?.startsWith("⚙️ Compacted")).toBe(true);
       expect(compactEmbeddedPiSession).toHaveBeenCalledOnce();
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
       const store = loadSessionStore(storePath);

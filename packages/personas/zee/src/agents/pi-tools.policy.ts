@@ -1,6 +1,6 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { getChannelDock } from "../channels/dock.js";
-import { resolveChannelGroupToolsPolicy, resolveSenderToolsPolicy } from "../config/group-policy.js";
+import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxToolPolicy } from "./sandbox.js";
@@ -73,7 +73,7 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
   "memory_get",
 ];
 
-export function resolveSubagentToolPolicy(cfg?: ZeeConfig): SandboxToolPolicy {
+export function resolveSubagentToolPolicy(cfg?: MoltbotConfig): SandboxToolPolicy {
   const configured = cfg?.tools?.subagents?.tools;
   const deny = [
     ...DEFAULT_SUBAGENT_TOOL_DENY,
@@ -96,13 +96,28 @@ export function filterToolsByPolicy(tools: AnyAgentTool[], policy?: SandboxToolP
 
 type ToolPolicyConfig = {
   allow?: string[];
+  alsoAllow?: string[];
   deny?: string[];
   profile?: string;
 };
 
+function unionAllow(base?: string[], extra?: string[]) {
+  if (!Array.isArray(extra) || extra.length === 0) return base;
+  // If the user is using alsoAllow without an allowlist, treat it as additive on top of
+  // an implicit allow-all policy.
+  if (!Array.isArray(base) || base.length === 0) {
+    return Array.from(new Set(["*", ...extra]));
+  }
+  return Array.from(new Set([...base, ...extra]));
+}
+
 function pickToolPolicy(config?: ToolPolicyConfig): SandboxToolPolicy | undefined {
   if (!config) return undefined;
-  const allow = Array.isArray(config.allow) ? config.allow : undefined;
+  const allow = Array.isArray(config.allow)
+    ? unionAllow(config.allow, config.alsoAllow)
+    : Array.isArray(config.alsoAllow) && config.alsoAllow.length > 0
+      ? unionAllow(undefined, config.alsoAllow)
+      : undefined;
   const deny = Array.isArray(config.deny) ? config.deny : undefined;
   if (!allow && !deny) return undefined;
   return { allow, deny };
@@ -165,7 +180,7 @@ function resolveProviderToolPolicy(params: {
 }
 
 export function resolveEffectiveToolPolicy(params: {
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   sessionKey?: string;
   modelProvider?: string;
   modelId?: string;
@@ -195,11 +210,22 @@ export function resolveEffectiveToolPolicy(params: {
     agentProviderPolicy: pickToolPolicy(agentProviderPolicy),
     profile,
     providerProfile: agentProviderPolicy?.profile ?? providerPolicy?.profile,
+    // alsoAllow is applied at the profile stage (to avoid being filtered out early).
+    profileAlsoAllow: Array.isArray(agentTools?.alsoAllow)
+      ? agentTools?.alsoAllow
+      : Array.isArray(globalTools?.alsoAllow)
+        ? globalTools?.alsoAllow
+        : undefined,
+    providerProfileAlsoAllow: Array.isArray(agentProviderPolicy?.alsoAllow)
+      ? agentProviderPolicy?.alsoAllow
+      : Array.isArray(providerPolicy?.alsoAllow)
+        ? providerPolicy?.alsoAllow
+        : undefined,
   };
 }
 
 export function resolveGroupToolPolicy(params: {
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   sessionKey?: string;
   spawnedBy?: string | null;
   messageProvider?: string;
@@ -207,8 +233,10 @@ export function resolveGroupToolPolicy(params: {
   groupChannel?: string | null;
   groupSpace?: string | null;
   accountId?: string | null;
-  /** Optional sender ID for per-sender tool policy overrides. */
   senderId?: string | null;
+  senderName?: string | null;
+  senderUsername?: string | null;
+  senderE164?: string | null;
 }): SandboxToolPolicy | undefined {
   if (!params.config) return undefined;
   const sessionContext = resolveGroupContextFromSessionKey(params.sessionKey);
@@ -224,40 +252,29 @@ export function resolveGroupToolPolicy(params: {
   } catch {
     dock = undefined;
   }
-
-  // First resolve group-level policy (or use dock-specific resolver)
-  const groupToolsConfig =
+  const toolsConfig =
     dock?.groups?.resolveToolPolicy?.({
       cfg: params.config,
       groupId,
       groupChannel: params.groupChannel,
       groupSpace: params.groupSpace,
       accountId: params.accountId,
+      senderId: params.senderId,
+      senderName: params.senderName,
+      senderUsername: params.senderUsername,
+      senderE164: params.senderE164,
     }) ??
     resolveChannelGroupToolsPolicy({
       cfg: params.config,
       channel,
       groupId,
       accountId: params.accountId,
-    });
-
-  // If sender ID provided, apply sender-specific overrides
-  if (params.senderId) {
-    const senderToolsConfig = resolveSenderToolsPolicy({
-      cfg: params.config,
-      channel,
-      groupId,
-      accountId: params.accountId,
       senderId: params.senderId,
+      senderName: params.senderName,
+      senderUsername: params.senderUsername,
+      senderE164: params.senderE164,
     });
-
-    // Sender policy takes precedence over group policy
-    if (senderToolsConfig) {
-      return pickToolPolicy(senderToolsConfig);
-    }
-  }
-
-  return pickToolPolicy(groupToolsConfig);
+  return pickToolPolicy(toolsConfig);
 }
 
 export function isToolAllowedByPolicies(

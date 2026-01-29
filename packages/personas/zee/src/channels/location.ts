@@ -41,12 +41,12 @@ export function formatLocationText(location: NormalizedLocation): string {
   let header = "";
 
   if (resolved.source === "live" || resolved.isLive) {
-    header = `Live location: ${coords}${accuracy}`;
+    header = `🛰 Live location: ${coords}${accuracy}`;
   } else if (resolved.name || resolved.address) {
     const label = [resolved.name, resolved.address].filter(Boolean).join(" — ");
-    header = `Location: ${label} (${coords}${accuracy})`;
+    header = `📍 ${label} (${coords}${accuracy})`;
   } else {
-    header = `Location: ${coords}${accuracy}`;
+    header = `📍 ${coords}${accuracy}`;
   }
 
   return caption ? `${header}\n${caption}` : header;

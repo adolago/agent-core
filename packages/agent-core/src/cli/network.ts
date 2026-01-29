@@ -53,6 +53,14 @@ function isMdnsEnabled(mdns: MdnsConfig | undefined): boolean {
   return mdns.enabled ?? true
 }
 
+function parseCorsEnv(value?: string): string[] {
+  if (!value) return []
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
 export function withNetworkOptions<T>(yargs: Argv<T>) {
   return yargs.options(options)
 }
@@ -76,8 +84,13 @@ export async function resolveNetworkOptions(args: NetworkOptions) {
       ? "0.0.0.0"
       : (config?.server?.hostname ?? args.hostname)
   const configCors = config?.server?.cors ?? []
+  const envCors = [
+    ...parseCorsEnv(process.env["AGENT_CORE_CORS_ALLOWLIST"]),
+    ...parseCorsEnv(process.env["AGENT_CORE_HOSTED_ORIGINS"]),
+    ...parseCorsEnv(process.env["AGENT_CORE_CORS_ORIGINS"]),
+  ]
   const argsCors = Array.isArray(args.cors) ? args.cors : args.cors ? [args.cors] : []
-  const cors = [...configCors, ...argsCors]
+  const cors = [...configCors, ...envCors, ...argsCors]
 
   return { hostname, port, mdns, cors }
 }

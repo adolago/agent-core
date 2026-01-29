@@ -9,14 +9,14 @@ Status: experimental. Direct messages only; groups coming soon per Zalo docs.
 
 ## Plugin required
 Zalo ships as a plugin and is not bundled with the core install.
-- Install via CLI: `zee plugins install @zee/zalo`
+- Install via CLI: `moltbot plugins install @moltbot/zalo`
 - Or select **Zalo** during onboarding and confirm the install prompt
 - Details: [Plugins](/plugin)
 
 ## Quick setup (beginner)
 1) Install the Zalo plugin:
-   - From a source checkout: `zee plugins install ./extensions/zalo`
-   - From npm (if published): `zee plugins install @zee/zalo`
+   - From a source checkout: `moltbot plugins install ./extensions/zalo`
+   - From npm (if published): `moltbot plugins install @moltbot/zalo`
    - Or pick **Zalo** in onboarding and confirm the install prompt
 2) Set the token:
    - Env: `ZALO_BOT_TOKEN=...`
@@ -89,8 +89,8 @@ Multi-account support: use `channels.zalo.accounts` with per-account tokens and 
 ### DM access
 - Default: `channels.zalo.dmPolicy = "pairing"`. Unknown senders receive a pairing code; messages are ignored until approved (codes expire after 1 hour).
 - Approve via:
-  - `zee pairing list zalo`
-  - `zee pairing approve zalo <CODE>`
+  - `moltbot pairing list zalo`
+  - `moltbot pairing approve zalo <CODE>`
 - Pairing is the default token exchange. Details: [Pairing](/start/pairing)
 - `channels.zalo.allowFrom` accepts numeric user IDs (no username lookup available).
 
@@ -124,14 +124,14 @@ Multi-account support: use `channels.zalo.accounts` with per-account tokens and 
 
 ## Delivery targets (CLI/cron)
 - Use a chat id as the target.
-- Example: `zee message send --channel zalo --target 123456789 --message "hi"`.
+- Example: `moltbot message send --channel zalo --target 123456789 --message "hi"`.
 
 ## Troubleshooting
 
 **Bot doesn't respond:**
-- Check that the token is valid: `zee channels status --probe`
+- Check that the token is valid: `moltbot channels status --probe`
 - Verify the sender is approved (pairing or allowFrom)
-- Check gateway logs: `zee logs --follow`
+- Check gateway logs: `moltbot logs --follow`
 
 **Webhook not receiving events:**
 - Ensure webhook URL uses HTTPS

@@ -3,11 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveUserPath } from "../utils.js";
-import { discoverZeePlugins } from "./discovery.js";
+import { discoverMoltbotPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import {
   normalizePluginsConfig,
@@ -22,8 +22,8 @@ import { createPluginRuntime } from "./runtime/index.js";
 import { setActivePluginRegistry } from "./runtime.js";
 import { validateJsonSchemaValue } from "./schema-validator.js";
 import type {
-  ZeePluginDefinition,
-  ZeePluginModule,
+  MoltbotPluginDefinition,
+  MoltbotPluginModule,
   PluginDiagnostic,
   PluginLogger,
 } from "./types.js";
@@ -31,7 +31,7 @@ import type {
 export type PluginLoadResult = PluginRegistry;
 
 export type PluginLoadOptions = {
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   workspaceDir?: string;
   logger?: PluginLogger;
   coreGatewayHandlers?: Record<string, GatewayRequestHandler>;
@@ -98,8 +98,8 @@ function validatePluginConfig(params: {
 }
 
 function resolvePluginModuleExport(moduleExport: unknown): {
-  definition?: ZeePluginDefinition;
-  register?: ZeePluginDefinition["register"];
+  definition?: MoltbotPluginDefinition;
+  register?: MoltbotPluginDefinition["register"];
 } {
   const resolved =
     moduleExport &&
@@ -109,11 +109,11 @@ function resolvePluginModuleExport(moduleExport: unknown): {
       : moduleExport;
   if (typeof resolved === "function") {
     return {
-      register: resolved as ZeePluginDefinition["register"],
+      register: resolved as MoltbotPluginDefinition["register"],
     };
   }
   if (resolved && typeof resolved === "object") {
-    const def = resolved as ZeePluginDefinition;
+    const def = resolved as MoltbotPluginDefinition;
     const register = def.register ?? def.activate;
     return { definition: def, register };
   }
@@ -161,7 +161,7 @@ function pushDiagnostics(diagnostics: PluginDiagnostic[], append: PluginDiagnost
   diagnostics.push(...append);
 }
 
-export function loadZeePlugins(options: PluginLoadOptions = {}): PluginRegistry {
+export function loadMoltbotPlugins(options: PluginLoadOptions = {}): PluginRegistry {
   const cfg = options.config ?? {};
   const logger = options.logger ?? defaultLogger();
   const validateOnly = options.mode === "validate";
@@ -189,7 +189,7 @@ export function loadZeePlugins(options: PluginLoadOptions = {}): PluginRegistry 
     coreGatewayHandlers: options.coreGatewayHandlers as Record<string, GatewayRequestHandler>,
   });
 
-  const discovery = discoverZeePlugins({
+  const discovery = discoverMoltbotPlugins({
     workspaceDir: options.workspaceDir,
     extraPaths: normalized.loadPaths,
   });
@@ -206,7 +206,14 @@ export function loadZeePlugins(options: PluginLoadOptions = {}): PluginRegistry 
   const jiti = createJiti(import.meta.url, {
     interopDefault: true,
     extensions: [".ts", ".tsx", ".mts", ".cts", ".mtsx", ".ctsx", ".js", ".mjs", ".cjs", ".json"],
-    ...(pluginSdkAlias ? { alias: { "zee/plugin-sdk": pluginSdkAlias } } : {}),
+    ...(pluginSdkAlias
+      ? {
+          alias: {
+            "clawdbot/plugin-sdk": pluginSdkAlias,
+            "moltbot/plugin-sdk": pluginSdkAlias,
+          },
+        }
+      : {}),
   });
 
   const manifestByRoot = new Map(
@@ -282,9 +289,9 @@ export function loadZeePlugins(options: PluginLoadOptions = {}): PluginRegistry 
       continue;
     }
 
-    let mod: ZeePluginModule | null = null;
+    let mod: MoltbotPluginModule | null = null;
     try {
-      mod = jiti(candidate.source) as ZeePluginModule;
+      mod = jiti(candidate.source) as MoltbotPluginModule;
     } catch (err) {
       logger.error(`[plugins] ${record.id} failed to load from ${record.source}: ${String(err)}`);
       record.status = "error";

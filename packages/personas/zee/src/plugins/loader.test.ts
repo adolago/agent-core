@@ -4,16 +4,16 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { loadZeePlugins } from "./loader.js";
+import { loadMoltbotPlugins } from "./loader.js";
 
 type TempPlugin = { dir: string; file: string; id: string };
 
 const tempDirs: string[] = [];
-const prevBundledDir = process.env.ZEE_BUNDLED_PLUGINS_DIR;
+const prevBundledDir = process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
 const EMPTY_PLUGIN_SCHEMA = { type: "object", additionalProperties: false, properties: {} };
 
 function makeTempDir() {
-  const dir = path.join(os.tmpdir(), `zee-plugin-${randomUUID()}`);
+  const dir = path.join(os.tmpdir(), `moltbot-plugin-${randomUUID()}`);
   fs.mkdirSync(dir, { recursive: true });
   tempDirs.push(dir);
   return dir;
@@ -30,7 +30,7 @@ function writePlugin(params: {
   const file = path.join(dir, filename);
   fs.writeFileSync(file, params.body, "utf-8");
   fs.writeFileSync(
-    path.join(dir, "zee.plugin.json"),
+    path.join(dir, "moltbot.plugin.json"),
     JSON.stringify(
       {
         id: params.id,
@@ -53,13 +53,13 @@ afterEach(() => {
     }
   }
   if (prevBundledDir === undefined) {
-    delete process.env.ZEE_BUNDLED_PLUGINS_DIR;
+    delete process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = prevBundledDir;
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = prevBundledDir;
   }
 });
 
-describe("loadZeePlugins", () => {
+describe("loadMoltbotPlugins", () => {
   it("disables bundled plugins by default", () => {
     const bundledDir = makeTempDir();
     writePlugin({
@@ -68,9 +68,9 @@ describe("loadZeePlugins", () => {
       dir: bundledDir,
       filename: "bundled.ts",
     });
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = bundledDir;
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -82,7 +82,7 @@ describe("loadZeePlugins", () => {
     const bundled = registry.plugins.find((entry) => entry.id === "bundled");
     expect(bundled?.status).toBe("disabled");
 
-    const enabledRegistry = loadZeePlugins({
+    const enabledRegistry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -125,9 +125,9 @@ describe("loadZeePlugins", () => {
       dir: bundledDir,
       filename: "telegram.ts",
     });
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = bundledDir;
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -152,9 +152,9 @@ describe("loadZeePlugins", () => {
       dir: bundledDir,
       filename: "memory-core.ts",
     });
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = bundledDir;
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -177,10 +177,10 @@ describe("loadZeePlugins", () => {
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify({
-        name: "@zee/memory-core",
+        name: "@moltbot/memory-core",
         version: "1.2.3",
         description: "Memory plugin package",
-        zee: { extensions: ["./index.ts"] },
+        moltbot: { extensions: ["./index.ts"] },
       }),
       "utf-8",
     );
@@ -191,9 +191,9 @@ describe("loadZeePlugins", () => {
       filename: "index.ts",
     });
 
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = bundledDir;
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -211,13 +211,13 @@ describe("loadZeePlugins", () => {
     expect(memory?.version).toBe("1.2.3");
   });
   it("loads plugins from config paths", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "allowed",
       body: `export default { id: "allowed", register(api) { api.registerGatewayMethod("allowed.ping", ({ respond }) => respond(true, { ok: true })); } };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -234,13 +234,13 @@ describe("loadZeePlugins", () => {
   });
 
   it("denylist disables plugins even if allowed", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "blocked",
       body: `export default { id: "blocked", register() {} };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -257,13 +257,13 @@ describe("loadZeePlugins", () => {
   });
 
   it("fails fast on invalid plugin config", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "configurable",
       body: `export default { id: "configurable", register() {} };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -284,7 +284,7 @@ describe("loadZeePlugins", () => {
   });
 
   it("registers channel plugins", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "channel-demo",
       body: `export default { id: "channel-demo", register(api) {
@@ -309,7 +309,7 @@ describe("loadZeePlugins", () => {
 } };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -325,7 +325,7 @@ describe("loadZeePlugins", () => {
   });
 
   it("registers http handlers", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "http-demo",
       body: `export default { id: "http-demo", register(api) {
@@ -333,7 +333,7 @@ describe("loadZeePlugins", () => {
 } };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -351,7 +351,7 @@ describe("loadZeePlugins", () => {
   });
 
   it("registers http routes", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "http-route-demo",
       body: `export default { id: "http-route-demo", register(api) {
@@ -359,7 +359,7 @@ describe("loadZeePlugins", () => {
 } };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -378,13 +378,13 @@ describe("loadZeePlugins", () => {
   });
 
   it("respects explicit disable in config", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "config-disable",
       body: `export default { id: "config-disable", register() {} };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -401,7 +401,7 @@ describe("loadZeePlugins", () => {
   });
 
   it("enforces memory slot selection", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const memoryA = writePlugin({
       id: "memory-a",
       body: `export default { id: "memory-a", kind: "memory", register() {} };`,
@@ -411,7 +411,7 @@ describe("loadZeePlugins", () => {
       body: `export default { id: "memory-b", kind: "memory", register() {} };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -428,13 +428,13 @@ describe("loadZeePlugins", () => {
   });
 
   it("disables memory plugins when slot is none", () => {
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const memory = writePlugin({
       id: "memory-off",
       body: `export default { id: "memory-off", kind: "memory", register() {} };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {
@@ -456,14 +456,14 @@ describe("loadZeePlugins", () => {
       dir: bundledDir,
       filename: "shadow.js",
     });
-    process.env.ZEE_BUNDLED_PLUGINS_DIR = bundledDir;
+    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
     const override = writePlugin({
       id: "shadow",
       body: `export default { id: "shadow", register() {} };`,
     });
 
-    const registry = loadZeePlugins({
+    const registry = loadMoltbotPlugins({
       cache: false,
       config: {
         plugins: {

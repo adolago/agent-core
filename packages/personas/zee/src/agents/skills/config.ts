@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ZeeConfig, SkillConfig } from "../../config/config.js";
+import type { MoltbotConfig, SkillConfig } from "../../config/config.js";
 import { resolveSkillKey } from "./frontmatter.js";
 import type { SkillEligibilityContext, SkillEntry } from "./types.js";
 
 const DEFAULT_CONFIG_VALUES: Record<string, boolean> = {
   "browser.enabled": true,
+  "browser.evaluateEnabled": true,
 };
 
 function isTruthy(value: unknown): boolean {
@@ -16,7 +17,7 @@ function isTruthy(value: unknown): boolean {
   return true;
 }
 
-export function resolveConfigPath(config: ZeeConfig | undefined, pathStr: string) {
+export function resolveConfigPath(config: MoltbotConfig | undefined, pathStr: string) {
   const parts = pathStr.split(".").filter(Boolean);
   let current: unknown = config;
   for (const part of parts) {
@@ -26,7 +27,7 @@ export function resolveConfigPath(config: ZeeConfig | undefined, pathStr: string
   return current;
 }
 
-export function isConfigPathTruthy(config: ZeeConfig | undefined, pathStr: string): boolean {
+export function isConfigPathTruthy(config: MoltbotConfig | undefined, pathStr: string): boolean {
   const value = resolveConfigPath(config, pathStr);
   if (value === undefined && pathStr in DEFAULT_CONFIG_VALUES) {
     return DEFAULT_CONFIG_VALUES[pathStr] === true;
@@ -35,7 +36,7 @@ export function isConfigPathTruthy(config: ZeeConfig | undefined, pathStr: strin
 }
 
 export function resolveSkillConfig(
-  config: ZeeConfig | undefined,
+  config: MoltbotConfig | undefined,
   skillKey: string,
 ): SkillConfig | undefined {
   const skills = config?.skills?.entries;
@@ -57,10 +58,10 @@ function normalizeAllowlist(input: unknown): string[] | undefined {
 }
 
 function isBundledSkill(entry: SkillEntry): boolean {
-  return entry.skill.source === "zee-bundled";
+  return entry.skill.source === "moltbot-bundled";
 }
 
-export function resolveBundledAllowlist(config?: ZeeConfig): string[] | undefined {
+export function resolveBundledAllowlist(config?: MoltbotConfig): string[] | undefined {
   return normalizeAllowlist(config?.skills?.allowBundled);
 }
 
@@ -88,14 +89,14 @@ export function hasBinary(bin: string): boolean {
 
 export function shouldIncludeSkill(params: {
   entry: SkillEntry;
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
   eligibility?: SkillEligibilityContext;
 }): boolean {
   const { entry, config, eligibility } = params;
   const skillKey = resolveSkillKey(entry.skill, entry);
   const skillConfig = resolveSkillConfig(config, skillKey);
   const allowBundled = normalizeAllowlist(config?.skills?.allowBundled);
-  const osList = entry.zee?.os ?? [];
+  const osList = entry.metadata?.os ?? [];
   const remotePlatforms = eligibility?.remote?.platforms ?? [];
 
   if (skillConfig?.enabled === false) return false;
@@ -107,11 +108,11 @@ export function shouldIncludeSkill(params: {
   ) {
     return false;
   }
-  if (entry.zee?.always === true) {
+  if (entry.metadata?.always === true) {
     return true;
   }
 
-  const requiredBins = entry.zee?.requires?.bins ?? [];
+  const requiredBins = entry.metadata?.requires?.bins ?? [];
   if (requiredBins.length > 0) {
     for (const bin of requiredBins) {
       if (hasBinary(bin)) continue;
@@ -119,7 +120,7 @@ export function shouldIncludeSkill(params: {
       return false;
     }
   }
-  const requiredAnyBins = entry.zee?.requires?.anyBins ?? [];
+  const requiredAnyBins = entry.metadata?.requires?.anyBins ?? [];
   if (requiredAnyBins.length > 0) {
     const anyFound =
       requiredAnyBins.some((bin) => hasBinary(bin)) ||
@@ -127,19 +128,19 @@ export function shouldIncludeSkill(params: {
     if (!anyFound) return false;
   }
 
-  const requiredEnv = entry.zee?.requires?.env ?? [];
+  const requiredEnv = entry.metadata?.requires?.env ?? [];
   if (requiredEnv.length > 0) {
     for (const envName of requiredEnv) {
       if (process.env[envName]) continue;
       if (skillConfig?.env?.[envName]) continue;
-      if (skillConfig?.apiKey && entry.zee?.primaryEnv === envName) {
+      if (skillConfig?.apiKey && entry.metadata?.primaryEnv === envName) {
         continue;
       }
       return false;
     }
   }
 
-  const requiredConfig = entry.zee?.requires?.config ?? [];
+  const requiredConfig = entry.metadata?.requires?.config ?? [];
   if (requiredConfig.length > 0) {
     for (const configPath of requiredConfig) {
       if (!isConfigPathTruthy(config, configPath)) return false;

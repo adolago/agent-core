@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import type {
@@ -52,11 +52,11 @@ export type ExecApprovalForwarder = {
 };
 
 export type ExecApprovalForwarderDeps = {
-  getConfig?: () => ZeeConfig;
+  getConfig?: () => MoltbotConfig;
   deliver?: typeof deliverOutboundPayloads;
   nowMs?: () => number;
   resolveSessionTarget?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     request: ExecApprovalRequest;
   }) => ExecApprovalForwardTarget | null;
 };
@@ -106,7 +106,7 @@ function buildTargetKey(target: ExecApprovalForwardTarget): string {
 }
 
 function buildRequestMessage(request: ExecApprovalRequest, nowMs: number) {
-  const lines: string[] = ["Exec approval required", `ID: ${request.id}`];
+  const lines: string[] = ["🔒 Exec approval required", `ID: ${request.id}`];
   lines.push(`Command: ${request.request.command}`);
   if (request.request.cwd) lines.push(`CWD: ${request.request.cwd}`);
   if (request.request.host) lines.push(`Host: ${request.request.host}`);
@@ -126,17 +126,17 @@ function decisionLabel(decision: ExecApprovalDecision): string {
 }
 
 function buildResolvedMessage(resolved: ExecApprovalResolved) {
-  const base = `+ Exec approval ${decisionLabel(resolved.decision)}.`;
+  const base = `✅ Exec approval ${decisionLabel(resolved.decision)}.`;
   const by = resolved.resolvedBy ? ` Resolved by ${resolved.resolvedBy}.` : "";
   return `${base}${by} ID: ${resolved.id}`;
 }
 
 function buildExpiredMessage(request: ExecApprovalRequest) {
-  return `! Exec approval expired. ID: ${request.id}`;
+  return `⏱️ Exec approval expired. ID: ${request.id}`;
 }
 
 function defaultResolveSessionTarget(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   request: ExecApprovalRequest;
 }): ExecApprovalForwardTarget | null {
   const sessionKey = params.request.request.sessionKey?.trim();
@@ -159,7 +159,7 @@ function defaultResolveSessionTarget(params: {
 }
 
 async function deliverToTargets(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   targets: ForwardTarget[];
   text: string;
   deliver: typeof deliverOutboundPayloads;

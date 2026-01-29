@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 use crate::api::types::{QuestionInfo, QuestionReplyRequest, QuestionRequest};
 use crate::api::ApiState;
+use crate::i18n::I18n;
 use crate::theme::Theme;
 
 /// State for question selection
@@ -71,6 +72,7 @@ fn render_question_card(
     theme: &Theme,
     cx: &mut App,
 ) -> impl IntoElement {
+    let i18n = cx.global::<I18n>();
     let state_for_submit = state.clone();
     let questions_for_submit = questions.clone();
     let request_id_for_submit = request_id.clone();
@@ -125,16 +127,18 @@ fn render_question_card(
                             div()
                                 .text_lg()
                                 .font_weight(FontWeight::SEMIBOLD)
-                                .child("Question"),
+                                .child(i18n.t("question.title")),
                         )
                         .child(
                             div()
                                 .text_sm()
                                 .text_color(theme.text_muted)
-                                .child(format!(
-                                    "{} question{}",
-                                    questions.len(),
-                                    if questions.len() == 1 { "" } else { "s" }
+                                .child(i18n.format(
+                                    "question.count",
+                                    &[
+                                        ("count", &questions.len().to_string()),
+                                        ("suffix", if questions.len() == 1 { "" } else { "s" }),
+                                    ],
                                 )),
                         ),
                 ),
@@ -184,7 +188,7 @@ fn render_question_card(
                                 send_question_reply(request_id.clone(), vec![], cx);
                             }
                         })
-                        .child("Cancel"),
+                        .child(i18n.t("question.cancel")),
                 )
                 .child(
                     div()
@@ -205,7 +209,7 @@ fn render_question_card(
                             );
                             send_question_reply(request_id_for_submit.clone(), answers, cx);
                         })
-                        .child("Submit"),
+                        .child(i18n.t("question.submit")),
                 ),
         )
 }
@@ -372,7 +376,7 @@ fn render_question(
                         div()
                             .text_sm()
                             .text_color(theme.text_muted)
-                            .child("Or type a custom answer:"),
+                            .child(i18n.t("question.custom")),
                     )
                     .child(
                         div()
@@ -392,7 +396,7 @@ fn render_question(
                                     .cloned()
                                     .unwrap_or_default()
                                     .is_empty()
-                                    .then(|| "Type here...")
+                                    .then(|| i18n.t("question.custom_placeholder"))
                                     .unwrap_or("")
                             }),
                     ),

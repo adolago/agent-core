@@ -1,16 +1,16 @@
 export const GATEWAY_CLIENT_IDS = {
   WEBCHAT_UI: "webchat-ui",
-  CONTROL_UI: "zee-control-ui",
+  CONTROL_UI: "moltbot-control-ui",
   WEBCHAT: "webchat",
   CLI: "cli",
   GATEWAY_CLIENT: "gateway-client",
-  MACOS_APP: "zee-macos",
-  IOS_APP: "zee-ios",
-  ANDROID_APP: "zee-android",
+  MACOS_APP: "moltbot-macos",
+  IOS_APP: "moltbot-ios",
+  ANDROID_APP: "moltbot-android",
   NODE_HOST: "node-host",
   TEST: "test",
   FINGERPRINT: "fingerprint",
-  PROBE: "zee-probe",
+  PROBE: "moltbot-probe",
 } as const;
 
 export type GatewayClientId = (typeof GATEWAY_CLIENT_IDS)[keyof typeof GATEWAY_CLIENT_IDS];

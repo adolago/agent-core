@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { GroupToolPolicyConfig } from "../../config/types.tools.js";
 import type { OutboundDeliveryResult, OutboundSendDeps } from "../../infra/outbound/deliver.js";
@@ -20,45 +20,45 @@ import type {
 } from "./types.core.js";
 
 export type ChannelSetupAdapter = {
-  resolveAccountId?: (params: { cfg: ZeeConfig; accountId?: string }) => string;
+  resolveAccountId?: (params: { cfg: MoltbotConfig; accountId?: string }) => string;
   applyAccountName?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId: string;
     name?: string;
-  }) => ZeeConfig;
+  }) => MoltbotConfig;
   applyAccountConfig: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId: string;
     input: ChannelSetupInput;
-  }) => ZeeConfig;
+  }) => MoltbotConfig;
   validateInput?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId: string;
     input: ChannelSetupInput;
   }) => string | null;
 };
 
 export type ChannelConfigAdapter<ResolvedAccount> = {
-  listAccountIds: (cfg: ZeeConfig) => string[];
-  resolveAccount: (cfg: ZeeConfig, accountId?: string | null) => ResolvedAccount;
-  defaultAccountId?: (cfg: ZeeConfig) => string;
+  listAccountIds: (cfg: MoltbotConfig) => string[];
+  resolveAccount: (cfg: MoltbotConfig, accountId?: string | null) => ResolvedAccount;
+  defaultAccountId?: (cfg: MoltbotConfig) => string;
   setAccountEnabled?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId: string;
     enabled: boolean;
-  }) => ZeeConfig;
-  deleteAccount?: (params: { cfg: ZeeConfig; accountId: string }) => ZeeConfig;
-  isEnabled?: (account: ResolvedAccount, cfg: ZeeConfig) => boolean;
-  disabledReason?: (account: ResolvedAccount, cfg: ZeeConfig) => string;
-  isConfigured?: (account: ResolvedAccount, cfg: ZeeConfig) => boolean | Promise<boolean>;
-  unconfiguredReason?: (account: ResolvedAccount, cfg: ZeeConfig) => string;
-  describeAccount?: (account: ResolvedAccount, cfg: ZeeConfig) => ChannelAccountSnapshot;
+  }) => MoltbotConfig;
+  deleteAccount?: (params: { cfg: MoltbotConfig; accountId: string }) => MoltbotConfig;
+  isEnabled?: (account: ResolvedAccount, cfg: MoltbotConfig) => boolean;
+  disabledReason?: (account: ResolvedAccount, cfg: MoltbotConfig) => string;
+  isConfigured?: (account: ResolvedAccount, cfg: MoltbotConfig) => boolean | Promise<boolean>;
+  unconfiguredReason?: (account: ResolvedAccount, cfg: MoltbotConfig) => string;
+  describeAccount?: (account: ResolvedAccount, cfg: MoltbotConfig) => ChannelAccountSnapshot;
   resolveAllowFrom?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
   }) => string[] | undefined;
   formatAllowFrom?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     allowFrom: Array<string | number>;
   }) => string[];
@@ -71,7 +71,7 @@ export type ChannelGroupAdapter = {
 };
 
 export type ChannelOutboundContext = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   to: string;
   text: string;
   mediaUrl?: string;
@@ -93,7 +93,7 @@ export type ChannelOutboundAdapter = {
   textChunkLimit?: number;
   pollMaxOptions?: number;
   resolveTarget?: (params: {
-    cfg?: ZeeConfig;
+    cfg?: MoltbotConfig;
     to?: string;
     allowFrom?: string[];
     accountId?: string | null;
@@ -109,37 +109,37 @@ export type ChannelStatusAdapter<ResolvedAccount> = {
   defaultRuntime?: ChannelAccountSnapshot;
   buildChannelSummary?: (params: {
     account: ResolvedAccount;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     defaultAccountId: string;
     snapshot: ChannelAccountSnapshot;
   }) => Record<string, unknown> | Promise<Record<string, unknown>>;
   probeAccount?: (params: {
     account: ResolvedAccount;
     timeoutMs: number;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
   }) => Promise<unknown>;
   auditAccount?: (params: {
     account: ResolvedAccount;
     timeoutMs: number;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     probe?: unknown;
   }) => Promise<unknown>;
   buildAccountSnapshot?: (params: {
     account: ResolvedAccount;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     runtime?: ChannelAccountSnapshot;
     probe?: unknown;
     audit?: unknown;
   }) => ChannelAccountSnapshot | Promise<ChannelAccountSnapshot>;
   logSelfId?: (params: {
     account: ResolvedAccount;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     runtime: RuntimeEnv;
     includeChannelPrefix?: boolean;
   }) => void;
   resolveAccountState?: (params: {
     account: ResolvedAccount;
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     configured: boolean;
     enabled: boolean;
   }) => ChannelAccountState;
@@ -147,7 +147,7 @@ export type ChannelStatusAdapter<ResolvedAccount> = {
 };
 
 export type ChannelGatewayContext<ResolvedAccount = unknown> = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   accountId: string;
   account: ResolvedAccount;
   runtime: RuntimeEnv;
@@ -174,7 +174,7 @@ export type ChannelLoginWithQrWaitResult = {
 };
 
 export type ChannelLogoutContext<ResolvedAccount = unknown> = {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   accountId: string;
   account: ResolvedAccount;
   runtime: RuntimeEnv;
@@ -185,7 +185,7 @@ export type ChannelPairingAdapter = {
   idLabel: string;
   normalizeAllowEntry?: (entry: string) => string;
   notifyApproval?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     id: string;
     runtime?: RuntimeEnv;
   }) => Promise<void>;
@@ -209,7 +209,7 @@ export type ChannelGatewayAdapter<ResolvedAccount = unknown> = {
 
 export type ChannelAuthAdapter = {
   login?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     runtime: RuntimeEnv;
     verbose?: boolean;
@@ -219,11 +219,11 @@ export type ChannelAuthAdapter = {
 
 export type ChannelHeartbeatAdapter = {
   checkReady?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     deps?: ChannelHeartbeatDeps;
   }) => Promise<{ ok: boolean; reason: string }>;
-  resolveRecipients?: (params: { cfg: ZeeConfig; opts?: { to?: string; all?: boolean } }) => {
+  resolveRecipients?: (params: { cfg: MoltbotConfig; opts?: { to?: string; all?: boolean } }) => {
     recipients: string[];
     source: string;
   };
@@ -231,40 +231,40 @@ export type ChannelHeartbeatAdapter = {
 
 export type ChannelDirectoryAdapter = {
   self?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     runtime: RuntimeEnv;
   }) => Promise<ChannelDirectoryEntry | null>;
   listPeers?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     query?: string | null;
     limit?: number | null;
     runtime: RuntimeEnv;
   }) => Promise<ChannelDirectoryEntry[]>;
   listPeersLive?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     query?: string | null;
     limit?: number | null;
     runtime: RuntimeEnv;
   }) => Promise<ChannelDirectoryEntry[]>;
   listGroups?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     query?: string | null;
     limit?: number | null;
     runtime: RuntimeEnv;
   }) => Promise<ChannelDirectoryEntry[]>;
   listGroupsLive?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     query?: string | null;
     limit?: number | null;
     runtime: RuntimeEnv;
   }) => Promise<ChannelDirectoryEntry[]>;
   listGroupMembers?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     groupId: string;
     limit?: number | null;
@@ -284,7 +284,7 @@ export type ChannelResolveResult = {
 
 export type ChannelResolverAdapter = {
   resolveTargets: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
     inputs: string[];
     kind: ChannelResolveKind;
@@ -294,7 +294,7 @@ export type ChannelResolverAdapter = {
 
 export type ChannelElevatedAdapter = {
   allowFromFallback?: (params: {
-    cfg: ZeeConfig;
+    cfg: MoltbotConfig;
     accountId?: string | null;
   }) => Array<string | number> | undefined;
 };

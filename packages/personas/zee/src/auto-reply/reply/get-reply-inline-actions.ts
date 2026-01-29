@@ -1,6 +1,6 @@
 import { getChannelDock } from "../../channels/dock.js";
 import type { SkillCommandSpec } from "../../agents/skills.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "../thinking.js";
@@ -14,7 +14,7 @@ import { extractInlineSimpleCommand } from "./reply-inline.js";
 import type { TypingController } from "./typing.js";
 import { listSkillCommandsForWorkspace, resolveSkillCommandInvocation } from "../skill-commands.js";
 import { logVerbose } from "../../globals.js";
-import { createZeeTools } from "../../agents/zee-tools.js";
+import { createMoltbotTools } from "../../agents/moltbot-tools.js";
 import { resolveGatewayMessageChannel } from "../../utils/message-channel.js";
 
 export type InlineActionResult =
@@ -50,7 +50,7 @@ function extractTextFromToolResult(result: any): string | null {
 export async function handleInlineActions(params: {
   ctx: MsgContext;
   sessionCtx: TemplateContext;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentId: string;
   agentDir?: string;
   sessionEntry?: SessionEntry;
@@ -164,7 +164,7 @@ export async function handleInlineActions(params: {
         resolveGatewayMessageChannel(ctx.Provider) ??
         undefined;
 
-      const tools = createZeeTools({
+      const tools = createMoltbotTools({
         agentSessionKey: sessionKey,
         agentChannel: channel,
         agentAccountId: (ctx as { AccountId?: string }).AccountId,
@@ -178,7 +178,7 @@ export async function handleInlineActions(params: {
       const tool = tools.find((candidate) => candidate.name === dispatch.toolName);
       if (!tool) {
         typing.cleanup();
-        return { kind: "reply", reply: { text: `✗ Tool not available: ${dispatch.toolName}` } };
+        return { kind: "reply", reply: { text: `❌ Tool not available: ${dispatch.toolName}` } };
       }
 
       const toolCallId = `cmd_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -188,13 +188,13 @@ export async function handleInlineActions(params: {
           commandName: skillInvocation.command.name,
           skillName: skillInvocation.command.skillName,
         } as any);
-        const text = extractTextFromToolResult(result) ?? "+ Done.";
+        const text = extractTextFromToolResult(result) ?? "✅ Done.";
         typing.cleanup();
         return { kind: "reply", reply: { text } };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         typing.cleanup();
-        return { kind: "reply", reply: { text: `✗ ${message}` } };
+        return { kind: "reply", reply: { text: `❌ ${message}` } };
       }
     }
 

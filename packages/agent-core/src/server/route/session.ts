@@ -10,6 +10,8 @@ import { Bus } from "@/bus"
 import { Log } from "../../util/log"
 import { errors } from "../error"
 import { ServerState } from "../state"
+import { Config } from "../../config/config"
+import { Storage } from "../../storage/storage"
 import { SessionPrompt } from "../../session/prompt"
 import { SessionRevert } from "../../session/revert"
 import { Snapshot } from "@/snapshot"
@@ -19,6 +21,22 @@ import { Agent } from "../../agent/agent"
 import { PermissionNext } from "@/permission/next"
 
 const log = Log.create({ service: "server:session" })
+
+function normalizeShareBaseUrl(raw?: string) {
+  if (!raw) return undefined
+  return raw.replace(/\/+$/, "")
+}
+
+function resolveShareBaseUrl() {
+  const env = normalizeShareBaseUrl(process.env["AGENT_CORE_SHARE_BASE_URL"] ?? process.env["SHARE_BASE_URL"])
+  if (env) return env
+  return normalizeShareBaseUrl(ServerState.url().toString()) ?? ServerState.url().toString()
+}
+
+function buildShareUrl(session: Session.Info) {
+  const base = resolveShareBaseUrl()
+  return `${base}/s/${session.slug}`
+}
 
 export const SessionRoute = new Hono()
   .get(
@@ -238,6 +256,94 @@ export const SessionRoute = new Hono()
       })
 
       return c.json(updatedSession)
+    },
+  )
+  .post(
+    "/session/:sessionID/share",
+    describeRoute({
+      summary: "Share session",
+      description: "Create a shareable link for a session.",
+      operationId: "session.share",
+      responses: {
+        200: {
+          description: "Successfully shared session",
+          content: {
+            "application/json": {
+              schema: resolver(Session.Info),
+            },
+          },
+        },
+        ...errors(400, 404),
+      },
+    }),
+    validator(
+      "param",
+      z.object({
+        sessionID: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { sessionID } = c.req.valid("param")
+      const config = await Config.get()
+      if (config.share === "disabled") {
+        return c.json({ error: "Sharing is disabled by configuration." }, 400)
+      }
+
+      try {
+        const session = await Session.get(sessionID)
+        const url = buildShareUrl(session)
+
+        await Storage.write(["session_share", sessionID], {
+          secret: session.slug,
+          url,
+        } satisfies Session.ShareInfo)
+
+        const updated = await Session.update(sessionID, (draft) => {
+          draft.share = { url }
+        })
+        return c.json(updated)
+      } catch (error) {
+        log.error("session share failed", { error: error instanceof Error ? error.message : String(error) })
+        return c.json({ error: "Session not found." }, 404)
+      }
+    },
+  )
+  .delete(
+    "/session/:sessionID/share",
+    describeRoute({
+      summary: "Unshare session",
+      description: "Remove the shareable link for a session.",
+      operationId: "session.unshare",
+      responses: {
+        200: {
+          description: "Successfully unshared session",
+          content: {
+            "application/json": {
+              schema: resolver(Session.Info),
+            },
+          },
+        },
+        ...errors(400, 404),
+      },
+    }),
+    validator(
+      "param",
+      z.object({
+        sessionID: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { sessionID } = c.req.valid("param")
+      try {
+        await Storage.remove(["session_share", sessionID])
+        const updated = await Session.update(sessionID, (draft) => {
+          delete draft.share
+        })
+        return c.json(updated)
+      } catch (error) {
+        log.error("session unshare failed", { error: error instanceof Error ? error.message : String(error) })
+        return c.json({ error: "Session not found." }, 404)
+      }
     },
   )
   .delete(

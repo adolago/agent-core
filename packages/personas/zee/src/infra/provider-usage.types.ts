@@ -24,4 +24,4 @@ export type UsageProviderId =
   | "google-antigravity"
   | "minimax"
   | "openai-codex"
-  | "zai-coding-plan";
+  | "zai";

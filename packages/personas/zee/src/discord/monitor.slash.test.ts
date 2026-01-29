@@ -16,6 +16,7 @@ vi.mock("@buape/carbon", () => ({
   MessageCreateListener: class {},
   MessageReactionAddListener: class {},
   MessageReactionRemoveListener: class {},
+  PresenceUpdateListener: class {},
   Row: class {
     constructor(_components: unknown[]) {}
   },
@@ -60,10 +61,10 @@ describe("discord native commands", () => {
         defaults: {
           model: "anthropic/claude-opus-4-5",
           humanDelay: { mode: "off" },
-          workspace: "/tmp/zee",
+          workspace: "/tmp/clawd",
         },
       },
-      session: { store: "/tmp/zee-sessions.json" },
+      session: { store: "/tmp/moltbot-sessions.json" },
       discord: { dm: { enabled: true, policy: "open" } },
     } as ReturnType<typeof import("../config/config.js").loadConfig>;
 

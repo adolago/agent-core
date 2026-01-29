@@ -12,8 +12,8 @@ import { validateJsonSchemaValue } from "../plugins/schema-validator.js";
 import { findDuplicateAgentDirs, formatDuplicateAgentDirError } from "./agent-dirs.js";
 import { applyAgentDefaults, applyModelDefaults, applySessionDefaults } from "./defaults.js";
 import { findLegacyConfigIssues } from "./legacy.js";
-import type { ZeeConfig, ConfigValidationIssue } from "./types.js";
-import { ZeeSchema } from "./zod-schema.js";
+import type { MoltbotConfig, ConfigValidationIssue } from "./types.js";
+import { MoltbotSchema } from "./zod-schema.js";
 
 const AVATAR_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
 const AVATAR_DATA_RE = /^data:/i;
@@ -29,7 +29,7 @@ function isWorkspaceAvatarPath(value: string, workspaceDir: string): boolean {
   return !path.isAbsolute(relative);
 }
 
-function validateIdentityAvatar(config: ZeeConfig): ConfigValidationIssue[] {
+function validateIdentityAvatar(config: MoltbotConfig): ConfigValidationIssue[] {
   const agents = config.agents?.list;
   if (!Array.isArray(agents) || agents.length === 0) return [];
   const issues: ConfigValidationIssue[] = [];
@@ -71,7 +71,7 @@ function validateIdentityAvatar(config: ZeeConfig): ConfigValidationIssue[] {
 
 export function validateConfigObject(
   raw: unknown,
-): { ok: true; config: ZeeConfig } | { ok: false; issues: ConfigValidationIssue[] } {
+): { ok: true; config: MoltbotConfig } | { ok: false; issues: ConfigValidationIssue[] } {
   const legacyIssues = findLegacyConfigIssues(raw);
   if (legacyIssues.length > 0) {
     return {
@@ -82,7 +82,7 @@ export function validateConfigObject(
       })),
     };
   }
-  const validated = ZeeSchema.safeParse(raw);
+  const validated = MoltbotSchema.safeParse(raw);
   if (!validated.success) {
     return {
       ok: false,
@@ -92,7 +92,7 @@ export function validateConfigObject(
       })),
     };
   }
-  const duplicates = findDuplicateAgentDirs(validated.data as ZeeConfig);
+  const duplicates = findDuplicateAgentDirs(validated.data as MoltbotConfig);
   if (duplicates.length > 0) {
     return {
       ok: false,
@@ -104,14 +104,14 @@ export function validateConfigObject(
       ],
     };
   }
-  const avatarIssues = validateIdentityAvatar(validated.data as ZeeConfig);
+  const avatarIssues = validateIdentityAvatar(validated.data as MoltbotConfig);
   if (avatarIssues.length > 0) {
     return { ok: false, issues: avatarIssues };
   }
   return {
     ok: true,
     config: applyModelDefaults(
-      applyAgentDefaults(applySessionDefaults(validated.data as ZeeConfig)),
+      applyAgentDefaults(applySessionDefaults(validated.data as MoltbotConfig)),
     ),
   };
 }
@@ -123,7 +123,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function validateConfigObjectWithPlugins(raw: unknown):
   | {
       ok: true;
-      config: ZeeConfig;
+      config: MoltbotConfig;
       warnings: ConfigValidationIssue[];
     }
   | {
@@ -148,10 +148,7 @@ export function validateConfigObjectWithPlugins(raw: unknown):
     workspaceDir: workspaceDir ?? undefined,
   });
 
-  const knownIds = new Set([
-    ...registry.plugins.map((record) => record.id),
-    ...CHANNEL_IDS, // Core channels are valid plugin entry IDs
-  ]);
+  const knownIds = new Set(registry.plugins.map((record) => record.id));
 
   for (const diag of registry.diagnostics) {
     let path = diag.pluginId ? `plugins.entries.${diag.pluginId}` : "plugins";
@@ -202,16 +199,11 @@ export function validateConfigObjectWithPlugins(raw: unknown):
   }
 
   const memorySlot = normalizedPlugins.slots.memory;
-  // Only validate plugins.slots.memory if explicitly set by user (not defaulted)
-  const userSetMemorySlot = pluginsConfig?.slots?.memory;
-  if (typeof userSetMemorySlot === "string" && userSetMemorySlot.trim()) {
-    const trimmed = userSetMemorySlot.trim();
-    if (trimmed.toLowerCase() !== "none" && !knownIds.has(trimmed)) {
-      issues.push({
-        path: "plugins.slots.memory",
-        message: `plugin not found: ${trimmed}`,
-      });
-    }
+  if (typeof memorySlot === "string" && memorySlot.trim() && !knownIds.has(memorySlot)) {
+    issues.push({
+      path: "plugins.slots.memory",
+      message: `plugin not found: ${memorySlot}`,
+    });
   }
 
   const allowedChannels = new Set<string>(["defaults", ...CHANNEL_IDS]);

@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { buildWorkspaceHookStatus } from "../hooks/hooks-status.js";
@@ -6,16 +6,16 @@ import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent
 import { formatCliCommand } from "../cli/command-format.js";
 
 export async function setupInternalHooks(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
-): Promise<ZeeConfig> {
+): Promise<MoltbotConfig> {
   await prompter.note(
     [
       "Hooks let you automate actions when agent commands are issued.",
       "Example: Save session context to memory when you issue /new.",
       "",
-      "Learn more: https://docs.zee.bot/hooks",
+      "Learn more: https://docs.molt.bot/hooks",
     ].join("\n"),
     "Hooks",
   );
@@ -41,7 +41,7 @@ export async function setupInternalHooks(
       { value: "__skip__", label: "Skip for now" },
       ...eligibleHooks.map((hook) => ({
         value: hook.name,
-        label: `${hook.emoji ?? "~"} ${hook.name}`,
+        label: `${hook.emoji ?? "🔗"} ${hook.name}`,
         hint: hook.description,
       })),
     ],
@@ -58,7 +58,7 @@ export async function setupInternalHooks(
     entries[name] = { enabled: true };
   }
 
-  const next: ZeeConfig = {
+  const next: MoltbotConfig = {
     ...cfg,
     hooks: {
       ...cfg.hooks,
@@ -74,9 +74,9 @@ export async function setupInternalHooks(
       `Enabled ${selected.length} hook${selected.length > 1 ? "s" : ""}: ${selected.join(", ")}`,
       "",
       "You can manage hooks later with:",
-      `  ${formatCliCommand("zee hooks list")}`,
-      `  ${formatCliCommand("zee hooks enable <name>")}`,
-      `  ${formatCliCommand("zee hooks disable <name>")}`,
+      `  ${formatCliCommand("moltbot hooks list")}`,
+      `  ${formatCliCommand("moltbot hooks enable <name>")}`,
+      `  ${formatCliCommand("moltbot hooks disable <name>")}`,
     ].join("\n"),
     "Hooks Configured",
   );

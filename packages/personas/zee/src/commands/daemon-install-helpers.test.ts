@@ -34,11 +34,11 @@ afterEach(() => {
 
 describe("resolveGatewayDevMode", () => {
   it("detects dev mode for src ts entrypoints", () => {
-    expect(resolveGatewayDevMode(["node", "/Users/me/zee/src/cli/index.ts"])).toBe(true);
-    expect(resolveGatewayDevMode(["node", "C:\\Users\\me\\zee\\src\\cli\\index.ts"])).toBe(
+    expect(resolveGatewayDevMode(["node", "/Users/me/moltbot/src/cli/index.ts"])).toBe(true);
+    expect(resolveGatewayDevMode(["node", "C:\\Users\\me\\moltbot\\src\\cli\\index.ts"])).toBe(
       true,
     );
-    expect(resolveGatewayDevMode(["node", "/Users/me/zee/dist/cli/index.js"])).toBe(false);
+    expect(resolveGatewayDevMode(["node", "/Users/me/moltbot/dist/cli/index.js"])).toBe(false);
   });
 });
 
@@ -55,7 +55,7 @@ describe("buildGatewayInstallPlan", () => {
       supported: true,
     });
     mocks.renderSystemNodeWarning.mockReturnValue(undefined);
-    mocks.buildServiceEnvironment.mockReturnValue({ ZEE_PORT: "3000" });
+    mocks.buildServiceEnvironment.mockReturnValue({ CLAWDBOT_PORT: "3000" });
 
     const plan = await buildGatewayInstallPlan({
       env: {},
@@ -66,7 +66,7 @@ describe("buildGatewayInstallPlan", () => {
 
     expect(plan.programArguments).toEqual(["node", "gateway"]);
     expect(plan.workingDirectory).toBe("/Users/me");
-    expect(plan.environment).toEqual({ ZEE_PORT: "3000" });
+    expect(plan.environment).toEqual({ CLAWDBOT_PORT: "3000" });
     expect(mocks.resolvePreferredNodePath).not.toHaveBeenCalled();
   });
 
@@ -108,7 +108,7 @@ describe("buildGatewayInstallPlan", () => {
       supported: true,
     });
     mocks.buildServiceEnvironment.mockReturnValue({
-      ZEE_PORT: "3000",
+      CLAWDBOT_PORT: "3000",
       HOME: "/Users/me",
     });
 
@@ -130,7 +130,7 @@ describe("buildGatewayInstallPlan", () => {
     expect(plan.environment.GOOGLE_API_KEY).toBe("test-key");
     expect(plan.environment.CUSTOM_VAR).toBe("custom-value");
     // Service environment vars should take precedence
-    expect(plan.environment.ZEE_PORT).toBe("3000");
+    expect(plan.environment.CLAWDBOT_PORT).toBe("3000");
     expect(plan.environment.HOME).toBe("/Users/me");
   });
 
@@ -145,7 +145,7 @@ describe("buildGatewayInstallPlan", () => {
       version: "22.0.0",
       supported: true,
     });
-    mocks.buildServiceEnvironment.mockReturnValue({ ZEE_PORT: "3000" });
+    mocks.buildServiceEnvironment.mockReturnValue({ CLAWDBOT_PORT: "3000" });
 
     const plan = await buildGatewayInstallPlan({
       env: {},
@@ -209,7 +209,7 @@ describe("buildGatewayInstallPlan", () => {
     });
     mocks.buildServiceEnvironment.mockReturnValue({
       HOME: "/Users/service",
-      ZEE_PORT: "3000",
+      CLAWDBOT_PORT: "3000",
     });
 
     const plan = await buildGatewayInstallPlan({
@@ -220,20 +220,22 @@ describe("buildGatewayInstallPlan", () => {
         env: {
           HOME: "/Users/config",
           vars: {
-            ZEE_PORT: "9999",
+            CLAWDBOT_PORT: "9999",
           },
         },
       },
     });
 
     expect(plan.environment.HOME).toBe("/Users/service");
-    expect(plan.environment.ZEE_PORT).toBe("3000");
+    expect(plan.environment.CLAWDBOT_PORT).toBe("3000");
   });
 });
 
 describe("gatewayInstallErrorHint", () => {
   it("returns platform-specific hints", () => {
     expect(gatewayInstallErrorHint("win32")).toContain("Run as administrator");
-    expect(gatewayInstallErrorHint("linux")).toContain("zee gateway install");
+    expect(gatewayInstallErrorHint("linux")).toMatch(
+      /(?:moltbot|moltbot)( --profile isolated)? gateway install/,
+    );
   });
 });

@@ -27,10 +27,10 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
     },
     {
       env: {
-        ZEE_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
-        PI_CODING_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
+        CLAWDBOT_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
+        PI_CODING_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
       },
-      prefix: "zee-reply-",
+      prefix: "moltbot-reply-",
     },
   );
 }
@@ -71,7 +71,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
               verboseDefault: "on",
             },
           },
@@ -96,7 +96,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           session: { store: path.join(home, "sessions.json") },
@@ -127,7 +127,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
               elevatedDefault: "on",
             },
           },
@@ -163,7 +163,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
             },
           },
           tools: {
@@ -207,7 +207,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
               elevatedDefault: "on",
             },
           },
@@ -223,7 +223,7 @@ describe("directive behavior", () => {
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain("Elevated mode disabled.");
-      const optionsLine = text?.split("\n").find((line) => line.trim().startsWith(">"));
+      const optionsLine = text?.split("\n").find((line) => line.trim().startsWith("⚙️"));
       expect(optionsLine).toBeTruthy();
       expect(optionsLine).not.toContain("elevated");
 
@@ -256,7 +256,7 @@ describe("directive behavior", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "zee"),
+              workspace: path.join(home, "clawd"),
               elevatedDefault: "on",
             },
           },

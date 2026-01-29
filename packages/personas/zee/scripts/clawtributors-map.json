@@ -1,7 +1,21 @@
 {
   "ensureLogins": [
+    "odrobnik",
+    "alphonse-arianee",
+    "aaronn",
+    "ronak-guliani",
+    "cpojer",
+    "carlulsoe",
     "jdrhyne",
-    "manmal"
+    "latitudeki5223",
+    "longmaba",
+    "manmal",
+    "thesash",
+    "rhjoh",
+    "ysqander",
+    "atalovesyou",
+    "0xJonHoldsCrypto",
+    "hougangdev"
   ],
   "seedCommit": "d6863f87",
   "placeholderAvatar": "assets/avatar-placeholder.svg",
@@ -18,6 +32,7 @@
   },
   "emailToLogin": {
     "steipete@gmail.com": "steipete",
+    "sbarrios93@gmail.com": "sebslight",
     "rltorres26+github@gmail.com": "RandyVentures",
     "hixvac@gmail.com": "VACInc"
   }

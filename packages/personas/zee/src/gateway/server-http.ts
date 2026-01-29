@@ -46,6 +46,7 @@ type HookDispatchers = {
     model?: string;
     thinking?: string;
     timeoutSeconds?: number;
+    allowUnsafeExternalContent?: boolean;
   }) => string;
 };
 
@@ -86,7 +87,7 @@ export function createHooksRequestHandler(
       logHooks.warn(
         "Hook token provided via query parameter is deprecated for security reasons. " +
           "Tokens in URLs appear in logs, browser history, and referrer headers. " +
-          "Use Authorization: Bearer <token> or X-Zee-Token header instead.",
+          "Use Authorization: Bearer <token> or X-Moltbot-Token header instead.",
       );
     }
 
@@ -180,6 +181,7 @@ export function createHooksRequestHandler(
             model: mapped.action.model,
             thinking: mapped.action.thinking,
             timeoutSeconds: mapped.action.timeoutSeconds,
+            allowUnsafeExternalContent: mapped.action.allowUnsafeExternalContent,
           });
           sendJson(res, 202, { ok: true, runId });
           return true;

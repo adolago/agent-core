@@ -8,6 +8,7 @@ let cdpBaseUrl = "";
 let reachable = false;
 let cfgAttachOnly = false;
 let createTargetId: string | null = null;
+let prevGatewayPort: string | undefined;
 
 const cdpMocks = vi.hoisted(() => ({
   createTargetViaCdp: vi.fn(async () => {
@@ -88,13 +89,12 @@ vi.mock("../config/config.js", async (importOriginal) => {
     loadConfig: () => ({
       browser: {
         enabled: true,
-        controlUrl: `http://127.0.0.1:${testPort}`,
         color: "#FF4500",
         attachOnly: cfgAttachOnly,
         headless: true,
-        defaultProfile: "zee",
+        defaultProfile: "clawd",
         profiles: {
-          zee: { cdpPort: testPort + 1, color: "#FF4500" },
+          clawd: { cdpPort: testPort + 1, color: "#FF4500" },
         },
       },
     }),
@@ -106,20 +106,20 @@ const launchCalls = vi.hoisted(() => [] as Array<{ port: number }>);
 vi.mock("./chrome.js", () => ({
   isChromeCdpReady: vi.fn(async () => reachable),
   isChromeReachable: vi.fn(async () => reachable),
-  launchZeeChrome: vi.fn(async (_resolved: unknown, profile: { cdpPort: number }) => {
+  launchClawdChrome: vi.fn(async (_resolved: unknown, profile: { cdpPort: number }) => {
     launchCalls.push({ port: profile.cdpPort });
     reachable = true;
     return {
       pid: 123,
       exe: { kind: "chrome", path: "/fake/chrome" },
-      userDataDir: "/tmp/zee",
+      userDataDir: "/tmp/clawd",
       cdpPort: profile.cdpPort,
       startedAt: Date.now(),
       proc,
     };
   }),
-  resolveZeeUserDataDir: vi.fn(() => "/tmp/zee"),
-  stopZeeChrome: vi.fn(async () => {
+  resolveClawdUserDataDir: vi.fn(() => "/tmp/clawd"),
+  stopClawdChrome: vi.fn(async () => {
     reachable = false;
   }),
 }));
@@ -197,6 +197,8 @@ describe("browser control server", () => {
 
     testPort = await getFreePort();
     cdpBaseUrl = `http://127.0.0.1:${testPort + 1}`;
+    prevGatewayPort = process.env.CLAWDBOT_GATEWAY_PORT;
+    process.env.CLAWDBOT_GATEWAY_PORT = String(testPort - 2);
 
     // Minimal CDP JSON endpoints used by the server.
     let putNewCalls = 0;
@@ -248,6 +250,11 @@ describe("browser control server", () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    if (prevGatewayPort === undefined) {
+      delete process.env.CLAWDBOT_GATEWAY_PORT;
+    } else {
+      process.env.CLAWDBOT_GATEWAY_PORT = prevGatewayPort;
+    }
     const { stopBrowserControlServer } = await import("./server.js");
     await stopBrowserControlServer();
   });
@@ -394,8 +401,6 @@ describe("browser control server", () => {
     const bridge = await startBrowserBridgeServer({
       resolved: {
         enabled: true,
-        controlUrl: "http://127.0.0.1:0",
-        controlHost: "127.0.0.1",
         controlPort: 0,
         cdpProtocol: "http",
         cdpHost: "127.0.0.1",
@@ -404,9 +409,9 @@ describe("browser control server", () => {
         headless: true,
         noSandbox: false,
         attachOnly: true,
-        defaultProfile: "zee",
+        defaultProfile: "clawd",
         profiles: {
-          zee: { cdpPort: testPort + 1, color: "#FF4500" },
+          clawd: { cdpPort: testPort + 1, color: "#FF4500" },
         },
       },
       onEnsureAttachTarget: ensured,

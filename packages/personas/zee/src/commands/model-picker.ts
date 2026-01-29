@@ -9,7 +9,7 @@ import {
   normalizeProviderId,
   resolveConfiguredModelRef,
 } from "../agents/model-selection.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 import { formatTokenK } from "./models/shared.js";
 
@@ -23,7 +23,7 @@ const PROVIDER_FILTER_THRESHOLD = 30;
 const HIDDEN_ROUTER_MODELS = new Set(["openrouter/auto"]);
 
 type PromptDefaultModelParams = {
-  config: ZeeConfig;
+  config: MoltbotConfig;
   prompter: WizardPrompter;
   allowKeep?: boolean;
   includeManual?: boolean;
@@ -38,7 +38,7 @@ type PromptModelAllowlistResult = { models?: string[] };
 
 function hasAuthForProvider(
   provider: string,
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   store: ReturnType<typeof ensureAuthProfileStore>,
 ) {
   if (listProfilesForProvider(store, provider).length > 0) return true;
@@ -47,13 +47,13 @@ function hasAuthForProvider(
   return false;
 }
 
-function resolveConfiguredModelRaw(cfg: ZeeConfig): string {
+function resolveConfiguredModelRaw(cfg: MoltbotConfig): string {
   const raw = cfg.agents?.defaults?.model as { primary?: string } | string | undefined;
   if (typeof raw === "string") return raw.trim();
   return raw?.primary?.trim() ?? "";
 }
 
-function resolveConfiguredModelKeys(cfg: ZeeConfig): string[] {
+function resolveConfiguredModelKeys(cfg: MoltbotConfig): string[] {
   const models = cfg.agents?.defaults?.models ?? {};
   return Object.keys(models)
     .map((key) => String(key ?? "").trim())
@@ -266,7 +266,7 @@ export async function promptDefaultModel(
 }
 
 export async function promptModelAllowlist(params: {
-  config: ZeeConfig;
+  config: MoltbotConfig;
   prompter: WizardPrompter;
   message?: string;
   agentDir?: string;
@@ -387,7 +387,7 @@ export async function promptModelAllowlist(params: {
   return { models: [] };
 }
 
-export function applyPrimaryModel(cfg: ZeeConfig, model: string): ZeeConfig {
+export function applyPrimaryModel(cfg: MoltbotConfig, model: string): MoltbotConfig {
   const defaults = cfg.agents?.defaults;
   const existingModel = defaults?.model;
   const existingModels = defaults?.models;
@@ -414,7 +414,7 @@ export function applyPrimaryModel(cfg: ZeeConfig, model: string): ZeeConfig {
   };
 }
 
-export function applyModelAllowlist(cfg: ZeeConfig, models: string[]): ZeeConfig {
+export function applyModelAllowlist(cfg: MoltbotConfig, models: string[]): MoltbotConfig {
   const defaults = cfg.agents?.defaults;
   const normalized = normalizeModelKeys(models);
   if (normalized.length === 0) {
@@ -448,9 +448,9 @@ export function applyModelAllowlist(cfg: ZeeConfig, models: string[]): ZeeConfig
 }
 
 export function applyModelFallbacksFromSelection(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   selection: string[],
-): ZeeConfig {
+): MoltbotConfig {
   const normalized = normalizeModelKeys(selection);
   if (normalized.length <= 1) return cfg;
 

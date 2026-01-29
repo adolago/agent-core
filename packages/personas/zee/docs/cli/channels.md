@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `zee channels` (accounts, status, login/logout, logs)"
+summary: "CLI reference for `moltbot channels` (accounts, status, login/logout, logs)"
 read_when:
   - You want to add/remove channel accounts (WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost (plugin)/Signal/iMessage)
   - You want to check channel status or tail channel logs
 ---
 
-# `zee channels`
+# `moltbot channels`
 
 Manage chat channel accounts and their runtime status on the Gateway.
 
@@ -16,43 +16,43 @@ Related docs:
 ## Common commands
 
 ```bash
-zee channels list
-zee channels status
-zee channels capabilities
-zee channels capabilities --channel discord --target channel:123
-zee channels resolve --channel slack "#general" "@jane"
-zee channels logs --channel all
+moltbot channels list
+moltbot channels status
+moltbot channels capabilities
+moltbot channels capabilities --channel discord --target channel:123
+moltbot channels resolve --channel slack "#general" "@jane"
+moltbot channels logs --channel all
 ```
 
 ## Add / remove accounts
 
 ```bash
-zee channels add --channel telegram --token <bot-token>
-zee channels remove --channel telegram --delete
+moltbot channels add --channel telegram --token <bot-token>
+moltbot channels remove --channel telegram --delete
 ```
 
-Tip: `zee channels add --help` shows per-channel flags (token, app token, signal-cli paths, etc).
+Tip: `moltbot channels add --help` shows per-channel flags (token, app token, signal-cli paths, etc).
 
 ## Login / logout (interactive)
 
 ```bash
-zee channels login --channel whatsapp
-zee channels logout --channel whatsapp
+moltbot channels login --channel whatsapp
+moltbot channels logout --channel whatsapp
 ```
 
 ## Troubleshooting
 
-- Run `zee status --deep` for a broad probe.
-- Use `zee doctor` for guided fixes.
-- `zee channels list` prints `Claude: HTTP 403 ... user:profile` → usage snapshot needs the `user:profile` scope. Use `--no-usage`, or provide a claude.ai session key (`CLAUDE_WEB_SESSION_KEY` / `CLAUDE_WEB_COOKIE`), or re-auth via Claude Code CLI.
+- Run `moltbot status --deep` for a broad probe.
+- Use `moltbot doctor` for guided fixes.
+- `moltbot channels list` prints `Claude: HTTP 403 ... user:profile` → usage snapshot needs the `user:profile` scope. Use `--no-usage`, or provide a claude.ai session key (`CLAUDE_WEB_SESSION_KEY` / `CLAUDE_WEB_COOKIE`), or re-auth via Claude Code CLI.
 
 ## Capabilities probe
 
 Fetch provider capability hints (intents/scopes where available) plus static feature support:
 
 ```bash
-zee channels capabilities
-zee channels capabilities --channel discord --target channel:123
+moltbot channels capabilities
+moltbot channels capabilities --channel discord --target channel:123
 ```
 
 Notes:
@@ -65,9 +65,9 @@ Notes:
 Resolve channel/user names to IDs using the provider directory:
 
 ```bash
-zee channels resolve --channel slack "#general" "@jane"
-zee channels resolve --channel discord "My Server/#support" "@someone"
-zee channels resolve --channel matrix "Project Room"
+moltbot channels resolve --channel slack "#general" "@jane"
+moltbot channels resolve --channel discord "My Server/#support" "@someone"
+moltbot channels resolve --channel matrix "Project Room"
 ```
 
 Notes:

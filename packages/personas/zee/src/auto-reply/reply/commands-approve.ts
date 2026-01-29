@@ -89,13 +89,13 @@ export const handleApproveCommand: CommandHandler = async (params, allowTextComm
     return {
       shouldContinue: false,
       reply: {
-        text: `✗ Failed to submit approval: ${String(err)}`,
+        text: `❌ Failed to submit approval: ${String(err)}`,
       },
     };
   }
 
   return {
     shouldContinue: false,
-    reply: { text: `✓ Exec approval ${parsed.decision} submitted for ${parsed.id}.` },
+    reply: { text: `✅ Exec approval ${parsed.decision} submitted for ${parsed.id}.` },
   };
 };

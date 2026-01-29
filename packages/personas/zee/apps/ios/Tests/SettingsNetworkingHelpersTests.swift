@@ -1,5 +1,5 @@
 import Testing
-@testable import Zee
+@testable import Moltbot
 
 @Suite struct SettingsNetworkingHelpersTests {
     @Test func parseHostPortParsesIPv4() {

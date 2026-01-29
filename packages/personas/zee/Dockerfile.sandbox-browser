@@ -1,4 +1,4 @@
-FROM debian:13.2-slim
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -14,14 +14,15 @@ RUN apt-get update \
     jq \
     novnc \
     python3 \
+    socat \
     websockify \
     x11vnc \
     xvfb \
   && rm -rf /var/lib/apt/lists/*
 
-COPY scripts/sandbox-browser-entrypoint.sh /usr/local/bin/zeebot-sandbox-browser
-RUN chmod +x /usr/local/bin/zeebot-sandbox-browser
+COPY scripts/sandbox-browser-entrypoint.sh /usr/local/bin/moltbot-sandbox-browser
+RUN chmod +x /usr/local/bin/moltbot-sandbox-browser
 
 EXPOSE 9222 5900 6080
 
-CMD ["zeebot-sandbox-browser"]
+CMD ["moltbot-sandbox-browser"]

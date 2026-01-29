@@ -29,7 +29,7 @@ const runtime: RuntimeEnv = {
 };
 
 const baseSnapshot = {
-  path: "/tmp/zee.json",
+  path: "/tmp/moltbot.json",
   exists: true,
   raw: "{}",
   parsed: {},
@@ -49,16 +49,16 @@ describe("agents set-identity command", () => {
   });
 
   it("sets identity from workspace IDENTITY.md", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-identity-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-identity-"));
     const workspace = path.join(root, "work");
     await fs.mkdir(workspace, { recursive: true });
     await fs.writeFile(
       path.join(workspace, "IDENTITY.md"),
       [
-        "- Name: Zee",
+        "- Name: Clawd",
         "- Creature: helpful sloth",
         "- Emoji: :)",
-        "- Avatar: avatars/zee.png",
+        "- Avatar: avatars/clawd.png",
         "",
       ].join("\n"),
       "utf-8",
@@ -84,15 +84,15 @@ describe("agents set-identity command", () => {
     };
     const main = written.agents?.list?.find((entry) => entry.id === "main");
     expect(main?.identity).toEqual({
-      name: "Zee",
+      name: "Clawd",
       theme: "helpful sloth",
       emoji: ":)",
-      avatar: "avatars/zee.png",
+      avatar: "avatars/clawd.png",
     });
   });
 
   it("errors when multiple agents match the same workspace", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-identity-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-identity-"));
     const workspace = path.join(root, "shared");
     await fs.mkdir(workspace, { recursive: true });
     await fs.writeFile(path.join(workspace, "IDENTITY.md"), "- Name: Echo\n", "utf-8");
@@ -117,16 +117,16 @@ describe("agents set-identity command", () => {
   });
 
   it("overrides identity file values with explicit flags", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-identity-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-identity-"));
     const workspace = path.join(root, "work");
     await fs.mkdir(workspace, { recursive: true });
     await fs.writeFile(
       path.join(workspace, "IDENTITY.md"),
       [
-        "- Name: Zee",
+        "- Name: Clawd",
         "- Theme: space lobster",
         "- Emoji: :)",
-        "- Avatar: avatars/zee.png",
+        "- Avatar: avatars/clawd.png",
         "",
       ].join("\n"),
       "utf-8",
@@ -142,7 +142,7 @@ describe("agents set-identity command", () => {
         workspace,
         fromIdentity: true,
         name: "Nova",
-        emoji: "*",
+        emoji: "🦞",
         avatar: "https://example.com/override.png",
       },
       runtime,
@@ -155,13 +155,13 @@ describe("agents set-identity command", () => {
     expect(main?.identity).toEqual({
       name: "Nova",
       theme: "space lobster",
-      emoji: "*",
+      emoji: "🦞",
       avatar: "https://example.com/override.png",
     });
   });
 
   it("reads identity from an explicit IDENTITY.md path", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-identity-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-identity-"));
     const workspace = path.join(root, "work");
     const identityPath = path.join(workspace, "IDENTITY.md");
     await fs.mkdir(workspace, { recursive: true });
@@ -170,7 +170,7 @@ describe("agents set-identity command", () => {
       [
         "- **Name:** C-3PO",
         "- **Creature:** Flustered Protocol Droid",
-        "- **Emoji:** @",
+        "- **Emoji:** 🤖",
         "- **Avatar:** avatars/c3po.png",
         "",
       ].join("\n"),
@@ -191,13 +191,13 @@ describe("agents set-identity command", () => {
     expect(main?.identity).toEqual({
       name: "C-3PO",
       theme: "Flustered Protocol Droid",
-      emoji: "@",
+      emoji: "🤖",
       avatar: "avatars/c3po.png",
     });
   });
 
   it("accepts avatar-only identity from IDENTITY.md", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-identity-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-identity-"));
     const workspace = path.join(root, "work");
     await fs.mkdir(workspace, { recursive: true });
     await fs.writeFile(
@@ -243,7 +243,7 @@ describe("agents set-identity command", () => {
   });
 
   it("errors when identity data is missing", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-identity-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-identity-"));
     const workspace = path.join(root, "work");
     await fs.mkdir(workspace, { recursive: true });
 

@@ -6,7 +6,7 @@ import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js
 import { createDefaultDeps } from "../cli/deps.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import {
-  CONFIG_PATH_ZEEBOT,
+  CONFIG_PATH,
   isNixMode,
   loadConfig,
   migrateLegacyConfig,
@@ -20,7 +20,7 @@ import { clearAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
 import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
 import { startHeartbeatRunner } from "../infra/heartbeat-runner.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
-import { ensureZeeCliOnPath } from "../infra/path-env.js";
+import { ensureMoltbotCliOnPath } from "../infra/path-env.js";
 import {
   primeRemoteSkillsCache,
   refreshRemoteBinsForConnectedNodes,
@@ -73,7 +73,7 @@ import { attachGatewayWsHandlers } from "./server-ws-runtime.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 
-ensureZeeCliOnPath();
+ensureMoltbotCliOnPath();
 
 const log = createSubsystemLogger("gateway");
 const logCanvas = log.child("canvas");
@@ -149,13 +149,13 @@ export async function startGatewayServer(
   opts: GatewayServerOptions = {},
 ): Promise<GatewayServer> {
   // Ensure all default port derivations (browser/canvas) see the actual runtime port.
-  process.env.ZEE_GATEWAY_PORT = String(port);
+  process.env.CLAWDBOT_GATEWAY_PORT = String(port);
   logAcceptedEnvOption({
-    key: "ZEE_RAW_STREAM",
+    key: "CLAWDBOT_RAW_STREAM",
     description: "raw stream logging enabled",
   });
   logAcceptedEnvOption({
-    key: "ZEE_RAW_STREAM_PATH",
+    key: "CLAWDBOT_RAW_STREAM_PATH",
     description: "raw stream log path override",
   });
 
@@ -169,7 +169,7 @@ export async function startGatewayServer(
     const { config: migrated, changes } = migrateLegacyConfig(configSnapshot.parsed);
     if (!migrated) {
       throw new Error(
-        `Legacy config entries detected but auto-migration failed. Run "${formatCliCommand("zee doctor")}" to migrate.`,
+        `Legacy config entries detected but auto-migration failed. Run "${formatCliCommand("moltbot doctor")}" to migrate.`,
       );
     }
     await writeConfigFile(migrated);
@@ -191,7 +191,7 @@ export async function startGatewayServer(
             .join("\n")
         : "Unknown validation issue.";
     throw new Error(
-      `Invalid config at ${configSnapshot.path}.\n${issues}\nRun "${formatCliCommand("zee doctor")}" to repair, then retry.`,
+      `Invalid config at ${configSnapshot.path}.\n${issues}\nRun "${formatCliCommand("moltbot doctor")}" to repair, then retry.`,
     );
   }
 
@@ -344,12 +344,6 @@ export async function startGatewayServer(
     channelManager;
 
   const machineDisplayName = await getMachineDisplayName();
-  const mdnsMode =
-    cfgAtStart.discovery?.mdns?.enabled === false
-      ? "off"
-      : cfgAtStart.discovery?.mdns?.minimal === false
-        ? "full"
-        : "minimal";
   const discovery = await startGatewayDiscovery({
     machineDisplayName,
     port,
@@ -358,7 +352,7 @@ export async function startGatewayServer(
       : undefined,
     wideAreaDiscoveryEnabled: cfgAtStart.discovery?.wideArea?.enabled === true,
     tailscaleMode,
-    mdnsMode,
+    mdnsMode: cfgAtStart.discovery?.mdns?.mode,
     logDiscovery,
   });
   bonjourStop = discovery.bonjourStop;
@@ -547,7 +541,7 @@ export async function startGatewayServer(
       warn: (msg) => logReload.warn(msg),
       error: (msg) => logReload.error(msg),
     },
-    watchPath: CONFIG_PATH_ZEEBOT,
+    watchPath: CONFIG_PATH,
   });
 
   const close = createGatewayCloseHandler({

@@ -5,8 +5,68 @@ on:
   pull_request:
 
 jobs:
+  install-check:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Checkout submodules (retry)
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          for attempt in 1 2 3 4 5; do
+            if git -c protocol.version=2 submodule update --init --force --depth=1 --recursive; then
+              exit 0
+            fi
+            echo "Submodule update failed (attempt $attempt/5). Retrying…"
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          check-latest: true
+
+      - name: Setup pnpm (corepack retry)
+        run: |
+          set -euo pipefail
+          corepack enable
+          for attempt in 1 2 3; do
+            if corepack prepare pnpm@10.23.0 --activate; then
+              pnpm -v
+              exit 0
+            fi
+            echo "corepack prepare failed (attempt $attempt/3). Retrying..."
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Runtime versions
+        run: |
+          node -v
+          npm -v
+          pnpm -v
+
+      - name: Capture node path
+        run: echo "NODE_BIN=$(dirname \"$(node -p \"process.execPath\")\")" >> "$GITHUB_ENV"
+
+      - name: Install dependencies (frozen)
+        env:
+          CI: true
+        run: |
+          export PATH="$NODE_BIN:$PATH"
+          which node
+          node -v
+          pnpm -v
+          pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
+
   checks:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
       matrix:
@@ -16,19 +76,19 @@ jobs:
             command: pnpm lint
           - runtime: node
             task: test
-            command: pnpm test
+            command: pnpm canvas:a2ui:bundle && pnpm test
           - runtime: node
             task: build
             command: pnpm build
           - runtime: node
             task: protocol
             command: pnpm protocol:check
-          - runtime: bun
-            task: lint
-            command: bunx biome check src
+          - runtime: node
+            task: format
+            command: pnpm format
           - runtime: bun
             task: test
-            command: bunx vitest run
+            command: pnpm canvas:a2ui:bundle && bunx vitest run
           - runtime: bun
             task: build
             command: bunx tsc -p tsconfig.json
@@ -54,8 +114,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22.x
           check-latest: true
+
+      - name: Setup pnpm (corepack retry)
+        run: |
+          set -euo pipefail
+          corepack enable
+          for attempt in 1 2 3; do
+            if corepack prepare pnpm@10.23.0 --activate; then
+              pnpm -v
+              exit 0
+            fi
+            echo "corepack prepare failed (attempt $attempt/3). Retrying..."
+            sleep $((attempt * 10))
+          done
+          exit 1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -67,15 +141,10 @@ jobs:
           node -v
           npm -v
           bun -v
+          pnpm -v
 
       - name: Capture node path
         run: echo "NODE_BIN=$(dirname \"$(node -p \"process.execPath\")\")" >> "$GITHUB_ENV"
-
-      - name: Enable corepack and pin pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.23.0 --activate
-          pnpm -v
 
       - name: Install dependencies
         env:
@@ -85,13 +154,41 @@ jobs:
           which node
           node -v
           pnpm -v
-          pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
+          pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
         run: ${{ matrix.command }}
 
+  secrets:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install detect-secrets
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install detect-secrets==1.5.0
+
+      - name: Detect secrets
+        run: |
+          if ! detect-secrets scan --baseline .secrets.baseline; then
+            echo "::error::Secret scanning failed. See docs/gateway/security.md#secret-scanning-detect-secrets"
+            exit 1
+          fi
+
   checks-windows:
-    runs-on: windows-latest
+    runs-on: blacksmith-4vcpu-windows-2025
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      CLAWDBOT_TEST_WORKERS: 1
     defaults:
       run:
         shell: bash
@@ -104,7 +201,7 @@ jobs:
             command: pnpm lint
           - runtime: node
             task: test
-            command: pnpm test
+            command: pnpm canvas:a2ui:bundle && pnpm test
           - runtime: node
             task: build
             command: pnpm build
@@ -133,8 +230,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22.x
           check-latest: true
+
+      - name: Setup pnpm (corepack retry)
+        run: |
+          set -euo pipefail
+          corepack enable
+          for attempt in 1 2 3; do
+            if corepack prepare pnpm@10.23.0 --activate; then
+              pnpm -v
+              exit 0
+            fi
+            echo "corepack prepare failed (attempt $attempt/3). Retrying..."
+            sleep $((attempt * 10))
+          done
+          exit 1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -146,15 +257,10 @@ jobs:
           node -v
           npm -v
           bun -v
+          pnpm -v
 
       - name: Capture node path
         run: echo "NODE_BIN=$(dirname \"$(node -p \"process.execPath\")\")" >> "$GITHUB_ENV"
-
-      - name: Enable corepack and pin pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.23.0 --activate
-          pnpm -v
 
       - name: Install dependencies
         env:
@@ -164,12 +270,84 @@ jobs:
           which node
           node -v
           pnpm -v
-          pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
+          pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
         run: ${{ matrix.command }}
 
-  swift-shared:
+  checks-macos:
+    if: github.event_name == 'pull_request'
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - task: test
+            command: pnpm test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Checkout submodules (retry)
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          for attempt in 1 2 3 4 5; do
+            if git -c protocol.version=2 submodule update --init --force --depth=1 --recursive; then
+              exit 0
+            fi
+            echo "Submodule update failed (attempt $attempt/5). Retrying…"
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          check-latest: true
+
+      - name: Setup pnpm (corepack retry)
+        run: |
+          set -euo pipefail
+          corepack enable
+          for attempt in 1 2 3; do
+            if corepack prepare pnpm@10.23.0 --activate; then
+              pnpm -v
+              exit 0
+            fi
+            echo "corepack prepare failed (attempt $attempt/3). Retrying..."
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Runtime versions
+        run: |
+          node -v
+          npm -v
+          pnpm -v
+
+      - name: Capture node path
+        run: echo "NODE_BIN=$(dirname \"$(node -p \"process.execPath\")\")" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        env:
+          CI: true
+        run: |
+          export PATH="$NODE_BIN:$PATH"
+          which node
+          node -v
+          pnpm -v
+          pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --frozen-lockfile --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
+
+      - name: Run ${{ matrix.task }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: ${{ matrix.command }}
+
+  macos-app:
     if: github.event_name == 'pull_request'
     runs-on: macos-latest
     strategy:
@@ -179,12 +357,12 @@ jobs:
           - task: lint
             command: |
               swiftlint --config .swiftlint.yml
-              swiftformat --lint apps/ios/Sources apps/shared/ZeeKit/Sources --config .swiftformat
+              swiftformat --lint apps/macos/Sources --config .swiftformat
           - task: build
             command: |
               set -euo pipefail
               for attempt in 1 2 3; do
-                if swift build --package-path apps/shared/ZeeKit --configuration release; then
+                if swift build --package-path apps/macos --configuration release; then
                   exit 0
                 fi
                 echo "swift build failed (attempt $attempt/3). Retrying…"
@@ -195,7 +373,7 @@ jobs:
             command: |
               set -euo pipefail
               for attempt in 1 2 3; do
-                if swift test --package-path apps/shared/ZeeKit --parallel --enable-code-coverage --show-codecov-path; then
+                if swift test --package-path apps/macos --parallel --enable-code-coverage --show-codecov-path; then
                   exit 0
                 fi
                 echo "swift test failed (attempt $attempt/3). Retrying…"
@@ -285,7 +463,7 @@ jobs:
       - name: iOS tests
         run: |
           set -euo pipefail
-          RESULT_BUNDLE_PATH="$RUNNER_TEMP/Zeedis-iOS.xcresult"
+          RESULT_BUNDLE_PATH="$RUNNER_TEMP/Clawdis-iOS.xcresult"
           DEST_ID="$(
             python3 - <<'PY'
           import json
@@ -364,8 +542,8 @@ jobs:
           )"
           echo "Using iOS Simulator id: $DEST_ID"
           xcodebuild test \
-            -project apps/ios/Zeedis.xcodeproj \
-            -scheme Zeedis \
+            -project apps/ios/Clawdis.xcodeproj \
+            -scheme Clawdis \
             -destination "platform=iOS Simulator,id=$DEST_ID" \
             -resultBundlePath "$RESULT_BUNDLE_PATH" \
             -enableCodeCoverage YES
@@ -373,20 +551,20 @@ jobs:
       - name: iOS coverage summary
         run: |
           set -euo pipefail
-          RESULT_BUNDLE_PATH="$RUNNER_TEMP/Zeedis-iOS.xcresult"
+          RESULT_BUNDLE_PATH="$RUNNER_TEMP/Clawdis-iOS.xcresult"
           xcrun xccov view --report --only-targets "$RESULT_BUNDLE_PATH"
 
       - name: iOS coverage gate (43%)
         run: |
           set -euo pipefail
-          RESULT_BUNDLE_PATH="$RUNNER_TEMP/Zeedis-iOS.xcresult"
+          RESULT_BUNDLE_PATH="$RUNNER_TEMP/Clawdis-iOS.xcresult"
           RESULT_BUNDLE_PATH="$RESULT_BUNDLE_PATH" python3 - <<'PY'
           import json
           import os
           import subprocess
           import sys
 
-          target_name = "Zeedis.app"
+          target_name = "Clawdis.app"
           minimum = 0.43
 
           report = json.loads(
@@ -412,7 +590,7 @@ jobs:
           PY
 
   android:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
       matrix:
@@ -453,6 +631,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.11.1
 
       - name: Install Android SDK packages
         run: |

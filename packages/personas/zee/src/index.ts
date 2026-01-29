@@ -20,7 +20,7 @@ import { ensureBinary } from "./infra/binaries.js";
 import { loadDotEnv } from "./infra/dotenv.js";
 import { normalizeEnv } from "./infra/env.js";
 import { isMainModule } from "./infra/is-main.js";
-import { ensureZeeCliOnPath } from "./infra/path-env.js";
+import { ensureMoltbotCliOnPath } from "./infra/path-env.js";
 import {
   describePortOwner,
   ensurePortAvailable,
@@ -32,11 +32,11 @@ import { formatUncaughtError } from "./infra/errors.js";
 import { installUnhandledRejectionHandler } from "./infra/unhandled-rejections.js";
 import { enableConsoleCapture } from "./logging.js";
 import { runCommandWithTimeout, runExec } from "./process/exec.js";
-import { assertProvider, assertWebChannel, normalizeE164, toWhatsappJid } from "./utils.js";
+import { assertWebChannel, normalizeE164, toWhatsappJid } from "./utils.js";
 
 loadDotEnv({ quiet: true });
 normalizeEnv();
-ensureZeeCliOnPath();
+ensureMoltbotCliOnPath();
 
 // Capture all console output into structured logs while keeping stdout/stderr behavior.
 enableConsoleCapture();
@@ -49,7 +49,6 @@ import { buildProgram } from "./cli/program.js";
 const program = buildProgram();
 
 export {
-  assertProvider,
   assertWebChannel,
   applyTemplate,
   createDefaultDeps,
@@ -84,12 +83,12 @@ if (isMain) {
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
-    console.error("[zee] Uncaught exception:", formatUncaughtError(error));
+    console.error("[moltbot] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
 
   void program.parseAsync(process.argv).catch((err) => {
-    console.error("[zee] CLI failed:", formatUncaughtError(err));
+    console.error("[moltbot] CLI failed:", formatUncaughtError(err));
     process.exit(1);
   });
 }

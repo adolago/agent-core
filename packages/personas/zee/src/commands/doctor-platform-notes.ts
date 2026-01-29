@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
 
@@ -16,7 +16,7 @@ function resolveHomeDir(): string {
 
 export async function noteMacLaunchAgentOverrides() {
   if (process.platform !== "darwin") return;
-  const markerPath = path.join(resolveHomeDir(), ".zee", "disable-launchagent");
+  const markerPath = path.join(resolveHomeDir(), ".clawdbot", "disable-launchagent");
   const hasMarker = fs.existsSync(markerPath);
   if (!hasMarker) return;
 
@@ -39,7 +39,7 @@ async function launchctlGetenv(name: string): Promise<string | undefined> {
   }
 }
 
-function hasConfigGatewayCreds(cfg: ZeeConfig): boolean {
+function hasConfigGatewayCreds(cfg: MoltbotConfig): boolean {
   const localToken =
     typeof cfg.gateway?.auth?.token === "string" ? cfg.gateway?.auth?.token.trim() : "";
   const localPassword =
@@ -52,7 +52,7 @@ function hasConfigGatewayCreds(cfg: ZeeConfig): boolean {
 }
 
 export async function noteMacLaunchctlGatewayEnvOverrides(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   deps?: {
     platform?: NodeJS.Platform;
     getenv?: (name: string) => Promise<string | undefined>;
@@ -64,19 +64,19 @@ export async function noteMacLaunchctlGatewayEnvOverrides(
   if (!hasConfigGatewayCreds(cfg)) return;
 
   const getenv = deps?.getenv ?? launchctlGetenv;
-  const envToken = await getenv("ZEE_GATEWAY_TOKEN");
-  const envPassword = await getenv("ZEE_GATEWAY_PASSWORD");
+  const envToken = await getenv("CLAWDBOT_GATEWAY_TOKEN");
+  const envPassword = await getenv("CLAWDBOT_GATEWAY_PASSWORD");
   if (!envToken && !envPassword) return;
 
   const lines = [
     "- launchctl environment overrides detected (can cause confusing unauthorized errors).",
-    envToken ? "- `ZEE_GATEWAY_TOKEN` is set; it overrides config tokens." : undefined,
+    envToken ? "- `CLAWDBOT_GATEWAY_TOKEN` is set; it overrides config tokens." : undefined,
     envPassword
-      ? "- `ZEE_GATEWAY_PASSWORD` is set; it overrides config passwords."
+      ? "- `CLAWDBOT_GATEWAY_PASSWORD` is set; it overrides config passwords."
       : undefined,
     "- Clear overrides and restart the app/gateway:",
-    envToken ? "  launchctl unsetenv ZEE_GATEWAY_TOKEN" : undefined,
-    envPassword ? "  launchctl unsetenv ZEE_GATEWAY_PASSWORD" : undefined,
+    envToken ? "  launchctl unsetenv CLAWDBOT_GATEWAY_TOKEN" : undefined,
+    envPassword ? "  launchctl unsetenv CLAWDBOT_GATEWAY_PASSWORD" : undefined,
   ].filter((line): line is string => Boolean(line));
 
   (deps?.noteFn ?? note)(lines.join("\n"), "Gateway (macOS)");

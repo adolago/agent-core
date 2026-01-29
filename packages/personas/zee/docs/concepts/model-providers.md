@@ -11,13 +11,13 @@ For model selection rules, see [/concepts/models](/concepts/models).
 
 ## Quick rules
 
-- Model refs use `provider/model` (example: `anthropic/claude-opus-4-5`).
+- Model refs use `provider/model` (example: `opencode/claude-opus-4-5`).
 - If you set `agents.defaults.models`, it becomes the allowlist.
-- CLI helpers: `zee onboard`, `zee models list`, `zee models set <provider/model>`.
+- CLI helpers: `moltbot onboard`, `moltbot models list`, `moltbot models set <provider/model>`.
 
 ## Built-in providers (pi-ai catalog)
 
-Zee ships with the pi‑ai catalog. These providers require **no**
+Moltbot ships with the pi‑ai catalog. These providers require **no**
 `models.providers` config; just set auth + pick a model.
 
 ### OpenAI
@@ -25,7 +25,7 @@ Zee ships with the pi‑ai catalog. These providers require **no**
 - Provider: `openai`
 - Auth: `OPENAI_API_KEY`
 - Example model: `openai/gpt-5.2`
-- CLI: `zee onboard --auth-choice openai-api-key`
+- CLI: `moltbot onboard --auth-choice openai-api-key`
 
 ```json5
 {
@@ -38,7 +38,7 @@ Zee ships with the pi‑ai catalog. These providers require **no**
 - Provider: `anthropic`
 - Auth: `ANTHROPIC_API_KEY` or `claude setup-token`
 - Example model: `anthropic/claude-opus-4-5`
-- CLI: `zee onboard --auth-choice token` (paste setup-token) or `zee models auth paste-token --provider anthropic`
+- CLI: `moltbot onboard --auth-choice token` (paste setup-token) or `moltbot models auth paste-token --provider anthropic`
 
 ```json5
 {
@@ -49,9 +49,9 @@ Zee ships with the pi‑ai catalog. These providers require **no**
 ### OpenAI Code (Codex)
 
 - Provider: `openai-codex`
-- Auth: OAuth or Codex CLI (`~/.codex/auth.json`)
+- Auth: OAuth (ChatGPT)
 - Example model: `openai-codex/gpt-5.2`
-- CLI: `zee onboard --auth-choice openai-codex` or `codex-cli`
+- CLI: `moltbot onboard --auth-choice openai-codex` or `moltbot models auth login --provider openai-codex`
 
 ```json5
 {
@@ -64,7 +64,7 @@ Zee ships with the pi‑ai catalog. These providers require **no**
 - Provider: `opencode`
 - Auth: `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`)
 - Example model: `opencode/claude-opus-4-5`
-- CLI: `zee onboard --auth-choice opencode-zen`
+- CLI: `moltbot onboard --auth-choice opencode-zen`
 
 ```json5
 {
@@ -77,34 +77,35 @@ Zee ships with the pi‑ai catalog. These providers require **no**
 - Provider: `google`
 - Auth: `GEMINI_API_KEY`
 - Example model: `google/gemini-3-pro-preview`
-- CLI: `zee onboard --auth-choice gemini-api-key`
+- CLI: `moltbot onboard --auth-choice gemini-api-key`
 
 ### Google Vertex / Antigravity / Gemini CLI
 
 - Providers: `google-vertex`, `google-antigravity`, `google-gemini-cli`
 - Auth: Vertex uses gcloud ADC; Antigravity/Gemini CLI use their respective auth flows
 - Antigravity OAuth is shipped as a bundled plugin (`google-antigravity-auth`, disabled by default).
-  - Enable: `zee plugins enable google-antigravity-auth`
-  - Login: `zee models auth login --provider google-antigravity --set-default`
+  - Enable: `moltbot plugins enable google-antigravity-auth`
+  - Login: `moltbot models auth login --provider google-antigravity --set-default`
 - Gemini CLI OAuth is shipped as a bundled plugin (`google-gemini-cli-auth`, disabled by default).
-  - Enable: `zee plugins enable google-gemini-cli-auth`
-  - Login: `zee models auth login --provider google-gemini-cli --set-default`
-  - Note: you do **not** paste a client id or secret into `zee.json`. The CLI login flow stores
+  - Enable: `moltbot plugins enable google-gemini-cli-auth`
+  - Login: `moltbot models auth login --provider google-gemini-cli --set-default`
+  - Note: you do **not** paste a client id or secret into `moltbot.json`. The CLI login flow stores
     tokens in auth profiles on the gateway host.
 
-### Z.AI Coding Plan
+### Z.AI (GLM)
 
-- Provider: `zai-coding-plan`
+- Provider: `zai`
 - Auth: `ZAI_API_KEY`
-- Example model: `zai-coding-plan/glm-4.7`
-- CLI: `zee onboard --auth-choice zai-api-key`
+- Example model: `zai/glm-4.7`
+- CLI: `moltbot onboard --auth-choice zai-api-key`
+  - Aliases: `z.ai/*` and `z-ai/*` normalize to `zai/*`
 
 ### Vercel AI Gateway
 
 - Provider: `vercel-ai-gateway`
 - Auth: `AI_GATEWAY_API_KEY`
 - Example model: `vercel-ai-gateway/anthropic/claude-opus-4.5`
-- CLI: `zee onboard --auth-choice ai-gateway-api-key`
+- CLI: `moltbot onboard --auth-choice ai-gateway-api-key`
 
 ### Other built-in providers
 
@@ -112,6 +113,9 @@ Zee ships with the pi‑ai catalog. These providers require **no**
 - Example model: `openrouter/anthropic/claude-sonnet-4-5`
 - xAI: `xai` (`XAI_API_KEY`)
 - Groq: `groq` (`GROQ_API_KEY`)
+- Cerebras: `cerebras` (`CEREBRAS_API_KEY`)
+  - GLM models on Cerebras use ids `zai-glm-4.7` and `zai-glm-4.6`.
+  - OpenAI-compatible base URL: `https://api.cerebras.ai/v1`.
 - Mistral: `mistral` (`MISTRAL_API_KEY`)
 - GitHub Copilot: `github-copilot` (`COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`)
 
@@ -126,9 +130,10 @@ Moonshot uses OpenAI-compatible endpoints, so configure it as a custom provider:
 
 - Provider: `moonshot`
 - Auth: `MOONSHOT_API_KEY`
-- Example model: `moonshot/kimi-k2-0905-preview`
+- Example model: `moonshot/kimi-k2.5`
 - Kimi K2 model IDs:
   {/* moonshot-kimi-k2-model-refs:start */}
+  - `moonshot/kimi-k2.5`
   - `moonshot/kimi-k2-0905-preview`
   - `moonshot/kimi-k2-turbo-preview`
   - `moonshot/kimi-k2-thinking`
@@ -137,7 +142,7 @@ Moonshot uses OpenAI-compatible endpoints, so configure it as a custom provider:
 ```json5
 {
   agents: {
-    defaults: { model: { primary: "moonshot/kimi-k2-0905-preview" } }
+    defaults: { model: { primary: "moonshot/kimi-k2.5" } }
   },
   models: {
     mode: "merge",
@@ -146,7 +151,7 @@ Moonshot uses OpenAI-compatible endpoints, so configure it as a custom provider:
         baseUrl: "https://api.moonshot.ai/v1",
         apiKey: "${MOONSHOT_API_KEY}",
         api: "openai-completions",
-        models: [{ id: "kimi-k2-0905-preview", name: "Kimi K2 0905 Preview" }]
+        models: [{ id: "kimi-k2.5", name: "Kimi K2.5" }]
       }
     }
   }
@@ -187,8 +192,8 @@ Qwen provides OAuth access to Qwen Coder + Vision via a device-code flow.
 Enable the bundled plugin, then log in:
 
 ```bash
-zee plugins enable qwen-portal-auth
-zee models auth login --provider qwen-portal --set-default
+moltbot plugins enable qwen-portal-auth
+moltbot models auth login --provider qwen-portal --set-default
 ```
 
 Model refs:
@@ -204,7 +209,7 @@ Synthetic provides Anthropic-compatible models behind the `synthetic` provider:
 - Provider: `synthetic`
 - Auth: `SYNTHETIC_API_KEY`
 - Example model: `synthetic/hf:MiniMaxAI/MiniMax-M2.1`
-- CLI: `zee onboard --auth-choice synthetic-api-key`
+- CLI: `moltbot onboard --auth-choice synthetic-api-key`
 
 ```json5
 {
@@ -295,7 +300,7 @@ Example (OpenAI‑compatible):
 
 Notes:
 - For custom providers, `reasoning`, `input`, `cost`, `contextWindow`, and `maxTokens` are optional.
-  When omitted, Zee defaults to:
+  When omitted, Moltbot defaults to:
   - `reasoning: false`
   - `input: ["text"]`
   - `cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }`
@@ -306,9 +311,9 @@ Notes:
 ## CLI examples
 
 ```bash
-zee onboard --auth-choice opencode-zen
-zee models set opencode/claude-opus-4-5
-zee models list
+moltbot onboard --auth-choice opencode-zen
+moltbot models set opencode/claude-opus-4-5
+moltbot models list
 ```
 
 See also: [/gateway/configuration](/gateway/configuration) for full configuration examples.

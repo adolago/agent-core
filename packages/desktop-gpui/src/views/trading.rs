@@ -6,6 +6,7 @@
 use gpui::prelude::*;
 use gpui::*;
 
+use crate::i18n::I18n;
 use crate::state::AppState;
 use crate::theme::Theme;
 
@@ -30,6 +31,7 @@ impl Render for TradingView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
         let state = cx.global::<AppState>();
+        let i18n = cx.global::<I18n>();
 
         div()
             .flex()
@@ -39,13 +41,13 @@ impl Render for TradingView {
             .text_color(theme.text)
             .p(px(24.0))
             .gap(px(16.0))
-            .child(self.render_header(theme))
-            .child(self.render_content(state, theme))
+            .child(self.render_header(theme, i18n))
+            .child(self.render_content(state, theme, i18n))
     }
 }
 
 impl TradingView {
-    fn render_header(&self, theme: &Theme) -> impl IntoElement {
+    fn render_header(&self, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .flex()
             .items_center()
@@ -63,29 +65,29 @@ impl TradingView {
                             .text_xl()
                             .font_weight(FontWeight::BOLD)
                             .text_color(theme.stanley_accent)
-                            .child("Stanley Trading"),
+                            .child(i18n.t("trading.title")),
                     )
                     .child(
                         div()
                             .text_sm()
                             .text_color(theme.text_muted)
-                            .child("Portfolio & Risk Management"),
+                            .child(i18n.t("trading.subtitle")),
                     ),
             )
     }
 
-    fn render_content(&self, state: &AppState, theme: &Theme) -> impl IntoElement {
+    fn render_content(&self, state: &AppState, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
             .flex_1()
             .gap(px(16.0))
-            .child(self.render_portfolio_section(state, theme))
-            .child(self.render_risk_section(state, theme))
-            .child(self.render_paper_trading_section(state, theme))
+            .child(self.render_portfolio_section(state, theme, i18n))
+            .child(self.render_risk_section(state, theme, i18n))
+            .child(self.render_paper_trading_section(state, theme, i18n))
     }
 
-    fn render_portfolio_section(&self, state: &AppState, theme: &Theme) -> impl IntoElement {
+    fn render_portfolio_section(&self, state: &AppState, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
@@ -99,7 +101,7 @@ impl TradingView {
                     .text_lg()
                     .font_weight(FontWeight::SEMIBOLD)
                     .mb(px(12.0))
-                    .child("Portfolio"),
+                    .child(i18n.t("trading.portfolio")),
             )
             .child(
                 if let Some(portfolio) = &state.portfolio {
@@ -111,7 +113,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Positions"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.positions")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -122,7 +124,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Cash"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.cash")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -133,7 +135,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Total Cost"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.total_cost")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -144,13 +146,13 @@ impl TradingView {
                 } else {
                     div()
                         .text_color(theme.text_muted)
-                        .child("No portfolio data. Use Stanley persona to manage positions.")
+                        .child(i18n.t("trading.no_portfolio"))
                         .into_any_element()
                 },
             )
     }
 
-    fn render_risk_section(&self, state: &AppState, theme: &Theme) -> impl IntoElement {
+    fn render_risk_section(&self, state: &AppState, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
@@ -164,7 +166,7 @@ impl TradingView {
                     .text_lg()
                     .font_weight(FontWeight::SEMIBOLD)
                     .mb(px(12.0))
-                    .child("Risk Metrics"),
+                    .child(i18n.t("trading.risk_metrics")),
             )
             .child(
                 if let Some(metrics) = &state.risk_metrics {
@@ -179,7 +181,13 @@ impl TradingView {
                                 .child(
                                     div()
                                         .text_color(theme.text_muted)
-                                        .child(format!("VaR ({:.0}%)", metrics.confidence_level * 100.0)),
+                                        .child(i18n.format(
+                                            "trading.var",
+                                            &[(
+                                                "percent",
+                                                &format!("{:.0}", metrics.confidence_level * 100.0),
+                                            )],
+                                        )),
                                 )
                                 .child(
                                     div()
@@ -191,7 +199,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Sharpe Ratio"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.sharpe")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -202,7 +210,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Sortino Ratio"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.sortino")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -213,7 +221,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Max Drawdown"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.max_drawdown")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -229,7 +237,7 @@ impl TradingView {
                             div()
                                 .flex()
                                 .justify_between()
-                                .child(div().text_color(theme.text_muted).child("Volatility"))
+                                .child(div().text_color(theme.text_muted).child(i18n.t("trading.volatility")))
                                 .child(
                                     div()
                                         .font_weight(FontWeight::MEDIUM)
@@ -240,13 +248,13 @@ impl TradingView {
                 } else {
                     div()
                         .text_color(theme.text_muted)
-                        .child("No risk metrics available. Add positions and fetch market data.")
+                        .child(i18n.t("trading.no_risk"))
                         .into_any_element()
                 },
             )
     }
 
-    fn render_paper_trading_section(&self, state: &AppState, theme: &Theme) -> impl IntoElement {
+    fn render_paper_trading_section(&self, state: &AppState, theme: &Theme, i18n: &I18n) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
@@ -260,7 +268,7 @@ impl TradingView {
                     .text_lg()
                     .font_weight(FontWeight::SEMIBOLD)
                     .mb(px(12.0))
-                    .child("Paper Trading"),
+                    .child(i18n.t("trading.paper_trading")),
             )
             .child(
                 if let Some(status) = &state.paper_trading {
@@ -281,18 +289,18 @@ impl TradingView {
                                             .rounded_full()
                                             .bg(theme.success),
                                     )
-                                    .child(
-                                        div()
-                                            .text_color(theme.success)
-                                            .font_weight(FontWeight::MEDIUM)
-                                            .child("Active"),
-                                    ),
+                                            .child(
+                                                div()
+                                                    .text_color(theme.success)
+                                                    .font_weight(FontWeight::MEDIUM)
+                                                    .child(i18n.t("trading.active")),
+                                            ),
                             )
                             .child(
                                 div()
                                     .flex()
                                     .justify_between()
-                                    .child(div().text_color(theme.text_muted).child("Strategy"))
+                                    .child(div().text_color(theme.text_muted).child(i18n.t("trading.strategy")))
                                     .child(
                                         div()
                                             .font_weight(FontWeight::MEDIUM)
@@ -300,7 +308,7 @@ impl TradingView {
                                                 status
                                                     .strategy
                                                     .clone()
-                                                    .unwrap_or_else(|| "Unknown".to_string()),
+                                                    .unwrap_or_else(|| i18n.t("tool.status.unknown")),
                                             ),
                                     ),
                             )
@@ -308,7 +316,7 @@ impl TradingView {
                                 div()
                                     .flex()
                                     .justify_between()
-                                    .child(div().text_color(theme.text_muted).child("Total Value"))
+                                    .child(div().text_color(theme.text_muted).child(i18n.t("trading.total_value")))
                                     .child(
                                         div()
                                             .font_weight(FontWeight::MEDIUM)
@@ -319,7 +327,7 @@ impl TradingView {
                                 div()
                                     .flex()
                                     .justify_between()
-                                    .child(div().text_color(theme.text_muted).child("Return"))
+                                    .child(div().text_color(theme.text_muted).child(i18n.t("trading.return")))
                                     .child(
                                         div()
                                             .font_weight(FontWeight::MEDIUM)
@@ -339,7 +347,7 @@ impl TradingView {
                                 div()
                                     .flex()
                                     .justify_between()
-                                    .child(div().text_color(theme.text_muted).child("Trades"))
+                                    .child(div().text_color(theme.text_muted).child(i18n.t("trading.trades")))
                                     .child(
                                         div()
                                             .font_weight(FontWeight::MEDIUM)
@@ -350,13 +358,13 @@ impl TradingView {
                     } else {
                         div()
                             .text_color(theme.text_muted)
-                            .child("No active paper trading session.")
+                            .child(i18n.t("trading.no_active"))
                             .into_any_element()
                     }
                 } else {
                     div()
                         .text_color(theme.text_muted)
-                        .child("Paper trading not initialized. Use Stanley persona to start.")
+                        .child(i18n.t("trading.not_initialized"))
                         .into_any_element()
                 },
             )

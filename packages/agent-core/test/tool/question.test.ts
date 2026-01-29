@@ -10,6 +10,7 @@ const ctx = {
   agent: "test-agent",
   abort: AbortSignal.any([]),
   directory: process.cwd(),
+  worktree: process.cwd(),
   metadata: () => {},
   ask: async () => {},
 }

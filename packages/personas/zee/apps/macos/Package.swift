@@ -1,18 +1,18 @@
 // swift-tools-version: 6.2
-// Package manifest for the Zee macOS companion (menu bar app + IPC library).
+// Package manifest for the Moltbot macOS companion (menu bar app + IPC library).
 
 import PackageDescription
 
 let package = Package(
-    name: "Zee",
+    name: "Moltbot",
     platforms: [
         .macOS(.v15),
     ],
     products: [
-        .library(name: "ZeeIPC", targets: ["ZeeIPC"]),
-        .library(name: "ZeeDiscovery", targets: ["ZeeDiscovery"]),
-        .executable(name: "Zee", targets: ["Zee"]),
-        .executable(name: "zee-mac", targets: ["ZeeMacCLI"]),
+        .library(name: "MoltbotIPC", targets: ["MoltbotIPC"]),
+        .library(name: "MoltbotDiscovery", targets: ["MoltbotDiscovery"]),
+        .executable(name: "Moltbot", targets: ["Moltbot"]),
+        .executable(name: "moltbot-mac", targets: ["MoltbotMacCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/orchetect/MenuBarExtraAccess", exact: "1.2.2"),
@@ -20,33 +20,33 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.8.0"),
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.8.1"),
         .package(url: "https://github.com/steipete/Peekaboo.git", branch: "main"),
-        .package(path: "../shared/ZeeKit"),
+        .package(path: "../shared/MoltbotKit"),
         .package(path: "../../Swabble"),
     ],
     targets: [
         .target(
-            name: "ZeeIPC",
+            name: "MoltbotIPC",
             dependencies: [],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .target(
-            name: "ZeeDiscovery",
+            name: "MoltbotDiscovery",
             dependencies: [
-                .product(name: "ZeeKit", package: "ZeeKit"),
+                .product(name: "MoltbotKit", package: "MoltbotKit"),
             ],
-            path: "Sources/ZeeDiscovery",
+            path: "Sources/MoltbotDiscovery",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .executableTarget(
-            name: "Zee",
+            name: "Moltbot",
             dependencies: [
-                "ZeeIPC",
-                "ZeeDiscovery",
-                .product(name: "ZeeKit", package: "ZeeKit"),
-                .product(name: "ZeeChatUI", package: "ZeeKit"),
-                .product(name: "ZeeProtocol", package: "ZeeKit"),
+                "MoltbotIPC",
+                "MoltbotDiscovery",
+                .product(name: "MoltbotKit", package: "MoltbotKit"),
+                .product(name: "MoltbotChatUI", package: "MoltbotKit"),
+                .product(name: "MoltbotProtocol", package: "MoltbotKit"),
                 .product(name: "SwabbleKit", package: "swabble"),
                 .product(name: "MenuBarExtraAccess", package: "MenuBarExtraAccess"),
                 .product(name: "Subprocess", package: "swift-subprocess"),
@@ -59,30 +59,30 @@ let package = Package(
                 "Resources/Info.plist",
             ],
             resources: [
-                .copy("Resources/Zee.icns"),
+                .copy("Resources/Moltbot.icns"),
                 .copy("Resources/DeviceModels"),
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .executableTarget(
-            name: "ZeeMacCLI",
+            name: "MoltbotMacCLI",
             dependencies: [
-                "ZeeDiscovery",
-                .product(name: "ZeeKit", package: "ZeeKit"),
-                .product(name: "ZeeProtocol", package: "ZeeKit"),
+                "MoltbotDiscovery",
+                .product(name: "MoltbotKit", package: "MoltbotKit"),
+                .product(name: "MoltbotProtocol", package: "MoltbotKit"),
             ],
-            path: "Sources/ZeeMacCLI",
+            path: "Sources/MoltbotMacCLI",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .testTarget(
-            name: "ZeeIPCTests",
+            name: "MoltbotIPCTests",
             dependencies: [
-                "ZeeIPC",
-                "Zee",
-                "ZeeDiscovery",
-                .product(name: "ZeeProtocol", package: "ZeeKit"),
+                "MoltbotIPC",
+                "Moltbot",
+                "MoltbotDiscovery",
+                .product(name: "MoltbotProtocol", package: "MoltbotKit"),
                 .product(name: "SwabbleKit", package: "swabble"),
             ],
             swiftSettings: [

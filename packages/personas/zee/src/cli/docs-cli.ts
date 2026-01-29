@@ -9,11 +9,11 @@ import { runCommandWithRuntime } from "./cli-utils.js";
 export function registerDocsCli(program: Command) {
   program
     .command("docs")
-    .description("Search the live Zee docs")
+    .description("Search the live Moltbot docs")
     .argument("[query...]", "Search query")
     .addHelpText(
       "after",
-      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/docs", "docs.zee.bot/cli/docs")}\n`,
+      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/docs", "docs.molt.bot/cli/docs")}\n`,
     )
     .action(async (queryParts: string[]) => {
       await runCommandWithRuntime(defaultRuntime, async () => {

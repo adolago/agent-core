@@ -147,6 +147,7 @@ async function createToolContext(agent: Agent.Info) {
     agent: agent.name,
     abort: new AbortController().signal,
     directory: Instance.directory,
+    worktree: Instance.worktree,
     metadata: () => {},
     async ask(req: Omit<PermissionNext.Request, "id" | "sessionID" | "tool">) {
       for (const pattern of req.patterns) {

@@ -2,7 +2,8 @@ import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { validateLineSignature } from "./signature.js";
 
-const sign = (body: string, secret: string) => crypto.createHmac("SHA256", secret).update(body).digest("base64");
+const sign = (body: string, secret: string) =>
+  crypto.createHmac("SHA256", secret).update(body).digest("base64");
 
 describe("validateLineSignature", () => {
   it("accepts valid signatures", () => {
@@ -24,4 +25,3 @@ describe("validateLineSignature", () => {
     expect(validateLineSignature(rawBody, "short", "secret")).toBe(false);
   });
 });
-

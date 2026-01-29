@@ -1,5 +1,5 @@
 import path from "node:path";
-import { resolveZeeAgentDir } from "../../agents/agent-paths.js";
+import { resolveMoltbotAgentDir } from "../../agents/agent-paths.js";
 import {
   buildAuthHealthSummary,
   DEFAULT_OAUTH_WARN_MS,
@@ -17,7 +17,7 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-import { CONFIG_PATH_ZEEBOT, loadConfig } from "../../config/config.js";
+import { CONFIG_PATH, loadConfig } from "../../config/config.js";
 import { getShellEnvAppliedKeys, shouldEnableShellEnvFallback } from "../../infra/shell-env.js";
 import { withProgressTotals } from "../../cli/progress.js";
 import {
@@ -93,7 +93,7 @@ export async function modelsStatusCommand(
   );
   const allowed = Object.keys(cfg.agents?.defaults?.models ?? {});
 
-  const agentDir = resolveZeeAgentDir();
+  const agentDir = resolveMoltbotAgentDir();
   const store = ensureAuthProfileStore();
   const modelsPath = path.join(agentDir, "models.json");
 
@@ -123,11 +123,17 @@ export async function modelsStatusCommand(
   // a provider isn't currently selected in config/models).
   const envProbeProviders = [
     "anthropic",
+    "github-copilot",
+    "google-vertex",
     "openai",
     "google",
+    "groq",
+    "cerebras",
     "xai",
     "openrouter",
-    "zai-coding-plan",
+    "zai",
+    "mistral",
+    "synthetic",
   ];
   for (const provider of envProbeProviders) {
     if (resolveEnvApiKey(provider)) providersFromEnv.add(provider);
@@ -288,7 +294,7 @@ export async function modelsStatusCommand(
     runtime.log(
       JSON.stringify(
         {
-          configPath: CONFIG_PATH_ZEEBOT,
+          configPath: CONFIG_PATH,
           agentDir,
           defaultModel: defaultLabel,
           resolvedDefault: resolvedLabel,
@@ -335,7 +341,7 @@ export async function modelsStatusCommand(
     rawModel && rawModel !== resolvedLabel ? `${resolvedLabel} (from ${rawModel})` : resolvedLabel;
 
   runtime.log(
-    `${label("Config")}${colorize(rich, theme.muted, ":")} ${colorize(rich, theme.info, shortenHomePath(CONFIG_PATH_ZEEBOT))}`,
+    `${label("Config")}${colorize(rich, theme.muted, ":")} ${colorize(rich, theme.info, shortenHomePath(CONFIG_PATH))}`,
   );
   runtime.log(
     `${label("Agent dir")}${colorize(rich, theme.muted, ":")} ${colorize(
@@ -481,8 +487,8 @@ export async function modelsStatusCommand(
     for (const provider of missingProvidersInUse) {
       const hint =
         provider === "anthropic"
-          ? `Run \`claude setup-token\` or \`${formatCliCommand("zee configure")}\`.`
-          : `Run \`${formatCliCommand("zee configure")}\` or set an API key env var.`;
+          ? `Run \`claude setup-token\`, then \`${formatCliCommand("moltbot models auth setup-token")}\` or \`${formatCliCommand("moltbot configure")}\`.`
+          : `Run \`${formatCliCommand("moltbot configure")}\` or set an API key env var.`;
       runtime.log(`- ${theme.heading(provider)} ${hint}`);
     }
   }
@@ -552,9 +558,7 @@ export async function modelsStatusCommand(
             : profile.expiresAt
               ? ` expires in ${formatRemainingShort(profile.remainingMs)}`
               : " expires unknown";
-        const source =
-          profile.source !== "store" ? colorize(rich, theme.muted, ` (${profile.source})`) : "";
-        runtime.log(`  - ${label} ${status}${expiry}${source}`);
+        runtime.log(`  - ${label} ${status}${expiry}`);
       }
     }
   }
@@ -581,13 +585,13 @@ export async function modelsStatusCommand(
         const modelLabel = result.model ?? `${result.provider}/-`;
         const modeLabel = result.mode ? ` ${colorize(rich, theme.muted, `(${result.mode})`)}` : "";
         const profile = `${colorize(rich, theme.accent, result.label)}${modeLabel}`;
-        const detail = result.error ? colorize(rich, theme.muted, result.error) : "";
-        const statusLabel = `${status}${colorize(rich, theme.muted, ` · ${latency}`)}`;
+        const detail = result.error?.trim();
+        const detailLabel = detail ? `\n${colorize(rich, theme.muted, `↳ ${detail}`)}` : "";
+        const statusLabel = `${status}${colorize(rich, theme.muted, ` · ${latency}`)}${detailLabel}`;
         return {
           Model: colorize(rich, theme.heading, modelLabel),
           Profile: profile,
           Status: statusLabel,
-          Detail: detail,
         };
       });
       runtime.log(
@@ -597,7 +601,6 @@ export async function modelsStatusCommand(
             { key: "Model", header: "Model", minWidth: 18 },
             { key: "Profile", header: "Profile", minWidth: 24 },
             { key: "Status", header: "Status", minWidth: 12 },
-            { key: "Detail", header: "Detail", minWidth: 16, flex: true },
           ],
           rows,
         }).trimEnd(),

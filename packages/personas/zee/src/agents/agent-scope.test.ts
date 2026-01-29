@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import {
   resolveAgentConfig,
   resolveAgentModelFallbacksOverride,
@@ -8,15 +8,15 @@ import {
 
 describe("resolveAgentConfig", () => {
   it("should return undefined when no agents config exists", () => {
-    const cfg: ZeeConfig = {};
+    const cfg: MoltbotConfig = {};
     const result = resolveAgentConfig(cfg, "main");
     expect(result).toBeUndefined();
   });
 
   it("should return undefined when agent id does not exist", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
-        list: [{ id: "main", workspace: "~/zee" }],
+        list: [{ id: "main", workspace: "~/clawd" }],
       },
     };
     const result = resolveAgentConfig(cfg, "nonexistent");
@@ -24,14 +24,14 @@ describe("resolveAgentConfig", () => {
   });
 
   it("should return basic agent config", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
         list: [
           {
             id: "main",
             name: "Main Agent",
-            workspace: "~/zee",
-            agentDir: "~/.zee/agents/main",
+            workspace: "~/clawd",
+            agentDir: "~/.clawdbot/agents/main",
             model: "anthropic/claude-opus-4",
           },
         ],
@@ -40,8 +40,8 @@ describe("resolveAgentConfig", () => {
     const result = resolveAgentConfig(cfg, "main");
     expect(result).toEqual({
       name: "Main Agent",
-      workspace: "~/zee",
-      agentDir: "~/.zee/agents/main",
+      workspace: "~/clawd",
+      agentDir: "~/.clawdbot/agents/main",
       model: "anthropic/claude-opus-4",
       identity: undefined,
       groupChat: undefined,
@@ -52,7 +52,7 @@ describe("resolveAgentConfig", () => {
   });
 
   it("supports per-agent model primary+fallbacks", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
         defaults: {
           model: {
@@ -76,7 +76,7 @@ describe("resolveAgentConfig", () => {
     expect(resolveAgentModelFallbacksOverride(cfg, "linus")).toEqual(["openai/gpt-5.2"]);
 
     // If fallbacks isn't present, we don't override the global fallbacks.
-    const cfgNoOverride: ZeeConfig = {
+    const cfgNoOverride: MoltbotConfig = {
       agents: {
         list: [
           {
@@ -91,7 +91,7 @@ describe("resolveAgentConfig", () => {
     expect(resolveAgentModelFallbacksOverride(cfgNoOverride, "linus")).toBe(undefined);
 
     // Explicit empty list disables global fallbacks for that agent.
-    const cfgDisable: ZeeConfig = {
+    const cfgDisable: MoltbotConfig = {
       agents: {
         list: [
           {
@@ -108,12 +108,12 @@ describe("resolveAgentConfig", () => {
   });
 
   it("should return agent-specific sandbox config", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
         list: [
           {
             id: "work",
-            workspace: "~/zee-work",
+            workspace: "~/clawd-work",
             sandbox: {
               mode: "all",
               scope: "agent",
@@ -136,12 +136,12 @@ describe("resolveAgentConfig", () => {
   });
 
   it("should return agent-specific tools config", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
         list: [
           {
             id: "restricted",
-            workspace: "~/zee-restricted",
+            workspace: "~/clawd-restricted",
             tools: {
               allow: ["read"],
               deny: ["exec", "write", "edit"],
@@ -166,12 +166,12 @@ describe("resolveAgentConfig", () => {
   });
 
   it("should return both sandbox and tools config", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
         list: [
           {
             id: "family",
-            workspace: "~/zee-family",
+            workspace: "~/clawd-family",
             sandbox: {
               mode: "all",
               scope: "agent",
@@ -190,14 +190,14 @@ describe("resolveAgentConfig", () => {
   });
 
   it("should normalize agent id", () => {
-    const cfg: ZeeConfig = {
+    const cfg: MoltbotConfig = {
       agents: {
-        list: [{ id: "main", workspace: "~/zee" }],
+        list: [{ id: "main", workspace: "~/clawd" }],
       },
     };
     // Should normalize to "main" (default)
     const result = resolveAgentConfig(cfg, "");
     expect(result).toBeDefined();
-    expect(result?.workspace).toBe("~/zee");
+    expect(result?.workspace).toBe("~/clawd");
   });
 });

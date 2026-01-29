@@ -24,7 +24,7 @@ export type AcpServerOptions = {
 };
 
 export const ACP_AGENT_INFO = {
-  name: "zee-acp",
-  title: "Zee ACP Gateway",
+  name: "moltbot-acp",
+  title: "Moltbot ACP Gateway",
   version: VERSION,
 };

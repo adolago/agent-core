@@ -1,5 +1,3 @@
-import type express from "express";
-
 import type { BrowserFormField } from "../client-actions-core.js";
 import type { BrowserRouteContext } from "../server-context.js";
 import {
@@ -16,8 +14,12 @@ import {
   SELECTOR_UNSUPPORTED_MESSAGE,
 } from "./agent.shared.js";
 import { jsonError, toBoolean, toNumber, toStringArray, toStringOrEmpty } from "./utils.js";
+import type { BrowserRouteRegistrar } from "./types.js";
 
-export function registerBrowserAgentActRoutes(app: express.Express, ctx: BrowserRouteContext) {
+export function registerBrowserAgentActRoutes(
+  app: BrowserRouteRegistrar,
+  ctx: BrowserRouteContext,
+) {
   app.post("/act", async (req, res) => {
     const profileCtx = resolveProfileContext(req, res, ctx);
     if (!profileCtx) return;
@@ -215,7 +217,7 @@ export function registerBrowserAgentActRoutes(app: express.Express, ctx: Browser
               403,
               [
                 "wait --fn is disabled by config (browser.evaluateEnabled=false).",
-                "Docs: /gateway/configuration#browser-zee-managed-browser",
+                "Docs: /gateway/configuration#browser-clawd-managed-browser",
               ].join("\n"),
             );
           }
@@ -255,7 +257,7 @@ export function registerBrowserAgentActRoutes(app: express.Express, ctx: Browser
               403,
               [
                 "act:evaluate is disabled by config (browser.evaluateEnabled=false).",
-                "Docs: /gateway/configuration#browser-zee-managed-browser",
+                "Docs: /gateway/configuration#browser-clawd-managed-browser",
               ].join("\n"),
             );
           }

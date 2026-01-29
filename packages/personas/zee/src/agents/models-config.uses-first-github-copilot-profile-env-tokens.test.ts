@@ -2,13 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "zee-models-" });
+  return withTempHomeBase(fn, { prefix: "moltbot-models-" });
 }
 
-const _MODELS_CONFIG: ZeeConfig = {
+const _MODELS_CONFIG: MoltbotConfig = {
   models: {
     providers: {
       "custom-proxy": {
@@ -92,9 +92,9 @@ describe("models-config", () => {
           resolveCopilotApiToken,
         }));
 
-        const { ensureZeeModelsJson } = await import("./models-config.js");
+        const { ensureMoltbotModelsJson } = await import("./models-config.js");
 
-        await ensureZeeModelsJson({ models: { providers: {} } }, agentDir);
+        await ensureMoltbotModelsJson({ models: { providers: {} } }, agentDir);
 
         expect(resolveCopilotApiToken).toHaveBeenCalledWith(
           expect.objectContaining({ githubToken: "alpha-token" }),
@@ -127,10 +127,10 @@ describe("models-config", () => {
           }),
         }));
 
-        const { ensureZeeModelsJson } = await import("./models-config.js");
-        const { resolveZeeAgentDir } = await import("./agent-paths.js");
+        const { ensureMoltbotModelsJson } = await import("./models-config.js");
+        const { resolveMoltbotAgentDir } = await import("./agent-paths.js");
 
-        await ensureZeeModelsJson({
+        await ensureMoltbotModelsJson({
           models: {
             providers: {
               "github-copilot": {
@@ -142,7 +142,7 @@ describe("models-config", () => {
           },
         });
 
-        const agentDir = resolveZeeAgentDir();
+        const agentDir = resolveMoltbotAgentDir();
         const raw = await fs.readFile(path.join(agentDir, "models.json"), "utf8");
         const parsed = JSON.parse(raw) as {
           providers: Record<string, { baseUrl?: string }>;

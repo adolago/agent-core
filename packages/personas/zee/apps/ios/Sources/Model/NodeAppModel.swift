@@ -1,4 +1,4 @@
-import ZeeKit
+import MoltbotKit
 import Network
 import Observation
 import SwiftUI
@@ -90,7 +90,7 @@ final class NodeAppModel {
         }()
         guard !userAction.isEmpty else { return }
 
-        guard let name = ZeeCanvasA2UIAction.extractActionName(userAction) else { return }
+        guard let name = MoltbotCanvasA2UIAction.extractActionName(userAction) else { return }
         let actionId: String = {
             let id = (userAction["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return id.isEmpty ? UUID().uuidString : id
@@ -109,15 +109,15 @@ final class NodeAppModel {
 
         let host = UserDefaults.standard.string(forKey: "node.displayName") ?? UIDevice.current.name
         let instanceId = (UserDefaults.standard.string(forKey: "node.instanceId") ?? "ios-node").lowercased()
-        let contextJSON = ZeeCanvasA2UIAction.compactJSON(userAction["context"])
+        let contextJSON = MoltbotCanvasA2UIAction.compactJSON(userAction["context"])
         let sessionKey = self.mainSessionKey
 
-        let messageContext = ZeeCanvasA2UIAction.AgentMessageContext(
+        let messageContext = MoltbotCanvasA2UIAction.AgentMessageContext(
             actionName: name,
             session: .init(key: sessionKey, surfaceId: surfaceId),
             component: .init(id: sourceComponentId, host: host, instanceId: instanceId),
             contextJSON: contextJSON)
-        let message = ZeeCanvasA2UIAction.formatAgentMessage(messageContext)
+        let message = MoltbotCanvasA2UIAction.formatAgentMessage(messageContext)
 
         let ok: Bool
         var errorText: String?
@@ -142,7 +142,7 @@ final class NodeAppModel {
             }
         }
 
-        let js = ZeeCanvasA2UIAction.jsDispatchA2UIActionStatus(actionId: actionId, ok: ok, error: errorText)
+        let js = MoltbotCanvasA2UIAction.jsDispatchA2UIActionStatus(actionId: actionId, ok: ok, error: errorText)
         do {
             _ = try await self.screen.eval(javaScript: js)
         } catch {
@@ -154,7 +154,7 @@ final class NodeAppModel {
         guard let raw = await self.gateway.currentCanvasHostUrl() else { return nil }
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let base = URL(string: trimmed) else { return nil }
-        return base.appendingPathComponent("__zee__/a2ui/").absoluteString + "?platform=ios"
+        return base.appendingPathComponent("__moltbot__/a2ui/").absoluteString + "?platform=ios"
     }
 
     private func showA2UIOnConnectIfNeeded() async {
@@ -190,7 +190,7 @@ final class NodeAppModel {
         self.talkMode.setEnabled(enabled)
     }
 
-    func requestLocationPermissions(mode: ZeeLocationMode) async -> Bool {
+    func requestLocationPermissions(mode: MoltbotLocationMode) async -> Bool {
         guard mode != .off else { return true }
         let status = await self.locationService.ensureAuthorization(mode: mode)
         switch status {
@@ -272,7 +272,7 @@ final class NodeAppModel {
                                 return BridgeInvokeResponse(
                                     id: req.id,
                                     ok: false,
-                                    error: ZeeNodeError(
+                                    error: MoltbotNodeError(
                                         code: .unavailable,
                                         message: "UNAVAILABLE: node not ready"))
                             }
@@ -487,7 +487,7 @@ final class NodeAppModel {
         }
 
         // iOS gateway forwards to the gateway; no local auth prompts here.
-        // (Key-based unattended auth is handled on macOS for zee:// links.)
+        // (Key-based unattended auth is handled on macOS for moltbot:// links.)
         let data = try JSONEncoder().encode(link)
         guard let json = String(bytes: data, encoding: .utf8) else {
             throw NSError(domain: "NodeAppModel", code: 2, userInfo: [
@@ -508,7 +508,7 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(
+                error: MoltbotNodeError(
                     code: .backgroundUnavailable,
                     message: "NODE_BACKGROUND_UNAVAILABLE: canvas/camera/screen commands require foreground"))
         }
@@ -517,36 +517,36 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(
+                error: MoltbotNodeError(
                     code: .unavailable,
                     message: "CAMERA_DISABLED: enable Camera in iOS Settings → Camera → Allow Camera"))
         }
 
         do {
             switch command {
-            case ZeeLocationCommand.get.rawValue:
+            case MoltbotLocationCommand.get.rawValue:
                 return try await self.handleLocationInvoke(req)
-            case ZeeCanvasCommand.present.rawValue,
-                 ZeeCanvasCommand.hide.rawValue,
-                 ZeeCanvasCommand.navigate.rawValue,
-                 ZeeCanvasCommand.evalJS.rawValue,
-                 ZeeCanvasCommand.snapshot.rawValue:
+            case MoltbotCanvasCommand.present.rawValue,
+                 MoltbotCanvasCommand.hide.rawValue,
+                 MoltbotCanvasCommand.navigate.rawValue,
+                 MoltbotCanvasCommand.evalJS.rawValue,
+                 MoltbotCanvasCommand.snapshot.rawValue:
                 return try await self.handleCanvasInvoke(req)
-            case ZeeCanvasA2UICommand.reset.rawValue,
-                 ZeeCanvasA2UICommand.push.rawValue,
-                 ZeeCanvasA2UICommand.pushJSONL.rawValue:
+            case MoltbotCanvasA2UICommand.reset.rawValue,
+                 MoltbotCanvasA2UICommand.push.rawValue,
+                 MoltbotCanvasA2UICommand.pushJSONL.rawValue:
                 return try await self.handleCanvasA2UIInvoke(req)
-            case ZeeCameraCommand.list.rawValue,
-                 ZeeCameraCommand.snap.rawValue,
-                 ZeeCameraCommand.clip.rawValue:
+            case MoltbotCameraCommand.list.rawValue,
+                 MoltbotCameraCommand.snap.rawValue,
+                 MoltbotCameraCommand.clip.rawValue:
                 return try await self.handleCameraInvoke(req)
-            case ZeeScreenCommand.record.rawValue:
+            case MoltbotScreenCommand.record.rawValue:
                 return try await self.handleScreenRecordInvoke(req)
             default:
                 return BridgeInvokeResponse(
                     id: req.id,
                     ok: false,
-                    error: ZeeNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
+                    error: MoltbotNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
             }
         } catch {
             if command.hasPrefix("camera.") {
@@ -556,7 +556,7 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(code: .unavailable, message: error.localizedDescription))
+                error: MoltbotNodeError(code: .unavailable, message: error.localizedDescription))
         }
     }
 
@@ -570,7 +570,7 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(
+                error: MoltbotNodeError(
                     code: .unavailable,
                     message: "LOCATION_DISABLED: enable Location in Settings"))
         }
@@ -578,12 +578,12 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(
+                error: MoltbotNodeError(
                     code: .backgroundUnavailable,
                     message: "LOCATION_BACKGROUND_UNAVAILABLE: background location requires Always"))
         }
-        let params = (try? Self.decodeParams(ZeeLocationGetParams.self, from: req.paramsJSON)) ??
-            ZeeLocationGetParams()
+        let params = (try? Self.decodeParams(MoltbotLocationGetParams.self, from: req.paramsJSON)) ??
+            MoltbotLocationGetParams()
         let desired = params.desiredAccuracy ??
             (self.isLocationPreciseEnabled() ? .precise : .balanced)
         let status = self.locationService.authorizationStatus()
@@ -591,7 +591,7 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(
+                error: MoltbotNodeError(
                     code: .unavailable,
                     message: "LOCATION_PERMISSION_REQUIRED: grant Location permission"))
         }
@@ -599,7 +599,7 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(
+                error: MoltbotNodeError(
                     code: .unavailable,
                     message: "LOCATION_PERMISSION_REQUIRED: enable Always for background access"))
         }
@@ -609,7 +609,7 @@ final class NodeAppModel {
             maxAgeMs: params.maxAgeMs,
             timeoutMs: params.timeoutMs)
         let isPrecise = self.locationService.accuracyAuthorization() == .fullAccuracy
-        let payload = ZeeLocationPayload(
+        let payload = MoltbotLocationPayload(
             lat: location.coordinate.latitude,
             lon: location.coordinate.longitude,
             accuracyMeters: location.horizontalAccuracy,
@@ -625,9 +625,9 @@ final class NodeAppModel {
 
     private func handleCanvasInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
         switch req.command {
-        case ZeeCanvasCommand.present.rawValue:
-            let params = (try? Self.decodeParams(ZeeCanvasPresentParams.self, from: req.paramsJSON)) ??
-                ZeeCanvasPresentParams()
+        case MoltbotCanvasCommand.present.rawValue:
+            let params = (try? Self.decodeParams(MoltbotCanvasPresentParams.self, from: req.paramsJSON)) ??
+                MoltbotCanvasPresentParams()
             let url = params.url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if url.isEmpty {
                 self.screen.showDefaultCanvas()
@@ -635,19 +635,19 @@ final class NodeAppModel {
                 self.screen.navigate(to: url)
             }
             return BridgeInvokeResponse(id: req.id, ok: true)
-        case ZeeCanvasCommand.hide.rawValue:
+        case MoltbotCanvasCommand.hide.rawValue:
             return BridgeInvokeResponse(id: req.id, ok: true)
-        case ZeeCanvasCommand.navigate.rawValue:
-            let params = try Self.decodeParams(ZeeCanvasNavigateParams.self, from: req.paramsJSON)
+        case MoltbotCanvasCommand.navigate.rawValue:
+            let params = try Self.decodeParams(MoltbotCanvasNavigateParams.self, from: req.paramsJSON)
             self.screen.navigate(to: params.url)
             return BridgeInvokeResponse(id: req.id, ok: true)
-        case ZeeCanvasCommand.evalJS.rawValue:
-            let params = try Self.decodeParams(ZeeCanvasEvalParams.self, from: req.paramsJSON)
+        case MoltbotCanvasCommand.evalJS.rawValue:
+            let params = try Self.decodeParams(MoltbotCanvasEvalParams.self, from: req.paramsJSON)
             let result = try await self.screen.eval(javaScript: params.javaScript)
             let payload = try Self.encodePayload(["result": result])
             return BridgeInvokeResponse(id: req.id, ok: true, payloadJSON: payload)
-        case ZeeCanvasCommand.snapshot.rawValue:
-            let params = try? Self.decodeParams(ZeeCanvasSnapshotParams.self, from: req.paramsJSON)
+        case MoltbotCanvasCommand.snapshot.rawValue:
+            let params = try? Self.decodeParams(MoltbotCanvasSnapshotParams.self, from: req.paramsJSON)
             let format = params?.format ?? .jpeg
             let maxWidth: CGFloat? = {
                 if let raw = params?.maxWidth, raw > 0 { return CGFloat(raw) }
@@ -671,19 +671,19 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
+                error: MoltbotNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
         }
     }
 
     private func handleCanvasA2UIInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
         let command = req.command
         switch command {
-        case ZeeCanvasA2UICommand.reset.rawValue:
+        case MoltbotCanvasA2UICommand.reset.rawValue:
             guard let a2uiUrl = await self.resolveA2UIHostURL() else {
                 return BridgeInvokeResponse(
                     id: req.id,
                     ok: false,
-                    error: ZeeNodeError(
+                    error: MoltbotNodeError(
                         code: .unavailable,
                         message: "A2UI_HOST_NOT_CONFIGURED: gateway did not advertise canvas host"))
             }
@@ -692,31 +692,31 @@ final class NodeAppModel {
                 return BridgeInvokeResponse(
                     id: req.id,
                     ok: false,
-                    error: ZeeNodeError(
+                    error: MoltbotNodeError(
                         code: .unavailable,
                         message: "A2UI_HOST_UNAVAILABLE: A2UI host not reachable"))
             }
 
             let json = try await self.screen.eval(javaScript: """
             (() => {
-              if (!globalThis.zeeA2UI) return JSON.stringify({ ok: false, error: "missing zeeA2UI" });
-              return JSON.stringify(globalThis.zeeA2UI.reset());
+              if (!globalThis.clawdbotA2UI) return JSON.stringify({ ok: false, error: "missing moltbotA2UI" });
+              return JSON.stringify(globalThis.clawdbotA2UI.reset());
             })()
             """)
             return BridgeInvokeResponse(id: req.id, ok: true, payloadJSON: json)
-        case ZeeCanvasA2UICommand.push.rawValue, ZeeCanvasA2UICommand.pushJSONL.rawValue:
+        case MoltbotCanvasA2UICommand.push.rawValue, MoltbotCanvasA2UICommand.pushJSONL.rawValue:
             let messages: [AnyCodable]
-            if command == ZeeCanvasA2UICommand.pushJSONL.rawValue {
-                let params = try Self.decodeParams(ZeeCanvasA2UIPushJSONLParams.self, from: req.paramsJSON)
-                messages = try ZeeCanvasA2UIJSONL.decodeMessagesFromJSONL(params.jsonl)
+            if command == MoltbotCanvasA2UICommand.pushJSONL.rawValue {
+                let params = try Self.decodeParams(MoltbotCanvasA2UIPushJSONLParams.self, from: req.paramsJSON)
+                messages = try MoltbotCanvasA2UIJSONL.decodeMessagesFromJSONL(params.jsonl)
             } else {
                 do {
-                    let params = try Self.decodeParams(ZeeCanvasA2UIPushParams.self, from: req.paramsJSON)
+                    let params = try Self.decodeParams(MoltbotCanvasA2UIPushParams.self, from: req.paramsJSON)
                     messages = params.messages
                 } catch {
                     // Be forgiving: some clients still send JSONL payloads to `canvas.a2ui.push`.
-                    let params = try Self.decodeParams(ZeeCanvasA2UIPushJSONLParams.self, from: req.paramsJSON)
-                    messages = try ZeeCanvasA2UIJSONL.decodeMessagesFromJSONL(params.jsonl)
+                    let params = try Self.decodeParams(MoltbotCanvasA2UIPushJSONLParams.self, from: req.paramsJSON)
+                    messages = try MoltbotCanvasA2UIJSONL.decodeMessagesFromJSONL(params.jsonl)
                 }
             }
 
@@ -724,7 +724,7 @@ final class NodeAppModel {
                 return BridgeInvokeResponse(
                     id: req.id,
                     ok: false,
-                    error: ZeeNodeError(
+                    error: MoltbotNodeError(
                         code: .unavailable,
                         message: "A2UI_HOST_NOT_CONFIGURED: gateway did not advertise canvas host"))
             }
@@ -733,18 +733,18 @@ final class NodeAppModel {
                 return BridgeInvokeResponse(
                     id: req.id,
                     ok: false,
-                    error: ZeeNodeError(
+                    error: MoltbotNodeError(
                         code: .unavailable,
                         message: "A2UI_HOST_UNAVAILABLE: A2UI host not reachable"))
             }
 
-            let messagesJSON = try ZeeCanvasA2UIJSONL.encodeMessagesJSONArray(messages)
+            let messagesJSON = try MoltbotCanvasA2UIJSONL.encodeMessagesJSONArray(messages)
             let js = """
             (() => {
               try {
-                if (!globalThis.zeeA2UI) return JSON.stringify({ ok: false, error: "missing zeeA2UI" });
+                if (!globalThis.clawdbotA2UI) return JSON.stringify({ ok: false, error: "missing moltbotA2UI" });
                 const messages = \(messagesJSON);
-                return JSON.stringify(globalThis.zeeA2UI.applyMessages(messages));
+                return JSON.stringify(globalThis.clawdbotA2UI.applyMessages(messages));
               } catch (e) {
                 return JSON.stringify({ ok: false, error: String(e?.message ?? e) });
               }
@@ -756,24 +756,24 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
+                error: MoltbotNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
         }
     }
 
     private func handleCameraInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
         switch req.command {
-        case ZeeCameraCommand.list.rawValue:
+        case MoltbotCameraCommand.list.rawValue:
             let devices = await self.camera.listDevices()
             struct Payload: Codable {
                 var devices: [CameraController.CameraDeviceInfo]
             }
             let payload = try Self.encodePayload(Payload(devices: devices))
             return BridgeInvokeResponse(id: req.id, ok: true, payloadJSON: payload)
-        case ZeeCameraCommand.snap.rawValue:
+        case MoltbotCameraCommand.snap.rawValue:
             self.showCameraHUD(text: "Taking photo…", kind: .photo)
             self.triggerCameraFlash()
-            let params = (try? Self.decodeParams(ZeeCameraSnapParams.self, from: req.paramsJSON)) ??
-                ZeeCameraSnapParams()
+            let params = (try? Self.decodeParams(MoltbotCameraSnapParams.self, from: req.paramsJSON)) ??
+                MoltbotCameraSnapParams()
             let res = try await self.camera.snap(params: params)
 
             struct Payload: Codable {
@@ -789,9 +789,9 @@ final class NodeAppModel {
                 height: res.height))
             self.showCameraHUD(text: "Photo captured", kind: .success, autoHideSeconds: 1.6)
             return BridgeInvokeResponse(id: req.id, ok: true, payloadJSON: payload)
-        case ZeeCameraCommand.clip.rawValue:
-            let params = (try? Self.decodeParams(ZeeCameraClipParams.self, from: req.paramsJSON)) ??
-                ZeeCameraClipParams()
+        case MoltbotCameraCommand.clip.rawValue:
+            let params = (try? Self.decodeParams(MoltbotCameraClipParams.self, from: req.paramsJSON)) ??
+                MoltbotCameraClipParams()
 
             let suspended = (params.includeAudio ?? true) ? self.voiceWake.suspendForExternalAudioCapture() : false
             defer { self.voiceWake.resumeAfterExternalAudioCapture(wasSuspended: suspended) }
@@ -816,13 +816,13 @@ final class NodeAppModel {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
-                error: ZeeNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
+                error: MoltbotNodeError(code: .invalidRequest, message: "INVALID_REQUEST: unknown command"))
         }
     }
 
     private func handleScreenRecordInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
-        let params = (try? Self.decodeParams(ZeeScreenRecordParams.self, from: req.paramsJSON)) ??
-            ZeeScreenRecordParams()
+        let params = (try? Self.decodeParams(MoltbotScreenRecordParams.self, from: req.paramsJSON)) ??
+            MoltbotScreenRecordParams()
         if let format = params.format, format.lowercased() != "mp4" {
             throw NSError(domain: "Screen", code: 30, userInfo: [
                 NSLocalizedDescriptionKey: "INVALID_REQUEST: screen format must be mp4",
@@ -860,9 +860,9 @@ final class NodeAppModel {
 }
 
 private extension NodeAppModel {
-    func locationMode() -> ZeeLocationMode {
+    func locationMode() -> MoltbotLocationMode {
         let raw = UserDefaults.standard.string(forKey: "location.enabledMode") ?? "off"
-        return ZeeLocationMode(rawValue: raw) ?? .off
+        return MoltbotLocationMode(rawValue: raw) ?? .off
     }
 
     func isLocationPreciseEnabled() -> Bool {

@@ -1,17 +1,17 @@
-import ZeeKit
+import MoltbotKit
 import Network
 import Testing
-@testable import Zee
+@testable import Moltbot
 
 @Suite struct GatewayEndpointIDTests {
     @Test func stableIDForServiceDecodesAndNormalizesName() {
         let endpoint = NWEndpoint.service(
-            name: "Zee\\032Gateway   \\032  Node\n",
-            type: "_zee-gw._tcp",
+            name: "Moltbot\\032Gateway   \\032  Node\n",
+            type: "_moltbot-gw._tcp",
             domain: "local.",
             interface: nil)
 
-        #expect(GatewayEndpointID.stableID(endpoint) == "_zee-gw._tcp|local.|Zee Gateway Node")
+        #expect(GatewayEndpointID.stableID(endpoint) == "_moltbot-gw._tcp|local.|Moltbot Gateway Node")
     }
 
     @Test func stableIDForNonServiceUsesEndpointDescription() {
@@ -21,8 +21,8 @@ import Testing
 
     @Test func prettyDescriptionDecodesBonjourEscapes() {
         let endpoint = NWEndpoint.service(
-            name: "Zee\\032Gateway",
-            type: "_zee-gw._tcp",
+            name: "Moltbot\\032Gateway",
+            type: "_moltbot-gw._tcp",
             domain: "local.",
             interface: nil)
 

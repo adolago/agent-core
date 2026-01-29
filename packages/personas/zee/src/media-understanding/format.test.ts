@@ -10,7 +10,7 @@ describe("formatMediaUnderstandingBody", () => {
           kind: "audio.transcription",
           attachmentIndex: 0,
           text: "hello world",
-          provider: "google",
+          provider: "groq",
         },
       ],
     });
@@ -25,7 +25,7 @@ describe("formatMediaUnderstandingBody", () => {
           kind: "audio.transcription",
           attachmentIndex: 0,
           text: "transcribed",
-          provider: "google",
+          provider: "groq",
         },
       ],
     });
@@ -40,7 +40,7 @@ describe("formatMediaUnderstandingBody", () => {
           kind: "audio.transcription",
           attachmentIndex: 0,
           text: "transcribed",
-          provider: "google",
+          provider: "groq",
         },
       ],
     });
@@ -55,7 +55,7 @@ describe("formatMediaUnderstandingBody", () => {
           kind: "audio.transcription",
           attachmentIndex: 0,
           text: "audio text",
-          provider: "google",
+          provider: "groq",
         },
         {
           kind: "video.description",
@@ -82,7 +82,7 @@ describe("formatMediaUnderstandingBody", () => {
           kind: "image.description",
           attachmentIndex: 0,
           text: "a cat",
-          provider: "google",
+          provider: "openai",
         },
       ],
     });

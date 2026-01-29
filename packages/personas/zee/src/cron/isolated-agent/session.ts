@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { loadSessionStore, resolveStorePath, type SessionEntry } from "../../config/sessions.js";
 
 export function resolveCronSession(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   sessionKey: string;
   nowMs: number;
   agentId: string;

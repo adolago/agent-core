@@ -46,7 +46,7 @@ describe("sendReactionSignal", () => {
 
   it("uses groupIds array and maps targetAuthorUuid", async () => {
     const { sendReactionSignal } = await loadSendReactions();
-    await sendReactionSignal("", 123, "+", {
+    await sendReactionSignal("", 123, "✅", {
       groupId: "group-id",
       targetAuthorUuid: "uuid:123e4567-e89b-12d3-a456-426614174000",
     });
@@ -59,7 +59,7 @@ describe("sendReactionSignal", () => {
 
   it("defaults targetAuthor to recipient for removals", async () => {
     const { removeReactionSignal } = await loadSendReactions();
-    await removeReactionSignal("+15551230000", 456, "x");
+    await removeReactionSignal("+15551230000", 456, "❌");
 
     const params = rpcMock.mock.calls[0]?.[1] as Record<string, unknown>;
     expect(params.recipients).toEqual(["+15551230000"]);

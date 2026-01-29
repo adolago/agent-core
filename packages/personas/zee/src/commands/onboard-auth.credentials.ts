@@ -1,8 +1,8 @@
 import type { OAuthCredentials } from "@mariozechner/pi-ai";
-import { resolveZeeAgentDir } from "../agents/agent-paths.js";
+import { resolveMoltbotAgentDir } from "../agents/agent-paths.js";
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
 
-const resolveAuthAgentDir = (agentDir?: string) => agentDir ?? resolveZeeAgentDir();
+const resolveAuthAgentDir = (agentDir?: string) => agentDir ?? resolveMoltbotAgentDir();
 
 export async function writeOAuthCredentials(
   provider: string,
@@ -119,10 +119,10 @@ export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/
 export async function setZaiApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
   upsertAuthProfile({
-    profileId: "zai-coding-plan:default",
+    profileId: "zai:default",
     credential: {
       type: "api_key",
-      provider: "zai-coding-plan",
+      provider: "zai",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),
@@ -153,3 +153,14 @@ export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
   });
 }
 
+export async function setOpencodeZenApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "opencode:default",
+    credential: {
+      type: "api_key",
+      provider: "opencode",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}

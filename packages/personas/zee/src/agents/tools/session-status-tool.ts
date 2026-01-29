@@ -19,7 +19,7 @@ import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../d
 import { normalizeGroupActivation } from "../../auto-reply/group-activation.js";
 import { getFollowupQueueDepth, resolveQueueSettings } from "../../auto-reply/reply/queue.js";
 import { buildStatusMessage } from "../../auto-reply/status.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import {
   loadSessionStore,
@@ -64,7 +64,7 @@ function formatApiKeySnippet(apiKey: string): string {
 
 function resolveModelAuthLabel(params: {
   provider?: string;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   sessionEntry?: SessionEntry;
   agentDir?: string;
 }): string | undefined {
@@ -156,7 +156,7 @@ function resolveSessionEntry(params: {
 }
 
 function resolveSessionKeyFromSessionId(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   sessionId: string;
   agentId?: string;
 }): string | null {
@@ -172,7 +172,7 @@ function resolveSessionKeyFromSessionId(params: {
 }
 
 async function resolveModelOverride(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   raw: string;
   sessionEntry?: SessionEntry;
   agentId: string;
@@ -232,13 +232,13 @@ async function resolveModelOverride(params: {
 
 export function createSessionStatusTool(opts?: {
   agentSessionKey?: string;
-  config?: ZeeConfig;
+  config?: MoltbotConfig;
 }): AnyAgentTool {
   return {
     label: "Session Status",
     name: "session_status",
     description:
-      "Show a /status-equivalent session status card (usage + time + cost when available). Use for model-use questions (# session_status). Optional: set per-session model override (model=default resets overrides).",
+      "Show a /status-equivalent session status card (usage + time + cost when available). Use for model-use questions (📊 session_status). Optional: set per-session model override (model=default resets overrides).",
     parameters: SessionStatusToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -369,7 +369,7 @@ export function createSessionStatusTool(opts?: {
               includeResets: true,
             });
             if (formatted && !formatted.startsWith("error:")) {
-              usageLine = `◆ Usage: ${formatted}`;
+              usageLine = `📊 Usage: ${formatted}`;
             }
           }
         } catch {
@@ -401,8 +401,8 @@ export function createSessionStatusTool(opts?: {
       const userTimeFormat = resolveUserTimeFormat(cfg.agents?.defaults?.timeFormat);
       const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
       const timeLine = userTime
-        ? `⏱ Time: ${userTime} (${userTimezone})`
-        : `⏱ Time zone: ${userTimezone}`;
+        ? `🕒 Time: ${userTime} (${userTimezone})`
+        : `🕒 Time zone: ${userTimezone}`;
 
       const agentDefaults = cfg.agents?.defaults ?? {};
       const defaultLabel = `${configured.provider}/${configured.model}`;

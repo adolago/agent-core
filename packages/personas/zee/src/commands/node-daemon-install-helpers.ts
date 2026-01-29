@@ -58,7 +58,7 @@ export async function buildNodeInstallPlan(params: {
 
   const environment = buildNodeServiceEnvironment({ env: params.env });
   const description = formatNodeServiceDescription({
-    version: environment.ZEE_SERVICE_VERSION,
+    version: environment.CLAWDBOT_SERVICE_VERSION,
   });
 
   return { programArguments, workingDirectory, environment, description };

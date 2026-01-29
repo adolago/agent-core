@@ -696,7 +696,7 @@ export function createEventCard(params: {
         contents: [
           {
             type: "text",
-            text: "*",
+            text: "📍",
             size: "sm",
             flex: 0,
           } as FlexText,

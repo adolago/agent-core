@@ -31,9 +31,9 @@ const NOW = Date.now();
 
 function createContainer(overrides: Partial<SandboxContainerInfo> = {}): SandboxContainerInfo {
   return {
-    containerName: "zee-sandbox-test",
+    containerName: "clawd-sandbox-test",
     sessionKey: "test-session",
-    image: "zee/sandbox:latest",
+    image: "clawd/sandbox:latest",
     imageMatch: true,
     running: true,
     createdAtMs: NOW - 3600000,
@@ -44,9 +44,9 @@ function createContainer(overrides: Partial<SandboxContainerInfo> = {}): Sandbox
 
 function createBrowser(overrides: Partial<SandboxBrowserInfo> = {}): SandboxBrowserInfo {
   return {
-    containerName: "zee-browser-test",
+    containerName: "clawd-browser-test",
     sessionKey: "test-session",
-    image: "zee/browser:latest",
+    image: "clawd/browser:latest",
     imageMatch: true,
     running: true,
     createdAtMs: NOW - 3600000,
@@ -105,7 +105,7 @@ describe("sandboxListCommand", () => {
 
       await sandboxListCommand({ browser: false, json: false }, runtime as never);
 
-      expectLogContains(runtime, "* Sandbox Containers");
+      expectLogContains(runtime, "📦 Sandbox Containers");
       expectLogContains(runtime, container1.containerName);
       expectLogContains(runtime, container2.containerName);
       expectLogContains(runtime, "Total");
@@ -117,7 +117,7 @@ describe("sandboxListCommand", () => {
 
       await sandboxListCommand({ browser: true, json: false }, runtime as never);
 
-      expectLogContains(runtime, "Browser Sandbox Browser Containers");
+      expectLogContains(runtime, "🌐 Sandbox Browser Containers");
       expectLogContains(runtime, browser.containerName);
       expectLogContains(runtime, String(browser.cdpPort));
     });
@@ -128,9 +128,9 @@ describe("sandboxListCommand", () => {
 
       await sandboxListCommand({ browser: false, json: false }, runtime as never);
 
-      expectLogContains(runtime, "!");
+      expectLogContains(runtime, "⚠️");
       expectLogContains(runtime, "image mismatch");
-      expectLogContains(runtime, "zee sandbox recreate --all");
+      expectLogContains(runtime, "sandbox recreate --all");
     });
 
     it("should display message when no containers found", async () => {

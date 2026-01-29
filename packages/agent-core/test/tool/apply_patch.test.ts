@@ -12,6 +12,7 @@ const baseCtx = {
   agent: "build",
   abort: AbortSignal.any([]),
   directory: process.cwd(),
+  worktree: process.cwd(),
   metadata: () => {},
 }
 

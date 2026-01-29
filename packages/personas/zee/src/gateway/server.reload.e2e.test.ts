@@ -172,22 +172,22 @@ describe("gateway hot reload", () => {
   let prevSkipGmail: string | undefined;
 
   beforeEach(() => {
-    prevSkipChannels = process.env.ZEE_SKIP_CHANNELS;
-    prevSkipGmail = process.env.ZEE_SKIP_GMAIL_WATCHER;
-    process.env.ZEE_SKIP_CHANNELS = "0";
-    delete process.env.ZEE_SKIP_GMAIL_WATCHER;
+    prevSkipChannels = process.env.CLAWDBOT_SKIP_CHANNELS;
+    prevSkipGmail = process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
+    process.env.CLAWDBOT_SKIP_CHANNELS = "0";
+    delete process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
   });
 
   afterEach(() => {
     if (prevSkipChannels === undefined) {
-      delete process.env.ZEE_SKIP_CHANNELS;
+      delete process.env.CLAWDBOT_SKIP_CHANNELS;
     } else {
-      process.env.ZEE_SKIP_CHANNELS = prevSkipChannels;
+      process.env.CLAWDBOT_SKIP_CHANNELS = prevSkipChannels;
     }
     if (prevSkipGmail === undefined) {
-      delete process.env.ZEE_SKIP_GMAIL_WATCHER;
+      delete process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
     } else {
-      process.env.ZEE_SKIP_GMAIL_WATCHER = prevSkipGmail;
+      process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = prevSkipGmail;
     }
   });
 
@@ -206,7 +206,7 @@ describe("gateway hot reload", () => {
       },
       cron: { enabled: true, store: "/tmp/cron.json" },
       agents: { defaults: { heartbeat: { every: "1m" }, maxConcurrent: 2 } },
-      browser: { enabled: true, controlUrl: "http://127.0.0.1:18791" },
+      browser: { enabled: true },
       web: { enabled: true },
       channels: {
         telegram: { botToken: "token" },

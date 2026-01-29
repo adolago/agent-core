@@ -89,6 +89,7 @@ export async function runAgentTurnWithFallback(params: {
     registerAgentRunContext(runId, {
       sessionKey: params.sessionKey,
       verboseLevel: params.resolvedVerboseLevel,
+      isHeartbeat: params.isHeartbeat,
     });
   }
   let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
@@ -137,6 +138,7 @@ export async function runAgentTurnWithFallback(params: {
         cfg: params.followupRun.run.config,
         provider: params.followupRun.run.provider,
         model: params.followupRun.run.model,
+        agentDir: params.followupRun.run.agentDir,
         fallbacksOverride: resolveAgentModelFallbacksOverride(
           params.followupRun.run.config,
           resolveAgentIdFromSessionKey(params.followupRun.run.sessionKey),
@@ -179,6 +181,17 @@ export async function runAgentTurnWithFallback(params: {
               images: params.opts?.images,
             })
               .then((result) => {
+                // CLI backends don't emit streaming assistant events, so we need to
+                // emit one with the final text so server-chat can populate its buffer
+                // and send the response to TUI/WebSocket clients.
+                const cliText = result.payloads?.[0]?.text?.trim();
+                if (cliText) {
+                  emitAgentEvent({
+                    runId,
+                    stream: "assistant",
+                    data: { text: cliText },
+                  });
+                }
                 emitAgentEvent({
                   runId,
                   stream: "lifecycle",
@@ -219,6 +232,10 @@ export async function runAgentTurnWithFallback(params: {
             groupChannel:
               params.sessionCtx.GroupChannel?.trim() ?? params.sessionCtx.GroupSubject?.trim(),
             groupSpace: params.sessionCtx.GroupSpace?.trim() ?? undefined,
+            senderId: params.sessionCtx.SenderId?.trim() || undefined,
+            senderName: params.sessionCtx.SenderName?.trim() || undefined,
+            senderUsername: params.sessionCtx.SenderUsername?.trim() || undefined,
+            senderE164: params.sessionCtx.SenderE164?.trim() || undefined,
             // Provider threading context for tool auto-injection
             ...buildThreadingToolContext({
               sessionCtx: params.sessionCtx,
@@ -358,12 +375,13 @@ export async function runAgentTurnWithFallback(params: {
                   // Use pipeline if available (block streaming enabled), otherwise send directly
                   if (params.blockStreamingEnabled && params.blockReplyPipeline) {
                     params.blockReplyPipeline.enqueue(blockPayload);
-                  } else {
-                    // Send directly when flushing before tool execution (no streaming).
+                  } else if (params.blockStreamingEnabled) {
+                    // Send directly when flushing before tool execution (no pipeline but streaming enabled).
                     // Track sent key to avoid duplicate in final payloads.
                     directlySentBlockKeys.add(createBlockReplyPayloadKey(blockPayload));
                     await params.opts?.onBlockReply?.(blockPayload);
                   }
+                  // When streaming is disabled entirely, blocks are accumulated in final text instead.
                 }
               : undefined,
             onBlockReplyFlush:
@@ -417,7 +435,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠ Context limit exceeded. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
+            text: "⚠️ Context limit exceeded. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
           },
         };
       }
@@ -427,7 +445,7 @@ export async function runAgentTurnWithFallback(params: {
           return {
             kind: "final",
             payload: {
-              text: "⚠ Message ordering conflict. I've reset the conversation - please try again.",
+              text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
             },
           };
         }
@@ -450,7 +468,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠ Context limit exceeded during compaction. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
+            text: "⚠️ Context limit exceeded during compaction. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
           },
         };
       }
@@ -460,7 +478,7 @@ export async function runAgentTurnWithFallback(params: {
           return {
             kind: "final",
             payload: {
-              text: "⚠ Message ordering conflict. I've reset the conversation - please try again.",
+              text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
             },
           };
         }
@@ -506,7 +524,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠ Session history was corrupted. I've reset the conversation - please try again!",
+            text: "⚠️ Session history was corrupted. I've reset the conversation - please try again!",
           },
         };
       }
@@ -514,10 +532,10 @@ export async function runAgentTurnWithFallback(params: {
       defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
       const trimmedMessage = message.replace(/\.\s*$/, "");
       const fallbackText = isContextOverflow
-        ? "! Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
+        ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
-          ? "! Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `! Agent failed before reply: ${trimmedMessage}.\nLogs: zee logs --follow`;
+          ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
+          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: moltbot logs --follow`;
 
       return {
         kind: "final",

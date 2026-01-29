@@ -17,14 +17,16 @@ const PREFERRED_PROVIDER_BY_AUTH_CHOICE: Partial<Record<AuthChoice, string>> = {
   "gemini-api-key": "google",
   "google-antigravity": "google-antigravity",
   "google-gemini-cli": "google-gemini-cli",
-  "zai-api-key": "zai-coding-plan",
+  "zai-api-key": "zai",
   "synthetic-api-key": "synthetic",
   "venice-api-key": "venice",
+  "github-copilot": "github-copilot",
   "copilot-proxy": "copilot-proxy",
   "minimax-cloud": "minimax",
   "minimax-api": "minimax",
   "minimax-api-lightning": "minimax",
   minimax: "lmstudio",
+  "opencode-zen": "opencode",
   "qwen-portal": "qwen-portal",
 };
 

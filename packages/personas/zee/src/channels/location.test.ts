@@ -9,7 +9,7 @@ describe("provider location helpers", () => {
       longitude: 2.294351,
       accuracy: 12,
     });
-    expect(text).toBe("Location: 48.858844, 2.294351 ±12m");
+    expect(text).toBe("📍 48.858844, 2.294351 ±12m");
   });
 
   it("formats named places with address and caption", () => {
@@ -22,7 +22,7 @@ describe("provider location helpers", () => {
       caption: "Bring snacks",
     });
     expect(text).toBe(
-      "Location: Statue of Liberty — Liberty Island, NY (40.689247, -74.044502 ±8m)\nBring snacks",
+      "📍 Statue of Liberty — Liberty Island, NY (40.689247, -74.044502 ±8m)\nBring snacks",
     );
   });
 
@@ -35,7 +35,7 @@ describe("provider location helpers", () => {
       isLive: true,
       source: "live",
     });
-    expect(text).toBe("Live location: 37.819929, -122.478255 ±20m\nOn the move");
+    expect(text).toBe("🛰 Live location: 37.819929, -122.478255 ±20m\nOn the move");
   });
 
   it("builds ctx fields with normalized source", () => {

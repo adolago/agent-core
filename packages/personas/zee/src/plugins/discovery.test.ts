@@ -7,30 +7,30 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  const dir = path.join(os.tmpdir(), `zee-plugins-${randomUUID()}`);
+  const dir = path.join(os.tmpdir(), `moltbot-plugins-${randomUUID()}`);
   fs.mkdirSync(dir, { recursive: true });
   tempDirs.push(dir);
   return dir;
 }
 
 async function withStateDir<T>(stateDir: string, fn: () => Promise<T>) {
-  const prev = process.env.ZEE_STATE_DIR;
-  const prevBundled = process.env.ZEE_BUNDLED_PLUGINS_DIR;
-  process.env.ZEE_STATE_DIR = stateDir;
-  process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+  const prev = process.env.CLAWDBOT_STATE_DIR;
+  const prevBundled = process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
+  process.env.CLAWDBOT_STATE_DIR = stateDir;
+  process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
   vi.resetModules();
   try {
     return await fn();
   } finally {
     if (prev === undefined) {
-      delete process.env.ZEE_STATE_DIR;
+      delete process.env.CLAWDBOT_STATE_DIR;
     } else {
-      process.env.ZEE_STATE_DIR = prev;
+      process.env.CLAWDBOT_STATE_DIR = prev;
     }
     if (prevBundled === undefined) {
-      delete process.env.ZEE_BUNDLED_PLUGINS_DIR;
+      delete process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
     } else {
-      process.env.ZEE_BUNDLED_PLUGINS_DIR = prevBundled;
+      process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = prevBundled;
     }
     vi.resetModules();
   }
@@ -46,7 +46,7 @@ afterEach(() => {
   }
 });
 
-describe("discoverZeePlugins", () => {
+describe("discoverMoltbotPlugins", () => {
   it("discovers global and workspace extensions", async () => {
     const stateDir = makeTempDir();
     const workspaceDir = path.join(stateDir, "workspace");
@@ -55,13 +55,13 @@ describe("discoverZeePlugins", () => {
     fs.mkdirSync(globalExt, { recursive: true });
     fs.writeFileSync(path.join(globalExt, "alpha.ts"), "export default function () {}", "utf-8");
 
-    const workspaceExt = path.join(workspaceDir, ".zee", "extensions");
+    const workspaceExt = path.join(workspaceDir, ".clawdbot", "extensions");
     fs.mkdirSync(workspaceExt, { recursive: true });
     fs.writeFileSync(path.join(workspaceExt, "beta.ts"), "export default function () {}", "utf-8");
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverZeePlugins } = await import("./discovery.js");
-      return discoverZeePlugins({ workspaceDir });
+      const { discoverMoltbotPlugins } = await import("./discovery.js");
+      return discoverMoltbotPlugins({ workspaceDir });
     });
 
     const ids = candidates.map((c) => c.idHint);
@@ -78,7 +78,7 @@ describe("discoverZeePlugins", () => {
       path.join(globalExt, "package.json"),
       JSON.stringify({
         name: "pack",
-        zee: { extensions: ["./src/one.ts", "./src/two.ts"] },
+        moltbot: { extensions: ["./src/one.ts", "./src/two.ts"] },
       }),
       "utf-8",
     );
@@ -94,8 +94,8 @@ describe("discoverZeePlugins", () => {
     );
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverZeePlugins } = await import("./discovery.js");
-      return discoverZeePlugins({});
+      const { discoverMoltbotPlugins } = await import("./discovery.js");
+      return discoverMoltbotPlugins({});
     });
 
     const ids = candidates.map((c) => c.idHint);
@@ -111,8 +111,8 @@ describe("discoverZeePlugins", () => {
     fs.writeFileSync(
       path.join(globalExt, "package.json"),
       JSON.stringify({
-        name: "@zee/voice-call",
-        zee: { extensions: ["./src/index.ts"] },
+        name: "@moltbot/voice-call",
+        moltbot: { extensions: ["./src/index.ts"] },
       }),
       "utf-8",
     );
@@ -123,8 +123,8 @@ describe("discoverZeePlugins", () => {
     );
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverZeePlugins } = await import("./discovery.js");
-      return discoverZeePlugins({});
+      const { discoverMoltbotPlugins } = await import("./discovery.js");
+      return discoverMoltbotPlugins({});
     });
 
     const ids = candidates.map((c) => c.idHint);
@@ -139,16 +139,16 @@ describe("discoverZeePlugins", () => {
     fs.writeFileSync(
       path.join(packDir, "package.json"),
       JSON.stringify({
-        name: "@zee/demo-plugin-dir",
-        zee: { extensions: ["./index.js"] },
+        name: "@moltbot/demo-plugin-dir",
+        moltbot: { extensions: ["./index.js"] },
       }),
       "utf-8",
     );
     fs.writeFileSync(path.join(packDir, "index.js"), "module.exports = {}", "utf-8");
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverZeePlugins } = await import("./discovery.js");
-      return discoverZeePlugins({ extraPaths: [packDir] });
+      const { discoverMoltbotPlugins } = await import("./discovery.js");
+      return discoverMoltbotPlugins({ extraPaths: [packDir] });
     });
 
     const ids = candidates.map((c) => c.idHint);

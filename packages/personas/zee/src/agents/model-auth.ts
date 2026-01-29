@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { type Api, getEnvApiKey, type Model } from "@mariozechner/pi-ai";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -23,7 +23,7 @@ const AWS_SECRET_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
 const AWS_PROFILE_ENV = "AWS_PROFILE";
 
 function resolveProviderConfig(
-  cfg: ZeeConfig | undefined,
+  cfg: MoltbotConfig | undefined,
   provider: string,
 ): ModelProviderConfig | undefined {
   const providers = cfg?.models?.providers ?? {};
@@ -45,7 +45,7 @@ function resolveProviderConfig(
 }
 
 export function getCustomProviderApiKey(
-  cfg: ZeeConfig | undefined,
+  cfg: MoltbotConfig | undefined,
   provider: string,
 ): string | undefined {
   const entry = resolveProviderConfig(cfg, provider);
@@ -54,7 +54,7 @@ export function getCustomProviderApiKey(
 }
 
 function resolveProviderAuthOverride(
-  cfg: ZeeConfig | undefined,
+  cfg: MoltbotConfig | undefined,
   provider: string,
 ): ModelProviderAuthMode | undefined {
   const entry = resolveProviderConfig(cfg, provider);
@@ -128,7 +128,7 @@ export type ResolvedProviderAuth = {
 
 export async function resolveApiKeyForProvider(params: {
   provider: string;
-  cfg?: ZeeConfig;
+  cfg?: MoltbotConfig;
   profileId?: string;
   preferredProfile?: string;
   store?: AuthProfileStore;
@@ -221,7 +221,7 @@ export async function resolveApiKeyForProvider(params: {
     [
       `No API key found for provider "${provider}".`,
       `Auth store: ${authStorePath} (agentDir: ${resolvedAgentDir}).`,
-      `Configure auth for this agent (${formatCliCommand("zee agents add <id>")}) or copy auth-profiles.json from the main agentDir.`,
+      `Configure auth for this agent (${formatCliCommand("moltbot agents add <id>")}) or copy auth-profiles.json from the main agentDir.`,
     ].join(" "),
   );
 }
@@ -251,7 +251,7 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return pick("CHUTES_OAUTH_TOKEN") ?? pick("CHUTES_API_KEY");
   }
 
-  if (normalized === "zai-coding-plan") {
+  if (normalized === "zai") {
     return pick("ZAI_API_KEY") ?? pick("Z_AI_API_KEY");
   }
 
@@ -261,6 +261,10 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return { apiKey: envKey, source: "gcloud adc" };
   }
 
+  if (normalized === "opencode") {
+    return pick("OPENCODE_API_KEY") ?? pick("OPENCODE_ZEN_API_KEY");
+  }
+
   if (normalized === "qwen-portal") {
     return pick("QWEN_OAUTH_TOKEN") ?? pick("QWEN_PORTAL_API_KEY");
   }
@@ -268,10 +272,19 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
   const envMap: Record<string, string> = {
     openai: "OPENAI_API_KEY",
     google: "GEMINI_API_KEY",
+    groq: "GROQ_API_KEY",
+    deepgram: "DEEPGRAM_API_KEY",
+    cerebras: "CEREBRAS_API_KEY",
     xai: "XAI_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
+    "vercel-ai-gateway": "AI_GATEWAY_API_KEY",
+    moonshot: "MOONSHOT_API_KEY",
     "kimi-code": "KIMICODE_API_KEY",
     minimax: "MINIMAX_API_KEY",
+    synthetic: "SYNTHETIC_API_KEY",
+    venice: "VENICE_API_KEY",
+    mistral: "MISTRAL_API_KEY",
+    opencode: "OPENCODE_API_KEY",
   };
   const envVar = envMap[normalized];
   if (!envVar) return null;
@@ -280,7 +293,7 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
 
 export function resolveModelAuthMode(
   provider?: string,
-  cfg?: ZeeConfig,
+  cfg?: MoltbotConfig,
   store?: AuthProfileStore,
 ): ModelAuthMode | undefined {
   const resolved = provider?.trim();
@@ -322,7 +335,7 @@ export function resolveModelAuthMode(
 
 export async function getApiKeyForModel(params: {
   model: Model<Api>;
-  cfg?: ZeeConfig;
+  cfg?: MoltbotConfig;
   profileId?: string;
   preferredProfile?: string;
   store?: AuthProfileStore;

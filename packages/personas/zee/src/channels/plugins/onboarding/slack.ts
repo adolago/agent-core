@@ -1,4 +1,4 @@
-import type { ZeeConfig } from "../../../config/config.js";
+import type { MoltbotConfig } from "../../../config/config.js";
 import type { DmPolicy } from "../../../config/types.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../../routing/session-key.js";
 import {
@@ -16,7 +16,7 @@ import { addWildcardAllowFrom, promptAccountId } from "./helpers.js";
 
 const channel = "slack" as const;
 
-function setSlackDmPolicy(cfg: ZeeConfig, dmPolicy: DmPolicy) {
+function setSlackDmPolicy(cfg: MoltbotConfig, dmPolicy: DmPolicy) {
   const allowFrom =
     dmPolicy === "open" ? addWildcardAllowFrom(cfg.channels?.slack?.dm?.allowFrom) : undefined;
   return {
@@ -37,11 +37,11 @@ function setSlackDmPolicy(cfg: ZeeConfig, dmPolicy: DmPolicy) {
 }
 
 function buildSlackManifest(botName: string) {
-  const safeName = botName.trim() || "Zee";
+  const safeName = botName.trim() || "Moltbot";
   const manifest = {
     display_information: {
       name: safeName,
-      description: `${safeName} connector for Zee`,
+      description: `${safeName} connector for Moltbot`,
     },
     features: {
       bot_user: {
@@ -54,8 +54,8 @@ function buildSlackManifest(botName: string) {
       },
       slash_commands: [
         {
-          command: "/zee",
-          description: "Send a message to Zee",
+          command: "/clawd",
+          description: "Send a message to Moltbot",
           should_escape: false,
         },
       ],
@@ -125,10 +125,10 @@ async function noteSlackTokenHelp(prompter: WizardPrompter, botName: string): Pr
 }
 
 function setSlackGroupPolicy(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   accountId: string,
   groupPolicy: "open" | "allowlist" | "disabled",
-): ZeeConfig {
+): MoltbotConfig {
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
       ...cfg,
@@ -163,10 +163,10 @@ function setSlackGroupPolicy(
 }
 
 function setSlackChannelAllowlist(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   accountId: string,
   channelKeys: string[],
-): ZeeConfig {
+): MoltbotConfig {
   const channels = Object.fromEntries(channelKeys.map((key) => [key, { allow: true }]));
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
@@ -201,7 +201,7 @@ function setSlackChannelAllowlist(
   };
 }
 
-function setSlackAllowFrom(cfg: ZeeConfig, allowFrom: string[]): ZeeConfig {
+function setSlackAllowFrom(cfg: MoltbotConfig, allowFrom: string[]): MoltbotConfig {
   return {
     ...cfg,
     channels: {
@@ -226,10 +226,10 @@ function parseSlackAllowFromInput(raw: string): string[] {
 }
 
 async function promptSlackAllowFrom(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   prompter: WizardPrompter;
   accountId?: string;
-}): Promise<ZeeConfig> {
+}): Promise<MoltbotConfig> {
   const accountId =
     params.accountId && normalizeAccountId(params.accountId)
       ? (normalizeAccountId(params.accountId) ?? DEFAULT_ACCOUNT_ID)
@@ -364,7 +364,7 @@ export const slackOnboardingAdapter: ChannelOnboardingAdapter = {
     const slackBotName = String(
       await prompter.text({
         message: "Slack bot display name (used for manifest)",
-        initialValue: "Zee",
+        initialValue: "Moltbot",
       }),
     ).trim();
     if (!accountConfigured) {

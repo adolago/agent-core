@@ -82,11 +82,11 @@ describe("readReactionParams", () => {
   });
 
   it("passes through remove flag", () => {
-    const params = { emoji: "+", remove: true };
+    const params = { emoji: "✅", remove: true };
     const result = readReactionParams(params, {
       removeErrorMessage: "Emoji is required",
     });
     expect(result.remove).toBe(true);
-    expect(result.emoji).toBe("+");
+    expect(result.emoji).toBe("✅");
   });
 });

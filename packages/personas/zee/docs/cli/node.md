@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `zee node` (headless node host)"
+summary: "CLI reference for `moltbot node` (headless node host)"
 read_when:
   - Running the headless node host
   - Pairing a non-macOS node for system.run
 ---
 
-# `zee node`
+# `moltbot node`
 
 Run a **headless node host** that connects to the Gateway WebSocket and exposes
 `system.run` / `system.which` on this machine.
@@ -44,7 +44,7 @@ Disable it on the node if needed:
 ## Run (foreground)
 
 ```bash
-zee node run --host <gateway-host> --port 18789
+moltbot node run --host <gateway-host> --port 18789
 ```
 
 Options:
@@ -60,7 +60,7 @@ Options:
 Install a headless node host as a user service.
 
 ```bash
-zee node install --host <gateway-host> --port 18789
+moltbot node install --host <gateway-host> --port 18789
 ```
 
 Options:
@@ -76,13 +76,13 @@ Options:
 Manage the service:
 
 ```bash
-zee node status
-zee node stop
-zee node restart
-zee node uninstall
+moltbot node status
+moltbot node stop
+moltbot node restart
+moltbot node uninstall
 ```
 
-Use `zee node run` for a foreground node host (no service).
+Use `moltbot node run` for a foreground node host (no service).
 
 Service commands accept `--json` for machine-readable output.
 
@@ -92,17 +92,17 @@ The first connection creates a pending node pair request on the Gateway.
 Approve it via:
 
 ```bash
-zee nodes pending
-zee nodes approve <requestId>
+moltbot nodes pending
+moltbot nodes approve <requestId>
 ```
 
 The node host stores its node id, token, display name, and gateway connection info in
-`~/.zee/node.json`.
+`~/.clawdbot/node.json`.
 
 ## Exec approvals
 
 `system.run` is gated by local exec approvals:
 
-- `~/.zee/exec-approvals.json`
+- `~/.clawdbot/exec-approvals.json`
 - [Exec approvals](/tools/exec-approvals)
-- `zee approvals --node <id|name|ip>` (edit from the Gateway)
+- `moltbot approvals --node <id|name|ip>` (edit from the Gateway)

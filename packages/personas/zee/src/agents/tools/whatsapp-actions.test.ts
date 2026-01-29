@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { handleWhatsAppAction } from "./whatsapp-actions.js";
 
 const sendReactionWhatsApp = vi.fn(async () => undefined);
@@ -13,7 +13,7 @@ vi.mock("../../web/outbound.js", () => ({
 
 const enabledConfig = {
   channels: { whatsapp: { actions: { reactions: true } } },
-} as ZeeConfig;
+} as MoltbotConfig;
 
 describe("handleWhatsAppAction", () => {
   it("adds reactions", async () => {
@@ -22,11 +22,11 @@ describe("handleWhatsAppAction", () => {
         action: "react",
         chatJid: "123@s.whatsapp.net",
         messageId: "msg1",
-        emoji: "+",
+        emoji: "✅",
       },
       enabledConfig,
     );
-    expect(sendReactionWhatsApp).toHaveBeenCalledWith("123@s.whatsapp.net", "msg1", "+", {
+    expect(sendReactionWhatsApp).toHaveBeenCalledWith("123@s.whatsapp.net", "msg1", "✅", {
       verbose: false,
       fromMe: undefined,
       participant: undefined,
@@ -58,7 +58,7 @@ describe("handleWhatsAppAction", () => {
         action: "react",
         chatJid: "123@s.whatsapp.net",
         messageId: "msg1",
-        emoji: "+",
+        emoji: "✅",
         remove: true,
       },
       enabledConfig,
@@ -95,14 +95,14 @@ describe("handleWhatsAppAction", () => {
   it("respects reaction gating", async () => {
     const cfg = {
       channels: { whatsapp: { actions: { reactions: false } } },
-    } as ZeeConfig;
+    } as MoltbotConfig;
     await expect(
       handleWhatsAppAction(
         {
           action: "react",
           chatJid: "123@s.whatsapp.net",
           messageId: "msg1",
-          emoji: "+",
+          emoji: "✅",
         },
         cfg,
       ),

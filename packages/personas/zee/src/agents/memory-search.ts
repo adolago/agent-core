@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 
-import type { ZeeConfig, MemorySearchConfig } from "../config/config.js";
+import type { MoltbotConfig, MemorySearchConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { clampInt, clampNumber, resolveUserPath } from "../utils.js";
 import { resolveAgentConfig } from "./agent-scope.js";
@@ -9,7 +9,8 @@ import { resolveAgentConfig } from "./agent-scope.js";
 export type ResolvedMemorySearchConfig = {
   enabled: boolean;
   sources: Array<"memory" | "sessions">;
-  provider: "openai" | "gemini" | "auto";
+  extraPaths: string[];
+  provider: "openai" | "local" | "gemini" | "auto";
   remote?: {
     baseUrl?: string;
     apiKey?: string;
@@ -25,8 +26,12 @@ export type ResolvedMemorySearchConfig = {
   experimental: {
     sessionMemory: boolean;
   };
-  fallback: "openai" | "gemini" | "none";
+  fallback: "openai" | "gemini" | "local" | "none";
   model: string;
+  local: {
+    modelPath?: string;
+    modelCacheDir?: string;
+  };
   store: {
     driver: "sqlite";
     path: string;
@@ -115,9 +120,16 @@ function mergeConfig(
   const provider = overrides?.provider ?? defaults?.provider ?? "auto";
   const defaultRemote = defaults?.remote;
   const overrideRemote = overrides?.remote;
-  const hasRemote = Boolean(defaultRemote || overrideRemote);
+  const hasRemoteConfig = Boolean(
+    overrideRemote?.baseUrl ||
+    overrideRemote?.apiKey ||
+    overrideRemote?.headers ||
+    defaultRemote?.baseUrl ||
+    defaultRemote?.apiKey ||
+    defaultRemote?.headers,
+  );
   const includeRemote =
-    hasRemote || provider === "openai" || provider === "gemini" || provider === "auto";
+    hasRemoteConfig || provider === "openai" || provider === "gemini" || provider === "auto";
   const batch = {
     enabled: overrideRemote?.batch?.enabled ?? defaultRemote?.batch?.enabled ?? true,
     wait: overrideRemote?.batch?.wait ?? defaultRemote?.batch?.wait ?? true,
@@ -146,7 +158,15 @@ function mergeConfig(
         ? DEFAULT_OPENAI_MODEL
         : undefined;
   const model = overrides?.model ?? defaults?.model ?? modelDefault ?? "";
+  const local = {
+    modelPath: overrides?.local?.modelPath ?? defaults?.local?.modelPath,
+    modelCacheDir: overrides?.local?.modelCacheDir ?? defaults?.local?.modelCacheDir,
+  };
   const sources = normalizeSources(overrides?.sources ?? defaults?.sources, sessionMemory);
+  const rawPaths = [...(defaults?.extraPaths ?? []), ...(overrides?.extraPaths ?? [])]
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const extraPaths = Array.from(new Set(rawPaths));
   const vector = {
     enabled: overrides?.store?.vector?.enabled ?? defaults?.store?.vector?.enabled ?? true,
     extensionPath:
@@ -221,6 +241,7 @@ function mergeConfig(
   return {
     enabled,
     sources,
+    extraPaths,
     provider,
     remote,
     experimental: {
@@ -228,6 +249,7 @@ function mergeConfig(
     },
     fallback,
     model,
+    local,
     store,
     chunking: { tokens: Math.max(1, chunking.tokens), overlap },
     sync: {
@@ -258,7 +280,7 @@ function mergeConfig(
 }
 
 export function resolveMemorySearchConfig(
-  cfg: ZeeConfig,
+  cfg: MoltbotConfig,
   agentId: string,
 ): ResolvedMemorySearchConfig | null {
   const defaults = cfg.agents?.defaults?.memorySearch;

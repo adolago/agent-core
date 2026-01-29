@@ -1,5 +1,6 @@
 import { danger, info, logVerboseConsole, success, warn } from "./globals.js";
-import { createSubsystemLogger, getLogger } from "./logging.js";
+import { getLogger } from "./logging/logger.js";
+import { createSubsystemLogger } from "./logging/subsystem.js";
 import { defaultRuntime, type RuntimeEnv } from "./runtime.js";
 
 const subsystemPrefixRe = /^([a-z][a-z0-9-]{1,20}):\s+(.*)$/i;
@@ -31,10 +32,7 @@ export function logWarn(message: string, runtime: RuntimeEnv = defaultRuntime) {
   getLogger().warn(message);
 }
 
-export function logSuccess(
-  message: string,
-  runtime: RuntimeEnv = defaultRuntime,
-) {
+export function logSuccess(message: string, runtime: RuntimeEnv = defaultRuntime) {
   const parsed = runtime === defaultRuntime ? splitSubsystem(message) : null;
   if (parsed) {
     createSubsystemLogger(parsed.subsystem).info(parsed.rest);
@@ -44,10 +42,7 @@ export function logSuccess(
   getLogger().info(message);
 }
 
-export function logError(
-  message: string,
-  runtime: RuntimeEnv = defaultRuntime,
-) {
+export function logError(message: string, runtime: RuntimeEnv = defaultRuntime) {
   const parsed = runtime === defaultRuntime ? splitSubsystem(message) : null;
   if (parsed) {
     createSubsystemLogger(parsed.subsystem).error(parsed.rest);

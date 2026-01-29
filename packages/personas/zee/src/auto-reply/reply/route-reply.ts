@@ -10,11 +10,10 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
-import type { OutboundSendDeps } from "../../infra/outbound/deliver.js";
 import { normalizeReplyPayload } from "./normalize-reply.js";
 
 export type RouteReplyParams = {
@@ -31,13 +30,11 @@ export type RouteReplyParams = {
   /** Thread id for replies (Telegram topic id or Matrix thread event id). */
   threadId?: string | number;
   /** Config for provider-specific settings. */
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   /** Optional abort signal for cooperative cancellation. */
   abortSignal?: AbortSignal;
   /** Mirror reply into session transcript (default: true when sessionKey is set). */
   mirror?: boolean;
-  /** Optional dependencies for sending (mainly for testing). */
-  deps?: OutboundSendDeps;
 };
 
 export type RouteReplyResult = {
@@ -58,7 +55,7 @@ export type RouteReplyResult = {
  * are set.
  */
 export async function routeReply(params: RouteReplyParams): Promise<RouteReplyResult> {
-  const { payload, channel, to, accountId, threadId, cfg, abortSignal, deps } = params;
+  const { payload, channel, to, accountId, threadId, cfg, abortSignal } = params;
 
   // Debug: `pnpm test src/auto-reply/reply/route-reply.test.ts`
   const responsePrefix = params.sessionKey
@@ -123,7 +120,6 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
       replyToId: resolvedReplyToId ?? null,
       threadId: resolvedThreadId,
       abortSignal,
-      deps,
       mirror:
         params.mirror !== false && params.sessionKey
           ? {

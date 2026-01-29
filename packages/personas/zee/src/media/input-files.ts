@@ -1,5 +1,9 @@
 import { logWarn } from "../logger.js";
-import { closeDispatcher, createPinnedDispatcher, resolvePinnedHostname } from "../infra/net/ssrf.js";
+import {
+  closeDispatcher,
+  createPinnedDispatcher,
+  resolvePinnedHostname,
+} from "../infra/net/ssrf.js";
 import type { Dispatcher } from "undici";
 
 type CanvasModule = typeof import("@napi-rs/canvas");
@@ -161,7 +165,7 @@ export async function fetchWithGuard(params: {
       try {
         const response = await fetch(parsedUrl, {
           signal: controller.signal,
-          headers: { "User-Agent": "Zee-Gateway/1.0" },
+          headers: { "User-Agent": "Moltbot-Gateway/1.0" },
           redirect: "manual",
           dispatcher,
         } as RequestInit & { dispatcher: Dispatcher });

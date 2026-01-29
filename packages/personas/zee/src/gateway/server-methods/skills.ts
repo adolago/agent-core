@@ -2,7 +2,7 @@ import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/ag
 import { installSkill } from "../../agents/skills-install.js";
 import { buildWorkspaceSkillStatus } from "../../agents/skills-status.js";
 import { loadWorkspaceSkillEntries, type SkillEntry } from "../../agents/skills.js";
-import type { ZeeConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { loadConfig, writeConfigFile } from "../../config/config.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import {
@@ -16,7 +16,7 @@ import {
 } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
-function listWorkspaceDirs(cfg: ZeeConfig): string[] {
+function listWorkspaceDirs(cfg: MoltbotConfig): string[] {
   const dirs = new Set<string>();
   const list = cfg.agents?.list;
   if (Array.isArray(list)) {
@@ -33,9 +33,9 @@ function listWorkspaceDirs(cfg: ZeeConfig): string[] {
 function collectSkillBins(entries: SkillEntry[]): string[] {
   const bins = new Set<string>();
   for (const entry of entries) {
-    const required = entry.zee?.requires?.bins ?? [];
-    const anyBins = entry.zee?.requires?.anyBins ?? [];
-    const install = entry.zee?.install ?? [];
+    const required = entry.metadata?.requires?.bins ?? [];
+    const anyBins = entry.metadata?.requires?.anyBins ?? [];
+    const install = entry.metadata?.install ?? [];
     for (const bin of required) {
       const trimmed = bin.trim();
       if (trimmed) bins.add(trimmed);
@@ -172,7 +172,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
     }
     entries[p.skillKey] = current;
     skills.entries = entries;
-    const nextConfig: ZeeConfig = {
+    const nextConfig: MoltbotConfig = {
       ...cfg,
       skills,
     };

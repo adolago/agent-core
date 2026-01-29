@@ -1,4 +1,4 @@
-import ZeeKit
+import MoltbotKit
 import SwiftUI
 import WebKit
 

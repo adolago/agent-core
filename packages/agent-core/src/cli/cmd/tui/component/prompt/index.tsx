@@ -1774,11 +1774,10 @@ export function Prompt(props: PromptProps) {
                         <Show when={!retry() && status().type === "busy"}>
                           <text fg={theme.textMuted}>
                             {phaseLabel()}
-                            <Show when={sentTokens() > 0}>{" sent "}{formatTokens(sentTokens())}</Show>
-                            <Show when={receivedTokens() > 0}>{" received "}{formatTokens(receivedTokens())}</Show>
-                            <Show when={events() > 0 && receivedTokens() === 0}>{" "}{events()} events</Show>
-                            <Show when={memStats()?.embedding.estimatedTokens}>{" emb "}{formatTokens(memStats()!.embedding.estimatedTokens)}</Show>
-                            <Show when={memStats()?.reranking.documents}>{" rerank "}{memStats()!.reranking.documents}d</Show>
+                            {" sent "}{formatTokens(sentTokens())}
+                            {" received "}{formatTokens(receivedTokens())}
+                            {" emb "}{formatTokens(memStats()?.embedding.estimatedTokens ?? 0)}
+                            {" rerank "}{memStats()?.reranking.documents ?? 0}d
                             {" "}{formatElapsed(totalTime())}
                           </text>
                         </Show>
@@ -1813,7 +1812,10 @@ export function Prompt(props: PromptProps) {
                         <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
                         <text fg={theme.textMuted}> · </text>
                       </Show>
-                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{local.model.variant.current() || local.model.parsed().model}</text>
+                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{local.model.parsed().model}</text>
+                      <Show when={local.model.variant.current()}>
+                        <text fg={theme.primary} attributes={TextAttributes.BOLD}>{" "}{local.model.variant.current()}</text>
+                      </Show>
                     </>
                   )
                 })()}

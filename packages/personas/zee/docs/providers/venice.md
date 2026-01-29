@@ -1,16 +1,16 @@
 ---
-summary: "Use Venice AI privacy-focused models in Zee"
+summary: "Use Venice AI privacy-focused models in Moltbot"
 read_when:
-  - You want privacy-focused inference in Zee
+  - You want privacy-focused inference in Moltbot
   - You want Venice AI setup guidance
 ---
-# Venice AI (Venius highlight)
+# Venice AI (Venice highlight)
 
-**Venius** is our highlight Venice setup for privacy-first inference with optional anonymized access to proprietary models.
+**Venice** is our highlight Venice setup for privacy-first inference with optional anonymized access to proprietary models.
 
 Venice AI provides privacy-focused AI inference with support for uncensored models and access to major proprietary models through their anonymized proxy. All inference is private by default—no training on your data, no logging.
 
-## Why Venice in Zee
+## Why Venice in Moltbot
 
 - **Private inference** for open-source models (no logging).
 - **Uncensored models** when you need them.
@@ -45,7 +45,7 @@ Venice offers two privacy levels — understanding this is key to choosing your 
 2. Go to **Settings → API Keys → Create new key**
 3. Copy your API key (format: `vapi_xxxxxxxxxxxx`)
 
-### 2. Configure Zee
+### 2. Configure Moltbot
 
 **Option A: Environment Variable**
 
@@ -56,7 +56,7 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 **Option B: Interactive Setup (Recommended)**
 
 ```bash
-zee onboard --auth-choice venice-api-key
+moltbot onboard --auth-choice venice-api-key
 ```
 
 This will:
@@ -68,7 +68,7 @@ This will:
 **Option C: Non-interactive**
 
 ```bash
-zee onboard --non-interactive \
+moltbot onboard --non-interactive \
   --auth-choice venice-api-key \
   --venice-api-key "vapi_xxxxxxxxxxxx"
 ```
@@ -76,12 +76,12 @@ zee onboard --non-interactive \
 ### 3. Verify Setup
 
 ```bash
-zee chat --model venice/llama-3.3-70b "Hello, are you working?"
+moltbot chat --model venice/llama-3.3-70b "Hello, are you working?"
 ```
 
 ## Model Selection
 
-After setup, Zee shows all available Venice models. Pick based on your needs:
+After setup, Moltbot shows all available Venice models. Pick based on your needs:
 
 - **Default (our pick)**: `venice/llama-3.3-70b` for private, balanced performance.
 - **Best overall quality**: `venice/claude-opus-45` for hard jobs (Opus remains the strongest).
@@ -91,19 +91,19 @@ After setup, Zee shows all available Venice models. Pick based on your needs:
 Change your default model anytime:
 
 ```bash
-zee models set venice/claude-opus-45
-zee models set venice/llama-3.3-70b
+moltbot models set venice/claude-opus-45
+moltbot models set venice/llama-3.3-70b
 ```
 
 List all available models:
 
 ```bash
-zee models list | grep venice
+moltbot models list | grep venice
 ```
 
-## Configure via `zee configure`
+## Configure via `moltbot configure`
 
-1. Run `zee configure`
+1. Run `moltbot configure`
 2. Select **Model/auth**
 3. Choose **Venice AI**
 
@@ -159,7 +159,7 @@ zee models list | grep venice
 
 ## Model Discovery
 
-Zee automatically discovers models from the Venice API when `VENICE_API_KEY` is set. If the API is unreachable, it falls back to a static catalog.
+Moltbot automatically discovers models from the Venice API when `VENICE_API_KEY` is set. If the API is unreachable, it falls back to a static catalog.
 
 The `/models` endpoint is public (no auth needed for listing), but inference requires a valid API key.
 
@@ -192,19 +192,19 @@ Venice uses a credit-based system. Check [venice.ai/pricing](https://venice.ai/p
 
 ```bash
 # Use default private model
-zee chat --model venice/llama-3.3-70b
+moltbot chat --model venice/llama-3.3-70b
 
 # Use Claude via Venice (anonymized)
-zee chat --model venice/claude-opus-45
+moltbot chat --model venice/claude-opus-45
 
 # Use uncensored model
-zee chat --model venice/venice-uncensored
+moltbot chat --model venice/venice-uncensored
 
 # Use vision model with image
-zee chat --model venice/qwen3-vl-235b-a22b
+moltbot chat --model venice/qwen3-vl-235b-a22b
 
 # Use coding model
-zee chat --model venice/qwen3-coder-480b-a35b-instruct
+moltbot chat --model venice/qwen3-coder-480b-a35b-instruct
 ```
 
 ## Troubleshooting
@@ -213,14 +213,14 @@ zee chat --model venice/qwen3-coder-480b-a35b-instruct
 
 ```bash
 echo $VENICE_API_KEY
-zee models list | grep venice
+moltbot models list | grep venice
 ```
 
 Ensure the key starts with `vapi_`.
 
 ### Model not available
 
-The Venice model catalog updates dynamically. Run `zee models list` to see currently available models. Some models may be temporarily offline.
+The Venice model catalog updates dynamically. Run `moltbot models list` to see currently available models. Some models may be temporarily offline.
 
 ### Connection issues
 

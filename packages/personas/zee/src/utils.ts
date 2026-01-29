@@ -16,18 +16,13 @@ export function clampInt(value: number, min: number, max: number): number {
   return clampNumber(Math.floor(value), min, max);
 }
 
-// Zee naming convention (primary)
-export type Provider = "web";
+export type WebChannel = "web";
 
-export function assertProvider(input: string): asserts input is Provider {
+export function assertWebChannel(input: string): asserts input is WebChannel {
   if (input !== "web") {
-    throw new Error("Provider must be 'web'");
+    throw new Error("Web channel must be 'web'");
   }
 }
-
-// Legacy naming convention (alias for compatibility with synced code)
-export type WebChannel = Provider;
-export const assertWebChannel = assertProvider;
 
 export function normalizePath(p: string): string {
   if (!p.startsWith("/")) return `/${p}`;
@@ -47,7 +42,7 @@ export function normalizeE164(number: string): string {
 
 /**
  * "Self-chat mode" heuristic (single phone): the gateway is logged in as the owner's own WhatsApp account,
- * and `whatsapp.allowFrom` includes that same number. Used to avoid side-effects that make no sense when the
+ * and `channels.whatsapp.allowFrom` includes that same number. Used to avoid side-effects that make no sense when the
  * "bot" and the human are the same WhatsApp identity (e.g. auto read receipts, @mention JID triggers).
  */
 export function isSelfChatMode(
@@ -220,9 +215,18 @@ export function resolveConfigDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const override = env.ZEE_STATE_DIR?.trim();
+  const override = env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
   if (override) return resolveUserPath(override);
-  return path.join(homedir(), ".zee");
+  const legacyDir = path.join(homedir(), ".clawdbot");
+  const newDir = path.join(homedir(), ".moltbot");
+  try {
+    const hasLegacy = fs.existsSync(legacyDir);
+    const hasNew = fs.existsSync(newDir);
+    if (!hasLegacy && hasNew) return newDir;
+  } catch {
+    // best-effort
+  }
+  return legacyDir;
 }
 
 export function resolveHomeDir(): string | undefined {
@@ -278,5 +282,5 @@ export function formatTerminalLink(
   return `\u001b]8;;${safeUrl}\u0007${safeLabel}\u001b]8;;\u0007`;
 }
 
-// Configuration root; can be overridden via ZEE_STATE_DIR.
+// Configuration root; can be overridden via CLAWDBOT_STATE_DIR.
 export const CONFIG_DIR = resolveConfigDir();

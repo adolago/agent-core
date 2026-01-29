@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ZeeConfig } from "../config/config.js";
-import { STATE_DIR_ZEE } from "../config/paths.js";
+import type { MoltbotConfig } from "../config/config.js";
+import { STATE_DIR } from "../config/paths.js";
 import { loadJsonFile, saveJsonFile } from "../infra/json-file.js";
 import { logVerbose } from "../globals.js";
 import type { ModelCatalogEntry } from "../agents/model-catalog.js";
@@ -14,7 +14,7 @@ import { resolveApiKeyForProvider } from "../agents/model-auth.js";
 import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import { resolveAutoImageModel } from "../media-understanding/runner.js";
 
-const CACHE_FILE = path.join(STATE_DIR_ZEE, "telegram", "sticker-cache.json");
+const CACHE_FILE = path.join(STATE_DIR, "telegram", "sticker-cache.json");
 const CACHE_VERSION = 1;
 
 export interface CachedSticker {
@@ -142,12 +142,11 @@ export function getCacheStats(): { count: number; oldestAt?: string; newestAt?: 
 
 const STICKER_DESCRIPTION_PROMPT =
   "Describe this sticker image in 1-2 sentences. Focus on what the sticker depicts (character, object, action, emotion). Be concise and objective.";
-
 const VISION_PROVIDERS = ["openai", "anthropic", "google", "minimax"] as const;
 
 export interface DescribeStickerParams {
   imagePath: string;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentDir?: string;
   agentId?: string;
 }
@@ -255,7 +254,7 @@ export async function describeStickerImage(params: DescribeStickerParams): Promi
     });
     return result.text;
   } catch (err) {
-    logVerbose(`telegram: failed to describe sticker: ${err}`);
+    logVerbose(`telegram: failed to describe sticker: ${String(err)}`);
     return null;
   }
 }

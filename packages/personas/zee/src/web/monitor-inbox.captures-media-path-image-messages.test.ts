@@ -88,7 +88,7 @@ describe("web monitor inbox", () => {
       created: true,
     });
     resetWebInboundDedupe();
-    authDir = fsSync.mkdtempSync(path.join(os.tmpdir(), "zee-auth-"));
+    authDir = fsSync.mkdtempSync(path.join(os.tmpdir(), "moltbot-auth-"));
   });
 
   afterEach(() => {
@@ -171,7 +171,7 @@ describe("web monitor inbox", () => {
   });
 
   it("logs inbound bodies to file", async () => {
-    const logPath = path.join(os.tmpdir(), `zee-log-test-${crypto.randomUUID()}.log`);
+    const logPath = path.join(os.tmpdir(), `moltbot-log-test-${crypto.randomUUID()}.log`);
     setLoggerOverride({ level: "trace", file: logPath });
 
     const onMessage = vi.fn();
@@ -289,7 +289,7 @@ describe("web monitor inbox", () => {
             ephemeralMessage: {
               message: {
                 extendedTextMessage: {
-                  text: "oh hey @Zee UK !",
+                  text: "oh hey @Clawd UK !",
                   contextInfo: { mentionedJid: ["123@s.whatsapp.net"] },
                 },
               },
@@ -307,7 +307,7 @@ describe("web monitor inbox", () => {
       expect.objectContaining({
         chatType: "group",
         conversationId: "424242@g.us",
-        body: "oh hey @Zee UK !",
+        body: "oh hey @Clawd UK !",
         mentionedJids: ["123@s.whatsapp.net"],
         senderE164: "+888",
       }),

@@ -10,19 +10,23 @@ import {
   resolveHooksGmailModel,
 } from "../agents/model-selection.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { ZeeConfig } from "../config/config.js";
-import { CONFIG_PATH_ZEEBOT, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
+import { CONFIG_PATH, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { buildGatewayConnectionDetails } from "../gateway/call.js";
-import { resolveZeePackageRoot } from "../infra/zee-root.js";
+import { resolveMoltbotPackageRoot } from "../infra/moltbot-root.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { note } from "../terminal/note.js";
 import { stylePromptTitle } from "../terminal/prompt-style.js";
 import { shortenHomePath } from "../utils.js";
-import { maybeRepairAnthropicOAuthProfileId, noteAuthProfileHealth } from "./doctor-auth.js";
+import {
+  maybeRemoveDeprecatedCliAuthProfiles,
+  maybeRepairAnthropicOAuthProfileId,
+  noteAuthProfileHealth,
+} from "./doctor-auth.js";
 import { loadAndMaybeMigrateDoctorConfig } from "./doctor-config-flow.js";
 import { maybeRepairGatewayDaemon } from "./doctor-gateway-daemon-flow.js";
 import { checkGatewayHealth } from "./doctor-gateway-health.js";
@@ -50,12 +54,11 @@ import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "./doctor-worksp
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
 import { applyWizardMetadata, printWizardHeader, randomToken } from "./onboard-helpers.js";
 import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
-import { checkSkillDependencies } from "./doctor-dependencies.js";
 
 const intro = (message: string) => clackIntro(stylePromptTitle(message) ?? message);
 const outro = (message: string) => clackOutro(stylePromptTitle(message) ?? message);
 
-function resolveMode(cfg: ZeeConfig): "local" | "remote" {
+function resolveMode(cfg: MoltbotConfig): "local" | "remote" {
   return cfg.gateway?.mode === "remote" ? "remote" : "local";
 }
 
@@ -65,9 +68,9 @@ export async function doctorCommand(
 ) {
   const prompter = createDoctorPrompter({ runtime, options });
   printWizardHeader(runtime);
-  intro("Zee doctor");
+  intro("Moltbot doctor");
 
-  const root = await resolveZeePackageRoot({
+  const root = await resolveMoltbotPackageRoot({
     moduleUrl: import.meta.url,
     argv1: process.argv[1],
     cwd: process.cwd(),
@@ -89,22 +92,23 @@ export async function doctorCommand(
     options,
     confirm: (p) => prompter.confirm(p),
   });
-  let cfg: ZeeConfig = configResult.cfg;
+  let cfg: MoltbotConfig = configResult.cfg;
 
-  const configPath = configResult.path ?? CONFIG_PATH_ZEEBOT;
+  const configPath = configResult.path ?? CONFIG_PATH;
   if (!cfg.gateway?.mode) {
     const lines = [
       "gateway.mode is unset; gateway start will be blocked.",
-      `Fix: run ${formatCliCommand("zee configure")} and set Gateway mode (local/remote).`,
-      `Or set directly: ${formatCliCommand("zee config set gateway.mode local")}`,
+      `Fix: run ${formatCliCommand("moltbot configure")} and set Gateway mode (local/remote).`,
+      `Or set directly: ${formatCliCommand("moltbot config set gateway.mode local")}`,
     ];
     if (!fs.existsSync(configPath)) {
-      lines.push(`Missing config: run ${formatCliCommand("zee setup")} first.`);
+      lines.push(`Missing config: run ${formatCliCommand("moltbot setup")} first.`);
     }
     note(lines.join("\n"), "Gateway");
   }
 
   cfg = await maybeRepairAnthropicOAuthProfileId(cfg, prompter);
+  cfg = await maybeRemoveDeprecatedCliAuthProfiles(cfg, prompter);
   await noteAuthProfileHealth({
     cfg,
     prompter,
@@ -175,7 +179,7 @@ export async function doctorCommand(
     }
   }
 
-  await noteStateIntegrity(cfg, prompter, configResult.path ?? CONFIG_PATH_ZEEBOT);
+  await noteStateIntegrity(cfg, prompter, configResult.path ?? CONFIG_PATH);
 
   cfg = await maybeRepairSandboxImages(cfg, runtime, prompter);
   noteSandboxScopeWarnings(cfg);
@@ -254,13 +258,6 @@ export async function doctorCommand(
 
   noteWorkspaceStatus(cfg);
 
-  // Check for missing skill dependencies
-  await checkSkillDependencies({
-    cfg,
-    prompter,
-    fix: prompter.shouldRepair,
-  });
-
   const { healthOk } = await checkGatewayHealth({
     runtime,
     cfg,
@@ -280,12 +277,12 @@ export async function doctorCommand(
     cfg = applyWizardMetadata(cfg, { command: "doctor", mode: resolveMode(cfg) });
     await writeConfigFile(cfg);
     logConfigUpdated(runtime);
-    const backupPath = `${CONFIG_PATH_ZEEBOT}.bak`;
+    const backupPath = `${CONFIG_PATH}.bak`;
     if (fs.existsSync(backupPath)) {
       runtime.log(`Backup: ${shortenHomePath(backupPath)}`);
     }
   } else {
-    runtime.log(`Run "${formatCliCommand("zee doctor --fix")}" to apply changes.`);
+    runtime.log(`Run "${formatCliCommand("moltbot doctor --fix")}" to apply changes.`);
   }
 
   if (options.workspaceSuggestions !== false) {

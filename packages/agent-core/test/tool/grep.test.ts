@@ -13,7 +13,7 @@ const baseCtx = {
   metadata: () => {},
   ask: async () => {},
 }
-const ctx = (dir: string) => ({ ...baseCtx, directory: dir })
+const ctx = (dir: string) => ({ ...baseCtx, directory: dir, worktree: dir })
 
 const projectRoot = path.join(__dirname, "../..")
 

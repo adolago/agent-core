@@ -1,6 +1,6 @@
-name: Zeebot
+name: Moltbot
 options:
-  bundleIdPrefix: com.zeebot
+  bundleIdPrefix: bot.molt
   deploymentTarget:
     iOS: "18.0"
   xcodeVersion: "16.0"
@@ -10,33 +10,33 @@ settings:
     SWIFT_VERSION: "6.0"
 
 packages:
-  ZeebotKit:
-    path: ../shared/ZeebotKit
+  MoltbotKit:
+    path: ../shared/MoltbotKit
   Swabble:
     path: ../../Swabble
 
 schemes:
-  Zeebot:
+  Moltbot:
     shared: true
     build:
       targets:
-        Zeebot: all
+        Moltbot: all
     test:
       targets:
-        - ZeebotTests
+        - MoltbotTests
 
 targets:
-  Zeebot:
+  Moltbot:
     type: application
     platform: iOS
     sources:
       - path: Sources
     dependencies:
-      - package: ZeebotKit
-      - package: ZeebotKit
-        product: ZeebotChatUI
-      - package: ZeebotKit
-        product: ZeebotProtocol
+      - package: MoltbotKit
+      - package: MoltbotKit
+        product: MoltbotChatUI
+      - package: MoltbotKit
+        product: MoltbotProtocol
       - package: Swabble
         product: SwabbleKit
       - sdk: AppIntents.framework
@@ -71,33 +71,33 @@ targets:
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: Y5PE65HELJ
-        PRODUCT_BUNDLE_IDENTIFIER: com.zeebot.ios
-        PROVISIONING_PROFILE_SPECIFIER: "com.zeebot.ios Development"
+        PRODUCT_BUNDLE_IDENTIFIER: bot.molt.ios
+        PROVISIONING_PROFILE_SPECIFIER: "bot.molt.ios Development"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_APPINTENTS_METADATA: NO
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Zeebot
+        CFBundleDisplayName: Moltbot
         CFBundleIconName: AppIcon
-        CFBundleShortVersionString: "2026.1.24"
-        CFBundleVersion: "20260124"
+        CFBundleShortVersionString: "2026.1.27-beta.1"
+        CFBundleVersion: "20260126"
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UIBackgroundModes:
           - audio
-        NSLocalNetworkUsageDescription: Zeebot discovers and connects to your Zeebot gateway on the local network.
+        NSLocalNetworkUsageDescription: Moltbot discovers and connects to your Moltbot gateway on the local network.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoadsInWebContent: true
         NSBonjourServices:
-          - _zeebot-gw._tcp
-        NSCameraUsageDescription: Zeebot can capture photos or short video clips when requested via the gateway.
-        NSLocationWhenInUseUsageDescription: Zeebot uses your location when you allow location sharing.
-        NSLocationAlwaysAndWhenInUseUsageDescription: Zeebot can share your location in the background when you enable Always.
-        NSMicrophoneUsageDescription: Zeebot needs microphone access for voice wake.
-        NSSpeechRecognitionUsageDescription: Zeebot uses on-device speech recognition for voice wake.
+          - _moltbot-gw._tcp
+        NSCameraUsageDescription: Moltbot can capture photos or short video clips when requested via the gateway.
+        NSLocationWhenInUseUsageDescription: Moltbot uses your location when you allow location sharing.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Moltbot can share your location in the background when you enable Always.
+        NSMicrophoneUsageDescription: Moltbot needs microphone access for voice wake.
+        NSSpeechRecognitionUsageDescription: Moltbot uses on-device speech recognition for voice wake.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
@@ -109,26 +109,26 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
 
-  ZeebotTests:
+  MoltbotTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: Tests
     dependencies:
-      - target: Zeebot
+      - target: Moltbot
       - package: Swabble
         product: SwabbleKit
       - sdk: AppIntents.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.zeebot.ios.tests
+        PRODUCT_BUNDLE_IDENTIFIER: bot.molt.ios.tests
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Zeebot.app/Zeebot"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Moltbot.app/Moltbot"
         BUNDLE_LOADER: "$(TEST_HOST)"
     info:
       path: Tests/Info.plist
       properties:
-        CFBundleDisplayName: ZeebotTests
-        CFBundleShortVersionString: "2026.1.24"
-        CFBundleVersion: "20260124"
+        CFBundleDisplayName: MoltbotTests
+        CFBundleShortVersionString: "2026.1.27-beta.1"
+        CFBundleVersion: "20260126"

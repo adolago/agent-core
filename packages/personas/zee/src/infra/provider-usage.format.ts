@@ -75,7 +75,7 @@ export function formatUsageSummaryLine(
     .filter(Boolean) as string[];
 
   if (parts.length === 0) return null;
-  return `◆ Usage: ${parts.join(" · ")}`;
+  return `📊 Usage: ${parts.join(" · ")}`;
 }
 
 export function formatUsageReportLines(summary: UsageSummary, opts?: { now?: number }): string[] {

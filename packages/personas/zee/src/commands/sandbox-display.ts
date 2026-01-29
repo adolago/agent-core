@@ -35,7 +35,7 @@ export function displayContainers(containers: SandboxContainerInfo[], runtime: R
     containers,
     {
       emptyMessage: "No sandbox containers found.",
-      title: "Sandbox Containers:",
+      title: "📦 Sandbox Containers:",
       renderItem: (container, rt) => {
         rt.log(`  ${container.containerName}`);
         rt.log(`    Status:  ${formatStatus(container.running)}`);
@@ -55,7 +55,7 @@ export function displayBrowsers(browsers: SandboxBrowserInfo[], runtime: Runtime
     browsers,
     {
       emptyMessage: "No sandbox browser containers found.",
-      title: "Browser Sandbox Browser Containers:",
+      title: "🌐 Sandbox Browser Containers:",
       renderItem: (browser, rt) => {
         rt.log(`  ${browser.containerName}`);
         rt.log(`    Status:  ${formatStatus(browser.running)}`);
@@ -88,9 +88,9 @@ export function displaySummary(
   runtime.log(`Total: ${totalCount} (${runningCount} running)`);
 
   if (mismatchCount > 0) {
-    runtime.log(`\n!  ${mismatchCount} container(s) with image mismatch detected.`);
+    runtime.log(`\n⚠️  ${mismatchCount} container(s) with image mismatch detected.`);
     runtime.log(
-      `   Run '${formatCliCommand("zee sandbox recreate --all")}' to update all containers.`,
+      `   Run '${formatCliCommand("moltbot sandbox recreate --all")}' to update all containers.`,
     );
   }
 }
@@ -103,14 +103,14 @@ export function displayRecreatePreview(
   runtime.log("\nContainers to be recreated:\n");
 
   if (containers.length > 0) {
-    runtime.log("Sandbox Containers:");
+    runtime.log("📦 Sandbox Containers:");
     for (const container of containers) {
       runtime.log(`  - ${container.containerName} (${formatSimpleStatus(container.running)})`);
     }
   }
 
   if (browsers.length > 0) {
-    runtime.log("\nBrowser Browser Containers:");
+    runtime.log("\n🌐 Browser Containers:");
     for (const browser of browsers) {
       runtime.log(`  - ${browser.containerName} (${formatSimpleStatus(browser.running)})`);
     }

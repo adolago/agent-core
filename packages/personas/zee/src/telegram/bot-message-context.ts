@@ -21,7 +21,7 @@ import { formatLocationText, toLocationContext } from "../channels/location.js";
 import { recordInboundSession } from "../channels/session.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { readSessionUpdatedAt, resolveStorePath } from "../config/sessions.js";
-import type { ZeeConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import type { DmPolicy, TelegramGroupConfig, TelegramTopicConfig } from "../config/types.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { recordChannelActivity } from "../infra/channel-activity.js";
@@ -53,9 +53,19 @@ import {
   resolveSenderAllowMatch,
 } from "./bot-access.js";
 import { upsertTelegramPairingRequest } from "./pairing-store.js";
-import type { StickerMetadata, TelegramContext } from "./bot/types.js";
+import type { TelegramContext } from "./bot/types.js";
 
-type TelegramMediaRef = { path: string; contentType?: string; stickerMetadata?: StickerMetadata };
+type TelegramMediaRef = {
+  path: string;
+  contentType?: string;
+  stickerMetadata?: {
+    emoji?: string;
+    setName?: string;
+    fileId?: string;
+    fileUniqueId?: string;
+    cachedDescription?: string;
+  };
+};
 
 type TelegramMessageContextOptions = {
   forceWasMentioned?: boolean;
@@ -86,7 +96,7 @@ type BuildTelegramMessageContextParams = {
   storeAllowFrom: string[];
   options?: TelegramMessageContextOptions;
   bot: Bot;
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   account: { accountId: string };
   historyLimit: number;
   groupHistories: Map<string, HistoryEntry[]>;
@@ -101,7 +111,7 @@ type BuildTelegramMessageContextParams = {
 };
 
 async function resolveStickerVisionSupport(params: {
-  cfg: ZeeConfig;
+  cfg: MoltbotConfig;
   agentId?: string;
 }): Promise<boolean> {
   try {
@@ -163,7 +173,8 @@ export const buildTelegramMessageContext = async ({
     },
   });
   const baseSessionKey = route.sessionKey;
-  const dmThreadId = !isGroup ? resolvedThreadId : undefined;
+  // DMs: use raw messageThreadId for thread sessions (not resolvedThreadId which is for forums)
+  const dmThreadId = !isGroup ? messageThreadId : undefined;
   const threadKeys =
     dmThreadId != null
       ? resolveThreadSessionKeys({ baseSessionKey, threadId: String(dmThreadId) })
@@ -261,14 +272,14 @@ export const buildTelegramMessageContext = async ({
                   bot.api.sendMessage(
                     chatId,
                     [
-                      "Zee: access not configured.",
+                      "Moltbot: access not configured.",
                       "",
                       `Your Telegram user id: ${telegramUserId}`,
                       "",
                       `Pairing code: ${code}`,
                       "",
                       "Ask the bot owner to approve with:",
-                      formatCliCommand("agent-core pairing approve telegram <code>"),
+                      formatCliCommand("moltbot pairing approve telegram <code>"),
                     ].join("\n"),
                   ),
               });
@@ -324,17 +335,19 @@ export const buildTelegramMessageContext = async ({
   let placeholder = "";
   if (msg.photo) placeholder = "<media:image>";
   else if (msg.video) placeholder = "<media:video>";
+  else if (msg.video_note) placeholder = "<media:video>";
   else if (msg.audio || msg.voice) placeholder = "<media:audio>";
   else if (msg.document) placeholder = "<media:document>";
   else if (msg.sticker) placeholder = "<media:sticker>";
 
-  // Check if sticker has a cached description - if so, use it instead of sending the image.
+  // Check if sticker has a cached description - if so, use it instead of sending the image
   const cachedStickerDescription = allMedia[0]?.stickerMetadata?.cachedDescription;
   const stickerSupportsVision = msg.sticker
     ? await resolveStickerVisionSupport({ cfg, agentId: route.agentId })
     : false;
   const stickerCacheHit = Boolean(cachedStickerDescription) && !stickerSupportsVision;
   if (stickerCacheHit) {
+    // Format cached description with sticker context
     const emoji = allMedia[0]?.stickerMetadata?.emoji;
     const setName = allMedia[0]?.stickerMetadata?.setName;
     const stickerContext = [emoji, setName ? `from "${setName}"` : null].filter(Boolean).join(" ");
@@ -470,12 +483,12 @@ export const buildTelegramMessageContext = async ({
   const forwardOrigin = normalizeForwardedContext(msg);
   const replySuffix = replyTarget
     ? replyTarget.kind === "quote"
-      ? `\n\n[Quoting ${replyTarget.sender}${replyTarget.id ? ` id:${replyTarget.id}` : ""}]\n"${
-          replyTarget.body
-        }"\n[/Quoting]`
-      : `\n\n[Replying to ${replyTarget.sender}${replyTarget.id ? ` id:${replyTarget.id}` : ""}]\n${
-          replyTarget.body
-        }\n[/Replying]`
+      ? `\n\n[Quoting ${replyTarget.sender}${
+          replyTarget.id ? ` id:${replyTarget.id}` : ""
+        }]\n"${replyTarget.body}"\n[/Quoting]`
+      : `\n\n[Replying to ${replyTarget.sender}${
+          replyTarget.id ? ` id:${replyTarget.id}` : ""
+        }]\n${replyTarget.body}\n[/Replying]`
     : "";
   const forwardPrefix = forwardOrigin
     ? `[Forwarded from ${forwardOrigin.from}${
@@ -568,7 +581,7 @@ export const buildTelegramMessageContext = async ({
     ForwardedDate: forwardOrigin?.date ? forwardOrigin.date * 1000 : undefined,
     Timestamp: msg.date ? msg.date * 1000 : undefined,
     WasMentioned: isGroup ? effectiveWasMentioned : undefined,
-    // Filter out cached stickers from media - their description is already in the message body.
+    // Filter out cached stickers from media - their description is already in the message body
     MediaPath: stickerCacheHit ? undefined : allMedia[0]?.path,
     MediaType: stickerCacheHit ? undefined : allMedia[0]?.contentType,
     MediaUrl: stickerCacheHit ? undefined : allMedia[0]?.path,
@@ -590,7 +603,8 @@ export const buildTelegramMessageContext = async ({
     Sticker: allMedia[0]?.stickerMetadata,
     ...(locationData ? toLocationContext(locationData) : undefined),
     CommandAuthorized: commandAuthorized,
-    MessageThreadId: resolvedThreadId,
+    // For groups: use resolvedThreadId (forum topics only); for DMs: use raw messageThreadId
+    MessageThreadId: isGroup ? resolvedThreadId : messageThreadId,
     IsForum: isForum,
     // Originating channel for reply routing.
     OriginatingChannel: "telegram" as const,

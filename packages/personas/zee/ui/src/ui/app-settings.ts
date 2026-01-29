@@ -16,7 +16,7 @@ import { startThemeTransition, type ThemeTransitionContext } from "./theme-trans
 import { scheduleChatScroll, scheduleLogsScroll } from "./app-scroll";
 import { startLogsPolling, stopLogsPolling, startDebugPolling, stopDebugPolling } from "./app-polling";
 import { refreshChat } from "./app-chat";
-import type { ZeebotApp } from "./app";
+import type { MoltbotApp } from "./app";
 
 type SettingsHost = {
   settings: UiSettings;
@@ -33,6 +33,7 @@ type SettingsHost = {
   basePath: string;
   themeMedia: MediaQueryList | null;
   themeMediaHandler: ((event: MediaQueryListEvent) => void) | null;
+  pendingGatewayUrl?: string | null;
 };
 
 export function applySettings(host: SettingsHost, next: UiSettings) {
@@ -98,7 +99,7 @@ export function applySettingsFromUrl(host: SettingsHost) {
   if (gatewayUrlRaw != null) {
     const gatewayUrl = gatewayUrlRaw.trim();
     if (gatewayUrl && gatewayUrl !== host.settings.gatewayUrl) {
-      applySettings(host, { ...host.settings, gatewayUrl });
+      host.pendingGatewayUrl = gatewayUrl;
     }
     params.delete("gatewayUrl");
     shouldCleanUrl = true;
@@ -144,15 +145,15 @@ export function setTheme(
 export async function refreshActiveTab(host: SettingsHost) {
   if (host.tab === "overview") await loadOverview(host);
   if (host.tab === "channels") await loadChannelsTab(host);
-  if (host.tab === "instances") await loadPresence(host as unknown as ZeebotApp);
-  if (host.tab === "sessions") await loadSessions(host as unknown as ZeebotApp);
+  if (host.tab === "instances") await loadPresence(host as unknown as MoltbotApp);
+  if (host.tab === "sessions") await loadSessions(host as unknown as MoltbotApp);
   if (host.tab === "cron") await loadCron(host);
-  if (host.tab === "skills") await loadSkills(host as unknown as ZeebotApp);
+  if (host.tab === "skills") await loadSkills(host as unknown as MoltbotApp);
   if (host.tab === "nodes") {
-    await loadNodes(host as unknown as ZeebotApp);
-    await loadDevices(host as unknown as ZeebotApp);
-    await loadConfig(host as unknown as ZeebotApp);
-    await loadExecApprovals(host as unknown as ZeebotApp);
+    await loadNodes(host as unknown as MoltbotApp);
+    await loadDevices(host as unknown as MoltbotApp);
+    await loadConfig(host as unknown as MoltbotApp);
+    await loadExecApprovals(host as unknown as MoltbotApp);
   }
   if (host.tab === "chat") {
     await refreshChat(host as unknown as Parameters<typeof refreshChat>[0]);
@@ -162,16 +163,16 @@ export async function refreshActiveTab(host: SettingsHost) {
     );
   }
   if (host.tab === "config") {
-    await loadConfigSchema(host as unknown as ZeebotApp);
-    await loadConfig(host as unknown as ZeebotApp);
+    await loadConfigSchema(host as unknown as MoltbotApp);
+    await loadConfig(host as unknown as MoltbotApp);
   }
   if (host.tab === "debug") {
-    await loadDebug(host as unknown as ZeebotApp);
+    await loadDebug(host as unknown as MoltbotApp);
     host.eventLog = host.eventLogBuffer;
   }
   if (host.tab === "logs") {
     host.logsAtBottom = true;
-    await loadLogs(host as unknown as ZeebotApp, { reset: true });
+    await loadLogs(host as unknown as MoltbotApp, { reset: true });
     scheduleLogsScroll(
       host as unknown as Parameters<typeof scheduleLogsScroll>[0],
       true,
@@ -181,7 +182,7 @@ export async function refreshActiveTab(host: SettingsHost) {
 
 export function inferBasePath() {
   if (typeof window === "undefined") return "";
-  const configured = window.__ZEEBOT_CONTROL_UI_BASE_PATH__;
+  const configured = window.__CLAWDBOT_CONTROL_UI_BASE_PATH__;
   if (typeof configured === "string" && configured.trim()) {
     return normalizeBasePath(configured);
   }
@@ -307,26 +308,26 @@ export function syncUrlWithSessionKey(
 
 export async function loadOverview(host: SettingsHost) {
   await Promise.all([
-    loadChannels(host as unknown as ZeebotApp, false),
-    loadPresence(host as unknown as ZeebotApp),
-    loadSessions(host as unknown as ZeebotApp),
-    loadCronStatus(host as unknown as ZeebotApp),
-    loadDebug(host as unknown as ZeebotApp),
+    loadChannels(host as unknown as MoltbotApp, false),
+    loadPresence(host as unknown as MoltbotApp),
+    loadSessions(host as unknown as MoltbotApp),
+    loadCronStatus(host as unknown as MoltbotApp),
+    loadDebug(host as unknown as MoltbotApp),
   ]);
 }
 
 export async function loadChannelsTab(host: SettingsHost) {
   await Promise.all([
-    loadChannels(host as unknown as ZeebotApp, true),
-    loadConfigSchema(host as unknown as ZeebotApp),
-    loadConfig(host as unknown as ZeebotApp),
+    loadChannels(host as unknown as MoltbotApp, true),
+    loadConfigSchema(host as unknown as MoltbotApp),
+    loadConfig(host as unknown as MoltbotApp),
   ]);
 }
 
 export async function loadCron(host: SettingsHost) {
   await Promise.all([
-    loadChannels(host as unknown as ZeebotApp, false),
-    loadCronStatus(host as unknown as ZeebotApp),
-    loadCronJobs(host as unknown as ZeebotApp),
+    loadChannels(host as unknown as MoltbotApp, false),
+    loadCronStatus(host as unknown as MoltbotApp),
+    loadCronJobs(host as unknown as MoltbotApp),
   ]);
 }
