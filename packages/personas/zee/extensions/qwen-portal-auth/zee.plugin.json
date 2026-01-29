@@ -1,0 +1,11 @@
+{
+  "id": "qwen-portal-auth",
+  "channels": [
+    "qwen-portal-auth"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

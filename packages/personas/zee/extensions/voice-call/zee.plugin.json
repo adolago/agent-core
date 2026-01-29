@@ -1,0 +1,11 @@
+{
+  "id": "voice-call",
+  "channels": [
+    "voice-call"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
