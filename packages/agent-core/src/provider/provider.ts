@@ -781,6 +781,7 @@ export namespace Provider {
             name: providerID.charAt(0).toUpperCase() + providerID.slice(1),
             models: {},
             source: "config",
+            env: configProvider.env ?? [],
             options: configProvider.options,
           }
         }
@@ -798,7 +799,15 @@ export namespace Provider {
               url: `${baseURL}/v1`,
               npm: "@ai-sdk/openai-compatible",
             },
-            capability: {
+            status: "active",
+            headers: {},
+            cost: {
+              input: 0,
+              output: 0,
+              cache: { read: 0, write: 0 },
+            },
+            capabilities: {
+              temperature: true,
               attachment: false,
               reasoning: modelID.toLowerCase().includes("qwen3"),
               toolcall: true,
@@ -806,12 +815,12 @@ export namespace Provider {
               output: { text: true, audio: false, image: false, video: false, pdf: false },
               interleaved: false,
             },
-            temperature: true,
             limit: {
               context: apiModel.max_model_len ?? 8192,
               output: Math.min(apiModel.max_model_len ?? 4096, 4096),
             },
             options: {},
+            release_date: "1970-01-01",
           }
         }
 
