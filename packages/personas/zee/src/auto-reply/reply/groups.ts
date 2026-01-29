@@ -69,7 +69,7 @@ export function buildGroupIntro(params: {
   const providerId = normalizeChannelId(rawProvider);
   const providerLabel = (() => {
     if (!providerKey) return "chat";
-    if (isInternalMessageChannel(providerKey)) return "WebChat";
+    if (isInternalMessageChannel(providerKey)) return "Internal";
     if (providerId) return getChannelPlugin(providerId)?.meta.label ?? providerId;
     return `${providerKey.at(0)?.toUpperCase() ?? ""}${providerKey.slice(1)}`;
   })();

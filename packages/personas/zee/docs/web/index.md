@@ -21,7 +21,7 @@ See [Gateway configuration](/gateway/configuration) → `hooks` for auth + paylo
 
 ## Config (default-on)
 
-The Control UI is **enabled by default** when assets are present (`dist/control-ui`).
+The Control UI is **enabled by default** when assets are present.
 You can control it via config:
 
 ```json5
@@ -84,7 +84,7 @@ Open:
   gateway: {
     bind: "loopback",
     tailscale: { mode: "funnel" },
-    auth: { mode: "password" } // or CLAWDBOT_GATEWAY_PASSWORD
+    auth: { mode: "password" } // or ZEE_GATEWAY_PASSWORD
   }
 }
 ```
@@ -100,11 +100,3 @@ Open:
   `gateway.auth.allowTailscale: false` to require explicit credentials. See
   [Tailscale](/gateway/tailscale) and [Security](/gateway/security).
 - `gateway.tailscale.mode: "funnel"` requires `gateway.auth.mode: "password"` (shared password).
-
-## Building the UI
-
-The Gateway serves static files from `dist/control-ui`. Build them with:
-
-```bash
-pnpm ui:build # auto-installs UI deps on first run
-```

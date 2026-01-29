@@ -270,7 +270,7 @@ Zee reads env vars from the parent process (shell, launchd/systemd, CI, etc.).
 
 Additionally, it loads:
 - `.env` from the current working directory (if present)
-- a global fallback `.env` from `~/.zee/.env` (aka `$CLAWDBOT_STATE_DIR/.env`)
+- a global fallback `.env` from `~/.zee/.env` (aka `$ZEE_STATE_DIR/.env`)
 
 Neither `.env` file overrides existing env vars.
 
@@ -307,8 +307,8 @@ This effectively sources your shell profile.
 ```
 
 Env var equivalent:
-- `CLAWDBOT_LOAD_SHELL_ENV=1`
-- `CLAWDBOT_SHELL_ENV_TIMEOUT_MS=15000`
+- `ZEE_LOAD_SHELL_ENV=1`
+- `ZEE_SHELL_ENV_TIMEOUT_MS=15000`
 
 ### Env var substitution in config
 
@@ -326,7 +326,7 @@ You can reference environment variables directly in any config string value usin
   },
   gateway: {
     auth: {
-      token: "${CLAWDBOT_GATEWAY_TOKEN}"
+      token: "${ZEE_GATEWAY_TOKEN}"
     }
   }
 }
@@ -360,7 +360,7 @@ Zee stores **per-agent** auth profiles (OAuth + API keys) in:
 See also: [/concepts/oauth](/concepts/oauth)
 
 Legacy OAuth imports:
-- `~/.zee/credentials/oauth.json` (or `$CLAWDBOT_STATE_DIR/credentials/oauth.json`)
+- `~/.zee/credentials/oauth.json` (or `$ZEE_STATE_DIR/credentials/oauth.json`)
 
 The embedded Pi agent maintains a runtime cache at:
 - `<agentDir>/auth.json` (managed automatically; don’t edit manually)
@@ -369,8 +369,8 @@ Legacy agent dir (pre multi-agent):
 - `~/.zee/agent/*` (migrated by `zee doctor` into `~/.zee/agents/<defaultAgentId>/agent/*`)
 
 Overrides:
-- OAuth dir (legacy import only): `CLAWDBOT_OAUTH_DIR`
-- Agent dir (default agent root override): `CLAWDBOT_AGENT_DIR` (preferred), `PI_CODING_AGENT_DIR` (legacy)
+- OAuth dir (legacy import only): `ZEE_OAUTH_DIR`
+- Agent dir (default agent root override): `ZEE_AGENT_DIR` (preferred), `PI_CODING_AGENT_DIR` (legacy)
 
 On first use, Zee imports `oauth.json` entries into `auth-profiles.json`.
 
@@ -400,7 +400,6 @@ Optional per-agent identity used for defaults and UX. This is written by the mac
 
 If set, Zee derives defaults (only when you haven’t set them explicitly):
 - `messages.ackReaction` from the **active agent**’s `identity.emoji` (falls back to 👀)
-- `agents.list[].groupChat.mentionPatterns` from the agent’s `identity.name`/`identity.emoji` (so “@Samantha” works in groups across Telegram/Slack/Discord/Google Chat/iMessage/WhatsApp)
 - `identity.avatar` accepts a workspace-relative image path or a remote URL/data URL. Local files must live inside the agent workspace.
 
 `identity.avatar` accepts:
@@ -545,7 +544,6 @@ Notes:
 - Outbound commands default to account `default` if present; otherwise the first configured account id (sorted).
 - The legacy single-account Baileys auth dir is migrated by `zee doctor` into `whatsapp/default`.
 
-### `channels.telegram.accounts` / `channels.discord.accounts` / `channels.googlechat.accounts` / `channels.slack.accounts` / `channels.mattermost.accounts` / `channels.signal.accounts` / `channels.imessage.accounts`
 
 Run multiple accounts per channel (each account has its own `accountId` and optional `name`):
 
@@ -576,7 +574,6 @@ Notes:
 
 ### Group chat mention gating (`agents.list[].groupChat` + `messages.groupChat`)
 
-Group messages default to **require mention** (either metadata mention or regex patterns). Applies to WhatsApp, Telegram, Discord, Google Chat, and iMessage group chats.
 
 **Mention types:**
 - **Metadata mentions**: Native platform @-mentions (e.g., WhatsApp tap-to-mention). Ignored in WhatsApp self-chat mode (see `channels.whatsapp.allowFrom`).
@@ -620,7 +617,6 @@ Resolution order:
 2. Provider default: `channels.<provider>.dmHistoryLimit`
 3. No limit (all history retained)
 
-Supported providers: `telegram`, `whatsapp`, `discord`, `slack`, `signal`, `imessage`, `msteams`.
 
 Per-agent override (takes precedence when set, even `[]`):
 ```json5
@@ -634,7 +630,6 @@ Per-agent override (takes precedence when set, even `[]`):
 }
 ```
 
-Mention gating defaults live per channel (`channels.whatsapp.groups`, `channels.telegram.groups`, `channels.imessage.groups`, `channels.discord.guilds`). When `*.groups` is set, it also acts as a group allowlist; include `"*"` to allow all groups.
 
 To respond **only** to specific text triggers (ignoring native @-mentions):
 ```json5
@@ -679,7 +674,6 @@ Use `channels.*.groupPolicy` to control whether group/room messages are accepted
       groupPolicy: "allowlist",
       groupAllowFrom: ["+15551234567"]
     },
-    imessage: {
       groupPolicy: "allowlist",
       groupAllowFrom: ["chat_id:123"]
     },
@@ -708,7 +702,6 @@ Notes:
 - `"disabled"`: block all group/room messages.
 - `"allowlist"`: only allow groups/rooms that match the configured allowlist.
 - `channels.defaults.groupPolicy` sets the default when a provider’s `groupPolicy` is unset.
-- WhatsApp/Telegram/Signal/iMessage/Microsoft Teams use `groupAllowFrom` (fallback: explicit `allowFrom`).
 - Discord/Slack use channel allowlists (`channels.discord.guilds.*.channels`, `channels.slack.channels`).
 - Group DMs (Discord/Slack) are still controlled by `dm.groupEnabled` + `dm.groupChannels`.
 - Default is `groupPolicy: "allowlist"` (unless overridden by `channels.defaults.groupPolicy`); if no allowlist is configured, group messages are blocked.
@@ -889,7 +882,6 @@ Controls how inbound messages behave when an agent run is already active.
         whatsapp: "collect",
         telegram: "collect",
         discord: "collect",
-        imessage: "collect",
         webchat: "collect"
       }
     }
@@ -1313,16 +1305,11 @@ Reaction notification modes:
 - `all`: all reactions on all messages.
 - `allowlist`: reactions from `channels.signal.reactionAllowlist` on all messages (empty list disables).
 
-### `channels.imessage` (imsg CLI)
-
-Zee spawns `imsg rpc` (JSON-RPC over stdio). No daemon or port required.
 
 ```json5
 {
   channels: {
-    imessage: {
       enabled: true,
-      cliPath: "imsg",
       dbPath: "~/Library/Messages/chat.db",
       remoteHost: "user@gateway-host", // SCP for remote attachments when using SSH wrapper
       dmPolicy: "pairing", // pairing | allowlist | open | disabled
@@ -1337,19 +1324,14 @@ Zee spawns `imsg rpc` (JSON-RPC over stdio). No daemon or port required.
 }
 ```
 
-Multi-account support lives under `channels.imessage.accounts` (see the multi-account section above).
 
 Notes:
 - Requires Full Disk Access to the Messages DB.
 - The first send will prompt for Messages automation permission.
-- Prefer `chat_id:<id>` targets. Use `imsg chats --limit 20` to list chats.
-- `channels.imessage.cliPath` can point to a wrapper script (e.g. `ssh` to another Mac that runs `imsg rpc`); use SSH keys to avoid password prompts.
-- For remote SSH wrappers, set `channels.imessage.remoteHost` to fetch attachments via SCP when `includeAttachments` is enabled.
 
 Example wrapper:
 ```bash
 #!/usr/bin/env bash
-exec ssh -T gateway-host imsg "$@"
 ```
 
 ### `agents.defaults.workspace`
@@ -1558,7 +1540,7 @@ Notes:
 
 ### `talk`
 
-Defaults for Talk mode (macOS/iOS/Android). Voice IDs fall back to `ELEVENLABS_VOICE_ID` or `SAG_VOICE_ID` when unset.
+Defaults for Talk mode. Voice IDs fall back to `ELEVENLABS_VOICE_ID` or `SAG_VOICE_ID` when unset.
 `apiKey` falls back to `ELEVENLABS_API_KEY` (or the gateway’s shell profile) when unset.
 `voiceAliases` lets Talk directives use friendly names (e.g. `"voice":"Zee"`).
 
@@ -1884,7 +1866,6 @@ Block streaming:
   to `minChars: 1500` unless overridden.
   Channel overrides: `channels.whatsapp.blockStreamingCoalesce`, `channels.telegram.blockStreamingCoalesce`,
   `channels.discord.blockStreamingCoalesce`, `channels.slack.blockStreamingCoalesce`, `channels.mattermost.blockStreamingCoalesce`,
-  `channels.signal.blockStreamingCoalesce`, `channels.imessage.blockStreamingCoalesce`, `channels.msteams.blockStreamingCoalesce`,
   `channels.googlechat.blockStreamingCoalesce`
   (and per-account variants).
 - `agents.defaults.humanDelay`: randomized pause between **block replies** after the first.
@@ -1920,7 +1901,6 @@ Z.AI models are available as `zai/<model>` (e.g. `zai/glm-4.7`) and require
 - `includeReasoning`: when `true`, heartbeats will also deliver the separate `Reasoning:` message when available (same shape as `/reasoning on`). Default: `false`.
 - `session`: optional session key to control which session the heartbeat runs in. Default: `main`.
 - `to`: optional recipient override (channel-specific id, e.g. E.164 for WhatsApp, chat id for Telegram).
-- `target`: optional delivery channel (`last`, `whatsapp`, `telegram`, `discord`, `slack`, `msteams`, `signal`, `imessage`, `none`). Default: `last`.
 - `prompt`: optional override for the heartbeat body (default: `Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`). Overrides are sent verbatim; include a `Read HEARTBEAT.md` line if you still want the file read.
 - `ackMaxChars`: max chars allowed after `HEARTBEAT_OK` before delivery (default: 300).
 
@@ -2110,7 +2090,6 @@ Tool groups (shorthands) work in **global** and **per-agent** tool policies:
   - `telegram`: chat ids or usernames
   - `discord`: user ids or usernames (falls back to `channels.discord.dm.allowFrom` if omitted)
   - `signal`: E.164 numbers
-  - `imessage`: handles/chat ids
   - `webchat`: session ids or usernames
 
 Example:
@@ -2605,7 +2584,7 @@ Notes:
 - Supported APIs: `openai-completions`, `openai-responses`, `anthropic-messages`,
   `google-generative-ai`
 - Use `authHeader: true` + `headers` for custom auth needs.
-- Override the agent config root with `CLAWDBOT_AGENT_DIR` (or `PI_CODING_AGENT_DIR`)
+- Override the agent config root with `ZEE_AGENT_DIR` (or `PI_CODING_AGENT_DIR`)
   if you want `models.json` stored elsewhere (default: `~/.zee/agents/main/agent`).
 
 ### `session`
@@ -2773,7 +2752,7 @@ Defaults:
 - control service: loopback only (port derived from `gateway.port`, default `18791`)
 - CDP URL: `http://127.0.0.1:18792` (control service + 1, legacy single-profile)
 - profile color: `#FF4500` (lobster-orange)
-- Note: the control server is started by the running gateway (Zee.app menubar, or `zee gateway`).
+- Note: the control server is started by the running gateway (`zee gateway`).
 - Auto-detect order: default browser if Chromium-based; otherwise Chrome → Brave → Edge → Chromium → Chrome Canary.
 
 ```json5
@@ -2865,7 +2844,7 @@ Notes:
 - `zee gateway` refuses to start unless `gateway.mode` is set to `local` (or you pass the override flag).
 - `gateway.port` controls the single multiplexed port used for WebSocket + HTTP (control UI, hooks, A2UI).
 - OpenAI Chat Completions endpoint: **disabled by default**; enable with `gateway.http.endpoints.chatCompletions.enabled: true`.
-- Precedence: `--port` > `CLAWDBOT_GATEWAY_PORT` > `gateway.port` > default `18789`.
+- Precedence: `--port` > `ZEE_GATEWAY_PORT` > `gateway.port` > default `18789`.
 - Gateway auth is required by default (token/password or Tailscale Serve identity). Non-loopback binds require a shared token/password.
 - The onboarding wizard generates a gateway token by default (even on loopback).
 - `gateway.remote.token` is **only** for remote CLI calls; it does not enable local gateway auth. `gateway.token` is ignored.
@@ -2874,7 +2853,7 @@ Auth and Tailscale:
 - `gateway.auth.mode` sets the handshake requirements (`token` or `password`). When unset, token auth is assumed.
 - `gateway.auth.token` stores the shared token for token auth (used by the CLI on the same machine).
 - When `gateway.auth.mode` is set, only that method is accepted (plus optional Tailscale headers).
-- `gateway.auth.password` can be set here, or via `CLAWDBOT_GATEWAY_PASSWORD` (recommended).
+- `gateway.auth.password` can be set here, or via `ZEE_GATEWAY_PASSWORD` (recommended).
 - `gateway.auth.allowTailscale` allows Tailscale Serve identity headers
   (`tailscale-user-login`) to satisfy auth when the request arrives on loopback
   with `x-forwarded-for`, `x-forwarded-proto`, and `x-forwarded-host`. Zee
@@ -2888,14 +2867,9 @@ Auth and Tailscale:
 
 Remote client defaults (CLI):
 - `gateway.remote.url` sets the default Gateway WebSocket URL for CLI calls when `gateway.mode = "remote"`.
-- `gateway.remote.transport` selects the macOS remote transport (`ssh` default, `direct` for ws/wss). When `direct`, `gateway.remote.url` must be `ws://` or `wss://`. `ws://host` defaults to port `18789`.
+- `gateway.remote.transport` selects the remote transport (`ssh` default, `direct` for ws/wss). When `direct`, `gateway.remote.url` must be `ws://` or `wss://`. `ws://host` defaults to port `18789`.
 - `gateway.remote.token` supplies the token for remote calls (leave unset for no auth).
 - `gateway.remote.password` supplies the password for remote calls (leave unset for no auth).
-
-macOS app behavior:
-- Zee.app watches `~/.zee/zee.json` and switches modes live when `gateway.mode` or `gateway.remote.url` changes.
-- If `gateway.mode` is unset but `gateway.remote.url` is set, the macOS app treats it as remote mode.
-- When you change connection mode in the macOS app, it writes `gateway.mode` (and `gateway.remote.url` + `gateway.remote.transport` in remote mode) back to the config file.
 
 ```json5
 {
@@ -2910,7 +2884,7 @@ macOS app behavior:
 }
 ```
 
-Direct transport example (macOS app):
+Direct transport example:
 
 ```json5
 {
@@ -2927,7 +2901,7 @@ Direct transport example (macOS app):
 
 ### `gateway.reload` (Config hot reload)
 
-The Gateway watches `~/.zee/zee.json` (or `CLAWDBOT_CONFIG_PATH`) and applies changes automatically.
+The Gateway watches `~/.zee/zee.json` (or `ZEE_CONFIG_PATH`) and applies changes automatically.
 
 Modes:
 - `hybrid` (default): hot-apply safe changes; restart the Gateway for critical changes.
@@ -2949,7 +2923,7 @@ Modes:
 #### Hot reload matrix (files + impact)
 
 Files watched:
-- `~/.zee/zee.json` (or `CLAWDBOT_CONFIG_PATH`)
+- `~/.zee/zee.json` (or `ZEE_CONFIG_PATH`)
 
 Hot-applied (no full gateway restart):
 - `hooks` (webhook auth/path/mappings) + `hooks.gmail` (Gmail watcher restarted)
@@ -2957,7 +2931,6 @@ Hot-applied (no full gateway restart):
 - `cron` (cron service restart + concurrency update)
 - `agents.defaults.heartbeat` (heartbeat runner restart)
 - `web` (WhatsApp web channel restart)
-- `telegram`, `discord`, `signal`, `imessage` (channel restarts)
 - `agent`, `models`, `routing`, `messages`, `session`, `whatsapp`, `logging`, `skills`, `ui`, `talk`, `identity`, `wizard` (dynamic reads)
 
 Requires full Gateway restart:
@@ -2971,8 +2944,8 @@ Requires full Gateway restart:
 ### Multi-instance isolation
 
 To run multiple gateways on one host (for redundancy or a rescue bot), isolate per-instance state + config and use unique ports:
-- `CLAWDBOT_CONFIG_PATH` (per-instance config)
-- `CLAWDBOT_STATE_DIR` (sessions/creds)
+- `ZEE_CONFIG_PATH` (per-instance config)
+- `ZEE_STATE_DIR` (sessions/creds)
 - `agents.defaults.workspace` (memories)
 - `gateway.port` (unique per instance)
 
@@ -2985,8 +2958,8 @@ See [Multiple gateways](/gateway/multiple-gateways) for browser/CDP port isolati
 
 Example:
 ```bash
-CLAWDBOT_CONFIG_PATH=~/.zee/a.json \
-CLAWDBOT_STATE_DIR=~/.zee-a \
+ZEE_CONFIG_PATH=~/.zee/a.json \
+ZEE_STATE_DIR=~/.zee-a \
 zee gateway --port 19001
 ```
 
@@ -3043,7 +3016,6 @@ Mapping notes:
 - Templates like `{{messages[0].subject}}` read from the payload.
 - `transform` can point to a JS/TS module that returns a hook action.
 - `deliver: true` sends the final reply to a channel; `channel` defaults to `last` (falls back to WhatsApp).
-- If there is no prior delivery route, set `channel` + `to` explicitly (required for Telegram/Discord/Google Chat/Slack/Signal/iMessage/MS Teams).
 - `model` overrides the LLM for this hook run (`provider/model` or alias; must be allowed if `agents.defaults.models` is set).
 
 Gmail helper config (used by `zee webhooks gmail setup` / `run`):
@@ -3084,7 +3056,7 @@ Model override for Gmail hooks:
 Gateway auto-start:
 - If `hooks.enabled=true` and `hooks.gmail.account` is set, the Gateway starts
   `gog gmail watch serve` on boot and auto-renews the watch.
-- Set `CLAWDBOT_SKIP_GMAIL_WATCHER=1` to disable the auto-start (for manual runs).
+- Set `ZEE_SKIP_GMAIL_WATCHER=1` to disable the auto-start (for manual runs).
 - Avoid running a separate `gog gmail watch serve` alongside the Gateway; it will
   fail with `listen tcp 127.0.0.1:8788: bind: address already in use`.
 
@@ -3095,7 +3067,7 @@ If you need the backend to receive the prefixed path, set
 
 ### `canvasHost` (LAN/tailnet Canvas file server + live reload)
 
-The Gateway serves a directory of HTML/CSS/JS over HTTP so iOS/Android nodes can simply `canvas.navigate` to it.
+The Gateway serves a directory of HTML/CSS/JS over HTTP so node clients can simply `canvas.navigate` to it.
 
 Default root: `~/zee/canvas`  
 Default port: `18793` (chosen to avoid the zee browser CDP port `18792`)  
@@ -3126,7 +3098,7 @@ Changes to `canvasHost.*` require a gateway restart (config reload will restart)
 
 Disable with:
 - config: `canvasHost: { enabled: false }`
-- env: `CLAWDBOT_SKIP_CANVAS_HOST=1`
+- env: `ZEE_SKIP_CANVAS_HOST=1`
 
 ### `bridge` (legacy TCP bridge, removed)
 
@@ -3134,7 +3106,7 @@ Current builds no longer include the TCP bridge listener; `bridge.*` config keys
 Nodes connect over the Gateway WebSocket. This section is kept for historical reference.
 
 Legacy behavior:
-- The Gateway could expose a simple TCP bridge for nodes (iOS/Android), typically on port `18790`.
+- The Gateway could expose a simple TCP bridge for nodes, typically on port `18790`.
 
 Defaults:
 - enabled: `true`
@@ -3192,7 +3164,7 @@ Controls LAN mDNS discovery broadcasts (`_zee-gw._tcp`).
 
 When enabled, the Gateway writes a unicast DNS-SD zone for `_zee-bridge._tcp` under `~/.zee/dns/` using the standard discovery domain `zee.internal.`
 
-To make iOS/Android discover across networks (Vienna ⇄ London), pair this with:
+To make node hosts discover across networks (Vienna ⇄ London), pair this with:
 - a DNS server on the gateway host serving `zee.internal.` (CoreDNS is recommended)
 - Tailscale **split DNS** so clients resolve `zee.internal` via that server
 
@@ -3233,7 +3205,6 @@ Template placeholders are expanded in `tools.media.*.models[].args` and `tools.m
 | `{{GroupMembers}}` | Group members preview (best effort) |
 | `{{SenderName}}` | Sender display name (best effort) |
 | `{{SenderE164}}` | Sender phone number (best effort) |
-| `{{Provider}}` | Provider hint (whatsapp|telegram|discord|googlechat|slack|signal|imessage|msteams|webchat|…) |
 
 ## Cron (Gateway scheduler)
 

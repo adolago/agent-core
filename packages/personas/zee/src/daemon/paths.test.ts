@@ -26,8 +26,8 @@ describe("resolveGatewayStateDir", () => {
   });
 
   it("expands ~ in CLAWDBOT_STATE_DIR", () => {
-    const env = { HOME: "/Users/test", CLAWDBOT_STATE_DIR: "~/moltbot-state" };
-    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/Users/test/moltbot-state"));
+    const env = { HOME: "/Users/test", CLAWDBOT_STATE_DIR: "~/zee-state" };
+    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/Users/test/zee-state"));
   });
 
   it("preserves Windows absolute paths without HOME", () => {

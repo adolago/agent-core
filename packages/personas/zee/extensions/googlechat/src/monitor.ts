@@ -357,7 +357,7 @@ function extractMentionInfo(annotations: GoogleChatAnnotation[], botUser?: strin
  * Resolve bot display name with fallback chain:
  * 1. Account config name
  * 2. Agent name from config
- * 3. "Moltbot" as generic fallback
+ * 3. "Zee" as generic fallback
  */
 function resolveBotDisplayName(params: {
   accountName?: string;
@@ -368,7 +368,7 @@ function resolveBotDisplayName(params: {
   if (accountName?.trim()) return accountName.trim();
   const agent = config.agents?.list?.find((a) => a.id === agentId);
   if (agent?.name?.trim()) return agent.name.trim();
-  return "Moltbot";
+  return "Zee";
 }
 
 async function processMessageWithPipeline(params: {

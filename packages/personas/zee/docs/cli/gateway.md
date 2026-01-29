@@ -42,8 +42,8 @@ Notes:
 - `--port <port>`: WebSocket port (default comes from config/env; usually `18789`).
 - `--bind <loopback|lan|tailnet|auto|custom>`: listener bind mode.
 - `--auth <token|password>`: auth mode override.
-- `--token <token>`: token override (also sets `CLAWDBOT_GATEWAY_TOKEN` for the process).
-- `--password <password>`: password override (also sets `CLAWDBOT_GATEWAY_PASSWORD` for the process).
+- `--token <token>`: token override (also sets `ZEE_GATEWAY_TOKEN` for the process).
+- `--password <password>`: password override (also sets `ZEE_GATEWAY_PASSWORD` for the process).
 - `--tailscale <off|serve|funnel>`: expose the Gateway via Tailscale.
 - `--tailscale-reset-on-exit`: reset Tailscale serve/funnel config on shutdown.
 - `--allow-unconfigured`: allow gateway start without `gateway.mode=local` in config.
@@ -109,9 +109,9 @@ zee gateway probe
 zee gateway probe --json
 ```
 
-#### Remote over SSH (Mac app parity)
+#### Remote over SSH
 
-The macOS app “Remote over SSH” mode uses a local port-forward so the remote gateway (which may be bound to loopback only) becomes reachable at `ws://127.0.0.1:<port>`.
+SSH tunnels use a local port-forward so the remote gateway (which may be bound to loopback only) becomes reachable at `ws://127.0.0.1:<port>`.
 
 CLI equivalent:
 

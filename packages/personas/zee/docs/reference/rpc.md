@@ -1,8 +1,6 @@
 ---
-summary: "RPC adapters for external CLIs (signal-cli, imsg) and gateway patterns"
 read_when:
   - Adding or changing external CLI integrations
-  - Debugging RPC adapters (signal-cli, imsg)
 ---
 # RPC adapters
 
@@ -16,8 +14,6 @@ Zee integrates external CLIs via JSON-RPC. Two patterns are used today.
 
 See [Signal](/channels/signal) for setup and endpoints.
 
-## Pattern B: stdio child process (imsg)
-- Zee spawns `imsg rpc` as a child process.
 - JSON-RPC is line-delimited over stdin/stdout (one JSON object per line).
 - No TCP port, no daemon required.
 
@@ -27,7 +23,6 @@ Core methods used:
 - `send`
 - `chats.list` (probe/diagnostics)
 
-See [iMessage](/channels/imessage) for setup and addressing (`chat_id` preferred).
 
 ## Adapter guidelines
 - Gateway owns the process (start/stop tied to provider lifecycle).

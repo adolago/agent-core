@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { createConfigIO } from "./io.js";
 
 async function withTempHome(run: (home: string) => Promise<void>): Promise<void> {
-  const home = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-config-"));
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), "zee-config-"));
   try {
     await run(home);
   } finally {

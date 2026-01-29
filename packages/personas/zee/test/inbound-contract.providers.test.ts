@@ -79,21 +79,6 @@ describe("inbound context contract (providers + extensions)", () => {
       },
     },
     {
-      name: "imessage group",
-      ctx: {
-        Provider: "imessage",
-        Surface: "imessage",
-        ChatType: "group",
-        From: "group:chat_id:123",
-        To: "chat_id:123",
-        Body: "[iMessage Group] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "iMessage Group",
-        SenderName: "Alice",
-      },
-    },
-    {
       name: "matrix channel",
       ctx: {
         Provider: "matrix",

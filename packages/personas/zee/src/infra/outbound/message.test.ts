@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChannelOutboundAdapter, ChannelPlugin } from "../../channels/plugins/types.js";
-import { createIMessageTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 const loadMessage = async () => await import("./message.js");
 
 const setRegistry = async (registry: ReturnType<typeof createTestRegistry>) => {
@@ -56,29 +56,6 @@ describe("sendMessage channel normalization", () => {
     expect(result.channel).toBe("msteams");
   });
 
-  it("normalizes iMessage alias", async () => {
-    const { sendMessage } = await loadMessage();
-    const sendIMessage = vi.fn(async () => ({ messageId: "i1" }));
-    await setRegistry(
-      createTestRegistry([
-        {
-          pluginId: "imessage",
-          source: "test",
-          plugin: createIMessageTestPlugin(),
-        },
-      ]),
-    );
-    const result = await sendMessage({
-      cfg: {},
-      to: "someone@example.com",
-      content: "hi",
-      channel: "imsg",
-      deps: { sendIMessage },
-    });
-
-    expect(sendIMessage).toHaveBeenCalledWith("someone@example.com", "hi", expect.any(Object));
-    expect(result.channel).toBe("imessage");
-  });
 });
 
 describe("sendPoll channel normalization", () => {

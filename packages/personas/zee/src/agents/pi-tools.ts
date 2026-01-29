@@ -128,9 +128,9 @@ export function createZeeCodingTools(options?: {
    * tool-name blocking quirks.
    */
   modelAuthMode?: ModelAuthMode;
-  /** Current channel ID for auto-threading (Slack). */
+  /** Current channel ID for auto-threading. */
   currentChannelId?: string;
-  /** Current thread timestamp for auto-threading (Slack). */
+  /** Current thread timestamp for auto-threading. */
   currentThreadTs?: string;
   /** Group id for channel-level tool policy resolution. */
   groupId?: string | null;
@@ -144,7 +144,7 @@ export function createZeeCodingTools(options?: {
   senderName?: string | null;
   senderUsername?: string | null;
   senderE164?: string | null;
-  /** Reply-to mode for Slack auto-threading. */
+  /** Reply-to mode for auto-threading. */
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };

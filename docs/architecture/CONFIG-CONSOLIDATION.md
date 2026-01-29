@@ -9,7 +9,7 @@ The following types are defined in agent-core and can be imported by zee for typ
 ### Session Types
 - `SessionScope`: `"per-sender" | "global"`
 - `SessionChatType`: `"direct" | "group" | "room"`
-- `MessagingProvider`: `"whatsapp" | "telegram" | "discord" | "slack" | "signal" | "imessage" | "webchat"`
+- `MessagingProvider`: `"whatsapp" | "telegram" | "discord" | "slack" | "signal" | "webchat"`
 - `GroupActivation`: `"mention" | "always"`
 - `SendPolicy`: `"allow" | "deny"`
 

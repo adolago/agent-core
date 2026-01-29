@@ -18,7 +18,7 @@ Single, rigorous document for:
 - Migration plan, risks, open questions.
 
 ## Goals (from discussion)
-- One protocol for all clients (mac app, CLI, iOS, Android, headless node).
+- One protocol for all clients (CLI, web UI, headless node).
 - Every network participant authenticated + paired.
 - Role clarity: nodes vs operators.
 - Central approvals routed to where the user is.
@@ -59,28 +59,26 @@ Single, rigorous document for:
 
 ## Control plane clients today
 - CLI → Gateway WS via `callGateway` (`src/gateway/call.ts`).
-- macOS app UI → Gateway WS (`GatewayConnection`).
 - Web Control UI → Gateway WS.
 - ACP → Gateway WS.
 - Browser control uses its own HTTP control server.
 
 ## Nodes today
-- macOS app in node mode connects to Gateway bridge (`MacNodeBridgeSession`).
-- iOS/Android apps connect to Gateway bridge.
+- Legacy node clients connect to the Gateway bridge.
 - Pairing + per‑node token stored on gateway.
 
 ## Current approval flow (exec)
 - Agent uses `system.run` via Gateway.
 - Gateway invokes node over bridge.
 - Node runtime decides approval.
-- UI prompt shown by mac app (when node == mac app).
+- UI prompt shown by operator client.
 - Node returns `invoke-res` to Gateway.
 - Multi‑hop, UI tied to node host.
 
 ## Presence + identity today
 - Gateway presence entries from WS clients.
 - Node presence entries from bridge.
-- mac app can show two entries for same machine (UI + node).
+- A single machine can show multiple entries (operator + node).
 - Node identity stored in pairing store; UI identity separate.
 
 ---
@@ -179,14 +177,14 @@ Use current TLS runtime + fingerprint pinning:
 
 ## Why
 - Reduce reliance on SSH/Tailscale for confidentiality.
-- Make remote mobile connections safe by default.
+- Make remote node connections safe by default.
 
 ---
 
 # Approvals redesign (centralized)
 
 ## Current
-Approval happens on node host (mac app node runtime). Prompt appears where node runs.
+Approval happens on the node host. Prompt appears where the node runs.
 
 ## Proposed
 Approval is **gateway‑hosted**, UI delivered to operator clients.
@@ -206,7 +204,7 @@ Approval is **gateway‑hosted**, UI delivered to operator clients.
 - Resolution requires `operator.approvals` scope.
 
 ## Benefits
-- Prompt appears where user is (mac/phone).
+- Prompt appears where the operator is.
 - Consistent approvals for remote nodes.
 - Node runtime stays headless; no UI dependency.
 
@@ -214,15 +212,15 @@ Approval is **gateway‑hosted**, UI delivered to operator clients.
 
 # Role clarity examples
 
-## iPhone app
-- **Node role** for: mic, camera, voice chat, location, push‑to‑talk.
+## Mobile node host
+- **Node role** for: mic, camera, voice chat, location, push-to-talk.
 - Optional **operator.read** for status and chat view.
 - Optional **operator.write/admin** only when explicitly enabled.
 
-## macOS app
-- Operator role by default (control UI).
-- Node role when “Mac node” enabled (system.run, screen, camera).
-- Same deviceId for both connections → merged UI entry.
+## Control UI
+- Operator role by default.
+- Node role when a local node host is enabled (system.run, screen, camera).
+- Same deviceId for both connections -> merged UI entry.
 
 ## CLI
 - Operator role always.
@@ -271,7 +269,7 @@ Same `deviceId` across roles → single “Instance” row:
 
 ## Phase 3: Central approvals
 - Add approval request + resolve events in WS.
-- Update mac app UI to prompt + respond.
+- Update operator UI to prompt + respond.
 - Node runtime stops prompting UI.
 
 ## Phase 4: TLS unification
@@ -279,7 +277,7 @@ Same `deviceId` across roles → single “Instance” row:
 - Add pinning to clients.
 
 ## Phase 5: Deprecate bridge
-- Migrate iOS/Android/mac node to WS.
+- Migrate node clients to WS.
 - Keep bridge as fallback; remove once stable.
 
 ## Phase 6: Device‑bound auth
@@ -293,16 +291,13 @@ Same `deviceId` across roles → single “Instance” row:
 - Role/allowlist enforced at gateway boundary.
 - No client gets “full” API without operator scope.
 - Pairing required for *all* connections.
-- TLS + pinning reduces MITM risk for mobile.
+- TLS + pinning reduces MITM risk for remote nodes.
 - SSH silent approval is a convenience; still recorded + revocable.
 - Discovery is never a trust anchor.
 - Capability claims are verified against server allowlists by platform/type.
 
 # Streaming + large payloads (node media)
-WS control plane is fine for small messages, but nodes also do:
-- camera clips
-- screen recordings
-- audio streams
+WS control plane is fine for small messages, but node clients may need media streams.
 
 Options:
 1) WS binary frames + chunking + backpressure rules.

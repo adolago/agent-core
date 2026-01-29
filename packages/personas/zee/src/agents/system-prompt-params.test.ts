@@ -8,7 +8,7 @@ import type { ZeeConfig } from "../config/config.js";
 import { buildSystemPromptParams } from "./system-prompt-params.js";
 
 async function makeTempDir(label: string): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), `moltbot-${label}-`));
+  return fs.mkdtemp(path.join(os.tmpdir(), `zee-${label}-`));
 }
 
 async function makeRepoRoot(root: string): Promise<void> {

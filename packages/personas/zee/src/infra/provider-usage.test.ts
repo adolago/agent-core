@@ -330,7 +330,7 @@ describe("provider usage loading", () => {
         env: {
           CLAWDBOT_STATE_DIR: (home) => path.join(home, ".clawdbot"),
         },
-        prefix: "moltbot-provider-usage-",
+        prefix: "zee-provider-usage-",
       },
     );
   });

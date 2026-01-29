@@ -26,9 +26,6 @@ describe("normalizeConfigPaths", () => {
               },
             },
           },
-          imessage: {
-            accounts: { personal: { dbPath: "~/Library/Messages/chat.db" } },
-          },
         },
         agents: {
           defaults: { workspace: "~/ws-default" },
@@ -53,9 +50,6 @@ describe("normalizeConfigPaths", () => {
       expect(cfg.tools?.exec?.pathPrepend?.[0]).toBe(path.join(home, "bin"));
       expect(cfg.channels?.telegram?.accounts?.personal?.tokenFile).toBe(
         path.join(home, ".clawdbot", "telegram.token"),
-      );
-      expect(cfg.channels?.imessage?.accounts?.personal?.dbPath).toBe(
-        path.join(home, "Library", "Messages", "chat.db"),
       );
       expect(cfg.agents?.defaults?.workspace).toBe(path.join(home, "ws-default"));
       expect(cfg.agents?.list?.[0]?.workspace).toBe(path.join(home, "ws-agent"));

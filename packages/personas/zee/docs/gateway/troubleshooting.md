@@ -25,7 +25,7 @@ Quick triage commands (in order):
 | `zee gateway status` | Supervisor state (launchd/systemd/schtasks), runtime PID/exit, last gateway error | When the service “looks loaded” but nothing runs |
 | `zee logs --follow` | Live logs (best signal for runtime issues) | When you need the actual failure reason |
 
-**Sharing output:** prefer `zee status --all` (it redacts tokens). If you paste `zee status`, consider setting `CLAWDBOT_SHOW_SECRETS=0` first (token previews).
+**Sharing output:** prefer `zee status --all` (it redacts tokens). If you paste `zee status`, consider setting `ZEE_SHOW_SECRETS=0` first (token previews).
 
 See also: [Health checks](/gateway/health) and [Logging](/logging).
 
@@ -106,7 +106,7 @@ Doctor/service will show runtime state (PID/last exit) and log hints.
 **Logs:**
 - Preferred: `zee logs --follow`
 - File logs (always): `/tmp/zee/zee-YYYY-MM-DD.log` (or your configured `logging.file`)
-- macOS LaunchAgent (if installed): `$CLAWDBOT_STATE_DIR/logs/gateway.log` and `gateway.err.log`
+- macOS LaunchAgent (if installed): `$ZEE_STATE_DIR/logs/gateway.log` and `gateway.err.log`
 - Linux systemd (if installed): `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`
 - Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST`
 
@@ -195,14 +195,14 @@ the Gateway likely refused to bind.
 - If you set `gateway.mode=remote`, the **CLI defaults** to a remote URL. The service can still be running locally, but your CLI may be probing the wrong place. Use `zee gateway status` to see the service’s resolved port + probe target (or pass `--url`).
 - `zee gateway status` and `zee doctor` surface the **last gateway error** from logs when the service looks running but the port is closed.
 - Non-loopback binds (`lan`/`tailnet`/`custom`, or `auto` when loopback is unavailable) require auth:
-  `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`).
+  `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`).
 - `gateway.remote.token` is for remote CLI calls only; it does **not** enable local auth.
 - `gateway.token` is ignored; use `gateway.auth.token`.
 
 **If `zee gateway status` shows a config mismatch**
 - `Config (cli): ...` and `Config (service): ...` should normally match.
 - If they don’t, you’re almost certainly editing one config while the service is running another.
-- Fix: rerun `zee gateway install --force` from the same `--profile` / `CLAWDBOT_STATE_DIR` you want the service to use.
+- Fix: rerun `zee gateway install --force` from the same `--profile` / `ZEE_STATE_DIR` you want the service to use.
 
 **If `zee gateway status` reports service config issues**
 - The supervisor config (launchd/systemd/schtasks) is missing current defaults.
@@ -210,7 +210,7 @@ the Gateway likely refused to bind.
 
 **If `Last gateway error:` mentions “refusing to bind … without auth”**
 - You set `gateway.bind` to a non-loopback mode (`lan`/`tailnet`/`custom`, or `auto` when loopback is unavailable) but didn’t configure auth.
-- Fix: set `gateway.auth.mode` + `gateway.auth.token` (or export `CLAWDBOT_GATEWAY_TOKEN`) and restart the service.
+- Fix: set `gateway.auth.mode` + `gateway.auth.token` (or export `ZEE_GATEWAY_TOKEN`) and restart the service.
 
 **If `zee gateway status` says `bind=tailnet` but no tailnet interface was found**
 - The gateway tried to bind to a Tailscale IP (100.64.0.0/10) but none were detected on the host.
@@ -291,8 +291,7 @@ Look for `AllowFrom: ...` in the output.
 ```bash
 # The message must match mentionPatterns or explicit mentions; defaults live in channel groups/guilds.
 # Multi-agent: `agents.list[].groupChat.mentionPatterns` overrides global patterns.
-grep -n "agents\\|groupChat\\|mentionPatterns\\|channels\\.whatsapp\\.groups\\|channels\\.telegram\\.groups\\|channels\\.imessage\\.groups\\|channels\\.discord\\.guilds" \
-  "${CLAWDBOT_CONFIG_PATH:-$HOME/.zee/zee.json}"
+  "${ZEE_CONFIG_PATH:-$HOME/.zee/zee.json}"
 ```
 
 **Check 3:** Check the logs
@@ -386,7 +385,7 @@ If you’re logged out / unlinked:
 
 ```bash
 zee channels logout
-trash "${CLAWDBOT_STATE_DIR:-$HOME/.zee}/credentials" # if logout can't cleanly remove everything
+trash "${ZEE_STATE_DIR:-$HOME/.zee}/credentials" # if logout can't cleanly remove everything
 zee channels login --verbose       # re-scan QR
 ```
 
@@ -501,12 +500,12 @@ upgrades in place and rewrites the gateway service to point at the new install.
 
 Switch **to git install**:
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --install-method git --no-onboard
+curl -fsSL https://docs.zee/install.sh | bash -s -- --install-method git --no-onboard
 ```
 
 Switch **to npm global**:
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash
+curl -fsSL https://docs.zee/install.sh | bash
 ```
 
 Notes:
@@ -568,58 +567,13 @@ Fix checklist:
 
 See [Tools](/tools) and [TypeBox schemas](/concepts/typebox).
 
-## macOS Specific Issues
-
-### App Crashes when Granting Permissions (Speech/Mic)
-
-If the app disappears or shows "Abort trap 6" when you click "Allow" on a privacy prompt:
-
-**Fix 1: Reset TCC Cache**
-```bash
-tccutil reset All bot.molt.mac.debug
-```
-
-**Fix 2: Force New Bundle ID**
-If resetting doesn't work, change the `BUNDLE_ID` in [`scripts/package-mac-app.sh`](https://github.com/zee/zee/blob/main/scripts/package-mac-app.sh) (e.g., add a `.test` suffix) and rebuild. This forces macOS to treat it as a new app.
-
-### Gateway stuck on "Starting..."
-
-The app connects to a local gateway on port `18789`. If it stays stuck:
-
-**Fix 1: Stop the supervisor (preferred)**
-If the gateway is supervised by launchd, killing the PID will just respawn it. Stop the supervisor first:
-```bash
-zee gateway status
-zee gateway stop
-# Or: launchctl bootout gui/$UID/bot.molt.gateway (replace with bot.molt.<profile>; legacy com.zee.* still works)
-```
-
-**Fix 2: Port is busy (find the listener)**
-```bash
-lsof -nP -iTCP:18789 -sTCP:LISTEN
-```
-
-If it’s an unsupervised process, try a graceful stop first, then escalate:
-```bash
-kill -TERM <PID>
-sleep 1
-kill -9 <PID> # last resort
-```
-
-**Fix 3: Check the CLI install**
-Ensure the global `zee` CLI is installed and matches the app version:
-```bash
-zee --version
-npm install -g zee@<version>
-```
-
 ## Debug Mode
 
 Get verbose logging:
 
 ```bash
 # Turn on trace logging in config:
-#   ${CLAWDBOT_CONFIG_PATH:-$HOME/.zee/zee.json} -> { logging: { level: "trace" } }
+#   ${ZEE_CONFIG_PATH:-$HOME/.zee/zee.json} -> { logging: { level: "trace" } }
 #
 # Then run verbose commands to mirror debug output to stdout:
 zee gateway --verbose
@@ -631,10 +585,10 @@ zee channels login --verbose
 | Log | Location |
 |-----|----------|
 | Gateway file logs (structured) | `/tmp/zee/zee-YYYY-MM-DD.log` (or `logging.file`) |
-| Gateway service logs (supervisor) | macOS: `$CLAWDBOT_STATE_DIR/logs/gateway.log` + `gateway.err.log` (default: `~/.zee/logs/...`; profiles use `~/.zee-<profile>/logs/...`)<br />Linux: `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`<br />Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST` |
-| Session files | `$CLAWDBOT_STATE_DIR/agents/<agentId>/sessions/` |
-| Media cache | `$CLAWDBOT_STATE_DIR/media/` |
-| Credentials | `$CLAWDBOT_STATE_DIR/credentials/` |
+| Gateway service logs (supervisor) | macOS: `$ZEE_STATE_DIR/logs/gateway.log` + `gateway.err.log` (default: `~/.zee/logs/...`; profiles use `~/.zee-<profile>/logs/...`)<br />Linux: `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`<br />Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST` |
+| Session files | `$ZEE_STATE_DIR/agents/<agentId>/sessions/` |
+| Media cache | `$ZEE_STATE_DIR/media/` |
+| Credentials | `$ZEE_STATE_DIR/credentials/` |
 
 ## Health Check
 
@@ -667,7 +621,7 @@ zee gateway stop
 # If you installed a service and want a clean install:
 # zee gateway uninstall
 
-trash "${CLAWDBOT_STATE_DIR:-$HOME/.zee}"
+trash "${ZEE_STATE_DIR:-$HOME/.zee}"
 zee channels login         # re-pair WhatsApp
 zee gateway restart           # or: zee gateway
 ```
@@ -687,8 +641,6 @@ zee gateway restart           # or: zee gateway
 ---
 
 *"Have you tried turning it off and on again?"* — Every IT person ever
-
-🦞🔧
 
 ### Browser Not Starting (Linux)
 

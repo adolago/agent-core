@@ -477,7 +477,7 @@ function buildExecEventPayload(payload: ExecEventPayload): ExecEventPayload {
   return { ...payload, output: text };
 }
 
-async function runViaMacAppExecHost(params: {
+async function runViaExecHostSocket(params: {
   approvals: ReturnType<typeof resolveExecApprovals>;
   request: ExecHostRequest;
 }): Promise<ExecHostResponse | null> {
@@ -861,8 +861,8 @@ async function handleInvoke(
     segments = analysis.segments;
   }
 
-  const useMacAppExec = process.platform === "darwin";
-  if (useMacAppExec) {
+  const useExecHostSocket = process.platform === "darwin";
+  if (useExecHostSocket) {
     const approvalDecision =
       params.approvalDecision === "allow-once" || params.approvalDecision === "allow-always"
         ? params.approvalDecision
@@ -878,7 +878,7 @@ async function handleInvoke(
       sessionKey: sessionKey ?? null,
       approvalDecision,
     };
-    const response = await runViaMacAppExecHost({ approvals, request: execRequest });
+    const response = await runViaExecHostSocket({ approvals, request: execRequest });
     if (!response) {
       if (execHostEnforced || !execHostFallbackAllowed) {
         await sendNodeEvent(
@@ -896,7 +896,7 @@ async function handleInvoke(
           ok: false,
           error: {
             code: "UNAVAILABLE",
-            message: "COMPANION_APP_UNAVAILABLE: macOS app exec host unreachable",
+            message: "COMPANION_HOST_UNAVAILABLE: exec host unreachable",
           },
         });
         return;

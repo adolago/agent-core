@@ -41,11 +41,11 @@ export function createZeeTools(options?: {
   sandboxed?: boolean;
   config?: ZeeConfig;
   pluginToolAllowlist?: string[];
-  /** Current channel ID for auto-threading (Slack). */
+  /** Current channel ID for auto-threading. */
   currentChannelId?: string;
-  /** Current thread timestamp for auto-threading (Slack). */
+  /** Current thread timestamp for auto-threading. */
   currentThreadTs?: string;
-  /** Reply-to mode for Slack auto-threading. */
+  /** Reply-to mode for auto-threading. */
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };

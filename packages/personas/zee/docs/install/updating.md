@@ -16,14 +16,14 @@ detects existing installs, upgrades in place, and runs `zee doctor` when
 needed.
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash
+curl -fsSL https://docs.zee/install.sh | bash
 ```
 
 Notes:
 - Add `--no-onboard` if you don’t want the onboarding wizard to run again.
 - For **source installs**, use:
   ```bash
-  curl -fsSL https://molt.bot/install.sh | bash -s -- --install-method git --no-onboard
+  curl -fsSL https://docs.zee/install.sh | bash -s -- --install-method git --no-onboard
   ```
   The installer will `git pull --rebase` **only** if the repo is clean.
 - For **global installs**, the script uses `npm install -g zee@latest` under the hood.
@@ -88,7 +88,7 @@ zee update
 It runs a safe-ish update flow:
 - Requires a clean worktree.
 - Switches to the selected channel (tag or branch).
-- Fetches + rebases against the configured upstream (dev channel).
+- Fetches + rebases against `origin/dev` (dev channel).
 - Installs deps, builds, builds the Control UI, and runs `zee doctor`.
 - Restarts the gateway by default (use `--no-restart` to skip).
 
@@ -119,7 +119,6 @@ Manual (equivalent-ish):
 git pull
 pnpm install
 pnpm build
-pnpm ui:build # auto-installs UI deps on first run
 zee doctor
 zee health
 ```
@@ -158,7 +157,7 @@ zee logs --follow
 ```
 
 If you’re supervised:
-- macOS launchd (app-bundled LaunchAgent): `launchctl kickstart -k gui/$UID/bot.molt.gateway` (use `bot.molt.<profile>`; legacy `com.zee.*` still works)
+- macOS launchd (app-bundled LaunchAgent): `launchctl kickstart -k gui/$UID/bot.zee.gateway` (use `bot.zee.<profile>`; legacy `com.zee.*` still works)
 - Linux systemd user service: `systemctl --user restart zee-gateway[-<profile>].service`
 - Windows (WSL2): `systemctl --user restart zee-gateway[-<profile>].service`
   - `launchctl`/`systemctl` only work if the service is installed; otherwise run `zee gateway install`.
@@ -194,7 +193,7 @@ Pick a commit from a date (example: “state of main as of 2026-01-01”):
 
 ```bash
 git fetch origin
-git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
+git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/dev)"
 ```
 
 Then reinstall deps + restart:

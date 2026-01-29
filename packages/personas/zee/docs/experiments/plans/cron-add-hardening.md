@@ -23,7 +23,6 @@ Recent gateway logs show repeated `cron.add` failures with invalid parameters (m
 - Overhaul the UI/UX for cron beyond the necessary field fixes.
 
 ## Findings (current gaps)
-- `CronPayloadSchema` in gateway excludes `signal` + `imessage`, while TS types include them.
 - Control UI CronStatus expects `jobCount`, but gateway returns `jobs`.
 - Agent cron tool schema allows arbitrary `job` objects, enabling malformed inputs.
 - Gateway strictly validates `cron.add` with no normalization, so wrapped payloads fail.
@@ -39,7 +38,6 @@ Recent gateway logs show repeated `cron.add` failures with invalid parameters (m
 
 - **Normalization:** wrapped `data`/`job` payloads are unwrapped; `schedule.kind` and `payload.kind` are inferred when safe.
 - **Defaults:** safe defaults are applied for `wakeMode` and `sessionTarget` when missing.
-- **Providers:** Discord/Slack/Signal/iMessage are now consistently surfaced across CLI/UI.
 
 See [Cron jobs](/automation/cron-jobs) for the normalized shape and examples.
 

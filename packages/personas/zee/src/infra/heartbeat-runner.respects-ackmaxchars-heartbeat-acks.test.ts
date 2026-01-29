@@ -31,7 +31,7 @@ beforeEach(() => {
 
 describe("resolveHeartbeatIntervalMs", () => {
   it("respects ackMaxChars for heartbeat acks", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
@@ -93,7 +93,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("sends HEARTBEAT_OK when visibility.showOk is true", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
@@ -155,7 +155,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("skips heartbeat LLM calls when visibility disables all output", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
@@ -222,7 +222,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("skips delivery for markup-wrapped HEARTBEAT_OK", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
@@ -283,7 +283,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("does not regress updatedAt when restoring heartbeat sessions", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
@@ -356,7 +356,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("skips WhatsApp delivery when not linked or running", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
@@ -416,7 +416,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("passes through accountId for telegram heartbeats", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -484,7 +484,7 @@ describe("resolveHeartbeatIntervalMs", () => {
   });
 
   it("does not pre-resolve telegram accountId (allows config-only account tokens)", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hb-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hb-"));
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;

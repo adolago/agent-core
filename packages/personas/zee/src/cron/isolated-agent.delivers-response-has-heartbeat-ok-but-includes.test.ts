@@ -22,7 +22,7 @@ import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "moltbot-cron-" });
+  return withTempHomeBase(fn, { prefix: "zee-cron-" });
 }
 
 async function writeSessionStore(home: string) {
@@ -97,8 +97,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       // Media should still be delivered even if text is just HEARTBEAT_OK.
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
@@ -143,8 +143,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "HEARTBEAT_OK 🦞" }],

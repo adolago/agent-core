@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { AssistantMessage } from "@mariozechner/pi-ai";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ZeeConfig } from "../config/config.js";
 import type { EmbeddedRunAttemptResult } from "./pi-embedded-runner/run/types.js";
@@ -13,6 +13,12 @@ const runEmbeddedAttemptMock = vi.fn<Promise<EmbeddedRunAttemptResult>, [unknown
 vi.mock("./pi-embedded-runner/run/attempt.js", () => ({
   runEmbeddedAttempt: (params: unknown) => runEmbeddedAttemptMock(params),
 }));
+vi.mock("./auth-profiles/agent-core-sync.js", () => ({
+  syncAgentCoreCredentials: () => false,
+}));
+
+const previousAgentCoreSync = process.env.ZEE_DISABLE_AGENT_CORE_SYNC;
+process.env.ZEE_DISABLE_AGENT_CORE_SYNC = "1";
 
 let runEmbeddedPiAgent: typeof import("./pi-embedded-runner.js").runEmbeddedPiAgent;
 
@@ -23,6 +29,14 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.useRealTimers();
   runEmbeddedAttemptMock.mockReset();
+});
+
+afterAll(() => {
+  if (previousAgentCoreSync === undefined) {
+    delete process.env.ZEE_DISABLE_AGENT_CORE_SYNC;
+  } else {
+    process.env.ZEE_DISABLE_AGENT_CORE_SYNC = previousAgentCoreSync;
+  }
 });
 
 const baseUsage = {
@@ -123,8 +137,8 @@ const writeAuthStore = async (
 
 describe("runEmbeddedPiAgent auth profile rotation", () => {
   it("rotates for auto-pinned profiles", async () => {
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
     try {
       await writeAuthStore(agentDir);
 
@@ -177,8 +191,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   });
 
   it("does not rotate for user-pinned profiles", async () => {
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
     try {
       await writeAuthStore(agentDir);
 
@@ -223,8 +237,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   it("honors user-pinned profiles even when in cooldown", async () => {
     vi.useFakeTimers();
     try {
-      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
       const now = Date.now();
       vi.setSystemTime(now);
 
@@ -289,8 +303,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   });
 
   it("ignores user-locked profile when provider mismatches", async () => {
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
     try {
       await writeAuthStore(agentDir, { includeAnthropic: true });
 
@@ -330,8 +344,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   it("skips profiles in cooldown during initial selection", async () => {
     vi.useFakeTimers();
     try {
-      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
       const now = Date.now();
       vi.setSystemTime(now);
 
@@ -395,8 +409,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   it("fails over when all profiles are in cooldown and fallbacks are configured", async () => {
     vi.useFakeTimers();
     try {
-      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
       const now = Date.now();
       vi.setSystemTime(now);
 
@@ -441,8 +455,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   });
 
   it("fails over when auth is unavailable and fallbacks are configured", async () => {
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
     const previousOpenAiKey = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     try {
@@ -481,8 +495,8 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
   it("skips profiles in cooldown when rotating after failure", async () => {
     vi.useFakeTimers();
     try {
-      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
-      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-workspace-"));
+      const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
+      const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-workspace-"));
       const now = Date.now();
       vi.setSystemTime(now);
 

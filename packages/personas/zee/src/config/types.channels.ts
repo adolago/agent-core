@@ -1,6 +1,5 @@
 import type { DiscordConfig } from "./types.discord.js";
 import type { GoogleChatConfig } from "./types.googlechat.js";
-import type { IMessageConfig } from "./types.imessage.js";
 import type { MSTeamsConfig } from "./types.msteams.js";
 import type { SignalConfig } from "./types.signal.js";
 import type { SlackConfig } from "./types.slack.js";
@@ -31,7 +30,6 @@ export type ChannelsConfig = {
   googlechat?: GoogleChatConfig;
   slack?: SlackConfig;
   signal?: SignalConfig;
-  imessage?: IMessageConfig;
   msteams?: MSTeamsConfig;
   [key: string]: unknown;
 };

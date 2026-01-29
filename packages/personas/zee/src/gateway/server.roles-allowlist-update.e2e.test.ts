@@ -66,7 +66,7 @@ const connectNodeClient = async (params: {
     clientName: GATEWAY_CLIENT_NAMES.NODE_HOST,
     clientVersion: "1.0.0",
     clientDisplayName: params.displayName,
-    platform: "ios",
+    platform: "linux",
     mode: GATEWAY_CLIENT_MODES.NODE,
     instanceId: params.instanceId,
     scopes: [],
@@ -130,7 +130,7 @@ describe("gateway role enforcement", () => {
         client: {
           id: GATEWAY_CLIENT_NAMES.NODE_HOST,
           version: "1.0.0",
-          platform: "ios",
+          platform: "linux",
           mode: GATEWAY_CLIENT_MODES.NODE,
         },
         commands: [],

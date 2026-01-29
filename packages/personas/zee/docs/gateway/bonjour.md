@@ -1,7 +1,7 @@
 ---
 summary: "Bonjour/mDNS discovery + debugging (Gateway beacons, clients, and common failure modes)"
 read_when:
-  - Debugging Bonjour discovery issues on macOS/iOS
+  - Debugging Bonjour discovery issues
   - Changing mDNS service types, TXT records, or discovery UX
 ---
 # Bonjour / mDNS discovery
@@ -22,9 +22,9 @@ High‑level steps:
 2) Publish DNS‑SD records for `_zee-gw._tcp` under a dedicated zone
    (example: `zee.internal.`).
 3) Configure Tailscale **split DNS** so `zee.internal` resolves via that
-   DNS server for clients (including iOS).
+   DNS server for clients.
 
-Zee standardizes on `zee.internal.` for this mode. iOS/Android nodes
+Zee standardizes on `zee.internal.` for this mode. Node hosts
 browse both `local.` and `zee.internal.` automatically.
 
 ### Gateway config (recommended)
@@ -60,7 +60,7 @@ In the Tailscale admin console:
 - Add a nameserver pointing at the gateway’s tailnet IP (UDP/TCP 53).
 - Add split DNS so the domain `zee.internal` uses that nameserver.
 
-Once clients accept tailnet DNS, iOS nodes can browse
+Once clients accept tailnet DNS, node hosts can browse
 `_zee-gw._tcp` in `zee.internal.` without multicast.
 
 ### Gateway listener security (recommended)
@@ -70,7 +70,7 @@ access, bind explicitly and keep auth enabled.
 
 For tailnet‑only setups:
 - Set `gateway.bind: "tailnet"` in `~/.zee/zee.json`.
-- Restart the Gateway (or restart the macOS menubar app).
+- Restart the Gateway.
 
 ## What advertises
 
@@ -78,7 +78,7 @@ Only the Gateway advertises `_zee-gw._tcp`.
 
 ## Service types
 
-- `_zee-gw._tcp` — gateway transport beacon (used by macOS/iOS/Android nodes).
+- `_zee-gw._tcp` — gateway transport beacon (used by node hosts).
 
 ## TXT keys (non‑secret hints)
 
@@ -121,16 +121,6 @@ The Gateway writes a rolling log file (printed on startup as
 - `bonjour: ... name conflict resolved` / `hostname conflict resolved`
 - `bonjour: watchdog detected non-announced service ...`
 
-## Debugging on iOS node
-
-The iOS node uses `NWBrowser` to discover `_zee-gw._tcp`.
-
-To capture logs:
-- Settings → Gateway → Advanced → **Discovery Debug Logs**
-- Settings → Gateway → Advanced → **Discovery Logs** → reproduce → **Copy**
-
-The log includes browser state transitions and result‑set changes.
-
 ## Common failure modes
 
 - **Bonjour doesn’t cross networks**: use Tailnet or SSH.
@@ -146,15 +136,15 @@ Bonjour/DNS‑SD often escapes bytes in service instance names as decimal `\DDD`
 sequences (e.g. spaces become `\032`).
 
 - This is normal at the protocol level.
-- UIs should decode for display (iOS uses `BonjourEscapes.decode`).
+- UIs should decode for display.
 
 ## Disabling / configuration
 
-- `CLAWDBOT_DISABLE_BONJOUR=1` disables advertising.
+- `ZEE_DISABLE_BONJOUR=1` disables advertising.
 - `gateway.bind` in `~/.zee/zee.json` controls the Gateway bind mode.
-- `CLAWDBOT_SSH_PORT` overrides the SSH port advertised in TXT.
-- `CLAWDBOT_TAILNET_DNS` publishes a MagicDNS hint in TXT.
-- `CLAWDBOT_CLI_PATH` overrides the advertised CLI path.
+- `ZEE_SSH_PORT` overrides the SSH port advertised in TXT.
+- `ZEE_TAILNET_DNS` publishes a MagicDNS hint in TXT.
+- `ZEE_CLI_PATH` overrides the advertised CLI path.
 
 ## Related docs
 

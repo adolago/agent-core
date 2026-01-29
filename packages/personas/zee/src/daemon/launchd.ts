@@ -27,9 +27,10 @@ const formatLine = (label: string, value: string) => {
 };
 
 function resolveLaunchAgentLabel(args?: { env?: Record<string, string | undefined> }): string {
-  const envLabel = args?.env?.CLAWDBOT_LAUNCHD_LABEL?.trim();
+  const envLabel =
+    args?.env?.ZEE_LAUNCHD_LABEL?.trim() ?? args?.env?.CLAWDBOT_LAUNCHD_LABEL?.trim();
   if (envLabel) return envLabel;
-  return resolveGatewayLaunchAgentLabel(args?.env?.CLAWDBOT_PROFILE);
+  return resolveGatewayLaunchAgentLabel(args?.env?.ZEE_PROFILE ?? args?.env?.CLAWDBOT_PROFILE);
 }
 
 function resolveLaunchAgentPlistPathForLabel(
@@ -52,7 +53,7 @@ export function resolveGatewayLogPaths(env: Record<string, string | undefined>):
 } {
   const stateDir = resolveGatewayStateDir(env);
   const logDir = path.join(stateDir, "logs");
-  const prefix = env.CLAWDBOT_LOG_PREFIX?.trim() || "gateway";
+  const prefix = env.ZEE_LOG_PREFIX?.trim() || env.CLAWDBOT_LOG_PREFIX?.trim() || "gateway";
   return {
     logDir,
     stdoutPath: path.join(logDir, `${prefix}.log`),

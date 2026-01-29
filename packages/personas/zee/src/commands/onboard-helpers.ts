@@ -178,8 +178,8 @@ export function formatControlUiSshHint(params: {
     localUrl,
     authedUrl,
     "Docs:",
-    "https://docs.molt.bot/gateway/remote",
-    "https://docs.molt.bot/web/control-ui",
+    "https://docs.zee/gateway/remote",
+    "https://docs.zee/web/control-ui",
   ]
     .filter(Boolean)
     .join("\n");

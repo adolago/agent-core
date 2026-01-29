@@ -202,7 +202,7 @@ describe("buildStatusMessage", () => {
       queue: { mode: "collect", depth: 0 },
     });
 
-    const optionsLine = text.split("\n").find((line) => line.trim().startsWith("⚙️"));
+    const optionsLine = text.split("\n").find((line) => line.includes("Runtime:"));
     expect(optionsLine).toBeTruthy();
     expect(optionsLine).not.toContain("elevated");
   });
@@ -403,7 +403,7 @@ describe("buildStatusMessage", () => {
 
         expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
       },
-      { prefix: "moltbot-status-" },
+      { prefix: "zee-status-" },
     );
   });
 });

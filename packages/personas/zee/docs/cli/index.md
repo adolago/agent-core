@@ -355,7 +355,6 @@ Options:
 ## Channel helpers
 
 ### `channels`
-Manage chat channel accounts (WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost (plugin)/Signal/iMessage/MS Teams).
 
 Subcommands:
 - `channels list`: show configured channels and auth profiles.
@@ -368,7 +367,6 @@ Subcommands:
 - `channels logout`: log out of a channel session (if supported).
 
 Common options:
-- `--channel <name>`: `whatsapp|telegram|discord|googlechat|slack|mattermost|signal|imessage|msteams`
 - `--account <id>`: channel account id (default `default`)
 - `--name <label>`: display name for the account
 
@@ -469,7 +467,6 @@ Options:
 - `--session-id <id>`
 - `--thinking <off|minimal|low|medium|high|xhigh>` (GPT-5.2 + Codex models only)
 - `--verbose <on|full|off>`
-- `--channel <whatsapp|telegram|discord|slack|mattermost|signal|imessage|msteams>`
 - `--local`
 - `--deliver`
 - `--json`

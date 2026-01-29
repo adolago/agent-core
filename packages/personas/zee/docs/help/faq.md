@@ -18,7 +18,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [It is stuck on "wake up my friend" / onboarding will not hatch. What now?](#it-is-stuck-on-wake-up-my-friend-onboarding-will-not-hatch-what-now)
   - [Can I migrate my setup to a new machine (Mac mini) without redoing onboarding?](#can-i-migrate-my-setup-to-a-new-machine-mac-mini-without-redoing-onboarding)
   - [Where do I see what’s new in the latest version?](#where-do-i-see-whats-new-in-the-latest-version)
-  - [I can't access docs.molt.bot (SSL error). What now?](#i-cant-access-docszee-ssl-error-what-now)
+  - [I can't access docs.zee (SSL error). What now?](#i-cant-access-docszee-ssl-error-what-now)
   - [What’s the difference between stable and beta?](#whats-the-difference-between-stable-and-beta)
 - [How do I install the beta version, and what’s the difference between beta and dev?](#how-do-i-install-the-beta-version-and-whats-the-difference-between-beta-and-dev)
   - [How do I try the latest bits?](#how-do-i-try-the-latest-bits)
@@ -44,7 +44,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Is a local model OK for casual chats?](#is-a-local-model-ok-for-casual-chats)
   - [How do I keep hosted model traffic in a specific region?](#how-do-i-keep-hosted-model-traffic-in-a-specific-region)
   - [Do I have to buy a Mac Mini to install this?](#do-i-have-to-buy-a-mac-mini-to-install-this)
-  - [Do I need a Mac mini for iMessage support?](#do-i-need-a-mac-mini-for-imessage-support)
   - [If I buy a Mac mini to run Zee, can I connect it to my MacBook Pro?](#if-i-buy-a-mac-mini-to-run-zee-can-i-connect-it-to-my-macbook-pro)
   - [Can I use Bun?](#can-i-use-bun)
   - [Telegram: what goes in `allowFrom`?](#telegram-what-goes-in-allowfrom)
@@ -258,7 +257,7 @@ setup (PATH, services, permissions, auth files). Give them the **full source che
 the hackable (git) install:
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --install-method git
+curl -fsSL https://docs.zee/install.sh | bash -s -- --install-method git
 ```
 
 This installs Zee **from a git checkout**, so the agent can read the code + docs and
@@ -296,11 +295,11 @@ Install docs: [Install](/install), [Installer flags](/install/installer), [Updat
 The repo recommends running from source and using the onboarding wizard:
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash
+curl -fsSL https://docs.zee/install.sh | bash
 zee onboard --install-daemon
 ```
 
-The wizard can also build UI assets automatically. After onboarding, you typically run the Gateway on port **18789**.
+After onboarding, you typically run the Gateway on port **18789**.
 
 From source (contributors/dev):
 
@@ -309,7 +308,6 @@ git clone https://github.com/zee/zee.git
 cd zee
 pnpm install
 pnpm build
-pnpm ui:build # auto-installs UI deps on first run
 zee onboard
 ```
 
@@ -324,7 +322,7 @@ The wizard now opens your browser with a tokenized dashboard URL right after onb
 **Localhost (same machine):**
 - Open `http://127.0.0.1:18789/`.
 - If it asks for auth, run `zee dashboard` and use the tokenized link (`?token=...`).
-- The token is the same value as `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`) and is stored by the UI after first load.
+- The token is the same value as `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`) and is stored by the UI after first load.
 
 **Not on localhost:**
 - **Tailscale Serve** (recommended): keep bind loopback, run `zee gateway --tailscale serve`, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy auth (no token).
@@ -390,7 +388,7 @@ keeps your bot “exactly the same” (memory, session history, auth, and channe
 state) as long as you copy **both** locations:
 
 1) Install Zee on the new machine.
-2) Copy `$CLAWDBOT_STATE_DIR` (default: `~/.zee`) from the old machine.
+2) Copy `$ZEE_STATE_DIR` (default: `~/.zee`) from the old machine.
 3) Copy your workspace (default: `~/zee`).
 4) Run `zee doctor` and restart the Gateway service.
 
@@ -416,8 +414,8 @@ section is the latest shipped version. Entries are grouped by **Highlights**, **
 
 ### I cant access docszee SSL error What now
 
-Some Comcast/Xfinity connections incorrectly block `docs.molt.bot` via Xfinity
-Advanced Security. Disable it or allowlist `docs.molt.bot`, then retry. More
+Some Comcast/Xfinity connections incorrectly block `docs.zee` via Xfinity
+Advanced Security. Disable it or allowlist `docs.zee`, then retry. More
 detail: [Troubleshooting](/help/troubleshooting#docszee-shows-an-ssl-error-comcastxfinity).
 Please help us unblock it by reporting here: https://spa.xfinity.com/check_url_status.
 
@@ -445,15 +443,15 @@ https://github.com/zee/zee/blob/main/CHANGELOG.md
 One‑liners (macOS/Linux):
 
 ```bash
-curl -fsSL --proto '=https' --tlsv1.2 https://molt.bot/install.sh | bash -s -- --beta
+curl -fsSL --proto '=https' --tlsv1.2 https://docs.zee/install.sh | bash -s -- --beta
 ```
 
 ```bash
-curl -fsSL --proto '=https' --tlsv1.2 https://molt.bot/install.sh | bash -s -- --install-method git
+curl -fsSL --proto '=https' --tlsv1.2 https://docs.zee/install.sh | bash -s -- --install-method git
 ```
 
 Windows installer (PowerShell):
-https://molt.bot/install.ps1
+https://docs.zee/install.ps1
 
 More detail: [Development channels](/install/development-channels) and [Installer flags](/install/installer).
 
@@ -478,7 +476,7 @@ This switches to the `main` branch and updates from source.
 
 2) **Hackable install (from the installer site):**
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --install-method git
+curl -fsSL https://docs.zee/install.sh | bash -s -- --install-method git
 ```
 That gives you a local repo you can edit, then update via git.
 
@@ -498,19 +496,19 @@ Docs: [Update](/cli/update), [Development channels](/install/development-channel
 Re-run the installer with **verbose output**:
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --verbose
+curl -fsSL https://docs.zee/install.sh | bash -s -- --verbose
 ```
 
 Beta install with verbose:
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --beta --verbose
+curl -fsSL https://docs.zee/install.sh | bash -s -- --beta --verbose
 ```
 
 For a hackable (git) install:
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --install-method git --verbose
+curl -fsSL https://docs.zee/install.sh | bash -s -- --install-method git --verbose
 ```
 
 More options: [Installer flags](/install/installer).
@@ -541,7 +539,7 @@ Use the **hackable (git) install** so you have the full source and docs locally,
 your bot (or Claude/Codex) *from that folder* so it can read the repo and answer precisely.
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash -s -- --install-method git
+curl -fsSL https://docs.zee/install.sh | bash -s -- --install-method git
 ```
 
 More detail: [Install](/install) and [Installer flags](/install/installer).
@@ -574,9 +572,8 @@ How it works in the cloud: the **Gateway runs on the server**, and you access it
 from your laptop/phone via the Control UI (or Tailscale/SSH). Your state + workspace
 live on the server, so treat the host as the source of truth and back it up.
 
-You can pair **nodes** (Mac/iOS/Android/headless) to that cloud Gateway to access
-local screen/camera/canvas or run commands on your laptop while keeping the
-Gateway in the cloud.
+You can pair **headless node hosts** to that cloud Gateway to run commands on your
+laptop while keeping the Gateway in the cloud.
 
 Hub: [Platforms](/platforms). Remote access: [Gateway remote](/gateway/remote).
 Nodes: [Nodes](/nodes), [Nodes CLI](/cli/nodes).
@@ -613,7 +610,6 @@ Docs: [Update](/cli/update), [Updating](/install/updating).
 - **Model/auth setup** (Anthropic **setup-token** recommended for Claude subscriptions, OpenAI Codex OAuth supported, API keys optional, LM Studio local models supported)
 - **Workspace** location + bootstrap files
 - **Gateway settings** (bind/port/auth/tailscale)
-- **Providers** (WhatsApp, Telegram, Discord, Mattermost (plugin), Signal, iMessage)
 - **Daemon install** (LaunchAgent on macOS; systemd user unit on Linux/WSL2)
 - **Health checks** and **skills** selection
 
@@ -706,35 +702,26 @@ Pick region-pinned endpoints. OpenRouter exposes US-hosted options for MiniMax, 
 No. Zee runs on macOS or Linux (Windows via WSL2). A Mac mini is optional - some people
 buy one as an always‑on host, but a small VPS, home server, or Raspberry Pi‑class box works too.
 
-You only need a Mac **for macOS‑only tools**. For iMessage, you can keep the Gateway on Linux
-and run `imsg` on any Mac over SSH by pointing `channels.imessage.cliPath` at an SSH wrapper.
-If you want other macOS‑only tools, run the Gateway on a Mac or pair a macOS node.
+If you want other macOS‑only tools, run the Gateway on a Mac or pair a node host.
 
-Docs: [iMessage](/channels/imessage), [Nodes](/nodes), [Mac remote mode](/platforms/mac/remote).
-
-### Do I need a Mac mini for iMessage support
 
 You need **some macOS device** signed into Messages. It does **not** have to be a Mac mini -
-any Mac works. Zee’s iMessage integrations run on macOS (BlueBubbles or `imsg`), while
 the Gateway can run elsewhere.
 
 Common setups:
-- Run the Gateway on Linux/VPS, and point `channels.imessage.cliPath` at an SSH wrapper that
-  runs `imsg` on the Mac.
 - Run everything on the Mac if you want the simplest single‑machine setup.
 
-Docs: [iMessage](/channels/imessage), [BlueBubbles](/channels/bluebubbles),
-[Mac remote mode](/platforms/mac/remote).
+[Gateway remote](/gateway/remote).
 
 ### If I buy a Mac mini to run Zee can I connect it to my MacBook Pro
 
 Yes. The **Mac mini can run the Gateway**, and your MacBook Pro can connect as a
-**node** (companion device). Nodes don’t run the Gateway - they provide extra
-capabilities like screen/camera/canvas and `system.run` on that device.
+**node** (companion device). Nodes don’t run the Gateway - they provide
+`system.run` on that device.
 
 Common pattern:
 - Gateway on the Mac mini (always‑on).
-- MacBook Pro runs the macOS app or a node host and pairs to the Gateway.
+- MacBook Pro runs a node host and pairs to the Gateway.
 - Use `zee nodes status` / `zee nodes list` to see it.
 
 Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes).
@@ -878,7 +865,6 @@ If you are running macOS in a VM, see [macOS VM](/platforms/macos-vm).
 
 ### What is Zee in one paragraph
 
-Zee is a personal AI assistant you run on your own devices. It replies on the messaging surfaces you already use (WhatsApp, Telegram, Slack, Mattermost (plugin), Discord, Google Chat, Signal, iMessage, WebChat) and can also do voice + a live Canvas on supported platforms. The **Gateway** is the always-on control plane; the assistant is the product.
 
 ### Whats the value proposition
 
@@ -890,7 +876,6 @@ SaaS.
 Highlights:
 - **Your devices, your data:** run the Gateway wherever you want (Mac, Linux, VPS) and keep the
   workspace + session history local.  
-- **Real channels, not a web sandbox:** WhatsApp/Telegram/Slack/Discord/Signal/iMessage/etc,
   plus mobile voice and Canvas on supported platforms.  
 - **Model-agnostic:** use Anthropic, OpenAI, MiniMax, OpenRouter, etc., with per‑agent routing
   and failover.  
@@ -941,12 +926,12 @@ want durable memory, cross-device access, and tool orchestration.
 
 Advantages:
 - **Persistent memory + workspace** across sessions
-- **Multi-platform access** (WhatsApp, Telegram, TUI, WebChat)
+- **Multi-platform access** (WhatsApp, Telegram, TUI, Control UI)
 - **Tool orchestration** (browser, files, scheduling, hooks)
 - **Always-on Gateway** (run on a VPS, interact from anywhere)
 - **Nodes** for local browser/screen/camera/exec
 
-Showcase: https://molt.bot/showcase
+Showcase: https://docs.zee/showcase
 
 ## Skills and automation
 
@@ -986,7 +971,7 @@ Cron runs inside the Gateway process. If the Gateway is not running continuously
 scheduled jobs will not run.
 
 Checklist:
-- Confirm cron is enabled (`cron.enabled`) and `CLAWDBOT_SKIP_CRON` is not set.
+- Confirm cron is enabled (`cron.enabled`) and `ZEE_SKIP_CRON` is not set.
 - Check the Gateway is running 24/7 (no sleep/restarts).
 - Verify timezone settings for the job (`--tz` vs host timezone).
 
@@ -1000,7 +985,7 @@ Docs: [Cron jobs](/automation/cron-jobs), [Cron vs Heartbeat](/automation/cron-v
 
 ### How do I install skills on Linux
 
-Use **ZeeHub** (CLI) or drop skills into your workspace. The macOS Skills UI isn’t available on Linux.
+Use **ZeeHub** (CLI) or drop skills into your workspace.
 Browse skills at https://zeehub.com.
 
 Install the ZeeHub CLI (pick one package manager):
@@ -1026,37 +1011,26 @@ Docs: [Cron jobs](/automation/cron-jobs), [Cron vs Heartbeat](/automation/cron-v
 
 **Can I run Apple macOS only skills from Linux**
 
-Not directly. macOS skills are gated by `metadata.zee.os` plus required binaries, and skills only appear in the system prompt when they are eligible on the **Gateway host**. On Linux, `darwin`-only skills (like `imsg`, `apple-notes`, `apple-reminders`) will not load unless you override the gating.
 
 You have three supported patterns:
 
 **Option A - run the Gateway on a Mac (simplest).**  
 Run the Gateway where the macOS binaries exist, then connect from Linux in [remote mode](#how-do-i-run-zee-in-remote-mode-client-connects-to-a-gateway-elsewhere) or over Tailscale. The skills load normally because the Gateway host is macOS.
 
-**Option B - use a macOS node (no SSH).**  
-Run the Gateway on Linux, pair a macOS node (menubar app), and set **Node Run Commands** to "Always Ask" or "Always Allow" on the Mac. Zee can treat macOS-only skills as eligible when the required binaries exist on the node. The agent runs those skills via the `nodes` tool. If you choose "Always Ask", approving "Always Allow" in the prompt adds that command to the allowlist.
-
 **Option C - proxy macOS binaries over SSH (advanced).**  
 Keep the Gateway on Linux, but make the required CLI binaries resolve to SSH wrappers that run on a Mac. Then override the skill to allow Linux so it stays eligible.
 
-1) Create an SSH wrapper for the binary (example: `imsg`):
    ```bash
    #!/usr/bin/env bash
    set -euo pipefail
-   exec ssh -T user@mac-host /opt/homebrew/bin/imsg "$@"
    ```
-2) Put the wrapper on `PATH` on the Linux host (for example `~/bin/imsg`).
 3) Override the skill metadata (workspace or `~/.zee/skills`) to allow Linux:
    ```markdown
    ---
-   name: imsg
-   description: iMessage/SMS CLI for listing chats, history, watch, and sending.
-   metadata: {"zee":{"os":["darwin","linux"],"requires":{"bins":["imsg"]}}}
    ---
    ```
 4) Start a new session so the skills snapshot refreshes.
 
-For iMessage specifically, you can also point `channels.imessage.cliPath` at an SSH wrapper (Zee only needs stdio). See [iMessage](/channels/imessage).
 
 ### Do you have a Notion or HeyGen integration
 
@@ -1187,18 +1161,18 @@ Related: [Agent workspace](/concepts/agent-workspace), [Memory](/concepts/memory
 
 ### Where does Zee store its data
 
-Everything lives under `$CLAWDBOT_STATE_DIR` (default: `~/.zee`):
+Everything lives under `$ZEE_STATE_DIR` (default: `~/.zee`):
 
 | Path | Purpose |
 |------|---------|
-| `$CLAWDBOT_STATE_DIR/zee.json` | Main config (JSON5) |
-| `$CLAWDBOT_STATE_DIR/credentials/oauth.json` | Legacy OAuth import (copied into auth profiles on first use) |
-| `$CLAWDBOT_STATE_DIR/agents/<agentId>/agent/auth-profiles.json` | Auth profiles (OAuth + API keys) |
-| `$CLAWDBOT_STATE_DIR/agents/<agentId>/agent/auth.json` | Runtime auth cache (managed automatically) |
-| `$CLAWDBOT_STATE_DIR/credentials/` | Provider state (e.g. `whatsapp/<accountId>/creds.json`) |
-| `$CLAWDBOT_STATE_DIR/agents/` | Per‑agent state (agentDir + sessions) |
-| `$CLAWDBOT_STATE_DIR/agents/<agentId>/sessions/` | Conversation history & state (per agent) |
-| `$CLAWDBOT_STATE_DIR/agents/<agentId>/sessions/sessions.json` | Session metadata (per agent) |
+| `$ZEE_STATE_DIR/zee.json` | Main config (JSON5) |
+| `$ZEE_STATE_DIR/credentials/oauth.json` | Legacy OAuth import (copied into auth profiles on first use) |
+| `$ZEE_STATE_DIR/agents/<agentId>/agent/auth-profiles.json` | Auth profiles (OAuth + API keys) |
+| `$ZEE_STATE_DIR/agents/<agentId>/agent/auth.json` | Runtime auth cache (managed automatically) |
+| `$ZEE_STATE_DIR/credentials/` | Provider state (e.g. `whatsapp/<accountId>/creds.json`) |
+| `$ZEE_STATE_DIR/agents/` | Per‑agent state (agentDir + sessions) |
+| `$ZEE_STATE_DIR/agents/<agentId>/sessions/` | Conversation history & state (per agent) |
+| `$ZEE_STATE_DIR/agents/<agentId>/sessions/sessions.json` | Session metadata (per agent) |
 
 Legacy single‑agent path: `~/.zee/agent/*` (migrated by `zee doctor`).
 
@@ -1276,17 +1250,17 @@ Session state is owned by the **gateway host**. If you’re in remote mode, the 
 
 ### What format is the config Where is it
 
-Zee reads an optional **JSON5** config from `$CLAWDBOT_CONFIG_PATH` (default: `~/.zee/zee.json`):
+Zee reads an optional **JSON5** config from `$ZEE_CONFIG_PATH` (default: `~/.zee/zee.json`):
 
 ```
-$CLAWDBOT_CONFIG_PATH
+$ZEE_CONFIG_PATH
 ```
 
 If the file is missing, it uses safe‑ish defaults (including a default workspace of `~/zee`).
 
 ### I set gatewaybind lan or tailnet and now nothing listens the UI says unauthorized
 
-Non-loopback binds **require auth**. Configure `gateway.auth.mode` + `gateway.auth.token` (or use `CLAWDBOT_GATEWAY_TOKEN`).
+Non-loopback binds **require auth**. Configure `gateway.auth.mode` + `gateway.auth.token` (or use `ZEE_GATEWAY_TOKEN`).
 
 ```json5
 {
@@ -1353,7 +1327,7 @@ Docs: [Web tools](/tools/web).
 The common pattern is **one Gateway** (e.g. Raspberry Pi) plus **nodes** and **agents**:
 
 - **Gateway (central):** owns channels (Signal/WhatsApp), routing, and sessions.
-- **Nodes (devices):** Macs/iOS/Android connect as peripherals and expose local tools (`system.run`, `canvas`, `camera`).
+- **Node hosts (devices):** headless nodes connect as peripherals and expose `system.run`.
 - **Agents (workers):** separate brains/workspaces for special roles (e.g. “Hetzner ops”, “Personal data”).
 - **Sub‑agents:** spawn background work from a main agent when you want parallelism.
 - **TUI:** connect to the Gateway and switch agents/sessions.
@@ -1401,14 +1375,16 @@ Nodes don’t see inbound provider traffic; they only receive node RPC calls.
 ### How can my agent access my computer if the Gateway is hosted remotely
 
 Short answer: **pair your computer as a node**. The Gateway runs elsewhere, but it can
-call `node.*` tools (screen, camera, system) on your local machine over the Gateway WebSocket.
+call `node.*` tools (`system.run`) on your local machine over the Gateway WebSocket.
 
 Typical setup:
 1) Run the Gateway on the always‑on host (VPS/home server).
 2) Put the Gateway host + your computer on the same tailnet.
 3) Ensure the Gateway WS is reachable (tailnet bind or SSH tunnel).
-4) Open the macOS app locally and connect in **Remote over SSH** mode (or direct tailnet)
-   so it can register as a node.
+4) Start a node host on your computer so it can register as a node:
+   ```bash
+   zee node run --host <gateway-host> --port 18789 --display-name \"My Node\"
+   ```
 5) Approve the node on the Gateway:
    ```bash
    zee nodes pending
@@ -1417,10 +1393,10 @@ Typical setup:
 
 No separate TCP bridge is required; nodes connect over the Gateway WebSocket.
 
-Security reminder: pairing a macOS node allows `system.run` on that machine. Only
+Security reminder: pairing a node allows `system.run` on that machine. Only
 pair devices you trust, and review [Security](/gateway/security).
 
-Docs: [Nodes](/nodes), [Gateway protocol](/gateway/protocol), [macOS remote mode](/platforms/mac/remote), [Security](/gateway/security).
+Docs: [Nodes](/nodes), [Gateway protocol](/gateway/protocol), [Security](/gateway/security).
 
 ### Tailscale is connected but I get no replies What now
 
@@ -1478,9 +1454,7 @@ setup is an always‑on host plus your laptop as a node.
 
 - **No inbound SSH required.** Nodes connect out to the Gateway WebSocket and use device pairing.
 - **Safer execution controls.** `system.run` is gated by node allowlists/approvals on that laptop.
-- **More device tools.** Nodes expose `canvas`, `camera`, and `screen` in addition to `system.run`.
-- **Local browser automation.** Keep the Gateway on a VPS, but run Chrome locally and relay control
-  with the Chrome extension + a node host on the laptop.
+- **More device tools.** Nodes expose `system.run` in addition to gateway-local tools.
 
 SSH is fine for ad‑hoc shell access, but nodes are simpler for ongoing agent workflows and
 device automation.
@@ -1489,9 +1463,8 @@ Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes), [Chrome extension](/tools/chrome
 
 ### Should I install on a second laptop or just add a node
 
-If you only need **local tools** (screen/camera/exec) on the second laptop, add it as a
-**node**. That keeps a single Gateway and avoids duplicated config. Local node tools are
-currently macOS-only, but we plan to extend them to other OSes.
+If you only need **local tools** (`system.run`) on the second laptop, add it as a
+**node**. That keeps a single Gateway and avoids duplicated config.
 
 Install a second Gateway only when you need **hard isolation** or two fully separate bots.
 
@@ -1500,8 +1473,7 @@ Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes), [Multiple gateways](/gateway/mul
 ### Do nodes run a gateway service
 
 No. Only **one gateway** should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)). Nodes are peripherals that connect
-to the gateway (iOS/Android nodes, or macOS “node mode” in the menubar app). For headless node
-hosts and CLI control, see [Node host CLI](/cli/node).
+to the gateway over WebSocket. For headless node hosts and CLI control, see [Node host CLI](/cli/node).
 
 A full restart is required for `gateway`, `discovery`, and `canvasHost` changes.
 
@@ -1560,21 +1532,23 @@ zee gateway --tailscale serve
 ```
 This keeps the gateway bound to loopback and exposes HTTPS via Tailscale. See [Tailscale](/gateway/tailscale).
 
-### How do I connect a Mac node to a remote Gateway Tailscale Serve
+### How do I connect a node host to a remote Gateway Tailscale Serve
 
 Serve exposes the **Gateway Control UI + WS**. Nodes connect over the same Gateway WS endpoint.
 
 Recommended setup:
-1) **Make sure the VPS + Mac are on the same tailnet**.
-2) **Use the macOS app in Remote mode** (SSH target can be the tailnet hostname).
-   The app will tunnel the Gateway port and connect as a node.
+1) **Make sure the VPS + node host are on the same tailnet**.
+2) **Run the node host** against the tailnet hostname:
+   ```bash
+   zee node run --host your-vps.tailnet-xxxx.ts.net --port 18789 --display-name \"Tailnet Node\"
+   ```
 3) **Approve the node** on the gateway:
    ```bash
    zee nodes pending
    zee nodes approve <requestId>
    ```
 
-Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [macOS remote mode](/platforms/mac/remote).
+Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery).
 
 ## Env vars and .env loading
 
@@ -1583,7 +1557,7 @@ Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [m
 Zee reads env vars from the parent process (shell, launchd/systemd, CI, etc.) and additionally loads:
 
 - `.env` from the current working directory
-- a global fallback `.env` from `~/.zee/.env` (aka `$CLAWDBOT_STATE_DIR/.env`)
+- a global fallback `.env` from `~/.zee/.env` (aka `$ZEE_STATE_DIR/.env`)
 
 Neither `.env` file overrides existing env vars.
 
@@ -1619,7 +1593,7 @@ Two common fixes:
 ```
 
 This runs your login shell and imports only missing expected keys (never overrides). Env var equivalents:
-`CLAWDBOT_LOAD_SHELL_ENV=1`, `CLAWDBOT_SHELL_ENV_TIMEOUT_MS=15000`.
+`ZEE_LOAD_SHELL_ENV=1`, `ZEE_SHELL_ENV_TIMEOUT_MS=15000`.
 
 ### I set COPILOTGITHUBTOKEN but models status shows Shell env off Why
 
@@ -1711,7 +1685,7 @@ zee onboard --install-daemon
 
 Notes:
 - The onboarding wizard also offers **Reset** if it sees an existing config. See [Wizard](/start/wizard).
-- If you used profiles (`--profile` / `CLAWDBOT_PROFILE`), reset each state dir (defaults are `~/.zee-<profile>`).
+- If you used profiles (`--profile` / `ZEE_PROFILE`), reset each state dir (defaults are `~/.zee-<profile>`).
 - Dev reset: `zee gateway --dev --reset` (dev-only; wipes dev config + credentials + sessions + workspace).
 
 ### Im getting context too large errors how do I reset or compact
@@ -2237,7 +2211,7 @@ The wizard explicitly supports Anthropic setup-token and OpenAI Codex OAuth and 
 Precedence:
 
 ```
---port > CLAWDBOT_GATEWAY_PORT > gateway.port > default 18789
+--port > ZEE_GATEWAY_PORT > gateway.port > default 18789
 ```
 
 ### Why does zee gateway status say Runtime running but RPC probe failed
@@ -2251,7 +2225,7 @@ Use `zee gateway status` and trust these lines:
 
 ### Why does zee gateway status show Config cli and Config service different
 
-You’re editing one config file while the service is running another (often a `--profile` / `CLAWDBOT_STATE_DIR` mismatch).
+You’re editing one config file while the service is running another (often a `--profile` / `ZEE_STATE_DIR` mismatch).
 
 Fix:
 ```bash
@@ -2284,7 +2258,6 @@ Set `gateway.mode: "remote"` and point to a remote WebSocket URL, optionally wit
 
 Notes:
 - `zee gateway` only starts when `gateway.mode` is `local` (or you pass the override flag).
-- The macOS app watches the config file and switches modes live when these values change.
 
 ### The Control UI says unauthorized or keeps reconnecting What now
 
@@ -2298,7 +2271,7 @@ Fix:
 - Fastest: `zee dashboard` (prints + copies tokenized link, tries to open; shows SSH hint if headless).
 - If you don’t have a token yet: `zee doctor --generate-gateway-token`.
 - If remote, tunnel first: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/?token=...`.
-- Set `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`) on the gateway host.
+- Set `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`) on the gateway host.
 - In the Control UI settings, paste the same token (or refresh with a one-time `?token=...` link).
 - Still stuck? Run `zee status --all` and follow [Troubleshooting](/gateway/troubleshooting). See [Dashboard](/web/dashboard) for auth details.
 
@@ -2318,8 +2291,8 @@ Usually no - one Gateway can run multiple messaging channels and agents. Use mul
 
 Yes, but you must isolate:
 
-- `CLAWDBOT_CONFIG_PATH` (per‑instance config)
-- `CLAWDBOT_STATE_DIR` (per‑instance state)
+- `ZEE_CONFIG_PATH` (per‑instance config)
+- `ZEE_STATE_DIR` (per‑instance state)
 - `agents.defaults.workspace` (workspace isolation)
 - `gateway.port` (unique ports)
 
@@ -2328,7 +2301,7 @@ Quick setup (recommended):
 - Set a unique `gateway.port` in each profile config (or pass `--port` for manual runs).
 - Install a per-profile service: `zee --profile <name> gateway install`.
 
-Profiles also suffix service names (`bot.molt.<profile>`; legacy `com.zee.*`, `zee-gateway-<profile>.service`, `Zee Gateway (<profile>)`).
+Profiles also suffix service names (`bot.zee.<profile>`; legacy `com.zee.*`, `zee-gateway-<profile>.service`, `Zee Gateway (<profile>)`).
 Full guide: [Multiple gateways](/gateway/multiple-gateways).
 
 ### What does invalid handshake code 1008 mean
@@ -2373,7 +2346,7 @@ zee logs --follow
 ```
 
 Service/supervisor logs (when the gateway runs via launchd/systemd):
-- macOS: `$CLAWDBOT_STATE_DIR/logs/gateway.log` and `gateway.err.log` (default: `~/.zee/logs/...`; profiles use `~/.zee-<profile>/logs/...`)
+- macOS: `$ZEE_STATE_DIR/logs/gateway.log` and `gateway.err.log` (default: `~/.zee/logs/...`; profiles use `~/.zee-<profile>/logs/...`)
 - Linux: `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`
 - Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST`
 
@@ -2441,7 +2414,7 @@ zee logs --follow
 Common causes:
 - Model auth not loaded on the **gateway host** (check `models status`).
 - Channel pairing/allowlist blocking replies (check channel config + logs).
-- WebChat/Dashboard is open without the right token.
+- Control UI/Dashboard is open without the right token.
 
 If you are remote, confirm the tunnel/Tailscale connection is up and that the
 Gateway WebSocket is reachable.
@@ -2542,7 +2515,6 @@ Also check:
 - The target channel supports outbound media and isn’t blocked by allowlists.
 - The file is within the provider’s size limits (images are resized to max 2048px).
 
-See [Images](/nodes/images).
 
 ## Security and access control
 

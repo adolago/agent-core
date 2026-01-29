@@ -8,7 +8,7 @@ import { setGoogleChatRuntime } from "./src/runtime.js";
 const plugin = {
   id: "googlechat",
   name: "Google Chat",
-  description: "Moltbot Google Chat channel plugin",
+  description: "Zee Google Chat channel plugin",
   configSchema: emptyPluginConfigSchema(),
   register(api: ZeePluginApi) {
     setGoogleChatRuntime(api.runtime);

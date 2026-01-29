@@ -111,7 +111,6 @@ describe("resolveTextChunkLimit", () => {
     expect(resolveTextChunkLimit(undefined, "telegram")).toBe(4000);
     expect(resolveTextChunkLimit(undefined, "slack")).toBe(4000);
     expect(resolveTextChunkLimit(undefined, "signal")).toBe(4000);
-    expect(resolveTextChunkLimit(undefined, "imessage")).toBe(4000);
     expect(resolveTextChunkLimit(undefined, "discord")).toBe(4000);
     expect(
       resolveTextChunkLimit(undefined, "discord", undefined, {
@@ -365,11 +364,11 @@ describe("resolveChunkMode", () => {
   it("returns length as default", () => {
     expect(resolveChunkMode(undefined, "telegram")).toBe("length");
     expect(resolveChunkMode({}, "discord")).toBe("length");
-    expect(resolveChunkMode(undefined, "bluebubbles")).toBe("length");
+    expect(resolveChunkMode(undefined, "whatsapp")).toBe("length");
   });
 
   it("returns length for internal channel", () => {
-    const cfg = { channels: { bluebubbles: { chunkMode: "newline" as const } } };
+    const cfg = { channels: { whatsapp: { chunkMode: "newline" as const } } };
     expect(resolveChunkMode(cfg, "__internal__")).toBe("length");
   });
 

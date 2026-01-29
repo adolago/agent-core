@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/open-prose",
+  "name": "@zee/open-prose",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "OpenProse VM skill pack plugin (slash command + telemetry).",
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ]

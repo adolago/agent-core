@@ -23,7 +23,7 @@ async function writeAuthStore(agentDir: string) {
 
 describe("resolveSessionAuthProfileOverride", () => {
   it("keeps user override when provider alias differs", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-auth-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-auth-"));
     const prevStateDir = process.env.CLAWDBOT_STATE_DIR;
     process.env.CLAWDBOT_STATE_DIR = tmpDir;
     try {

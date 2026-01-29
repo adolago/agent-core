@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { runCommandWithTimeout } from "../process/exec.js";
 import { parseSemver } from "./runtime-guard.js";
-import { channelToNpmTag, type UpdateChannel } from "./update-channels.js";
+import { channelToNpmTag, DEV_BRANCH, type UpdateChannel } from "./update-channels.js";
 
 export type PackageManager = "pnpm" | "bun" | "npm" | "unknown";
 
@@ -123,20 +123,19 @@ export async function checkGitUpdateStatus(params: {
   ).catch(() => null);
   const tag = tagRes && tagRes.code === 0 ? tagRes.stdout.trim() : null;
 
-  const upstreamRes = await runCommandWithTimeout(
-    ["git", "-C", root, "rev-parse", "--abbrev-ref", "@{upstream}"],
-    { timeoutMs },
-  ).catch(() => null);
-  const upstream = upstreamRes && upstreamRes.code === 0 ? upstreamRes.stdout.trim() : null;
+  const upstream = await resolveOriginTrackingBranch(root, branch, timeoutMs);
 
   const dirtyRes = await runCommandWithTimeout(
-    ["git", "-C", root, "status", "--porcelain", "--", ":!dist/control-ui/"],
+    ["git", "-C", root, "status", "--porcelain"],
     { timeoutMs },
   ).catch(() => null);
   const dirty = dirtyRes && dirtyRes.code === 0 ? dirtyRes.stdout.trim().length > 0 : null;
 
   const fetchOk = params.fetch
-    ? await runCommandWithTimeout(["git", "-C", root, "fetch", "--quiet", "--prune"], { timeoutMs })
+    ? await runCommandWithTimeout(
+        ["git", "-C", root, "fetch", "origin", "--quiet", "--prune", "--tags"],
+        { timeoutMs },
+      )
         .then((r) => r.code === 0)
         .catch(() => false)
     : null;
@@ -170,6 +169,23 @@ export async function checkGitUpdateStatus(params: {
     behind: parsed?.behind ?? null,
     fetchOk,
   };
+}
+
+async function resolveOriginTrackingBranch(
+  root: string,
+  branch: string | null,
+  timeoutMs: number,
+): Promise<string | null> {
+  if (!branch || branch === "HEAD") return null;
+  const candidates = [`origin/${branch}`, `origin/${DEV_BRANCH}`];
+  for (const candidate of candidates) {
+    const res = await runCommandWithTimeout(
+      ["git", "-C", root, "rev-parse", "--verify", "--quiet", candidate],
+      { timeoutMs },
+    ).catch(() => null);
+    if (res && res.code === 0) return candidate;
+  }
+  return null;
 }
 
 async function statMtimeMs(p: string): Promise<number | null> {

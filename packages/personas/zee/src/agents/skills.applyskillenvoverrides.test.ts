@@ -33,7 +33,7 @@ ${body ?? `# ${name}\n`}
 
 describe("applySkillEnvOverrides", () => {
   it("sets and restores env vars", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-"));
     const skillDir = path.join(workspaceDir, "skills", "env-skill");
     await writeSkill({
       dir: skillDir,
@@ -66,7 +66,7 @@ describe("applySkillEnvOverrides", () => {
     }
   });
   it("applies env overrides from snapshots", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-"));
     const skillDir = path.join(workspaceDir, "skills", "env-skill");
     await writeSkill({
       dir: skillDir,

@@ -31,8 +31,6 @@ const pickSendFn = (id: ChannelId, deps?: OutboundSendDeps) => {
       return deps?.sendWhatsApp;
     case "signal":
       return deps?.sendSignal;
-    case "imessage":
-      return deps?.sendIMessage;
     default:
       return undefined;
   }
@@ -142,11 +140,6 @@ const createDefaultRegistry = () =>
     {
       pluginId: "signal",
       plugin: createStubPlugin({ id: "signal", label: "Signal" }),
-      source: "test",
-    },
-    {
-      pluginId: "imessage",
-      plugin: createStubPlugin({ id: "imessage", label: "iMessage", aliases: ["imsg"] }),
       source: "test",
     },
   ]);

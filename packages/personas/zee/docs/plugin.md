@@ -168,7 +168,7 @@ registry export). Drop a JSON file at one of:
 - `~/.zee/mpm/catalog.json`
 - `~/.zee/plugins/catalog.json`
 
-Or point `CLAWDBOT_PLUGIN_CATALOG_PATHS` (or `CLAWDBOT_MPM_CATALOG_PATHS`) at
+Or point `ZEE_PLUGIN_CATALOG_PATHS` (or `ZEE_MPM_CATALOG_PATHS`) at
 one or more JSON files (comma/semicolon/`PATH`-delimited). Each file should
 contain `{ "entries": [ { "name": "@scope/pkg", "zee": { "channel": {...}, "install": {...} } } ] }`.
 

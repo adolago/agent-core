@@ -38,11 +38,11 @@ services:
         value: "8080"
       - key: SETUP_PASSWORD
         sync: false          # prompts during deploy
-      - key: CLAWDBOT_STATE_DIR
+      - key: ZEE_STATE_DIR
         value: /data/.zee
-      - key: CLAWDBOT_WORKSPACE_DIR
+      - key: ZEE_WORKSPACE_DIR
         value: /data/workspace
-      - key: CLAWDBOT_GATEWAY_TOKEN
+      - key: ZEE_GATEWAY_TOKEN
         generateValue: true  # auto-generates a secure token
     disk:
       name: zee-data

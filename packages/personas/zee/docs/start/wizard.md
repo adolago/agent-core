@@ -123,7 +123,6 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
   - Google Chat: service account JSON + webhook audience.
   - Mattermost (plugin): bot token + base URL.
    - Signal: optional `signal-cli` install + account config.
-   - iMessage: local `imsg` CLI path + DB access.
   - DM security: default is pairing. First DM sends a code; approve via `zee pairing approve <channel> <code>` or use allowlists.
 
 6) **Daemon install**
@@ -144,9 +143,8 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
    - Installs optional dependencies (some use Homebrew on macOS).
 
 9) **Finish**
-   - Summary + next steps, including iOS/Android/macOS apps for extra features.
+   - Summary + next steps for the CLI and Control UI.
   - If no GUI is detected, the wizard prints SSH port-forward instructions for the Control UI instead of opening a browser.
-  - If the Control UI assets are missing, the wizard attempts to build them; fallback is `pnpm ui:build` (auto-installs UI deps).
 
 ## Remote mode
 
@@ -276,7 +274,7 @@ zee agents add work \
 ## Gateway wizard RPC
 
 The Gateway exposes the wizard flow over RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
-Clients (macOS app, Control UI) can render steps without re‑implementing onboarding logic.
+Clients (Control UI and other operator clients) can render steps without re-implementing onboarding logic.
 
 ## Signal setup (signal-cli)
 
@@ -296,7 +294,6 @@ Typical fields in `~/.zee/zee.json`:
 - `agents.defaults.workspace`
 - `agents.defaults.model` / `models.providers` (if Minimax chosen)
 - `gateway.*` (mode, bind, auth, tailscale)
-- `channels.telegram.botToken`, `channels.discord.token`, `channels.signal.*`, `channels.imessage.*`
 - Channel allowlists (Slack/Discord/Matrix/Microsoft Teams) when you opt in during the prompts (names resolve to IDs when possible).
 - `skills.install.nodeManager`
 - `wizard.lastRunAt`
@@ -315,7 +312,5 @@ will prompt to install it (npm or a local path) before it can be configured.
 
 ## Related docs
 
-- macOS app onboarding: [Onboarding](/start/onboarding)
 - Config reference: [Gateway configuration](/gateway/configuration)
-- Providers: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord), [Google Chat](/channels/googlechat), [Signal](/channels/signal), [iMessage](/channels/imessage)
 - Skills: [Skills](/tools/skills), [Skills config](/tools/skills-config)

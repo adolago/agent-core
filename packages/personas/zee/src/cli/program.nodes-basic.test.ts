@@ -150,11 +150,11 @@ describe("cli program (nodes basics)", () => {
       ts: Date.now(),
       nodes: [
         {
-          nodeId: "ios-node",
-          displayName: "iOS Node",
+          nodeId: "node-1",
+          displayName: "Camera Node",
           remoteIp: "192.168.0.88",
-          deviceFamily: "iPad",
-          modelIdentifier: "iPad16,6",
+          deviceFamily: "Node",
+          modelIdentifier: "node-1",
           caps: ["canvas", "camera"],
           paired: true,
           connected: true,
@@ -171,10 +171,10 @@ describe("cli program (nodes basics)", () => {
 
     const output = runtime.log.mock.calls.map((c) => String(c[0] ?? "")).join("\n");
     expect(output).toContain("Known: 1 · Paired: 1 · Connected: 1");
-    expect(output).toContain("iOS Node");
+    expect(output).toContain("Camera Node");
     expect(output).toContain("Detail");
-    expect(output).toContain("device: iPad");
-    expect(output).toContain("hw: iPad16,6");
+    expect(output).toContain("device: Node");
+    expect(output).toContain("hw: node-1");
     expect(output).toContain("Status");
     expect(output).toContain("paired");
     expect(output).toContain("Caps");
@@ -187,11 +187,11 @@ describe("cli program (nodes basics)", () => {
       ts: Date.now(),
       nodes: [
         {
-          nodeId: "android-node",
-          displayName: "Peter's Tab S10 Ultra",
+          nodeId: "node-2",
+          displayName: "Guest Node",
           remoteIp: "192.168.0.99",
-          deviceFamily: "Android",
-          modelIdentifier: "samsung SM-X926B",
+          deviceFamily: "Node",
+          modelIdentifier: "node-2",
           caps: ["canvas", "camera"],
           paired: false,
           connected: true,
@@ -204,12 +204,10 @@ describe("cli program (nodes basics)", () => {
 
     const output = runtime.log.mock.calls.map((c) => String(c[0] ?? "")).join("\n");
     expect(output).toContain("Known: 1 · Paired: 0 · Connected: 1");
-    expect(output).toContain("Peter's Tab");
-    expect(output).toContain("S10 Ultra");
+    expect(output).toContain("Guest Node");
     expect(output).toContain("Detail");
-    expect(output).toContain("device: Android");
-    expect(output).toContain("hw: samsung");
-    expect(output).toContain("SM-X926B");
+    expect(output).toContain("device: Node");
+    expect(output).toContain("hw: node-2");
     expect(output).toContain("Status");
     expect(output).toContain("unpaired");
     expect(output).toContain("connected");
@@ -225,8 +223,8 @@ describe("cli program (nodes basics)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -236,8 +234,8 @@ describe("cli program (nodes basics)", () => {
       if (opts.method === "node.describe") {
         return {
           ts: Date.now(),
-          nodeId: "ios-node",
-          displayName: "iOS Node",
+          nodeId: "node-1",
+          displayName: "Camera Node",
           caps: ["canvas", "camera"],
           commands: ["canvas.eval", "canvas.snapshot", "camera.snap"],
           connected: true,
@@ -248,7 +246,7 @@ describe("cli program (nodes basics)", () => {
 
     const program = buildProgram();
     runtime.log.mockClear();
-    await program.parseAsync(["nodes", "describe", "--node", "ios-node"], {
+    await program.parseAsync(["nodes", "describe", "--node", "node-1"], {
       from: "user",
     });
 
@@ -258,7 +256,7 @@ describe("cli program (nodes basics)", () => {
     expect(callGateway).toHaveBeenCalledWith(
       expect.objectContaining({
         method: "node.describe",
-        params: { nodeId: "ios-node" },
+        params: { nodeId: "node-1" },
       }),
     );
 
@@ -291,8 +289,8 @@ describe("cli program (nodes basics)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -302,7 +300,7 @@ describe("cli program (nodes basics)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "canvas.eval",
           payload: { result: "ok" },
         };
@@ -317,7 +315,7 @@ describe("cli program (nodes basics)", () => {
         "nodes",
         "invoke",
         "--node",
-        "ios-node",
+        "node-1",
         "--command",
         "canvas.eval",
         "--params",
@@ -333,7 +331,7 @@ describe("cli program (nodes basics)", () => {
       expect.objectContaining({
         method: "node.invoke",
         params: {
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "canvas.eval",
           params: { javaScript: "1+1" },
           timeoutMs: 15000,

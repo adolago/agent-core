@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ZeeConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { createIMessageTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
+import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { slackPlugin } from "../../../extensions/slack/src/channel.js";
 import { telegramPlugin } from "../../../extensions/telegram/src/channel.js";
 import { whatsappPlugin } from "../../../extensions/whatsapp/src/channel.js";
@@ -62,11 +62,6 @@ describe("runMessageAction context isolation", () => {
           pluginId: "telegram",
           source: "test",
           plugin: telegramPlugin,
-        },
-        {
-          pluginId: "imessage",
-          source: "test",
-          plugin: createIMessageTestPlugin(),
         },
       ]),
     );
@@ -217,41 +212,6 @@ describe("runMessageAction context isolation", () => {
     expect(result.kind).toBe("send");
   });
 
-  it("allows iMessage send when target matches current handle", async () => {
-    const result = await runMessageAction({
-      cfg: whatsappConfig,
-      action: "send",
-      params: {
-        channel: "imessage",
-        target: "imessage:+15551234567",
-        message: "hi",
-      },
-      toolContext: { currentChannelId: "imessage:+15551234567" },
-      dryRun: true,
-    });
-
-    expect(result.kind).toBe("send");
-  });
-
-  it("blocks iMessage send when target differs from current handle", async () => {
-    const result = await runMessageAction({
-      cfg: whatsappConfig,
-      action: "send",
-      params: {
-        channel: "imessage",
-        target: "imessage:+15551230000",
-        message: "hi",
-      },
-      toolContext: {
-        currentChannelId: "imessage:+15551234567",
-        currentChannelProvider: "imessage",
-      },
-      dryRun: true,
-    });
-
-    expect(result.kind).toBe("send");
-  });
-
   it("infers channel + target from tool context when missing", async () => {
     const multiConfig = {
       channels: {
@@ -363,13 +323,13 @@ describe("runMessageAction context isolation", () => {
 
 describe("runMessageAction sendAttachment hydration", () => {
   const attachmentPlugin: ChannelPlugin = {
-    id: "bluebubbles",
+    id: "media",
     meta: {
-      id: "bluebubbles",
-      label: "BlueBubbles",
-      selectionLabel: "BlueBubbles",
-      docsPath: "/channels/bluebubbles",
-      blurb: "BlueBubbles test plugin.",
+      id: "media",
+      label: "Media",
+      selectionLabel: "Media",
+      docsPath: "/channels/media",
+      blurb: "Media test plugin.",
     },
     capabilities: { chatTypes: ["direct"], media: true },
     config: {
@@ -395,7 +355,7 @@ describe("runMessageAction sendAttachment hydration", () => {
     setActivePluginRegistry(
       createTestRegistry([
         {
-          pluginId: "bluebubbles",
+          pluginId: "media",
           source: "test",
           plugin: attachmentPlugin,
         },
@@ -417,7 +377,7 @@ describe("runMessageAction sendAttachment hydration", () => {
   it("hydrates buffer and filename from media for sendAttachment", async () => {
     const cfg = {
       channels: {
-        bluebubbles: {
+        media: {
           enabled: true,
           serverUrl: "http://localhost:1234",
           password: "test-password",
@@ -429,7 +389,7 @@ describe("runMessageAction sendAttachment hydration", () => {
       cfg,
       action: "sendAttachment",
       params: {
-        channel: "bluebubbles",
+        channel: "media",
         target: "+15551234567",
         media: "https://example.com/pic.png",
         message: "caption",

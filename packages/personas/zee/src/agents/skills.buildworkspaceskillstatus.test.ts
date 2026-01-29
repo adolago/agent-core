@@ -28,7 +28,7 @@ ${body ?? `# ${name}\n`}
 
 describe("buildWorkspaceSkillStatus", () => {
   it("reports missing requirements and install options", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-"));
     const skillDir = path.join(workspaceDir, "skills", "status-skill");
 
     await writeSkill({
@@ -53,7 +53,7 @@ describe("buildWorkspaceSkillStatus", () => {
     expect(skill?.install[0]?.id).toBe("brew");
   });
   it("respects OS-gated skills", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-"));
     const skillDir = path.join(workspaceDir, "skills", "os-skill");
 
     await writeSkill({
@@ -78,7 +78,7 @@ describe("buildWorkspaceSkillStatus", () => {
     }
   });
   it("marks bundled skills blocked by allowlist", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-"));
     const bundledDir = path.join(workspaceDir, ".bundled");
     const bundledSkillDir = path.join(bundledDir, "peekaboo");
     const originalBundled = process.env.CLAWDBOT_BUNDLED_SKILLS_DIR;
@@ -111,7 +111,7 @@ describe("buildWorkspaceSkillStatus", () => {
   });
 
   it("filters install options by OS", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-"));
     const skillDir = path.join(workspaceDir, "skills", "install-skill");
 
     await writeSkill({

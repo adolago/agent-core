@@ -48,7 +48,6 @@ import {
   detectLegacyStateMigrations,
   runLegacyStateMigrations,
 } from "./doctor-state-migrations.js";
-import { maybeRepairUiProtocolFreshness } from "./doctor-ui.js";
 import { maybeOfferUpdateBeforeDoctor } from "./doctor-update.js";
 import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "./doctor-workspace.js";
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
@@ -85,7 +84,6 @@ export async function doctorCommand(
   });
   if (updateResult.handled) return;
 
-  await maybeRepairUiProtocolFreshness(runtime, prompter);
   noteSourceInstallIssues(root);
 
   const configResult = await loadAndMaybeMigrateDoctorConfig({

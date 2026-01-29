@@ -137,7 +137,7 @@ describe("gateway server agent", () => {
     ]);
     registryState.registry = registry;
     setActivePluginRegistry(registry);
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await writeSessionStore({
       entries: {
@@ -167,7 +167,7 @@ describe("gateway server agent", () => {
     expect(call.sessionId).toBe("sess-teams");
   });
 
-  test("agent accepts channel aliases (imsg/teams)", async () => {
+  test("agent accepts channel aliases (teams)", async () => {
     const registry = createRegistry([
       {
         pluginId: "msteams",
@@ -177,27 +177,18 @@ describe("gateway server agent", () => {
     ]);
     registryState.registry = registry;
     setActivePluginRegistry(registry);
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await writeSessionStore({
       entries: {
         main: {
           sessionId: "sess-alias",
           updatedAt: Date.now(),
-          lastChannel: "imessage",
-          lastTo: "chat_id:123",
+          lastChannel: "msteams",
+          lastTo: "conversation:teams-123",
         },
       },
     });
-    const resIMessage = await rpcReq(ws, "agent", {
-      message: "hi",
-      sessionKey: "main",
-      channel: "imsg",
-      deliver: true,
-      idempotencyKey: "idem-agent-imsg",
-    });
-    expect(resIMessage.ok).toBe(true);
-
     const resTeams = await rpcReq(ws, "agent", {
       message: "hi",
       sessionKey: "main",
@@ -209,10 +200,6 @@ describe("gateway server agent", () => {
     expect(resTeams.ok).toBe(true);
 
     const spy = vi.mocked(agentCommand);
-    const lastIMessageCall = spy.mock.calls.at(-2)?.[0] as Record<string, unknown>;
-    expectChannels(lastIMessageCall, "imessage");
-    expect(lastIMessageCall.to).toBe("chat_id:123");
-
     const lastTeamsCall = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
     expectChannels(lastTeamsCall, "msteams");
     expect(lastTeamsCall.to).toBe("conversation:teams-abc");
@@ -231,7 +218,7 @@ describe("gateway server agent", () => {
 
   test("agent ignores webchat last-channel for routing", async () => {
     testState.allowFrom = ["+1555"];
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await writeSessionStore({
       entries: {
@@ -262,7 +249,7 @@ describe("gateway server agent", () => {
   });
 
   test("agent uses webchat for internal runs when last provider is webchat", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await writeSessionStore({
       entries: {
@@ -395,7 +382,7 @@ describe("gateway server agent", () => {
   });
 
   test("agent events stream to webchat clients when run context is registered", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await writeSessionStore({
       entries: {

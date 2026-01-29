@@ -32,7 +32,7 @@ const RESPONSE_PAGE = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Moltbot Antigravity OAuth</title>
+    <title>Zee Antigravity OAuth</title>
   </head>
   <body>
     <main>

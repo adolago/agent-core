@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/copilot-proxy",
+  "name": "@zee/copilot-proxy",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Copilot Proxy provider plugin",
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ]

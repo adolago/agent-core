@@ -4,7 +4,6 @@ import type { ChannelId } from "../../channels/plugins/types.js";
 import type { ZeeConfig } from "../../config/config.js";
 import { recordSessionMetaFromInbound, resolveStorePath } from "../../config/sessions.js";
 import { parseDiscordTarget } from "../../discord/targets.js";
-import { parseIMessageTarget, normalizeIMessageHandle } from "../../imessage/targets.js";
 import {
   buildAgentSessionKey,
   type RoutePeer,
@@ -391,62 +390,6 @@ function resolveSignalSession(
   };
 }
 
-function resolveIMessageSession(
-  params: ResolveOutboundSessionRouteParams,
-): OutboundSessionRoute | null {
-  const parsed = parseIMessageTarget(params.target);
-  if (parsed.kind === "handle") {
-    const handle = normalizeIMessageHandle(parsed.to);
-    if (!handle) return null;
-    const peer: RoutePeer = { kind: "dm", id: handle };
-    const baseSessionKey = buildBaseSessionKey({
-      cfg: params.cfg,
-      agentId: params.agentId,
-      channel: "imessage",
-      accountId: params.accountId,
-      peer,
-    });
-    return {
-      sessionKey: baseSessionKey,
-      baseSessionKey,
-      peer,
-      chatType: "direct",
-      from: `imessage:${handle}`,
-      to: `imessage:${handle}`,
-    };
-  }
-
-  const peerId =
-    parsed.kind === "chat_id"
-      ? String(parsed.chatId)
-      : parsed.kind === "chat_guid"
-        ? parsed.chatGuid
-        : parsed.chatIdentifier;
-  if (!peerId) return null;
-  const peer: RoutePeer = { kind: "group", id: peerId };
-  const baseSessionKey = buildBaseSessionKey({
-    cfg: params.cfg,
-    agentId: params.agentId,
-    channel: "imessage",
-    accountId: params.accountId,
-    peer,
-  });
-  const toPrefix =
-    parsed.kind === "chat_id"
-      ? "chat_id"
-      : parsed.kind === "chat_guid"
-        ? "chat_guid"
-        : "chat_identifier";
-  return {
-    sessionKey: baseSessionKey,
-    baseSessionKey,
-    peer,
-    chatType: "group",
-    from: `imessage:group:${peerId}`,
-    to: `${toPrefix}:${peerId}`,
-  };
-}
-
 function resolveMatrixSession(
   params: ResolveOutboundSessionRouteParams,
 ): OutboundSessionRoute | null {
@@ -545,45 +488,6 @@ function resolveMattermostSession(
     from: isUser ? `mattermost:${rawId}` : `mattermost:channel:${rawId}`,
     to: isUser ? `user:${rawId}` : `channel:${rawId}`,
     threadId,
-  };
-}
-
-function resolveBlueBubblesSession(
-  params: ResolveOutboundSessionRouteParams,
-): OutboundSessionRoute | null {
-  const stripped = stripProviderPrefix(params.target, "bluebubbles");
-  const lower = stripped.toLowerCase();
-  const isGroup =
-    lower.startsWith("chat_id:") ||
-    lower.startsWith("chat_guid:") ||
-    lower.startsWith("chat_identifier:") ||
-    lower.startsWith("group:");
-  const rawPeerId = isGroup
-    ? stripKindPrefix(stripped)
-    : stripped.replace(/^(imessage|sms|auto):/i, "");
-  // BlueBubbles inbound group ids omit chat_* prefixes; strip them to align sessions.
-  const peerId = isGroup
-    ? rawPeerId.replace(/^(chat_id|chat_guid|chat_identifier):/i, "")
-    : rawPeerId;
-  if (!peerId) return null;
-  const peer: RoutePeer = {
-    kind: isGroup ? "group" : "dm",
-    id: peerId,
-  };
-  const baseSessionKey = buildBaseSessionKey({
-    cfg: params.cfg,
-    agentId: params.agentId,
-    channel: "bluebubbles",
-    accountId: params.accountId,
-    peer,
-  });
-  return {
-    sessionKey: baseSessionKey,
-    baseSessionKey,
-    peer,
-    chatType: isGroup ? "group" : "direct",
-    from: isGroup ? `group:${peerId}` : `bluebubbles:${peerId}`,
-    to: `bluebubbles:${stripped}`,
   };
 }
 
@@ -798,16 +702,12 @@ export async function resolveOutboundSessionRoute(
       return resolveWhatsAppSession({ ...params, target });
     case "signal":
       return resolveSignalSession({ ...params, target });
-    case "imessage":
-      return resolveIMessageSession({ ...params, target });
     case "matrix":
       return resolveMatrixSession({ ...params, target });
     case "msteams":
       return resolveMSTeamsSession({ ...params, target });
     case "mattermost":
       return resolveMattermostSession({ ...params, target });
-    case "bluebubbles":
-      return resolveBlueBubblesSession({ ...params, target });
     case "nextcloud-talk":
       return resolveNextcloudTalkSession({ ...params, target });
     case "zalo":

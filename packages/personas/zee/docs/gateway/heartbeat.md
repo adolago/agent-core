@@ -82,7 +82,6 @@ and logged; a message that is only `HEARTBEAT_OK` is dropped.
         every: "30m",           // default: 30m (0m disables)
         model: "anthropic/claude-opus-4-5",
         includeReasoning: false, // default: false (deliver separate Reasoning: message when available)
-        target: "last",         // last | none | <channel id> (core or plugin, e.g. "bluebubbles")
         to: "+15551234567",     // optional channel-specific override
         prompt: "Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.",
         ackMaxChars: 300         // max chars allowed after HEARTBEAT_OK
@@ -144,7 +143,6 @@ Example: two agents, only the second agent runs heartbeats.
   - Session key formats: see [Sessions](/concepts/session) and [Groups](/concepts/groups).
 - `target`:
   - `last` (default): deliver to the last used external channel.
-  - explicit channel: `whatsapp` / `telegram` / `discord` / `googlechat` / `slack` / `msteams` / `signal` / `imessage`.
   - `none`: run the heartbeat but **do not deliver** externally.
 - `to`: optional recipient override (channel-specific id, e.g. E.164 for WhatsApp or a Telegram chat id).
 - `prompt`: overrides the default prompt body (not merged).

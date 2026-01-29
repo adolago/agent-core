@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.fn();
 const ensureZeeModelsJson = vi.fn().mockResolvedValue(undefined);
-const resolveZeeAgentDir = vi.fn().mockReturnValue("/tmp/moltbot-agent");
+const resolveZeeAgentDir = vi.fn().mockReturnValue("/tmp/zee-agent");
 const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {} });
 const listProfilesForProvider = vi.fn().mockReturnValue([]);
 const resolveAuthProfileDisplayLabel = vi.fn(({ profileId }: { profileId: string }) => profileId);
 const resolveAuthStorePathForDisplay = vi
   .fn()
-  .mockReturnValue("/tmp/moltbot-agent/auth-profiles.json");
+  .mockReturnValue("/tmp/zee-agent/auth-profiles.json");
 const resolveProfileUnusableUntilForDisplay = vi.fn().mockReturnValue(null);
 const resolveEnvApiKey = vi.fn().mockReturnValue(undefined);
 const resolveAwsSdkEnvVarName = vi.fn().mockReturnValue(undefined);
@@ -17,8 +17,8 @@ const discoverAuthStorage = vi.fn().mockReturnValue({});
 const discoverModels = vi.fn();
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH: "/tmp/moltbot.json",
-  STATE_DIR: "/tmp/moltbot-state",
+  CONFIG_PATH: "/tmp/zee.json",
+  STATE_DIR: "/tmp/zee-state",
   loadConfig,
 }));
 

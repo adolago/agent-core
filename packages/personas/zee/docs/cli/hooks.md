@@ -85,7 +85,7 @@ Details:
   Source: zee-bundled
   Path: /path/to/zee/hooks/bundled/session-memory/HOOK.md
   Handler: /path/to/zee/hooks/bundled/session-memory/handler.ts
-  Homepage: https://docs.molt.bot/hooks#session-memory
+  Homepage: https://docs.zee/hooks#session-memory
   Events: command:new
 
 Requirements:
@@ -145,7 +145,7 @@ zee hooks enable session-memory
 - Saves config to disk
 
 **After enabling:**
-- Restart the gateway so hooks reload (menu bar app restart on macOS, or restart your gateway process in dev).
+- Restart the gateway so hooks reload.
 
 ## Disable a Hook
 

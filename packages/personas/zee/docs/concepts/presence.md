@@ -7,11 +7,11 @@ read_when:
 ---
 # Presence
 
-Zee “presence” is a lightweight, best‑effort view of:
+Zee “presence” is a lightweight, best-effort view of:
 - the **Gateway** itself, and
-- **clients connected to the Gateway** (mac app, WebChat, CLI, etc.)
+- **clients connected to the Gateway** (Control UI, CLI, etc.)
 
-Presence is used primarily to render the macOS app’s **Instances** tab and to
+Presence is used primarily to render the Control UI **Instances** list and to
 provide quick operator visibility.
 
 ## Presence fields (what shows up)
@@ -49,8 +49,8 @@ Instances list, `client.mode === "cli"` is **not** turned into a presence entry.
 
 ### 3) `system-event` beacons
 
-Clients can send richer periodic beacons via the `system-event` method. The mac
-app uses this to report host name, IP, and `lastInputSeconds`.
+Clients can send richer periodic beacons via the `system-event` method. Some UI
+clients use this to report host name, IP, and `lastInputSeconds`.
 
 ### 4) Node connects (role: node)
 When a node connects over the Gateway WebSocket with `role: node`, the Gateway
@@ -84,9 +84,9 @@ IP, loopback remote addresses are ignored.
 
 ## Consumers
 
-### macOS Instances tab
+### Control UI Instances list
 
-The macOS app renders the output of `system-presence` and applies a small status
+The Control UI renders the output of `system-presence` and applies a small status
 indicator (Active/Idle/Stale) based on the age of the last update.
 
 ## Debugging tips

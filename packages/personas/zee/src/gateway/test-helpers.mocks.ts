@@ -105,11 +105,6 @@ const createStubPluginRegistry = (): PluginRegistry => ({
       }),
     },
     {
-      pluginId: "imessage",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "imessage", label: "iMessage" }),
-    },
-    {
       pluginId: "msteams",
       source: "test",
       plugin: createStubChannelPlugin({ id: "msteams", label: "Microsoft Teams" }),
@@ -128,11 +123,6 @@ const createStubPluginRegistry = (): PluginRegistry => ({
       pluginId: "zalouser",
       source: "test",
       plugin: createStubChannelPlugin({ id: "zalouser", label: "Zalo Personal" }),
-    },
-    {
-      pluginId: "bluebubbles",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "bluebubbles", label: "BlueBubbles" }),
     },
   ],
   providers: [],

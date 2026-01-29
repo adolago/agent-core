@@ -44,10 +44,12 @@ export class CallManager {
   constructor(config: VoiceCallConfig, storePath?: string) {
     this.config = config;
     // Resolve store path with tilde expansion (like other config values)
+    const defaultPath = path.join(os.homedir(), ".zee", "voice-calls");
+    const legacyPath = path.join(os.homedir(), "clawd", "voice-calls");
     const rawPath =
       storePath ||
       config.store ||
-      path.join(os.homedir(), "clawd", "voice-calls");
+      (fs.existsSync(legacyPath) ? legacyPath : defaultPath);
     this.storePath = resolveUserPath(rawPath);
   }
 

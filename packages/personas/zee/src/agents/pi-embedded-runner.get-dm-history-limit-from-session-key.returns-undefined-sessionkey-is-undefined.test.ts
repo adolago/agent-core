@@ -168,7 +168,6 @@ describe("getDmHistoryLimitFromSessionKey", () => {
       "discord",
       "slack",
       "signal",
-      "imessage",
       "msteams",
       "nextcloud-talk",
     ] as const;
@@ -187,7 +186,6 @@ describe("getDmHistoryLimitFromSessionKey", () => {
       "discord",
       "slack",
       "signal",
-      "imessage",
       "msteams",
       "nextcloud-talk",
     ] as const;

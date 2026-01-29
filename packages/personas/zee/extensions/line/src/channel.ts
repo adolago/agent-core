@@ -53,7 +53,7 @@ export const linePlugin: ChannelPlugin<ResolvedLineAccount> = {
       if (!account.channelAccessToken) {
         throw new Error("LINE channel access token not configured");
       }
-      await line.pushMessageLine(id, "Moltbot: your access has been approved.", {
+      await line.pushMessageLine(id, "Zee: your access has been approved.", {
         channelAccessToken: account.channelAccessToken,
       });
     },
@@ -164,7 +164,7 @@ export const linePlugin: ChannelPlugin<ResolvedLineAccount> = {
         allowFrom: account.config.allowFrom ?? [],
         policyPath: `${basePath}dmPolicy`,
         allowFromPath: basePath,
-        approveHint: "moltbot pairing approve line <code>",
+        approveHint: "zee pairing approve line <code>",
         normalizeEntry: (raw) => raw.replace(/^line:(?:user:)?/i, ""),
       };
     },

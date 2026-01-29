@@ -125,13 +125,13 @@ chown -R 1000:1000 /root/zee
 Create `.env` in the repository root.
 
 ```bash
-CLAWDBOT_IMAGE=zee:latest
-CLAWDBOT_GATEWAY_TOKEN=change-me-now
-CLAWDBOT_GATEWAY_BIND=lan
-CLAWDBOT_GATEWAY_PORT=18789
+ZEE_IMAGE=zee:latest
+ZEE_GATEWAY_TOKEN=change-me-now
+ZEE_GATEWAY_BIND=lan
+ZEE_GATEWAY_PORT=18789
 
-CLAWDBOT_CONFIG_DIR=/root/.zee
-CLAWDBOT_WORKSPACE_DIR=/root/zee
+ZEE_CONFIG_DIR=/root/.zee
+ZEE_WORKSPACE_DIR=/root/zee
 
 GOG_KEYRING_PASSWORD=change-me-now
 XDG_CONFIG_HOME=/home/node/.zee
@@ -154,7 +154,7 @@ Create or update `docker-compose.yml`.
 ```yaml
 services:
   zee-gateway:
-    image: ${CLAWDBOT_IMAGE}
+    image: ${ZEE_IMAGE}
     build: .
     restart: unless-stopped
     env_file:
@@ -163,21 +163,21 @@ services:
       - HOME=/home/node
       - NODE_ENV=production
       - TERM=xterm-256color
-      - CLAWDBOT_GATEWAY_BIND=${CLAWDBOT_GATEWAY_BIND}
-      - CLAWDBOT_GATEWAY_PORT=${CLAWDBOT_GATEWAY_PORT}
-      - CLAWDBOT_GATEWAY_TOKEN=${CLAWDBOT_GATEWAY_TOKEN}
+      - ZEE_GATEWAY_BIND=${ZEE_GATEWAY_BIND}
+      - ZEE_GATEWAY_PORT=${ZEE_GATEWAY_PORT}
+      - ZEE_GATEWAY_TOKEN=${ZEE_GATEWAY_TOKEN}
       - GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD}
       - XDG_CONFIG_HOME=${XDG_CONFIG_HOME}
       - PATH=/home/linuxbrew/.linuxbrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     volumes:
-      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.zee
-      - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/zee
+      - ${ZEE_CONFIG_DIR}:/home/node/.zee
+      - ${ZEE_WORKSPACE_DIR}:/home/node/zee
     ports:
       # Recommended: keep the Gateway loopback-only on the VPS; access via SSH tunnel.
       # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
-      - "127.0.0.1:${CLAWDBOT_GATEWAY_PORT}:18789"
+      - "127.0.0.1:${ZEE_GATEWAY_PORT}:18789"
 
-      # Optional: only if you run iOS/Android nodes against this VPS and need Canvas host.
+      # Optional: only if you run node hosts against this VPS and need Canvas host.
       # If you expose this publicly, read /gateway/security and firewall accordingly.
       # - "18793:18793"
     command:
@@ -186,9 +186,9 @@ services:
         "dist/index.js",
         "gateway",
         "--bind",
-        "${CLAWDBOT_GATEWAY_BIND}",
+        "${ZEE_GATEWAY_BIND}",
         "--port",
-        "${CLAWDBOT_GATEWAY_PORT}"
+        "${ZEE_GATEWAY_PORT}"
       ]
 ```
 
@@ -237,7 +237,6 @@ RUN curl -L https://github.com/steipete/wacli/releases/latest/download/wacli_Lin
 
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY ui/package.json ./ui/package.json
 COPY scripts ./scripts
 
 RUN corepack enable
@@ -245,8 +244,6 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 RUN pnpm build
-RUN pnpm ui:install
-RUN pnpm ui:build
 
 ENV NODE_ENV=production
 

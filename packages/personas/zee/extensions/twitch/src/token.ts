@@ -40,7 +40,7 @@ function normalizeTwitchToken(raw?: string | null): string | undefined {
  * The getAccountConfig function handles merging base-level config with accounts.default,
  * so this logic works for both simplified and multi-account patterns.
  *
- * @param cfg - Moltbot config
+ * @param cfg - Zee config
  * @param opts - Options including accountId and optional envToken override
  * @returns Token resolution with source
  */

@@ -15,7 +15,7 @@ import {
 
 describe("runCapability deepgram provider options", () => {
   it("merges provider options, headers, and baseUrl overrides", async () => {
-    const tmpPath = path.join(os.tmpdir(), `moltbot-deepgram-${Date.now()}.wav`);
+    const tmpPath = path.join(os.tmpdir(), `zee-deepgram-${Date.now()}.wav`);
     await fs.writeFile(tmpPath, Buffer.from("RIFF"));
     const ctx: MsgContext = { MediaPath: tmpPath, MediaType: "audio/wav" };
     const media = normalizeMediaAttachments(ctx);

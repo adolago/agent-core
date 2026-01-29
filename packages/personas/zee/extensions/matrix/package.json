@@ -1,9 +1,19 @@
 {
-  "name": "@moltbot/matrix",
+  "name": "@zee/matrix",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Matrix channel plugin",
-  "moltbot": {
+  "dependencies": {
+    "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
+    "markdown-it": "14.1.0",
+    "@vector-im/matrix-bot-sdk": "0.8.0-element.3",
+    "music-metadata": "^11.10.6",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "zee": "workspace:*"
+  },
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -18,19 +28,9 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@moltbot/matrix",
+      "npmSpec": "@zee/matrix",
       "localPath": "extensions/matrix",
       "defaultChoice": "npm"
     }
-  },
-  "dependencies": {
-    "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
-    "markdown-it": "14.1.0",
-    "@vector-im/matrix-bot-sdk": "0.8.0-element.3",
-    "music-metadata": "^11.10.6",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "moltbot": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Moltbot Memory (LanceDB) Plugin
+ * Zee Memory (LanceDB) Plugin
  *
  * Long-term memory with vector search for AI conversations.
  * Uses LanceDB for storage and OpenAI for embeddings.

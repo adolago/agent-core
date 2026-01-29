@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/mattermost",
+  "name": "@zee/mattermost",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Mattermost channel plugin",
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -17,7 +17,7 @@
       "order": 65
     },
     "install": {
-      "npmSpec": "@moltbot/mattermost",
+      "npmSpec": "@zee/mattermost",
       "localPath": "extensions/mattermost",
       "defaultChoice": "npm"
     }

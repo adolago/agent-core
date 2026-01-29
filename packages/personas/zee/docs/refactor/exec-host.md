@@ -11,7 +11,7 @@ read_when:
 ## Goals
 - Add `exec.host` + `exec.security` to route execution across **sandbox**, **gateway**, and **node**.
 - Keep defaults **safe**: no cross-host execution unless explicitly enabled.
-- Split execution into a **headless runner service** with optional UI (macOS app) via local IPC.
+- Split execution into a **headless runner service** with optional control UI via local IPC.
 - Provide **per-agent** policy, allowlist, ask mode, and node binding.
 - Support **ask modes** that work *with* or *without* allowlists.
 - Cross-platform: Unix socket + token auth (macOS/Linux/Windows parity).
@@ -26,11 +26,11 @@ read_when:
 - **Elevation:** keep `/elevated` as an alias for gateway full access.
 - **Ask default:** `on-miss`.
 - **Approvals store:** `~/.zee/exec-approvals.json` (JSON, no legacy migration).
-- **Runner:** headless system service; UI app hosts a Unix socket for approvals.
+- **Runner:** headless system service; control UI hosts a Unix socket for approvals.
 - **Node identity:** use existing `nodeId`.
 - **Socket auth:** Unix socket + token (cross-platform); split later if needed.
 - **Node host state:** `~/.zee/node.json` (node id + pairing token).
-- **macOS exec host:** run `system.run` inside the macOS app; node host service forwards requests over local IPC.
+- **UI exec host:** run `system.run` inside the local control UI; node host service forwards requests over local IPC.
 - **No XPC helper:** stick to Unix socket + token + peer checks.
 
 ## Key concepts
@@ -139,7 +139,7 @@ Notes:
 - Approvals JSON is local to the execution host.
 - UI hosts a local Unix socket; runners connect on demand.
 
-## UI integration (macOS app)
+## UI integration (control UI)
 ### IPC
 - Unix socket at `~/.zee/exec-approvals.sock` (0600).
 - Token stored in `exec-approvals.json` (0600).
@@ -147,11 +147,11 @@ Notes:
 - Challenge/response: nonce + HMAC(token, request-hash) to prevent replay.
 - Short TTL (e.g., 10s) + max payload + rate limit.
 
-### Ask flow (macOS app exec host)
+### Ask flow (control UI exec host)
 1) Node service receives `system.run` from gateway.
 2) Node service connects to the local socket and sends the prompt/exec request.
-3) App validates peer + token + HMAC + TTL, then shows dialog if needed.
-4) App executes the command in UI context and returns output.
+3) UI validates peer + token + HMAC + TTL, then shows dialog if needed.
+4) UI executes the command in UI context and returns output.
 5) Node service returns output to gateway.
 
 If UI missing:
@@ -162,7 +162,7 @@ If UI missing:
 Agent -> Gateway -> Bridge -> Node Service (TS)
                          |  IPC (UDS + token + HMAC + TTL)
                          v
-                     Mac App (UI + TCC + system.run)
+                     Control UI (optional)
 ```
 
 ## Node identity + binding
@@ -236,7 +236,7 @@ Option B:
 
 ### Phase 3: node runner enforcement
 - Update node runner to enforce allowlist + ask.
-- Add Unix socket prompt bridge to macOS app UI.
+- Add Unix socket prompt bridge to control UI.
 - Wire `askFallback`.
 
 ### Phase 4: events
@@ -244,7 +244,7 @@ Option B:
 - Map to `enqueueSystemEvent` for agent prompts.
 
 ### Phase 5: UI polish
-- Mac app: allowlist editor, per-agent switcher, ask policy UI.
+- Control UI: allowlist editor, per-agent switcher, ask policy UI.
 - Node binding controls (optional).
 
 ## Testing plan

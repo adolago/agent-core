@@ -271,7 +271,6 @@ function applyConfigFixes(params: { cfg: ZeeConfig; env: NodeJS.ProcessEnv }): {
     "whatsapp",
     "discord",
     "signal",
-    "imessage",
     "slack",
     "msteams",
   ]) {

@@ -42,12 +42,12 @@ describe("onboard-hooks", () => {
 
   const createMockHookReport = (eligible = true): HookStatusReport => ({
     workspaceDir: "/mock/workspace",
-    managedHooksDir: "/mock/.clawdbot/hooks",
+    managedHooksDir: "/mock/.zee/hooks",
     hooks: [
       {
         name: "session-memory",
         description: "Save session context to memory when /new command is issued",
-        source: "moltbot-bundled",
+        source: "zee-bundled",
         pluginId: undefined,
         filePath: "/mock/workspace/hooks/session-memory/HOOK.md",
         baseDir: "/mock/workspace/hooks/session-memory",
@@ -80,7 +80,7 @@ describe("onboard-hooks", () => {
       {
         name: "command-logger",
         description: "Log all command events to a centralized audit file",
-        source: "moltbot-bundled",
+        source: "zee-bundled",
         pluginId: undefined,
         filePath: "/mock/workspace/hooks/command-logger/HOOK.md",
         baseDir: "/mock/workspace/hooks/command-logger",
@@ -239,7 +239,7 @@ describe("onboard-hooks", () => {
 
       // Second note should confirm configuration
       expect(noteCalls[1][0]).toContain("Enabled 1 hook: session-memory");
-      expect(noteCalls[1][0]).toMatch(/(?:moltbot|moltbot)( --profile isolated)? hooks list/);
+      expect(noteCalls[1][0]).toMatch(/zee( --profile isolated)? hooks list/);
     });
   });
 });

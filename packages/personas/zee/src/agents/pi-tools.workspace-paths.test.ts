@@ -21,8 +21,8 @@ function getTextContent(result?: { content?: Array<{ type: string; text?: string
 
 describe("workspace path resolution", () => {
   it("reads relative paths against workspaceDir even after cwd changes", async () => {
-    await withTempDir("moltbot-ws-", async (workspaceDir) => {
-      await withTempDir("moltbot-cwd-", async (otherDir) => {
+    await withTempDir("zee-ws-", async (workspaceDir) => {
+      await withTempDir("zee-cwd-", async (otherDir) => {
         const prevCwd = process.cwd();
         const testFile = "read.txt";
         const contents = "workspace read ok";
@@ -44,8 +44,8 @@ describe("workspace path resolution", () => {
   });
 
   it("writes relative paths against workspaceDir even after cwd changes", async () => {
-    await withTempDir("moltbot-ws-", async (workspaceDir) => {
-      await withTempDir("moltbot-cwd-", async (otherDir) => {
+    await withTempDir("zee-ws-", async (workspaceDir) => {
+      await withTempDir("zee-cwd-", async (otherDir) => {
         const prevCwd = process.cwd();
         const testFile = "write.txt";
         const contents = "workspace write ok";
@@ -71,8 +71,8 @@ describe("workspace path resolution", () => {
   });
 
   it("edits relative paths against workspaceDir even after cwd changes", async () => {
-    await withTempDir("moltbot-ws-", async (workspaceDir) => {
-      await withTempDir("moltbot-cwd-", async (otherDir) => {
+    await withTempDir("zee-ws-", async (workspaceDir) => {
+      await withTempDir("zee-cwd-", async (otherDir) => {
         const prevCwd = process.cwd();
         const testFile = "edit.txt";
         await fs.writeFile(path.join(workspaceDir, testFile), "hello world", "utf8");
@@ -99,7 +99,7 @@ describe("workspace path resolution", () => {
   });
 
   it("defaults exec cwd to workspaceDir when workdir is omitted", async () => {
-    await withTempDir("moltbot-ws-", async (workspaceDir) => {
+    await withTempDir("zee-ws-", async (workspaceDir) => {
       const tools = createZeeCodingTools({ workspaceDir });
       const execTool = tools.find((tool) => tool.name === "exec");
       expect(execTool).toBeDefined();
@@ -121,8 +121,8 @@ describe("workspace path resolution", () => {
   });
 
   it("lets exec workdir override the workspace default", async () => {
-    await withTempDir("moltbot-ws-", async (workspaceDir) => {
-      await withTempDir("moltbot-override-", async (overrideDir) => {
+    await withTempDir("zee-ws-", async (workspaceDir) => {
+      await withTempDir("zee-override-", async (overrideDir) => {
         const tools = createZeeCodingTools({ workspaceDir });
         const execTool = tools.find((tool) => tool.name === "exec");
         expect(execTool).toBeDefined();
@@ -148,19 +148,19 @@ describe("workspace path resolution", () => {
 
 describe("sandboxed workspace paths", () => {
   it("uses sandbox workspace for relative read/write/edit", async () => {
-    await withTempDir("moltbot-sandbox-", async (sandboxDir) => {
-      await withTempDir("moltbot-workspace-", async (workspaceDir) => {
+    await withTempDir("zee-sandbox-", async (sandboxDir) => {
+      await withTempDir("zee-workspace-", async (workspaceDir) => {
         const sandbox = {
           enabled: true,
           sessionKey: "sandbox:test",
           workspaceDir: sandboxDir,
           agentWorkspaceDir: workspaceDir,
           workspaceAccess: "rw",
-          containerName: "moltbot-sbx-test",
+          containerName: "zee-sbx-test",
           containerWorkdir: "/workspace",
           docker: {
-            image: "moltbot-sandbox:bookworm-slim",
-            containerPrefix: "moltbot-sbx-",
+            image: "zee-sandbox:bookworm-slim",
+            containerPrefix: "zee-sbx-",
             workdir: "/workspace",
             readOnlyRoot: true,
             tmpfs: [],

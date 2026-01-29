@@ -13,7 +13,7 @@ const prevBundledDir = process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
 const EMPTY_PLUGIN_SCHEMA = { type: "object", additionalProperties: false, properties: {} };
 
 function makeTempDir() {
-  const dir = path.join(os.tmpdir(), `moltbot-plugin-${randomUUID()}`);
+  const dir = path.join(os.tmpdir(), `zee-plugin-${randomUUID()}`);
   fs.mkdirSync(dir, { recursive: true });
   tempDirs.push(dir);
   return dir;

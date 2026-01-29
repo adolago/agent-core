@@ -6,7 +6,6 @@ read_when:
 ---
 # Building a personal assistant with Zee
 
-Zee is a local-first WhatsApp + Telegram + Discord + iMessage gateway for Pi
 agents. This guide covers the personal assistant setup: one dedicated WhatsApp
 number that behaves like your always-on agent.
 
@@ -37,7 +36,6 @@ From source (development):
 
 ```bash
 pnpm install
-pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 pnpm link --global
 ```

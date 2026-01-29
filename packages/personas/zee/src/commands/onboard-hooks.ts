@@ -15,7 +15,7 @@ export async function setupInternalHooks(
       "Hooks let you automate actions when agent commands are issued.",
       "Example: Save session context to memory when you issue /new.",
       "",
-      "Learn more: https://docs.molt.bot/hooks",
+      "Learn more: https://docs.zee/hooks",
     ].join("\n"),
     "Hooks",
   );
@@ -70,10 +70,10 @@ export async function setupInternalHooks(
   };
 
   await prompter.note(
-      [
-        `Enabled ${selected.length} hook${selected.length > 1 ? "s" : ""}: ${selected.join(", ")}`,
-        "",
-        "You can manage hooks later with:",
+    [
+      `Enabled ${selected.length} hook${selected.length > 1 ? "s" : ""}: ${selected.join(", ")}`,
+      "",
+      "You can manage hooks later with:",
       `  ${formatCliCommand("zee hooks list")}`,
       `  ${formatCliCommand("zee hooks enable <name>")}`,
       `  ${formatCliCommand("zee hooks disable <name>")}`,

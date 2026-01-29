@@ -44,7 +44,7 @@ describe("legacy config detection", () => {
     expect(res.config?.channels?.whatsapp).toBeUndefined();
     expect(res.config?.routing?.allowFrom).toBeUndefined();
   });
-  it("migrates routing.groupChat.requireMention to channels whatsapp/telegram/imessage groups when whatsapp configured", async () => {
+  it("migrates routing.groupChat.requireMention to channels whatsapp/telegram groups when whatsapp configured", async () => {
     vi.resetModules();
     const { migrateLegacyConfig } = await import("./config.js");
     const res = migrateLegacyConfig({
@@ -57,15 +57,11 @@ describe("legacy config detection", () => {
     expect(res.changes).toContain(
       'Moved routing.groupChat.requireMention → channels.telegram.groups."*".requireMention.',
     );
-    expect(res.changes).toContain(
-      'Moved routing.groupChat.requireMention → channels.imessage.groups."*".requireMention.',
-    );
     expect(res.config?.channels?.whatsapp?.groups?.["*"]?.requireMention).toBe(false);
     expect(res.config?.channels?.telegram?.groups?.["*"]?.requireMention).toBe(false);
-    expect(res.config?.channels?.imessage?.groups?.["*"]?.requireMention).toBe(false);
     expect(res.config?.routing?.groupChat?.requireMention).toBeUndefined();
   });
-  it("migrates routing.groupChat.requireMention to telegram/imessage when whatsapp missing", async () => {
+  it("migrates routing.groupChat.requireMention to telegram when whatsapp missing", async () => {
     vi.resetModules();
     const { migrateLegacyConfig } = await import("./config.js");
     const res = migrateLegacyConfig({
@@ -74,15 +70,11 @@ describe("legacy config detection", () => {
     expect(res.changes).toContain(
       'Moved routing.groupChat.requireMention → channels.telegram.groups."*".requireMention.',
     );
-    expect(res.changes).toContain(
-      'Moved routing.groupChat.requireMention → channels.imessage.groups."*".requireMention.',
-    );
     expect(res.changes).not.toContain(
       'Moved routing.groupChat.requireMention → channels.whatsapp.groups."*".requireMention.',
     );
     expect(res.config?.channels?.whatsapp).toBeUndefined();
     expect(res.config?.channels?.telegram?.groups?.["*"]?.requireMention).toBe(false);
-    expect(res.config?.channels?.imessage?.groups?.["*"]?.requireMention).toBe(false);
     expect(res.config?.routing?.groupChat?.requireMention).toBeUndefined();
   });
   it("migrates routing.groupChat.mentionPatterns to messages.groupChat.mentionPatterns", async () => {
@@ -406,7 +398,6 @@ describe("legacy config detection", () => {
         telegram: { historyLimit: 8, accounts: { ops: { historyLimit: 3 } } },
         slack: { historyLimit: 7, accounts: { ops: { historyLimit: 2 } } },
         signal: { historyLimit: 6 },
-        imessage: { historyLimit: 5 },
         msteams: { historyLimit: 4 },
         discord: { historyLimit: 3 },
       },
@@ -420,22 +411,8 @@ describe("legacy config detection", () => {
       expect(res.config.channels?.slack?.historyLimit).toBe(7);
       expect(res.config.channels?.slack?.accounts?.ops?.historyLimit).toBe(2);
       expect(res.config.channels?.signal?.historyLimit).toBe(6);
-      expect(res.config.channels?.imessage?.historyLimit).toBe(5);
       expect(res.config.channels?.msteams?.historyLimit).toBe(4);
       expect(res.config.channels?.discord?.historyLimit).toBe(3);
-    }
-  });
-  it('rejects imessage.dmPolicy="open" without allowFrom "*"', async () => {
-    vi.resetModules();
-    const { validateConfigObject } = await import("./config.js");
-    const res = validateConfigObject({
-      channels: {
-        imessage: { dmPolicy: "open", allowFrom: ["+15555550123"] },
-      },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("channels.imessage.allowFrom");
     }
   });
 });

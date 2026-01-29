@@ -106,9 +106,6 @@ pnpm install
 # Build TypeScript
 pnpm build
 
-# Build UI assets
-pnpm ui:build
-
 # Run diagnostics
 pnpm clawdbot doctor
 ```
@@ -339,7 +336,6 @@ pnpm install
 
 echo "==> Building..."
 pnpm build
-pnpm ui:build
 
 echo "==> Running doctor..."
 pnpm clawdbot doctor

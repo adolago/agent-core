@@ -9,7 +9,7 @@ import { loadCostUsageSummary, loadSessionCostSummary } from "./session-cost-usa
 
 describe("session cost usage", () => {
   it("aggregates daily totals with log cost and pricing fallback", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-cost-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-cost-"));
     const sessionsDir = path.join(root, "agents", "main", "sessions");
     await fs.mkdir(sessionsDir, { recursive: true });
     const sessionFile = path.join(sessionsDir, "sess-1.jsonl");
@@ -108,7 +108,7 @@ describe("session cost usage", () => {
   });
 
   it("summarizes a single session file", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-cost-session-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-cost-session-"));
     const sessionFile = path.join(root, "session.jsonl");
     const now = new Date();
 

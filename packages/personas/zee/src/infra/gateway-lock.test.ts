@@ -10,7 +10,7 @@ import { acquireGatewayLock, GatewayLockError } from "./gateway-lock.js";
 import { resolveConfigPath, resolveGatewayLockDir, resolveStateDir } from "../config/paths.js";
 
 async function makeEnv() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-gateway-lock-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gateway-lock-"));
   const configPath = path.join(dir, "moltbot.json");
   await fs.writeFile(configPath, "{}", "utf8");
   await fs.mkdir(resolveGatewayLockDir(), { recursive: true });

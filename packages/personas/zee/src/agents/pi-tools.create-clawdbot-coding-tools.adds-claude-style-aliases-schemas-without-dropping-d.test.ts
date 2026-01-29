@@ -13,7 +13,7 @@ describe("createZeeCodingTools", () => {
     const readTool = defaultTools.find((tool) => tool.name === "read");
     expect(readTool).toBeDefined();
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-read-"));
     try {
       const imagePath = path.join(tmpDir, "sample.png");
       const png = await sharp({
@@ -50,7 +50,7 @@ describe("createZeeCodingTools", () => {
     const readTool = tools.find((tool) => tool.name === "read");
     expect(readTool).toBeDefined();
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-read-"));
     try {
       const textPath = path.join(tmpDir, "sample.txt");
       const contents = "Hello from moltbot read tool.";
@@ -75,14 +75,14 @@ describe("createZeeCodingTools", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "sandbox:test",
-      workspaceDir: path.join(os.tmpdir(), "moltbot-sandbox"),
-      agentWorkspaceDir: path.join(os.tmpdir(), "moltbot-workspace"),
+      workspaceDir: path.join(os.tmpdir(), "zee-sandbox"),
+      agentWorkspaceDir: path.join(os.tmpdir(), "zee-workspace"),
       workspaceAccess: "none",
-      containerName: "moltbot-sbx-test",
+      containerName: "zee-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "moltbot-sandbox:bookworm-slim",
-        containerPrefix: "moltbot-sbx-",
+        image: "zee-sandbox:bookworm-slim",
+        containerPrefix: "zee-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: [],
@@ -106,14 +106,14 @@ describe("createZeeCodingTools", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "sandbox:test",
-      workspaceDir: path.join(os.tmpdir(), "moltbot-sandbox"),
-      agentWorkspaceDir: path.join(os.tmpdir(), "moltbot-workspace"),
+      workspaceDir: path.join(os.tmpdir(), "zee-sandbox"),
+      agentWorkspaceDir: path.join(os.tmpdir(), "zee-workspace"),
       workspaceAccess: "ro",
-      containerName: "moltbot-sbx-test",
+      containerName: "zee-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "moltbot-sandbox:bookworm-slim",
-        containerPrefix: "moltbot-sbx-",
+        image: "zee-sandbox:bookworm-slim",
+        containerPrefix: "zee-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: [],

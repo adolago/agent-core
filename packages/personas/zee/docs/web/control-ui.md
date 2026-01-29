@@ -114,50 +114,10 @@ only if you trust the network.
 
 See [Tailscale](/gateway/tailscale) for HTTPS setup guidance.
 
-## Building the UI
-
-The Gateway serves static files from `dist/control-ui`. Build them with:
-
-```bash
-pnpm ui:build # auto-installs UI deps on first run
-```
-
-Optional absolute base (when you want fixed asset URLs):
-
-```bash
-CLAWDBOT_CONTROL_UI_BASE_PATH=/zee/ pnpm ui:build
-```
-
-For local development (separate dev server):
-
-```bash
-pnpm ui:dev # auto-installs UI deps on first run
-```
-
-Then point the UI at your Gateway WS URL (e.g. `ws://127.0.0.1:18789`).
-
 ## Debugging/testing: dev server + remote Gateway
 
 The Control UI is static files; the WebSocket target is configurable and can be
-different from the HTTP origin. This is handy when you want the Vite dev server
-locally but the Gateway runs elsewhere.
-
-1) Start the UI dev server: `pnpm ui:dev`
-2) Open a URL like:
-
-```text
-http://localhost:5173/?gatewayUrl=ws://<gateway-host>:18789
-```
-
-Optional one-time auth (if needed):
-
-```text
-http://localhost:5173/?gatewayUrl=wss://<gateway-host>:18789&token=<gateway-token>
-```
-
-Notes:
-- `gatewayUrl` is stored in localStorage after load and removed from the URL.
-- `token` is stored in localStorage; `password` is kept in memory only.
+different from the HTTP origin.
 - Use `wss://` when the Gateway is behind TLS (Tailscale Serve, HTTPS proxy, etc.).
 
 Remote access setup details: [Remote access](/gateway/remote).

@@ -21,7 +21,7 @@ describe("noteMacLaunchctlGatewayEnvOverrides", () => {
     await noteMacLaunchctlGatewayEnvOverrides(cfg, { platform: "darwin", getenv, noteFn });
 
     expect(noteFn).toHaveBeenCalledTimes(1);
-    expect(getenv).toHaveBeenCalledTimes(2);
+    expect(getenv).toHaveBeenCalledTimes(4);
 
     const [message, title] = noteFn.mock.calls[0] ?? [];
     expect(title).toBe("Gateway (macOS)");
@@ -29,6 +29,8 @@ describe("noteMacLaunchctlGatewayEnvOverrides", () => {
     expect(message).toContain("ZEE_GATEWAY_TOKEN");
     expect(message).toContain("launchctl unsetenv ZEE_GATEWAY_TOKEN");
     expect(message).not.toContain("ZEE_GATEWAY_PASSWORD");
+    expect(message).not.toContain("CLAWDBOT_GATEWAY_TOKEN");
+    expect(message).not.toContain("CLAWDBOT_GATEWAY_PASSWORD");
   });
 
   it("does nothing when config has no gateway credentials", async () => {

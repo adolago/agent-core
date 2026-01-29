@@ -15,7 +15,7 @@
     },
     "dbPath": {
       "label": "Database Path",
-      "placeholder": "~/.clawdbot/memory/lancedb",
+      "placeholder": "~/.zee/memory/lancedb",
       "advanced": true
     },
     "autoCapture": {

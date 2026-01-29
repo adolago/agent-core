@@ -1,9 +1,13 @@
 {
-  "name": "@moltbot/zalo",
+  "name": "@zee/zalo",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Zalo channel plugin",
-  "moltbot": {
+  "dependencies": {
+    "undici": "7.19.0",
+    "zee": "workspace:*"
+  },
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -21,13 +25,9 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@moltbot/zalo",
+      "npmSpec": "@zee/zalo",
       "localPath": "extensions/zalo",
       "defaultChoice": "npm"
     }
-  },
-  "dependencies": {
-    "moltbot": "workspace:*",
-    "undici": "7.19.0"
   }
 }

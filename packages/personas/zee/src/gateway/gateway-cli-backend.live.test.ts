@@ -246,7 +246,7 @@ describeLive("gateway live (cli backend)", () => {
       );
     }
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-live-cli-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-live-cli-"));
     const disableMcpConfig = process.env.CLAWDBOT_LIVE_CLI_BACKEND_DISABLE_MCP_CONFIG !== "0";
     let cliArgs = baseCliArgs;
     if (providerId === "claude-cli" && disableMcpConfig) {

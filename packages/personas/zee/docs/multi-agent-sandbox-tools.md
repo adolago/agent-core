@@ -345,7 +345,7 @@ After configuring multi-agent sandbox and tools:
 
 4. **Monitor logs:**
    ```exec
-   tail -f "${CLAWDBOT_STATE_DIR:-$HOME/.zee}/logs/gateway.log" | grep -E "routing|sandbox|tools"
+   tail -f "${ZEE_STATE_DIR:-$HOME/.zee}/logs/gateway.log" | grep -E "routing|sandbox|tools"
    ```
 
 ---

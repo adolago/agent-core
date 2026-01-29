@@ -11,9 +11,8 @@ track upstream repositories.
 
 ## Mobile apps
 
-Mobile apps are intentionally removed from this repo. Do not reintroduce
-iOS/Android app code from external sources. Zee supports the Gateway, CLI, and
-macOS app only.
+Mobile and desktop apps are intentionally removed from this repo. Do not reintroduce
+app code from external sources. Zee supports the Gateway and CLI only.
 
 ## If you need upstream ideas
 

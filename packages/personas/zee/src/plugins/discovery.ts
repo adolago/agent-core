@@ -5,6 +5,7 @@ import { resolveConfigDir, resolveUserPath } from "../utils.js";
 import { resolveBundledPluginsDir } from "./bundled-dir.js";
 import {
   getPackageManifestMetadata,
+  PLUGIN_MANIFEST_FILENAMES,
   type ZeePackageManifest,
   type PackageManifest,
 } from "./manifest.js";
@@ -179,6 +180,25 @@ function discoverInDirectory(params: {
         manifest,
         packageDir: fullPath,
       });
+    }
+
+    if (!indexFile) {
+      const manifestPath = PLUGIN_MANIFEST_FILENAMES.map((name) => path.join(fullPath, name)).find(
+        (candidate) => fs.existsSync(candidate),
+      );
+      if (manifestPath) {
+        addCandidate({
+          candidates: params.candidates,
+          seen: params.seen,
+          idHint: entry.name,
+          source: manifestPath,
+          rootDir: fullPath,
+          origin: params.origin,
+          workspaceDir: params.workspaceDir,
+          manifest,
+          packageDir: fullPath,
+        });
+      }
     }
   }
 }

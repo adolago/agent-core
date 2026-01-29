@@ -22,10 +22,6 @@ export const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     message: "signal config moved to channels.signal (auto-migrated on load).",
   },
   {
-    path: ["imessage"],
-    message: "imessage config moved to channels.imessage (auto-migrated on load).",
-  },
-  {
     path: ["msteams"],
     message: "msteams config moved to channels.msteams (auto-migrated on load).",
   },
@@ -55,7 +51,7 @@ export const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
   {
     path: ["routing", "groupChat", "requireMention"],
     message:
-      'routing.groupChat.requireMention was removed; use channels.whatsapp/telegram/imessage groups defaults (e.g. channels.whatsapp.groups."*".requireMention) instead (auto-migrated on load).',
+      'routing.groupChat.requireMention was removed; use channels.whatsapp/telegram groups defaults (e.g. channels.whatsapp.groups."*".requireMention) instead (auto-migrated on load).',
   },
   {
     path: ["routing", "groupChat", "mentionPatterns"],

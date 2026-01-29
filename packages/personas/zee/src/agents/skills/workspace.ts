@@ -60,7 +60,7 @@ function filterSkillEntries(
 
 const SKILL_COMMAND_MAX_LENGTH = 32;
 const SKILL_COMMAND_FALLBACK = "skill";
-// Discord command descriptions must be ≤100 characters
+// Keep command descriptions short for platform compatibility.
 const SKILL_COMMAND_DESCRIPTION_MAX_LENGTH = 100;
 
 function sanitizeSkillCommandName(raw: string): string {

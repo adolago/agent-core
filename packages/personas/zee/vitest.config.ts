@@ -28,11 +28,8 @@ export default defineConfig({
     setupFiles: ["test/setup.ts"],
     exclude: [
       "dist/**",
-      "apps/macos/**",
-      "apps/macos/.build/**",
       "**/node_modules/**",
       "**/vendor/**",
-      "dist/Zee.app/**",
       "**/*.live.test.ts",
       "**/*.e2e.test.ts",
     ],
@@ -56,7 +53,6 @@ export default defineConfig({
         "src/commands/**",
         "src/daemon/**",
         "src/hooks/**",
-        "src/macos/**",
 
         // Some agent integrations are intentionally validated via manual/e2e runs.
         "src/agents/model-scan.ts",

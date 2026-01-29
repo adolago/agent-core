@@ -35,7 +35,7 @@ Platforms hub: [Platforms](/platforms)
 ## Using nodes with a VPS
 
 You can keep the Gateway in the cloud and pair **nodes** on your local devices
-(Mac/iOS/Android/headless). Nodes provide local screen/camera/canvas and `system.run`
+(headless). Nodes provide local `system.run`
 capabilities while the Gateway stays in the cloud.
 
 Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes)

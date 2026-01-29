@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/google-antigravity-auth",
+  "name": "@zee/google-antigravity-auth",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Google Antigravity OAuth provider plugin",
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ]

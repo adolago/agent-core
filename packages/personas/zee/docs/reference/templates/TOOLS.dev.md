@@ -11,8 +11,6 @@ It does not define which tools exist; Zee provides built-in tools internally.
 
 ## Examples
 
-### imsg
-- Send an iMessage/SMS: describe who/what, confirm before sending.
 - Prefer short messages; avoid sending secrets.
 
 ### sag

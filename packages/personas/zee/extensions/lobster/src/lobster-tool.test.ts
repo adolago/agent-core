@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import type { ZeePluginApi, ZeePluginToolContext } from "../../../src/plugins/types.js";
 import { createLobsterTool } from "./lobster-tool.js";
 
-async function writeFakeLobsterScript(scriptBody: string, prefix = "moltbot-lobster-plugin-") {
+async function writeFakeLobsterScript(scriptBody: string, prefix = "zee-lobster-plugin-") {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
   const isWindows = process.platform === "win32";
 
@@ -89,7 +89,7 @@ describe("lobster plugin tool", () => {
       `const payload = ${JSON.stringify(payload)};\n` +
         `console.log("noise before json");\n` +
         `process.stdout.write(JSON.stringify(payload));\n`,
-      "moltbot-lobster-plugin-noisy-",
+      "zee-lobster-plugin-noisy-",
     );
 
     const tool = createLobsterTool(fakeApi());
@@ -117,7 +117,7 @@ describe("lobster plugin tool", () => {
   it("rejects invalid JSON from lobster", async () => {
     const { binPath } = await writeFakeLobsterScript(
       `process.stdout.write("nope");\n`,
-      "moltbot-lobster-plugin-bad-",
+      "zee-lobster-plugin-bad-",
     );
 
     const tool = createLobsterTool(fakeApi());

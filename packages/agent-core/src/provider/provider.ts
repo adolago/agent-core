@@ -73,6 +73,17 @@ export namespace Provider {
     ],
   }
 
+  /**
+   * Hard-coded provider blacklist.
+   * Providers listed here are permanently hidden from all menus and lists.
+   * Use config.disabled_providers for per-user filtering instead.
+   */
+  const PROVIDER_BLACKLIST = new Set<string>(["nebius"])
+
+  export function isProviderBlocked(providerID: string): boolean {
+    return PROVIDER_BLACKLIST.has(providerID)
+  }
+
   function clientHeaders(options?: { lower?: boolean }) {
     const referer = Env.get("AGENT_CORE_HTTP_REFERER") ?? Env.get("OPENCODE_HTTP_REFERER")
     const title = Env.get("AGENT_CORE_CLIENT_TITLE") ?? "agent-core"
@@ -352,6 +363,12 @@ export namespace Provider {
     const database = mapValues(modelsDev, fromModelsDevProvider)
 
     const disabled = new Set(config.disabled_providers ?? [])
+    const blocked = new Set([...disabled, ...PROVIDER_BLACKLIST])
+    for (const providerID of blocked) {
+      if (database[providerID]) {
+        delete database[providerID]
+      }
+    }
 
     const providers: { [providerID: string]: Info } = {}
     const languages = new Map<string, LanguageModel>()
@@ -365,7 +382,7 @@ export namespace Provider {
     // Proactively refresh OAuth tokens that are expiring soon
     await Auth.refreshAllExpiring()
 
-    const configProviders = Object.entries(config.provider ?? {})
+    const configProviders = Object.entries(config.provider ?? {}).filter(([providerID]) => !blocked.has(providerID))
 
     // Add GitHub Copilot Enterprise provider that inherits from GitHub Copilot
     function mergeProvider(providerID: string, provider: Partial<Info>) {
@@ -477,7 +494,7 @@ export namespace Provider {
     // load env
     const env = Env.all()
     for (const [providerID, provider] of Object.entries(database)) {
-      if (disabled.has(providerID)) continue
+      if (blocked.has(providerID)) continue
       const apiKey = provider.env.map((item) => env[item]).find(Boolean)
       if (!apiKey) continue
       mergeProvider(providerID, {
@@ -488,7 +505,7 @@ export namespace Provider {
 
     // load apikeys
     for (const [providerID, provider] of Object.entries(await Auth.all())) {
-      if (disabled.has(providerID)) continue
+      if (blocked.has(providerID)) continue
       if (provider.type === "api") {
         const envKeys = database[providerID]?.env ?? []
         for (const envKey of envKeys) {
@@ -504,7 +521,7 @@ export namespace Provider {
     for (const plugin of await Plugin.list()) {
       if (!plugin.auth) continue
       const providerID = plugin.auth.provider
-      if (disabled.has(providerID)) continue
+      if (blocked.has(providerID)) continue
 
       let hasAuth = false
       const auth = await Auth.get(providerID)
@@ -732,7 +749,7 @@ export namespace Provider {
     }
 
     for (const [providerID, fn] of Object.entries(CUSTOM_LOADERS)) {
-      if (disabled.has(providerID)) continue
+      if (blocked.has(providerID)) continue
       const data = database[providerID]
       if (!data) {
         log.error("Provider does not exist in model list " + providerID)
@@ -764,7 +781,7 @@ export namespace Provider {
     for (const [providerID, configProvider] of configProviders) {
       if (!LOCAL_INFERENCE_PROVIDERS.has(providerID)) continue
       if (!configProvider?.options?.baseURL) continue
-      if (disabled.has(providerID)) continue
+      if (blocked.has(providerID)) continue
 
       try {
         const baseURL = (configProvider.options.baseURL as string).replace(/\/v1\/?$/, "")
@@ -834,7 +851,7 @@ export namespace Provider {
     }
 
     for (const [providerID, provider] of Object.entries(providers)) {
-      if (disabled.has(providerID)) {
+      if (blocked.has(providerID)) {
         delete providers[providerID]
         continue
       }

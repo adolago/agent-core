@@ -18,7 +18,7 @@ describe("loader", () => {
   beforeEach(async () => {
     clearInternalHooks();
     // Create a temp directory for test modules
-    tmpDir = path.join(os.tmpdir(), `moltbot-test-${Date.now()}`);
+    tmpDir = path.join(os.tmpdir(), `zee-test-${Date.now()}`);
     await fs.mkdir(tmpDir, { recursive: true });
 
     // Disable bundled hooks during tests by setting env var to non-existent directory

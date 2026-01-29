@@ -94,7 +94,7 @@ export async function handleToolExecutionStart(
       if (sendTarget) {
         ctx.state.pendingMessagingTargets.set(toolCallId, sendTarget);
       }
-      // Field names vary by tool: Discord/Slack use "content", sessions_send uses "message"
+      // Field names vary by tool: some use "content", sessions_send uses "message"
       const text = (argsRecord.content as string) ?? (argsRecord.message as string);
       if (text && typeof text === "string") {
         ctx.state.pendingMessagingTexts.set(toolCallId, text);

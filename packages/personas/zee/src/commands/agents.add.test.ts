@@ -25,7 +25,7 @@ const runtime: RuntimeEnv = {
 };
 
 const baseSnapshot = {
-  path: "/tmp/moltbot.json",
+  path: "/tmp/zee.json",
   exists: true,
   raw: "{}",
   parsed: {},

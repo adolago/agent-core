@@ -140,7 +140,7 @@ describe("gateway server models + voicewake", () => {
     "voicewake.get returns defaults and voicewake.set broadcasts",
     { timeout: 60_000 },
     async () => {
-      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-home-"));
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-home-"));
       const restoreHome = setTempHome(homeDir);
 
       const initial = await rpcReq<{ triggers: string[] }>(ws, "voicewake.get");
@@ -181,7 +181,7 @@ describe("gateway server models + voicewake", () => {
   );
 
   test("pushes voicewake.changed to nodes on connect and on updates", async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-home-"));
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-home-"));
     const restoreHome = setTempHome(homeDir);
 
     const nodeWs = new WebSocket(`ws://127.0.0.1:${port}`);
@@ -195,7 +195,7 @@ describe("gateway server models + voicewake", () => {
       client: {
         id: GATEWAY_CLIENT_NAMES.NODE_HOST,
         version: "1.0.0",
-        platform: "ios",
+        platform: "linux",
         mode: GATEWAY_CLIENT_MODES.NODE,
       },
     });

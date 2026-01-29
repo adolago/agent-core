@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const tempDirs: string[] = [];
 
 async function makeTempDir() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-hooks-e2e-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-hooks-e2e-"));
   tempDirs.push(dir);
   return dir;
 }

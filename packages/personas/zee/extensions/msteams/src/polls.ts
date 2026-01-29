@@ -97,12 +97,18 @@ export function extractMSTeamsPollVote(
   const value = activity?.value;
   if (!value || !isRecord(value)) return null;
   const pollId =
-    readNestedString(value, ["moltbotPollId"]) ??
+    readNestedString(value, ["zeePollId"]) ??
     readNestedString(value, ["pollId"]) ??
+    readNestedString(value, ["zee", "pollId"]) ??
+    readNestedString(value, ["zee", "poll", "id"]) ??
+    readNestedString(value, ["data", "zeePollId"]) ??
+    readNestedString(value, ["data", "pollId"]) ??
+    readNestedString(value, ["data", "zee", "pollId"]) ??
+    // Legacy fields (pre-Zee)
+    readNestedString(value, ["moltbotPollId"]) ??
     readNestedString(value, ["moltbot", "pollId"]) ??
     readNestedString(value, ["moltbot", "poll", "id"]) ??
     readNestedString(value, ["data", "moltbotPollId"]) ??
-    readNestedString(value, ["data", "pollId"]) ??
     readNestedString(value, ["data", "moltbot", "pollId"]);
   if (!pollId) return null;
 
@@ -176,13 +182,14 @@ export function buildMSTeamsPollCard(params: {
         type: "Action.Submit",
         title: "Vote",
         data: {
+          zeePollId: pollId,
           moltbotPollId: pollId,
         },
         msteams: {
           type: "messageBack",
-          text: "moltbot poll vote",
+          text: "zee poll vote",
           displayText: "Vote recorded",
-          value: { moltbotPollId: pollId },
+          value: { zeePollId: pollId, moltbotPollId: pollId },
         },
       },
     ],

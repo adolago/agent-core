@@ -67,8 +67,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -78,7 +78,7 @@ describe("cli program (nodes media)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.snap",
           payload: { format: "jpg", base64: "aGk=", width: 1, height: 1 },
         };
@@ -88,7 +88,7 @@ describe("cli program (nodes media)", () => {
 
     const program = buildProgram();
     runtime.log.mockClear();
-    await program.parseAsync(["nodes", "camera", "snap", "--node", "ios-node"], { from: "user" });
+    await program.parseAsync(["nodes", "camera", "snap", "--node", "node-1"], { from: "user" });
 
     const invokeCalls = callGateway.mock.calls
       .map((call) => call[0] as { method?: string; params?: Record<string, unknown> })
@@ -123,8 +123,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -134,7 +134,7 @@ describe("cli program (nodes media)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.clip",
           payload: {
             format: "mp4",
@@ -150,7 +150,7 @@ describe("cli program (nodes media)", () => {
     const program = buildProgram();
     runtime.log.mockClear();
     await program.parseAsync(
-      ["nodes", "camera", "clip", "--node", "ios-node", "--duration", "3000"],
+      ["nodes", "camera", "clip", "--node", "node-1", "--duration", "3000"],
       { from: "user" },
     );
 
@@ -158,7 +158,7 @@ describe("cli program (nodes media)", () => {
       expect.objectContaining({
         method: "node.invoke",
         params: expect.objectContaining({
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.clip",
           timeoutMs: 90000,
           idempotencyKey: "idem-test",
@@ -190,8 +190,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -201,7 +201,7 @@ describe("cli program (nodes media)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.snap",
           payload: { format: "jpg", base64: "aGk=", width: 1, height: 1 },
         };
@@ -217,7 +217,7 @@ describe("cli program (nodes media)", () => {
         "camera",
         "snap",
         "--node",
-        "ios-node",
+        "node-1",
         "--facing",
         "front",
         "--max-width",
@@ -236,7 +236,7 @@ describe("cli program (nodes media)", () => {
       expect.objectContaining({
         method: "node.invoke",
         params: expect.objectContaining({
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.snap",
           timeoutMs: 20000,
           idempotencyKey: "idem-test",
@@ -268,8 +268,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -279,7 +279,7 @@ describe("cli program (nodes media)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.clip",
           payload: {
             format: "mp4",
@@ -300,7 +300,7 @@ describe("cli program (nodes media)", () => {
         "camera",
         "clip",
         "--node",
-        "ios-node",
+        "node-1",
         "--duration",
         "3000",
         "--no-audio",
@@ -314,7 +314,7 @@ describe("cli program (nodes media)", () => {
       expect.objectContaining({
         method: "node.invoke",
         params: expect.objectContaining({
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.clip",
           timeoutMs: 90000,
           idempotencyKey: "idem-test",
@@ -343,8 +343,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -354,7 +354,7 @@ describe("cli program (nodes media)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.clip",
           payload: {
             format: "mp4",
@@ -370,7 +370,7 @@ describe("cli program (nodes media)", () => {
     const program = buildProgram();
     runtime.log.mockClear();
     await program.parseAsync(
-      ["nodes", "camera", "clip", "--node", "ios-node", "--duration", "10s"],
+      ["nodes", "camera", "clip", "--node", "node-1", "--duration", "10s"],
       { from: "user" },
     );
 
@@ -378,7 +378,7 @@ describe("cli program (nodes media)", () => {
       expect.objectContaining({
         method: "node.invoke",
         params: expect.objectContaining({
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "camera.clip",
           params: expect.objectContaining({ durationMs: 10_000 }),
         }),
@@ -393,8 +393,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -404,7 +404,7 @@ describe("cli program (nodes media)", () => {
       if (opts.method === "node.invoke") {
         return {
           ok: true,
-          nodeId: "ios-node",
+          nodeId: "node-1",
           command: "canvas.snapshot",
           payload: { format: "png", base64: "aGk=" },
         };
@@ -415,7 +415,7 @@ describe("cli program (nodes media)", () => {
     const program = buildProgram();
     runtime.log.mockClear();
     await program.parseAsync(
-      ["nodes", "canvas", "snapshot", "--node", "ios-node", "--format", "png"],
+      ["nodes", "canvas", "snapshot", "--node", "node-1", "--format", "png"],
       { from: "user" },
     );
 
@@ -437,8 +437,8 @@ describe("cli program (nodes media)", () => {
           ts: Date.now(),
           nodes: [
             {
-              nodeId: "ios-node",
-              displayName: "iOS Node",
+              nodeId: "node-1",
+              displayName: "Camera Node",
               remoteIp: "192.168.0.88",
               connected: true,
             },
@@ -452,7 +452,7 @@ describe("cli program (nodes media)", () => {
     runtime.error.mockClear();
 
     await expect(
-      program.parseAsync(["nodes", "camera", "snap", "--node", "ios-node", "--facing", "nope"], {
+      program.parseAsync(["nodes", "camera", "snap", "--node", "node-1", "--facing", "nope"], {
         from: "user",
       }),
     ).rejects.toThrow(/exit/i);

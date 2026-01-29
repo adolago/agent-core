@@ -252,12 +252,12 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                   await sendMessageMatrix(
                     `room:${roomId}`,
                     [
-                      "Moltbot: access not configured.",
+                      "Zee: access not configured.",
                       "",
                       `Pairing code: ${code}`,
                       "",
                       "Ask the bot owner to approve with:",
-                      "moltbot pairing approve matrix <code>",
+                      "zee pairing approve matrix <code>",
                     ].join("\n"),
                     { client },
                   );

@@ -4,35 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import { withTempHome } from "./test-helpers.js";
 
 describe("legacy config detection", () => {
-  it('accepts imessage.dmPolicy="open" with allowFrom "*"', async () => {
-    vi.resetModules();
-    const { validateConfigObject } = await import("./config.js");
-    const res = validateConfigObject({
-      channels: { imessage: { dmPolicy: "open", allowFrom: ["*"] } },
-    });
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.config.channels?.imessage?.dmPolicy).toBe("open");
-    }
-  });
-  it("defaults imessage.dmPolicy to pairing when imessage section exists", async () => {
-    vi.resetModules();
-    const { validateConfigObject } = await import("./config.js");
-    const res = validateConfigObject({ channels: { imessage: {} } });
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.config.channels?.imessage?.dmPolicy).toBe("pairing");
-    }
-  });
-  it("defaults imessage.groupPolicy to allowlist when imessage section exists", async () => {
-    vi.resetModules();
-    const { validateConfigObject } = await import("./config.js");
-    const res = validateConfigObject({ channels: { imessage: {} } });
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.config.channels?.imessage?.groupPolicy).toBe("allowlist");
-    }
-  });
   it("defaults discord.groupPolicy to allowlist when discord section exists", async () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
@@ -64,12 +35,12 @@ describe("legacy config detection", () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
     const res = validateConfigObject({
-      channels: { imessage: { cliPath: "imsg; rm -rf /" } },
+      channels: { signal: { cliPath: "signal-cli; rm -rf /" } },
       audio: { transcription: { command: ["whisper", "--model", "base"] } },
     });
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.issues.some((i) => i.path === "channels.imessage.cliPath")).toBe(true);
+      expect(res.issues.some((i) => i.path === "channels.signal.cliPath")).toBe(true);
     }
   });
   it("accepts tools audio transcription without cli", async () => {
@@ -84,7 +55,7 @@ describe("legacy config detection", () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
     const res = validateConfigObject({
-      channels: { imessage: { cliPath: "/Applications/Imsg Tools/imsg" } },
+      channels: { signal: { cliPath: "/opt/Signal Tools/signal-cli" } },
       audio: {
         transcription: {
           command: ["whisper", "--model"],

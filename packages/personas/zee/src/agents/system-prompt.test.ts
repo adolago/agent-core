@@ -78,7 +78,7 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## Zee CLI Quick Reference");
-    expect(prompt).toContain("moltbot gateway restart");
+    expect(prompt).toContain("zee gateway restart");
     expect(prompt).toContain("Do not invent commands");
   });
 

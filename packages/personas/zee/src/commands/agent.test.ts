@@ -38,7 +38,7 @@ const runtime: RuntimeEnv = {
 const configSpy = vi.spyOn(configModule, "loadConfig");
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "moltbot-agent-" });
+  return withTempHomeBase(fn, { prefix: "zee-agent-" });
 }
 
 function mockConfig(
@@ -328,8 +328,8 @@ describe("agentCommand", () => {
         sendMessageWhatsApp: vi.fn(),
         sendMessageTelegram: vi.fn().mockResolvedValue({ messageId: "t1", chatId: "123" }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
 
       const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;

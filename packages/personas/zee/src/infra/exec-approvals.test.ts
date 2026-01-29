@@ -29,7 +29,7 @@ function makePathEnv(binDir: string): NodeJS.ProcessEnv {
 }
 
 function makeTempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-exec-approvals-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "zee-exec-approvals-"));
 }
 
 describe("exec approvals allowlist matching", () => {

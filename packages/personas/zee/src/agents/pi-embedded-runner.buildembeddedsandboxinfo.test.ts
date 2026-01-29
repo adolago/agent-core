@@ -105,14 +105,14 @@ describe("buildEmbeddedSandboxInfo", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "session:test",
-      workspaceDir: "/tmp/moltbot-sandbox",
-      agentWorkspaceDir: "/tmp/moltbot-workspace",
+      workspaceDir: "/tmp/zee-sandbox",
+      agentWorkspaceDir: "/tmp/zee-workspace",
       workspaceAccess: "none",
-      containerName: "moltbot-sbx-test",
+      containerName: "zee-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "moltbot-sandbox:bookworm-slim",
-        containerPrefix: "moltbot-sbx-",
+        image: "zee-sandbox:bookworm-slim",
+        containerPrefix: "zee-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: ["/tmp"],
@@ -129,13 +129,13 @@ describe("buildEmbeddedSandboxInfo", () => {
       browser: {
         bridgeUrl: "http://localhost:9222",
         noVncUrl: "http://localhost:6080",
-        containerName: "moltbot-sbx-browser-test",
+        containerName: "zee-sbx-browser-test",
       },
     } satisfies SandboxContext;
 
     expect(buildEmbeddedSandboxInfo(sandbox)).toEqual({
       enabled: true,
-      workspaceDir: "/tmp/moltbot-sandbox",
+      workspaceDir: "/tmp/zee-sandbox",
       workspaceAccess: "none",
       agentWorkspaceMount: undefined,
       browserBridgeUrl: "http://localhost:9222",
@@ -147,14 +147,14 @@ describe("buildEmbeddedSandboxInfo", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "session:test",
-      workspaceDir: "/tmp/moltbot-sandbox",
-      agentWorkspaceDir: "/tmp/moltbot-workspace",
+      workspaceDir: "/tmp/zee-sandbox",
+      agentWorkspaceDir: "/tmp/zee-workspace",
       workspaceAccess: "none",
-      containerName: "moltbot-sbx-test",
+      containerName: "zee-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "moltbot-sandbox:bookworm-slim",
-        containerPrefix: "moltbot-sbx-",
+        image: "zee-sandbox:bookworm-slim",
+        containerPrefix: "zee-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: ["/tmp"],
@@ -178,7 +178,7 @@ describe("buildEmbeddedSandboxInfo", () => {
       }),
     ).toEqual({
       enabled: true,
-      workspaceDir: "/tmp/moltbot-sandbox",
+      workspaceDir: "/tmp/zee-sandbox",
       workspaceAccess: "none",
       agentWorkspaceMount: undefined,
       hostBrowserAllowed: false,

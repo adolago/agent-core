@@ -214,8 +214,8 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       await prompter.note(
         [
           "Docs:",
-          "https://docs.molt.bot/gateway/health",
-          "https://docs.molt.bot/gateway/troubleshooting",
+          "https://docs.zee/gateway/health",
+          "https://docs.zee/gateway/troubleshooting",
         ].join("\n"),
         "Health check help",
       );
@@ -233,12 +233,11 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
 
   await prompter.note(
     [
-      "Add nodes for extra features:",
-      "- macOS app (system + notifications)",
-      "- iOS app (camera/canvas)",
-      "- Android app (camera/canvas)",
+      "Add node hosts for extra features:",
+      "- Camera/canvas node",
+      "- System/notifications node",
     ].join("\n"),
-    "Optional apps",
+    "Optional nodes",
   );
 
   const controlUiBasePath =
@@ -443,7 +442,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
           webSearchKey
             ? "API key: stored in config (tools.web.search.apiKey)."
             : "API key: provided via BRAVE_API_KEY env var (Gateway environment).",
-          "Docs: https://docs.molt.bot/tools/web",
+          "Docs: https://docs.zee/tools/web",
         ].join("\n")
       : [
           "If you want your agent to be able to search the web, you’ll need an API key.",

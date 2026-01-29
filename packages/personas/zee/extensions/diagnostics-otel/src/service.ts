@@ -13,7 +13,7 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 import type { ZeePluginService, DiagnosticEventPayload } from "zee/plugin-sdk";
 import { onDiagnosticEvent, registerLogTransport } from "zee/plugin-sdk";
 
-const DEFAULT_SERVICE_NAME = "moltbot";
+const DEFAULT_SERVICE_NAME = "zee";
 
 function normalizeEndpoint(endpoint?: string): string | undefined {
   const trimmed = endpoint?.trim();
@@ -118,78 +118,78 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         FATAL: 21 as SeverityNumber,
       };
 
-      const meter = metrics.getMeter("moltbot");
-      const tracer = trace.getTracer("moltbot");
+      const meter = metrics.getMeter("zee");
+      const tracer = trace.getTracer("zee");
 
-      const tokensCounter = meter.createCounter("moltbot.tokens", {
+      const tokensCounter = meter.createCounter("zee.tokens", {
         unit: "1",
         description: "Token usage by type",
       });
-      const costCounter = meter.createCounter("moltbot.cost.usd", {
+      const costCounter = meter.createCounter("zee.cost.usd", {
         unit: "1",
         description: "Estimated model cost (USD)",
       });
-      const durationHistogram = meter.createHistogram("moltbot.run.duration_ms", {
+      const durationHistogram = meter.createHistogram("zee.run.duration_ms", {
         unit: "ms",
         description: "Agent run duration",
       });
-      const contextHistogram = meter.createHistogram("moltbot.context.tokens", {
+      const contextHistogram = meter.createHistogram("zee.context.tokens", {
         unit: "1",
         description: "Context window size and usage",
       });
-      const webhookReceivedCounter = meter.createCounter("moltbot.webhook.received", {
+      const webhookReceivedCounter = meter.createCounter("zee.webhook.received", {
         unit: "1",
         description: "Webhook requests received",
       });
-      const webhookErrorCounter = meter.createCounter("moltbot.webhook.error", {
+      const webhookErrorCounter = meter.createCounter("zee.webhook.error", {
         unit: "1",
         description: "Webhook processing errors",
       });
-      const webhookDurationHistogram = meter.createHistogram("moltbot.webhook.duration_ms", {
+      const webhookDurationHistogram = meter.createHistogram("zee.webhook.duration_ms", {
         unit: "ms",
         description: "Webhook processing duration",
       });
-      const messageQueuedCounter = meter.createCounter("moltbot.message.queued", {
+      const messageQueuedCounter = meter.createCounter("zee.message.queued", {
         unit: "1",
         description: "Messages queued for processing",
       });
-      const messageProcessedCounter = meter.createCounter("moltbot.message.processed", {
+      const messageProcessedCounter = meter.createCounter("zee.message.processed", {
         unit: "1",
         description: "Messages processed by outcome",
       });
-      const messageDurationHistogram = meter.createHistogram("moltbot.message.duration_ms", {
+      const messageDurationHistogram = meter.createHistogram("zee.message.duration_ms", {
         unit: "ms",
         description: "Message processing duration",
       });
-      const queueDepthHistogram = meter.createHistogram("moltbot.queue.depth", {
+      const queueDepthHistogram = meter.createHistogram("zee.queue.depth", {
         unit: "1",
         description: "Queue depth on enqueue/dequeue",
       });
-      const queueWaitHistogram = meter.createHistogram("moltbot.queue.wait_ms", {
+      const queueWaitHistogram = meter.createHistogram("zee.queue.wait_ms", {
         unit: "ms",
         description: "Queue wait time before execution",
       });
-      const laneEnqueueCounter = meter.createCounter("moltbot.queue.lane.enqueue", {
+      const laneEnqueueCounter = meter.createCounter("zee.queue.lane.enqueue", {
         unit: "1",
         description: "Command queue lane enqueue events",
       });
-      const laneDequeueCounter = meter.createCounter("moltbot.queue.lane.dequeue", {
+      const laneDequeueCounter = meter.createCounter("zee.queue.lane.dequeue", {
         unit: "1",
         description: "Command queue lane dequeue events",
       });
-      const sessionStateCounter = meter.createCounter("moltbot.session.state", {
+      const sessionStateCounter = meter.createCounter("zee.session.state", {
         unit: "1",
         description: "Session state transitions",
       });
-      const sessionStuckCounter = meter.createCounter("moltbot.session.stuck", {
+      const sessionStuckCounter = meter.createCounter("zee.session.stuck", {
         unit: "1",
         description: "Sessions stuck in processing",
       });
-      const sessionStuckAgeHistogram = meter.createHistogram("moltbot.session.stuck_age_ms", {
+      const sessionStuckAgeHistogram = meter.createHistogram("zee.session.stuck_age_ms", {
         unit: "ms",
         description: "Age of stuck sessions",
       });
-      const runAttemptCounter = meter.createCounter("moltbot.run.attempt", {
+      const runAttemptCounter = meter.createCounter("zee.run.attempt", {
         unit: "1",
         description: "Run attempts",
       });
@@ -207,7 +207,7 @@ export function createDiagnosticsOtelService(): ZeePluginService {
               : {}),
           }),
         );
-        const otelLogger = logProvider.getLogger("moltbot");
+        const otelLogger = logProvider.getLogger("zee");
 
         stopLogTransport = registerLogTransport((logObj) => {
           const safeStringify = (value: unknown) => {
@@ -265,29 +265,29 @@ export function createDiagnosticsOtelService(): ZeePluginService {
           }
 
           const attributes: Record<string, string | number | boolean> = {
-            "moltbot.log.level": logLevelName,
+            "zee.log.level": logLevelName,
           };
-          if (meta?.name) attributes["moltbot.logger"] = meta.name;
+          if (meta?.name) attributes["zee.logger"] = meta.name;
           if (meta?.parentNames?.length) {
-            attributes["moltbot.logger.parents"] = meta.parentNames.join(".");
+            attributes["zee.logger.parents"] = meta.parentNames.join(".");
           }
           if (bindings) {
             for (const [key, value] of Object.entries(bindings)) {
               if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-                attributes[`moltbot.${key}`] = value;
+                attributes[`zee.${key}`] = value;
               } else if (value != null) {
-                attributes[`moltbot.${key}`] = safeStringify(value);
+                attributes[`zee.${key}`] = safeStringify(value);
               }
             }
           }
           if (numericArgs.length > 0) {
-            attributes["moltbot.log.args"] = safeStringify(numericArgs);
+            attributes["zee.log.args"] = safeStringify(numericArgs);
           }
           if (meta?.path?.filePath) attributes["code.filepath"] = meta.path.filePath;
           if (meta?.path?.fileLine) attributes["code.lineno"] = Number(meta.path.fileLine);
           if (meta?.path?.method) attributes["code.function"] = meta.path.method;
           if (meta?.path?.filePathWithLine) {
-            attributes["moltbot.code.location"] = meta.path.filePathWithLine;
+            attributes["zee.code.location"] = meta.path.filePathWithLine;
           }
 
           otelLogger.emit({
@@ -316,48 +316,48 @@ export function createDiagnosticsOtelService(): ZeePluginService {
 
       const recordModelUsage = (evt: Extract<DiagnosticEventPayload, { type: "model.usage" }>) => {
         const attrs = {
-          "moltbot.channel": evt.channel ?? "unknown",
-          "moltbot.provider": evt.provider ?? "unknown",
-          "moltbot.model": evt.model ?? "unknown",
+          "zee.channel": evt.channel ?? "unknown",
+          "zee.provider": evt.provider ?? "unknown",
+          "zee.model": evt.model ?? "unknown",
         };
 
         const usage = evt.usage;
-        if (usage.input) tokensCounter.add(usage.input, { ...attrs, "moltbot.token": "input" });
-        if (usage.output) tokensCounter.add(usage.output, { ...attrs, "moltbot.token": "output" });
+        if (usage.input) tokensCounter.add(usage.input, { ...attrs, "zee.token": "input" });
+        if (usage.output) tokensCounter.add(usage.output, { ...attrs, "zee.token": "output" });
         if (usage.cacheRead)
-          tokensCounter.add(usage.cacheRead, { ...attrs, "moltbot.token": "cache_read" });
+          tokensCounter.add(usage.cacheRead, { ...attrs, "zee.token": "cache_read" });
         if (usage.cacheWrite)
-          tokensCounter.add(usage.cacheWrite, { ...attrs, "moltbot.token": "cache_write" });
+          tokensCounter.add(usage.cacheWrite, { ...attrs, "zee.token": "cache_write" });
         if (usage.promptTokens)
-          tokensCounter.add(usage.promptTokens, { ...attrs, "moltbot.token": "prompt" });
-        if (usage.total) tokensCounter.add(usage.total, { ...attrs, "moltbot.token": "total" });
+          tokensCounter.add(usage.promptTokens, { ...attrs, "zee.token": "prompt" });
+        if (usage.total) tokensCounter.add(usage.total, { ...attrs, "zee.token": "total" });
 
         if (evt.costUsd) costCounter.add(evt.costUsd, attrs);
         if (evt.durationMs) durationHistogram.record(evt.durationMs, attrs);
         if (evt.context?.limit)
           contextHistogram.record(evt.context.limit, {
             ...attrs,
-            "moltbot.context": "limit",
+            "zee.context": "limit",
           });
         if (evt.context?.used)
           contextHistogram.record(evt.context.used, {
             ...attrs,
-            "moltbot.context": "used",
+            "zee.context": "used",
           });
 
         if (!tracesEnabled) return;
         const spanAttrs: Record<string, string | number> = {
           ...attrs,
-          "moltbot.sessionKey": evt.sessionKey ?? "",
-          "moltbot.sessionId": evt.sessionId ?? "",
-          "moltbot.tokens.input": usage.input ?? 0,
-          "moltbot.tokens.output": usage.output ?? 0,
-          "moltbot.tokens.cache_read": usage.cacheRead ?? 0,
-          "moltbot.tokens.cache_write": usage.cacheWrite ?? 0,
-          "moltbot.tokens.total": usage.total ?? 0,
+          "zee.sessionKey": evt.sessionKey ?? "",
+          "zee.sessionId": evt.sessionId ?? "",
+          "zee.tokens.input": usage.input ?? 0,
+          "zee.tokens.output": usage.output ?? 0,
+          "zee.tokens.cache_read": usage.cacheRead ?? 0,
+          "zee.tokens.cache_write": usage.cacheWrite ?? 0,
+          "zee.tokens.total": usage.total ?? 0,
         };
 
-        const span = spanWithDuration("moltbot.model.usage", spanAttrs, evt.durationMs);
+        const span = spanWithDuration("zee.model.usage", spanAttrs, evt.durationMs);
         span.end();
       };
 
@@ -365,8 +365,8 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         evt: Extract<DiagnosticEventPayload, { type: "webhook.received" }>,
       ) => {
         const attrs = {
-          "moltbot.channel": evt.channel ?? "unknown",
-          "moltbot.webhook": evt.updateType ?? "unknown",
+          "zee.channel": evt.channel ?? "unknown",
+          "zee.webhook": evt.updateType ?? "unknown",
         };
         webhookReceivedCounter.add(1, attrs);
       };
@@ -375,16 +375,16 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         evt: Extract<DiagnosticEventPayload, { type: "webhook.processed" }>,
       ) => {
         const attrs = {
-          "moltbot.channel": evt.channel ?? "unknown",
-          "moltbot.webhook": evt.updateType ?? "unknown",
+          "zee.channel": evt.channel ?? "unknown",
+          "zee.webhook": evt.updateType ?? "unknown",
         };
         if (typeof evt.durationMs === "number") {
           webhookDurationHistogram.record(evt.durationMs, attrs);
         }
         if (!tracesEnabled) return;
         const spanAttrs: Record<string, string | number> = { ...attrs };
-        if (evt.chatId !== undefined) spanAttrs["moltbot.chatId"] = String(evt.chatId);
-        const span = spanWithDuration("moltbot.webhook.processed", spanAttrs, evt.durationMs);
+        if (evt.chatId !== undefined) spanAttrs["zee.chatId"] = String(evt.chatId);
+        const span = spanWithDuration("zee.webhook.processed", spanAttrs, evt.durationMs);
         span.end();
       };
 
@@ -392,17 +392,17 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         evt: Extract<DiagnosticEventPayload, { type: "webhook.error" }>,
       ) => {
         const attrs = {
-          "moltbot.channel": evt.channel ?? "unknown",
-          "moltbot.webhook": evt.updateType ?? "unknown",
+          "zee.channel": evt.channel ?? "unknown",
+          "zee.webhook": evt.updateType ?? "unknown",
         };
         webhookErrorCounter.add(1, attrs);
         if (!tracesEnabled) return;
         const spanAttrs: Record<string, string | number> = {
           ...attrs,
-          "moltbot.error": evt.error,
+          "zee.error": evt.error,
         };
-        if (evt.chatId !== undefined) spanAttrs["moltbot.chatId"] = String(evt.chatId);
-        const span = tracer.startSpan("moltbot.webhook.error", {
+        if (evt.chatId !== undefined) spanAttrs["zee.chatId"] = String(evt.chatId);
+        const span = tracer.startSpan("zee.webhook.error", {
           attributes: spanAttrs,
         });
         span.setStatus({ code: SpanStatusCode.ERROR, message: evt.error });
@@ -413,8 +413,8 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         evt: Extract<DiagnosticEventPayload, { type: "message.queued" }>,
       ) => {
         const attrs = {
-          "moltbot.channel": evt.channel ?? "unknown",
-          "moltbot.source": evt.source ?? "unknown",
+          "zee.channel": evt.channel ?? "unknown",
+          "zee.source": evt.source ?? "unknown",
         };
         messageQueuedCounter.add(1, attrs);
         if (typeof evt.queueDepth === "number") {
@@ -426,8 +426,8 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         evt: Extract<DiagnosticEventPayload, { type: "message.processed" }>,
       ) => {
         const attrs = {
-          "moltbot.channel": evt.channel ?? "unknown",
-          "moltbot.outcome": evt.outcome ?? "unknown",
+          "zee.channel": evt.channel ?? "unknown",
+          "zee.outcome": evt.outcome ?? "unknown",
         };
         messageProcessedCounter.add(1, attrs);
         if (typeof evt.durationMs === "number") {
@@ -435,12 +435,12 @@ export function createDiagnosticsOtelService(): ZeePluginService {
         }
         if (!tracesEnabled) return;
         const spanAttrs: Record<string, string | number> = { ...attrs };
-        if (evt.sessionKey) spanAttrs["moltbot.sessionKey"] = evt.sessionKey;
-        if (evt.sessionId) spanAttrs["moltbot.sessionId"] = evt.sessionId;
-        if (evt.chatId !== undefined) spanAttrs["moltbot.chatId"] = String(evt.chatId);
-        if (evt.messageId !== undefined) spanAttrs["moltbot.messageId"] = String(evt.messageId);
-        if (evt.reason) spanAttrs["moltbot.reason"] = evt.reason;
-        const span = spanWithDuration("moltbot.message.processed", spanAttrs, evt.durationMs);
+        if (evt.sessionKey) spanAttrs["zee.sessionKey"] = evt.sessionKey;
+        if (evt.sessionId) spanAttrs["zee.sessionId"] = evt.sessionId;
+        if (evt.chatId !== undefined) spanAttrs["zee.chatId"] = String(evt.chatId);
+        if (evt.messageId !== undefined) spanAttrs["zee.messageId"] = String(evt.messageId);
+        if (evt.reason) spanAttrs["zee.reason"] = evt.reason;
+        const span = spanWithDuration("zee.message.processed", spanAttrs, evt.durationMs);
         if (evt.outcome === "error") {
           span.setStatus({ code: SpanStatusCode.ERROR, message: evt.error });
         }
@@ -450,7 +450,7 @@ export function createDiagnosticsOtelService(): ZeePluginService {
       const recordLaneEnqueue = (
         evt: Extract<DiagnosticEventPayload, { type: "queue.lane.enqueue" }>,
       ) => {
-        const attrs = { "moltbot.lane": evt.lane };
+        const attrs = { "zee.lane": evt.lane };
         laneEnqueueCounter.add(1, attrs);
         queueDepthHistogram.record(evt.queueSize, attrs);
       };
@@ -458,7 +458,7 @@ export function createDiagnosticsOtelService(): ZeePluginService {
       const recordLaneDequeue = (
         evt: Extract<DiagnosticEventPayload, { type: "queue.lane.dequeue" }>,
       ) => {
-        const attrs = { "moltbot.lane": evt.lane };
+        const attrs = { "zee.lane": evt.lane };
         laneDequeueCounter.add(1, attrs);
         queueDepthHistogram.record(evt.queueSize, attrs);
         if (typeof evt.waitMs === "number") {
@@ -469,38 +469,38 @@ export function createDiagnosticsOtelService(): ZeePluginService {
       const recordSessionState = (
         evt: Extract<DiagnosticEventPayload, { type: "session.state" }>,
       ) => {
-        const attrs: Record<string, string> = { "moltbot.state": evt.state };
-        if (evt.reason) attrs["moltbot.reason"] = evt.reason;
+        const attrs: Record<string, string> = { "zee.state": evt.state };
+        if (evt.reason) attrs["zee.reason"] = evt.reason;
         sessionStateCounter.add(1, attrs);
       };
 
       const recordSessionStuck = (
         evt: Extract<DiagnosticEventPayload, { type: "session.stuck" }>,
       ) => {
-        const attrs: Record<string, string> = { "moltbot.state": evt.state };
+        const attrs: Record<string, string> = { "zee.state": evt.state };
         sessionStuckCounter.add(1, attrs);
         if (typeof evt.ageMs === "number") {
           sessionStuckAgeHistogram.record(evt.ageMs, attrs);
         }
         if (!tracesEnabled) return;
         const spanAttrs: Record<string, string | number> = { ...attrs };
-        if (evt.sessionKey) spanAttrs["moltbot.sessionKey"] = evt.sessionKey;
-        if (evt.sessionId) spanAttrs["moltbot.sessionId"] = evt.sessionId;
-        spanAttrs["moltbot.queueDepth"] = evt.queueDepth ?? 0;
-        spanAttrs["moltbot.ageMs"] = evt.ageMs;
-        const span = tracer.startSpan("moltbot.session.stuck", { attributes: spanAttrs });
+        if (evt.sessionKey) spanAttrs["zee.sessionKey"] = evt.sessionKey;
+        if (evt.sessionId) spanAttrs["zee.sessionId"] = evt.sessionId;
+        spanAttrs["zee.queueDepth"] = evt.queueDepth ?? 0;
+        spanAttrs["zee.ageMs"] = evt.ageMs;
+        const span = tracer.startSpan("zee.session.stuck", { attributes: spanAttrs });
         span.setStatus({ code: SpanStatusCode.ERROR, message: "session stuck" });
         span.end();
       };
 
       const recordRunAttempt = (evt: Extract<DiagnosticEventPayload, { type: "run.attempt" }>) => {
-        runAttemptCounter.add(1, { "moltbot.attempt": evt.attempt });
+        runAttemptCounter.add(1, { "zee.attempt": evt.attempt });
       };
 
       const recordHeartbeat = (
         evt: Extract<DiagnosticEventPayload, { type: "diagnostic.heartbeat" }>,
       ) => {
-        queueDepthHistogram.record(evt.queued, { "moltbot.channel": "heartbeat" });
+        queueDepthHistogram.record(evt.queued, { "zee.channel": "heartbeat" });
       };
 
       unsubscribe = onDiagnosticEvent((evt: DiagnosticEventPayload) => {

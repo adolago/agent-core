@@ -56,7 +56,7 @@ describe("state + config path candidates", () => {
   });
 
   it("prefers ~/.moltbot when it exists and legacy dir is missing", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-state-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-state-"));
     try {
       const newDir = path.join(root, ".moltbot");
       await fs.mkdir(newDir, { recursive: true });
@@ -68,7 +68,7 @@ describe("state + config path candidates", () => {
   });
 
   it("CONFIG_PATH prefers existing legacy filename when present", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-config-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-config-"));
     const previousHome = process.env.HOME;
     const previousUserProfile = process.env.USERPROFILE;
     const previousHomeDrive = process.env.HOMEDRIVE;
@@ -124,7 +124,7 @@ describe("state + config path candidates", () => {
   });
 
   it("respects state dir overrides when config is missing", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-config-override-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zee-config-override-"));
     try {
       const legacyDir = path.join(root, ".clawdbot");
       await fs.mkdir(legacyDir, { recursive: true });

@@ -35,7 +35,7 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
       env: {
         CLAWDBOT_BUNDLED_SKILLS_DIR: (home) => path.join(home, "bundled-skills"),
       },
-      prefix: "moltbot-media-note-",
+      prefix: "zee-media-note-",
     },
   );
 }

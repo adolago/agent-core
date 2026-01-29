@@ -1,9 +1,14 @@
 {
-  "name": "@moltbot/nostr",
+  "name": "@zee/nostr",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Nostr channel plugin for NIP-04 encrypted DMs",
-  "moltbot": {
+  "dependencies": {
+    "nostr-tools": "^2.20.0",
+    "zod": "^4.3.6",
+    "zee": "workspace:*"
+  },
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -18,14 +23,9 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@moltbot/nostr",
+      "npmSpec": "@zee/nostr",
       "localPath": "extensions/nostr",
       "defaultChoice": "npm"
     }
-  },
-  "dependencies": {
-    "moltbot": "workspace:*",
-    "nostr-tools": "^2.20.0",
-    "zod": "^4.3.6"
   }
 }

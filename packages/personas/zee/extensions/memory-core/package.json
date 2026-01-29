@@ -1,17 +1,17 @@
 {
-  "name": "@moltbot/memory-core",
+  "name": "@zee/memory-core",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee core memory search plugin",
-  "moltbot": {
+  "peerDependencies": {
+    "zee": ">=2026.1.26"
+  },
+  "devDependencies": {
+    "zee": "workspace:*"
+  },
+  "zee": {
     "extensions": [
       "./index.ts"
     ]
-  },
-  "peerDependencies": {
-    "moltbot": ">=2026.1.26"
-  },
-  "devDependencies": {
-    "moltbot": "workspace:*"
   }
 }

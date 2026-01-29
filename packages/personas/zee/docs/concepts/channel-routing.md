@@ -12,7 +12,6 @@ host configuration.
 
 ## Key terms
 
-- **Channel**: `whatsapp`, `telegram`, `discord`, `slack`, `signal`, `imessage`, `webchat`.
 - **AccountId**: per‑channel account instance (when supported).
 - **AgentId**: an isolated workspace + session store (“brain”).
 - **SessionKey**: the bucket key used to store context and control concurrency.
@@ -99,10 +98,10 @@ Session stores live under the state directory (default `~/.zee`):
 
 You can override the store path via `session.store` and `{agentId}` templating.
 
-## WebChat behavior
+## Control UI behavior
 
-WebChat attaches to the **selected agent** and defaults to the agent’s main
-session. Because of this, WebChat lets you see cross‑channel context for that
+Control UI attaches to the **selected agent** and defaults to the agent’s main
+session. Because of this, Control UI lets you see cross-channel context for that
 agent in one place.
 
 ## Reply context

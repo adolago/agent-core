@@ -27,7 +27,6 @@
 - Also supported: `bun install` (keep `pnpm-lock.yaml` + Bun patching in sync when touching deps/patches).
 - Prefer Bun for TypeScript execution (scripts, dev, tests): `bun <file.ts>` / `bunx <tool>`.
 - Run CLI in dev: `pnpm zee ...` or `pnpm dev`.
-- Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch. Release checklist: `docs/platforms/mac/release.md`.
 - Type-check/build: `pnpm build` (tsc)
 - Lint/format: `pnpm lint` (oxlint), `pnpm format` (oxfmt)
 - Tests: `pnpm test` (vitest); coverage: `pnpm test:coverage`
@@ -56,13 +55,13 @@
 - Web provider stores creds at `~/.zee/credentials/`; rerun `zee login` if logged out.
 - Pi sessions live under `~/.zee/sessions/` by default; the base directory is not configurable.
 - Never commit or publish real phone numbers, videos, or live configuration values. Use obviously fake placeholders in docs, tests, and examples.
-- Release flow: always read `docs/reference/RELEASING.md` and `docs/platforms/mac/release.md` before any release work; do not ask routine questions once those docs answer them.
+- Release flow: always read `docs/reference/RELEASING.md` before any release work; do not ask routine questions once those docs answer them.
 
 ## Troubleshooting
 - Rebrand/migration issues or legacy config/service warnings: run `zee doctor` (see `docs/gateway/doctor.md`).
 
 ## Agent-Specific Notes
-- Vocabulary: "makeup" = "mac app".
+- Vocabulary: "makeup" = "control UI".
 - Never edit `node_modules` (global/Homebrew/npm/git installs too). Updates overwrite. Skill notes go in `tools.md` or `AGENTS.md`.
 - When working on a GitHub Issue or PR, print the full URL at the end of the task.
 - When answering questions, respond with high-confidence answers only: verify in code; do not guess.
@@ -72,9 +71,8 @@
 - CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
 - Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
 - Mac logs: use `./scripts/zeelog.sh` to query unified logs for the Zee subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
-- SwiftUI state management (iOS/macOS): prefer the `Observation` framework (`@Observable`, `@Bindable`) over `ObservableObject`/`@StateObject` when touching related code.
-- Connection providers: when adding a new connection, update every UI surface and docs (macOS app, web UI, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
-- Version locations: `package.json` (CLI), `apps/macos/Sources/Zee/Resources/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `docs/install/updating.md` (pinned npm version), `docs/platforms/mac/release.md` (APP_VERSION/APP_BUILD examples).
+- Connection providers: when adding a new connection, update every UI surface and docs (Control UI, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
+- Version locations: `package.json` (CLI), `docs/install/updating.md` (pinned npm version).
 - A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
 - Release signing/notary keys are managed outside the repo; follow internal release docs.
 - Notary auth env vars (`APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_API_KEY_P8`) are expected in your environment (per internal release docs).

@@ -12,7 +12,9 @@ import { errors } from "../error"
 
 const log = Log.create({ service: "server:model" })
 
-const SERVICE_PROVIDER_NAMES: Record<string, string> = {}
+const SERVICE_PROVIDER_NAMES: Record<string, string> = {
+  "gemini-cli": "Gemini CLI",
+}
 
 const resolveDefaultModels = (providers: Record<string, Provider.Info>) => {
   const defaults: Record<string, string> = {}
@@ -83,18 +85,19 @@ export const ModelRoute = new Hono()
     async (c) => {
       const config = await Config.get()
       const disabled = new Set(config.disabled_providers ?? [])
+      const isBlocked = (providerID: string) => disabled.has(providerID) || Provider.isProviderBlocked(providerID)
 
       const allProviders = await ModelsDev.get()
       const filteredProviders: Record<string, (typeof allProviders)[string]> = {}
       for (const [key, value] of Object.entries(allProviders)) {
-        if (!disabled.has(key)) {
+        if (!isBlocked(key)) {
           filteredProviders[key] = value
         }
       }
 
       const serviceProviders = await ProviderAuth.methods()
       for (const providerID of Object.keys(serviceProviders)) {
-        if (!filteredProviders[providerID]) {
+        if (!filteredProviders[providerID] && !isBlocked(providerID)) {
           filteredProviders[providerID] = {
             id: providerID,
             name: SERVICE_PROVIDER_NAMES[providerID] ?? providerID.charAt(0).toUpperCase() + providerID.slice(1),

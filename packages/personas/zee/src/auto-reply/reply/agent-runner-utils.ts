@@ -24,7 +24,7 @@ export function buildThreadingToolContext(params: {
   const rawProvider = sessionCtx.Provider?.trim().toLowerCase();
   if (!rawProvider) return {};
   const provider = normalizeChannelId(rawProvider) ?? normalizeAnyChannelId(rawProvider);
-  // Fallback for unrecognized/plugin channels (e.g., BlueBubbles before plugin registry init)
+  // Fallback for unrecognized plugin channels before registry init.
   const dock = provider ? getChannelDock(provider) : undefined;
   if (!dock?.threading?.buildToolContext) {
     return {

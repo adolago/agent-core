@@ -1,5 +1,5 @@
 {
-  "name": "@moltbot/memory-lancedb",
+  "name": "@zee/memory-lancedb",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee LanceDB-backed long-term memory plugin with auto-recall/capture",
@@ -8,7 +8,7 @@
     "@sinclair/typebox": "0.34.47",
     "openai": "^6.16.0"
   },
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ]

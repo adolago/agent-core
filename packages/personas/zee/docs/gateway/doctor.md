@@ -104,7 +104,6 @@ legacy config format, so stale configs are repaired without manual intervention.
 
 Current migrations:
 - `routing.allowFrom` → `channels.whatsapp.allowFrom`
-- `routing.groupChat.requireMention` → `channels.whatsapp/telegram/imessage.groups."*".requireMention`
 - `routing.groupChat.historyLimit` → `messages.groupChat.historyLimit`
 - `routing.groupChat.mentionPatterns` → `messages.groupChat.mentionPatterns`
 - `routing.queue` → `messages.queue`
@@ -156,7 +155,7 @@ Doctor checks:
 - **Main session “1-line JSONL”**: flags when the main transcript has only one
   line (history is not accumulating).
 - **Multiple state dirs**: warns when multiple `~/.zee` folders exist across
-  home directories or when `CLAWDBOT_STATE_DIR` points elsewhere (history can
+  home directories or when `ZEE_STATE_DIR` points elsewhere (history can
   split between installs).
 - **Remote mode reminder**: if `gateway.mode=remote`, doctor reminds you to run
   it on the remote host (the state lives there).

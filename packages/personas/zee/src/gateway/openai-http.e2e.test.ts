@@ -125,7 +125,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const res = await postChatCompletions(
           port,
           { model: "moltbot", messages: [{ role: "user", content: "hi" }] },
-          { "x-moltbot-agent-id": "beta" },
+          { "x-zee-agent-id": "beta" },
         );
         expect(res.status).toBe(200);
 
@@ -161,7 +161,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
             model: "moltbot:beta",
             messages: [{ role: "user", content: "hi" }],
           },
-          { "x-moltbot-agent-id": "alpha" },
+          { "x-zee-agent-id": "alpha" },
         );
         expect(res.status).toBe(200);
 
@@ -179,8 +179,8 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
           port,
           { model: "moltbot", messages: [{ role: "user", content: "hi" }] },
           {
-            "x-moltbot-agent-id": "beta",
-            "x-moltbot-session-key": "agent:beta:openai:custom",
+            "x-zee-agent-id": "beta",
+            "x-zee-session-key": "agent:beta:openai:custom",
           },
         );
         expect(res.status).toBe(200);

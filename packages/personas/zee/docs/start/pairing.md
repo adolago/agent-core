@@ -2,7 +2,7 @@
 summary: "Pairing overview: approve who can DM you + which nodes can join"
 read_when:
   - Setting up DM access control
-  - Pairing a new iOS/Android node
+  - Pairing a new node host
   - Reviewing Zee security posture
 ---
 
@@ -34,7 +34,6 @@ zee pairing list telegram
 zee pairing approve telegram <CODE>
 ```
 
-Supported channels: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, `slack`.
 
 ### Where the state lives
 
@@ -45,7 +44,7 @@ Stored under `~/.zee/credentials/`:
 Treat these as sensitive (they gate access to your assistant).
 
 
-## 2) Node device pairing (iOS/Android/macOS/headless nodes)
+## 2) Node device pairing (headless node hosts)
 
 Nodes connect to the Gateway as **devices** with `role: node`. The Gateway
 creates a device pairing request that must be approved.
@@ -78,6 +77,5 @@ Stored under `~/.zee/devices/`:
   - Telegram: [Telegram](/channels/telegram)
   - WhatsApp: [WhatsApp](/channels/whatsapp)
   - Signal: [Signal](/channels/signal)
-  - iMessage: [iMessage](/channels/imessage)
   - Discord: [Discord](/channels/discord)
   - Slack: [Slack](/channels/slack)

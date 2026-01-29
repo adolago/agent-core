@@ -309,7 +309,6 @@ export const QueueModeBySurfaceSchema = z
     slack: QueueModeSchema.optional(),
     mattermost: QueueModeSchema.optional(),
     signal: QueueModeSchema.optional(),
-    imessage: QueueModeSchema.optional(),
     msteams: QueueModeSchema.optional(),
     webchat: QueueModeSchema.optional(),
   })

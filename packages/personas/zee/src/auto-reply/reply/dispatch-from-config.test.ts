@@ -29,7 +29,7 @@ vi.mock("./route-reply.js", () => ({
   isRoutableChannel: (channel: string | undefined) =>
     Boolean(
       channel &&
-      ["telegram", "slack", "discord", "signal", "imessage", "whatsapp"].includes(channel),
+      ["telegram", "slack", "discord", "signal", "whatsapp"].includes(channel),
     ),
   routeReply: mocks.routeReply,
 }));

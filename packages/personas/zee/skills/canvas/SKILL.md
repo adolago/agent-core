@@ -1,6 +1,6 @@
 # Canvas Skill
 
-Display HTML content on connected Zee nodes (Mac app, iOS, Android).
+Display HTML content on connected Zee nodes.
 
 ## Overview
 
@@ -15,9 +15,9 @@ The canvas tool lets you present web content on any connected node's canvas view
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────┐
-│  Canvas Host    │────▶│   Node Bridge    │────▶│  Node App   │
-│  (HTTP Server)  │     │  (TCP Server)    │     │ (Mac/iOS/   │
-│  Port 18793     │     │  Port 18790      │     │  Android)   │
+│  Canvas Host    │────▶│   Node Bridge    │────▶│  Node Host  │
+│  (HTTP Server)  │     │  (TCP Server)    │     │ (Canvas UI) │
+│  Port 18793     │     │  Port 18790      │     │             │
 └─────────────────┘     └──────────────────┘     └─────────────┘
 ```
 
@@ -120,7 +120,7 @@ tailscale status --json | jq -r '.Self.DNSName' | sed 's/\.$//'
 zee nodes list
 ```
 
-Look for Mac/iOS/Android nodes with canvas capability.
+Look for nodes with canvas capability.
 
 ### 4. Present content
 

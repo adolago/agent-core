@@ -21,7 +21,7 @@ describe("buildLineMessageContext", () => {
   };
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-line-context-"));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-line-context-"));
     storePath = path.join(tmpDir, "sessions.json");
     cfg = { session: { store: storePath } };
   });

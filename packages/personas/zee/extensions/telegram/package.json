@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/telegram",
+  "name": "@zee/telegram",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Telegram channel plugin",
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ]

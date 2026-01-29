@@ -15,8 +15,6 @@ import { ensureDir, resolveUserPath } from "../utils.js";
 import {
   CANVAS_HOST_PATH,
   CANVAS_WS_PATH,
-  LEGACY_CANVAS_HOST_PATHS,
-  LEGACY_CANVAS_WS_PATHS,
   handleA2uiHttpRequest,
   injectCanvasLiveReload,
 } from "./a2ui.js";
@@ -100,66 +98,23 @@ function defaultIndexHTML() {
   const statusEl = document.getElementById("status");
   const log = (msg) => { logEl.textContent = String(msg); };
 
-  const hasIOS = () =>
-    !!(
-      window.webkit &&
-      window.webkit.messageHandlers &&
-      (window.webkit.messageHandlers.zeeCanvasA2UIAction ||
-        window.webkit.messageHandlers.moltbotCanvasA2UIAction ||
-        window.webkit.messageHandlers.clawdbotCanvasA2UIAction)
-    );
-  const hasAndroid = () =>
-    !!(
-      (window.zeeCanvasA2UIAction &&
-        typeof window.zeeCanvasA2UIAction.postMessage === "function") ||
-      (window.moltbotCanvasA2UIAction &&
-        typeof window.moltbotCanvasA2UIAction.postMessage === "function") ||
-      (window.clawdbotCanvasA2UIAction &&
-        typeof window.clawdbotCanvasA2UIAction.postMessage === "function")
-    );
-  const legacySend =
-    typeof window.moltbotSendUserAction === "function"
-      ? window.moltbotSendUserAction
-      : typeof window.clawdbotSendUserAction === "function"
-        ? window.clawdbotSendUserAction
-        : undefined;
-  if (!window.zeeSendUserAction && legacySend) {
-    window.zeeSendUserAction = legacySend;
-  }
-  if (!window.moltbotSendUserAction && typeof window.zeeSendUserAction === "function") {
-    window.moltbotSendUserAction = window.zeeSendUserAction;
-  }
-  if (!window.clawdbotSendUserAction && typeof window.zeeSendUserAction === "function") {
-    window.clawdbotSendUserAction = window.zeeSendUserAction;
-  }
-  const hasHelper = () =>
-    typeof window.zeeSendUserAction === "function" ||
-    typeof window.moltbotSendUserAction === "function" ||
-    typeof window.clawdbotSendUserAction === "function";
+  const hasHelper = () => typeof window.zeeSendUserAction === "function";
   statusEl.innerHTML =
     "Bridge: " +
-    (hasHelper() ? "<span class='ok'>ready</span>" : "<span class='bad'>missing</span>") +
-    " · iOS=" + (hasIOS() ? "yes" : "no") +
-    " · Android=" + (hasAndroid() ? "yes" : "no");
+    (hasHelper() ? "<span class='ok'>ready</span>" : "<span class='bad'>missing</span>");
 
   const handleStatus = (ev) => {
     const d = ev && ev.detail || {};
     log("Action status: id=" + (d.id || "?") + " ok=" + String(!!d.ok) + (d.error ? (" error=" + d.error) : ""));
   };
   window.addEventListener("zee:a2ui-action-status", handleStatus);
-  window.addEventListener("moltbot:a2ui-action-status", handleStatus);
 
   function send(name, sourceComponentId) {
     if (!hasHelper()) {
       log("No action bridge found. Ensure you're viewing this on a paired Zee node canvas.");
       return;
     }
-    const sendUserAction =
-      typeof window.zeeSendUserAction === "function"
-        ? window.zeeSendUserAction
-        : typeof window.moltbotSendUserAction === "function"
-          ? window.moltbotSendUserAction
-          : window.clawdbotSendUserAction;
+    const sendUserAction = window.zeeSendUserAction;
     const ok = sendUserAction({
       name,
       surfaceId: "main",
@@ -251,7 +206,7 @@ export async function createCanvasHostHandler(
   opts: CanvasHostHandlerOpts,
 ): Promise<CanvasHostHandler> {
   const basePath = normalizeBasePath(opts.basePath);
-  const basePaths = Array.from(new Set([basePath, ...LEGACY_CANVAS_HOST_PATHS]));
+  const basePaths = [basePath];
   if (isDisabledByEnv() && opts.allowInTests !== true) {
     return {
       rootDir: "",
@@ -320,7 +275,7 @@ export async function createCanvasHostHandler(
   const handleUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer) => {
     if (!wss) return false;
     const url = new URL(req.url ?? "/", "http://localhost");
-    if (url.pathname !== CANVAS_WS_PATH && !(LEGACY_CANVAS_WS_PATHS as readonly string[]).includes(url.pathname)) {
+    if (url.pathname !== CANVAS_WS_PATH) {
       return false;
     }
     wss.handleUpgrade(req, socket as Socket, head, (ws) => {
@@ -335,7 +290,7 @@ export async function createCanvasHostHandler(
 
     try {
       const url = new URL(urlRaw, "http://localhost");
-      if (url.pathname === CANVAS_WS_PATH || (LEGACY_CANVAS_WS_PATHS as readonly string[]).includes(url.pathname)) {
+      if (url.pathname === CANVAS_WS_PATH) {
         res.statusCode = liveReload ? 426 : 404;
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
         res.end(liveReload ? "upgrade required" : "not found");

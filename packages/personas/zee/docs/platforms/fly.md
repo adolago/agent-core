@@ -52,8 +52,8 @@ primary_region = "iad"
 
 [env]
   NODE_ENV = "production"
-  CLAWDBOT_PREFER_PNPM = "1"
-  CLAWDBOT_STATE_DIR = "/data"
+  ZEE_PREFER_PNPM = "1"
+  ZEE_STATE_DIR = "/data"
   NODE_OPTIONS = "--max-old-space-size=1536"
 
 [processes]
@@ -82,15 +82,15 @@ primary_region = "iad"
 |---------|-----|
 | `--bind lan` | Binds to `0.0.0.0` so Fly's proxy can reach the gateway |
 | `--allow-unconfigured` | Starts without a config file (you'll create one after) |
-| `internal_port = 3000` | Must match `--port 3000` (or `CLAWDBOT_GATEWAY_PORT`) for Fly health checks |
+| `internal_port = 3000` | Must match `--port 3000` (or `ZEE_GATEWAY_PORT`) for Fly health checks |
 | `memory = "2048mb"` | 512MB is too small; 2GB recommended |
-| `CLAWDBOT_STATE_DIR = "/data"` | Persists state on the volume |
+| `ZEE_STATE_DIR = "/data"` | Persists state on the volume |
 
 ## 3) Set secrets
 
 ```bash
 # Required: Gateway token (for non-loopback binding)
-fly secrets set CLAWDBOT_GATEWAY_TOKEN=$(openssl rand -hex 32)
+fly secrets set ZEE_GATEWAY_TOKEN=$(openssl rand -hex 32)
 
 # Model provider API keys
 fly secrets set ANTHROPIC_API_KEY=sk-ant-...
@@ -104,7 +104,7 @@ fly secrets set DISCORD_BOT_TOKEN=MTQ...
 ```
 
 **Notes:**
-- Non-loopback binds (`--bind lan`) require `CLAWDBOT_GATEWAY_TOKEN` for security.
+- Non-loopback binds (`--bind lan`) require `ZEE_GATEWAY_TOKEN` for security.
 - Treat these tokens like passwords.
 - **Prefer env vars over config file** for all API keys and tokens. This keeps secrets out of `zee.json` where they could be accidentally exposed or logged.
 
@@ -191,7 +191,7 @@ cat > /data/zee.json << 'EOF'
 EOF
 ```
 
-**Note:** With `CLAWDBOT_STATE_DIR=/data`, the config path is `/data/zee.json`.
+**Note:** With `ZEE_STATE_DIR=/data`, the config path is `/data/zee.json`.
 
 **Note:** The Discord token can come from either:
 - Environment variable: `DISCORD_BOT_TOKEN` (recommended for secrets)
@@ -216,7 +216,7 @@ fly open
 
 Or visit `https://my-zee.fly.dev/`
 
-Paste your gateway token (the one from `CLAWDBOT_GATEWAY_TOKEN`) to authenticate.
+Paste your gateway token (the one from `ZEE_GATEWAY_TOKEN`) to authenticate.
 
 ### Logs
 
@@ -243,7 +243,7 @@ The gateway is binding to `127.0.0.1` instead of `0.0.0.0`.
 
 Fly can't reach the gateway on the configured port.
 
-**Fix:** Ensure `internal_port` matches the gateway port (set `--port 3000` or `CLAWDBOT_GATEWAY_PORT=3000`).
+**Fix:** Ensure `internal_port` matches the gateway port (set `--port 3000` or `ZEE_GATEWAY_PORT=3000`).
 
 ### OOM / Memory Issues
 
@@ -307,7 +307,7 @@ fly ssh console --command "rm /data/zee.json"
 
 If you lose credentials or sessions after a restart, the state dir is writing to the container filesystem.
 
-**Fix:** Ensure `CLAWDBOT_STATE_DIR=/data` is set in `fly.toml` and redeploy.
+**Fix:** Ensure `ZEE_STATE_DIR=/data` is set in `fly.toml` and redeploy.
 
 ## Updates
 

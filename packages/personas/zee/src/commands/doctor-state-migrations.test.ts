@@ -17,7 +17,7 @@ import {
 let tempRoot: string | null = null;
 
 async function makeTempRoot() {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "moltbot-doctor-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "zee-doctor-"));
   tempRoot = root;
   return root;
 }
@@ -54,7 +54,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     const result = await runLegacyStateMigrations({
       detected,
@@ -95,7 +95,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -116,7 +116,7 @@ describe("doctor legacy state migrations", () => {
 
     const result = await autoMigrateLegacyState({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
       log,
     });
 
@@ -141,7 +141,7 @@ describe("doctor legacy state migrations", () => {
 
     const result = await autoMigrateLegacyState({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
       log,
       now: () => 123,
     });
@@ -167,7 +167,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -183,7 +183,7 @@ describe("doctor legacy state migrations", () => {
     const cfg: ZeeConfig = {};
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     const result = await runLegacyStateMigrations({ detected });
     expect(result.changes).toEqual([]);
@@ -202,7 +202,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -225,7 +225,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -248,7 +248,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -270,7 +270,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -291,7 +291,7 @@ describe("doctor legacy state migrations", () => {
 
     const detected = await detectLegacyStateMigrations({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
     });
     await runLegacyStateMigrations({ detected, now: () => 123 });
 
@@ -314,7 +314,7 @@ describe("doctor legacy state migrations", () => {
 
     const result = await autoMigrateLegacyState({
       cfg,
-      env: { CLAWDBOT_STATE_DIR: root } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: root } as NodeJS.ProcessEnv,
       log,
     });
 
@@ -327,7 +327,7 @@ describe("doctor legacy state migrations", () => {
     expect(store["agent:main:main"]?.sessionId).toBe("legacy");
   });
 
-  it("auto-migrates legacy state dir to ~/.moltbot", async () => {
+  it("auto-migrates legacy state dir to ~/.zee", async () => {
     const root = await makeTempRoot();
     const legacyDir = path.join(root, ".clawdbot");
     fs.mkdirSync(legacyDir, { recursive: true });
@@ -338,7 +338,7 @@ describe("doctor legacy state migrations", () => {
       homedir: () => root,
     });
 
-    const targetDir = path.join(root, ".moltbot");
+    const targetDir = path.join(root, ".zee");
     expect(fs.existsSync(path.join(targetDir, "foo.txt"))).toBe(true);
     const legacyStat = fs.lstatSync(legacyDir);
     expect(legacyStat.isSymbolicLink()).toBe(true);
@@ -349,7 +349,7 @@ describe("doctor legacy state migrations", () => {
   it("skips state dir migration when target exists", async () => {
     const root = await makeTempRoot();
     const legacyDir = path.join(root, ".clawdbot");
-    const targetDir = path.join(root, ".moltbot");
+    const targetDir = path.join(root, ".zee");
     fs.mkdirSync(legacyDir, { recursive: true });
     fs.mkdirSync(targetDir, { recursive: true });
 
@@ -368,7 +368,7 @@ describe("doctor legacy state migrations", () => {
     fs.mkdirSync(legacyDir, { recursive: true });
 
     const result = await autoMigrateLegacyStateDir({
-      env: { MOLTBOT_STATE_DIR: "/custom/state" } as NodeJS.ProcessEnv,
+      env: { ZEE_STATE_DIR: "/custom/state" } as NodeJS.ProcessEnv,
       homedir: () => root,
     });
 

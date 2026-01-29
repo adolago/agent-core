@@ -22,7 +22,7 @@ zee handles the cognitive load of life administration:
 - **Contacts**: khard (TUI) + vdirsyncer (CardDAV sync)
 - **Notifications**: Proactive reminders and alerts
 - **Browser**: Automated web interaction (Playwright via gateway)
-- **Mobile**: Control iOS/Android devices (camera, location, notifications)
+- **Nodes**: Control node hosts (camera, location, notifications)
 
 ## References
 
@@ -73,7 +73,7 @@ khard show "John Doe"           # Details
 | `zee:notification` | Proactive alerts and reminders |
 | `zee:browser-*` | Web automation (see `tools-reference.md`) |
 | `zee:pty-*` | Interactive terminal sessions |
-| `zee:node-*` | Mobile device control |
+| `zee:node-*` | Node host control |
 | `zee:cron-*` | Scheduled task automation |
 | `zee:sentinel-*` | Session persistence on restart |
 

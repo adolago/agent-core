@@ -31,7 +31,7 @@ import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "moltbot-cron-" });
+  return withTempHomeBase(fn, { prefix: "zee-cron-" });
 }
 
 async function writeSessionStore(home: string) {
@@ -114,8 +114,8 @@ describe("runCronIsolatedAgentTurn", () => {
         sendMessageWhatsApp: vi.fn(),
         sendMessageTelegram: vi.fn(),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "hello" }],
@@ -156,8 +156,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "hello from cron" }],
@@ -213,8 +213,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "hello from cron" }],
@@ -269,8 +269,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "sent" }],
@@ -323,8 +323,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "-1001234567890",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "hello from cron" }],
@@ -368,8 +368,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "-1001234567890",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "hello from cron" }],
@@ -410,11 +410,11 @@ describe("runCronIsolatedAgentTurn", () => {
         sendMessageWhatsApp: vi.fn(),
         sendMessageTelegram: vi.fn(),
         sendMessageDiscord: vi.fn().mockResolvedValue({
+        sendMessageSlack: vi.fn(),
           messageId: "d1",
           channelId: "chan",
         }),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "hello from cron" }],
@@ -441,6 +441,7 @@ describe("runCronIsolatedAgentTurn", () => {
 
       expect(res.status).toBe("ok");
       expect(deps.sendMessageDiscord).toHaveBeenCalledWith(
+      sendMessageSlack: vi.fn(),
         "channel:1122",
         "hello from cron",
         expect.objectContaining({ verbose: false }),
@@ -458,8 +459,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "HEARTBEAT_OK" }],
@@ -501,8 +502,8 @@ describe("runCronIsolatedAgentTurn", () => {
         }),
         sendMessageTelegram: vi.fn(),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       // Short junk around HEARTBEAT_OK (<=30 chars) should still skip delivery.
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
@@ -545,8 +546,8 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "123",
         }),
         sendMessageDiscord: vi.fn(),
+        sendMessageSlack: vi.fn(),
         sendMessageSignal: vi.fn(),
-        sendMessageIMessage: vi.fn(),
       };
       // Long content after HEARTBEAT_OK should still be delivered.
       const longContent = `Important alert: ${"a".repeat(500)}`;

@@ -5,7 +5,7 @@
 </p>
 
 **Zee** is a personal AI assistant you run on your own devices.
-It answers on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal.
+It answers on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, Microsoft Teams), plus extension channels like Matrix, Zalo, and Zalo Personal.
 The Zee Gateway is the control plane for sessions, channels, tools, and events.
 
 If you want a single-user assistant that feels local, fast, and always-on, this is it.
@@ -32,8 +32,8 @@ zee agent --message "Ship checklist" --thinking high
 ```
 
 Notes:
-- The onboarding wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2)**.
-- Mobile apps (iOS/Android) are not shipped in this repo.
+- The onboarding wizard is the recommended path and works on **Linux and Windows (via WSL2)**.
+- Native apps are not shipped in this repo.
 
 ## Development
 
@@ -42,7 +42,6 @@ git clone <your-fork>
 cd agent-core/packages/personas/zee
 
 pnpm install
-pnpm ui:build
 pnpm build
 
 # Dev loop (auto-reload on TS changes)
@@ -53,7 +52,7 @@ pnpm gateway:watch
 
 Zee connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.
 
-Default behavior on Telegram/WhatsApp/Signal/iMessage/Microsoft Teams/Discord/Google Chat/Slack:
+Default behavior on Telegram/WhatsApp/Signal/Microsoft Teams/Discord/Google Chat/Slack:
 - **DM pairing** (`dmPolicy="pairing"` / `channels.discord.dm.policy="pairing"` / `channels.slack.dm.policy="pairing"`): unknown senders receive a short pairing code and the bot does not process their message.
 - Approve with: `zee pairing approve <channel> <code>` (then the sender is added to a local allowlist store).
 - Public inbound DMs require an explicit opt-in: set `dmPolicy="open"` and include `"*"` in the channel allowlist (`allowFrom` / `channels.discord.dm.allowFrom` / `channels.slack.dm.allowFrom`).
@@ -61,7 +60,7 @@ Default behavior on Telegram/WhatsApp/Signal/iMessage/Microsoft Teams/Discord/Go
 ## Highlights
 
 - **Zee Gateway** — single control plane for sessions, channels, tools, and events.
-- **Multi-channel inbox** — WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, BlueBubbles, Microsoft Teams, Matrix, Zalo, Zalo Personal, WebChat.
+- **Multi-channel inbox** — WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, Microsoft Teams, Matrix, Zalo, Zalo Personal.
 - **Multi-agent routing** — route inbound channels/accounts/peers to isolated agents (workspaces + per-agent sessions).
 - **Live Canvas** — agent-driven visual workspace with A2UI.
 - **First-class tools** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
@@ -70,7 +69,7 @@ Default behavior on Telegram/WhatsApp/Signal/iMessage/Microsoft Teams/Discord/Go
 ## How it works (short)
 
 ```
-WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / iMessage / BlueBubbles / Microsoft Teams / Matrix / Zalo / Zalo Personal / WebChat
+WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / Microsoft Teams / Matrix / Zalo / Zalo Personal
                │
                ▼
 ┌───────────────────────────────┐
@@ -81,14 +80,13 @@ WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / iMessage / BlueBu
                │
                ├─ Pi agent (RPC)
                ├─ CLI (zee …)
-               ├─ Control UI
-               └─ macOS app
+               └─ Control UI
 ```
 
 ## Remote Gateway
 
-It is fine to run the Gateway on a small Linux instance. Clients (macOS app, CLI, WebChat) can connect over **Tailscale Serve/Funnel** or **SSH tunnels**, and you can still pair device nodes (macOS) to execute device‑local actions when needed.
+It is fine to run the Gateway on a small Linux instance. Clients (CLI, Control UI) can connect over **Tailscale Serve/Funnel** or **SSH tunnels**, and you can still pair headless node hosts to execute remote `system.run` actions when needed.
 
 - **Gateway host** runs the exec tool and channel connections by default.
-- **Device nodes** run device‑local actions (`system.run`, camera, screen recording, notifications) via `node.invoke`.
-In short: exec runs where the Gateway lives; device actions run where the device lives.
+- **Node hosts** run `system.run` on the node machine via `node.invoke`.
+In short: exec runs where the Gateway lives unless you explicitly target a node host.

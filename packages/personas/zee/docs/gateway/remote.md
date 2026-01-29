@@ -7,8 +7,8 @@ read_when:
 
 This repo supports “remote over SSH” by keeping a single Gateway (the master) running on a dedicated host (desktop/server) and connecting clients to it.
 
-- For **operators (you / the macOS app)**: SSH tunneling is the universal fallback.
-- For **nodes (iOS/Android and future devices)**: connect to the Gateway **WebSocket** (LAN/tailnet or SSH tunnel as needed).
+- For **operators (CLI / Control UI)**: SSH tunneling is the universal fallback.
+- For **node hosts**: connect to the Gateway **WebSocket** (LAN/tailnet or SSH tunnel as needed).
 
 ## The core idea
 
@@ -34,10 +34,8 @@ This is ideal when your laptop sleeps often but you want the agent always-on.
 
 The laptop does **not** run the agent. It connects remotely:
 
-- Use the macOS app’s **Remote over SSH** mode (Settings → General → “Zee runs”).
-- The app opens and manages the tunnel, so WebChat + health checks “just work.”
-
-Runbook: [macOS remote access](/platforms/mac/remote).
+- Use an SSH tunnel or tailnet connection.
+- Open the Control UI in a browser over the tunnel.
 
 ### 3) Laptop runs the Gateway, remote access from other machines
 
@@ -60,7 +58,6 @@ Flow example (Telegram → node):
 
 Notes:
 - **Nodes do not run the gateway service.** Only one gateway should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
-- macOS app “node mode” is just a node client over the Gateway WebSocket.
 
 ## SSH tunnel (CLI + tools)
 
@@ -74,7 +71,7 @@ With the tunnel up:
 - `zee health` and `zee status --deep` now reach the remote gateway via `ws://127.0.0.1:18789`.
 - `zee gateway {status,health,send,agent,call}` can also target the forwarded URL via `--url` when needed.
 
-Note: replace `18789` with your configured `gateway.port` (or `--port`/`CLAWDBOT_GATEWAY_PORT`).
+Note: replace `18789` with your configured `gateway.port` (or `--port`/`ZEE_GATEWAY_PORT`).
 
 ## CLI remote defaults
 
@@ -94,18 +91,9 @@ You can persist a remote target so CLI commands use it by default:
 
 When the gateway is loopback-only, keep the URL at `ws://127.0.0.1:18789` and open the SSH tunnel first.
 
-## Chat UI over SSH
+## Control UI over SSH
 
-WebChat no longer uses a separate HTTP port. The SwiftUI chat UI connects directly to the Gateway WebSocket.
-
-- Forward `18789` over SSH (see above), then connect clients to `ws://127.0.0.1:18789`.
-- On macOS, prefer the app’s “Remote over SSH” mode, which manages the tunnel automatically.
-
-## macOS app “Remote over SSH”
-
-The macOS menu bar app can drive the same setup end-to-end (remote status checks, WebChat, and Voice Wake forwarding).
-
-Runbook: [macOS remote access](/platforms/mac/remote).
+Forward `18789` over SSH (see above), then open the Control UI in a browser at `http://127.0.0.1:18789/`.
 
 ## Security rules (remote/VPN)
 

@@ -124,7 +124,6 @@ Resolution priority:
 
 ### Delivery (channel + target)
 Isolated jobs can deliver output to a channel. The job payload can specify:
-- `channel`: `whatsapp` / `telegram` / `discord` / `slack` / `mattermost` (plugin) / `signal` / `imessage` / `last`
 - `to`: channel-specific recipient target
 
 If `channel` or `to` is omitted, cron can fall back to the main session’s “last route”
@@ -169,7 +168,7 @@ Prefixed targets like `telegram:...` / `telegram:group:...` are also accepted:
 
 Disable cron entirely:
 - `cron.enabled: false` (config)
-- `CLAWDBOT_SKIP_CRON=1` (env)
+- `ZEE_SKIP_CRON=1` (env)
 
 ## CLI quickstart
 
@@ -276,7 +275,7 @@ For immediate system events without a job, use [`zee system event`](/cli/system)
 ## Troubleshooting
 
 ### “Nothing runs”
-- Check cron is enabled: `cron.enabled` and `CLAWDBOT_SKIP_CRON`.
+- Check cron is enabled: `cron.enabled` and `ZEE_SKIP_CRON`.
 - Check the Gateway is running continuously (cron runs inside the Gateway process).
 - For `cron` schedules: confirm timezone (`--tz`) vs the host timezone.
 

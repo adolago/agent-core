@@ -9,8 +9,8 @@ Last updated: 2026-01-10
 
 TypeBox is a TypeScript-first schema library. We use it to define the **Gateway
 WebSocket protocol** (handshake, request/response, server events). Those schemas
-drive **runtime validation**, **JSON Schema export**, and **Swift codegen** for
-the macOS app. One source of truth; everything else is generated.
+drive **runtime validation**, **JSON Schema export**, and **client codegen**.
+One source of truth; everything else is generated.
 
 If you want the higher-level protocol context, start with
 [Gateway architecture](/concepts/architecture).
@@ -44,7 +44,7 @@ Common methods + events:
 | --- | --- | --- |
 | Core | `connect`, `health`, `status` | `connect` must be first |
 | Messaging | `send`, `poll`, `agent`, `agent.wait` | side-effects need `idempotencyKey` |
-| Chat | `chat.history`, `chat.send`, `chat.abort`, `chat.inject` | WebChat uses these |
+| Chat | `chat.history`, `chat.send`, `chat.abort`, `chat.inject` | Control UI uses these |
 | Sessions | `sessions.list`, `sessions.patch`, `sessions.delete` | session admin |
 | Nodes | `node.list`, `node.invoke`, `node.pair.*` | Gateway WS + node actions |
 | Events | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push |
@@ -58,7 +58,6 @@ Authoritative list lives in `src/gateway/server.ts` (`METHODS`, `EVENTS`).
 - Server handshake + method dispatch: `src/gateway/server.ts`
 - Node client: `src/gateway/client.ts`
 - Generated JSON Schema: `dist/protocol.schema.json`
-- Generated Swift models: `apps/macos/Sources/ZeeProtocol/GatewayModels.swift`
 
 ## Current pipeline
 
@@ -91,10 +90,10 @@ Connect (first message):
     "minProtocol": 2,
     "maxProtocol": 2,
     "client": {
-      "id": "zee-macos",
-      "displayName": "macos",
+      "id": "zee-control-ui",
+      "displayName": "control-ui",
       "version": "1.0.0",
-      "platform": "macos 15.1",
+      "platform": "desktop",
       "mode": "ui",
       "instanceId": "A1B2"
     }

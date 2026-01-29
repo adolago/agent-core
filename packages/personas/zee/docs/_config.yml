@@ -1,5 +1,5 @@
 title: "Zee Docs"
-description: "A TypeScript/Node gateway + macOS companion for WhatsApp (web) and Telegram (bot)."
+description: "A TypeScript/Node gateway for WhatsApp (web) and Telegram (bot)."
 markdown: kramdown
 highlighter: rouge
 
@@ -32,10 +32,6 @@ nav:
     url: "/gateway/discovery/"
   - title: "Configuration"
     url: "/gateway/configuration/"
-  - title: "WebChat"
-    url: "/web/webchat/"
-  - title: "macOS App"
-    url: "/platforms/macos/"
   - title: "Telegram"
     url: "/channels/telegram/"
   - title: "Security"

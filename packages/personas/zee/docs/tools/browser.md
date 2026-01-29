@@ -3,7 +3,7 @@ summary: "Integrated browser control service + action commands"
 read_when:
   - Adding agent-controlled browser automation
   - Debugging why zee is interfering with your own Chrome
-  - Implementing browser settings + lifecycle in the macOS app
+  - Implementing browser settings + lifecycle in the control UI
 ---
 
 # Browser (zee-managed)
@@ -78,7 +78,7 @@ Browser settings live in `~/.zee/zee.json`.
 Notes:
 - The browser control service binds to loopback on a port derived from `gateway.port`
   (default: `18791`, which is gateway + 2). The relay uses the next port (`18792`).
-- If you override the Gateway port (`gateway.port` or `CLAWDBOT_GATEWAY_PORT`),
+- If you override the Gateway port (`gateway.port` or `ZEE_GATEWAY_PORT`),
   the derived browser ports shift to stay in the same “family”.
 - `cdpUrl` defaults to the relay port when unset.
 - `remoteCdpTimeoutMs` applies to remote (non-loopback) CDP reachability checks.

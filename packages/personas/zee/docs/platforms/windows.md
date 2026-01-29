@@ -1,8 +1,7 @@
 ---
-summary: "Windows (WSL2) support + companion app status"
+summary: "Windows (WSL2) support"
 read_when:
   - Installing Zee on Windows
-  - Looking for Windows companion app status
 ---
 # Windows (WSL2)
 
@@ -11,7 +10,7 @@ CLI + Gateway run inside Linux, which keeps the runtime consistent and makes
 tooling far more compatible (Node/Bun/pnpm, Linux binaries, skills). Native
 Windows installs are untested and more problematic.
 
-Native Windows companion apps are planned.
+No native Windows app is shipped in this repo.
 
 ## Install (WSL2)
 - [Getting Started](/start/getting-started) (use inside WSL)
@@ -140,14 +139,8 @@ Follow the Linux Getting Started flow inside WSL:
 git clone https://github.com/zee/zee.git
 cd zee
 pnpm install
-pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 zee onboard
 ```
 
 Full guide: [Getting Started](/start/getting-started)
-
-## Windows companion app
-
-We do not have a Windows companion app yet. Contributions are welcome if you want
-contributions to make it happen.

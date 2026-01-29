@@ -10,7 +10,6 @@ read_when:
 </p>
 
 <p align="center">
-  <strong>WhatsApp/Telegram/Discord/iMessage gateway for AI agents (Pi).</strong><br />
   Plugins add Mattermost and more.
   Send a message, get an agent response.
 </p>
@@ -21,7 +20,6 @@ read_when:
 </p>
 
 Zee bridges WhatsApp (via WhatsApp Web / Baileys), Telegram (Bot API / grammY),
-Discord (Bot API / channels.discord.js), and iMessage (imsg CLI) to coding
 agents like Pi. Plugins add Mattermost (Bot API + WebSocket) and more.
 
 ## Start here
@@ -42,7 +40,6 @@ Remote access: [Web surfaces](/web) and [Tailscale](/gateway/tailscale)
 ## How it works
 
 ```
-WhatsApp / Telegram / Discord / iMessage (+ plugins)
         │
         ▼
   ┌───────────────────────────┐
@@ -54,9 +51,7 @@ WhatsApp / Telegram / Discord / iMessage (+ plugins)
               │
               ├─ Pi agent (RPC)
               ├─ CLI (zee …)
-              ├─ Chat UI (SwiftUI, macOS)
-              ├─ macOS app (Zee.app)
-              └─ External nodes (macOS/headless) via Gateway WS
+              └─ External node hosts (headless) via Gateway WS
 ```
 
 Most operations flow through the **Zee Gateway** (`zee gateway`), a single long-running process that owns channel connections and the WebSocket control plane.
@@ -77,7 +72,6 @@ Most operations flow through the **Zee Gateway** (`zee gateway`), a single long-
 - **Telegram Bot** — DMs + groups via grammY
 - **Discord Bot** — DMs + guild channels via channels.discord.js
 - **Mattermost Bot (plugin)** — Bot token + WebSocket events
-- **iMessage** — Local imsg CLI integration (macOS)
 - **Agent bridge** — Pi (RPC mode) with tool streaming
 - **Streaming + chunking** — Block streaming + Telegram draft streaming details ([/concepts/streaming](/concepts/streaming))
 - **Multi-agent routing** — Route provider accounts/peers to isolated agents (workspace + per-agent sessions)
@@ -86,8 +80,8 @@ Most operations flow through the **Zee Gateway** (`zee gateway`), a single long-
 - **Group Chat Support** — Mention-based by default; owner can toggle `/activation always|mention`
 - **Media Support** — Send and receive images, audio, documents
 - **Voice notes** — Optional transcription hook
-- **WebChat + macOS app** — Local UI + menu bar companion for ops and voice wake
-- **Node clients (external)** — macOS/headless nodes pair via Gateway WS (not shipped in this repo)
+- **Control UI** — Local UI served from the Gateway
+- **Node hosts (external)** — headless node hosts pair via Gateway WS (not shipped in this repo)
 
 Note: legacy Claude/Codex/Gemini/Opencode paths have been removed; Pi is the only coding-agent path.
 
@@ -118,7 +112,6 @@ From source (development):
 git clone https://github.com/zee/zee.git
 cd zee
 pnpm install
-pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 zee onboard --install-daemon
 ```
@@ -183,20 +176,15 @@ Example:
   - [Discovery + transports](/gateway/discovery)
   - [Remote access](/gateway/remote)
 - Providers and UX:
-  - [WebChat](/web/webchat)
   - [Control UI (browser)](/web/control-ui)
   - [Telegram](/channels/telegram)
   - [Discord](/channels/discord)
   - [Mattermost (plugin)](/channels/mattermost)
-  - [iMessage](/channels/imessage)
   - [Groups](/concepts/groups)
   - [WhatsApp group messages](/concepts/group-messages)
-  - [Media: images](/nodes/images)
-  - [Media: audio](/nodes/audio)
-- Companion apps:
-  - [macOS app](/platforms/macos)
+- Host environments:
   - [Windows (WSL2)](/platforms/windows)
-  - [Linux app](/platforms/linux)
+  - [Linux host](/platforms/linux)
 - Ops and safety:
   - [Sessions](/concepts/session)
   - [Cron jobs](/automation/cron-jobs)

@@ -39,7 +39,7 @@ stay consistent across channels.
 Input Markdown:
 
 ```markdown
-Hello **world** — see [docs](https://docs.molt.bot).
+Hello **world** — see [docs](https://docs.zee).
 ```
 
 IR (schematic):
@@ -51,7 +51,7 @@ IR (schematic):
     { "start": 6, "end": 11, "style": "bold" }
   ],
   "links": [
-    { "start": 19, "end": 23, "href": "https://docs.molt.bot" }
+    { "start": 19, "end": 23, "href": "https://docs.zee" }
   ]
 }
 ```
@@ -59,7 +59,6 @@ IR (schematic):
 ## Where it is used
 
 - Slack, Telegram, and Signal outbound adapters render from the IR.
-- Other channels (WhatsApp, iMessage, MS Teams, Discord) still use plain text or
   their own formatting rules, with Markdown table conversion applied before
   chunking when enabled.
 

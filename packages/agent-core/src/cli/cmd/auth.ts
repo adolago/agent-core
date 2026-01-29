@@ -3,6 +3,7 @@ import { cmd } from "./cmd"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
 import { ModelsDev } from "../../provider/models"
+import { Provider } from "../../provider/provider"
 import { filter, map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
@@ -12,6 +13,7 @@ import { Plugin } from "../../plugin"
 import { Instance } from "../../project/instance"
 import type { Hooks } from "@opencode-ai/plugin"
 import { modify, applyEdits } from "jsonc-parser"
+import { createAuthorizedFetch } from "@/server/auth"
 import {
   listProvidersByService,
   hasCredentials,
@@ -35,6 +37,44 @@ const LOCAL_PROVIDER_DEFAULTS: Record<string, { port: number; hint: string }> = 
 /** Providers that only need auth storage (not LLM model providers) */
 const AUTH_ONLY_PROVIDERS: Record<string, { name: string; hint?: string }> = {
   kernel: { name: "Kernel", hint: "Kernel MCP API key" },
+}
+
+const DEFAULT_DAEMON_PORT = 3210
+
+function normalizeDaemonHost(hostname?: string): string {
+  if (!hostname || hostname === "0.0.0.0") return "127.0.0.1"
+  return hostname
+}
+
+function resolveDaemonUrl(config?: Config.Info): string {
+  const direct = process.env.AGENT_CORE_URL ?? process.env.OPENCODE_URL
+  if (direct && direct.trim().length > 0) return direct.trim()
+  const portEnv = Number(process.env.AGENT_CORE_PORT ?? "")
+  const port =
+    config?.server?.port ??
+    (Number.isFinite(portEnv) && portEnv > 0 ? portEnv : DEFAULT_DAEMON_PORT)
+  const hostname = normalizeDaemonHost(config?.server?.hostname ?? "127.0.0.1")
+  return `http://${hostname}:${port}`
+}
+
+async function notifyDaemonAuthChange(config?: Config.Info) {
+  let resolvedConfig = config
+  if (!resolvedConfig) {
+    resolvedConfig = await Config.get().catch(() => undefined)
+  }
+  const url = resolveDaemonUrl(resolvedConfig)
+  if (!url) return
+  try {
+    const authorizedFetch = createAuthorizedFetch(fetch)
+    await authorizedFetch(`${url}/instance/dispose`, {
+      method: "POST",
+      headers: {
+        "x-opencode-directory": process.cwd(),
+      },
+    })
+  } catch {
+    // Daemon may be offline; ignore.
+  }
 }
 
 /**
@@ -68,7 +108,11 @@ type PluginAuth = NonNullable<Hooks["auth"]>
  * Handle plugin-based authentication flow.
  * Returns true if auth was handled, false if it should fall through to default handling.
  */
-async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string): Promise<boolean> {
+async function handlePluginAuth(
+  plugin: { auth: PluginAuth },
+  provider: string,
+  config?: Config.Info,
+): Promise<boolean> {
   let index = 0
   if (plugin.auth.methods.length > 1) {
     const method = await prompts.select({
@@ -140,12 +184,14 @@ async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string):
             expires,
             ...extraFields,
           })
+          await notifyDaemonAuthChange(config)
         }
         if ("key" in result) {
           await Auth.set(saveProvider, {
             type: "api",
             key: result.key,
           })
+          await notifyDaemonAuthChange(config)
         }
         spinner.stop("Login successful")
       }
@@ -172,12 +218,14 @@ async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string):
             expires,
             ...extraFields,
           })
+          await notifyDaemonAuthChange(config)
         }
         if ("key" in result) {
           await Auth.set(saveProvider, {
             type: "api",
             key: result.key,
           })
+          await notifyDaemonAuthChange(config)
         }
         prompts.log.success("Login successful")
       }
@@ -199,6 +247,7 @@ async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string):
           type: "api",
           key: result.key,
         })
+        await notifyDaemonAuthChange(config)
         prompts.log.success("Login successful")
       }
       prompts.outro("Done")
@@ -308,6 +357,7 @@ export const AuthLoginCommand = cmd({
               key: wellknown.auth.env,
               token: token.trim(),
             })
+            await notifyDaemonAuthChange(config)
             prompts.log.success("Logged into " + url.toString())
             prompts.outro("Done")
             return
@@ -320,11 +370,12 @@ export const AuthLoginCommand = cmd({
         const config = await Config.get()
 
         const disabled = new Set(config.disabled_providers ?? [])
+        const isBlocked = (providerID: string) => disabled.has(providerID) || Provider.isProviderBlocked(providerID)
 
         const providers = await ModelsDev.get().then((x) => {
           const filtered: Record<string, (typeof x)[string]> = {}
           for (const [key, value] of Object.entries(x)) {
-            if (!disabled.has(key)) {
+            if (!isBlocked(key)) {
               filtered[key] = value
             }
           }
@@ -339,7 +390,7 @@ export const AuthLoginCommand = cmd({
         for (const hooks of pluginHooks) {
           if (hooks.auth?.provider) {
             const id = hooks.auth.provider
-            if (!disabled.has(id) && !providers[id]) {
+            if (!isBlocked(id) && !providers[id]) {
               // Add minimal provider entry for auth display
               providers[id] = {
                 id,
@@ -360,7 +411,7 @@ export const AuthLoginCommand = cmd({
           tgi: "TGI (Local)",
         }
         for (const id of LOCAL_PROVIDERS) {
-          if (!disabled.has(id) && !providers[id]) {
+          if (!isBlocked(id) && !providers[id]) {
             providers[id] = {
               id,
               name: localProviderDisplayNames[id] ?? id,
@@ -372,7 +423,7 @@ export const AuthLoginCommand = cmd({
 
         // Inject auth-only providers (non-LLM providers that still use auth login)
         for (const [id, providerInfo] of Object.entries(AUTH_ONLY_PROVIDERS)) {
-          if (!disabled.has(id) && !providers[id]) {
+          if (!isBlocked(id) && !providers[id]) {
             providers[id] = {
               id,
               name: providerInfo.name,
@@ -385,7 +436,7 @@ export const AuthLoginCommand = cmd({
         // Inject custom providers from config
         if (config.provider) {
           for (const id of Object.keys(config.provider)) {
-            if (!disabled.has(id) && !providers[id]) {
+            if (!isBlocked(id) && !providers[id]) {
               providers[id] = {
                 id,
                 name: id,
@@ -479,7 +530,7 @@ export const AuthLoginCommand = cmd({
           provider = provider.replace(/^@ai-sdk\//, "")
           const customPlugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
           if (customPlugin && customPlugin.auth) {
-            const handled = await handlePluginAuth({ auth: customPlugin.auth }, provider)
+            const handled = await handlePluginAuth({ auth: customPlugin.auth }, provider, config)
             if (handled) return
           }
           prompts.log.warn(
@@ -489,7 +540,7 @@ export const AuthLoginCommand = cmd({
 
         const plugin = await Plugin.list().then((x) => x.find((x) => x.auth?.provider === provider))
         if (plugin && plugin.auth) {
-          const handled = await handlePluginAuth({ auth: plugin.auth }, provider)
+          const handled = await handlePluginAuth({ auth: plugin.auth }, provider, config)
           if (handled) return
         }
 
@@ -537,6 +588,7 @@ export const AuthLoginCommand = cmd({
             type: "api",
             key: "local",
           })
+          await notifyDaemonAuthChange(config)
 
           prompts.log.success(`${provider} configured at ${baseURL}`)
           prompts.log.info(`Config updated: ${configPath}`)
@@ -554,6 +606,7 @@ export const AuthLoginCommand = cmd({
           type: "api",
           key,
         })
+        await notifyDaemonAuthChange(config)
 
         // Show what services are enabled for multimedia providers
         const registryProvider = getProvider(provider)
@@ -594,6 +647,7 @@ export const AuthLogoutCommand = cmd({
     })
     if (prompts.isCancel(providerID)) throw new UI.CancelledError()
     await Auth.remove(providerID)
+    await notifyDaemonAuthChange()
     prompts.outro("Logout successful")
   },
 })

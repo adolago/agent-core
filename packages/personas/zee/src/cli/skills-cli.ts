@@ -132,7 +132,7 @@ export function formatSkillsList(report: SkillStatusReport, opts: SkillsListOpti
     }).trimEnd(),
   );
 
-  return appendClawdHubHint(lines.join("\n"), opts.json);
+  return appendSkillsHint(lines.join("\n"), opts.json);
 }
 
 /**
@@ -149,7 +149,7 @@ export function formatSkillInfo(
     if (opts.json) {
       return JSON.stringify({ error: "not found", skill: skillName }, null, 2);
     }
-    return appendClawdHubHint(
+    return appendSkillsHint(
       `Skill "${skillName}" not found. Run \`${formatCliCommand("zee skills list")}\` to see available skills.`,
       opts.json,
     );
@@ -243,7 +243,7 @@ export function formatSkillInfo(
     }
   }
 
-  return appendClawdHubHint(lines.join("\n"), opts.json);
+  return appendSkillsHint(lines.join("\n"), opts.json);
 }
 
 /**
@@ -324,7 +324,7 @@ export function formatSkillsCheck(report: SkillStatusReport, opts: SkillsCheckOp
     }
   }
 
-  return appendClawdHubHint(lines.join("\n"), opts.json);
+  return appendSkillsHint(lines.join("\n"), opts.json);
 }
 
 /**

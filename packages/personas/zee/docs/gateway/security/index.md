@@ -95,7 +95,7 @@ gateway:
     - "127.0.0.1"  # if your proxy runs on localhost
   auth:
     mode: password
-    password: ${CLAWDBOT_GATEWAY_PASSWORD}
+    password: ${ZEE_GATEWAY_PASSWORD}
 ```
 
 When `trustedProxies` is configured, the Gateway will use `X-Forwarded-For` headers to determine the real client IP for local client detection. Make sure your proxy overwrites (not appends to) incoming `X-Forwarded-For` headers to prevent spoofing.
@@ -165,7 +165,7 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
 - Review plugin config before enabling.
 - Restart the Gateway after plugin changes.
 - If you install plugins from npm (`zee plugins install <npm-spec>`), treat it like running untrusted code:
-  - The install path is `~/.zee/extensions/<pluginId>/` (or `$CLAWDBOT_STATE_DIR/extensions/<pluginId>/`).
+  - The install path is `~/.zee/extensions/<pluginId>/` (or `$ZEE_STATE_DIR/extensions/<pluginId>/`).
   - Zee uses `npm pack` and then runs `npm install --omit=dev` in that directory (npm lifecycle scripts can execute code during install).
   - Prefer pinned, exact versions (`@scope/pkg@1.2.3`), and inspect the unpacked code on disk before enabling.
 
@@ -209,8 +209,6 @@ Zee has two separate “who can trigger me?” layers:
   - When `dmPolicy="pairing"`, approvals are written to `~/.zee/credentials/<channel>-allowFrom.json` (merged with config allowlists).
 - **Group allowlist** (channel-specific): which groups/channels/guilds the bot will accept messages from at all.
   - Common patterns:
-    - `channels.whatsapp.groups`, `channels.telegram.groups`, `channels.imessage.groups`: per-group defaults like `requireMention`; when set, it also acts as a group allowlist (include `"*"` to keep allow-all behavior).
-    - `groupPolicy="allowlist"` + `groupAllowFrom`: restrict who can trigger the bot *inside* a group session (WhatsApp/Telegram/Signal/iMessage/Microsoft Teams).
     - `channels.discord.guilds` / `channels.slack.channels`: per-surface allowlists + mention defaults.
   - **Security note:** treat `dmPolicy="open"` and `groupPolicy="open"` as last-resort settings. They should be barely used; prefer pairing + allowlists unless you fully trust every member of the room.
 
@@ -319,7 +317,7 @@ Keep config + state private on the gateway host:
 
 The Gateway multiplexes **WebSocket + HTTP** on a single port:
 - Default: `18789`
-- Config/flags/env: `gateway.port`, `--port`, `CLAWDBOT_GATEWAY_PORT`
+- Config/flags/env: `gateway.port`, `--port`, `ZEE_GATEWAY_PORT`
 
 Bind mode controls where the Gateway listens:
 - `gateway.bind: "loopback"` (default): only local clients can connect.
@@ -369,7 +367,7 @@ The Gateway broadcasts its presence via mDNS (`_zee-gw._tcp` on port 5353) for l
    }
    ```
 
-4. **Environment variable** (alternative): set `CLAWDBOT_DISABLE_BONJOUR=1` to disable mDNS without config changes.
+4. **Environment variable** (alternative): set `ZEE_DISABLE_BONJOUR=1` to disable mDNS without config changes.
 
 In minimal mode, the Gateway still broadcasts enough for device discovery (`role`, `gatewayPort`, `transport`) but omits `cliPath` and `sshPort`. Apps that need CLI path information can fetch it via the authenticated WebSocket connection instead.
 
@@ -405,11 +403,11 @@ Local device pairing:
 
 Auth modes:
 - `gateway.auth.mode: "token"`: shared bearer token (recommended for most setups).
-- `gateway.auth.mode: "password"`: password auth (prefer setting via env: `CLAWDBOT_GATEWAY_PASSWORD`).
+- `gateway.auth.mode: "password"`: password auth (prefer setting via env: `ZEE_GATEWAY_PASSWORD`).
 
 Rotation checklist (token/password):
-1. Generate/set a new secret (`gateway.auth.token` or `CLAWDBOT_GATEWAY_PASSWORD`).
-2. Restart the Gateway (or restart the macOS app if it supervises the Gateway).
+1. Generate/set a new secret (`gateway.auth.token` or `ZEE_GATEWAY_PASSWORD`).
+2. Restart the Gateway service.
 3. Update any remote clients (`gateway.remote.token` / `.password` on machines that call into the Gateway).
 4. Verify you can no longer connect with the old credentials.
 
@@ -450,7 +448,7 @@ Avoid:
 
 ### 0.7) Secrets on disk (what’s sensitive)
 
-Assume anything under `~/.zee/` (or `$CLAWDBOT_STATE_DIR/`) may contain secrets or private data:
+Assume anything under `~/.zee/` (or `$ZEE_STATE_DIR/`) may contain secrets or private data:
 
 - `zee.json`: config may include tokens (gateway, remote gateway), provider settings, and allowlists.
 - `credentials/**`: channel credentials (example: WhatsApp creds), pairing allowlists, legacy OAuth imports.
@@ -677,13 +675,13 @@ If your AI does something bad:
 
 ### Contain
 
-1. **Stop it:** stop the macOS app (if it supervises the Gateway) or terminate your `zee gateway` process.
+1. **Stop it:** terminate your `zee gateway` process.
 2. **Close exposure:** set `gateway.bind: "loopback"` (or disable Tailscale Funnel/Serve) until you understand what happened.
 3. **Freeze access:** switch risky DMs/groups to `dmPolicy: "disabled"` / require mentions, and remove `"*"` allow-all entries if you had them.
 
 ### Rotate (assume compromise if secrets leaked)
 
-1. Rotate Gateway auth (`gateway.auth.token` / `CLAWDBOT_GATEWAY_PASSWORD`) and restart.
+1. Rotate Gateway auth (`gateway.auth.token` / `ZEE_GATEWAY_PASSWORD`) and restart.
 2. Rotate remote client secrets (`gateway.remote.token` / `.password`) on any machine that can call the Gateway.
 3. Rotate provider/API credentials (WhatsApp creds, Slack/Discord tokens, model/API keys in `auth-profiles.json`).
 

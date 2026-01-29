@@ -105,11 +105,7 @@ export function listChatCommandsForConfig(
   return [...base, ...buildSkillCommandDefinitions(params.skillCommands)];
 }
 
-const NATIVE_NAME_OVERRIDES: Record<string, Record<string, string>> = {
-  discord: {
-    tts: "voice",
-  },
-};
+const NATIVE_NAME_OVERRIDES: Record<string, Record<string, string>> = {};
 
 function resolveNativeName(command: ChatCommandDefinition, provider?: string): string | undefined {
   if (!command.nativeName) return undefined;

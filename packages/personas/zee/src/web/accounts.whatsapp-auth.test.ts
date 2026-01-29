@@ -16,7 +16,7 @@ describe("hasAnyWhatsAppAuth", () => {
 
   beforeEach(() => {
     previousOauthDir = process.env.CLAWDBOT_OAUTH_DIR;
-    tempOauthDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-oauth-"));
+    tempOauthDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-oauth-"));
     process.env.CLAWDBOT_OAUTH_DIR = tempOauthDir;
   });
 
@@ -47,7 +47,7 @@ describe("hasAnyWhatsAppAuth", () => {
   });
 
   it("includes authDir overrides", () => {
-    const customDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-wa-auth-"));
+    const customDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-wa-auth-"));
     try {
       writeCreds(customDir);
       const cfg = {

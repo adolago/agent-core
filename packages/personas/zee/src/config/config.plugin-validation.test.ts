@@ -154,18 +154,18 @@ describe("config plugin validation", () => {
   it("accepts plugin heartbeat targets", async () => {
     await withTempHome(async (home) => {
       process.env.CLAWDBOT_STATE_DIR = path.join(home, ".clawdbot");
-      const pluginDir = path.join(home, "bluebubbles-plugin");
+      const pluginDir = path.join(home, "matrix-plugin");
       await writePluginFixture({
         dir: pluginDir,
-        id: "bluebubbles-plugin",
-        channels: ["bluebubbles"],
+        id: "matrix-plugin",
+        channels: ["matrix"],
         schema: { type: "object" },
       });
 
       vi.resetModules();
       const { validateConfigObjectWithPlugins } = await import("./config.js");
       const res = validateConfigObjectWithPlugins({
-        agents: { defaults: { heartbeat: { target: "bluebubbles" } }, list: [{ id: "pi" }] },
+        agents: { defaults: { heartbeat: { target: "matrix" } }, list: [{ id: "pi" }] },
         plugins: { enabled: false, load: { paths: [pluginDir] } },
       });
       expect(res.ok).toBe(true);

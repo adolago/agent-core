@@ -107,7 +107,7 @@ describe('Integration Tests', () => {
     });
 
     it('should validate platform types', () => {
-      const validPlatforms = ['whatsapp', 'telegram', 'discord', 'signal', 'imessage'];
+      const validPlatforms = ['whatsapp', 'telegram', 'discord', 'signal'];
 
       function isValidPlatform(platform: string): boolean {
         return validPlatforms.includes(platform.toLowerCase());

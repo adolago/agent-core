@@ -100,7 +100,7 @@ describe("session_status tool", () => {
     const details = result.details as { ok?: boolean; statusText?: string };
     expect(details.ok).toBe(true);
     expect(details.statusText).toContain("Zee");
-    expect(details.statusText).toContain("🧠 Model:");
+    expect(details.statusText).toContain("Model:");
     expect(details.statusText).not.toContain("OAuth/token status");
   });
 

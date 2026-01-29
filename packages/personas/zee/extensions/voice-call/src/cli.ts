@@ -26,8 +26,9 @@ function resolveMode(input: string): "off" | "serve" | "funnel" {
 }
 
 function resolveDefaultStorePath(config: VoiceCallConfig): string {
-  const base =
-    config.store?.trim() || path.join(os.homedir(), "clawd", "voice-calls");
+  const defaultBase = path.join(os.homedir(), ".zee", "voice-calls");
+  const legacyBase = path.join(os.homedir(), "clawd", "voice-calls");
+  const base = config.store?.trim() || (fs.existsSync(legacyBase) ? legacyBase : defaultBase);
   return path.join(resolveUserPath(base), "calls.jsonl");
 }
 
@@ -45,7 +46,7 @@ export function registerVoiceCallCli(params: {
   const root = program
     .command("voicecall")
     .description("Voice call utilities")
-    .addHelpText("after", () => `\nDocs: https://docs.molt.bot/cli/voicecall\n`);
+    .addHelpText("after", () => `\nDocs: https://docs.zee/cli/voicecall\n`);
 
   root
     .command("call")

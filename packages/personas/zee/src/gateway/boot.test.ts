@@ -22,11 +22,10 @@ describe("runBootOnce", () => {
     sendMessageDiscord: vi.fn(),
     sendMessageSlack: vi.fn(),
     sendMessageSignal: vi.fn(),
-    sendMessageIMessage: vi.fn(),
   });
 
   it("skips when BOOT.md is missing", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-boot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-boot-"));
     await expect(runBootOnce({ cfg: {}, deps: makeDeps(), workspaceDir })).resolves.toEqual({
       status: "skipped",
       reason: "missing",
@@ -36,7 +35,7 @@ describe("runBootOnce", () => {
   });
 
   it("skips when BOOT.md is empty", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-boot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-boot-"));
     await fs.writeFile(path.join(workspaceDir, "BOOT.md"), "   \n", "utf-8");
     await expect(runBootOnce({ cfg: {}, deps: makeDeps(), workspaceDir })).resolves.toEqual({
       status: "skipped",
@@ -47,7 +46,7 @@ describe("runBootOnce", () => {
   });
 
   it("runs agent command when BOOT.md exists", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-boot-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-boot-"));
     const content = "Say hello when you wake up.";
     await fs.writeFile(path.join(workspaceDir, "BOOT.md"), content, "utf-8");
 

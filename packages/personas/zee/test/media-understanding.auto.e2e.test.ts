@@ -16,7 +16,7 @@ const writeExecutable = async (dir: string, name: string, content: string) => {
 };
 
 const makeTempMedia = async (ext: string) => {
-  const dir = await makeTempDir("moltbot-media-e2e-");
+  const dir = await makeTempDir("zee-media-e2e-");
   const filePath = path.join(dir, `sample${ext}`);
   await fs.writeFile(filePath, "audio");
   return { dir, filePath };
@@ -52,8 +52,8 @@ describe("media understanding auto-detect (e2e)", () => {
   it("uses sherpa-onnx-offline when available", async () => {
     const snapshot = envSnapshot();
     try {
-      const binDir = await makeTempDir("moltbot-bin-sherpa-");
-      const modelDir = await makeTempDir("moltbot-sherpa-model-");
+      const binDir = await makeTempDir("zee-bin-sherpa-");
+      const modelDir = await makeTempDir("zee-sherpa-model-");
       tempPaths.push(binDir, modelDir);
 
       await fs.writeFile(path.join(modelDir, "tokens.txt"), "a");
@@ -92,8 +92,8 @@ describe("media understanding auto-detect (e2e)", () => {
   it("uses whisper-cli when sherpa is missing", async () => {
     const snapshot = envSnapshot();
     try {
-      const binDir = await makeTempDir("moltbot-bin-whispercpp-");
-      const modelDir = await makeTempDir("moltbot-whispercpp-model-");
+      const binDir = await makeTempDir("zee-bin-whispercpp-");
+      const modelDir = await makeTempDir("zee-whispercpp-model-");
       tempPaths.push(binDir, modelDir);
 
       const modelPath = path.join(modelDir, "tiny.bin");
@@ -137,7 +137,7 @@ describe("media understanding auto-detect (e2e)", () => {
   it("uses gemini CLI for images when available", async () => {
     const snapshot = envSnapshot();
     try {
-      const binDir = await makeTempDir("moltbot-bin-gemini-");
+      const binDir = await makeTempDir("zee-bin-gemini-");
       tempPaths.push(binDir);
 
       await writeExecutable(

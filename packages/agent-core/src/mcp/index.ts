@@ -59,6 +59,21 @@ export namespace MCP {
   }
 
   const AUTH_PLACEHOLDER = /\{auth:([^}]+)\}/g
+  const AUTH_ENV_KEYS: Record<string, string[]> = {
+    kernel: ["KERNEL_API_KEY", "KERNEL_MCP_API_KEY"],
+  }
+
+  function resolveAuthFromEnv(id: string): { value?: string; keys?: string[] } {
+    const keys = AUTH_ENV_KEYS[id]
+    if (!keys || keys.length === 0) return {}
+    for (const key of keys) {
+      const value = process.env[key]
+      if (value && value.trim()) {
+        return { value: value.trim(), keys }
+      }
+    }
+    return { keys }
+  }
 
   async function resolveAuthPlaceholder(value: string): Promise<string> {
     const matches = Array.from(value.matchAll(AUTH_PLACEHOLDER))
@@ -75,7 +90,15 @@ export namespace MCP {
     for (const id of ids) {
       const auth = authEntries.get(id)
       if (!auth) {
-        throw new Error(`Missing auth for "${id}". Run: agent-core auth login ${id}`)
+        const env = resolveAuthFromEnv(id)
+        if (env.value) {
+          resolved = resolved.replaceAll(`{auth:${id}}`, env.value)
+          continue
+        }
+        const hint = env.keys?.length
+          ? `Set ${env.keys.join(" or ")} or run: agent-core auth login ${id}`
+          : `Run: agent-core auth login ${id}`
+        throw new Error(`Missing auth for "${id}". ${hint}`)
       }
       if (auth.type === "api") {
         resolved = resolved.replaceAll(`{auth:${id}}`, auth.key)

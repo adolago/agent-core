@@ -44,7 +44,7 @@ describe("createZeeCodingTools safeBins", () => {
   it("threads tools.exec.safeBins into exec allowlist checks", async () => {
     if (process.platform === "win32") return;
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-safe-bins-"));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-safe-bins-"));
     const cfg: ZeeConfig = {
       tools: {
         exec: {

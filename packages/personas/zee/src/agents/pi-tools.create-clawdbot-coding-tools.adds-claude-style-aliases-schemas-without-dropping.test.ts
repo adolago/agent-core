@@ -449,8 +449,8 @@ describe("createZeeCodingTools", () => {
     }
   });
   it("applies sandbox path guards to file_path alias", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-sbx-"));
-    const outsidePath = path.join(os.tmpdir(), "moltbot-outside.txt");
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-sbx-"));
+    const outsidePath = path.join(os.tmpdir(), "zee-outside.txt");
     await fs.writeFile(outsidePath, "outside", "utf8");
     try {
       const readTool = createSandboxedReadTool(tmpDir);

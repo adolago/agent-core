@@ -15,7 +15,6 @@ export type QueueModeByProvider = {
   googlechat?: QueueMode;
   slack?: QueueMode;
   signal?: QueueMode;
-  imessage?: QueueMode;
   msteams?: QueueMode;
   webchat?: QueueMode;
 };

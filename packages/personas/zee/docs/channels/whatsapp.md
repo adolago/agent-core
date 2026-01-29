@@ -43,7 +43,7 @@ Disable with:
 
 ## Architecture (who owns what)
 - **Gateway** owns the Baileys socket and inbox loop.
-- **CLI / macOS app** talk to the gateway; no direct Baileys use.
+- **CLI / Control UI** talk to the gateway; no direct Baileys use.
 - **Active listener** is required for outbound sends; otherwise send fails fast.
 
 ## Getting a phone number (two modes)
@@ -51,7 +51,7 @@ Disable with:
 WhatsApp requires a real mobile number for verification. VoIP and virtual numbers are usually blocked. There are two supported ways to run Zee on WhatsApp:
 
 ### Dedicated number (recommended)
-Use a **separate phone number** for Zee. Best UX, clean routing, no self-chat quirks. Ideal setup: **spare/old Android phone + eSIM**. Leave it on Wi‑Fi and power, and link it via QR.
+Use a **separate phone number** for Zee. Best UX, clean routing, no self-chat quirks. Ideal setup: **spare/old phone + eSIM**. Leave it on Wi‑Fi and power, and link it via QR.
 
 **WhatsApp Business:** You can use WhatsApp Business on the same device with a different number. Great for keeping your personal WhatsApp separate — install WhatsApp Business and register the Zee number there.
 

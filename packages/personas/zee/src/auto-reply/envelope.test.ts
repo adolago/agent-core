@@ -114,13 +114,13 @@ describe("formatInboundEnvelope", () => {
 
   it("keeps direct messages unprefixed", () => {
     const body = formatInboundEnvelope({
-      channel: "iMessage",
+      channel: "WhatsApp",
       from: "+1555",
       body: "hello",
       chatType: "direct",
       senderLabel: "Alice",
     });
-    expect(body).toBe("[iMessage +1555] hello");
+    expect(body).toBe("[WhatsApp +1555] hello");
   });
 
   it("includes elapsed time when previousTimestamp is provided", () => {

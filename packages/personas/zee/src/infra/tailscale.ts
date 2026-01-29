@@ -20,7 +20,7 @@ function parsePossiblyNoisyJsonObject(stdout: string): Record<string, unknown> {
 /**
  * Locate Tailscale binary using multiple strategies:
  * 1. PATH lookup (via which command)
- * 2. Known macOS app path
+ * 2. Known macOS bundle path
  * 3. find /Applications for Tailscale.app
  * 4. locate database (if available)
  *
@@ -53,7 +53,7 @@ export async function findTailscaleBinary(): Promise<string | null> {
     // which failed, continue
   }
 
-  // Strategy 2: Known macOS app path
+  // Strategy 2: Known macOS bundle path
   const macAppPath = "/Applications/Tailscale.app/Contents/MacOS/Tailscale";
   if (await checkBinary(macAppPath)) {
     return macAppPath;

@@ -11,9 +11,6 @@ describe("formatOutboundDeliverySummary", () => {
     expect(formatOutboundDeliverySummary("telegram")).toBe(
       "✅ Sent via Telegram. Message ID: unknown",
     );
-    expect(formatOutboundDeliverySummary("imessage")).toBe(
-      "✅ Sent via iMessage. Message ID: unknown",
-    );
   });
 
   it("adds chat or channel details", () => {

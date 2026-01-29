@@ -24,7 +24,6 @@ per-session workspaces under `agents.defaults.sandbox.workspaceRoot` (see
 Inside `agents.defaults.workspace`, Zee expects these user-editable files:
 - `AGENTS.md` — operating instructions + “memory”
 - `SOUL.md` — persona, boundaries, tone
-- `TOOLS.md` — user-maintained tool notes (e.g. `imsg`, `sag`, conventions)
 - `BOOTSTRAP.md` — one-time first-run ritual (deleted after completion)
 - `IDENTITY.md` — agent name/vibe/emoji
 - `USER.md` — user profile + preferred address

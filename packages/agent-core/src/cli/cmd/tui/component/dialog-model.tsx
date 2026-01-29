@@ -42,6 +42,7 @@ export function DialogModel(props: { providerID?: string }) {
     const showSections = showExtra()
     const recents = local.model.recent()
     const recentList = showSections ? recents : []
+    const recentKeys = new Set(recentList.map((item) => `${item.providerID}/${item.modelID}`))
 
     const recentOptions = recentList.flatMap((item: { providerID: string; modelID: string }) => {
       const provider = sync.data.provider.find((x) => x.id === item.providerID)
@@ -91,10 +92,13 @@ export function DialogModel(props: { providerID?: string }) {
               providerID: provider.id,
               modelID: model,
             }
+            const modelKey = `${value.providerID}/${value.modelID}`
+            const isRecent = recentKeys.has(modelKey)
             return {
               value,
               title: info.name ?? model,
               category: connected() ? authIndicator + provider.name : undefined,
+              footer: isRecent ? "recent" : undefined,
               onSelect() {
                 dialog.clear()
                 local.model.set(
@@ -106,16 +110,6 @@ export function DialogModel(props: { providerID?: string }) {
                 )
               },
             }
-          }),
-          filter((x) => {
-            if (!showSections) return true
-            const value = x.value
-            const inRecents = recentList.some(
-              (item: { providerID: string; modelID: string }) =>
-                item.providerID === value.providerID && item.modelID === value.modelID,
-            )
-            if (inRecents) return false
-            return true
           }),
           sortBy((x) => x.title),
         )

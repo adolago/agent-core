@@ -1,13 +1,13 @@
 {
-  "name": "@moltbot/zalouser",
+  "name": "@zee/zalouser",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Zalo Personal Account plugin via zca-cli",
   "dependencies": {
-    "moltbot": "workspace:*",
-    "@sinclair/typebox": "0.34.47"
+    "@sinclair/typebox": "0.34.47",
+    "zee": "workspace:*"
   },
-  "moltbot": {
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -25,7 +25,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@moltbot/zalouser",
+      "npmSpec": "@zee/zalouser",
       "localPath": "extensions/zalouser",
       "defaultChoice": "npm"
     }

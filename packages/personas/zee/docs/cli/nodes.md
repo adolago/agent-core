@@ -1,18 +1,16 @@
 ---
-summary: "CLI reference for `zee nodes` (list/status/approve/invoke, camera/canvas/screen)"
+summary: "CLI reference for `zee nodes` (list/status/approve/invoke)"
 read_when:
-  - You’re managing paired nodes (cameras, screen, canvas)
+  - You’re managing paired node hosts
   - You need to approve requests or invoke node commands
 ---
 
 # `zee nodes`
 
-Manage paired nodes (devices) and invoke node capabilities.
+Manage paired node hosts and invoke node capabilities.
 
 Related:
 - Nodes overview: [Nodes](/nodes)
-- Camera: [Camera nodes](/nodes/camera)
-- Images: [Image nodes](/nodes/images)
 
 Common options:
 - `--url`, `--token`, `--timeout`, `--json`
@@ -55,7 +53,7 @@ Invoke flags:
 - Reads `tools.exec.*` (plus `agents.list[].tools.exec.*` overrides).
 - Uses exec approvals (`exec.approval.request`) before invoking `system.run`.
 - `--node` can be omitted when `tools.exec.node` is set.
-- Requires a node that advertises `system.run` (macOS companion app or headless node host).
+- Requires a node that advertises `system.run` (headless node host).
 
 Flags:
 - `--cwd <path>`: working directory.

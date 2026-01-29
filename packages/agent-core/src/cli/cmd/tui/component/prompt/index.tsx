@@ -67,6 +67,7 @@ export function Prompt(props: PromptProps) {
 
   const keybind = useKeybind()
   const vim = useVim()
+  const [visualAnchor, setVisualAnchor] = createSignal<number | null>(null)
   const local = useLocal()
   const sdk = useSDK()
   const route = useRoute()
@@ -403,6 +404,43 @@ export function Prompt(props: PromptProps) {
       insertText: (text) => input.insertText(text),
       setStoreInput: (text) => setStore("prompt", "input", text),
     }
+  }
+
+  const visualMotionKeys = new Set(["h", "j", "k", "l", "w", "b", "e", "0", "$", "^", "g", "G"])
+
+  function updateVisualSelection() {
+    const anchor = visualAnchor()
+    if (anchor === null) return
+    input.editorView.setSelection(anchor, input.cursorOffset)
+  }
+
+  function enterVisualMode() {
+    if (!vim.enabled || !vim.isNormal) return
+    const anchor = input.cursorOffset
+    setVisualAnchor(anchor)
+    input.editorView.setSelection(anchor, anchor)
+    vim.enterVisual()
+  }
+
+  function exitVisualMode() {
+    input.editorView.resetSelection()
+    setVisualAnchor(null)
+    vim.enterNormal()
+  }
+
+  function deleteVisualSelection(): boolean {
+    const selection = input.editorView.getSelection()
+    if (!selection) return false
+    const start = Math.min(selection.start, selection.end)
+    const end = Math.max(selection.start, selection.end)
+    if (start === end) return false
+    const text = input.plainText
+    const next = text.slice(0, start) + text.slice(end)
+    input.setText(next)
+    setStore("prompt", "input", next)
+    input.cursorOffset = start
+    exitVisualMode()
+    return true
   }
 
   // Global vim command handler - handles vim commands when textarea is unfocused
@@ -1364,6 +1402,11 @@ export function Prompt(props: PromptProps) {
       }),
     }
   })
+  const idleFrames = createMemo(() => {
+    const frame = spinnerDef().frames[0]
+    if (!frame) return ["..."]
+    return [frame]
+  })
 
   return (
     <>
@@ -1450,11 +1493,54 @@ export function Prompt(props: PromptProps) {
                     }
                   }
 
+                  // In visual mode, handle selection and exit keys
+                  if (vim.isVisual && !keybind.leader) {
+                    if (e.name === "escape") {
+                      exitVisualMode()
+                      e.preventDefault()
+                      return
+                    }
+
+                    if (e.name && e.name.length === 1 && !e.ctrl && !e.meta) {
+                      const key = e.name
+
+                      if (key === "v") {
+                        exitVisualMode()
+                        e.preventDefault()
+                        return
+                      }
+
+                      if ((key === "x" || key === "d") && deleteVisualSelection()) {
+                        e.preventDefault()
+                        return
+                      }
+
+                      if (visualMotionKeys.has(key)) {
+                        const ctx = createVimContext()
+                        const result = VimCommands.handleNormalModeKey(ctx, key)
+                        if (result.handled) {
+                          updateVisualSelection()
+                          e.preventDefault()
+                          return
+                        }
+                      }
+
+                      e.preventDefault()
+                      return
+                    }
+                  }
+
                   // In normal mode, handle vim commands
                   if (vim.isNormal && !keybind.leader) {
                     // Single character commands (no modifiers except shift for uppercase)
                     if (e.name && e.name.length === 1 && !e.ctrl && !e.meta) {
                       const key = e.name
+
+                      if (key === "v") {
+                        enterVisualMode()
+                        e.preventDefault()
+                        return
+                      }
 
                       // Allow `!` at position 0 to trigger shell mode
                       // This must be checked before vim command handling
@@ -1672,7 +1758,7 @@ export function Prompt(props: PromptProps) {
           borderColor={highlight()}
           customBorderChars={{
             ...EmptyBorder,
-            vertical: theme.backgroundElement.a !== 0 ? "╹" : " ",
+            vertical: theme.backgroundElement.a !== 0 ? "┃" : " ",
           }}
         >
           <box
@@ -1692,7 +1778,19 @@ export function Prompt(props: PromptProps) {
             }
           />
         </box>
-        <box flexDirection="row" justifyContent="space-between">
+        <box
+          flexDirection="row"
+          justifyContent="space-between"
+          border={["left"]}
+          borderColor={highlight()}
+          customBorderChars={{
+            ...EmptyBorder,
+            vertical: theme.backgroundElement.a !== 0 ? "┃" : " ",
+          }}
+          paddingLeft={2}
+          paddingRight={2}
+          backgroundColor={theme.backgroundElement}
+        >
           {/* Left side: persona + vim + mode + spinner + stats */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
             {/* Persona name */}
@@ -1701,12 +1799,20 @@ export function Prompt(props: PromptProps) {
             </text>
             {/* Vim mode indicator with hints */}
             <Show when={vim.enabled && store.mode !== "shell"}>
-              <text fg={vim.isNormal ? theme.accent : theme.success}>
-                {vim.isNormal ? "-- NORMAL --" : "-- INSERT --"}
+              <text
+                fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
+                attributes={TextAttributes.BOLD}
+              >
+                {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
               </text>
               <Show when={vim.isNormal && status().type === "idle"}>
                 <text fg={theme.textMuted}>
-                  i:insert a:append o:below Space:leader
+                  i:insert v:visual Space:leader
+                </text>
+              </Show>
+              <Show when={vim.isVisual && status().type === "idle"}>
+                <text fg={theme.textMuted}>
+                  v:normal esc:normal
                 </text>
               </Show>
             </Show>
@@ -1756,9 +1862,17 @@ export function Prompt(props: PromptProps) {
                   const totals = sessionTokenTotals()
                   const mem = memStatsLive()
                   return (
-                    <text fg={theme.textMuted}>
-                      snt {formatTokens(totals.snt)}t rcvd {formatTokens(totals.rcvd)}t mbd {formatTokens(mem.mbd)}t rrnk {mem.rrnk}d {formatElapsed(completedWorkTime())}
-                    </text>
+                    <box flexDirection="row" gap={1}>
+                      <Show
+                        when={kv.get("animations_enabled", true)}
+                        fallback={<text fg={theme.textMuted}>[...]</text>}
+                      >
+                        <spinner color={spinnerDef().color} frames={idleFrames()} interval={1000} />
+                      </Show>
+                      <text fg={theme.textMuted}>
+                        {formatTokens(totals.snt)}t snt {formatTokens(totals.rcvd)}t rcvd {formatTokens(mem.mbd)}t mbd {mem.rrnk}d rrnk {formatElapsed(completedWorkTime())}
+                      </text>
+                    </box>
                   )
                 })()}
               </Match>

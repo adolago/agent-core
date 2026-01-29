@@ -13,10 +13,7 @@ export default defineConfig({
     setupFiles: ["test/setup.ts"],
     exclude: [
       "dist/**",
-      "apps/macos/**",
-      "apps/macos/.build/**",
       "**/vendor/**",
-      "dist/Zee.app/**",
     ],
   },
 });

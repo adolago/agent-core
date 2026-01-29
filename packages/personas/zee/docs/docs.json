@@ -174,14 +174,6 @@
       "destination": "/channels/grammy"
     },
     {
-      "source": "/providers/imessage",
-      "destination": "/channels/imessage"
-    },
-    {
-      "source": "/providers/imessage/",
-      "destination": "/channels/imessage"
-    },
-    {
       "source": "/providers/location",
       "destination": "/channels/location"
     },
@@ -307,7 +299,7 @@
     },
     {
       "source": "/audio",
-      "destination": "/nodes/audio"
+      "destination": "/nodes"
     },
     {
       "source": "/background-process",
@@ -343,7 +335,7 @@
     },
     {
       "source": "/camera",
-      "destination": "/nodes/camera"
+      "destination": "/nodes"
     },
     {
       "source": "/zee",
@@ -443,11 +435,7 @@
     },
     {
       "source": "/images",
-      "destination": "/nodes/images"
-    },
-    {
-      "source": "/imessage",
-      "destination": "/channels/imessage"
+      "destination": "/nodes"
     },
     {
       "source": "/linux",
@@ -459,87 +447,11 @@
     },
     {
       "source": "/location-command",
-      "destination": "/nodes/location-command"
+      "destination": "/nodes"
     },
     {
       "source": "/lore",
       "destination": "/start/lore"
-    },
-    {
-      "source": "/mac/bun",
-      "destination": "/platforms/mac/bundled-gateway"
-    },
-    {
-      "source": "/platforms/mac/bun",
-      "destination": "/platforms/mac/bundled-gateway"
-    },
-    {
-      "source": "/mac/canvas",
-      "destination": "/platforms/mac/canvas"
-    },
-    {
-      "source": "/mac/child-process",
-      "destination": "/platforms/mac/child-process"
-    },
-    {
-      "source": "/mac/dev-setup",
-      "destination": "/platforms/mac/dev-setup"
-    },
-    {
-      "source": "/mac/health",
-      "destination": "/platforms/mac/health"
-    },
-    {
-      "source": "/mac/icon",
-      "destination": "/platforms/mac/icon"
-    },
-    {
-      "source": "/mac/logging",
-      "destination": "/platforms/mac/logging"
-    },
-    {
-      "source": "/mac/menu-bar",
-      "destination": "/platforms/mac/menu-bar"
-    },
-    {
-      "source": "/mac/peekaboo",
-      "destination": "/platforms/mac/peekaboo"
-    },
-    {
-      "source": "/mac/permissions",
-      "destination": "/platforms/mac/permissions"
-    },
-    {
-      "source": "/mac/release",
-      "destination": "/platforms/mac/release"
-    },
-    {
-      "source": "/mac/remote",
-      "destination": "/platforms/mac/remote"
-    },
-    {
-      "source": "/mac/signing",
-      "destination": "/platforms/mac/signing"
-    },
-    {
-      "source": "/mac/skills",
-      "destination": "/platforms/mac/skills"
-    },
-    {
-      "source": "/mac/voice-overlay",
-      "destination": "/platforms/mac/voice-overlay"
-    },
-    {
-      "source": "/mac/voicewake",
-      "destination": "/platforms/mac/voicewake"
-    },
-    {
-      "source": "/mac/webchat",
-      "destination": "/platforms/mac/webchat"
-    },
-    {
-      "source": "/mac/xpc",
-      "destination": "/platforms/mac/xpc"
     },
     {
       "source": "/macos",
@@ -563,7 +475,7 @@
     },
     {
       "source": "/onboarding",
-      "destination": "/start/onboarding"
+      "destination": "/start/wizard"
     },
     {
       "source": "/onboarding-config-protocol",
@@ -615,7 +527,7 @@
     },
     {
       "source": "/remote-gateway-readme",
-      "destination": "/gateway/remote-gateway-readme"
+      "destination": "/gateway/remote"
     },
     {
       "source": "/research/memory",
@@ -643,7 +555,7 @@
     },
     {
       "source": "/setup",
-      "destination": "/start/setup"
+      "destination": "/start/getting-started"
     },
     {
       "source": "/showcase",
@@ -679,7 +591,7 @@
     },
     {
       "source": "/talk",
-      "destination": "/nodes/talk"
+      "destination": "/nodes"
     },
     {
       "source": "/telegram",
@@ -747,11 +659,11 @@
     },
     {
       "source": "/voicewake",
-      "destination": "/nodes/voicewake"
+      "destination": "/nodes"
     },
     {
       "source": "/webchat",
-      "destination": "/web/webchat"
+      "destination": "/web/control-ui"
     },
     {
       "source": "/webhook",
@@ -954,7 +866,6 @@
           "gateway/troubleshooting",
           "debugging",
           "gateway/remote",
-          "gateway/remote-gateway-readme",
           "gateway/discovery",
           "gateway/bonjour",
           "gateway/tailscale"
@@ -966,7 +877,6 @@
           "web",
           "web/control-ui",
           "web/dashboard",
-          "web/webchat",
           "tui"
         ]
       },
@@ -982,7 +892,6 @@
           "channels/googlechat",
           "channels/mattermost",
           "channels/signal",
-          "channels/imessage",
           "channels/msteams",
           "channels/line",
           "channels/matrix",
@@ -1055,13 +964,7 @@
       {
         "group": "Nodes & Media",
         "pages": [
-          "nodes",
-          "nodes/camera",
-          "nodes/images",
-          "nodes/audio",
-          "nodes/location-command",
-          "nodes/voicewake",
-          "nodes/talk"
+          "nodes"
         ]
       },
       {
@@ -1076,29 +979,6 @@
           "platforms/hetzner",
           "platforms/gcp",
           "platforms/exe-dev"
-        ]
-      },
-      {
-        "group": "macOS Companion App",
-        "pages": [
-          "platforms/mac/dev-setup",
-          "platforms/mac/menu-bar",
-          "platforms/mac/voicewake",
-          "platforms/mac/voice-overlay",
-          "platforms/mac/webchat",
-          "platforms/mac/canvas",
-          "platforms/mac/child-process",
-          "platforms/mac/health",
-          "platforms/mac/icon",
-          "platforms/mac/logging",
-          "platforms/mac/permissions",
-          "platforms/mac/remote",
-          "platforms/mac/signing",
-          "platforms/mac/release",
-          "platforms/mac/bundled-gateway",
-          "platforms/mac/xpc",
-          "platforms/mac/skills",
-          "platforms/mac/peekaboo"
         ]
       },
       {

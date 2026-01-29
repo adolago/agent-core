@@ -122,12 +122,6 @@ function isSignalConfigured(cfg: ZeeConfig): boolean {
   return recordHasKeys(entry);
 }
 
-function isIMessageConfigured(cfg: ZeeConfig): boolean {
-  const entry = resolveChannelConfig(cfg, "imessage");
-  if (!entry) return false;
-  if (hasNonEmptyString(entry.cliPath)) return true;
-  return recordHasKeys(entry);
-}
 
 function isWhatsAppConfigured(cfg: ZeeConfig): boolean {
   if (hasAnyWhatsAppAuth(cfg)) return true;
@@ -157,8 +151,6 @@ export function isChannelConfigured(
       return isSlackConfigured(cfg, env);
     case "signal":
       return isSignalConfigured(cfg);
-    case "imessage":
-      return isIMessageConfigured(cfg);
     default:
       return isGenericChannelConfigured(cfg, channelId);
   }

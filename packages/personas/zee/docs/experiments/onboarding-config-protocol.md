@@ -5,13 +5,13 @@ read_when: "Changing onboarding wizard steps or config schema endpoints"
 
 # Onboarding + Config Protocol
 
-Purpose: shared onboarding + config surfaces across CLI, macOS app, and Web UI.
+Purpose: shared onboarding + config surfaces across CLI, Control UI, and Web UI.
 
 ## Components
 - Wizard engine (shared session + prompts + onboarding state).
 - CLI onboarding uses the same wizard flow as the UI clients.
 - Gateway RPC exposes wizard + config schema endpoints.
-- macOS onboarding uses the wizard step model.
+- Control UI onboarding uses the wizard step model.
 - Web UI renders config forms from JSON Schema + UI hints.
 
 ## Gateway RPC

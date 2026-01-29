@@ -391,7 +391,7 @@ npx claude-flow@alpha memory distributed init --coordinator swarm-memory-manager
 
 ---
 
-## 💻 5. Specialized Domain Agents
+## 5. Specialized Domain Agents
 
 ### `backend-dev`
 **Type**: Server Development  
@@ -405,10 +405,10 @@ npx claude-flow@alpha memory distributed init --coordinator swarm-memory-manager
 
 ### `mobile-dev`
 **Type**: Mobile Application Development  
-**Purpose**: React Native, iOS, and Android development  
+**Purpose**: React Native and cross-platform mobile development  
 **Key Capabilities**:
 - React Native development
-- Native iOS/Android integration
+- Native mobile integrations
 - Mobile UI/UX optimization
 - Performance optimization
 - App store deployment

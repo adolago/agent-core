@@ -50,7 +50,6 @@ Inbound media can be summarized/transcribed before the reply runs. This uses mod
 - Image: OpenAI / Anthropic / Google.
 - Video: Google.
 
-See [Media understanding](/nodes/media-understanding).
 
 ### 3) Memory embeddings + semantic search
 Semantic memory search uses **embedding APIs** when configured for remote providers:
@@ -107,7 +106,6 @@ See [Models CLI](/cli/models).
 Talk mode can invoke **ElevenLabs** when configured:
 - `ELEVENLABS_API_KEY` or `talk.apiKey`
 
-See [Talk mode](/nodes/talk).
 
 ### 10) Skills (third-party APIs)
 Skills can store `apiKey` in `skills.entries.<name>.apiKey`. If a skill uses that key for external

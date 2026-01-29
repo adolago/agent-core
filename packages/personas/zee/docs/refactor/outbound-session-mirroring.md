@@ -35,11 +35,9 @@ Outbound sends were mirrored into the *current* agent session (tool session key)
 - Telegram: topic IDs map to `chatId:topic:<id>` via `buildTelegramGroupPeerId`.
 
 ## Extensions Covered
-- Matrix, MS Teams, Mattermost, BlueBubbles, Nextcloud Talk, Zalo, Zalo Personal, Nostr, Tlon.
 - Notes:
   - Mattermost targets now strip `@` for DM session key routing.
   - Zalo Personal uses DM peer kind for 1:1 targets (group only when `group:` is present).
-  - BlueBubbles group targets strip `chat_*` prefixes to match inbound session keys.
   - Slack auto-thread mirroring matches channel ids case-insensitively.
   - Gateway send lowercases provided session keys before mirroring.
 

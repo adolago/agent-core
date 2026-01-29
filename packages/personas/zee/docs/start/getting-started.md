@@ -54,7 +54,7 @@ Windows: use **WSL2** (Ubuntu recommended). WSL2 is strongly recommended; native
 ## 1) Install the CLI (recommended)
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash
+curl -fsSL https://docs.zee/install.sh | bash
 ```
 
 Installer options (install method, non-interactive, from GitHub): [Install](/install).
@@ -62,7 +62,7 @@ Installer options (install method, non-interactive, from GitHub): [Install](/ins
 Windows (PowerShell):
 
 ```powershell
-iwr -useb https://molt.bot/install.ps1 | iex
+iwr -useb https://docs.zee/install.ps1 | iex
 ```
 
 Alternative (global install):
@@ -169,7 +169,6 @@ If you’re hacking on Zee itself, run from source:
 git clone https://github.com/zee/zee.git
 cd zee
 pnpm install
-pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 zee onboard --install-daemon
 ```
@@ -198,7 +197,6 @@ Health probes: `zee health` (or `zee status --deep`) asks the running gateway fo
 
 ## Next steps (optional, but great)
 
-- macOS menu bar app + voice wake: [macOS app](/platforms/macos)
-- iOS/Android nodes (Canvas/camera/voice): [Nodes](/nodes)
+- Headless node hosts for remote exec: [Nodes](/nodes)
 - Remote access (SSH tunnel / Tailscale Serve): [Remote access](/gateway/remote) and [Tailscale](/gateway/tailscale)
-- Always-on / VPN setups: [Remote access](/gateway/remote), [exe.dev](/platforms/exe-dev), [Hetzner](/platforms/hetzner), [macOS remote](/platforms/mac/remote)
+- Always-on / VPN setups: [Remote access](/gateway/remote), [exe.dev](/platforms/exe-dev), [Hetzner](/platforms/hetzner)

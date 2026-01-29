@@ -35,7 +35,7 @@ describe("resolveZeeAgentDir", () => {
   });
 
   it("defaults to the multi-agent path when no overrides are set", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
     process.env.CLAWDBOT_STATE_DIR = tempStateDir;
     delete process.env.CLAWDBOT_AGENT_DIR;
     delete process.env.PI_CODING_AGENT_DIR;
@@ -46,7 +46,7 @@ describe("resolveZeeAgentDir", () => {
   });
 
   it("honors CLAWDBOT_AGENT_DIR overrides", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-agent-"));
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-agent-"));
     const override = path.join(tempStateDir, "agent");
     process.env.CLAWDBOT_AGENT_DIR = override;
     delete process.env.PI_CODING_AGENT_DIR;

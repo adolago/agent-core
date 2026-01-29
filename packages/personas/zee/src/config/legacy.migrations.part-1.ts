@@ -125,7 +125,6 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
         "discord",
         "slack",
         "signal",
-        "imessage",
         "msteams",
       ];
       const legacyEntries = legacyKeys.filter((key) => isRecord(raw[key]));
@@ -184,7 +183,7 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
   },
   {
     id: "routing.groupChat.requireMention->groups.*.requireMention",
-    describe: "Move routing.groupChat.requireMention to channels.whatsapp/telegram/imessage groups",
+    describe: "Move routing.groupChat.requireMention to channels.whatsapp/telegram groups",
     apply: (raw, changes) => {
       const routing = raw.routing;
       if (!routing || typeof routing !== "object") return;
@@ -198,10 +197,7 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
       if (requireMention === undefined) return;
 
       const channels = ensureRecord(raw, "channels");
-      const applyTo = (
-        key: "whatsapp" | "telegram" | "imessage",
-        options?: { requireExisting?: boolean },
-      ) => {
+      const applyTo = (key: "whatsapp" | "telegram", options?: { requireExisting?: boolean }) => {
         if (options?.requireExisting && !isRecord(channels[key])) return;
         const section =
           channels[key] && typeof channels[key] === "object"
@@ -233,7 +229,6 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
 
       applyTo("whatsapp", { requireExisting: true });
       applyTo("telegram");
-      applyTo("imessage");
 
       delete groupChat.requireMention;
       if (Object.keys(groupChat).length === 0) {

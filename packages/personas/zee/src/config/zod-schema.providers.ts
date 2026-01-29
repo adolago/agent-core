@@ -1,10 +1,8 @@
 import { z } from "zod";
 
 import {
-  BlueBubblesConfigSchema,
   DiscordConfigSchema,
   GoogleChatConfigSchema,
-  IMessageConfigSchema,
   MSTeamsConfigSchema,
   SignalConfigSchema,
   SlackConfigSchema,
@@ -33,8 +31,6 @@ export const ChannelsSchema = z
     googlechat: GoogleChatConfigSchema.optional(),
     slack: SlackConfigSchema.optional(),
     signal: SignalConfigSchema.optional(),
-    imessage: IMessageConfigSchema.optional(),
-    bluebubbles: BlueBubblesConfigSchema.optional(),
     msteams: MSTeamsConfigSchema.optional(),
   })
   .passthrough() // Allow extension channel configs (nostr, matrix, zalo, etc.)

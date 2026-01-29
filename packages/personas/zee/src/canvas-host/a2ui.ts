@@ -3,15 +3,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { LEGACY_CANVAS_HANDLER_NAME } from "../compat/legacy-names.js";
 import { detectMime } from "../media/mime.js";
 
 export const A2UI_PATH = "/__zee__/a2ui";
-export const LEGACY_A2UI_PATHS = ["/__moltbot__/a2ui"] as const;
 export const CANVAS_HOST_PATH = "/__zee__/canvas";
-export const LEGACY_CANVAS_HOST_PATHS = ["/__moltbot__/canvas"] as const;
 export const CANVAS_WS_PATH = "/__zee__/ws";
-export const LEGACY_CANVAS_WS_PATHS = ["/__moltbot/ws"] as const;
 
 let cachedA2uiRootReal: string | null | undefined;
 let resolvingA2uiRoot: Promise<string | null> | null = null;
@@ -95,28 +91,23 @@ async function resolveA2uiFilePath(rootReal: string, urlPath: string) {
 }
 
 export function injectCanvasLiveReload(html: string): string {
-  const legacyHandlerName = LEGACY_CANVAS_HANDLER_NAME;
   const snippet = `
 <script>
 (() => {
   // Cross-platform action bridge helper.
-  // Works on:
-  // - iOS: window.webkit.messageHandlers.(current|legacy)CanvasA2UIAction.postMessage(...)
-  // - Android: window.(current|legacy)CanvasA2UIAction.postMessage(...)
-  const handlerNames = ["zeeCanvasA2UIAction", "moltbotCanvasA2UIAction", "${legacyHandlerName}"];
+  const handlerNames = ["zeeCanvasA2UIAction"];
   function postToNode(payload) {
     try {
       const raw = typeof payload === "string" ? payload : JSON.stringify(payload);
       for (const name of handlerNames) {
-        const iosHandler = globalThis.webkit?.messageHandlers?.[name];
-        if (iosHandler && typeof iosHandler.postMessage === "function") {
-          iosHandler.postMessage(raw);
+        const webkitHandler = globalThis.webkit?.messageHandlers?.[name];
+        if (webkitHandler && typeof webkitHandler.postMessage === "function") {
+          webkitHandler.postMessage(raw);
           return true;
         }
-        const androidHandler = globalThis[name];
-        if (androidHandler && typeof androidHandler.postMessage === "function") {
-          // Important: call as a method on the interface object (binding matters on Android WebView).
-          androidHandler.postMessage(raw);
+        const handler = globalThis[name];
+        if (handler && typeof handler.postMessage === "function") {
+          handler.postMessage(raw);
           return true;
         }
       }
@@ -135,13 +126,6 @@ export function injectCanvasLiveReload(html: string): string {
   globalThis.Zee.sendUserAction = sendUserAction;
   globalThis.zeePostMessage = postToNode;
   globalThis.zeeSendUserAction = sendUserAction;
-  globalThis.Moltbot = globalThis.Moltbot ?? globalThis.Zee ?? {};
-  globalThis.Moltbot.postMessage = postToNode;
-  globalThis.Moltbot.sendUserAction = sendUserAction;
-  globalThis.moltbotPostMessage = postToNode;
-  globalThis.moltbotSendUserAction = sendUserAction;
-  globalThis.clawdbotPostMessage = postToNode;
-  globalThis.clawdbotSendUserAction = sendUserAction;
 
   try {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -169,13 +153,7 @@ export async function handleA2uiHttpRequest(
   if (!urlRaw) return false;
 
   const url = new URL(urlRaw, "http://localhost");
-  const basePath =
-    url.pathname === A2UI_PATH || url.pathname.startsWith(`${A2UI_PATH}/`)
-      ? A2UI_PATH
-      : LEGACY_A2UI_PATHS.find(
-          (legacy) => url.pathname === legacy || url.pathname.startsWith(`${legacy}/`),
-        );
-  if (!basePath) {
+  if (url.pathname !== A2UI_PATH && !url.pathname.startsWith(`${A2UI_PATH}/`)) {
     return false;
   }
 
@@ -194,7 +172,7 @@ export async function handleA2uiHttpRequest(
     return true;
   }
 
-  const rel = url.pathname.slice(basePath.length);
+  const rel = url.pathname.slice(A2UI_PATH.length);
   const filePath = await resolveA2uiFilePath(a2uiRootReal, rel || "/");
   if (!filePath) {
     res.statusCode = 404;

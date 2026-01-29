@@ -163,12 +163,12 @@ vi.mock("../channels/plugins/index.js", () => ({
         },
       },
       {
-        id: "imessage",
+        id: "msteams",
         meta: {
-          id: "imessage",
-          label: "iMessage",
-          selectionLabel: "iMessage",
-          docsPath: "/platforms/mac",
+          id: "msteams",
+          label: "Microsoft Teams",
+          selectionLabel: "Microsoft Teams",
+          docsPath: "/platforms/msteams",
           blurb: "mock",
         },
         config: {
@@ -180,7 +180,7 @@ vi.mock("../channels/plugins/index.js", () => ({
             accounts
               .filter((account) => typeof account.lastError === "string" && account.lastError)
               .map((account) => ({
-                channel: "imessage",
+                channel: "msteams",
                 accountId: typeof account.accountId === "string" ? account.accountId : "default",
                 message: `Channel error: ${String(account.lastError)}`,
               })),
@@ -205,7 +205,7 @@ vi.mock("../gateway/session-utils.js", () => ({
   listAgentsForGateway: mocks.listAgentsForGateway,
 }));
 vi.mock("../infra/zee-root.js", () => ({
-  resolveZeePackageRoot: vi.fn().mockResolvedValue("/tmp/moltbot"),
+  resolveZeePackageRoot: vi.fn().mockResolvedValue("/tmp/zee"),
 }));
 vi.mock("../infra/os-summary.js", () => ({
   resolveOsSummary: () => ({
@@ -217,13 +217,13 @@ vi.mock("../infra/os-summary.js", () => ({
 }));
 vi.mock("../infra/update-check.js", () => ({
   checkUpdateStatus: vi.fn().mockResolvedValue({
-    root: "/tmp/moltbot",
+    root: "/tmp/zee",
     installKind: "git",
     packageManager: "pnpm",
     git: {
-      root: "/tmp/moltbot",
-      branch: "main",
-      upstream: "origin/main",
+      root: "/tmp/zee",
+      branch: "dev",
+      upstream: "origin/dev",
       dirty: false,
       ahead: 0,
       behind: 0,
@@ -232,8 +232,8 @@ vi.mock("../infra/update-check.js", () => ({
     deps: {
       manager: "pnpm",
       status: "ok",
-      lockfilePath: "/tmp/moltbot/pnpm-lock.yaml",
-      markerPath: "/tmp/moltbot/node_modules/.modules.yaml",
+      lockfilePath: "/tmp/zee/pnpm-lock.yaml",
+      markerPath: "/tmp/zee/node_modules/.modules.yaml",
     },
     registry: { latestVersion: "0.0.0" },
   }),
@@ -255,7 +255,7 @@ vi.mock("../daemon/service.js", () => ({
     readRuntime: async () => ({ status: "running", pid: 1234 }),
     readCommand: async () => ({
       programArguments: ["node", "dist/entry.js", "gateway"],
-      sourcePath: "/tmp/Library/LaunchAgents/bot.molt.gateway.plist",
+      sourcePath: "/tmp/Library/LaunchAgents/bot.zee.gateway.plist",
     }),
   }),
 }));
@@ -386,13 +386,13 @@ describe("statusCommand", () => {
             lastError: "signal-cli unreachable",
           },
         ],
-        imessage: [
+        msteams: [
           {
             accountId: "default",
             enabled: true,
             configured: true,
             running: false,
-            lastError: "imessage permission denied",
+            lastError: "msteams permission denied",
           },
         ],
       },
@@ -402,7 +402,7 @@ describe("statusCommand", () => {
     await statusCommand({}, runtime as never);
     const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
     expect(logs.join("\n")).toMatch(/Signal/i);
-    expect(logs.join("\n")).toMatch(/iMessage/i);
+    expect(logs.join("\n")).toMatch(/Teams/i);
     expect(logs.join("\n")).toMatch(/gateway:/i);
     expect(logs.join("\n")).toMatch(/WARN/);
   });

@@ -13,7 +13,7 @@ Zee ships three update channels:
 
 - **stable**: npm dist-tag `latest`.
 - **beta**: npm dist-tag `beta` (builds under test).
-- **dev**: moving head of `main` (git). npm dist-tag: `dev` (when published).
+- **dev**: moving head of `dev` (git). npm dist-tag: `dev` (when published).
 
 We ship builds to **beta**, test them, then **promote a vetted build to `latest`**
 without changing the version number — dist-tags are the source of truth for npm installs.
@@ -29,7 +29,7 @@ zee update --channel dev
 ```
 
 - `stable`/`beta` check out the latest matching tag (often the same tag).
-- `dev` switches to `main` and rebases on the upstream.
+- `dev` switches to `dev` and rebases on `origin/dev`.
 
 npm/pnpm global install:
 
@@ -44,7 +44,7 @@ This updates via the corresponding npm dist-tag (`latest`, `beta`, `dev`).
 When you **explicitly** switch channels with `--channel`, Zee also aligns
 the install method:
 
-- `dev` ensures a git checkout (default `~/zee`, override with `CLAWDBOT_GIT_DIR`),
+- `dev` ensures a git checkout (default `~/zee`, override with `ZEE_GIT_DIR`),
   updates it, and installs the global CLI from that checkout.
 - `stable`/`beta` installs from npm using the matching dist-tag.
 
@@ -65,10 +65,3 @@ When you switch channels with `zee update`, Zee also syncs plugin sources:
   - `latest` → stable
   - `beta` → candidate build
   - `dev` → main snapshot (optional)
-
-## macOS app availability
-
-Beta and dev builds may **not** include a macOS app release. That’s OK:
-
-- The git tag and npm dist-tag can still be published.
-- Call out “no macOS build for this beta” in release notes or changelog.

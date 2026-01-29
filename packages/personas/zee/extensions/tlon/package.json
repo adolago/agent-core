@@ -1,9 +1,13 @@
 {
-  "name": "@moltbot/tlon",
+  "name": "@zee/tlon",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee Tlon/Urbit channel plugin",
-  "moltbot": {
+  "dependencies": {
+    "@urbit/aura": "^3.0.0",
+    "@urbit/http-api": "^3.0.0"
+  },
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -18,13 +22,9 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@moltbot/tlon",
+      "npmSpec": "@zee/tlon",
       "localPath": "extensions/tlon",
       "defaultChoice": "npm"
     }
-  },
-  "dependencies": {
-    "@urbit/aura": "^3.0.0",
-    "@urbit/http-api": "^3.0.0"
   }
 }

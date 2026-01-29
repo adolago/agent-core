@@ -14,7 +14,7 @@ vi.mock("./models-config.js", () => ({
 }));
 
 vi.mock("./agent-paths.js", () => ({
-  resolveZeeAgentDir: () => "/tmp/moltbot",
+  resolveZeeAgentDir: () => "/tmp/zee",
 }));
 
 describe("loadModelCatalog", () => {

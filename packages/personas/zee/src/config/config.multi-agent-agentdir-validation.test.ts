@@ -8,7 +8,7 @@ describe("multi-agent agentDir validation", () => {
   it("rejects shared agents.list agentDir", async () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
-    const shared = path.join(tmpdir(), "moltbot-shared-agentdir");
+    const shared = path.join(tmpdir(), "zee-shared-agentdir");
     const res = validateConfigObject({
       agents: {
         list: [

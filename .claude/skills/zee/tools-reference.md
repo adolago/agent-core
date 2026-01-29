@@ -117,11 +117,11 @@ Manage multiple isolated browser contexts:
 - Session TTL: `PI_BASH_JOB_TTL_MS` (default: 30 min)
 - Output limit: `PI_BASH_MAX_OUTPUT_CHARS` (default: 200KB)
 
-## Mobile Nodes (iOS/Android)
+## Node Hosts (mobile and desktop)
 
 | Tool | Purpose |
 |------|---------|
-| `zee:node-list` | List connected and paired mobile nodes |
+| `zee:node-list` | List connected and paired node hosts |
 | `zee:node-describe` | Get detailed node information |
 | `zee:node-pending` | List pending pairing requests |
 | `zee:node-approve` | Approve node pairing request |
@@ -131,15 +131,12 @@ Manage multiple isolated browser contexts:
 | `zee:node-screen-record` | Record device screen |
 | `zee:node-location` | Get GPS coordinates |
 | `zee:node-notify` | Send push notification |
-| `zee:node-run` | Execute command on macOS/Linux node |
+| `zee:node-run` | Execute command on a node host that supports system.run |
 
-**Platform Capabilities:**
-| Platform | Capabilities |
-|----------|--------------|
-| iOS | Canvas, Camera, Screen, Location |
-| Android | Canvas, Camera, Screen, Location, SMS |
-| macOS | Canvas, Camera, Screen, Location, System |
-| Linux | System commands only |
+**Capability groups (vary by host):**
+- **Mobile nodes**: Canvas, Camera, Screen, Location, Notifications (optional SMS if provided by the host).
+- **Desktop nodes**: Canvas, Screen, System commands; optional camera/location depending on hardware.
+- **Headless nodes**: System commands only.
 
 **Camera Options:**
 | Option | Description |

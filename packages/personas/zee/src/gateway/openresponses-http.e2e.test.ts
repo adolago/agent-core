@@ -147,7 +147,7 @@ describe("OpenResponses HTTP API (e2e)", () => {
       const resHeader = await postResponses(
         port,
         { model: "moltbot", input: "hi" },
-        { "x-moltbot-agent-id": "beta" },
+        { "x-zee-agent-id": "beta" },
       );
       expect(resHeader.status).toBe(200);
       const [optsHeader] = agentCommand.mock.calls[0] ?? [];

@@ -29,7 +29,9 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
   confirm: (p: { message: string; initialValue: boolean }) => Promise<boolean>;
   outro: (message: string) => void;
 }) {
-  const updateInProgress = isTruthyEnvValue(process.env.CLAWDBOT_UPDATE_IN_PROGRESS);
+  const updateInProgress =
+    isTruthyEnvValue(process.env.ZEE_UPDATE_IN_PROGRESS) ||
+    isTruthyEnvValue(process.env.CLAWDBOT_UPDATE_IN_PROGRESS);
   const canOfferUpdate =
     !updateInProgress &&
     params.options.nonInteractive !== true &&
@@ -45,7 +47,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
       initialValue: true,
     });
     if (!shouldUpdate) return { updated: false };
-    note("Running update (fetch/rebase/build/ui:build/doctor)…", "Update");
+    note("Running update (fetch/rebase/build/doctor)…", "Update");
     const result = await runGatewayUpdate({
       cwd: params.root,
       argv1: process.argv[1],

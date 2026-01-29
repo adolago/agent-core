@@ -22,7 +22,7 @@ inside a sandbox workspace under `~/.zee/sandboxes`, not your host workspace.
 ## Default location
 
 - Default: `~/zee`
-- If `CLAWDBOT_PROFILE` is set and not `"default"`, the default becomes
+- If `ZEE_PROFILE` is set and not `"default"`, the default becomes
   `~/zee-<profile>`.
 - Override in `~/.zee/zee.json`:
 

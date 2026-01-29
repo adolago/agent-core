@@ -56,15 +56,11 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
 
   const candidates: string[] = [];
 
-  // Bundled macOS app: `zee` lives next to the executable (process.execPath).
+  // Bundled CLI: `zee` lives next to the executable (process.execPath).
   try {
     const execDir = path.dirname(execPath);
     const siblingZee = path.join(execDir, "zee");
     if (isExecutable(siblingZee)) candidates.push(execDir);
-    const siblingMoltbot = path.join(execDir, "moltbot");
-    if (isExecutable(siblingMoltbot)) candidates.push(execDir);
-    const siblingClawdbot = path.join(execDir, "clawdbot");
-    if (isExecutable(siblingClawdbot)) candidates.push(execDir);
   } catch {
     // ignore
   }
@@ -73,8 +69,6 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
   // include it. This helps when running under launchd or other minimal PATH environments.
   const localBinDir = path.join(cwd, "node_modules", ".bin");
   if (isExecutable(path.join(localBinDir, "zee"))) candidates.push(localBinDir);
-  if (isExecutable(path.join(localBinDir, "moltbot"))) candidates.push(localBinDir);
-  if (isExecutable(path.join(localBinDir, "clawdbot"))) candidates.push(localBinDir);
 
   const miseDataDir = process.env.MISE_DATA_DIR ?? path.join(homeDir, ".local", "share", "mise");
   const miseShims = path.join(miseDataDir, "shims");
@@ -98,19 +92,13 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
 
 /**
  * Best-effort PATH bootstrap so skills that require the `zee` CLI can run
- * under launchd/minimal environments (and inside the macOS app bundle).
+ * under launchd/minimal environments.
  */
 export function ensureZeeCliOnPath(opts: EnsureZeePathOpts = {}) {
-  if (
-    isTruthyEnvValue(process.env.ZEE_PATH_BOOTSTRAPPED) ||
-    isTruthyEnvValue(process.env.MOLTBOT_PATH_BOOTSTRAPPED) ||
-    isTruthyEnvValue(process.env.CLAWDBOT_PATH_BOOTSTRAPPED)
-  ) {
+  if (isTruthyEnvValue(process.env.ZEE_PATH_BOOTSTRAPPED)) {
     return;
   }
   process.env.ZEE_PATH_BOOTSTRAPPED = "1";
-  process.env.MOLTBOT_PATH_BOOTSTRAPPED ??= "1";
-  process.env.CLAWDBOT_PATH_BOOTSTRAPPED ??= "1";
 
   const existing = opts.pathEnv ?? process.env.PATH ?? "";
   const prepend = candidateBinDirs(opts);

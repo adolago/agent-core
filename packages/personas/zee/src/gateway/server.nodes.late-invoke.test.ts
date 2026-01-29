@@ -57,7 +57,7 @@ describe("late-arriving invoke results", () => {
         client: {
           id: GATEWAY_CLIENT_NAMES.NODE_HOST,
           version: "1.0.0",
-          platform: "ios",
+          platform: "linux",
           mode: GATEWAY_CLIENT_MODES.NODE,
         },
         commands: ["canvas.snapshot"],

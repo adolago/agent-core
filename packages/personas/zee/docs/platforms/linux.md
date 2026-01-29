@@ -1,15 +1,15 @@
 ---
-summary: "Linux support + companion app status"
+summary: "Linux support (Gateway + Control UI)"
 read_when:
-  - Looking for Linux companion app status
+  - Looking for Linux support status
   - Planning platform coverage or contributions
 ---
-# Linux App
+# Linux
 
 The Gateway is fully supported on Linux. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-Native Linux companion apps are planned. Contributions are welcome if you want to help build one.
+No native Linux app is shipped in this repo. Use the Gateway and Control UI.
 
 ## Beginner quick path (VPS)
 

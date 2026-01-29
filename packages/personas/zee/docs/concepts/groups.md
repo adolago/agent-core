@@ -1,11 +1,9 @@
 ---
-summary: "Group chat behavior across surfaces (WhatsApp/Telegram/Discord/Slack/Signal/iMessage/Microsoft Teams)"
 read_when:
   - Changing group chat behavior or mention gating
 ---
 # Groups
 
-Zee treats group chats consistently across surfaces: WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Microsoft Teams.
 
 ## Beginner intro (2 minutes)
 Zee “lives” on your own messaging accounts. There is no separate WhatsApp bot user.
@@ -132,7 +130,6 @@ Control how group/room messages are handled per channel:
       groupPolicy: "disabled",
       groupAllowFrom: ["+15551234567"]
     },
-    imessage: {
       groupPolicy: "disabled",
       groupAllowFrom: ["chat_id:123"]
     },
@@ -170,7 +167,6 @@ Control how group/room messages are handled per channel:
 
 Notes:
 - `groupPolicy` is separate from mention-gating (which requires @mentions).
-- WhatsApp/Telegram/Signal/iMessage/Microsoft Teams: use `groupAllowFrom` (fallback: explicit `allowFrom`).
 - Discord: allowlist uses `channels.discord.guilds.<id>.channels`.
 - Slack: allowlist uses `channels.slack.channels`.
 - Matrix: allowlist uses `channels.matrix.groups` (room IDs, aliases, or names). Use `channels.matrix.groupAllowFrom` to restrict senders; per-room `users` allowlists are also supported.
@@ -203,7 +199,6 @@ Replying to a bot message counts as an implicit mention (when the channel suppor
         "123456789": { requireMention: false }
       }
     },
-    imessage: {
       groups: {
         "*": { requireMention: true },
         "123": { requireMention: false }
@@ -269,7 +264,6 @@ Notes:
 - Some channels use different nesting for rooms/channels (e.g., Discord `guilds.*.channels.*`, Slack `channels.*`, MS Teams `teams.*.channels.*`).
 
 ## Group allowlists
-When `channels.whatsapp.groups`, `channels.telegram.groups`, or `channels.imessage.groups` is configured, the keys act as a group allowlist. Use `"*"` to allow all groups while still setting default mention behavior.
 
 Common intents (copy/paste):
 
@@ -335,9 +329,7 @@ Group inbound payloads set:
 
 The agent system prompt includes a group intro on the first turn of a new group session. It reminds the model to respond like a human, avoid Markdown tables, and avoid typing literal `\n` sequences.
 
-## iMessage specifics
 - Prefer `chat_id:<id>` when routing or allowlisting.
-- List chats: `imsg chats --limit 20`.
 - Group replies always go back to the same `chat_id`.
 
 ## WhatsApp specifics

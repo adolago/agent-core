@@ -7,7 +7,6 @@ import { setupChannels } from "./onboard-channels.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import { discordPlugin } from "../../extensions/discord/src/channel.js";
-import { imessagePlugin } from "../../extensions/imessage/src/channel.js";
 import { signalPlugin } from "../../extensions/signal/src/channel.js";
 import { slackPlugin } from "../../extensions/slack/src/channel.js";
 import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
@@ -38,7 +37,6 @@ describe("setupChannels", () => {
         { pluginId: "telegram", plugin: telegramPlugin, source: "test" },
         { pluginId: "whatsapp", plugin: whatsappPlugin, source: "test" },
         { pluginId: "signal", plugin: signalPlugin, source: "test" },
-        { pluginId: "imessage", plugin: imessagePlugin, source: "test" },
       ]),
     );
   });

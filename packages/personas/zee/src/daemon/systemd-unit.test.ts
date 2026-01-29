@@ -26,13 +26,13 @@ describe("parseSystemdExecStart", () => {
   });
 
   it("parses path arguments", () => {
-    const execStart = "/usr/bin/moltbot gateway start --path /tmp/moltbot";
+    const execStart = "/usr/bin/moltbot gateway start --path /tmp/zee";
     expect(parseSystemdExecStart(execStart)).toEqual([
       "/usr/bin/moltbot",
       "gateway",
       "start",
       "--path",
-      "/tmp/moltbot",
+      "/tmp/zee",
     ]);
   });
 });

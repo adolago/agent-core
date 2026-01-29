@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://molt.bot/install.sh}"
+INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://docs.zee/install.sh}"
 DEFAULT_PACKAGE="zee"
 if [[ -z "${CLAWDBOT_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"zee.bot"* ]]; then
   DEFAULT_PACKAGE="zee"

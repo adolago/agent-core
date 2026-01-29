@@ -186,6 +186,10 @@ function makeAgentCoreProfileId(providerId: string): string {
  * Returns true if any credentials were updated.
  */
 export function syncAgentCoreCredentials(store: AuthProfileStore): boolean {
+  const disabled = process.env.ZEE_DISABLE_AGENT_CORE_SYNC?.trim().toLowerCase();
+  if (disabled === "1" || disabled === "true" || disabled === "yes") {
+    return false;
+  }
   const agentCoreAuth = readAgentCoreAuthCached();
   if (!agentCoreAuth) {
     return false;

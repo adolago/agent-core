@@ -22,7 +22,7 @@ zee gateway --force
 # dev loop (auto-reload on TS changes):
 pnpm gateway:watch
 ```
-- Config hot reload watches `~/.zee/zee.json` (or `CLAWDBOT_CONFIG_PATH`).
+- Config hot reload watches `~/.zee/zee.json` (or `ZEE_CONFIG_PATH`).
   - Default mode: `gateway.reload.mode="hybrid"` (hot-apply safe changes, restart on critical).
   - Hot reload uses in-process restart via **SIGUSR1** when needed.
   - Disable with `gateway.reload.mode="off"`.
@@ -31,15 +31,15 @@ pnpm gateway:watch
   - OpenAI Chat Completions (HTTP): [`/v1/chat/completions`](/gateway/openai-http-api).
   - OpenResponses (HTTP): [`/v1/responses`](/gateway/openresponses-http-api).
   - Tools Invoke (HTTP): [`/tools/invoke`](/gateway/tools-invoke-http-api).
-- Starts a Canvas file server by default on `canvasHost.port` (default `18793`), serving `http://<gateway-host>:18793/__zee__/canvas/` from `~/zee/canvas`. Disable with `canvasHost.enabled=false` or `CLAWDBOT_SKIP_CANVAS_HOST=1`.
+- Starts a Canvas file server by default on `canvasHost.port` (default `18793`), serving `http://<gateway-host>:18793/__zee__/canvas/` from `~/zee/canvas`. Disable with `canvasHost.enabled=false` or `ZEE_SKIP_CANVAS_HOST=1`.
 - Logs to stdout; use launchd/systemd to keep it alive and rotate logs.
 - Pass `--verbose` to mirror debug logging (handshakes, req/res, events) from the log file into stdio when troubleshooting.
 - `--force` uses `lsof` to find listeners on the chosen port, sends SIGTERM, logs what it killed, then starts the gateway (fails fast if `lsof` is missing).
-- If you run under a supervisor (launchd/systemd/mac app child-process mode), a stop/restart typically sends **SIGTERM**; older builds may surface this as `pnpm` `ELIFECYCLE` exit code **143** (SIGTERM), which is a normal shutdown, not a crash.
+- If you run under a supervisor (launchd/systemd), a stop/restart typically sends **SIGTERM**; older builds may surface this as `pnpm` `ELIFECYCLE` exit code **143** (SIGTERM), which is a normal shutdown, not a crash.
 - **SIGUSR1** triggers an in-process restart when authorized (gateway tool/config apply/update, or enable `commands.restart` for manual restarts).
-- Gateway auth is required by default: set `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`) or `gateway.auth.password`. Clients must send `connect.params.auth.token/password` unless using Tailscale Serve identity.
+- Gateway auth is required by default: set `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`) or `gateway.auth.password`. Clients must send `connect.params.auth.token/password` unless using Tailscale Serve identity.
 - The wizard now generates a token by default, even on loopback.
-- Port precedence: `--port` > `CLAWDBOT_GATEWAY_PORT` > `gateway.port` > default `18789`.
+- Port precedence: `--port` > `ZEE_GATEWAY_PORT` > `gateway.port` > default `18789`.
 
 ## Remote access
 - Tailscale/VPN preferred; otherwise SSH tunnel:
@@ -56,14 +56,14 @@ Usually unnecessary: one Gateway can serve multiple messaging channels and agent
 Supported if you isolate state + config and use unique ports. Full guide: [Multiple gateways](/gateway/multiple-gateways).
 
 Service names are profile-aware:
-- macOS: `bot.molt.<profile>` (legacy `com.zee.*` may still exist)
+- macOS: `bot.zee.<profile>` (legacy `com.zee.*` may still exist)
 - Linux: `zee-gateway-<profile>.service`
 - Windows: `Zee Gateway (<profile>)`
 
 Install metadata is embedded in the service config:
-- `CLAWDBOT_SERVICE_MARKER=zee`
-- `CLAWDBOT_SERVICE_KIND=gateway`
-- `CLAWDBOT_SERVICE_VERSION=<version>`
+- `ZEE_SERVICE_MARKER=zee`
+- `ZEE_SERVICE_KIND=gateway`
+- `ZEE_SERVICE_VERSION=<version>`
 
 Rescue-Bot Pattern: keep a second Gateway isolated with its own profile, state dir, workspace, and base port spacing. Full guide: [Rescue-bot guide](/gateway/multiple-gateways#rescue-bot-guide).
 
@@ -80,23 +80,23 @@ zee --dev health
 ```
 
 Defaults (can be overridden via env/flags/config):
-- `CLAWDBOT_STATE_DIR=~/.zee-dev`
-- `CLAWDBOT_CONFIG_PATH=~/.zee-dev/zee.json`
-- `CLAWDBOT_GATEWAY_PORT=19001` (Gateway WS + HTTP)
+- `ZEE_STATE_DIR=~/.zee-dev`
+- `ZEE_CONFIG_PATH=~/.zee-dev/zee.json`
+- `ZEE_GATEWAY_PORT=19001` (Gateway WS + HTTP)
 - browser control service port = `19003` (derived: `gateway.port+2`, loopback only)
 - `canvasHost.port=19005` (derived: `gateway.port+4`)
 - `agents.defaults.workspace` default becomes `~/zee-dev` when you run `setup`/`onboard` under `--dev`.
 
 Derived ports (rules of thumb):
-- Base port = `gateway.port` (or `CLAWDBOT_GATEWAY_PORT` / `--port`)
+- Base port = `gateway.port` (or `ZEE_GATEWAY_PORT` / `--port`)
 - browser control service port = base + 2 (loopback only)
-- `canvasHost.port = base + 4` (or `CLAWDBOT_CANVAS_HOST_PORT` / config override)
+- `canvasHost.port = base + 4` (or `ZEE_CANVAS_HOST_PORT` / config override)
 - Browser profile CDP ports auto-allocate from `browser.controlPort + 9 .. + 108` (persisted per profile).
 
 Checklist per instance:
 - unique `gateway.port`
-- unique `CLAWDBOT_CONFIG_PATH`
-- unique `CLAWDBOT_STATE_DIR`
+- unique `ZEE_CONFIG_PATH`
+- unique `ZEE_STATE_DIR`
 - unique `agents.defaults.workspace`
 - separate WhatsApp numbers (if using WA)
 
@@ -108,8 +108,8 @@ zee --profile rescue gateway install
 
 Example:
 ```bash
-CLAWDBOT_CONFIG_PATH=~/.zee/a.json CLAWDBOT_STATE_DIR=~/.zee-a zee gateway --port 19001
-CLAWDBOT_CONFIG_PATH=~/.zee/b.json CLAWDBOT_STATE_DIR=~/.zee-b zee gateway --port 19002
+ZEE_CONFIG_PATH=~/.zee/a.json ZEE_STATE_DIR=~/.zee-a zee gateway --port 19001
+ZEE_CONFIG_PATH=~/.zee/b.json ZEE_STATE_DIR=~/.zee-b zee gateway --port 19002
 ```
 
 ## Protocol (operator view)
@@ -142,17 +142,15 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
 - `tick` — periodic keepalive/no-op to confirm liveness.
 - `shutdown` — Gateway is exiting; payload includes `reason` and optional `restartExpectedMs`. Clients should reconnect.
 
-## WebChat integration
-- WebChat is a native SwiftUI UI that talks directly to the Gateway WebSocket for history, sends, abort, and events.
+## Control UI integration
+- Control UI is a browser UI served from the Gateway and talks directly to the Gateway WebSocket for history, sends, abort, and events.
 - Remote use goes through the same SSH/Tailscale tunnel; if a gateway token is configured, the client includes it during `connect`.
-- macOS app connects via a single WS (shared connection); it hydrates presence from the initial snapshot and listens for `presence` events to update the UI.
 
 ## Typing and validation
 - Server validates every inbound frame with AJV against JSON Schema emitted from the protocol definitions.
-- Clients (TS/Swift) consume generated types (TS directly; Swift via the repo’s generator).
+- Clients (TS) consume generated types from the schema output.
 - Protocol definitions are the source of truth; regenerate schema/models with:
   - `pnpm protocol:gen`
-  - `pnpm protocol:gen:swift`
 
 ## Connection snapshot
 - `hello-ok` includes a `snapshot` with `presence`, `health`, `stateVersion`, and `uptimeMs` plus `policy {maxPayload,maxBufferedBytes,tickIntervalMs}` so clients can render immediately without extra requests.
@@ -171,7 +169,7 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
 - Send/agent acknowledgements remain separate responses; do not overload ticks for sends.
 
 ## Replay / gaps
-- Events are not replayed. Clients detect seq gaps and should refresh (`health` + `system-presence`) before continuing. WebChat and macOS clients now auto-refresh on gap.
+- Events are not replayed. Clients detect seq gaps and should refresh (`health` + `system-presence`) before continuing. Control UI clients auto-refresh on gap.
 
 ## Supervision (macOS example)
 - Use launchd to keep the service alive:
@@ -181,8 +179,8 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
   - StandardOut/Err: file paths or `syslog`
 - On failure, launchd restarts; fatal misconfig should keep exiting so the operator notices.
 - LaunchAgents are per-user and require a logged-in session; for headless setups use a custom LaunchDaemon (not shipped).
-  - `zee gateway install` writes `~/Library/LaunchAgents/bot.molt.gateway.plist`
-    (or `bot.molt.<profile>.plist`; legacy `com.zee.*` is cleaned up).
+  - `zee gateway install` writes `~/Library/LaunchAgents/bot.zee.gateway.plist`
+    (or `bot.zee.<profile>.plist`; legacy `com.zee.*` is cleaned up).
   - `zee doctor` audits the LaunchAgent config and can update it to current defaults.
 
 ## Gateway service management (CLI)
@@ -211,14 +209,6 @@ Notes:
   - Cleanup: `zee gateway uninstall` (current service) and `zee doctor` (legacy migrations).
 - `gateway install` is a no-op when already installed; use `zee gateway install --force` to reinstall (profile/env/path changes).
 
-Bundled mac app:
-- Zee.app can bundle a Node-based gateway relay and install a per-user LaunchAgent labeled
-  `bot.molt.gateway` (or `bot.molt.<profile>`; legacy `com.zee.*` labels still unload cleanly).
-- To stop it cleanly, use `zee gateway stop` (or `launchctl bootout gui/$UID/bot.molt.gateway`).
-- To restart, use `zee gateway restart` (or `launchctl kickstart -k gui/$UID/bot.molt.gateway`).
-  - `launchctl` only works if the LaunchAgent is installed; otherwise use `zee gateway install` first.
-  - Replace the label with `bot.molt.<profile>` when running a named profile.
-
 ## Supervision (systemd user unit)
 Zee installs a **systemd user service** by default on Linux/WSL2. We
 recommend user services for single-user machines (simpler env, per-user config).
@@ -239,7 +229,7 @@ Wants=network-online.target
 ExecStart=/usr/local/bin/zee gateway --port 18789
 Restart=always
 RestartSec=5
-Environment=CLAWDBOT_GATEWAY_TOKEN=
+Environment=ZEE_GATEWAY_TOKEN=
 WorkingDirectory=/home/youruser
 
 [Install]

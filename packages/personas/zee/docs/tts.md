@@ -291,7 +291,7 @@ Optional allowlist (disable specific overrides while keeping tags enabled):
 ## Per-user preferences
 
 Slash commands write local overrides to `prefsPath` (default:
-`~/.zee/settings/tts.json`, override with `CLAWDBOT_TTS_PREFS` or
+`~/.zee/settings/tts.json`, override with `ZEE_TTS_PREFS` or
 `messages.tts.prefsPath`).
 
 Stored fields:

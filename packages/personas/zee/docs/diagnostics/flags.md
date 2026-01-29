@@ -41,13 +41,13 @@ Restart the gateway after changing flags.
 ## Env override (one-off)
 
 ```bash
-CLAWDBOT_DIAGNOSTICS=telegram.http,telegram.payload
+ZEE_DIAGNOSTICS=telegram.http,telegram.payload
 ```
 
 Disable all flags:
 
 ```bash
-CLAWDBOT_DIAGNOSTICS=0
+ZEE_DIAGNOSTICS=0
 ```
 
 ## Where logs go

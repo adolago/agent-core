@@ -370,7 +370,7 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
     const statusCheck = await runStep(
       step(
         "clean check",
-        ["git", "-C", gitRoot, "status", "--porcelain", "--", ":!dist/control-ui/"],
+        ["git", "-C", gitRoot, "status", "--porcelain"],
         gitRoot,
       ),
     );
@@ -412,28 +412,21 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
         }
       }
 
-      const upstreamStep = await runStep(
+      const originRef = `origin/${DEV_BRANCH}`;
+      const originCheckStep = await runStep(
         step(
-          "upstream check",
-          [
-            "git",
-            "-C",
-            gitRoot,
-            "rev-parse",
-            "--abbrev-ref",
-            "--symbolic-full-name",
-            "@{upstream}",
-          ],
+          "origin check",
+          ["git", "-C", gitRoot, "rev-parse", "--verify", "--quiet", originRef],
           gitRoot,
         ),
       );
-      steps.push(upstreamStep);
-      if (upstreamStep.exitCode !== 0) {
+      steps.push(originCheckStep);
+      if (originCheckStep.exitCode !== 0) {
         return {
           status: "skipped",
           mode: "git",
           root: gitRoot,
-          reason: "no-upstream",
+          reason: "no-origin-branch",
           before: { sha: beforeSha, version: beforeVersion },
           steps,
           durationMs: Date.now() - startedAt,
@@ -441,25 +434,29 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
       }
 
       const fetchStep = await runStep(
-        step("git fetch", ["git", "-C", gitRoot, "fetch", "--all", "--prune", "--tags"], gitRoot),
-      );
-      steps.push(fetchStep);
-
-      const upstreamShaStep = await runStep(
         step(
-          "git rev-parse @{upstream}",
-          ["git", "-C", gitRoot, "rev-parse", "@{upstream}"],
+          "git fetch",
+          ["git", "-C", gitRoot, "fetch", "origin", "--prune", "--tags"],
           gitRoot,
         ),
       );
-      steps.push(upstreamShaStep);
-      const upstreamSha = upstreamShaStep.stdoutTail?.trim();
-      if (!upstreamShaStep.stdoutTail || !upstreamSha) {
+      steps.push(fetchStep);
+
+      const originShaStep = await runStep(
+        step(
+          `git rev-parse ${originRef}`,
+          ["git", "-C", gitRoot, "rev-parse", originRef],
+          gitRoot,
+        ),
+      );
+      steps.push(originShaStep);
+      const originSha = originShaStep.stdoutTail?.trim();
+      if (!originShaStep.stdoutTail || !originSha) {
         return {
           status: "error",
           mode: "git",
           root: gitRoot,
-          reason: "no-upstream-sha",
+          reason: "no-origin-sha",
           before: { sha: beforeSha, version: beforeVersion },
           steps,
           durationMs: Date.now() - startedAt,
@@ -469,7 +466,7 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
       const revListStep = await runStep(
         step(
           "git rev-list",
-          ["git", "-C", gitRoot, "rev-list", `--max-count=${PREFLIGHT_MAX_COMMITS}`, upstreamSha],
+          ["git", "-C", gitRoot, "rev-list", `--max-count=${PREFLIGHT_MAX_COMMITS}`, originSha],
           gitRoot,
         ),
       );
@@ -508,7 +505,7 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
       const worktreeStep = await runStep(
         step(
           "preflight worktree",
-          ["git", "-C", gitRoot, "worktree", "add", "--detach", worktreeDir, upstreamSha],
+          ["git", "-C", gitRoot, "worktree", "add", "--detach", worktreeDir, originSha],
           gitRoot,
         ),
       );
@@ -619,7 +616,11 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
       }
     } else {
       const fetchStep = await runStep(
-        step("git fetch", ["git", "-C", gitRoot, "fetch", "--all", "--prune", "--tags"], gitRoot),
+        step(
+          "git fetch",
+          ["git", "-C", gitRoot, "fetch", "origin", "--prune", "--tags"],
+          gitRoot,
+        ),
       );
       steps.push(fetchStep);
       if (fetchStep.exitCode !== 0) {
@@ -671,22 +672,6 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
 
     const buildStep = await runStep(step("build", managerScriptArgs(manager, "build"), gitRoot));
     steps.push(buildStep);
-
-    const uiBuildStep = await runStep(
-      step("ui:build", managerScriptArgs(manager, "ui:build"), gitRoot),
-    );
-    steps.push(uiBuildStep);
-
-    // Restore dist/control-ui/ to committed state to prevent dirty repo after update
-    // (ui:build regenerates assets with new hashes, which would block future updates)
-    const restoreUiStep = await runStep(
-      step(
-        "restore control-ui",
-        ["git", "-C", gitRoot, "checkout", "--", "dist/control-ui/"],
-        gitRoot,
-      ),
-    );
-    steps.push(restoreUiStep);
 
     const doctorStep = await runStep(
       step(

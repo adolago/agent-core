@@ -76,14 +76,6 @@ const hoisted = vi.hoisted(() => {
           lastError: null,
           baseUrl: null,
         },
-        imessage: {
-          running: false,
-          lastStartAt: null,
-          lastStopAt: null,
-          lastError: null,
-          cliPath: null,
-          dbPath: null,
-        },
         msteams: {
           running: false,
           lastStartAt: null,
@@ -97,7 +89,6 @@ const hoisted = vi.hoisted(() => {
         discord: {},
         slack: {},
         signal: {},
-        imessage: {},
         msteams: {},
       },
     })),
@@ -212,7 +203,6 @@ describe("gateway hot reload", () => {
         telegram: { botToken: "token" },
         discord: { token: "token" },
         signal: { account: "+15550000000" },
-        imessage: { enabled: true },
       },
     };
 
@@ -227,7 +217,6 @@ describe("gateway hot reload", () => {
           "channels.telegram.botToken",
           "channels.discord.token",
           "channels.signal.account",
-          "channels.imessage.enabled",
         ],
         restartGateway: false,
         restartReasons: [],
@@ -237,7 +226,7 @@ describe("gateway hot reload", () => {
         restartBrowserControl: true,
         restartCron: true,
         restartHeartbeat: true,
-        restartChannels: new Set(["whatsapp", "telegram", "discord", "signal", "imessage"]),
+        restartChannels: new Set(["whatsapp", "telegram", "discord", "signal"]),
         noopPaths: [],
       },
       nextConfig,
@@ -257,8 +246,8 @@ describe("gateway hot reload", () => {
     expect(hoisted.cronInstances[0].stop).toHaveBeenCalledTimes(1);
     expect(hoisted.cronInstances[1].start).toHaveBeenCalledTimes(1);
 
-    expect(hoisted.providerManager.stopChannel).toHaveBeenCalledTimes(5);
-    expect(hoisted.providerManager.startChannel).toHaveBeenCalledTimes(5);
+    expect(hoisted.providerManager.stopChannel).toHaveBeenCalledTimes(4);
+    expect(hoisted.providerManager.startChannel).toHaveBeenCalledTimes(4);
     expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("whatsapp");
     expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("whatsapp");
     expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("telegram");
@@ -267,8 +256,6 @@ describe("gateway hot reload", () => {
     expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("discord");
     expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("signal");
     expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("signal");
-    expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("imessage");
-    expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("imessage");
 
     const onRestart = hoisted.getOnRestart();
     expect(onRestart).toBeTypeOf("function");

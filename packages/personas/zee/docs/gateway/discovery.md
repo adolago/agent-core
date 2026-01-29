@@ -9,10 +9,10 @@ read_when:
 
 Zee has two distinct problems that look similar on the surface:
 
-1) **Operator remote control**: the macOS menu bar app controlling a gateway running elsewhere.
-2) **Node pairing**: iOS/Android (and future nodes) finding a gateway and pairing securely.
+1) **Operator remote control**: CLI/Control UI connecting to a gateway running elsewhere.
+2) **Node pairing**: headless node hosts finding a gateway and pairing securely.
 
-The design goal is to keep all network discovery/advertising in the **Node Gateway** (`zee` / `zee gateway`) and keep clients (mac app, iOS) as consumers.
+The design goal is to keep all network discovery/advertising in the **Node Gateway** (`zee` / `zee gateway`) and keep clients as consumers.
 
 ## Terms
 
@@ -65,11 +65,11 @@ Troubleshooting and beacon details: [Bonjour](/gateway/bonjour).
   - `tailnetDns=<magicdns>` (optional hint; auto-detected when Tailscale is available)
 
 Disable/override:
-- `CLAWDBOT_DISABLE_BONJOUR=1` disables advertising.
+- `ZEE_DISABLE_BONJOUR=1` disables advertising.
 - `gateway.bind` in `~/.zee/zee.json` controls the Gateway bind mode.
-- `CLAWDBOT_SSH_PORT` overrides the SSH port advertised in TXT (defaults to 22).
-- `CLAWDBOT_TAILNET_DNS` publishes a `tailnetDns` hint (MagicDNS).
-- `CLAWDBOT_CLI_PATH` overrides the advertised CLI path.
+- `ZEE_SSH_PORT` overrides the SSH port advertised in TXT (defaults to 22).
+- `ZEE_TAILNET_DNS` publishes a `tailnetDns` hint (MagicDNS).
+- `ZEE_CLI_PATH` overrides the advertised CLI path.
 
 ### 2) Tailnet (cross-network)
 
@@ -106,5 +106,5 @@ The gateway is the source of truth for node/client admission.
 ## Responsibilities by component
 
 - **Gateway**: advertises discovery beacons, owns pairing decisions, and hosts the WS endpoint.
-- **macOS app**: helps you pick a gateway, shows pairing prompts, and uses SSH only as a fallback.
-- **iOS/Android nodes**: browse Bonjour as a convenience and connect to the paired Gateway WS.
+- **Operator clients**: pick a gateway, store the endpoint, and use SSH only as a fallback.
+- **Node hosts**: browse Bonjour as a convenience and connect to the paired Gateway WS.

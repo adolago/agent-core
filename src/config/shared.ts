@@ -179,7 +179,6 @@ export type MessagingProvider =
   | "discord"
   | "slack"
   | "signal"
-  | "imessage"
   | "webchat";
 
 /** Group activation mode */

@@ -39,8 +39,8 @@ reach other host locations unless sandboxing is enabled. See
 
 ## Paths (quick map)
 
-- Config: `~/.zee/zee.json` (or `CLAWDBOT_CONFIG_PATH`)
-- State dir: `~/.zee` (or `CLAWDBOT_STATE_DIR`)
+- Config: `~/.zee/zee.json` (or `ZEE_CONFIG_PATH`)
+- State dir: `~/.zee` (or `ZEE_STATE_DIR`)
 - Workspace: `~/zee` (or `~/zee-<agentId>`)
 - Agent dir: `~/.zee/agents/<agentId>/agent` (or `agents.list[].agentDir`)
 - Sessions: `~/.zee/agents/<agentId>/sessions`
@@ -51,7 +51,7 @@ If you do nothing, Zee runs a single agent:
 
 - `agentId` defaults to **`main`**.
 - Sessions are keyed as `agent:main:<mainKey>`.
-- Workspace defaults to `~/zee` (or `~/zee-<profile>` when `CLAWDBOT_PROFILE` is set).
+- Workspace defaults to `~/zee` (or `~/zee-<profile>` when `ZEE_PROFILE` is set).
 - State defaults to `~/.zee/agents/main/agent`.
 
 ## Agent helper

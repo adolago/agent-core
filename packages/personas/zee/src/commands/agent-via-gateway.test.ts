@@ -50,7 +50,7 @@ beforeEach(() => {
 
 describe("agentCliCommand", () => {
   it("uses gateway by default", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-agent-cli-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-agent-cli-"));
     const store = path.join(dir, "sessions.json");
     mockConfig(store);
 
@@ -75,7 +75,7 @@ describe("agentCliCommand", () => {
   });
 
   it("falls back to embedded agent when gateway fails", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-agent-cli-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-agent-cli-"));
     const store = path.join(dir, "sessions.json");
     mockConfig(store);
 
@@ -97,7 +97,7 @@ describe("agentCliCommand", () => {
   });
 
   it("skips gateway when --local is set", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-agent-cli-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-agent-cli-"));
     const store = path.join(dir, "sessions.json");
     mockConfig(store);
 

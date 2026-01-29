@@ -21,7 +21,7 @@ describe("gateway tool", () => {
     const kill = vi.spyOn(process, "kill").mockImplementation(() => true);
     const previousStateDir = process.env.CLAWDBOT_STATE_DIR;
     const previousProfile = process.env.CLAWDBOT_PROFILE;
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-test-"));
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-test-"));
     process.env.CLAWDBOT_STATE_DIR = stateDir;
     process.env.CLAWDBOT_PROFILE = "isolated";
 

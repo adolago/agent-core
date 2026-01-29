@@ -60,7 +60,7 @@ offers to create one.
 When you switch channels explicitly (`--channel ...`), Zee also keeps the
 install method aligned:
 
-- `dev` → ensures a git checkout (default: `~/zee`, override with `CLAWDBOT_GIT_DIR`),
+- `dev` → ensures a git checkout (default: `~/zee`, override with `ZEE_GIT_DIR`),
   updates it, and installs the global CLI from that checkout.
 - `stable`/`beta` → installs from npm using the matching dist-tag.
 
@@ -70,13 +70,13 @@ Channels:
 
 - `stable`: checkout the latest non-beta tag, then build + doctor.
 - `beta`: checkout the latest `-beta` tag, then build + doctor.
-- `dev`: checkout `main`, then fetch + rebase.
+- `dev`: checkout `dev`, then fetch + rebase `origin/dev`.
 
 High-level:
 
 1. Requires a clean worktree (no uncommitted changes).
 2. Switches to the selected channel (tag or branch).
-3. Fetches upstream (dev only).
+3. Fetches `origin` (dev only).
 4. Dev only: preflight lint + TypeScript build in a temp worktree; if the tip fails, walks back up to 10 commits to find the newest clean build.
 5. Rebases onto the selected commit (dev only).
 6. Installs deps (pnpm preferred; npm fallback).

@@ -209,7 +209,7 @@ export function extractAssistantThinking(msg: AssistantMessage): string {
 export function formatReasoningMessage(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return "";
-  // Show reasoning in italics (cursive) for markdown-friendly surfaces (Discord, etc.).
+  // Show reasoning in italics for markdown-friendly surfaces.
   // Keep the plain "Reasoning:" prefix so existing parsing/detection keeps working.
   // Note: Underscore markdown cannot span multiple lines on Telegram, so we wrap
   // each non-empty line separately.

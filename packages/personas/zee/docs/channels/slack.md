@@ -43,7 +43,6 @@ Minimal config:
 
 Use the manifest below so scopes and events stay in sync.
 
-Multi-account support: use `channels.slack.accounts` with per-account tokens and optional `name`. See [`gateway/configuration`](/gateway/configuration#telegramaccounts--discordaccounts--slackaccounts--signalaccounts--imessageaccounts) for the shared pattern.
 
 ### Zee config (minimal)
 

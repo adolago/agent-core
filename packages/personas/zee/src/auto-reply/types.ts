@@ -18,9 +18,9 @@ export type GetReplyOptions = {
   runId?: string;
   /** Abort signal for the underlying agent run. */
   abortSignal?: AbortSignal;
-  /** Optional inbound images (used for webchat attachments). */
+  /** Optional inbound images for attachment-aware replies. */
   images?: ImageContent[];
-  /** Notifies when an agent run actually starts (useful for webchat command handling). */
+  /** Notifies when an agent run actually starts (useful for command handling). */
   onAgentRunStart?: (runId: string) => void;
   onReplyStart?: () => Promise<void> | void;
   onTypingController?: (typing: TypingController) => void;
@@ -37,7 +37,7 @@ export type GetReplyOptions = {
   blockReplyTimeoutMs?: number;
   /** If provided, only load these skills for this session (empty = no skills). */
   skillFilter?: string[];
-  /** Mutable ref to track if a reply was sent (for Slack "first" threading mode). */
+  /** Mutable ref to track if a reply was sent (threading helpers). */
   hasRepliedRef?: { value: boolean };
 };
 

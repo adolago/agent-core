@@ -30,16 +30,13 @@ describe("plugin-sdk exports", () => {
       "resolveCommandAuthorizedFromAuthorizers",
       "monitorSlackProvider",
       "monitorTelegramProvider",
-      "monitorIMessageProvider",
       "monitorSignalProvider",
       "sendMessageSlack",
       "sendMessageTelegram",
-      "sendMessageIMessage",
       "sendMessageSignal",
       "sendMessageWhatsApp",
       "probeSlack",
       "probeTelegram",
-      "probeIMessage",
       "probeSignal",
     ];
 

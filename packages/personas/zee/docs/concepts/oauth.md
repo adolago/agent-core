@@ -42,7 +42,7 @@ Secrets are stored **per-agent**:
 Legacy import-only file (still supported, but not the main store):
 - `~/.zee/credentials/oauth.json` (imported into `auth-profiles.json` on first use)
 
-All of the above also respect `$CLAWDBOT_STATE_DIR` (state dir override). Full reference: [/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
+All of the above also respect `$ZEE_STATE_DIR` (state dir override). Full reference: [/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
 
 ## Anthropic setup-token (subscription auth)
 

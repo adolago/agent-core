@@ -22,7 +22,7 @@ vi.mock("../auto-reply/skill-commands.js", () => ({
 }));
 
 const { sessionStorePath } = vi.hoisted(() => ({
-  sessionStorePath: `/tmp/moltbot-telegram-bot-${Math.random().toString(16).slice(2)}.json`,
+  sessionStorePath: `/tmp/zee-telegram-bot-${Math.random().toString(16).slice(2)}.json`,
 }));
 
 function resolveSkillCommands(config: Parameters<typeof listNativeCommandSpecsForConfig>[0]) {
@@ -1174,7 +1174,7 @@ describe("createTelegramBot", () => {
     onSpy.mockReset();
     const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
     replySpy.mockReset();
-    const storeDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-telegram-"));
+    const storeDir = fs.mkdtempSync(path.join(os.tmpdir(), "zee-telegram-"));
     const storePath = path.join(storeDir, "sessions.json");
     fs.writeFileSync(
       storePath,

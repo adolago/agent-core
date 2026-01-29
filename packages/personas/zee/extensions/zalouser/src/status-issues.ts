@@ -60,7 +60,7 @@ export function collectZalouserStatusIssues(
           accountId,
           kind: "auth",
           message: "Not authenticated (no zca session).",
-          fix: "Run: moltbot channels login --channel zalouser",
+          fix: "Run: zee channels login --channel zalouser",
         });
       }
       continue;

@@ -327,7 +327,7 @@ describe("buildDockerExecArgs", () => {
   });
 
   it("does not interpolate PATH into the shell command", () => {
-    const injectedPath = "$(touch /tmp/moltbot-path-injection)";
+    const injectedPath = "$(touch /tmp/zee-path-injection)";
     const args = buildDockerExecArgs({
       containerName: "test-container",
       command: "echo hello",

@@ -97,7 +97,7 @@ tailscale status
 ## 5) Install Zee
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash
+curl -fsSL https://docs.zee/install.sh | bash
 source ~/.bashrc
 ```
 

@@ -1,9 +1,12 @@
 {
-  "name": "@moltbot/line",
+  "name": "@zee/line",
   "version": "2026.1.27-beta.1",
   "type": "module",
   "description": "Zee LINE channel plugin",
-  "moltbot": {
+  "devDependencies": {
+    "zee": "workspace:*"
+  },
+  "zee": {
     "extensions": [
       "./index.ts"
     ],
@@ -18,12 +21,9 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@moltbot/line",
+      "npmSpec": "@zee/line",
       "localPath": "extensions/line",
       "defaultChoice": "npm"
     }
-  },
-  "devDependencies": {
-    "moltbot": "workspace:*"
   }
 }

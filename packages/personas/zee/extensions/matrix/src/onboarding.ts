@@ -318,7 +318,7 @@ export const matrixOnboardingAdapter: ChannelOnboardingAdapter = {
     const deviceName = String(
       await prompter.text({
         message: "Matrix device name (optional)",
-        initialValue: existing.deviceName ?? "Moltbot Gateway",
+        initialValue: existing.deviceName ?? "Zee Gateway",
       }),
     ).trim();
 

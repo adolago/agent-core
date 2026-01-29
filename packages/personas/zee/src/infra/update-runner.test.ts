@@ -26,7 +26,7 @@ describe("runGatewayUpdate", () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-"));
   });
 
   afterEach(async () => {
@@ -43,8 +43,8 @@ describe("runGatewayUpdate", () => {
     const { runner, calls } = createRunner({
       [`git -C ${tempDir} rev-parse --show-toplevel`]: { stdout: tempDir },
       [`git -C ${tempDir} rev-parse HEAD`]: { stdout: "abc123" },
-      [`git -C ${tempDir} rev-parse --abbrev-ref HEAD`]: { stdout: "main" },
-      [`git -C ${tempDir} status --porcelain -- :!dist/control-ui/`]: { stdout: " M README.md" },
+      [`git -C ${tempDir} rev-parse --abbrev-ref HEAD`]: { stdout: "dev" },
+      [`git -C ${tempDir} status --porcelain`]: { stdout: " M README.md" },
     });
 
     const result = await runGatewayUpdate({
@@ -68,15 +68,13 @@ describe("runGatewayUpdate", () => {
     const { runner, calls } = createRunner({
       [`git -C ${tempDir} rev-parse --show-toplevel`]: { stdout: tempDir },
       [`git -C ${tempDir} rev-parse HEAD`]: { stdout: "abc123" },
-      [`git -C ${tempDir} rev-parse --abbrev-ref HEAD`]: { stdout: "main" },
-      [`git -C ${tempDir} status --porcelain -- :!dist/control-ui/`]: { stdout: "" },
-      [`git -C ${tempDir} rev-parse --abbrev-ref --symbolic-full-name @{upstream}`]: {
-        stdout: "origin/main",
-      },
-      [`git -C ${tempDir} fetch --all --prune --tags`]: { stdout: "" },
-      [`git -C ${tempDir} rev-parse @{upstream}`]: { stdout: "upstream123" },
-      [`git -C ${tempDir} rev-list --max-count=10 upstream123`]: { stdout: "upstream123\n" },
-      [`git -C ${tempDir} rebase upstream123`]: { code: 1, stderr: "conflict" },
+      [`git -C ${tempDir} rev-parse --abbrev-ref HEAD`]: { stdout: "dev" },
+      [`git -C ${tempDir} status --porcelain`]: { stdout: "" },
+      [`git -C ${tempDir} rev-parse --verify --quiet origin/dev`]: { stdout: "" },
+      [`git -C ${tempDir} fetch origin --prune --tags`]: { stdout: "" },
+      [`git -C ${tempDir} rev-parse origin/dev`]: { stdout: "origin123" },
+      [`git -C ${tempDir} rev-list --max-count=10 origin123`]: { stdout: "origin123\n" },
+      [`git -C ${tempDir} rebase origin123`]: { code: 1, stderr: "conflict" },
       [`git -C ${tempDir} rebase --abort`]: { stdout: "" },
     });
 
@@ -103,17 +101,15 @@ describe("runGatewayUpdate", () => {
     const { runner, calls } = createRunner({
       [`git -C ${tempDir} rev-parse --show-toplevel`]: { stdout: tempDir },
       [`git -C ${tempDir} rev-parse HEAD`]: { stdout: "abc123" },
-      [`git -C ${tempDir} status --porcelain -- :!dist/control-ui/`]: { stdout: "" },
-      [`git -C ${tempDir} fetch --all --prune --tags`]: { stdout: "" },
+      [`git -C ${tempDir} status --porcelain`]: { stdout: "" },
+      [`git -C ${tempDir} fetch origin --prune --tags`]: { stdout: "" },
       [`git -C ${tempDir} tag --list v* --sort=-v:refname`]: {
         stdout: `${stableTag}\n${betaTag}\n`,
       },
       [`git -C ${tempDir} checkout --detach ${stableTag}`]: { stdout: "" },
       "pnpm install": { stdout: "" },
       "pnpm build": { stdout: "" },
-      "pnpm ui:build": { stdout: "" },
-      [`git -C ${tempDir} checkout -- dist/control-ui/`]: { stdout: "" },
-      "pnpm moltbot doctor --non-interactive": { stdout: "" },
+      "pnpm zee doctor --non-interactive": { stdout: "" },
     });
 
     const result = await runGatewayUpdate({

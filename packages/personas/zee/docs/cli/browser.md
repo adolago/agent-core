@@ -53,7 +53,7 @@ zee browser --browser-profile work tabs
 
 ```bash
 zee browser tabs
-zee browser open https://docs.molt.bot
+zee browser open https://docs.zee
 zee browser focus <targetId>
 zee browser close <targetId>
 ```
