@@ -1631,7 +1631,14 @@ export namespace Config {
   }
 
   export function redact(config: Info): Info {
-    const clone = JSON.parse(JSON.stringify(config)) as Info
+    if (!config) return config
+    let clone: Info
+    try {
+      clone = structuredClone(config)
+    } catch (err) {
+      log.error("failed to clone config for redaction", { error: err })
+      return config
+    }
     const MASK = "********"
 
     if (clone.provider) {
@@ -1675,7 +1682,14 @@ export namespace Config {
   }
 
   export function clean(config: Info): Info {
-    const clone = JSON.parse(JSON.stringify(config)) as Info
+    if (!config) return config
+    let clone: Info
+    try {
+      clone = structuredClone(config)
+    } catch (err) {
+      log.error("failed to clone config for cleaning", { error: err })
+      return config
+    }
     const MASK = "********"
 
     if (clone.provider) {
