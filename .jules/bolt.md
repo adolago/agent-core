@@ -9,3 +9,7 @@
 ## 2026-02-14 - Optimize File Lookup
 **Learning:** `Filesystem.findUp` in this codebase returns *all* matches up the directory tree (for config aggregation). Using it just to check if a file exists or to find the closest one is inefficient O(depth).
 **Action:** Use `Filesystem.findFirstUp` when you only need the closest match or to check existence.
+
+## 2026-02-14 - Optimize Path Parsing
+**Learning:** `path.split()` creates unnecessary intermediate arrays (allocation overhead), which is costly in hot utility functions like `getFilename`.
+**Action:** Use `lastIndexOf` and `slice` for path parsing to avoid allocation, especially in frequently called path utilities.
