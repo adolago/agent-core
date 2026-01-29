@@ -15,6 +15,8 @@ import { ensureDir, resolveUserPath } from "../utils.js";
 import {
   CANVAS_HOST_PATH,
   CANVAS_WS_PATH,
+  LEGACY_CANVAS_HOST_PATHS,
+  LEGACY_CANVAS_WS_PATHS,
   handleA2uiHttpRequest,
   injectCanvasLiveReload,
 } from "./a2ui.js";
@@ -59,7 +61,7 @@ function defaultIndexHTML() {
   return `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Moltbot Canvas</title>
+<title>Zee Canvas</title>
 <style>
   html, body { height: 100%; margin: 0; background: #000; color: #fff; font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   .wrap { min-height: 100%; display: grid; place-items: center; padding: 24px; }
@@ -77,7 +79,7 @@ function defaultIndexHTML() {
 <div class="wrap">
   <div class="card">
     <div class="title">
-      <h1>Moltbot Canvas</h1>
+      <h1>Zee Canvas</h1>
       <div class="sub">Interactive test page (auto-reload enabled)</div>
     </div>
 
@@ -102,24 +104,36 @@ function defaultIndexHTML() {
     !!(
       window.webkit &&
       window.webkit.messageHandlers &&
-      (window.webkit.messageHandlers.moltbotCanvasA2UIAction ||
+      (window.webkit.messageHandlers.zeeCanvasA2UIAction ||
+        window.webkit.messageHandlers.moltbotCanvasA2UIAction ||
         window.webkit.messageHandlers.clawdbotCanvasA2UIAction)
     );
   const hasAndroid = () =>
     !!(
+      (window.zeeCanvasA2UIAction &&
+        typeof window.zeeCanvasA2UIAction.postMessage === "function") ||
       (window.moltbotCanvasA2UIAction &&
         typeof window.moltbotCanvasA2UIAction.postMessage === "function") ||
       (window.clawdbotCanvasA2UIAction &&
         typeof window.clawdbotCanvasA2UIAction.postMessage === "function")
     );
-  const legacySend = typeof window.clawdbotSendUserAction === "function" ? window.clawdbotSendUserAction : undefined;
-  if (!window.moltbotSendUserAction && legacySend) {
-    window.moltbotSendUserAction = legacySend;
+  const legacySend =
+    typeof window.moltbotSendUserAction === "function"
+      ? window.moltbotSendUserAction
+      : typeof window.clawdbotSendUserAction === "function"
+        ? window.clawdbotSendUserAction
+        : undefined;
+  if (!window.zeeSendUserAction && legacySend) {
+    window.zeeSendUserAction = legacySend;
   }
-  if (!window.clawdbotSendUserAction && typeof window.moltbotSendUserAction === "function") {
-    window.clawdbotSendUserAction = window.moltbotSendUserAction;
+  if (!window.moltbotSendUserAction && typeof window.zeeSendUserAction === "function") {
+    window.moltbotSendUserAction = window.zeeSendUserAction;
+  }
+  if (!window.clawdbotSendUserAction && typeof window.zeeSendUserAction === "function") {
+    window.clawdbotSendUserAction = window.zeeSendUserAction;
   }
   const hasHelper = () =>
+    typeof window.zeeSendUserAction === "function" ||
     typeof window.moltbotSendUserAction === "function" ||
     typeof window.clawdbotSendUserAction === "function";
   statusEl.innerHTML =
@@ -128,20 +142,24 @@ function defaultIndexHTML() {
     " · iOS=" + (hasIOS() ? "yes" : "no") +
     " · Android=" + (hasAndroid() ? "yes" : "no");
 
-  window.addEventListener("moltbot:a2ui-action-status", (ev) => {
+  const handleStatus = (ev) => {
     const d = ev && ev.detail || {};
     log("Action status: id=" + (d.id || "?") + " ok=" + String(!!d.ok) + (d.error ? (" error=" + d.error) : ""));
-  });
+  };
+  window.addEventListener("zee:a2ui-action-status", handleStatus);
+  window.addEventListener("moltbot:a2ui-action-status", handleStatus);
 
   function send(name, sourceComponentId) {
     if (!hasHelper()) {
-      log("No action bridge found. Ensure you're viewing this on an iOS/Android Moltbot node canvas.");
+      log("No action bridge found. Ensure you're viewing this on a paired Zee node canvas.");
       return;
     }
     const sendUserAction =
-      typeof window.moltbotSendUserAction === "function"
-        ? window.moltbotSendUserAction
-        : window.clawdbotSendUserAction;
+      typeof window.zeeSendUserAction === "function"
+        ? window.zeeSendUserAction
+        : typeof window.moltbotSendUserAction === "function"
+          ? window.moltbotSendUserAction
+          : window.clawdbotSendUserAction;
     const ok = sendUserAction({
       name,
       surfaceId: "main",
@@ -199,6 +217,7 @@ async function resolveFilePath(rootReal: string, urlPath: string) {
 }
 
 function isDisabledByEnv() {
+  if (isTruthyEnvValue(process.env.ZEE_SKIP_CANVAS_HOST)) return true;
   if (isTruthyEnvValue(process.env.CLAWDBOT_SKIP_CANVAS_HOST)) return true;
   if (process.env.NODE_ENV === "test") return true;
   if (process.env.VITEST) return true;
@@ -232,6 +251,7 @@ export async function createCanvasHostHandler(
   opts: CanvasHostHandlerOpts,
 ): Promise<CanvasHostHandler> {
   const basePath = normalizeBasePath(opts.basePath);
+  const basePaths = Array.from(new Set([basePath, ...LEGACY_CANVAS_HOST_PATHS]));
   if (isDisabledByEnv() && opts.allowInTests !== true) {
     return {
       rootDir: "",
@@ -242,7 +262,7 @@ export async function createCanvasHostHandler(
     };
   }
 
-  const rootDir = resolveUserPath(opts.rootDir ?? path.join(os.homedir(), "clawd", "canvas"));
+  const rootDir = resolveUserPath(opts.rootDir ?? path.join(os.homedir(), "zee", "canvas"));
   const rootReal = await prepareCanvasRoot(rootDir);
 
   const liveReload = opts.liveReload !== false;
@@ -300,7 +320,9 @@ export async function createCanvasHostHandler(
   const handleUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer) => {
     if (!wss) return false;
     const url = new URL(req.url ?? "/", "http://localhost");
-    if (url.pathname !== CANVAS_WS_PATH) return false;
+    if (url.pathname !== CANVAS_WS_PATH && !(LEGACY_CANVAS_WS_PATHS as readonly string[]).includes(url.pathname)) {
+      return false;
+    }
     wss.handleUpgrade(req, socket as Socket, head, (ws) => {
       wss.emit("connection", ws, req);
     });
@@ -313,7 +335,7 @@ export async function createCanvasHostHandler(
 
     try {
       const url = new URL(urlRaw, "http://localhost");
-      if (url.pathname === CANVAS_WS_PATH) {
+      if (url.pathname === CANVAS_WS_PATH || (LEGACY_CANVAS_WS_PATHS as readonly string[]).includes(url.pathname)) {
         res.statusCode = liveReload ? 426 : 404;
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
         res.end(liveReload ? "upgrade required" : "not found");
@@ -322,12 +344,14 @@ export async function createCanvasHostHandler(
 
       let urlPath = url.pathname;
       if (basePath !== "/") {
-        if (urlPath === basePath) {
+        const matchedBase = basePaths.find(
+          (candidate) => urlPath === candidate || urlPath.startsWith(`${candidate}/`),
+        );
+        if (!matchedBase) return false;
+        if (urlPath === matchedBase) {
           urlPath = "/";
-        } else if (urlPath.startsWith(`${basePath}/`)) {
-          urlPath = urlPath.slice(basePath.length) || "/";
         } else {
-          return false;
+          urlPath = urlPath.slice(matchedBase.length) || "/";
         }
       }
 
@@ -344,7 +368,7 @@ export async function createCanvasHostHandler(
           res.statusCode = 404;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           res.end(
-            `<!doctype html><meta charset="utf-8" /><title>Moltbot Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
+            `<!doctype html><meta charset="utf-8" /><title>Zee Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
           );
           return true;
         }
