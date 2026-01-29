@@ -19,3 +19,7 @@
 ## 2025-02-14 - Manual Icon Buttons in Lit
 **Learning:** In the Lit-based UI (`zee` persona), icon-only buttons are often implemented as standard `<button>` elements with classes (e.g., `btn btn--icon`) rather than a dedicated component. These manual implementations frequently lack `aria-label`, relying only on `title` which is insufficient for all screen readers.
 **Action:** When working with `btn--icon` classes, explicitly verify that `aria-label` is present and descriptive.
+
+## 2025-02-14 - Label-less Select Elements
+**Learning:** The `field` class pattern often wraps a `<select>` in a `<label>` without visible text, relying on the grid layout. This leaves the select without an accessible name if `aria-label` is missing.
+**Action:** Always add `aria-label` to `<select>` elements that don't have a visible text label, even if wrapped in a `<label>`.
