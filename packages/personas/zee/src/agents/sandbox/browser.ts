@@ -2,7 +2,7 @@ import { startBrowserBridgeServer, stopBrowserBridgeServer } from "../../browser
 import { type ResolvedBrowserConfig, resolveProfile } from "../../browser/config.js";
 import {
   DEFAULT_BROWSER_EVALUATE_ENABLED,
-  DEFAULT_CLAWD_BROWSER_COLOR,
+  DEFAULT_ZEE_BROWSER_COLOR,
 } from "../../browser/constants.js";
 import { BROWSER_BRIDGES } from "./browser-bridges.js";
 import { DEFAULT_SANDBOX_BROWSER_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
@@ -54,14 +54,14 @@ function buildSandboxBrowserResolvedConfig(params: {
     cdpIsLoopback: true,
     remoteCdpTimeoutMs: 1500,
     remoteCdpHandshakeTimeoutMs: 3000,
-    color: DEFAULT_CLAWD_BROWSER_COLOR,
+    color: DEFAULT_ZEE_BROWSER_COLOR,
     executablePath: undefined,
     headless: params.headless,
     noSandbox: false,
     attachOnly: true,
-    defaultProfile: "clawd",
+    defaultProfile: "zee",
     profiles: {
-      clawd: { cdpPort: params.cdpPort, color: DEFAULT_CLAWD_BROWSER_COLOR },
+      zee: { cdpPort: params.cdpPort, color: DEFAULT_ZEE_BROWSER_COLOR },
     },
   };
 }
@@ -96,7 +96,7 @@ export async function ensureSandboxBrowser(params: {
       name: containerName,
       cfg: params.cfg.docker,
       scopeKey: params.scopeKey,
-      labels: { "moltbot.sandboxBrowser": "1" },
+      labels: { "zee.sandboxBrowser": "1" },
     });
     const mainMountSuffix =
       params.cfg.workspaceAccess === "ro" && params.workspaceDir === params.agentWorkspaceDir
@@ -137,7 +137,7 @@ export async function ensureSandboxBrowser(params: {
       : null;
 
   const existing = BROWSER_BRIDGES.get(params.scopeKey);
-  const existingProfile = existing ? resolveProfile(existing.bridge.state.resolved, "clawd") : null;
+  const existingProfile = existing ? resolveProfile(existing.bridge.state.resolved, "zee") : null;
   const shouldReuse =
     existing && existing.containerName === containerName && existingProfile?.cdpPort === mappedCdp;
   if (existing && !shouldReuse) {
