@@ -51,6 +51,7 @@ export function renderChatControls(state: AppViewState) {
     <div class="chat-controls">
       <label class="field chat-controls__session">
         <select
+          aria-label="Select session"
           .value=${state.sessionKey}
           ?disabled=${!state.connected}
           @change=${(e: Event) => {
@@ -89,6 +90,7 @@ export function renderChatControls(state: AppViewState) {
           state.resetToolStream();
           void loadChatHistory(state);
         }}
+        aria-label="Refresh chat history"
         title="Refresh chat history"
       >
         ${refreshIcon}
@@ -105,6 +107,7 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${showThinking}
+        aria-label="Toggle assistant thinking output"
         title=${disableThinkingToggle
           ? "Disabled during onboarding"
           : "Toggle assistant thinking/working output"}
@@ -122,6 +125,7 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${focusActive}
+        aria-label="Toggle focus mode"
         title=${disableFocusToggle
           ? "Disabled during onboarding"
           : "Toggle focus mode (hide sidebar + page header)"}
