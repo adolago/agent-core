@@ -13,6 +13,7 @@ import {
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
 import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
+import { resolveAgentCoreProviders } from "./agent-core-providers.js";
 
 type ModelsConfig = NonNullable<ZeeConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -41,7 +42,7 @@ const MOONSHOT_DEFAULT_COST = {
   cacheWrite: 0,
 };
 const KIMI_CODE_BASE_URL = "https://api.kimi.com/coding/v1";
-const KIMI_CODE_MODEL_ID = "kimi-for-coding";
+const KIMI_CODE_MODEL_ID = "kimi-k2.5-thinking";
 const KIMI_CODE_CONTEXT_WINDOW = 262144;
 const KIMI_CODE_MAX_TOKENS = 32768;
 const KIMI_CODE_HEADERS = { "User-Agent": "KimiCLI/0.77" } as const;
@@ -293,7 +294,7 @@ function buildKimiCodeProvider(): ProviderConfig {
     models: [
       {
         id: KIMI_CODE_MODEL_ID,
-        name: "Kimi For Coding",
+        name: "Kimi K2.5 Thinking",
         reasoning: true,
         input: ["text"],
         cost: KIMI_CODE_DEFAULT_COST,
@@ -367,6 +368,18 @@ export async function resolveImplicitProviders(params: {
     allowKeychainPrompt: false,
   });
 
+  // First, merge providers from agent-core config (single source of truth)
+  const agentCoreProviders = resolveAgentCoreProviders();
+  for (const [providerId, providerConfig] of Object.entries(agentCoreProviders)) {
+    // Look for API key in auth profiles (synced from agent-core or local)
+    const apiKey =
+      resolveEnvApiKeyVarName(providerId) ??
+      resolveApiKeyFromProfiles({ provider: providerId, store: authStore });
+    if (apiKey) {
+      providers[providerId] = { ...providerConfig, apiKey };
+    }
+  }
+
   const minimaxKey =
     resolveEnvApiKeyVarName("minimax") ??
     resolveApiKeyFromProfiles({ provider: "minimax", store: authStore });
@@ -381,11 +394,13 @@ export async function resolveImplicitProviders(params: {
     providers.moonshot = { ...buildMoonshotProvider(), apiKey: moonshotKey };
   }
 
+  // Check both kimi-code and kimi-for-coding (agent-core uses kimi-for-coding)
   const kimiCodeKey =
     resolveEnvApiKeyVarName("kimi-code") ??
-    resolveApiKeyFromProfiles({ provider: "kimi-code", store: authStore });
-  if (kimiCodeKey) {
-    providers["kimi-code"] = { ...buildKimiCodeProvider(), apiKey: kimiCodeKey };
+    resolveApiKeyFromProfiles({ provider: "kimi-code", store: authStore }) ??
+    resolveApiKeyFromProfiles({ provider: "kimi-for-coding", store: authStore });
+  if (kimiCodeKey && !providers["kimi-for-coding"]) {
+    providers["kimi-for-coding"] = { ...buildKimiCodeProvider(), apiKey: kimiCodeKey };
   }
 
   const syntheticKey =

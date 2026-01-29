@@ -13,14 +13,15 @@ export type ResolveBonjourCliPathOptions = {
 
 export function formatBonjourInstanceName(displayName: string) {
   const trimmed = displayName.trim();
-  if (!trimmed) return "Moltbot";
-  if (/moltbot/i.test(trimmed)) return trimmed;
-  return `${trimmed} (Moltbot)`;
+  if (!trimmed) return "Zee";
+  if (/zee/i.test(trimmed)) return trimmed;
+  return `${trimmed} (Zee)`;
 }
 
 export function resolveBonjourCliPath(opts: ResolveBonjourCliPathOptions = {}): string | undefined {
   const env = opts.env ?? process.env;
-  const envPath = env.CLAWDBOT_CLI_PATH?.trim();
+  const envPath =
+    env.ZEE_CLI_PATH?.trim() || env.MOLTBOT_CLI_PATH?.trim() || env.CLAWDBOT_CLI_PATH?.trim();
   if (envPath) return envPath;
 
   const statSync = opts.statSync ?? fs.statSync;
@@ -34,8 +35,10 @@ export function resolveBonjourCliPath(opts: ResolveBonjourCliPathOptions = {}): 
 
   const execPath = opts.execPath ?? process.execPath;
   const execDir = path.dirname(execPath);
-  const siblingCli = path.join(execDir, "moltbot");
+  const siblingCli = path.join(execDir, "zee");
   if (isFile(siblingCli)) return siblingCli;
+  const siblingLegacyCli = path.join(execDir, "moltbot");
+  if (isFile(siblingLegacyCli)) return siblingLegacyCli;
 
   const argv = opts.argv ?? process.argv;
   const argvPath = argv[1];
@@ -46,8 +49,10 @@ export function resolveBonjourCliPath(opts: ResolveBonjourCliPathOptions = {}): 
   const cwd = opts.cwd ?? process.cwd();
   const distCli = path.join(cwd, "dist", "index.js");
   if (isFile(distCli)) return distCli;
-  const binCli = path.join(cwd, "bin", "moltbot.js");
+  const binCli = path.join(cwd, "zee.mjs");
   if (isFile(binCli)) return binCli;
+  const legacyBinCli = path.join(cwd, "bin", "moltbot.js");
+  if (isFile(legacyBinCli)) return legacyBinCli;
 
   return undefined;
 }
@@ -58,7 +63,10 @@ export async function resolveTailnetDnsHint(opts?: {
   enabled?: boolean;
 }): Promise<string | undefined> {
   const env = opts?.env ?? process.env;
-  const envRaw = env.CLAWDBOT_TAILNET_DNS?.trim();
+  const envRaw =
+    env.ZEE_TAILNET_DNS?.trim() ||
+    env.MOLTBOT_TAILNET_DNS?.trim() ||
+    env.CLAWDBOT_TAILNET_DNS?.trim();
   const envValue = envRaw && envRaw.length > 0 ? envRaw.replace(/\.$/, "") : "";
   if (envValue) return envValue;
   if (opts?.enabled === false) return undefined;

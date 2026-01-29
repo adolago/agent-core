@@ -279,7 +279,7 @@ export const buildTelegramMessageContext = async ({
                       `Pairing code: ${code}`,
                       "",
                       "Ask the bot owner to approve with:",
-                      formatCliCommand("moltbot pairing approve telegram <code>"),
+                      formatCliCommand("zee pairing approve telegram <code>"),
                     ].join("\n"),
                   ),
               });

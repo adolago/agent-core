@@ -148,7 +148,7 @@ async function renderMarkdown(markdown: string, runtime: RuntimeEnv) {
 export async function docsSearchCommand(queryParts: string[], runtime: RuntimeEnv) {
   const query = queryParts.join(" ").trim();
   if (!query) {
-    const docs = formatDocsLink("/", DOCS_ROOT.replace(/^https?:\\/\\//i, ""));
+    const docs = formatDocsLink("/", DOCS_ROOT.replace(/^https?:\/\//i, ""));
     if (isRich()) {
       runtime.log(`${theme.muted("Docs:")} ${docs}`);
       runtime.log(`${theme.muted("Search:")} ${formatCliCommand('zee docs "your query"')}`);

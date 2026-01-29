@@ -368,7 +368,7 @@ function collectBrowserControlFindings(cfg: ZeeConfig): SecurityAuditFinding[] {
       severity: "warn",
       title: "Browser control config looks invalid",
       detail: String(err),
-      remediation: `Fix browser.cdpUrl in ${resolveConfigPath()} and re-run "${formatCliCommand("moltbot security audit --deep")}".`,
+      remediation: `Fix browser.cdpUrl in ${resolveConfigPath()} and re-run "${formatCliCommand("zee security audit --deep")}".`,
     });
     return findings;
   }
@@ -924,7 +924,7 @@ export async function runSecurityAudit(opts: SecurityAuditOptions): Promise<Secu
       severity: "warn",
       title: "Gateway probe failed (deep)",
       detail: deep.gateway.error ?? "gateway unreachable",
-      remediation: `Run "${formatCliCommand("moltbot status --all")}" to debug connectivity/auth, then re-run "${formatCliCommand("moltbot security audit --deep")}".`,
+      remediation: `Run "${formatCliCommand("zee status --all")}" to debug connectivity/auth, then re-run "${formatCliCommand("zee security audit --deep")}".`,
     });
   }
 

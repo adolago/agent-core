@@ -37,11 +37,11 @@ function setSlackDmPolicy(cfg: ZeeConfig, dmPolicy: DmPolicy) {
 }
 
 function buildSlackManifest(botName: string) {
-  const safeName = botName.trim() || "Moltbot";
+  const safeName = botName.trim() || "Zee";
   const manifest = {
     display_information: {
       name: safeName,
-      description: `${safeName} connector for Moltbot`,
+      description: `${safeName} connector for Zee`,
     },
     features: {
       bot_user: {
@@ -54,8 +54,8 @@ function buildSlackManifest(botName: string) {
       },
       slash_commands: [
         {
-          command: "/clawd",
-          description: "Send a message to Moltbot",
+          command: "/zee",
+          description: "Send a message to Zee",
           should_escape: false,
         },
       ],

@@ -39,6 +39,20 @@
     }
   },
   "provider": {
+    "kimi-for-coding": {
+      "options": {
+        "baseURL": "https://api.kimi.com/coding/v1"
+      },
+      "models": [
+        {
+          "id": "kimi-k2.5-thinking",
+          "name": "Kimi K2.5 Thinking",
+          "reasoning": true,
+          "contextWindow": 262144,
+          "maxTokens": 32768
+        }
+      ]
+    },
     "xai": {
       "options": {
         "baseURL": "https://api.x.ai/v1"

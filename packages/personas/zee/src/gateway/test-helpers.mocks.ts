@@ -188,12 +188,12 @@ export const resetTestPluginRegistry = () => {
 };
 
 const testConfigRoot = {
-  value: path.join(os.tmpdir(), `moltbot-gateway-test-${process.pid}-${crypto.randomUUID()}`),
+  value: path.join(os.tmpdir(), `zee-gateway-test-${process.pid}-${crypto.randomUUID()}`),
 };
 
 export const setTestConfigRoot = (root: string) => {
   testConfigRoot.value = root;
-  process.env.CLAWDBOT_CONFIG_PATH = path.join(root, "moltbot.json");
+  process.env.ZEE_CONFIG_PATH = path.join(root, "zee.json");
 };
 
 export const testTailnetIPv4 = hoisted.testTailnetIPv4;
@@ -271,7 +271,7 @@ vi.mock("../config/sessions.js", async () => {
 
 vi.mock("../config/config.js", async () => {
   const actual = await vi.importActual<typeof import("../config/config.js")>("../config/config.js");
-  const resolveConfigPath = () => path.join(testConfigRoot.value, "moltbot.json");
+  const resolveConfigPath = () => path.join(testConfigRoot.value, "zee.json");
   const hashConfigRaw = (raw: string | null) =>
     crypto
       .createHash("sha256")

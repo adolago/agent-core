@@ -11,6 +11,7 @@ import { Global } from "../../global"
 import { Plugin } from "../../plugin"
 import { Instance } from "../../project/instance"
 import type { Hooks } from "@opencode-ai/plugin"
+import { modify, applyEdits } from "jsonc-parser"
 import {
   listProvidersByService,
   hasCredentials,
@@ -18,6 +19,43 @@ import {
   getProvider,
   type ServiceType,
 } from "../../../../../src/config/providers"
+
+/** Local providers that need host:port instead of API key */
+const LOCAL_PROVIDERS = new Set(["vllm", "ollama", "lmstudio", "llamacpp", "tgi"])
+
+/** Default ports for local providers */
+const LOCAL_PROVIDER_DEFAULTS: Record<string, { port: number; hint: string }> = {
+  vllm: { port: 8000, hint: "vLLM OpenAI-compatible server" },
+  ollama: { port: 11434, hint: "Ollama API server" },
+  lmstudio: { port: 1234, hint: "LM Studio server" },
+  llamacpp: { port: 8080, hint: "llama.cpp server" },
+  tgi: { port: 8080, hint: "Text Generation Inference" },
+}
+
+/**
+ * Add a provider to the global config file.
+ */
+async function addProviderToConfig(
+  providerId: string,
+  providerConfig: { options: { baseURL: string } },
+) {
+  const configPath = path.join(Global.Path.config, "agent-core.jsonc")
+  const file = Bun.file(configPath)
+
+  let text = "{}"
+  if (await file.exists()) {
+    text = await file.text()
+  }
+
+  // Use jsonc-parser to modify while preserving comments
+  const edits = modify(text, ["provider", providerId], providerConfig, {
+    formattingOptions: { tabSize: 2, insertSpaces: true },
+  })
+  const result = applyEdits(text, edits)
+
+  await Bun.write(configPath, result)
+  return configPath
+}
 
 type PluginAuth = NonNullable<Hooks["auth"]>
 
@@ -308,6 +346,39 @@ export const AuthLoginCommand = cmd({
           }
         }
 
+        // Inject local providers (vllm, ollama, etc.) - always available
+        const localProviderDisplayNames: Record<string, string> = {
+          vllm: "vLLM (Local)",
+          ollama: "Ollama (Local)",
+          lmstudio: "LM Studio (Local)",
+          llamacpp: "llama.cpp (Local)",
+          tgi: "TGI (Local)",
+        }
+        for (const id of LOCAL_PROVIDERS) {
+          if (!disabled.has(id) && !providers[id]) {
+            providers[id] = {
+              id,
+              name: localProviderDisplayNames[id] ?? id,
+              env: [],
+              models: {},
+            } as (typeof providers)[string]
+          }
+        }
+
+        // Inject custom providers from config
+        if (config.provider) {
+          for (const id of Object.keys(config.provider)) {
+            if (!disabled.has(id) && !providers[id]) {
+              providers[id] = {
+                id,
+                name: id,
+                env: [],
+                models: {},
+              } as (typeof providers)[string]
+            }
+          }
+        }
+
         const existingCredentials = await Auth.all()
         const credentialProviderIds = new Set(Object.keys(existingCredentials))
 
@@ -407,6 +478,52 @@ export const AuthLoginCommand = cmd({
           prompts.log.info(
             "Cloudflare AI Gateway can be configured with CLOUDFLARE_GATEWAY_ID, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN environment variables.",
           )
+        }
+
+        // Handle local providers (vllm, ollama, etc.) - prompt for host:port instead of API key
+        if (LOCAL_PROVIDERS.has(provider)) {
+          const defaults = LOCAL_PROVIDER_DEFAULTS[provider] ?? { port: 8000, hint: "Local server" }
+
+          const host = await prompts.text({
+            message: "Enter server host",
+            placeholder: "192.168.1.100 or localhost",
+            initialValue: "localhost",
+            validate: (x) => (x && x.length > 0 ? undefined : "Required"),
+          })
+          if (prompts.isCancel(host)) throw new UI.CancelledError()
+
+          const portStr = await prompts.text({
+            message: "Enter server port",
+            placeholder: defaults.port.toString(),
+            initialValue: defaults.port.toString(),
+            validate: (x) => {
+              if (!x || x.length === 0) return "Required"
+              const num = parseInt(x, 10)
+              if (isNaN(num) || num < 1 || num > 65535) return "Invalid port (1-65535)"
+              return undefined
+            },
+          })
+          if (prompts.isCancel(portStr)) throw new UI.CancelledError()
+
+          const port = parseInt(portStr, 10)
+          const baseURL = `http://${host}:${port}/v1`
+
+          // Add provider to config
+          const configPath = await addProviderToConfig(provider, {
+            options: { baseURL },
+          })
+
+          // Store a dummy credential to mark as configured
+          await Auth.set(provider, {
+            type: "api",
+            key: "local",
+          })
+
+          prompts.log.success(`${provider} configured at ${baseURL}`)
+          prompts.log.info(`Config updated: ${configPath}`)
+          prompts.log.info(`Use models as: ${provider}/<model-name>`)
+          prompts.outro("Done")
+          return
         }
 
         const key = await prompts.password({
