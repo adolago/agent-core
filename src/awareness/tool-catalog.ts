@@ -10,7 +10,7 @@
 
 import { ToolRegistry } from "../../packages/agent-core/src/tool/registry"
 import type { Agent } from "../../packages/agent-core/src/agent/agent"
-import { getZeeSplitwiseConfig, getZeeBrowserConfig, getZeeCodexbarConfig } from "../config/runtime"
+import { getZeeSplitwiseConfig, getZeeCodexbarConfig } from "../config/runtime"
 
 export interface ToolCatalogEntry {
   id: string
@@ -31,8 +31,9 @@ export interface ToolCatalog {
 // Primary tools per persona - these get full details + examples
 const PERSONA_PRIMARY_TOOLS: Record<string, string[]> = {
   zee: [
+    "kernel_create_browser",
+    "kernel_execute_playwright_code",
     "zee:splitwise",
-    "zee:browser",
     "zee:calendar",
     "zee:contacts",
     "zee:email",
@@ -47,6 +48,8 @@ const PERSONA_PRIMARY_TOOLS: Record<string, string[]> = {
     "stanley:backtest",
     "stanley:sec",
     "stanley:analysis",
+    "kernel_create_browser",
+    "kernel_execute_playwright_code",
   ],
   johny: [
     "johny:knowledge",
@@ -54,6 +57,8 @@ const PERSONA_PRIMARY_TOOLS: Record<string, string[]> = {
     "johny:review",
     "johny:practice",
     "johny:curriculum",
+    "kernel_create_browser",
+    "kernel_execute_playwright_code",
   ],
 }
 
@@ -73,7 +78,8 @@ const CORE_TOOLS = [
 // Usage examples for primary tools - makes models assertive
 const TOOL_EXAMPLES: Record<string, string> = {
   "zee:splitwise": 'Use { action: "create-expense", group: "Apartment", amount: 50, description: "Groceries" }',
-  "zee:browser": 'Use { action: "navigate", url: "...", profile: "personal" } for authenticated sessions',
+  kernel_create_browser: "Start a Kernel browser session, then run Playwright actions with kernel_execute_playwright_code.",
+  kernel_execute_playwright_code: "Run Playwright code against a Kernel browser session for automation.",
   "zee:calendar": 'Use { action: "list", days: 7 } to see upcoming events',
   "zee:memory": 'Use { action: "search", query: "..." } to recall past conversations',
   bash: "Run commands directly. For git: git status, git diff, git commit",
@@ -304,15 +310,6 @@ function getEnabledServices(persona: string): string[] {
       const splitwise = getZeeSplitwiseConfig()
       if (splitwise.enabled) {
         services.push("Splitwise (expenses, payments, groups)")
-      }
-    } catch {
-      // Config not available
-    }
-
-    try {
-      const browser = getZeeBrowserConfig()
-      if (browser.enabled !== false) {
-        services.push("Browser automation")
       }
     } catch {
       // Config not available

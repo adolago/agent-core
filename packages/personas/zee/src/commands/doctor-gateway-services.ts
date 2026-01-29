@@ -57,7 +57,7 @@ export async function maybeMigrateLegacyGatewayService(
   );
 
   const migrate = await prompter.confirmSkipInNonInteractive({
-    message: "Migrate legacy gateway services to Moltbot now?",
+    message: "Migrate legacy gateway services to Zee now?",
     initialValue: true,
   });
   if (!migrate) return;
@@ -85,12 +85,12 @@ export async function maybeMigrateLegacyGatewayService(
   const service = resolveGatewayService();
   const loaded = await service.isLoaded({ env: process.env });
   if (loaded) {
-    note(`Moltbot ${service.label} already ${service.loadedText}.`, "Gateway");
+    note(`Zee ${service.label} already ${service.loadedText}.`, "Gateway");
     return;
   }
 
   const install = await prompter.confirmSkipInNonInteractive({
-    message: "Install Moltbot gateway service now?",
+    message: "Install Zee gateway service now?",
     initialValue: true,
   });
   if (!install) return;

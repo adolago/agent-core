@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
 import type { ZeeConfig } from "../config/config.js";
-import { ensureMoltbotModelsJson } from "./models-config.js";
+import { ensureZeeModelsJson } from "./models-config.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
   const actual = await vi.importActual<typeof import("@mariozechner/pi-ai")>("@mariozechner/pi-ai");
@@ -131,7 +131,7 @@ const makeOpenAiConfig = (modelIds: string[]) =>
     },
   }) satisfies ZeeConfig;
 
-const ensureModels = (cfg: ZeeConfig) => ensureMoltbotModelsJson(cfg, agentDir) as unknown;
+const ensureModels = (cfg: ZeeConfig) => ensureZeeModelsJson(cfg, agentDir) as unknown;
 
 const nextSessionFile = () => {
   sessionCounter += 1;

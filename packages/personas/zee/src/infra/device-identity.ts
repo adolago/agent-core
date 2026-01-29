@@ -17,8 +17,21 @@ type StoredIdentity = {
   createdAtMs: number;
 };
 
-const DEFAULT_DIR = path.join(os.homedir(), ".clawdbot", "identity");
+const DEFAULT_DIR = path.join(os.homedir(), ".zee", "identity");
+const LEGACY_DIRS = [
+  path.join(os.homedir(), ".moltbot", "identity"),
+  path.join(os.homedir(), ".clawdbot", "identity"),
+];
 const DEFAULT_FILE = path.join(DEFAULT_DIR, "device.json");
+
+function resolveDefaultIdentityPath(): string {
+  if (fs.existsSync(DEFAULT_FILE)) return DEFAULT_FILE;
+  for (const dir of LEGACY_DIRS) {
+    const candidate = path.join(dir, "device.json");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return DEFAULT_FILE;
+}
 
 function ensureDir(filePath: string) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -61,7 +74,9 @@ function generateIdentity(): DeviceIdentity {
   return { deviceId, publicKeyPem, privateKeyPem };
 }
 
-export function loadOrCreateDeviceIdentity(filePath: string = DEFAULT_FILE): DeviceIdentity {
+export function loadOrCreateDeviceIdentity(
+  filePath: string = resolveDefaultIdentityPath(),
+): DeviceIdentity {
   try {
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, "utf8");

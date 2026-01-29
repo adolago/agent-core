@@ -59,9 +59,9 @@ export type {
 } from "../channels/plugins/types.js";
 export type { ChannelConfigSchema, ChannelPlugin } from "../channels/plugins/types.plugin.js";
 export type {
-  MoltbotPluginApi,
-  MoltbotPluginService,
-  MoltbotPluginServiceContext,
+  ZeePluginApi,
+  ZeePluginService,
+  ZeePluginServiceContext,
 } from "../plugins/types.js";
 export type {
   GatewayRequestHandler,

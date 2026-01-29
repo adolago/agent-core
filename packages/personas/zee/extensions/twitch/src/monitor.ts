@@ -5,7 +5,7 @@
  * resolves agent routes, and handles replies.
  */
 
-import type { ReplyPayload, MoltbotConfig } from "clawdbot/plugin-sdk";
+import type { ReplyPayload, ZeeConfig } from "zee/plugin-sdk";
 import type { TwitchAccountConfig, TwitchChatMessage } from "./types.js";
 import { checkTwitchAccessControl } from "./access-control.js";
 import { getTwitchRuntime } from "./runtime.js";
@@ -20,7 +20,7 @@ export type TwitchRuntimeEnv = {
 export type TwitchMonitorOptions = {
   account: TwitchAccountConfig;
   accountId: string;
-  config: unknown; // MoltbotConfig
+  config: unknown; // ZeeConfig
   runtime: TwitchRuntimeEnv;
   abortSignal: AbortSignal;
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
@@ -45,7 +45,7 @@ async function processTwitchMessage(params: {
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
 }): Promise<void> {
   const { message, account, accountId, config, runtime, core, statusSink } = params;
-  const cfg = config as MoltbotConfig;
+  const cfg = config as ZeeConfig;
 
   const route = core.channel.routing.resolveAgentRoute({
     cfg,

@@ -7,7 +7,7 @@
 
 import { DEFAULT_ACCOUNT_ID, getAccountConfig } from "./config.js";
 import { getClientManager as getRegistryClientManager } from "./client-manager-registry.js";
-import type { MoltbotConfig } from "clawdbot/plugin-sdk";
+import type { ZeeConfig } from "zee/plugin-sdk";
 import { resolveTwitchToken } from "./token.js";
 import { stripMarkdownForTwitch } from "./utils/markdown.js";
 import { generateMessageId, isAccountConfigured, normalizeTwitchChannel } from "./utils/twitch.js";
@@ -51,7 +51,7 @@ export interface SendMessageResult {
 export async function sendMessageTwitchInternal(
   channel: string,
   text: string,
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   accountId: string = DEFAULT_ACCOUNT_ID,
   stripMarkdown: boolean = true,
   logger: Console = console,

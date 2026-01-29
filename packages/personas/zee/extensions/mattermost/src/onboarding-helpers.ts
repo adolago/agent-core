@@ -1,12 +1,12 @@
-import type { MoltbotConfig, WizardPrompter } from "clawdbot/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "clawdbot/plugin-sdk";
+import type { ZeeConfig, WizardPrompter } from "zee/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "zee/plugin-sdk";
 
 type PromptAccountIdParams = {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   prompter: WizardPrompter;
   label: string;
   currentId?: string;
-  listAccountIds: (cfg: MoltbotConfig) => string[];
+  listAccountIds: (cfg: ZeeConfig) => string[];
   defaultAccountId: string;
 };
 

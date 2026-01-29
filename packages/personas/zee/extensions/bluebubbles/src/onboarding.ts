@@ -1,17 +1,17 @@
 import type {
   ChannelOnboardingAdapter,
   ChannelOnboardingDmPolicy,
-  MoltbotConfig,
+  ZeeConfig,
   DmPolicy,
   WizardPrompter,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 import {
   DEFAULT_ACCOUNT_ID,
   addWildcardAllowFrom,
   formatDocsLink,
   normalizeAccountId,
   promptAccountId,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 import {
   listBlueBubblesAccountIds,
   resolveBlueBubblesAccount,
@@ -22,7 +22,7 @@ import { parseBlueBubblesAllowTarget, normalizeBlueBubblesHandle } from "./targe
 
 const channel = "bluebubbles" as const;
 
-function setBlueBubblesDmPolicy(cfg: MoltbotConfig, dmPolicy: DmPolicy): MoltbotConfig {
+function setBlueBubblesDmPolicy(cfg: ZeeConfig, dmPolicy: DmPolicy): ZeeConfig {
   const allowFrom =
     dmPolicy === "open" ? addWildcardAllowFrom(cfg.channels?.bluebubbles?.allowFrom) : undefined;
   return {
@@ -39,10 +39,10 @@ function setBlueBubblesDmPolicy(cfg: MoltbotConfig, dmPolicy: DmPolicy): Moltbot
 }
 
 function setBlueBubblesAllowFrom(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   accountId: string,
   allowFrom: string[],
-): MoltbotConfig {
+): ZeeConfig {
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
       ...cfg,
@@ -81,10 +81,10 @@ function parseBlueBubblesAllowFromInput(raw: string): string[] {
 }
 
 async function promptBlueBubblesAllowFrom(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   prompter: WizardPrompter;
   accountId?: string;
-}): Promise<MoltbotConfig> {
+}): Promise<ZeeConfig> {
   const accountId =
     params.accountId && normalizeAccountId(params.accountId)
       ? (normalizeAccountId(params.accountId) ?? DEFAULT_ACCOUNT_ID)

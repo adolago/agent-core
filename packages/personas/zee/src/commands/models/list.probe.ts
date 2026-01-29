@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 
-import { resolveMoltbotAgentDir } from "../../agents/agent-paths.js";
+import { resolveZeeAgentDir } from "../../agents/agent-paths.js";
 import {
   ensureAuthProfileStore,
   listProfilesForProvider,
@@ -346,7 +346,7 @@ async function runTargetsWithConcurrency(params: {
   const concurrency = Math.max(1, Math.min(targets.length || 1, params.concurrency));
 
   const agentId = resolveDefaultAgentId(cfg);
-  const agentDir = resolveMoltbotAgentDir();
+  const agentDir = resolveZeeAgentDir();
   const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId) ?? resolveDefaultAgentWorkspaceDir();
   const sessionDir = resolveSessionTranscriptsDirForAgent(agentId);
 

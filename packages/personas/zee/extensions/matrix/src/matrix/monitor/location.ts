@@ -4,7 +4,7 @@ import {
   formatLocationText,
   toLocationContext,
   type NormalizedLocation,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 import { EventType } from "./types.js";
 
 export type MatrixLocationPayload = {

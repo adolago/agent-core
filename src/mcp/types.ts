@@ -210,6 +210,8 @@ export interface McpRemoteConfig {
   url: string;
   /** Custom headers */
   headers?: Record<string, string>;
+  /** Run MCP tools asynchronously (returns job id; use <server>_job_poll to retrieve results) */
+  async?: boolean;
   /** OAuth configuration */
   oauth?: McpOAuthConfig | false;
   /** Enable/disable the server */

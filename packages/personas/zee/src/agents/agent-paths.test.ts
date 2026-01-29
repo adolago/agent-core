@@ -4,9 +4,9 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { resolveMoltbotAgentDir } from "./agent-paths.js";
+import { resolveZeeAgentDir } from "./agent-paths.js";
 
-describe("resolveMoltbotAgentDir", () => {
+describe("resolveZeeAgentDir", () => {
   const previousStateDir = process.env.CLAWDBOT_STATE_DIR;
   const previousAgentDir = process.env.CLAWDBOT_AGENT_DIR;
   const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
@@ -40,7 +40,7 @@ describe("resolveMoltbotAgentDir", () => {
     delete process.env.CLAWDBOT_AGENT_DIR;
     delete process.env.PI_CODING_AGENT_DIR;
 
-    const resolved = resolveMoltbotAgentDir();
+    const resolved = resolveZeeAgentDir();
 
     expect(resolved).toBe(path.join(tempStateDir, "agents", "main", "agent"));
   });
@@ -51,7 +51,7 @@ describe("resolveMoltbotAgentDir", () => {
     process.env.CLAWDBOT_AGENT_DIR = override;
     delete process.env.PI_CODING_AGENT_DIR;
 
-    const resolved = resolveMoltbotAgentDir();
+    const resolved = resolveZeeAgentDir();
 
     expect(resolved).toBe(path.resolve(override));
   });

@@ -46,7 +46,7 @@ afterEach(() => {
   }
 });
 
-describe("discoverMoltbotPlugins", () => {
+describe("discoverZeePlugins", () => {
   it("discovers global and workspace extensions", async () => {
     const stateDir = makeTempDir();
     const workspaceDir = path.join(stateDir, "workspace");
@@ -60,8 +60,8 @@ describe("discoverMoltbotPlugins", () => {
     fs.writeFileSync(path.join(workspaceExt, "beta.ts"), "export default function () {}", "utf-8");
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverMoltbotPlugins } = await import("./discovery.js");
-      return discoverMoltbotPlugins({ workspaceDir });
+      const { discoverZeePlugins } = await import("./discovery.js");
+      return discoverZeePlugins({ workspaceDir });
     });
 
     const ids = candidates.map((c) => c.idHint);
@@ -94,8 +94,8 @@ describe("discoverMoltbotPlugins", () => {
     );
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverMoltbotPlugins } = await import("./discovery.js");
-      return discoverMoltbotPlugins({});
+      const { discoverZeePlugins } = await import("./discovery.js");
+      return discoverZeePlugins({});
     });
 
     const ids = candidates.map((c) => c.idHint);
@@ -123,8 +123,8 @@ describe("discoverMoltbotPlugins", () => {
     );
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverMoltbotPlugins } = await import("./discovery.js");
-      return discoverMoltbotPlugins({});
+      const { discoverZeePlugins } = await import("./discovery.js");
+      return discoverZeePlugins({});
     });
 
     const ids = candidates.map((c) => c.idHint);
@@ -147,8 +147,8 @@ describe("discoverMoltbotPlugins", () => {
     fs.writeFileSync(path.join(packDir, "index.js"), "module.exports = {}", "utf-8");
 
     const { candidates } = await withStateDir(stateDir, async () => {
-      const { discoverMoltbotPlugins } = await import("./discovery.js");
-      return discoverMoltbotPlugins({ extraPaths: [packDir] });
+      const { discoverZeePlugins } = await import("./discovery.js");
+      return discoverZeePlugins({ extraPaths: [packDir] });
     });
 
     const ids = candidates.map((c) => c.idHint);

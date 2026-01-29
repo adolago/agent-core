@@ -175,7 +175,7 @@ export async function runConfigureWizard(
 ) {
   try {
     printWizardHeader(runtime);
-    intro(opts.command === "update" ? "Moltbot update wizard" : "Moltbot configure");
+    intro(opts.command === "update" ? "Zee update wizard" : "Zee configure");
     const prompter = createClackPrompter();
 
     const snapshot = await readConfigFileSnapshot();
@@ -189,7 +189,7 @@ export async function runConfigureWizard(
           [
             ...snapshot.issues.map((iss) => `- ${iss.path}: ${iss.message}`),
             "",
-            "Docs: https://docs.molt.bot/gateway/configuration",
+            "Docs: https://docs.zee/gateway/configuration",
           ].join("\n"),
           "Config issues",
         );

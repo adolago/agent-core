@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { MoltbotConfig } from "../src/config/config.js";
+import type { ZeeConfig } from "../src/config/config.js";
 import type { MsgContext } from "../src/auto-reply/templating.js";
 
 const makeTempDir = async (prefix: string) => await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -79,7 +79,7 @@ describe("media understanding auto-detect (e2e)", () => {
         MediaPath: filePath,
         MediaType: "audio/wav",
       };
-      const cfg: MoltbotConfig = { tools: { media: { audio: {} } } };
+      const cfg: ZeeConfig = { tools: { media: { audio: {} } } };
 
       await applyMediaUnderstanding({ ctx, cfg });
 
@@ -124,7 +124,7 @@ describe("media understanding auto-detect (e2e)", () => {
         MediaPath: filePath,
         MediaType: "audio/wav",
       };
-      const cfg: MoltbotConfig = { tools: { media: { audio: {} } } };
+      const cfg: ZeeConfig = { tools: { media: { audio: {} } } };
 
       await applyMediaUnderstanding({ ctx, cfg });
 
@@ -157,7 +157,7 @@ describe("media understanding auto-detect (e2e)", () => {
         MediaPath: filePath,
         MediaType: "image/png",
       };
-      const cfg: MoltbotConfig = { tools: { media: { image: {} } } };
+      const cfg: ZeeConfig = { tools: { media: { image: {} } } };
 
       await applyMediaUnderstanding({ ctx, cfg });
 

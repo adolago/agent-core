@@ -2,13 +2,10 @@
  * Runtime Configuration Injector
  *
  * Reads dynamic configuration and formats it for system prompt.
- * Exposes browser profiles, enabled services, and active integrations.
+ * Exposes enabled services and active integrations.
  */
 
-import fs from "fs/promises"
-import path from "path"
-import os from "os"
-import { getZeeSplitwiseConfig, getZeeBrowserConfig, getZeeCodexbarConfig } from "../config/runtime"
+import { getZeeSplitwiseConfig, getZeeCodexbarConfig } from "../config/runtime"
 
 export interface ServiceStatus {
   name: string
@@ -17,15 +14,8 @@ export interface ServiceStatus {
 }
 
 export interface RuntimeState {
-  browserProfiles: BrowserProfileInfo[]
   enabledServices: ServiceStatus[]
   integrations: string[]
-}
-
-export interface BrowserProfileInfo {
-  name: string
-  color?: string
-  cdpPort?: number
 }
 
 /**
@@ -33,17 +23,8 @@ export interface BrowserProfileInfo {
  */
 export async function getRuntimeState(persona: string): Promise<RuntimeState> {
   const state: RuntimeState = {
-    browserProfiles: [],
     enabledServices: [],
     integrations: [],
-  }
-
-  // Browser profiles from zee.json
-  try {
-    const browserProfiles = await loadBrowserProfiles()
-    state.browserProfiles = browserProfiles
-  } catch {
-    // Ignore if zee.json not available
   }
 
   // Zee-specific services
@@ -73,22 +54,6 @@ export async function getRuntimeState(persona: string): Promise<RuntimeState> {
     } catch {
       // Config not available
     }
-
-    // Browser
-    try {
-      const browser = getZeeBrowserConfig()
-      const profileNames = state.browserProfiles.map((p) => p.name)
-      state.enabledServices.push({
-        name: "Browser Automation",
-        status: browser.enabled !== false ? "enabled" : "disabled",
-        details:
-          profileNames.length > 0
-            ? `Profiles: ${profileNames.join(", ")}. Use { profile: "<name>" } to access authenticated sessions.`
-            : undefined,
-      })
-    } catch {
-      // Config not available
-    }
   }
 
   return state
@@ -99,18 +64,6 @@ export async function getRuntimeState(persona: string): Promise<RuntimeState> {
  */
 export function formatRuntimeStateForPrompt(state: RuntimeState): string {
   const lines: string[] = []
-
-  // Browser profiles with details
-  if (state.browserProfiles.length > 0) {
-    lines.push("## Active Configuration")
-    lines.push("")
-    lines.push("### Browser Profiles")
-    lines.push("Available profiles for authenticated browser sessions:")
-    for (const profile of state.browserProfiles) {
-      lines.push(`- **${profile.name}**: Use \`{ profile: "${profile.name}" }\` parameter in browser tools`)
-    }
-    lines.push("")
-  }
 
   // Enabled services with full details
   const enabled = state.enabledServices.filter((s) => s.status === "enabled")
@@ -131,25 +84,4 @@ export function formatRuntimeStateForPrompt(state: RuntimeState): string {
   }
 
   return lines.join("\n")
-}
-
-async function loadBrowserProfiles(): Promise<BrowserProfileInfo[]> {
-  const zeeConfigPath = path.join(os.homedir(), ".zee", "zee.json")
-
-  try {
-    const content = await fs.readFile(zeeConfigPath, "utf-8")
-    const config = JSON.parse(content)
-    const profiles = config.browser?.profiles ?? {}
-
-    return Object.entries(profiles).map(([name, cfg]) => {
-      const profileConfig = cfg as { color?: string; cdpPort?: number }
-      return {
-        name,
-        color: profileConfig.color,
-        cdpPort: profileConfig.cdpPort,
-      }
-    })
-  } catch {
-    return []
-  }
 }

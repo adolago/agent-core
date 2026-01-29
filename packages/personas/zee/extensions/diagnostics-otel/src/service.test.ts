@@ -95,8 +95,8 @@ vi.mock("@opentelemetry/semantic-conventions", () => ({
   },
 }));
 
-vi.mock("clawdbot/plugin-sdk", async () => {
-  const actual = await vi.importActual<typeof import("clawdbot/plugin-sdk")>("clawdbot/plugin-sdk");
+vi.mock("zee/plugin-sdk", async () => {
+  const actual = await vi.importActual<typeof import("zee/plugin-sdk")>("zee/plugin-sdk");
   return {
     ...actual,
     registerLogTransport: registerLogTransportMock,
@@ -104,7 +104,7 @@ vi.mock("clawdbot/plugin-sdk", async () => {
 });
 
 import { createDiagnosticsOtelService } from "./service.js";
-import { emitDiagnosticEvent } from "clawdbot/plugin-sdk";
+import { emitDiagnosticEvent } from "zee/plugin-sdk";
 
 describe("diagnostics-otel service", () => {
   beforeEach(() => {

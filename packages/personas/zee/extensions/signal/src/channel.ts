@@ -21,7 +21,7 @@ import {
   type ChannelMessageActionAdapter,
   type ChannelPlugin,
   type ResolvedSignalAccount,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 
 import { getSignalRuntime } from "./runtime.js";
 

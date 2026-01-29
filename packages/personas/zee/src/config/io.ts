@@ -32,7 +32,7 @@ import { resolveConfigPath, resolveDefaultConfigCandidates, resolveStateDir } fr
 import { applyConfigOverrides } from "./runtime-overrides.js";
 import type { ZeeConfig, ConfigFileSnapshot, LegacyConfigIssue } from "./types.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
-import { compareMoltbotVersions } from "./version.js";
+import { compareZeeVersions } from "./version.js";
 
 // Re-export for backwards compatibility
 export { CircularIncludeError, ConfigIncludeError } from "./includes.js";
@@ -140,11 +140,11 @@ function stampConfigVersion(cfg: ZeeConfig): ZeeConfig {
 function warnIfConfigFromFuture(cfg: ZeeConfig, logger: Pick<typeof console, "warn">): void {
   const touched = cfg.meta?.lastTouchedVersion;
   if (!touched) return;
-  const cmp = compareMoltbotVersions(VERSION, touched);
+  const cmp = compareZeeVersions(VERSION, touched);
   if (cmp === null) return;
   if (cmp < 0) {
     logger.warn(
-      `Config was last written by a newer Moltbot (${touched}); current version is ${VERSION}.`,
+      `Config was last written by a newer Zee (${touched}); current version is ${VERSION}.`,
     );
   }
 }

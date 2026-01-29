@@ -42,8 +42,6 @@ function ensureExperimentalWarningSuppressed(): boolean {
   if (hasExperimentalWarningSuppressed(nodeOptions)) return false;
 
   process.env.ZEE_NODE_OPTIONS_READY = "1";
-  process.env.MOLTBOT_NODE_OPTIONS_READY ??= "1";
-  process.env.CLAWDBOT_NODE_OPTIONS_READY ??= "1";
   process.env.NODE_OPTIONS = `${nodeOptions} ${EXPERIMENTAL_WARNING_FLAG}`.trim();
 
   const child = spawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {

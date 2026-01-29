@@ -2,7 +2,7 @@
   "name": "@moltbot/tlon",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot Tlon/Urbit channel plugin",
+  "description": "Zee Tlon/Urbit channel plugin",
   "moltbot": {
     "extensions": [
       "./index.ts"

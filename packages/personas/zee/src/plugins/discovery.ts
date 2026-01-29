@@ -5,7 +5,7 @@ import { resolveConfigDir, resolveUserPath } from "../utils.js";
 import { resolveBundledPluginsDir } from "./bundled-dir.js";
 import {
   getPackageManifestMetadata,
-  type MoltbotPackageManifest,
+  type ZeePackageManifest,
   type PackageManifest,
 } from "./manifest.js";
 import type { PluginDiagnostic, PluginOrigin } from "./types.js";
@@ -22,7 +22,7 @@ export type PluginCandidate = {
   packageVersion?: string;
   packageDescription?: string;
   packageDir?: string;
-  packageMoltbot?: MoltbotPackageManifest;
+  packageZee?: ZeePackageManifest;
 };
 
 export type PluginDiscoveryResult = {
@@ -63,7 +63,7 @@ function deriveIdHint(params: {
   if (!rawPackageName) return base;
 
   // Prefer the unscoped name so config keys stay stable even when the npm
-  // package is scoped (example: @moltbot/voice-call -> voice-call).
+  // package is scoped (example: @zee/voice-call -> voice-call).
   const unscoped = rawPackageName.includes("/")
     ? (rawPackageName.split("/").pop() ?? rawPackageName)
     : rawPackageName;
@@ -97,7 +97,7 @@ function addCandidate(params: {
     packageVersion: manifest?.version?.trim() || undefined,
     packageDescription: manifest?.description?.trim() || undefined,
     packageDir: params.packageDir,
-    packageMoltbot: getPackageManifestMetadata(manifest ?? undefined),
+    packageZee: getPackageManifestMetadata(manifest ?? undefined),
   });
 }
 
@@ -281,7 +281,7 @@ function discoverFromPath(params: {
   }
 }
 
-export function discoverMoltbotPlugins(params: {
+export function discoverZeePlugins(params: {
   workspaceDir?: string;
   extraPaths?: string[];
 }): PluginDiscoveryResult {
@@ -306,15 +306,21 @@ export function discoverMoltbotPlugins(params: {
   }
   if (workspaceDir) {
     const workspaceRoot = resolveUserPath(workspaceDir);
-    const workspaceExt = path.join(workspaceRoot, ".clawdbot", "extensions");
-    discoverInDirectory({
-      dir: workspaceExt,
-      origin: "workspace",
-      workspaceDir: workspaceRoot,
-      candidates,
-      diagnostics,
-      seen,
-    });
+    const workspaceExtDirs = [
+      path.join(workspaceRoot, ".zee", "extensions"),
+      path.join(workspaceRoot, ".moltbot", "extensions"),
+      path.join(workspaceRoot, ".clawdbot", "extensions"),
+    ];
+    for (const dir of workspaceExtDirs) {
+      discoverInDirectory({
+        dir,
+        origin: "workspace",
+        workspaceDir: workspaceRoot,
+        candidates,
+        diagnostics,
+        seen,
+      });
+    }
   }
 
   const globalDir = path.join(resolveConfigDir(), "extensions");

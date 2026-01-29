@@ -13,7 +13,7 @@ vi.mock("../../plugins/install.js", () => ({
 }));
 
 vi.mock("../../plugins/loader.js", () => ({
-  loadMoltbotPlugins: vi.fn(),
+  loadZeePlugins: vi.fn(),
 }));
 
 import fs from "node:fs";

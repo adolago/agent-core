@@ -363,7 +363,7 @@ export async function statusCommand(
     },
   ];
 
-  runtime.log(theme.heading("Moltbot status"));
+  runtime.log(theme.heading("Zee status"));
   runtime.log("");
   runtime.log(theme.heading("Overview"));
   runtime.log(

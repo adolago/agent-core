@@ -3,7 +3,7 @@ import fs from "node:fs";
 import type { ZeeConfig } from "../config/config.js";
 import { resolveUserPath } from "../utils.js";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-state.js";
-import { discoverMoltbotPlugins, type PluginCandidate } from "./discovery.js";
+import { discoverZeePlugins, type PluginCandidate } from "./discovery.js";
 import { loadPluginManifest, type PluginManifest } from "./manifest.js";
 import type { PluginConfigUiHint, PluginDiagnostic, PluginKind, PluginOrigin } from "./types.js";
 
@@ -122,7 +122,7 @@ export function loadPluginManifestRegistry(params: {
         candidates: params.candidates,
         diagnostics: params.diagnostics ?? [],
       }
-    : discoverMoltbotPlugins({
+    : discoverZeePlugins({
         workspaceDir: params.workspaceDir,
         extraPaths: normalized.loadPaths,
       });

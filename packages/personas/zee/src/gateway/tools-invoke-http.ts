@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { createZeeTools } from "../agents/moltbot-tools.js";
+import { createZeeTools } from "../agents/zee-tools.js";
 import {
   filterToolsByPolicy,
   resolveEffectiveToolPolicy,
@@ -120,11 +120,13 @@ export async function handleToolsInvokeHttpRequest(
   const messageChannel = normalizeMessageChannel(
     getHeader(req, "x-zee-message-channel") ??
       getHeader(req, "x-moltbot-message-channel") ??
+      getHeader(req, "x-clawdbot-message-channel") ??
       "",
   );
   const accountId =
     getHeader(req, "x-zee-account-id")?.trim() ||
     getHeader(req, "x-moltbot-account-id")?.trim() ||
+    getHeader(req, "x-clawdbot-account-id")?.trim() ||
     undefined;
 
   const {

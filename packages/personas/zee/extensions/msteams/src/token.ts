@@ -1,4 +1,4 @@
-import type { MSTeamsConfig } from "clawdbot/plugin-sdk";
+import type { MSTeamsConfig } from "zee/plugin-sdk";
 
 export type MSTeamsCredentials = {
   appId: string;

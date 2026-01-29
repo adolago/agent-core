@@ -1,14 +1,14 @@
 ---
 name: discord
-description: Use when you need to control Discord from Moltbot via the discord tool: send messages, react, post or upload stickers, upload emojis, run polls, manage threads/pins/search, create/edit/delete channels and categories, fetch permissions or member/role/channel info, or handle moderation actions in Discord DMs or channels.
-metadata: {"moltbot":{"emoji":"🎮","requires":{"config":["channels.discord"]}}}
+description: Use when you need to control Discord from Zee via the discord tool: send messages, react, post or upload stickers, upload emojis, run polls, manage threads/pins/search, create/edit/delete channels and categories, fetch permissions or member/role/channel info, or handle moderation actions in Discord DMs or channels.
+metadata: {"zee":{"emoji":"🎮","requires":{"config":["channels.discord"]}}}
 ---
 
 # Discord Actions
 
 ## Overview
 
-Use `discord` to manage messages, reactions, threads, polls, and moderation. You can disable groups via `discord.actions.*` (defaults to enabled, except roles/moderation). The tool uses the bot token configured for Moltbot.
+Use `discord` to manage messages, reactions, threads, polls, and moderation. You can disable groups via `discord.actions.*` (defaults to enabled, except roles/moderation). The tool uses the bot token configured for Zee.
 
 ## Inputs to collect
 
@@ -84,9 +84,9 @@ Message context lines include `discord message id` and `channel` fields you can 
 {
   "action": "stickerUpload",
   "guildId": "999",
-  "name": "moltbot_wave",
-  "description": "Moltbot waving hello",
-  "tags": "👋",
+  "name": "zee_wave",
+  "description": "Zee waving hello",
+  "tags": "wave",
   "mediaUrl": "file:///tmp/wave.png"
 }
 ```
@@ -172,7 +172,7 @@ Use `discord.actions.*` to disable action groups:
 {
   "action": "sendMessage",
   "to": "channel:123",
-  "content": "Hello from Moltbot"
+  "content": "Hello from Zee"
 }
 ```
 

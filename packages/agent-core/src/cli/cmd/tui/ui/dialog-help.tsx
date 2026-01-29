@@ -23,9 +23,15 @@ export function DialogHelp() {
         </text>
         <text fg={theme.textMuted}>esc/enter</text>
       </box>
-      <box paddingBottom={1}>
+      <box paddingBottom={1} gap={1}>
         <text fg={theme.textMuted}>
-          Press {keybind.print("command_list")} to see all available actions and commands in any context.
+          Press {keybind.print("command_list")} to see all available actions and commands.
+        </text>
+        <text fg={theme.textMuted}>
+          Type <span style={{ fg: theme.text }}>:legend</span> to explain status bar symbols and abbreviations.
+        </text>
+        <text fg={theme.textMuted}>
+          Type <span style={{ fg: theme.text }}>:status</span> to see detailed system status.
         </text>
       </box>
       <box flexDirection="row" justifyContent="flex-end" paddingBottom={1}>

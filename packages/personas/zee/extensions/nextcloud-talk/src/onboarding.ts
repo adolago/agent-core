@@ -7,7 +7,7 @@ import {
   type ChannelOnboardingAdapter,
   type ChannelOnboardingDmPolicy,
   type WizardPrompter,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 
 import {
   listNextcloudTalkAccountIds,

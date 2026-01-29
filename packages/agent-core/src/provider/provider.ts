@@ -758,6 +758,72 @@ export namespace Provider {
       mergeProvider(providerID, partial)
     }
 
+    // Auto-discover models from local inference providers (vLLM, Ollama, etc.)
+    const LOCAL_INFERENCE_PROVIDERS = new Set(["vllm", "ollama", "lmstudio", "llamacpp", "tgi"])
+
+    for (const [providerID, configProvider] of configProviders) {
+      if (!LOCAL_INFERENCE_PROVIDERS.has(providerID)) continue
+      if (!configProvider?.options?.baseURL) continue
+      if (disabled.has(providerID)) continue
+
+      try {
+        const baseURL = (configProvider.options.baseURL as string).replace(/\/v1\/?$/, "")
+        const response = await fetch(`${baseURL}/v1/models`, {
+          signal: AbortSignal.timeout(3000),
+        })
+        if (!response.ok) continue
+        const data = (await response.json()) as { data?: Array<{ id: string; max_model_len?: number }> }
+
+        // Ensure provider exists
+        if (!providers[providerID]) {
+          providers[providerID] = {
+            id: providerID,
+            name: providerID.charAt(0).toUpperCase() + providerID.slice(1),
+            models: {},
+            source: "config",
+            options: configProvider.options,
+          }
+        }
+
+        for (const apiModel of data.data ?? []) {
+          const modelID = apiModel.id
+          if (providers[providerID].models[modelID]) continue // Don't overwrite existing
+
+          providers[providerID].models[modelID] = {
+            id: modelID,
+            name: modelID.split("/").pop() ?? modelID,
+            providerID,
+            api: {
+              id: modelID,
+              url: `${baseURL}/v1`,
+              npm: "@ai-sdk/openai-compatible",
+            },
+            capability: {
+              attachment: false,
+              reasoning: modelID.toLowerCase().includes("qwen3"),
+              toolcall: true,
+              input: { text: true, audio: false, image: false, video: false, pdf: false },
+              output: { text: true, audio: false, image: false, video: false, pdf: false },
+              interleaved: false,
+            },
+            temperature: true,
+            limit: {
+              context: apiModel.max_model_len ?? 8192,
+              output: Math.min(apiModel.max_model_len ?? 4096, 4096),
+            },
+            options: {},
+          }
+        }
+
+        log.info("auto-discovered models from local provider", {
+          provider: providerID,
+          count: Object.keys(providers[providerID].models).length,
+        })
+      } catch (e) {
+        log.debug("failed to fetch models from local provider", { provider: providerID, error: e })
+      }
+    }
+
     for (const [providerID, provider] of Object.entries(providers)) {
       if (disabled.has(providerID)) {
         delete providers[providerID]

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { DEFAULT_ACCOUNT_ID } from "clawdbot/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID } from "zee/plugin-sdk";
 
 import type { ZaloConfig } from "./types.js";
 

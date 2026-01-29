@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.fn();
-const ensureMoltbotModelsJson = vi.fn().mockResolvedValue(undefined);
-const resolveMoltbotAgentDir = vi.fn().mockReturnValue("/tmp/moltbot-agent");
+const ensureZeeModelsJson = vi.fn().mockResolvedValue(undefined);
+const resolveZeeAgentDir = vi.fn().mockReturnValue("/tmp/moltbot-agent");
 const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {} });
 const listProfilesForProvider = vi.fn().mockReturnValue([]);
 const resolveAuthProfileDisplayLabel = vi.fn(({ profileId }: { profileId: string }) => profileId);
@@ -23,11 +23,11 @@ vi.mock("../config/config.js", () => ({
 }));
 
 vi.mock("../agents/models-config.js", () => ({
-  ensureMoltbotModelsJson,
+  ensureZeeModelsJson,
 }));
 
 vi.mock("../agents/agent-paths.js", () => ({
-  resolveMoltbotAgentDir,
+  resolveZeeAgentDir,
 }));
 
 vi.mock("../agents/auth-profiles.js", () => ({

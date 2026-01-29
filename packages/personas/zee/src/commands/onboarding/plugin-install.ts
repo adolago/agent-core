@@ -6,7 +6,7 @@ import type { ZeeConfig } from "../../config/config.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { recordPluginInstall } from "../../plugins/installs.js";
 import { enablePluginInConfig } from "../../plugins/enable.js";
-import { loadMoltbotPlugins } from "../../plugins/loader.js";
+import { loadZeePlugins } from "../../plugins/loader.js";
 import { installPluginFromNpmSpec } from "../../plugins/install.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
@@ -195,7 +195,7 @@ export function reloadOnboardingPluginRegistry(params: {
   const workspaceDir =
     params.workspaceDir ?? resolveAgentWorkspaceDir(params.cfg, resolveDefaultAgentId(params.cfg));
   const log = createSubsystemLogger("plugins");
-  loadMoltbotPlugins({
+  loadZeePlugins({
     config: params.cfg,
     workspaceDir,
     cache: false,

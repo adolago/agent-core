@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     store,
-    resolveMoltbotAgentDir: vi.fn().mockReturnValue("/tmp/moltbot-agent"),
+    resolveZeeAgentDir: vi.fn().mockReturnValue("/tmp/moltbot-agent"),
     ensureAuthProfileStore: vi.fn().mockReturnValue(store),
     listProfilesForProvider: vi.fn((s: typeof store, provider: string) => {
       return Object.entries(s.profiles)
@@ -72,7 +72,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("../../agents/agent-paths.js", () => ({
-  resolveMoltbotAgentDir: mocks.resolveMoltbotAgentDir,
+  resolveZeeAgentDir: mocks.resolveZeeAgentDir,
 }));
 
 vi.mock("../../agents/auth-profiles.js", async (importOriginal) => {

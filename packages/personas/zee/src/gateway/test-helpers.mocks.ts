@@ -389,7 +389,7 @@ vi.mock("../config/config.js", async () => {
           : {};
       const defaults = {
         model: { primary: "anthropic/claude-opus-4-5" },
-        workspace: path.join(os.tmpdir(), "clawd-gateway-test"),
+        workspace: path.join(os.tmpdir(), "zee-gateway-test"),
         ...fileDefaults,
         ...testState.agentConfig,
       };

@@ -1,6 +1,6 @@
-# @clawdbot/voice-call
+# @zee/voice-call
 
-Official Voice Call plugin for **Clawdbot**.
+Official Voice Call plugin for **Zee**.
 
 Providers:
 - **Twilio** (Programmable Voice + Media Streams)
@@ -13,10 +13,10 @@ Plugin system: `https://docs.molt.bot/plugin`
 
 ## Install (local dev)
 
-### Option A: install via Clawdbot (recommended)
+### Option A: install via Zee (recommended)
 
 ```bash
-clawdbot plugins install @clawdbot/voice-call
+zee plugins install @zee/voice-call
 ```
 
 Restart the Gateway afterwards.
@@ -24,9 +24,9 @@ Restart the Gateway afterwards.
 ### Option B: copy into your global extensions folder (dev)
 
 ```bash
-mkdir -p ~/.clawdbot/extensions
-cp -R extensions/voice-call ~/.clawdbot/extensions/voice-call
-cd ~/.clawdbot/extensions/voice-call && pnpm install
+mkdir -p ~/.zee/extensions
+cp -R extensions/voice-call ~/.zee/extensions/voice-call
+cd ~/.zee/extensions/voice-call && pnpm install
 ```
 
 ## Config
@@ -100,13 +100,13 @@ Notes:
 ## CLI
 
 ```bash
-clawdbot voicecall call --to "+15555550123" --message "Hello from Clawdbot"
-clawdbot voicecall continue --call-id <id> --message "Any questions?"
-clawdbot voicecall speak --call-id <id> --message "One moment"
-clawdbot voicecall end --call-id <id>
-clawdbot voicecall status --call-id <id>
-clawdbot voicecall tail
-clawdbot voicecall expose --mode funnel
+zee voicecall call --to "+15555550123" --message "Hello from Zee"
+zee voicecall continue --call-id <id> --message "Any questions?"
+zee voicecall speak --call-id <id> --message "One moment"
+zee voicecall end --call-id <id>
+zee voicecall status --call-id <id>
+zee voicecall tail
+zee voicecall expose --mode funnel
 ```
 
 ## Tool

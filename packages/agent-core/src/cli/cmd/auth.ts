@@ -32,6 +32,11 @@ const LOCAL_PROVIDER_DEFAULTS: Record<string, { port: number; hint: string }> = 
   tgi: { port: 8080, hint: "Text Generation Inference" },
 }
 
+/** Providers that only need auth storage (not LLM model providers) */
+const AUTH_ONLY_PROVIDERS: Record<string, { name: string; hint?: string }> = {
+  kernel: { name: "Kernel", hint: "Kernel MCP API key" },
+}
+
 /**
  * Add a provider to the global config file.
  */
@@ -231,7 +236,7 @@ export const AuthListCommand = cmd({
     const database = await ModelsDev.get()
 
     for (const [providerID, result] of results) {
-      const name = database[providerID]?.name || providerID
+      const name = database[providerID]?.name || AUTH_ONLY_PROVIDERS[providerID]?.name || providerID
       prompts.log.info(`${name} ${UI.Style.TEXT_DIM}${result.type}`)
     }
 
@@ -365,6 +370,18 @@ export const AuthLoginCommand = cmd({
           }
         }
 
+        // Inject auth-only providers (non-LLM providers that still use auth login)
+        for (const [id, providerInfo] of Object.entries(AUTH_ONLY_PROVIDERS)) {
+          if (!disabled.has(id) && !providers[id]) {
+            providers[id] = {
+              id,
+              name: providerInfo.name,
+              env: [],
+              models: {},
+            } as (typeof providers)[string]
+          }
+        }
+
         // Inject custom providers from config
         if (config.provider) {
           for (const id of Object.keys(config.provider)) {
@@ -422,6 +439,7 @@ export const AuthLoginCommand = cmd({
               openai: 2,
               google: 3,
               openrouter: 4,
+              kernel: 5,
             }
             const newProvider = await prompts.autocomplete({
               message: "Select provider to add",
@@ -442,6 +460,7 @@ export const AuthLoginCommand = cmd({
                       anthropic: "Recommended - Claude Max or API key",
                       "gemini-cli": "Google OAuth (Antigravity)",
                       openai: "ChatGPT Plus/Pro or API key",
+                      kernel: AUTH_ONLY_PROVIDERS.kernel?.hint,
                     }[x.id],
                   })),
                 ),
@@ -564,7 +583,12 @@ export const AuthLogoutCommand = cmd({
     const providerID = await prompts.select({
       message: "Select provider",
       options: credentials.map(([key, value]) => ({
-        label: (database[key]?.name || key) + UI.Style.TEXT_DIM + " (" + value.type + ")",
+        label:
+          (database[key]?.name || AUTH_ONLY_PROVIDERS[key]?.name || key) +
+          UI.Style.TEXT_DIM +
+          " (" +
+          value.type +
+          ")",
         value: key,
       })),
     })

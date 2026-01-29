@@ -11,17 +11,17 @@ import {
 
 const ROOT_DIR = path.parse(process.cwd()).root;
 const CONFIG_DIR = path.join(ROOT_DIR, "config");
-const ETC_CLAWDBOT_DIR = path.join(ROOT_DIR, "etc", "moltbot");
+const ETC_ZEE_DIR = path.join(ROOT_DIR, "etc", "zee");
 const SHARED_DIR = path.join(ROOT_DIR, "shared");
 
-const DEFAULT_BASE_PATH = path.join(CONFIG_DIR, "moltbot.json");
+const DEFAULT_BASE_PATH = path.join(CONFIG_DIR, "zee.json");
 
 function configPath(...parts: string[]) {
   return path.join(CONFIG_DIR, ...parts);
 }
 
-function etcMoltbotPath(...parts: string[]) {
-  return path.join(ETC_CLAWDBOT_DIR, ...parts);
+function etcZeePath(...parts: string[]) {
+  return path.join(ETC_ZEE_DIR, ...parts);
 }
 
 function sharedPath(...parts: string[]) {
@@ -70,7 +70,7 @@ describe("resolveConfigIncludes", () => {
   });
 
   it("resolves absolute path $include", () => {
-    const absolute = etcMoltbotPath("agents.json");
+    const absolute = etcZeePath("agents.json");
     const files = { [absolute]: { list: [{ id: "main" }] } };
     const obj = { agents: { $include: absolute } };
     expect(resolve(obj, files)).toEqual({

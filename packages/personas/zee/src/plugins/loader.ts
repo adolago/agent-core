@@ -7,7 +7,7 @@ import type { ZeeConfig } from "../config/config.js";
 import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveUserPath } from "../utils.js";
-import { discoverMoltbotPlugins } from "./discovery.js";
+import { discoverZeePlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import {
   normalizePluginsConfig,
@@ -22,8 +22,8 @@ import { createPluginRuntime } from "./runtime/index.js";
 import { setActivePluginRegistry } from "./runtime.js";
 import { validateJsonSchemaValue } from "./schema-validator.js";
 import type {
-  MoltbotPluginDefinition,
-  MoltbotPluginModule,
+  ZeePluginDefinition,
+  ZeePluginModule,
   PluginDiagnostic,
   PluginLogger,
 } from "./types.js";
@@ -98,8 +98,8 @@ function validatePluginConfig(params: {
 }
 
 function resolvePluginModuleExport(moduleExport: unknown): {
-  definition?: MoltbotPluginDefinition;
-  register?: MoltbotPluginDefinition["register"];
+  definition?: ZeePluginDefinition;
+  register?: ZeePluginDefinition["register"];
 } {
   const resolved =
     moduleExport &&
@@ -109,11 +109,11 @@ function resolvePluginModuleExport(moduleExport: unknown): {
       : moduleExport;
   if (typeof resolved === "function") {
     return {
-      register: resolved as MoltbotPluginDefinition["register"],
+      register: resolved as ZeePluginDefinition["register"],
     };
   }
   if (resolved && typeof resolved === "object") {
-    const def = resolved as MoltbotPluginDefinition;
+    const def = resolved as ZeePluginDefinition;
     const register = def.register ?? def.activate;
     return { definition: def, register };
   }
@@ -161,7 +161,7 @@ function pushDiagnostics(diagnostics: PluginDiagnostic[], append: PluginDiagnost
   diagnostics.push(...append);
 }
 
-export function loadMoltbotPlugins(options: PluginLoadOptions = {}): PluginRegistry {
+export function loadZeePlugins(options: PluginLoadOptions = {}): PluginRegistry {
   const cfg = options.config ?? {};
   const logger = options.logger ?? defaultLogger();
   const validateOnly = options.mode === "validate";
@@ -189,7 +189,7 @@ export function loadMoltbotPlugins(options: PluginLoadOptions = {}): PluginRegis
     coreGatewayHandlers: options.coreGatewayHandlers as Record<string, GatewayRequestHandler>,
   });
 
-  const discovery = discoverMoltbotPlugins({
+  const discovery = discoverZeePlugins({
     workspaceDir: options.workspaceDir,
     extraPaths: normalized.loadPaths,
   });
@@ -209,8 +209,7 @@ export function loadMoltbotPlugins(options: PluginLoadOptions = {}): PluginRegis
     ...(pluginSdkAlias
       ? {
           alias: {
-            "clawdbot/plugin-sdk": pluginSdkAlias,
-            "moltbot/plugin-sdk": pluginSdkAlias,
+            "zee/plugin-sdk": pluginSdkAlias,
           },
         }
       : {}),
@@ -289,9 +288,9 @@ export function loadMoltbotPlugins(options: PluginLoadOptions = {}): PluginRegis
       continue;
     }
 
-    let mod: MoltbotPluginModule | null = null;
+    let mod: ZeePluginModule | null = null;
     try {
-      mod = jiti(candidate.source) as MoltbotPluginModule;
+      mod = jiti(candidate.source) as ZeePluginModule;
     } catch (err) {
       logger.error(`[plugins] ${record.id} failed to load from ${record.source}: ${String(err)}`);
       record.status = "error";

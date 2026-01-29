@@ -8,7 +8,7 @@ describe("noteMacLaunchctlGatewayEnvOverrides", () => {
   it("prints clear unsetenv instructions for token override", async () => {
     const noteFn = vi.fn();
     const getenv = vi.fn(async (name: string) =>
-      name === "CLAWDBOT_GATEWAY_TOKEN" ? "launchctl-token" : undefined,
+      name === "ZEE_GATEWAY_TOKEN" ? "launchctl-token" : undefined,
     );
     const cfg = {
       gateway: {
@@ -26,9 +26,9 @@ describe("noteMacLaunchctlGatewayEnvOverrides", () => {
     const [message, title] = noteFn.mock.calls[0] ?? [];
     expect(title).toBe("Gateway (macOS)");
     expect(message).toContain("launchctl environment overrides detected");
-    expect(message).toContain("CLAWDBOT_GATEWAY_TOKEN");
-    expect(message).toContain("launchctl unsetenv CLAWDBOT_GATEWAY_TOKEN");
-    expect(message).not.toContain("CLAWDBOT_GATEWAY_PASSWORD");
+    expect(message).toContain("ZEE_GATEWAY_TOKEN");
+    expect(message).toContain("launchctl unsetenv ZEE_GATEWAY_TOKEN");
+    expect(message).not.toContain("ZEE_GATEWAY_PASSWORD");
   });
 
   it("does nothing when config has no gateway credentials", async () => {

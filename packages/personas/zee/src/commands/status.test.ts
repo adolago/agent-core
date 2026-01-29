@@ -310,7 +310,7 @@ describe("statusCommand", () => {
     (runtime.log as vi.Mock).mockClear();
     await statusCommand({}, runtime as never);
     const logs = (runtime.log as vi.Mock).mock.calls.map((c) => String(c[0]));
-    expect(logs.some((l) => l.includes("Moltbot status"))).toBe(true);
+    expect(logs.some((l) => l.includes("Zee status"))).toBe(true);
     expect(logs.some((l) => l.includes("Overview"))).toBe(true);
     expect(logs.some((l) => l.includes("Security audit"))).toBe(true);
     expect(logs.some((l) => l.includes("Summary:"))).toBe(true);
@@ -330,10 +330,10 @@ describe("statusCommand", () => {
     expect(
       logs.some(
         (l) =>
-          l.includes("moltbot status --all") ||
-          l.includes("moltbot --profile isolated status --all") ||
-          l.includes("moltbot status --all") ||
-          l.includes("moltbot --profile isolated status --all"),
+          l.includes("zee status --all") ||
+          l.includes("zee --profile isolated status --all") ||
+          l.includes("zee status --all") ||
+          l.includes("zee --profile isolated status --all"),
       ),
     ).toBe(true);
   });

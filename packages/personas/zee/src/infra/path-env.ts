@@ -63,6 +63,8 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
     if (isExecutable(siblingZee)) candidates.push(execDir);
     const siblingMoltbot = path.join(execDir, "moltbot");
     if (isExecutable(siblingMoltbot)) candidates.push(execDir);
+    const siblingClawdbot = path.join(execDir, "clawdbot");
+    if (isExecutable(siblingClawdbot)) candidates.push(execDir);
   } catch {
     // ignore
   }
@@ -72,6 +74,7 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
   const localBinDir = path.join(cwd, "node_modules", ".bin");
   if (isExecutable(path.join(localBinDir, "zee"))) candidates.push(localBinDir);
   if (isExecutable(path.join(localBinDir, "moltbot"))) candidates.push(localBinDir);
+  if (isExecutable(path.join(localBinDir, "clawdbot"))) candidates.push(localBinDir);
 
   const miseDataDir = process.env.MISE_DATA_DIR ?? path.join(homeDir, ".local", "share", "mise");
   const miseShims = path.join(miseDataDir, "shims");

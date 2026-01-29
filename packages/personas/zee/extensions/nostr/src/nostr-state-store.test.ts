@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
-import type { PluginRuntime } from "clawdbot/plugin-sdk";
+import type { PluginRuntime } from "zee/plugin-sdk";
 
 import {
   readNostrBusState,

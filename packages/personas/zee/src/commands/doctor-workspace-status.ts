@@ -1,7 +1,7 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
 import type { ZeeConfig } from "../config/config.js";
-import { loadMoltbotPlugins } from "../plugins/loader.js";
+import { loadZeePlugins } from "../plugins/loader.js";
 import { note } from "../terminal/note.js";
 import { detectLegacyWorkspaceDirs, formatLegacyWorkspaceWarning } from "./doctor-workspace.js";
 
@@ -25,7 +25,7 @@ export function noteWorkspaceStatus(cfg: ZeeConfig) {
     "Skills status",
   );
 
-  const pluginRegistry = loadMoltbotPlugins({
+  const pluginRegistry = loadZeePlugins({
     config: cfg,
     workspaceDir,
     logger: {

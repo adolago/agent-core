@@ -3,7 +3,7 @@ import type { SessionEntry } from "../../config/sessions.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
-import { scheduleGatewaySigusr1Restart, triggerMoltbotRestart } from "../../infra/restart.js";
+import { scheduleGatewaySigusr1Restart, triggerZeeRestart } from "../../infra/restart.js";
 import { parseActivationCommand } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
 import { normalizeUsageDisplay, resolveResponseUsageMode } from "../thinking.js";
@@ -209,7 +209,7 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
   return {
     shouldContinue: false,
     reply: {
-      text: `⚙️ Usage footer: ${next}.`,
+      text: `Usage footer: ${next}.`,
     },
   };
 };
@@ -227,7 +227,7 @@ export const handleRestartCommand: CommandHandler = async (params, allowTextComm
     return {
       shouldContinue: false,
       reply: {
-        text: "⚠️ /restart is disabled. Set commands.restart=true to enable.",
+        text: "/restart is disabled. Set commands.restart=true to enable.",
       },
     };
   }
@@ -237,24 +237,24 @@ export const handleRestartCommand: CommandHandler = async (params, allowTextComm
     return {
       shouldContinue: false,
       reply: {
-        text: "⚙️ Restarting moltbot in-process (SIGUSR1); back in a few seconds.",
+        text: "Restarting zee in-process (SIGUSR1); back in a few seconds.",
       },
     };
   }
-  const restartMethod = triggerMoltbotRestart();
+  const restartMethod = triggerZeeRestart();
   if (!restartMethod.ok) {
     const detail = restartMethod.detail ? ` Details: ${restartMethod.detail}` : "";
     return {
       shouldContinue: false,
       reply: {
-        text: `⚠️ Restart failed (${restartMethod.method}).${detail}`,
+        text: `Restart failed (${restartMethod.method}).${detail}`,
       },
     };
   }
   return {
     shouldContinue: false,
     reply: {
-      text: `⚙️ Restarting moltbot via ${restartMethod.method}; give me a few seconds to come back online.`,
+      text: `Restarting zee via ${restartMethod.method}; give me a few seconds to come back online.`,
     },
   };
 };

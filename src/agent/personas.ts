@@ -109,8 +109,6 @@ export const STANLEY_AGENT_CONFIG: AgentConfig = {
     "stanley:research": true,
     "stanley:sec-filings": true,
     "stanley:nautilus": true,
-    // Browser automation via Zee gateway
-    browser: true,
   },
   options: {
     // Extended thinking for complex analysis
@@ -162,7 +160,7 @@ You are Stanley, a research analyst specializing in financial markets and invest
     "~/.stanley/knowledge/sec-forms.md",
     "~/.stanley/knowledge/trading-concepts.md",
   ],
-  mcpServers: ["openbb", "nautilus", "zed-editor", "browser"],
+  mcpServers: ["openbb", "nautilus", "zed-editor", "kernel"],
 };
 
 // =============================================================================
@@ -230,8 +228,6 @@ export const ZEE_AGENT_CONFIG: AgentConfig = {
     "zee:contacts": true,
     "zee:splitwise": true,
     "zee:codexbar": true,
-    // Browser automation via Zee gateway
-    browser: true,
   },
   options: {},
   maxSteps: 30,
@@ -280,7 +276,7 @@ You are Zee, a personal assistant managing the intersection of professional and 
     "~/.zee/SOUL.md",
     // Tools reference is now dynamically generated via awareness module
   ],
-  mcpServers: ["tiara", "calendar", "browser"],
+  mcpServers: ["tiara", "calendar", "kernel"],
 };
 
 // =============================================================================
@@ -346,8 +342,6 @@ export const JOHNY_AGENT_CONFIG: AgentConfig = {
     "johny:concepts": true,
     "johny:problems": true,
     "johny:progress": true,
-    // Browser automation via Zee gateway
-    browser: true,
   },
   options: {
     // Extended thinking for problem solving
@@ -400,7 +394,7 @@ You are Johny, a learning system applying deliberate practice and spaced repetit
     "~/.johny/knowledge/math-concepts.md",
     "~/.johny/knowledge/cs-fundamentals.md",
   ],
-  mcpServers: ["tiara", "browser"],
+  mcpServers: ["tiara", "kernel"],
 };
 
 // =============================================================================

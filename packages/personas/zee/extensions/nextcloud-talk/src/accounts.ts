@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "clawdbot/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "zee/plugin-sdk";
 
 import type { CoreConfig, NextcloudTalkAccountConfig } from "./types.js";
 

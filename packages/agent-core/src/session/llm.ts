@@ -142,7 +142,7 @@ export namespace LLM {
         ...(input.agent.prompt ? [input.agent.prompt] : isCodex ? [] : SystemPrompt.provider(input.model)),
         // persona-specific system prompt additions (from AgentPersonaConfig)
         ...(input.agent.systemPromptAdditions ? [input.agent.systemPromptAdditions] : []),
-        // Dynamic awareness section (tool catalog, browser profiles, enabled services)
+        // Dynamic awareness section (tool catalog, enabled services)
         ...(awarenessSection ? [awarenessSection] : []),
         // any custom prompt passed into this call
         ...input.system,

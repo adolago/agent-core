@@ -182,9 +182,9 @@ describe("web session", () => {
   });
 
   it("rotates creds backup when creds.json is valid JSON", async () => {
-    const credsSuffix = path.join(".clawdbot", "credentials", "whatsapp", "default", "creds.json");
+    const credsSuffix = path.join(".zee", "credentials", "whatsapp", "default", "creds.json");
     const backupSuffix = path.join(
-      ".clawdbot",
+      ".zee",
       "credentials",
       "whatsapp",
       "default",

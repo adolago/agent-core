@@ -49,10 +49,10 @@ describe("state + config path candidates", () => {
   it("orders default config candidates as new then legacy", () => {
     const home = "/home/test";
     const candidates = resolveDefaultConfigCandidates({} as NodeJS.ProcessEnv, () => home);
-    expect(candidates[0]).toBe(path.join(home, ".moltbot", "moltbot.json"));
-    expect(candidates[1]).toBe(path.join(home, ".moltbot", "clawdbot.json"));
-    expect(candidates[2]).toBe(path.join(home, ".clawdbot", "moltbot.json"));
-    expect(candidates[3]).toBe(path.join(home, ".clawdbot", "clawdbot.json"));
+    expect(candidates[0]).toBe(path.join(home, ".zee", "zee.json"));
+    expect(candidates[1]).toBe(path.join(home, ".zee", "moltbot.json"));
+    expect(candidates[2]).toBe(path.join(home, ".zee", "clawdbot.json"));
+    expect(candidates[3]).toBe(path.join(home, ".moltbot", "zee.json"));
   });
 
   it("prefers ~/.moltbot when it exists and legacy dir is missing", async () => {
@@ -134,7 +134,7 @@ describe("state + config path candidates", () => {
       const overrideDir = path.join(root, "override");
       const env = { MOLTBOT_STATE_DIR: overrideDir } as NodeJS.ProcessEnv;
       const resolved = resolveConfigPath(env, overrideDir, () => root);
-      expect(resolved).toBe(path.join(overrideDir, "moltbot.json"));
+      expect(resolved).toBe(path.join(overrideDir, "zee.json"));
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

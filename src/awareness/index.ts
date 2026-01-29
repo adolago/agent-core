@@ -5,7 +5,7 @@
  * - Tiered tool catalog with examples (primary → secondary → available)
  * - MCP server tools with concise summaries
  * - Knowledge files from persona configuration
- * - Runtime configuration state (browser profiles, enabled services)
+ * - Runtime configuration state (enabled services)
  *
  * Key improvements:
  * 1. Token budget management - avoids context bloat
@@ -27,14 +27,14 @@ export { generateMcpCatalog, formatMcpCatalogForPrompt, getMcpHealthStatus } fro
 
 export type { ToolCatalog, ToolCatalogEntry } from "./tool-catalog"
 export type { LoadedKnowledge } from "./knowledge-loader"
-export type { RuntimeState, ServiceStatus, BrowserProfileInfo } from "./config-injector"
+export type { RuntimeState, ServiceStatus } from "./config-injector"
 export type { McpCatalog, McpServerInfo, McpToolInfo } from "./mcp-catalog"
 
 // Token budgets for each section (total ~4000 tokens)
 const TOKEN_BUDGETS = {
   toolCatalog: 2000,    // Primary + secondary tools with examples
   mcpCatalog: 500,      // MCP servers and their tools
-  runtimeState: 300,    // Browser profiles, enabled services
+  runtimeState: 300,    // Enabled services
   knowledge: 1200,      // Persona knowledge files
 }
 
@@ -45,7 +45,7 @@ const TOKEN_BUDGETS = {
  * 1. Your Primary Tools - persona-specific tools with examples
  * 2. Core Tools - essential tools in compact format
  * 3. MCP Servers - external tools available via MCP
- * 4. Active Configuration - browser profiles, services
+ * 4. Active Configuration - enabled services
  * 5. Knowledge Context - persona knowledge files
  */
 export async function generateAwarenessSection(agent: Agent.Info): Promise<string> {
@@ -76,7 +76,7 @@ export async function generateAwarenessSection(agent: Agent.Info): Promise<strin
     // MCP may not be initialized
   }
 
-  // 3. Runtime Configuration (browser profiles, enabled services)
+  // 3. Runtime Configuration (enabled services)
   try {
     const state = await getRuntimeState(agent.name)
     const configSection = formatRuntimeStateForPrompt(state)

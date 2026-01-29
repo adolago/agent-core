@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
 import type { ZeeConfig } from "../config/config.js";
-import { createMoltbotCodingTools } from "./pi-tools.js";
+import { createZeeCodingTools } from "./pi-tools.js";
 import type { SandboxDockerConfig } from "./sandbox.js";
 
 describe("Agent-specific tool filtering", () => {
@@ -21,7 +21,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test",
@@ -56,7 +56,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test",
@@ -80,7 +80,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test",
@@ -115,7 +115,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:restricted:main",
       workspaceDir: "/tmp/test-restricted",
@@ -142,7 +142,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-provider",
@@ -170,7 +170,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-provider-profile",
@@ -205,7 +205,7 @@ describe("Agent-specific tool filtering", () => {
     };
 
     // main agent: all tools
-    const mainTools = createMoltbotCodingTools({
+    const mainTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-main",
@@ -218,7 +218,7 @@ describe("Agent-specific tool filtering", () => {
     expect(mainToolNames).not.toContain("apply_patch");
 
     // family agent: restricted
-    const familyTools = createMoltbotCodingTools({
+    const familyTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:family:whatsapp:group:123",
       workspaceDir: "/tmp/test-family",
@@ -248,7 +248,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const trustedTools = createMoltbotCodingTools({
+    const trustedTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:trusted",
       messageProvider: "whatsapp",
@@ -259,7 +259,7 @@ describe("Agent-specific tool filtering", () => {
     expect(trustedNames).toContain("read");
     expect(trustedNames).toContain("exec");
 
-    const defaultTools = createMoltbotCodingTools({
+    const defaultTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:unknown",
       messageProvider: "whatsapp",
@@ -287,7 +287,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const aliceTools = createMoltbotCodingTools({
+    const aliceTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:family",
       senderId: "alice",
@@ -298,7 +298,7 @@ describe("Agent-specific tool filtering", () => {
     expect(aliceNames).toContain("read");
     expect(aliceNames).toContain("exec");
 
-    const bobTools = createMoltbotCodingTools({
+    const bobTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:family",
       senderId: "bob",
@@ -328,7 +328,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const adminTools = createMoltbotCodingTools({
+    const adminTools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:whatsapp:group:locked",
       senderId: "admin",
@@ -353,7 +353,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:telegram:group:123:topic:456",
       messageProvider: "telegram",
@@ -378,7 +378,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:subagent:test",
       spawnedBy: "agent:main:whatsapp:group:trusted",
@@ -408,7 +408,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:work:slack:dm:user123",
       workspaceDir: "/tmp/test-work",
@@ -457,7 +457,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:restricted:main",
       workspaceDir: "/tmp/test-restricted",
@@ -503,7 +503,7 @@ describe("Agent-specific tool filtering", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: "/tmp/test-main",

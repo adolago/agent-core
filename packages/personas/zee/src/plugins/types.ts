@@ -41,7 +41,7 @@ export type PluginConfigValidation =
   | { ok: true; value?: unknown }
   | { ok: false; errors: string[] };
 
-export type MoltbotPluginConfigSchema = {
+export type ZeePluginConfigSchema = {
   safeParse?: (value: unknown) => {
     success: boolean;
     data?: unknown;
@@ -55,7 +55,7 @@ export type MoltbotPluginConfigSchema = {
   jsonSchema?: Record<string, unknown>;
 };
 
-export type MoltbotPluginToolContext = {
+export type ZeePluginToolContext = {
   config?: ZeeConfig;
   workspaceDir?: string;
   agentDir?: string;
@@ -66,17 +66,17 @@ export type MoltbotPluginToolContext = {
   sandboxed?: boolean;
 };
 
-export type MoltbotPluginToolFactory = (
-  ctx: MoltbotPluginToolContext,
+export type ZeePluginToolFactory = (
+  ctx: ZeePluginToolContext,
 ) => AnyAgentTool | AnyAgentTool[] | null | undefined;
 
-export type MoltbotPluginToolOptions = {
+export type ZeePluginToolOptions = {
   name?: string;
   names?: string[];
   optional?: boolean;
 };
 
-export type MoltbotPluginHookOptions = {
+export type ZeePluginHookOptions = {
   entry?: HookEntry;
   name?: string;
   description?: string;
@@ -125,7 +125,7 @@ export type ProviderPlugin = {
   refreshOAuth?: (cred: OAuthCredential) => Promise<OAuthCredential>;
 };
 
-export type MoltbotPluginGatewayMethod = {
+export type ZeePluginGatewayMethod = {
   method: string;
   handler: GatewayRequestHandler;
 };
@@ -148,7 +148,7 @@ export type PluginCommandContext = {
   args?: string;
   /** The full normalized command body */
   commandBody: string;
-  /** Current moltbot configuration */
+  /** Current Zee configuration */
   config: ZeeConfig;
 };
 
@@ -167,7 +167,7 @@ export type PluginCommandHandler = (
 /**
  * Definition for a plugin-registered command.
  */
-export type MoltbotPluginCommandDefinition = {
+export type ZeePluginCommandDefinition = {
   /** Command name without leading slash (e.g., "tts") */
   name: string;
   /** Description shown in /help and command menus */
@@ -180,59 +180,59 @@ export type MoltbotPluginCommandDefinition = {
   handler: PluginCommandHandler;
 };
 
-export type MoltbotPluginHttpHandler = (
+export type ZeePluginHttpHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<boolean> | boolean;
 
-export type MoltbotPluginHttpRouteHandler = (
+export type ZeePluginHttpRouteHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<void> | void;
 
-export type MoltbotPluginCliContext = {
+export type ZeePluginCliContext = {
   program: Command;
   config: ZeeConfig;
   workspaceDir?: string;
   logger: PluginLogger;
 };
 
-export type MoltbotPluginCliRegistrar = (ctx: MoltbotPluginCliContext) => void | Promise<void>;
+export type ZeePluginCliRegistrar = (ctx: ZeePluginCliContext) => void | Promise<void>;
 
-export type MoltbotPluginServiceContext = {
+export type ZeePluginServiceContext = {
   config: ZeeConfig;
   workspaceDir?: string;
   stateDir: string;
   logger: PluginLogger;
 };
 
-export type MoltbotPluginService = {
+export type ZeePluginService = {
   id: string;
-  start: (ctx: MoltbotPluginServiceContext) => void | Promise<void>;
-  stop?: (ctx: MoltbotPluginServiceContext) => void | Promise<void>;
+  start: (ctx: ZeePluginServiceContext) => void | Promise<void>;
+  stop?: (ctx: ZeePluginServiceContext) => void | Promise<void>;
 };
 
-export type MoltbotPluginChannelRegistration = {
+export type ZeePluginChannelRegistration = {
   plugin: ChannelPlugin;
   dock?: ChannelDock;
 };
 
-export type MoltbotPluginDefinition = {
+export type ZeePluginDefinition = {
   id?: string;
   name?: string;
   description?: string;
   version?: string;
   kind?: PluginKind;
-  configSchema?: MoltbotPluginConfigSchema;
-  register?: (api: MoltbotPluginApi) => void | Promise<void>;
-  activate?: (api: MoltbotPluginApi) => void | Promise<void>;
+  configSchema?: ZeePluginConfigSchema;
+  register?: (api: ZeePluginApi) => void | Promise<void>;
+  activate?: (api: ZeePluginApi) => void | Promise<void>;
 };
 
-export type MoltbotPluginModule =
-  | MoltbotPluginDefinition
-  | ((api: MoltbotPluginApi) => void | Promise<void>);
+export type ZeePluginModule =
+  | ZeePluginDefinition
+  | ((api: ZeePluginApi) => void | Promise<void>);
 
-export type MoltbotPluginApi = {
+export type ZeePluginApi = {
   id: string;
   name: string;
   version?: string;
@@ -243,27 +243,27 @@ export type MoltbotPluginApi = {
   runtime: PluginRuntime;
   logger: PluginLogger;
   registerTool: (
-    tool: AnyAgentTool | MoltbotPluginToolFactory,
-    opts?: MoltbotPluginToolOptions,
+    tool: AnyAgentTool | ZeePluginToolFactory,
+    opts?: ZeePluginToolOptions,
   ) => void;
   registerHook: (
     events: string | string[],
     handler: InternalHookHandler,
-    opts?: MoltbotPluginHookOptions,
+    opts?: ZeePluginHookOptions,
   ) => void;
-  registerHttpHandler: (handler: MoltbotPluginHttpHandler) => void;
-  registerHttpRoute: (params: { path: string; handler: MoltbotPluginHttpRouteHandler }) => void;
-  registerChannel: (registration: MoltbotPluginChannelRegistration | ChannelPlugin) => void;
+  registerHttpHandler: (handler: ZeePluginHttpHandler) => void;
+  registerHttpRoute: (params: { path: string; handler: ZeePluginHttpRouteHandler }) => void;
+  registerChannel: (registration: ZeePluginChannelRegistration | ChannelPlugin) => void;
   registerGatewayMethod: (method: string, handler: GatewayRequestHandler) => void;
-  registerCli: (registrar: MoltbotPluginCliRegistrar, opts?: { commands?: string[] }) => void;
-  registerService: (service: MoltbotPluginService) => void;
+  registerCli: (registrar: ZeePluginCliRegistrar, opts?: { commands?: string[] }) => void;
+  registerService: (service: ZeePluginService) => void;
   registerProvider: (provider: ProviderPlugin) => void;
   /**
    * Register a custom command that bypasses the LLM agent.
    * Plugin commands are processed before built-in commands and before agent invocation.
    * Use this for simple state-toggling or status commands that don't need AI reasoning.
    */
-  registerCommand: (command: MoltbotPluginCommandDefinition) => void;
+  registerCommand: (command: ZeePluginCommandDefinition) => void;
   resolvePath: (input: string) => string;
   /** Register a lifecycle hook handler */
   on: <K extends PluginHookName>(

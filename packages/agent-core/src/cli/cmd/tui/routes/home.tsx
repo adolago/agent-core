@@ -101,7 +101,7 @@ export function Home() {
       <box flexGrow={1} justifyContent="center" alignItems="center" paddingLeft={2} paddingRight={2} gap={1}>
         <box height={3} />
         <Logo />
-        <box width="100%" maxWidth={75} zIndex={1000} paddingTop={1}>
+        <box width="100%" maxWidth={100} zIndex={1000} paddingTop={1}>
           <Prompt
             ref={(r) => {
               prompt = r
@@ -110,7 +110,7 @@ export function Home() {
             hint={Hint}
           />
         </box>
-        <box height={3} width="100%" maxWidth={75} alignItems="center" paddingTop={2}>
+        <box height={3} width="100%" maxWidth={100} alignItems="center" paddingTop={2}>
           <Show when={showTips()}>
             <Tips />
           </Show>

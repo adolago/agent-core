@@ -10,11 +10,11 @@ import {
 type PiSdkModule = typeof import("@mariozechner/pi-coding-agent");
 
 vi.mock("./models-config.js", () => ({
-  ensureMoltbotModelsJson: vi.fn().mockResolvedValue({ agentDir: "/tmp", wrote: false }),
+  ensureZeeModelsJson: vi.fn().mockResolvedValue({ agentDir: "/tmp", wrote: false }),
 }));
 
 vi.mock("./agent-paths.js", () => ({
-  resolveMoltbotAgentDir: () => "/tmp/moltbot",
+  resolveZeeAgentDir: () => "/tmp/moltbot",
 }));
 
 describe("loadModelCatalog", () => {

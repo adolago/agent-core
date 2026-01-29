@@ -1,7 +1,7 @@
 {
   "name": "@moltbot/twitch",
   "version": "2026.1.27-beta.1",
-  "description": "Moltbot Twitch channel plugin",
+  "description": "Zee Twitch channel plugin",
   "type": "module",
   "dependencies": {
     "@twurple/api": "^8.0.3",

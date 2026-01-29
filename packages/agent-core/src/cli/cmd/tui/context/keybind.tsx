@@ -23,6 +23,8 @@ export type KeybindsConfig = SDKKeybindsConfig & {
   messages_previous?: string
   messages_last_user?: string
   grammar_quickfix?: string
+  help_view?: string
+  legend_view?: string
   // Vim mode keybinds
   vim_normal_mode?: string
   vim_insert_mode?: string

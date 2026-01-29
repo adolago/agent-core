@@ -92,9 +92,9 @@ describe("models-config", () => {
           resolveCopilotApiToken,
         }));
 
-        const { ensureMoltbotModelsJson } = await import("./models-config.js");
+        const { ensureZeeModelsJson } = await import("./models-config.js");
 
-        await ensureMoltbotModelsJson({ models: { providers: {} } }, agentDir);
+        await ensureZeeModelsJson({ models: { providers: {} } }, agentDir);
 
         expect(resolveCopilotApiToken).toHaveBeenCalledWith(
           expect.objectContaining({ githubToken: "alpha-token" }),
@@ -127,10 +127,10 @@ describe("models-config", () => {
           }),
         }));
 
-        const { ensureMoltbotModelsJson } = await import("./models-config.js");
-        const { resolveMoltbotAgentDir } = await import("./agent-paths.js");
+        const { ensureZeeModelsJson } = await import("./models-config.js");
+        const { resolveZeeAgentDir } = await import("./agent-paths.js");
 
-        await ensureMoltbotModelsJson({
+        await ensureZeeModelsJson({
           models: {
             providers: {
               "github-copilot": {
@@ -142,7 +142,7 @@ describe("models-config", () => {
           },
         });
 
-        const agentDir = resolveMoltbotAgentDir();
+        const agentDir = resolveZeeAgentDir();
         const raw = await fs.readFile(path.join(agentDir, "models.json"), "utf8");
         const parsed = JSON.parse(raw) as {
           providers: Record<string, { baseUrl?: string }>;

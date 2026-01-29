@@ -58,6 +58,8 @@ export function extractHookToken(req: IncomingMessage, url: URL): HookTokenResul
       ? req.headers["x-zee-token"].trim()
       : typeof req.headers["x-moltbot-token"] === "string"
         ? req.headers["x-moltbot-token"].trim()
+        : typeof req.headers["x-clawdbot-token"] === "string"
+          ? req.headers["x-clawdbot-token"].trim()
         : "";
   if (headerToken) return { token: headerToken, fromQuery: false };
   const queryToken = url.searchParams.get("token");

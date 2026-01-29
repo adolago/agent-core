@@ -16,7 +16,8 @@ const createEmptyRegistry = (): PluginRegistry => ({
   diagnostics: [],
 });
 
-const REGISTRY_STATE = Symbol.for("moltbot.pluginRegistryState");
+const REGISTRY_STATE = Symbol.for("zee.pluginRegistryState");
+const LEGACY_REGISTRY_STATE = Symbol.for("moltbot.pluginRegistryState");
 
 type RegistryState = {
   registry: PluginRegistry | null;
@@ -26,14 +27,18 @@ type RegistryState = {
 const state: RegistryState = (() => {
   const globalState = globalThis as typeof globalThis & {
     [REGISTRY_STATE]?: RegistryState;
+    [LEGACY_REGISTRY_STATE]?: RegistryState;
   };
-  if (!globalState[REGISTRY_STATE]) {
+  const existing = globalState[REGISTRY_STATE] ?? globalState[LEGACY_REGISTRY_STATE];
+  if (!existing) {
     globalState[REGISTRY_STATE] = {
       registry: createEmptyRegistry(),
       key: null,
     };
+    return globalState[REGISTRY_STATE] as RegistryState;
   }
-  return globalState[REGISTRY_STATE] as RegistryState;
+  globalState[REGISTRY_STATE] = existing;
+  return existing;
 })();
 
 export function setActivePluginRegistry(registry: PluginRegistry, cacheKey?: string) {

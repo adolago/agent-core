@@ -235,7 +235,7 @@ describe("gatewayInstallErrorHint", () => {
   it("returns platform-specific hints", () => {
     expect(gatewayInstallErrorHint("win32")).toContain("Run as administrator");
     expect(gatewayInstallErrorHint("linux")).toMatch(
-      /(?:moltbot|moltbot)( --profile isolated)? gateway install/,
+      /(?:zee)( --profile isolated)? gateway install/,
     );
   });
 });

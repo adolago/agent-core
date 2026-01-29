@@ -48,6 +48,7 @@ export function resolveSessionTranscriptCandidates(
     candidates.push(resolveSessionTranscriptPath(sessionId, agentId));
   }
   candidates.push(path.join(os.homedir(), ".zee", "sessions", `${sessionId}.jsonl`));
+  candidates.push(path.join(os.homedir(), ".moltbot", "sessions", `${sessionId}.jsonl`));
   candidates.push(path.join(os.homedir(), ".clawdbot", "sessions", `${sessionId}.jsonl`));
   return candidates;
 }

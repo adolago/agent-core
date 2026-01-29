@@ -1,7 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { MoltbotPluginApi } from "../plugins/types.js";
+import type { ZeePluginApi } from "../plugins/types.js";
 import type { HookEntry } from "./types.js";
 import { shouldIncludeHook } from "./config.js";
 import { loadHookEntriesFromDir } from "./workspace.js";
@@ -14,12 +14,12 @@ export type PluginHookLoadResult = {
   errors: string[];
 };
 
-function resolveHookDir(api: MoltbotPluginApi, dir: string): string {
+function resolveHookDir(api: ZeePluginApi, dir: string): string {
   if (path.isAbsolute(dir)) return dir;
   return path.resolve(path.dirname(api.source), dir);
 }
 
-function normalizePluginHookEntry(api: MoltbotPluginApi, entry: HookEntry): HookEntry {
+function normalizePluginHookEntry(api: ZeePluginApi, entry: HookEntry): HookEntry {
   return {
     ...entry,
     hook: {
@@ -37,7 +37,7 @@ function normalizePluginHookEntry(api: MoltbotPluginApi, entry: HookEntry): Hook
 
 async function loadHookHandler(
   entry: HookEntry,
-  api: MoltbotPluginApi,
+  api: ZeePluginApi,
 ): Promise<InternalHookHandler | null> {
   try {
     const url = pathToFileURL(entry.hook.handlerPath).href;
@@ -57,7 +57,7 @@ async function loadHookHandler(
 }
 
 export async function registerPluginHooksFromDir(
-  api: MoltbotPluginApi,
+  api: ZeePluginApi,
   dir: string,
 ): Promise<PluginHookLoadResult> {
   const resolvedDir = resolveHookDir(api, dir);

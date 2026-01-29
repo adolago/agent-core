@@ -475,6 +475,10 @@ export namespace Config {
       url: z.string().describe("URL of the remote MCP server"),
       enabled: z.boolean().optional().describe("Enable or disable the MCP server on startup"),
       headers: z.record(z.string(), z.string()).optional().describe("Headers to send with the request"),
+      async: z
+        .boolean()
+        .optional()
+        .describe("Run MCP tools asynchronously (returns job id; use <server>_job_poll to retrieve results)."),
       oauth: z
         .union([McpOAuth, z.literal(false)])
         .optional()
@@ -700,6 +704,8 @@ export namespace Config {
       theme_list: z.string().optional().default("<leader>shift+t").describe("List available themes"),
       sidebar_toggle: z.string().optional().default("<leader>b").describe("Toggle sidebar"),
       status_view: z.string().optional().default("<leader>s").describe("View status"),
+      help_view: z.string().optional().default("?").describe("View help"),
+      legend_view: z.string().optional().default("<leader>?").describe("View legend"),
       session_export: z.string().optional().default("<leader>x").describe("Export session to editor"),
       session_new: z.string().optional().default("<leader>n").describe("Create a new session"),
       session_list: z.string().optional().default("<leader>l").describe("List all sessions"),

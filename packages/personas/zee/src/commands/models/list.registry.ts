@@ -1,7 +1,7 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
 
-import { resolveMoltbotAgentDir } from "../../agents/agent-paths.js";
+import { resolveZeeAgentDir } from "../../agents/agent-paths.js";
 import type { AuthProfileStore } from "../../agents/auth-profiles.js";
 import { listProfilesForProvider } from "../../agents/auth-profiles.js";
 import {
@@ -9,7 +9,7 @@ import {
   resolveAwsSdkEnvVarName,
   resolveEnvApiKey,
 } from "../../agents/model-auth.js";
-import { ensureMoltbotModelsJson } from "../../agents/models-config.js";
+import { ensureZeeModelsJson } from "../../agents/models-config.js";
 import type { ZeeConfig } from "../../config/config.js";
 import type { ModelRow } from "./list.types.js";
 import { modelKey } from "./shared.js";
@@ -39,8 +39,8 @@ const hasAuthForProvider = (provider: string, cfg: ZeeConfig, authStore: AuthPro
 };
 
 export async function loadModelRegistry(cfg: ZeeConfig) {
-  await ensureMoltbotModelsJson(cfg);
-  const agentDir = resolveMoltbotAgentDir();
+  await ensureZeeModelsJson(cfg);
+  const agentDir = resolveZeeAgentDir();
   const authStorage = discoverAuthStorage(agentDir);
   const registry = discoverModels(authStorage, agentDir);
   const models = registry.getAll() as Model<Api>[];

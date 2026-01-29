@@ -21,6 +21,8 @@ import { withTimeout } from "@/util/timeout"
 import { McpOAuthProvider } from "./oauth-provider"
 import { McpOAuthCallback } from "./oauth-callback"
 import { McpAuth } from "./auth"
+import { Auth } from "../auth"
+import { Identifier } from "../id/id"
 import { BusEvent } from "../bus/bus-event"
 import { Bus } from "@/bus"
 import { TuiEvent } from "@/cli/cmd/tui/event"
@@ -54,6 +56,54 @@ export namespace MCP {
         serverMutexes.delete(serverName)
       }
     }
+  }
+
+  const AUTH_PLACEHOLDER = /\{auth:([^}]+)\}/g
+
+  async function resolveAuthPlaceholder(value: string): Promise<string> {
+    const matches = Array.from(value.matchAll(AUTH_PLACEHOLDER))
+    if (matches.length === 0) return value
+
+    const ids = Array.from(new Set(matches.map((match) => match[1]?.trim()).filter(Boolean)))
+    const authEntries = new Map<string, Auth.Info | undefined>()
+
+    for (const id of ids) {
+      authEntries.set(id, await Auth.get(id))
+    }
+
+    let resolved = value
+    for (const id of ids) {
+      const auth = authEntries.get(id)
+      if (!auth) {
+        throw new Error(`Missing auth for "${id}". Run: agent-core auth login ${id}`)
+      }
+      if (auth.type === "api") {
+        resolved = resolved.replaceAll(`{auth:${id}}`, auth.key)
+        continue
+      }
+      if (auth.type === "oauth") {
+        resolved = resolved.replaceAll(`{auth:${id}}`, auth.access)
+        continue
+      }
+      if (auth.type === "wellknown") {
+        resolved = resolved.replaceAll(`{auth:${id}}`, auth.token)
+        continue
+      }
+      throw new Error(`Unsupported auth type for "${id}". Run: agent-core auth login ${id}`)
+    }
+
+    return resolved
+  }
+
+  async function resolveMcpHeaders(
+    headers?: Record<string, string>,
+  ): Promise<Record<string, string> | undefined> {
+    if (!headers) return undefined
+    const resolved: Record<string, string> = {}
+    for (const [key, value] of Object.entries(headers)) {
+      resolved[key] = await resolveAuthPlaceholder(value)
+    }
+    return resolved
   }
 
   export const Resource = z
@@ -144,8 +194,158 @@ export namespace MCP {
     })
   }
 
+  type McpCallResult = Awaited<ReturnType<MCPClient["callTool"]>>
+  type McpJobStatus = "queued" | "running" | "completed" | "failed"
+  type McpJob = {
+    id: string
+    serverName: string
+    toolName: string
+    args: Record<string, unknown>
+    status: McpJobStatus
+    createdAt: number
+    startedAt?: number
+    completedAt?: number
+    result?: McpCallResult
+    error?: string
+  }
+
+  const JOB_RETENTION_MS = 6 * 60 * 60 * 1000
+  const jobStore = new Map<string, McpJob>()
+  const ASYNC_DEFAULT_SERVERS = new Set(["kernel"])
+
+  function isAsyncServer(serverName: string, entry?: Config.Mcp): boolean {
+    if (entry && "async" in entry && typeof (entry as { async?: boolean }).async === "boolean") {
+      return Boolean((entry as { async?: boolean }).async)
+    }
+    return ASYNC_DEFAULT_SERVERS.has(serverName)
+  }
+
+  function pruneJobs(now = Date.now()) {
+    for (const [id, job] of jobStore.entries()) {
+      if (job.status === "queued" || job.status === "running") continue
+      if (!job.completedAt) continue
+      if (now - job.completedAt > JOB_RETENTION_MS) {
+        jobStore.delete(id)
+      }
+    }
+  }
+
+  async function runJob(job: McpJob) {
+    job.status = "running"
+    job.startedAt = Date.now()
+    try {
+      job.result = await callTool(job.serverName, job.toolName, job.args)
+      job.status = "completed"
+    } catch (error) {
+      job.status = "failed"
+      job.error = error instanceof Error ? error.message : String(error)
+    } finally {
+      job.completedAt = Date.now()
+    }
+  }
+
+  function createJob(serverName: string, toolName: string, args: Record<string, unknown>): McpJob {
+    pruneJobs()
+    const job: McpJob = {
+      id: Identifier.ascending("job"),
+      serverName,
+      toolName,
+      args,
+      status: "queued",
+      createdAt: Date.now(),
+    }
+    jobStore.set(job.id, job)
+    void runJob(job)
+    return job
+  }
+
+  function getJob(jobId: string): McpJob | undefined {
+    pruneJobs()
+    return jobStore.get(jobId)
+  }
+
+  function createJobPollTool(serverName: string, toolId: string): Tool {
+    const schema: JSONSchema7 = {
+      type: "object",
+      properties: {
+        job_id: { type: "string" },
+        consume: { type: "boolean" },
+      },
+      required: ["job_id"],
+      additionalProperties: false,
+    }
+
+    return dynamicTool({
+      description: `Check the status of async ${serverName} jobs. Returns the final result when completed.`,
+      inputSchema: jsonSchema(schema),
+      execute: async (args: unknown) => {
+        const { job_id, consume } = (args ?? {}) as { job_id?: string; consume?: boolean }
+        if (!job_id) {
+          return {
+            content: [{ type: "text", text: "Missing job_id." }],
+            isError: true,
+          }
+        }
+
+        const job = getJob(job_id)
+        if (!job) {
+          return {
+            content: [{ type: "text", text: `Job not found: ${job_id}` }],
+            isError: true,
+          }
+        }
+        if (job.serverName !== serverName) {
+          const otherToolId = `${job.serverName.replace(/[^a-zA-Z0-9_-]/g, "_")}_job_poll`
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Job ${job_id} belongs to ${job.serverName}. Use ${otherToolId}.`,
+              },
+            ],
+            isError: true,
+          }
+        }
+
+        if (job.status === "completed") {
+          const result = job.result ?? {
+            content: [{ type: "text", text: "Job completed with no output." }],
+          }
+          if (consume !== false) {
+            jobStore.delete(job_id)
+          }
+          return result
+        }
+
+        if (job.status === "failed") {
+          const message = job.error ?? "Job failed."
+          if (consume !== false) {
+            jobStore.delete(job_id)
+          }
+          return {
+            content: [{ type: "text", text: message }],
+            isError: true,
+          }
+        }
+
+        const statusLine =
+          job.status === "running"
+            ? `Job ${job_id} is running.`
+            : `Job ${job_id} is queued.`
+        return {
+          content: [{ type: "text", text: `${statusLine} Try again with ${toolId}.` }],
+        }
+      },
+    })
+  }
+
   // Convert MCP tool definition to AI SDK Tool type
-  async function convertMcpTool(mcpTool: MCPToolDef, client: MCPClient, timeout: number): Promise<Tool> {
+  async function convertMcpTool(
+    mcpTool: MCPToolDef,
+    client: MCPClient,
+    timeout: number,
+    options: { serverName: string; asyncEnabled: boolean; pollToolId: string },
+  ): Promise<Tool> {
     const inputSchema = mcpTool.inputSchema
 
     // Spread first, then override type to ensure it's always "object"
@@ -154,6 +354,30 @@ export namespace MCP {
       type: "object",
       properties: (inputSchema.properties ?? {}) as JSONSchema7["properties"],
       additionalProperties: false,
+    }
+
+    if (options.asyncEnabled) {
+      const description = [
+        mcpTool.description ?? "",
+        `This tool runs asynchronously and returns a job id. Use ${options.pollToolId} to fetch status/result.`,
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+
+      return dynamicTool({
+        description,
+        inputSchema: jsonSchema(schema),
+        execute: async (args: unknown) => {
+          const job = createJob(options.serverName, mcpTool.name, (args ?? {}) as Record<string, unknown>)
+          const text = [
+            `Queued async job ${job.id} for ${options.serverName}/${mcpTool.name}.`,
+            `Use ${options.pollToolId} with { job_id: "${job.id}" } to fetch status/result.`,
+          ].join(" ")
+          return {
+            content: [{ type: "text", text }],
+          }
+        },
+      })
     }
 
     return dynamicTool({
@@ -407,19 +631,31 @@ export namespace MCP {
         )
       }
 
+      let resolvedHeaders: Record<string, string> | undefined
+      try {
+        resolvedHeaders = await resolveMcpHeaders(mcp.headers)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        log.warn("mcp header auth resolution failed", { key, error: message })
+        return {
+          mcpClient: undefined,
+          status: { status: "failed" as const, error: message },
+        }
+      }
+
       const transports: Array<{ name: string; transport: TransportWithAuth }> = [
         {
           name: "StreamableHTTP",
           transport: new StreamableHTTPClientTransport(new URL(mcp.url), {
             authProvider,
-            requestInit: mcp.headers ? { headers: mcp.headers } : undefined,
+            requestInit: resolvedHeaders ? { headers: resolvedHeaders } : undefined,
           }),
         },
         {
           name: "SSE",
           transport: new SSEClientTransport(new URL(mcp.url), {
             authProvider,
-            requestInit: mcp.headers ? { headers: mcp.headers } : undefined,
+            requestInit: resolvedHeaders ? { headers: resolvedHeaders } : undefined,
           }),
         },
       ]
@@ -853,14 +1089,24 @@ export namespace MCP {
       const mcpConfig = config[clientName]
       const entry = isMcpConfigured(mcpConfig) ? mcpConfig : undefined
       const timeout = entry?.timeout ?? defaultTimeout
+      const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
+      const asyncEnabled = isAsyncServer(clientName, entry)
+      const pollToolId = `${sanitizedClientName}_job_poll`
       for (const mcpTool of toolsResult.tools) {
-        const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
         result[sanitizedClientName + "_" + sanitizedToolName] = await convertMcpTool(
           mcpTool,
           s.clients[clientName] ?? client,
           timeout,
+          {
+            serverName: clientName,
+            asyncEnabled,
+            pollToolId,
+          },
         )
+      }
+      if (asyncEnabled) {
+        result[pollToolId] = createJobPollTool(clientName, pollToolId)
       }
     }
     return result

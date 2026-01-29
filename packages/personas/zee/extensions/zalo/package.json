@@ -2,7 +2,7 @@
   "name": "@moltbot/zalo",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot Zalo channel plugin",
+  "description": "Zee Zalo channel plugin",
   "moltbot": {
     "extensions": [
       "./index.ts"

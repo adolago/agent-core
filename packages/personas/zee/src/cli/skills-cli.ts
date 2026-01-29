@@ -27,21 +27,21 @@ export type SkillsCheckOptions = {
   json?: boolean;
 };
 
-function appendClawdHubHint(output: string, json?: boolean): string {
+function appendSkillsHint(output: string, json?: boolean): string {
   if (json) return output;
-  return `${output}\n\nTip: use \`npx clawdhub\` to search, install, and sync skills.`;
+  const docs = formatDocsLink("/tools/skills", "docs/tools/skills");
+  return `${output}\n\nTip: see ${docs} to search, install, and sync skills.`;
 }
 
 function formatSkillStatus(skill: SkillStatusEntry): string {
-  if (skill.eligible) return theme.success("✓ ready");
-  if (skill.disabled) return theme.warn("⏸ disabled");
-  if (skill.blockedByAllowlist) return theme.warn("🚫 blocked");
-  return theme.error("✗ missing");
+  if (skill.eligible) return theme.success("ready");
+  if (skill.disabled) return theme.warn("disabled");
+  if (skill.blockedByAllowlist) return theme.warn("blocked");
+  return theme.error("missing");
 }
 
 function formatSkillName(skill: SkillStatusEntry): string {
-  const emoji = skill.emoji ?? "📦";
-  return `${emoji} ${theme.command(skill.name)}`;
+  return theme.command(skill.name);
 }
 
 function formatSkillMissingSummary(skill: SkillStatusEntry): string {
@@ -94,7 +94,7 @@ export function formatSkillsList(report: SkillStatusReport, opts: SkillsListOpti
     const message = opts.eligible
       ? `No eligible skills found. Run \`${formatCliCommand("zee skills list")}\` to see all skills.`
       : "No skills found.";
-    return appendClawdHubHint(message, opts.json);
+    return appendSkillsHint(message, opts.json);
   }
 
   const eligible = skills.filter((s) => s.eligible);

@@ -59,7 +59,7 @@ async function promptWhatsAppAllowFrom(
 
   if (options?.forceAllowlist) {
     await prompter.note(
-      "We need the sender/owner number so Moltbot can allowlist you.",
+      "We need the sender/owner number so Zee can allowlist you.",
       "WhatsApp number",
     );
     const entry = await prompter.text({
@@ -111,13 +111,13 @@ async function promptWhatsAppAllowFrom(
     message: "WhatsApp phone setup",
     options: [
       { value: "personal", label: "This is my personal phone number" },
-      { value: "separate", label: "Separate phone just for Moltbot" },
+      { value: "separate", label: "Separate phone just for Zee" },
     ],
   })) as "personal" | "separate";
 
   if (phoneMode === "personal") {
     await prompter.note(
-      "We need the sender/owner number so Moltbot can allowlist you.",
+      "We need the sender/owner number so Zee can allowlist you.",
       "WhatsApp number",
     );
     const entry = await prompter.text({

@@ -61,8 +61,10 @@ const DEFAULT_SECURITY: ExecSecurity = "deny";
 const DEFAULT_ASK: ExecAsk = "on-miss";
 const DEFAULT_ASK_FALLBACK: ExecSecurity = "deny";
 const DEFAULT_AUTO_ALLOW_SKILLS = false;
-const DEFAULT_SOCKET = "~/.clawdbot/exec-approvals.sock";
-const DEFAULT_FILE = "~/.clawdbot/exec-approvals.json";
+const DEFAULT_SOCKET = "~/.zee/exec-approvals.sock";
+const DEFAULT_FILE = "~/.zee/exec-approvals.json";
+const LEGACY_SOCKET = "~/.clawdbot/exec-approvals.sock";
+const LEGACY_FILE = "~/.clawdbot/exec-approvals.json";
 export const DEFAULT_SAFE_BINS = ["jq", "grep", "cut", "sort", "uniq", "head", "tail", "tr", "wc"];
 
 function hashExecApprovalsRaw(raw: string | null): string {
@@ -80,11 +82,19 @@ function expandHome(value: string): string {
 }
 
 export function resolveExecApprovalsPath(): string {
-  return expandHome(DEFAULT_FILE);
+  const preferred = expandHome(DEFAULT_FILE);
+  if (fs.existsSync(preferred)) return preferred;
+  const legacy = expandHome(LEGACY_FILE);
+  if (fs.existsSync(legacy)) return legacy;
+  return preferred;
 }
 
 export function resolveExecApprovalsSocketPath(): string {
-  return expandHome(DEFAULT_SOCKET);
+  const preferred = expandHome(DEFAULT_SOCKET);
+  if (fs.existsSync(preferred)) return preferred;
+  const legacy = expandHome(LEGACY_SOCKET);
+  if (fs.existsSync(legacy)) return legacy;
+  return preferred;
 }
 
 function normalizeAllowlistPattern(value: string | undefined): string | null {

@@ -2,7 +2,7 @@
   "name": "@moltbot/llm-task",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot JSON-only LLM task plugin",
+  "description": "Zee JSON-only LLM task plugin",
   "moltbot": {
     "extensions": [
       "./index.ts"

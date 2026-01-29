@@ -87,16 +87,21 @@ function normalizeSystemdUnit(raw?: string, profile?: string): string {
   return unit.endsWith(".service") ? unit : `${unit}.service`;
 }
 
-export function triggerMoltbotRestart(): RestartAttempt {
+export function triggerZeeRestart(): RestartAttempt {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return { ok: true, method: "supervisor", detail: "test mode" };
   }
   const tried: string[] = [];
   if (process.platform !== "darwin") {
     if (process.platform === "linux") {
+      const profile = process.env.ZEE_PROFILE ?? process.env.MOLTBOT_PROFILE ?? process.env.CLAWDBOT_PROFILE;
+      const systemdUnit =
+        process.env.ZEE_SYSTEMD_UNIT ??
+        process.env.MOLTBOT_SYSTEMD_UNIT ??
+        process.env.CLAWDBOT_SYSTEMD_UNIT;
       const unit = normalizeSystemdUnit(
-        process.env.CLAWDBOT_SYSTEMD_UNIT,
-        process.env.CLAWDBOT_PROFILE,
+        systemdUnit,
+        profile,
       );
       const userArgs = ["--user", "restart", unit];
       tried.push(`systemctl ${userArgs.join(" ")}`);
@@ -129,9 +134,12 @@ export function triggerMoltbotRestart(): RestartAttempt {
     };
   }
 
+  const profile = process.env.ZEE_PROFILE ?? process.env.MOLTBOT_PROFILE ?? process.env.CLAWDBOT_PROFILE;
   const label =
-    process.env.CLAWDBOT_LAUNCHD_LABEL ||
-    resolveGatewayLaunchAgentLabel(process.env.CLAWDBOT_PROFILE);
+    process.env.ZEE_LAUNCHD_LABEL ??
+    process.env.MOLTBOT_LAUNCHD_LABEL ??
+    process.env.CLAWDBOT_LAUNCHD_LABEL ??
+    resolveGatewayLaunchAgentLabel(profile);
   const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
   const target = uid !== undefined ? `gui/${uid}/${label}` : label;
   const args = ["kickstart", "-k", target];
@@ -150,6 +158,8 @@ export function triggerMoltbotRestart(): RestartAttempt {
     tried,
   };
 }
+
+export const triggerMoltbotRestart = triggerZeeRestart;
 
 export type ScheduledRestart = {
   ok: boolean;

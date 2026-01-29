@@ -3,7 +3,7 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import type { ZeeConfig } from "../config/config.js";
-import { ensureMoltbotModelsJson } from "./models-config.js";
+import { ensureZeeModelsJson } from "./models-config.js";
 import { applyGoogleTurnOrderingFix } from "./pi-embedded-runner.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
@@ -72,7 +72,7 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
   }) satisfies ZeeConfig;
 
 const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
-  ensureMoltbotModelsJson(cfg, agentDir) as unknown;
+  ensureZeeModelsJson(cfg, agentDir) as unknown;
 
 const _textFromContent = (content: unknown) => {
   if (typeof content === "string") return content;

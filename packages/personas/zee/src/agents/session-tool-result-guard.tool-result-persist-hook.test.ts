@@ -6,7 +6,7 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, afterEach } from "vitest";
 
-import { loadMoltbotPlugins } from "../plugins/loader.js";
+import { loadZeePlugins } from "../plugins/loader.js";
 import { resetGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { guardSessionManager } from "./session-tool-result-guard-wrapper.js";
 
@@ -94,7 +94,7 @@ describe("tool_result_persist hook", () => {
 } };`,
     });
 
-    loadMoltbotPlugins({
+    loadZeePlugins({
       cache: false,
       workspaceDir: tmp,
       config: {

@@ -2,7 +2,7 @@
   "name": "@moltbot/diagnostics-otel",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot diagnostics OpenTelemetry exporter",
+  "description": "Zee diagnostics OpenTelemetry exporter",
   "moltbot": {
     "extensions": [
       "./index.ts"

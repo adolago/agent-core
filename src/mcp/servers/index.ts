@@ -59,11 +59,6 @@ export const PERSONA_MCP_SERVERS = {
     command: ["bun", "run", join(__dirname, "consciousness.ts")],
     description: "IIT consciousness tools: Phi calculation, evolution, reasoning",
   },
-  "browser": {
-    type: "local" as const,
-    command: ["bun", "run", join(__dirname, "browser.ts")],
-    description: "Browser automation via Zee gateway (profiles, tabs, actions)",
-  },
 } as const;
 
 /**

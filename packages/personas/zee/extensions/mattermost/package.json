@@ -2,7 +2,7 @@
   "name": "@moltbot/mattermost",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot Mattermost channel plugin",
+  "description": "Zee Mattermost channel plugin",
   "moltbot": {
     "extensions": [
       "./index.ts"

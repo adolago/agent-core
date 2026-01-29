@@ -8,7 +8,7 @@ import {
   logTypingFailure,
   resolveControlCommandGate,
   type RuntimeEnv,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 import type { CoreConfig, ReplyToMode } from "../../types.js";
 import {
   formatPollAsText,
@@ -37,7 +37,7 @@ export type MatrixMonitorHandlerParams = {
     logging: {
       shouldLogVerbose: () => boolean;
     };
-    channel: typeof import("clawdbot/plugin-sdk")["channel"];
+    channel: typeof import("zee/plugin-sdk")["channel"];
     system: {
       enqueueSystemEvent: (
         text: string,
@@ -59,7 +59,7 @@ export type MatrixMonitorHandlerParams = {
       : Record<string, unknown> | undefined
     : Record<string, unknown> | undefined;
   mentionRegexes: ReturnType<
-    typeof import("clawdbot/plugin-sdk")["channel"]["mentions"]["buildMentionRegexes"]
+    typeof import("zee/plugin-sdk")["channel"]["mentions"]["buildMentionRegexes"]
   >;
   groupPolicy: "open" | "allowlist" | "disabled";
   replyToMode: ReplyToMode;

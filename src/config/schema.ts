@@ -159,6 +159,8 @@ export const McpRemoteConfigSchema = z.object({
   enabled: z.boolean().optional().default(true),
   /** HTTP headers for requests */
   headers: z.record(z.string(), z.string()).optional(),
+  /** Run MCP tools asynchronously (returns job id; use <server>_job_poll to retrieve results) */
+  async: z.boolean().optional(),
   /** OAuth configuration or false to disable */
   oauth: z.union([McpOAuthConfigSchema, z.literal(false)]).optional(),
   /** Timeout for fetching tools (ms) */

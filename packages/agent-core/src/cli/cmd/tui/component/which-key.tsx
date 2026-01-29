@@ -44,6 +44,7 @@ const KEYBIND_META: Record<string, { category: string; description: string }> = 
 
   // App
   command_list: { category: "App", description: "[c]ommands" },
+  legend_view: { category: "App", description: "[?] legend" },
   app_exit: { category: "App", description: "[q]uit" },
 }
 

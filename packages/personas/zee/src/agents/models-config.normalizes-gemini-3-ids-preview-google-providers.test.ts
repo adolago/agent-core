@@ -46,8 +46,8 @@ describe("models-config", () => {
   it("normalizes gemini 3 ids to preview for google providers", async () => {
     await withTempHome(async () => {
       vi.resetModules();
-      const { ensureMoltbotModelsJson } = await import("./models-config.js");
-      const { resolveMoltbotAgentDir } = await import("./agent-paths.js");
+      const { ensureZeeModelsJson } = await import("./models-config.js");
+      const { resolveZeeAgentDir } = await import("./agent-paths.js");
 
       const cfg: ZeeConfig = {
         models: {
@@ -83,9 +83,9 @@ describe("models-config", () => {
         },
       };
 
-      await ensureMoltbotModelsJson(cfg);
+      await ensureZeeModelsJson(cfg);
 
-      const modelPath = path.join(resolveMoltbotAgentDir(), "models.json");
+      const modelPath = path.join(resolveZeeAgentDir(), "models.json");
       const raw = await fs.readFile(modelPath, "utf8");
       const parsed = JSON.parse(raw) as {
         providers: Record<string, { models: Array<{ id: string }> }>;

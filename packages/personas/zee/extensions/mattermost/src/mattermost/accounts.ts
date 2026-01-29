@@ -1,5 +1,5 @@
-import type { MoltbotConfig } from "clawdbot/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "clawdbot/plugin-sdk";
+import type { ZeeConfig } from "zee/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "zee/plugin-sdk";
 
 import type { MattermostAccountConfig, MattermostChatMode } from "../types.js";
 import { normalizeMattermostBaseUrl } from "./client.js";
@@ -24,26 +24,26 @@ export type ResolvedMattermostAccount = {
   blockStreamingCoalesce?: MattermostAccountConfig["blockStreamingCoalesce"];
 };
 
-function listConfiguredAccountIds(cfg: MoltbotConfig): string[] {
+function listConfiguredAccountIds(cfg: ZeeConfig): string[] {
   const accounts = cfg.channels?.mattermost?.accounts;
   if (!accounts || typeof accounts !== "object") return [];
   return Object.keys(accounts).filter(Boolean);
 }
 
-export function listMattermostAccountIds(cfg: MoltbotConfig): string[] {
+export function listMattermostAccountIds(cfg: ZeeConfig): string[] {
   const ids = listConfiguredAccountIds(cfg);
   if (ids.length === 0) return [DEFAULT_ACCOUNT_ID];
   return ids.sort((a, b) => a.localeCompare(b));
 }
 
-export function resolveDefaultMattermostAccountId(cfg: MoltbotConfig): string {
+export function resolveDefaultMattermostAccountId(cfg: ZeeConfig): string {
   const ids = listMattermostAccountIds(cfg);
   if (ids.includes(DEFAULT_ACCOUNT_ID)) return DEFAULT_ACCOUNT_ID;
   return ids[0] ?? DEFAULT_ACCOUNT_ID;
 }
 
 function resolveAccountConfig(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   accountId: string,
 ): MattermostAccountConfig | undefined {
   const accounts = cfg.channels?.mattermost?.accounts;
@@ -52,7 +52,7 @@ function resolveAccountConfig(
 }
 
 function mergeMattermostAccountConfig(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   accountId: string,
 ): MattermostAccountConfig {
   const { accounts: _ignored, ...base } = (cfg.channels?.mattermost ??
@@ -69,7 +69,7 @@ function resolveMattermostRequireMention(config: MattermostAccountConfig): boole
 }
 
 export function resolveMattermostAccount(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   accountId?: string | null;
 }): ResolvedMattermostAccount {
   const accountId = normalizeAccountId(params.accountId);
@@ -108,7 +108,7 @@ export function resolveMattermostAccount(params: {
   };
 }
 
-export function listEnabledMattermostAccounts(cfg: MoltbotConfig): ResolvedMattermostAccount[] {
+export function listEnabledMattermostAccounts(cfg: ZeeConfig): ResolvedMattermostAccount[] {
   return listMattermostAccountIds(cfg)
     .map((accountId) => resolveMattermostAccount({ cfg, accountId }))
     .filter((account) => account.enabled);

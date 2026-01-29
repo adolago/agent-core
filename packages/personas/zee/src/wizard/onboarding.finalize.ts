@@ -383,14 +383,14 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
   }
 
   await prompter.note(
-    ["Back up your agent workspace.", "Docs: https://docs.molt.bot/concepts/agent-workspace"].join(
+    ["Back up your agent workspace.", "Docs: https://docs.zee/concepts/agent-workspace"].join(
       "\n",
     ),
     "Workspace backup",
   );
 
   await prompter.note(
-    "Running agents on your computer is risky — harden your setup: https://docs.molt.bot/security",
+    "Running agents on your computer is risky — harden your setup: https://docs.zee/security",
     "Security",
   );
 
@@ -422,8 +422,8 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       [
         `Dashboard link (with token): ${authedUrl}`,
         controlUiOpened
-          ? "Opened in your browser. Keep that tab to control Moltbot."
-          : "Copy/paste this URL in a browser on this machine to control Moltbot.",
+          ? "Opened in your browser. Keep that tab to control Zee."
+          : "Copy/paste this URL in a browser on this machine to control Zee.",
         controlUiOpenHint,
       ]
         .filter(Boolean)
@@ -448,28 +448,28 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       : [
           "If you want your agent to be able to search the web, you’ll need an API key.",
           "",
-          "Moltbot uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won’t work.",
+          "Zee uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won’t work.",
           "",
           "Set it up interactively:",
           `- Run: ${formatCliCommand("zee configure --section web")}`,
           "- Enable web_search and paste your Brave Search API key",
           "",
           "Alternative: set BRAVE_API_KEY in the Gateway environment (no config changes).",
-          "Docs: https://docs.molt.bot/tools/web",
+          "Docs: https://docs.zee/tools/web",
         ].join("\n"),
     "Web search (optional)",
   );
 
   await prompter.note(
-    'What now: https://molt.bot/showcase ("What People Are Building").',
+    'What now: https://docs.zee/showcase ("What People Are Building").',
     "What now",
   );
 
   await prompter.outro(
     controlUiOpened
-      ? "Onboarding complete. Dashboard opened with your token; keep that tab to control Moltbot."
+      ? "Onboarding complete. Dashboard opened with your token; keep that tab to control Zee."
       : seededInBackground
         ? "Onboarding complete. Web UI seeded in the background; open it anytime with the tokenized link above."
-        : "Onboarding complete. Use the tokenized dashboard link above to control Moltbot.",
+        : "Onboarding complete. Use the tokenized dashboard link above to control Zee.",
   );
 }

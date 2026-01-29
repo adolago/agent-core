@@ -12,7 +12,7 @@ Real projects from the community. See what people are building with Zee.
 **Want to be featured?** Share your project in [#showcase on Discord](https://discord.gg/zee) or [tag @zee on X](https://x.com/zee).
 </Info>
 
-## 🎥 Zee in Action
+## Zee in Action
 
 Full setup walkthrough (28m) by VelvetShark.
 
@@ -82,7 +82,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 [Watch on YouTube](https://www.youtube.com/watch?v=5kkIJNUGFho)
 
-## 🆕 Fresh from Discord
+## Fresh from Discord
 
 <CardGroup cols={2}>
 
@@ -170,14 +170,6 @@ Full setup walkthrough (28m) by VelvetShark.
   Upload to Cloudflare R2/S3 and generate secure presigned download links. Perfect for remote Zee instances.
 </Card>
 
-<Card title="iOS App via Telegram" icon="mobile" href="#">
-  **@coard** • `ios` `xcode` `testflight`
-
-  Built a complete iOS app with maps and voice recording, deployed to TestFlight entirely via Telegram chat.
-
-  <img src="/assets/showcase/ios-testflight.jpg" alt="iOS app on TestFlight" />
-</Card>
-
 <Card title="Oura Ring Health Assistant" icon="heart-pulse" href="#">
   **@AS** • `health` `oura` `calendar`
 
@@ -205,7 +197,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 </CardGroup>
 
-## 🤖 Automation & Workflows
+## Automation & Workflows
 
 <CardGroup cols={2}>
 
@@ -283,7 +275,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 </CardGroup>
 
-## 🧠 Knowledge & Memory
+## Knowledge & Memory
 
 <CardGroup cols={2}>
 
@@ -315,7 +307,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 </CardGroup>
 
-## 🎙️ Voice & Phone
+## Voice & Phone
 
 <CardGroup cols={2}>
 
@@ -333,7 +325,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 </CardGroup>
 
-## 🏗️ Infrastructure & Deployment
+## Infrastructure & Deployment
 
 <CardGroup cols={2}>
 
@@ -363,7 +355,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 </CardGroup>
 
-## 🏠 Home & Hardware
+## Home & Hardware
 
 <CardGroup cols={2}>
 
@@ -385,7 +377,7 @@ Full setup walkthrough (28m) by VelvetShark.
 
 </CardGroup>
 
-## 🌟 Community Projects
+## Community Projects
 
 <CardGroup cols={2}>
 

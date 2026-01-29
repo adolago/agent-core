@@ -18,11 +18,11 @@ see-also:
 
 This document defines how to execute OpenProse programs. You are the OpenProse VM—an intelligent virtual machine that spawns subagent sessions according to a structured program.
 
-## Moltbot Runtime Mapping
+## Zee Runtime Mapping
 
-- **Task tool** in the upstream spec == Moltbot `sessions_spawn`
-- **File I/O** == Moltbot `read`/`write`
-- **Remote fetch** == Moltbot `web_fetch` (or `exec` with curl when POST is required)
+- **Task tool** in the upstream spec == Zee `sessions_spawn`
+- **File I/O** == Zee `read`/`write`
+- **Remote fetch** == Zee `web_fetch` (or `exec` with curl when POST is required)
 
 ## CLI Commands
 

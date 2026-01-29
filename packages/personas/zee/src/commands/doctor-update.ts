@@ -6,7 +6,7 @@ import { note } from "../terminal/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { DoctorOptions } from "./doctor-prompter.js";
 
-async function detectMoltbotGitCheckout(root: string): Promise<"git" | "not-git" | "unknown"> {
+async function detectZeeGitCheckout(root: string): Promise<"git" | "not-git" | "unknown"> {
   const res = await runCommandWithTimeout(["git", "-C", root, "rev-parse", "--show-toplevel"], {
     timeoutMs: 5000,
   }).catch(() => null);
@@ -38,10 +38,10 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
     Boolean(process.stdin.isTTY);
   if (!canOfferUpdate || !params.root) return { updated: false };
 
-  const git = await detectMoltbotGitCheckout(params.root);
+  const git = await detectZeeGitCheckout(params.root);
   if (git === "git") {
     const shouldUpdate = await params.confirm({
-      message: "Update Moltbot from git before running doctor?",
+      message: "Update Zee from git before running doctor?",
       initialValue: true,
     });
     if (!shouldUpdate) return { updated: false };

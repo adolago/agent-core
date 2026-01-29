@@ -109,6 +109,71 @@ export function Prompt(props: PromptProps) {
     }
     return Math.floor(total / 1000)
   })
+  // Session-wise cumulative token counters (across all completed assistant messages)
+  const sessionTokenTotals = createMemo(() => {
+    if (!props.sessionID) return { snt: 0, rcvd: 0 }
+    const msgs = sync.data.message[props.sessionID] ?? []
+    let snt = 0, rcvd = 0
+    for (const m of msgs) {
+      if (m.role !== "assistant" || !m.tokens) continue
+      snt += m.tokens.input ?? 0
+      rcvd += m.tokens.output ?? 0
+    }
+    return { snt, rcvd }
+  })
+  // Session-wise memory stats accumulator (persisted in kv)
+  const memTotalsKey = () => props.sessionID ? `mem_totals_${props.sessionID}` : undefined
+  const [memTotals, setMemTotals] = createSignal<{ mbd: number; rrnk: number; lastReqCount: number }>({ mbd: 0, rrnk: 0, lastReqCount: 0 })
+  // Load from kv on mount
+  createEffect(() => {
+    const key = memTotalsKey()
+    if (!key) return
+    const stored = kv.get(key, { mbd: 0, rrnk: 0, lastReqCount: 0 })
+    setMemTotals(stored)
+  })
+  // Commit memory stats when turn finishes (busy → idle transition)
+  const [wasBusy, setWasBusy] = createSignal(false)
+  const [lastBusyHealth, setLastBusyHealth] = createSignal<StreamHealthExtended | undefined>(undefined)
+  createEffect(() => {
+    const s = status()
+    const health = s.type === "busy" ? (s.streamHealth as StreamHealthExtended | undefined) : undefined
+    if (s.type === "busy") {
+      setWasBusy(true)
+      if (health) setLastBusyHealth(health)
+    } else if (wasBusy() && s.type === "idle") {
+      // Transition busy → idle: commit memory stats
+      const lbh = lastBusyHealth()
+      if (lbh?.memoryStats) {
+        const reqCount = lbh.requestCount ?? 0
+        const current = memTotals()
+        if (reqCount > current.lastReqCount) {
+          const updated = {
+            mbd: current.mbd + (lbh.memoryStats.embedding.estimatedTokens ?? 0),
+            rrnk: current.rrnk + (lbh.memoryStats.reranking.documents ?? 0),
+            lastReqCount: reqCount,
+          }
+          setMemTotals(updated)
+          const key = memTotalsKey()
+          if (key) kv.set(key, updated)
+        }
+      }
+      setWasBusy(false)
+      setLastBusyHealth(undefined)
+    }
+  })
+  // Live memory stats (completed + in-flight)
+  const memStatsLive = createMemo(() => {
+    const base = memTotals()
+    const health = streamHealth()
+    if (!health?.memoryStats) return base
+    return {
+      mbd: base.mbd + (health.memoryStats.embedding.estimatedTokens ?? 0),
+      rrnk: base.rrnk + (health.memoryStats.reranking.documents ?? 0),
+      lastReqCount: base.lastReqCount,
+    }
+  })
+  // Live received tokens (completed + in-flight)
+  const rcvdLive = createMemo(() => sessionTokenTotals().rcvd + (streamHealth()?.estimatedTokens ?? 0))
   // Context usage for token counter and compaction indicator
   const contextUsage = createMemo(() => {
     if (!props.sessionID) return null
@@ -1628,22 +1693,23 @@ export function Prompt(props: PromptProps) {
           />
         </box>
         <box flexDirection="row" justifyContent="space-between">
-          {/* Left side: persona + spinner + status */}
-          <box flexDirection="row" gap={1} flexShrink={0}>
+          {/* Left side: persona + vim + mode + spinner + stats */}
+          <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
             {/* Persona name */}
             <text fg={highlight()}>
               {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
             </text>
-            {/* Vim mode indicator */}
+            {/* Vim mode indicator with hints */}
             <Show when={vim.enabled && store.mode !== "shell"}>
-              <text fg={vim.isNormal ? theme.accent : theme.textMuted}>
-                {vim.isNormal ? "[N]" : "[I]"}
+              <text fg={vim.isNormal ? theme.accent : theme.success}>
+                {vim.isNormal ? "-- NORMAL --" : "-- INSERT --"}
               </text>
+              <Show when={vim.isNormal && status().type === "idle"}>
+                <text fg={theme.textMuted}>
+                  i:insert a:append o:below Space:leader
+                </text>
+              </Show>
             </Show>
-            {/* Hold/Release mode indicator */}
-            <text fg={local.mode.isHold() ? theme.warning : theme.success}>
-              {local.mode.isHold() ? "HOLD" : "RELS"}
-            </text>
             <Switch fallback={
               <Switch>
                 <Match when={dictationState() === "listening"}>
@@ -1663,20 +1729,42 @@ export function Prompt(props: PromptProps) {
                 <Match when={todoHint()}>
                   {(hint) => (
                     <text fg={theme.warning}>
-                      ◐ {hint().count} pending · {hint().current}...
+                      {hint().count} pending · {hint().current}...
                     </text>
                   )}
                 </Match>
               </Switch>
             }>
               <Match when={status().type === "idle"}>
-                <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-                  <text fg={theme.textMuted}>⬝⬝⬝⬝⬝⬝⬝⬝⬝⬝</text>
-                </Show>
+                {/* Session-wise stats when idle */}
+                {(() => {
+                  const formatTokens = (n: number) => {
+                    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                    return `${n}`
+                  }
+                  const formatElapsed = (s: number) => {
+                    if (s < 60) return `${s}s`
+                    if (s < 3600) {
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      return sec > 0 ? `${m}m${sec}s` : `${m}m`
+                    }
+                    const h = Math.floor(s / 3600)
+                    const m = Math.floor((s % 3600) / 60)
+                    return m > 0 ? `${h}h${m}m` : `${h}h`
+                  }
+                  const totals = sessionTokenTotals()
+                  const mem = memStatsLive()
+                  return (
+                    <text fg={theme.textMuted}>
+                      snt {formatTokens(totals.snt)}t rcvd {formatTokens(totals.rcvd)}t mbd {formatTokens(mem.mbd)}t rrnk {mem.rrnk}d {formatElapsed(completedWorkTime())}
+                    </text>
+                  )
+                })()}
               </Match>
               <Match when={true}>
                 <box flexDirection="row" gap={1}>
-                  <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
+                  <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[...]</text>}>
                     <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
                   </Show>
                   {(() => {
@@ -1732,11 +1820,11 @@ export function Prompt(props: PromptProps) {
                       if (s < 3600) {
                         const m = Math.floor(s / 60)
                         const sec = s % 60
-                        return sec > 0 ? `${m}m ${sec}s` : `${m}m`
+                        return sec > 0 ? `${m}m${sec}s` : `${m}m`
                       }
                       const h = Math.floor(s / 3600)
                       const m = Math.floor((s % 3600) / 60)
-                      return m > 0 ? `${h}h ${m}m` : `${h}h`
+                      return m > 0 ? `${h}h${m}m` : `${h}h`
                     }
                     const phaseLabel = createMemo(() => {
                       const health = streamHealth()
@@ -1748,22 +1836,12 @@ export function Prompt(props: PromptProps) {
                         default: return "starting"
                       }
                     })
-                    const events = createMemo(() => streamHealth()?.eventsReceived ?? 0)
-                    const receivedTokens = createMemo(() => streamHealth()?.estimatedTokens ?? 0)
-                    // Get sent tokens from the last assistant message (current turn's input)
-                    const sentTokens = createMemo(() => {
-                      if (!props.sessionID) return 0
-                      const messages = sync.data.message[props.sessionID] ?? []
-                      const lastAssistant = messages.findLast((m): m is typeof m & { role: "assistant" } => m.role === "assistant")
-                      if (!lastAssistant?.tokens) return 0
-                      return lastAssistant.tokens.input + (lastAssistant.tokens.cache?.read ?? 0)
-                    })
-                    const memStats = createMemo(() => streamHealth()?.memoryStats)
                     const formatTokens = (n: number) => {
-                      if (n >= 1000) return `${(n / 1000).toFixed(1)}kt`
-                      return `${n}t`
+                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+                      return `${n}`
                     }
                     const totalTime = () => completedWorkTime() + elapsed()
+                    const mem = memStatsLive()
                     return (
                       <>
                         <Show when={retry()}>
@@ -1773,12 +1851,7 @@ export function Prompt(props: PromptProps) {
                         </Show>
                         <Show when={!retry() && status().type === "busy"}>
                           <text fg={theme.textMuted}>
-                            {phaseLabel()}
-                            {" sent "}{formatTokens(sentTokens())}
-                            {" received "}{formatTokens(receivedTokens())}
-                            {" emb "}{formatTokens(memStats()?.embedding.estimatedTokens ?? 0)}
-                            {" rerank "}{memStats()?.reranking.documents ?? 0}d
-                            {" "}{formatElapsed(totalTime())}
+                            {phaseLabel()} snt {formatTokens(sessionTokenTotals().snt)}t rcvd {formatTokens(rcvdLive())}t mbd {formatTokens(mem.mbd)}t rrnk {mem.rrnk}d {formatElapsed(totalTime())}
                           </text>
                         </Show>
                       </>
@@ -1788,7 +1861,7 @@ export function Prompt(props: PromptProps) {
               </Match>
             </Switch>
           </box>
-          {/* Right side: model (provider) · time · esc interrupt */}
+          {/* Right side: context usage + provider model variant */}
           <box flexDirection="row" gap={1} flexShrink={0}>
             <Switch>
               <Match when={store.mode === "shell"}>
@@ -1806,27 +1879,22 @@ export function Prompt(props: PromptProps) {
                   }
                   const usage = contextUsage()
                   const color = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
+                  const parsed = local.model.parsed()
+                  const variant = local.model.variant.current()
                   return (
                     <>
                       <Show when={usage}>
                         <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
                         <text fg={theme.textMuted}> · </text>
                       </Show>
-                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{local.model.parsed().model}</text>
-                      <Show when={local.model.variant.current()}>
-                        <text fg={theme.primary} attributes={TextAttributes.BOLD}>{" "}{local.model.variant.current()}</text>
+                      <text fg={theme.textMuted}>{parsed.provider}</text>
+                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{parsed.model}</text>
+                      <Show when={variant}>
+                        <text fg={theme.primary} attributes={TextAttributes.BOLD}>{variant}</text>
                       </Show>
                     </>
                   )
                 })()}
-                <Show when={status().type === "busy"}>
-                  <box flexDirection="row" gap={1} marginLeft={2}>
-                    <text fg={store.interrupt > 0 ? theme.primary : theme.text}>spc esc</text>
-                    <text fg={store.interrupt > 0 ? theme.primary : theme.textMuted}>
-                      {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
-                    </text>
-                  </box>
-                </Show>
               </Match>
             </Switch>
           </box>

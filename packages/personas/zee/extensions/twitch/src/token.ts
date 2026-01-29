@@ -9,7 +9,7 @@
  * 2. Environment variable: CLAWDBOT_TWITCH_ACCESS_TOKEN (default account only)
  */
 
-import type { MoltbotConfig } from "../../../src/config/config.js";
+import type { ZeeConfig } from "../../../src/config/config.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../../src/routing/session-key.js";
 
 export type TwitchTokenSource = "env" | "config" | "none";
@@ -45,7 +45,7 @@ function normalizeTwitchToken(raw?: string | null): string | undefined {
  * @returns Token resolution with source
  */
 export function resolveTwitchToken(
-  cfg?: MoltbotConfig,
+  cfg?: ZeeConfig,
   opts: { accountId?: string | null; envToken?: string | null } = {},
 ): TwitchTokenResolution {
   const accountId = normalizeAccountId(opts.accountId);

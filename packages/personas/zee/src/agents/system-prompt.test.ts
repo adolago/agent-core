@@ -77,7 +77,7 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/clawd",
     });
 
-    expect(prompt).toContain("## Moltbot CLI Quick Reference");
+    expect(prompt).toContain("## Zee CLI Quick Reference");
     expect(prompt).toContain("moltbot gateway restart");
     expect(prompt).toContain("Do not invent commands");
   });
@@ -108,9 +108,9 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain(
       "- If exactly one skill clearly applies: read its SKILL.md at <location> with `Read`, then follow it.",
     );
-    expect(prompt).toContain("Moltbot docs: /tmp/clawd/docs");
+    expect(prompt).toContain("Zee docs: /tmp/clawd/docs");
     expect(prompt).toContain(
-      "For Moltbot behavior, commands, config, or architecture: consult local docs first.",
+      "For Zee behavior, commands, config, or architecture: consult local docs first.",
     );
   });
 
@@ -121,9 +121,9 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## Documentation");
-    expect(prompt).toContain("Moltbot docs: /tmp/clawd/docs");
+    expect(prompt).toContain("Zee docs: /tmp/clawd/docs");
     expect(prompt).toContain(
-      "For Moltbot behavior, commands, config, or architecture: consult local docs first.",
+      "For Zee behavior, commands, config, or architecture: consult local docs first.",
     );
   });
 
@@ -191,7 +191,7 @@ describe("buildAgentSystemPrompt", () => {
       toolNames: ["gateway", "exec"],
     });
 
-    expect(prompt).toContain("## Moltbot Self-Update");
+    expect(prompt).toContain("## Zee Self-Update");
     expect(prompt).toContain("config.apply");
     expect(prompt).toContain("update.run");
   });

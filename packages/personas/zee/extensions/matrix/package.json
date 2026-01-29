@@ -2,7 +2,7 @@
   "name": "@moltbot/matrix",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot Matrix channel plugin",
+  "description": "Zee Matrix channel plugin",
   "moltbot": {
     "extensions": [
       "./index.ts"

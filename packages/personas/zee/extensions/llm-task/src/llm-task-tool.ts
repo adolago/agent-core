@@ -10,7 +10,7 @@ import { Type } from "@sinclair/typebox";
 // When running from a built install, internals live under dist/ (no src/ tree).
 // So we resolve internal imports dynamically with src-first, dist-fallback.
 
-import type { MoltbotPluginApi } from "../../../src/plugins/types.js";
+import type { ZeePluginApi } from "../../../src/plugins/types.js";
 
 type RunEmbeddedPiAgentFn = (params: Record<string, unknown>) => Promise<unknown>;
 
@@ -61,7 +61,7 @@ type PluginCfg = {
   timeoutMs?: number;
 };
 
-export function createLlmTaskTool(api: MoltbotPluginApi) {
+export function createLlmTaskTool(api: ZeePluginApi) {
   return {
     name: "llm-task",
     description:

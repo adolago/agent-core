@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { MoltbotPluginApi, MoltbotPluginToolContext } from "../../../src/plugins/types.js";
+import type { ZeePluginApi, ZeePluginToolContext } from "../../../src/plugins/types.js";
 import { createLobsterTool } from "./lobster-tool.js";
 
 async function writeFakeLobsterScript(scriptBody: string, prefix = "moltbot-lobster-plugin-") {
@@ -33,7 +33,7 @@ async function writeFakeLobster(params: { payload: unknown }) {
   return await writeFakeLobsterScript(scriptBody);
 }
 
-function fakeApi(): MoltbotPluginApi {
+function fakeApi(): ZeePluginApi {
   return {
     id: "lobster",
     name: "lobster",
@@ -52,7 +52,7 @@ function fakeApi(): MoltbotPluginApi {
   };
 }
 
-function fakeCtx(overrides: Partial<MoltbotPluginToolContext> = {}): MoltbotPluginToolContext {
+function fakeCtx(overrides: Partial<ZeePluginToolContext> = {}): ZeePluginToolContext {
   return {
     config: {} as any,
     workspaceDir: "/tmp",
@@ -132,7 +132,7 @@ describe("lobster plugin tool", () => {
 
   it("can be gated off in sandboxed contexts", async () => {
     const api = fakeApi();
-    const factoryTool = (ctx: MoltbotPluginToolContext) => {
+    const factoryTool = (ctx: ZeePluginToolContext) => {
       if (ctx.sandboxed) return null;
       return createLobsterTool(api);
     };

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ZeeConfig } from "../config/config.js";
 import "./test-helpers/fast-coding-tools.js";
-import { createMoltbotCodingTools } from "./pi-tools.js";
+import { createZeeCodingTools } from "./pi-tools.js";
 
-const defaultTools = createMoltbotCodingTools();
+const defaultTools = createZeeCodingTools();
 
-describe("createMoltbotCodingTools", () => {
+describe("createZeeCodingTools", () => {
   it("preserves action enums in normalized schemas", () => {
     const toolNames = ["browser", "canvas", "nodes", "cron", "gateway", "message"];
 
@@ -58,14 +58,14 @@ describe("createMoltbotCodingTools", () => {
         },
       },
     };
-    const openAiTools = createMoltbotCodingTools({
+    const openAiTools = createZeeCodingTools({
       config,
       modelProvider: "openai",
       modelId: "gpt-5.2",
     });
     expect(openAiTools.some((tool) => tool.name === "apply_patch")).toBe(true);
 
-    const anthropicTools = createMoltbotCodingTools({
+    const anthropicTools = createZeeCodingTools({
       config,
       modelProvider: "anthropic",
       modelId: "claude-opus-4-5",
@@ -80,14 +80,14 @@ describe("createMoltbotCodingTools", () => {
         },
       },
     };
-    const allowed = createMoltbotCodingTools({
+    const allowed = createZeeCodingTools({
       config,
       modelProvider: "openai",
       modelId: "gpt-5.2",
     });
     expect(allowed.some((tool) => tool.name === "apply_patch")).toBe(true);
 
-    const denied = createMoltbotCodingTools({
+    const denied = createZeeCodingTools({
       config,
       modelProvider: "openai",
       modelId: "gpt-5-mini",
@@ -95,7 +95,7 @@ describe("createMoltbotCodingTools", () => {
     expect(denied.some((tool) => tool.name === "apply_patch")).toBe(false);
   });
   it("keeps canonical tool names for Anthropic OAuth (pi-ai remaps on the wire)", () => {
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       modelProvider: "anthropic",
       modelAuthMode: "oauth",
     });
@@ -107,7 +107,7 @@ describe("createMoltbotCodingTools", () => {
     expect(names.has("apply_patch")).toBe(false);
   });
   it("provides top-level object schemas for all tools", () => {
-    const tools = createMoltbotCodingTools();
+    const tools = createZeeCodingTools();
     const offenders = tools
       .map((tool) => {
         const schema =

@@ -7,13 +7,13 @@
 
 import type { ZeeConfig } from "../config/config.js";
 import type {
-  MoltbotPluginCommandDefinition,
+  ZeePluginCommandDefinition,
   PluginCommandContext,
   PluginCommandResult,
 } from "./types.js";
 import { logVerbose } from "../globals.js";
 
-type RegisteredPluginCommand = MoltbotPluginCommandDefinition & {
+type RegisteredPluginCommand = ZeePluginCommandDefinition & {
   pluginId: string;
 };
 
@@ -104,7 +104,7 @@ export type CommandRegistrationResult = {
  */
 export function registerPluginCommand(
   pluginId: string,
-  command: MoltbotPluginCommandDefinition,
+  command: ZeePluginCommandDefinition,
 ): CommandRegistrationResult {
   // Prevent registration while commands are being processed
   if (registryLocked) {

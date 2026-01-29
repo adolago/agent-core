@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { ZeeConfig } from "../config/config.js";
 import type { ExecApprovalsResolved } from "../infra/exec-approvals.js";
-import { createMoltbotCodingTools } from "./pi-tools.js";
+import { createZeeCodingTools } from "./pi-tools.js";
 
 vi.mock("../infra/exec-approvals.js", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../infra/exec-approvals.js")>();
@@ -40,7 +40,7 @@ vi.mock("../infra/exec-approvals.js", async (importOriginal) => {
   return { ...mod, resolveExecApprovals: () => approvals };
 });
 
-describe("createMoltbotCodingTools safeBins", () => {
+describe("createZeeCodingTools safeBins", () => {
   it("threads tools.exec.safeBins into exec allowlist checks", async () => {
     if (process.platform === "win32") return;
 
@@ -56,7 +56,7 @@ describe("createMoltbotCodingTools safeBins", () => {
       },
     };
 
-    const tools = createMoltbotCodingTools({
+    const tools = createZeeCodingTools({
       config: cfg,
       sessionKey: "agent:main:main",
       workspaceDir: tmpDir,

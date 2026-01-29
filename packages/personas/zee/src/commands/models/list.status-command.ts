@@ -1,5 +1,5 @@
 import path from "node:path";
-import { resolveMoltbotAgentDir } from "../../agents/agent-paths.js";
+import { resolveZeeAgentDir } from "../../agents/agent-paths.js";
 import {
   buildAuthHealthSummary,
   DEFAULT_OAUTH_WARN_MS,
@@ -93,7 +93,7 @@ export async function modelsStatusCommand(
   );
   const allowed = Object.keys(cfg.agents?.defaults?.models ?? {});
 
-  const agentDir = resolveMoltbotAgentDir();
+  const agentDir = resolveZeeAgentDir();
   const store = ensureAuthProfileStore();
   const modelsPath = path.join(agentDir, "models.json");
 

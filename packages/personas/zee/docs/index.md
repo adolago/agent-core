@@ -46,7 +46,7 @@ WhatsApp / Telegram / Discord / iMessage (+ plugins)
         │
         ▼
   ┌───────────────────────────┐
-  │          Gateway          │  ws://127.0.0.1:18789 (loopback-only)
+  │        Zee Gateway        │  ws://127.0.0.1:18789 (loopback-only)
   │     (single source)       │
   │                           │  http://<gateway-host>:18793
   │                           │    /__zee__/canvas/ (Canvas host)
@@ -54,17 +54,16 @@ WhatsApp / Telegram / Discord / iMessage (+ plugins)
               │
               ├─ Pi agent (RPC)
               ├─ CLI (zee …)
-              ├─ Chat UI (SwiftUI)
+              ├─ Chat UI (SwiftUI, macOS)
               ├─ macOS app (Zee.app)
-              ├─ iOS node via Gateway WS + pairing
-              └─ Android node via Gateway WS + pairing
+              └─ External nodes (macOS/headless) via Gateway WS
 ```
 
-Most operations flow through the **Gateway** (`zee gateway`), a single long-running process that owns channel connections and the WebSocket control plane.
+Most operations flow through the **Zee Gateway** (`zee gateway`), a single long-running process that owns channel connections and the WebSocket control plane.
 
 ## Network model
 
-- **One Gateway per host (recommended)**: it is the only process allowed to own the WhatsApp Web session. If you need a rescue bot or strict isolation, run multiple gateways with isolated profiles and ports; see [Multiple gateways](/gateway/multiple-gateways).
+- **One Zee Gateway per host (recommended)**: it is the only process allowed to own the WhatsApp Web session. If you need a rescue bot or strict isolation, run multiple gateways with isolated profiles and ports; see [Multiple gateways](/gateway/multiple-gateways).
 - **Loopback-first**: Gateway WS defaults to `ws://127.0.0.1:18789`.
   - The wizard now generates a gateway token by default (even for loopback).
   - For Tailnet access, run `zee gateway --bind tailnet --token ...` (token is required for non-loopback binds).
@@ -74,22 +73,21 @@ Most operations flow through the **Gateway** (`zee gateway`), a single long-runn
 
 ## Features (high level)
 
-- 📱 **WhatsApp Integration** — Uses Baileys for WhatsApp Web protocol
-- ✈️ **Telegram Bot** — DMs + groups via grammY
-- 🎮 **Discord Bot** — DMs + guild channels via channels.discord.js
-- 🧩 **Mattermost Bot (plugin)** — Bot token + WebSocket events
-- 💬 **iMessage** — Local imsg CLI integration (macOS)
-- 🤖 **Agent bridge** — Pi (RPC mode) with tool streaming
-- ⏱️ **Streaming + chunking** — Block streaming + Telegram draft streaming details ([/concepts/streaming](/concepts/streaming))
-- 🧠 **Multi-agent routing** — Route provider accounts/peers to isolated agents (workspace + per-agent sessions)
-- 🔐 **Subscription auth** — Anthropic (Claude Pro/Max) + OpenAI (ChatGPT/Codex) via OAuth
-- 💬 **Sessions** — Direct chats collapse into shared `main` (default); groups are isolated
-- 👥 **Group Chat Support** — Mention-based by default; owner can toggle `/activation always|mention`
-- 📎 **Media Support** — Send and receive images, audio, documents
-- 🎤 **Voice notes** — Optional transcription hook
-- 🖥️ **WebChat + macOS app** — Local UI + menu bar companion for ops and voice wake
-- 📱 **iOS node** — Pairs as a node and exposes a Canvas surface
-- 📱 **Android node** — Pairs as a node and exposes Canvas + Chat + Camera
+- **WhatsApp Integration** — Uses Baileys for WhatsApp Web protocol
+- **Telegram Bot** — DMs + groups via grammY
+- **Discord Bot** — DMs + guild channels via channels.discord.js
+- **Mattermost Bot (plugin)** — Bot token + WebSocket events
+- **iMessage** — Local imsg CLI integration (macOS)
+- **Agent bridge** — Pi (RPC mode) with tool streaming
+- **Streaming + chunking** — Block streaming + Telegram draft streaming details ([/concepts/streaming](/concepts/streaming))
+- **Multi-agent routing** — Route provider accounts/peers to isolated agents (workspace + per-agent sessions)
+- **Subscription auth** — Anthropic (Claude Pro/Max) + OpenAI (ChatGPT/Codex) via OAuth
+- **Sessions** — Direct chats collapse into shared `main` (default); groups are isolated
+- **Group Chat Support** — Mention-based by default; owner can toggle `/activation always|mention`
+- **Media Support** — Send and receive images, audio, documents
+- **Voice notes** — Optional transcription hook
+- **WebChat + macOS app** — Local UI + menu bar companion for ops and voice wake
+- **Node clients (external)** — macOS/headless nodes pair via Gateway WS (not shipped in this repo)
 
 Note: legacy Claude/Codex/Gemini/Opencode paths have been removed; Pi is the only coding-agent path.
 
@@ -130,8 +128,8 @@ If you don’t have a global install yet, run the onboarding step via `pnpm zee 
 Multi-instance quickstart (optional):
 
 ```bash
-CLAWDBOT_CONFIG_PATH=~/.zee/a.json \
-CLAWDBOT_STATE_DIR=~/.zee-a \
+ZEE_CONFIG_PATH=~/.zee/a.json \
+ZEE_STATE_DIR=~/.zee-a \
 zee gateway --port 19001
 ```
 

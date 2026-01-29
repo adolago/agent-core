@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { loadMoltbotPlugins } from "./loader.js";
+import { loadZeePlugins } from "./loader.js";
 
 type TempPlugin = { dir: string; file: string; id: string };
 
@@ -59,7 +59,7 @@ afterEach(() => {
   }
 });
 
-describe("loadMoltbotPlugins", () => {
+describe("loadZeePlugins", () => {
   it("disables bundled plugins by default", () => {
     const bundledDir = makeTempDir();
     writePlugin({
@@ -70,7 +70,7 @@ describe("loadMoltbotPlugins", () => {
     });
     process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -82,7 +82,7 @@ describe("loadMoltbotPlugins", () => {
     const bundled = registry.plugins.find((entry) => entry.id === "bundled");
     expect(bundled?.status).toBe("disabled");
 
-    const enabledRegistry = loadMoltbotPlugins({
+    const enabledRegistry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -127,7 +127,7 @@ describe("loadMoltbotPlugins", () => {
     });
     process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -154,7 +154,7 @@ describe("loadMoltbotPlugins", () => {
     });
     process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -193,7 +193,7 @@ describe("loadMoltbotPlugins", () => {
 
     process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = bundledDir;
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -217,7 +217,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "allowed", register(api) { api.registerGatewayMethod("allowed.ping", ({ respond }) => respond(true, { ok: true })); } };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -240,7 +240,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "blocked", register() {} };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -263,7 +263,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "configurable", register() {} };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -309,7 +309,7 @@ describe("loadMoltbotPlugins", () => {
 } };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -333,7 +333,7 @@ describe("loadMoltbotPlugins", () => {
 } };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -359,7 +359,7 @@ describe("loadMoltbotPlugins", () => {
 } };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       workspaceDir: plugin.dir,
       config: {
@@ -384,7 +384,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "config-disable", register() {} };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -411,7 +411,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "memory-b", kind: "memory", register() {} };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -434,7 +434,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "memory-off", kind: "memory", register() {} };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {
@@ -463,7 +463,7 @@ describe("loadMoltbotPlugins", () => {
       body: `export default { id: "shadow", register() {} };`,
     });
 
-    const registry = loadMoltbotPlugins({
+    const registry = loadZeePlugins({
       cache: false,
       config: {
         plugins: {

@@ -68,7 +68,7 @@ export async function doctorCommand(
 ) {
   const prompter = createDoctorPrompter({ runtime, options });
   printWizardHeader(runtime);
-  intro("Moltbot doctor");
+  intro("Zee doctor");
 
   const root = await resolveZeePackageRoot({
     moduleUrl: import.meta.url,

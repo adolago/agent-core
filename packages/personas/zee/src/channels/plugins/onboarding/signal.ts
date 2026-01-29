@@ -282,7 +282,7 @@ export const signalOnboardingAdapter: ChannelOnboardingAdapter = {
 
     await prompter.note(
       [
-        'Link device with: signal-cli link -n "Moltbot"',
+        'Link device with: signal-cli link -n "Zee"',
         "Scan QR in Signal → Linked Devices",
         `Then run: ${formatCliCommand("zee gateway call channels.status --params '{\"probe\":true}'")}`,
         `Docs: ${formatDocsLink("/signal", "signal")}`,

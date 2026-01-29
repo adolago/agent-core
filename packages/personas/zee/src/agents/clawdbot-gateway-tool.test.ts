@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import "./test-helpers/fast-core-tools.js";
-import { createMoltbotTools } from "./moltbot-tools.js";
+import { createZeeTools } from "./zee-tools.js";
 
 vi.mock("./tools/gateway.js", () => ({
   callGatewayTool: vi.fn(async (method: string) => {
@@ -26,7 +26,7 @@ describe("gateway tool", () => {
     process.env.CLAWDBOT_PROFILE = "isolated";
 
     try {
-      const tool = createMoltbotTools({
+      const tool = createZeeTools({
         config: { commands: { restart: true } },
       }).find((candidate) => candidate.name === "gateway");
       expect(tool).toBeDefined();
@@ -50,7 +50,7 @@ describe("gateway tool", () => {
       };
       expect(parsed.payload?.kind).toBe("restart");
       expect(parsed.payload?.doctorHint).toBe(
-        "Run: moltbot --profile isolated doctor --non-interactive",
+        "Run: zee --profile isolated doctor --non-interactive",
       );
 
       expect(kill).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe("gateway tool", () => {
 
   it("passes config.apply through gateway call", async () => {
     const { callGatewayTool } = await import("./tools/gateway.js");
-    const tool = createMoltbotTools({
+    const tool = createZeeTools({
       agentSessionKey: "agent:main:whatsapp:dm:+15555550123",
     }).find((candidate) => candidate.name === "gateway");
     expect(tool).toBeDefined();
@@ -100,7 +100,7 @@ describe("gateway tool", () => {
 
   it("passes config.patch through gateway call", async () => {
     const { callGatewayTool } = await import("./tools/gateway.js");
-    const tool = createMoltbotTools({
+    const tool = createZeeTools({
       agentSessionKey: "agent:main:whatsapp:dm:+15555550123",
     }).find((candidate) => candidate.name === "gateway");
     expect(tool).toBeDefined();
@@ -126,7 +126,7 @@ describe("gateway tool", () => {
 
   it("passes update.run through gateway call", async () => {
     const { callGatewayTool } = await import("./tools/gateway.js");
-    const tool = createMoltbotTools({
+    const tool = createZeeTools({
       agentSessionKey: "agent:main:whatsapp:dm:+15555550123",
     }).find((candidate) => candidate.name === "gateway");
     expect(tool).toBeDefined();

@@ -1,10 +1,10 @@
-# @clawdbot/nostr
+# @zee/nostr
 
-Nostr DM channel plugin for Clawdbot using NIP-04 encrypted direct messages.
+Nostr DM channel plugin for Zee using NIP-04 encrypted direct messages.
 
 ## Overview
 
-This extension adds Nostr as a messaging channel to Clawdbot. It enables your bot to:
+This extension adds Nostr as a messaging channel to Zee. It enables your bot to:
 
 - Receive encrypted DMs from Nostr users
 - Send encrypted responses back
@@ -13,7 +13,7 @@ This extension adds Nostr as a messaging channel to Clawdbot. It enables your bo
 ## Installation
 
 ```bash
-clawdbot plugins install @clawdbot/nostr
+zee plugins install @zee/nostr
 ```
 
 ## Quick Setup
@@ -90,7 +90,7 @@ clawdbot plugins install @clawdbot/nostr
 # Using strfry
 docker run -p 7777:7777 ghcr.io/hoytech/strfry
 
-# Configure clawdbot to use local relay
+# Configure zee to use local relay
 "relays": ["ws://localhost:7777"]
 ```
 

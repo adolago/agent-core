@@ -11,9 +11,7 @@
     "./cli-entry": "./zee.mjs"
   },
   "bin": {
-    "zee": "./zee.mjs",
-    "moltbot": "./zee.mjs",
-    "clawdbot": "./zee.mjs"
+    "zee": "./zee.mjs"
   },
   "files": [
     "dist/acp/**",
@@ -222,6 +220,7 @@
     "docx-preview": "^0.3.7",
     "lit": "^3.3.2",
     "lucide": "^0.563.0",
+    "node-gyp": "^12.2.0",
     "ollama": "^0.6.3",
     "oxfmt": "0.26.0",
     "oxlint": "^1.41.0",
@@ -274,7 +273,7 @@
       "apps/macos/.build/**",
       "**/vendor/**",
       "apps/macos/.build/**",
-      "dist/Moltbot.app/**"
+      "dist/Zee.app/**"
     ]
   }
 }

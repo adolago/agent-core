@@ -2,7 +2,7 @@
   "name": "@moltbot/nextcloud-talk",
   "version": "2026.1.27-beta.1",
   "type": "module",
-  "description": "Moltbot Nextcloud Talk channel plugin",
+  "description": "Zee Nextcloud Talk channel plugin",
   "moltbot": {
     "extensions": [
       "./index.ts"

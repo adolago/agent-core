@@ -4,11 +4,11 @@ import {
   LineConfigSchema,
   processLineMessage,
   type ChannelPlugin,
-  type MoltbotConfig,
+  type ZeeConfig,
   type LineConfig,
   type LineChannelData,
   type ResolvedLineAccount,
-} from "clawdbot/plugin-sdk";
+} from "zee/plugin-sdk";
 
 import { getLineRuntime } from "./runtime.js";
 
@@ -639,7 +639,7 @@ export const linePlugin: ChannelPlugin<ResolvedLineAccount> = {
     },
     logoutAccount: async ({ accountId, cfg }) => {
       const envToken = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim() ?? "";
-      const nextCfg = { ...cfg } as MoltbotConfig;
+      const nextCfg = { ...cfg } as ZeeConfig;
       const lineConfig = (cfg.channels?.line ?? {}) as LineConfig;
       const nextLine = { ...lineConfig };
       let cleared = false;

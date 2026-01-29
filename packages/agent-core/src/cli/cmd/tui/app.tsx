@@ -15,6 +15,7 @@ import { DialogMcp } from "@tui/component/dialog-mcp"
 import { DialogStatus } from "@tui/component/dialog-status"
 import { DialogThemeList } from "@tui/component/dialog-theme-list"
 import { DialogHelp } from "./ui/dialog-help"
+import { DialogLegend } from "./ui/dialog-legend"
 import { WhichKey } from "@tui/component/which-key"
 import { CommandProvider, useCommandDialog } from "@tui/component/dialog-command"
 import { DialogAgent } from "@tui/component/dialog-agent"
@@ -35,7 +36,7 @@ import { TuiEvent } from "./event"
 import { KVProvider, useKV } from "./context/kv"
 import { Provider } from "@/provider/provider"
 import { ArgsProvider, useArgs, type Args } from "./context/args"
-import { VimProvider } from "./context/vim"
+import { VimProvider, useVim } from "./context/vim"
 import open from "open"
 import { PromptRefProvider, usePromptRef } from "./context/prompt"
 import { normalizeHttpUrl } from "@/util/net"
@@ -200,6 +201,7 @@ function App() {
   const sync = useSync()
   const exit = useExit()
   const promptRef = usePromptRef()
+  const vim = useVim()
 
   // Wire up console copy-to-clipboard via opentui's onCopySelection callback
   renderer.console.onCopySelection = async (text: string) => {
@@ -450,14 +452,16 @@ function App() {
 	      },
 	    },
 	    {
-	      title: local.mode.isHold() ? "Switch to Release mode" : "Switch to Hold mode",
-	      value: "mode.toggle",
-	      keybind: "mode_toggle",
-	      category: "Mode",
-      onSelect: () => {
-        local.mode.toggle()
-      },
-    },
+	    title: local.mode.isHold() ? "Switch to Release mode" : "Switch to Hold mode",
+	    value: "mode.toggle",
+	    keybind: "mode_toggle",
+	    category: "Mode",
+	      onSelect: () => {
+	        local.mode.toggle()
+	        // Restore focus to prompt after mode toggle
+	        setTimeout(() => vim.onEnterInsert(), 10)
+	      },
+	    },
     {
       title: "Connect provider",
       value: "provider.connect",
@@ -475,6 +479,18 @@ function App() {
       },
       onSelect: () => {
         dialog.replace(() => <DialogStatus />)
+      },
+      category: "System",
+    },
+    {
+      title: "View legend",
+      value: "opencode.legend",
+      keybind: "legend_view",
+      slash: {
+        name: "legend",
+      },
+      onSelect: () => {
+        dialog.replace(() => <DialogLegend />)
       },
       category: "System",
     },
@@ -502,6 +518,7 @@ function App() {
     {
       title: "Help",
       value: "help.show",
+      keybind: "help_view",
       slash: {
         name: "help",
       },

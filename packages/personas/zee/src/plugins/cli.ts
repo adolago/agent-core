@@ -4,7 +4,7 @@ import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent
 import type { ZeeConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { loadMoltbotPlugins } from "./loader.js";
+import { loadZeePlugins } from "./loader.js";
 import type { PluginLogger } from "./types.js";
 
 const log = createSubsystemLogger("plugins");
@@ -18,7 +18,7 @@ export function registerPluginCliCommands(program: Command, cfg?: ZeeConfig) {
     error: (msg: string) => log.error(msg),
     debug: (msg: string) => log.debug(msg),
   };
-  const registry = loadMoltbotPlugins({
+  const registry = loadZeePlugins({
     config,
     workspaceDir,
     logger,

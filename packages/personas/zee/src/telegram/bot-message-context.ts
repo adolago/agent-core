@@ -272,7 +272,7 @@ export const buildTelegramMessageContext = async ({
                   bot.api.sendMessage(
                     chatId,
                     [
-                      "Moltbot: access not configured.",
+                      "Zee: access not configured.",
                       "",
                       `Your Telegram user id: ${telegramUserId}`,
                       "",

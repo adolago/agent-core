@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 import type { ZeeConfig } from "../config/config.js";
-import { ensureMoltbotModelsJson } from "./models-config.js";
+import { ensureZeeModelsJson } from "./models-config.js";
 import { createSystemPromptOverride } from "./pi-embedded-runner.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
@@ -70,7 +70,7 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
   }) satisfies ZeeConfig;
 
 const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
-  ensureMoltbotModelsJson(cfg, agentDir) as unknown;
+  ensureZeeModelsJson(cfg, agentDir) as unknown;
 
 const _textFromContent = (content: unknown) => {
   if (typeof content === "string") return content;
