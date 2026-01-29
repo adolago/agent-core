@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveUserPath } from "../utils.js";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-state.js";
 import { discoverMoltbotPlugins, type PluginCandidate } from "./discovery.js";
@@ -100,7 +100,7 @@ function buildRecord(params: {
 }
 
 export function loadPluginManifestRegistry(params: {
-  config?: MoltbotConfig;
+  config?: ZeeConfig;
   workspaceDir?: string;
   cache?: boolean;
   env?: NodeJS.ProcessEnv;

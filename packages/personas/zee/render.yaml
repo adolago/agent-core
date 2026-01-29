@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: moltbot
+    name: zee
     runtime: docker
     plan: starter
     healthCheckPath: /health
@@ -9,13 +9,13 @@ services:
         value: "8080"
       - key: SETUP_PASSWORD
         sync: false
-      - key: CLAWDBOT_STATE_DIR
-        value: /data/.clawdbot
-      - key: CLAWDBOT_WORKSPACE_DIR
+      - key: ZEE_STATE_DIR
+        value: /data/.zee
+      - key: ZEE_WORKSPACE_DIR
         value: /data/workspace
-      - key: CLAWDBOT_GATEWAY_TOKEN
+      - key: ZEE_GATEWAY_TOKEN
         generateValue: true
     disk:
-      name: moltbot-data
+      name: zee-data
       mountPath: /data
       sizeGB: 1

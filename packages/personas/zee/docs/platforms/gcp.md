@@ -1,18 +1,18 @@
 ---
-summary: "Run Moltbot Gateway 24/7 on a GCP Compute Engine VM (Docker) with durable state"
+summary: "Run Zee Gateway 24/7 on a GCP Compute Engine VM (Docker) with durable state"
 read_when:
-  - You want Moltbot running 24/7 on GCP
+  - You want Zee running 24/7 on GCP
   - You want a production-grade, always-on Gateway on your own VM
   - You want full control over persistence, binaries, and restart behavior
 ---
 
-# Moltbot on GCP Compute Engine (Docker, Production VPS Guide)
+# Zee on GCP Compute Engine (Docker, Production VPS Guide)
 
 ## Goal
 
-Run a persistent Moltbot Gateway on a GCP Compute Engine VM using Docker, with durable state, baked-in binaries, and safe restart behavior.
+Run a persistent Zee Gateway on a GCP Compute Engine VM using Docker, with durable state, baked-in binaries, and safe restart behavior.
 
-If you want "Moltbot 24/7 for ~$5-12/mo", this is a reliable setup on Google Cloud.
+If you want "Zee 24/7 for ~$5-12/mo", this is a reliable setup on Google Cloud.
 Pricing varies by machine type and region; pick the smallest VM that fits your workload and scale up if you hit OOMs.
 
 ## What are we doing (simple terms)?
@@ -20,8 +20,8 @@ Pricing varies by machine type and region; pick the smallest VM that fits your w
 - Create a GCP project and enable billing
 - Create a Compute Engine VM
 - Install Docker (isolated app runtime)
-- Start the Moltbot Gateway in Docker
-- Persist `~/.clawdbot` + `~/clawd` on the host (survives restarts/rebuilds)
+- Start the Zee Gateway in Docker
+- Persist `~/.zee` + `~/zee` on the host (survives restarts/rebuilds)
 - Access the Control UI from your laptop via an SSH tunnel
 
 The Gateway can be accessed via:
@@ -40,7 +40,7 @@ For the generic Docker flow, see [Docker](/install/docker).
 2) Create Compute Engine VM (e2-small, Debian 12, 20GB)
 3) SSH into the VM
 4) Install Docker
-5) Clone Moltbot repository
+5) Clone Zee repository
 6) Create persistent host directories
 7) Configure `.env` and `docker-compose.yml`
 8) Bake required binaries, build, and launch
@@ -87,8 +87,8 @@ All steps can be done via the web UI at https://console.cloud.google.com
 **CLI:**
 
 ```bash
-gcloud projects create my-moltbot-project --name="Moltbot Gateway"
-gcloud config set project my-moltbot-project
+gcloud projects create my-zee-project --name="Zee Gateway"
+gcloud config set project my-zee-project
 ```
 
 Enable billing at https://console.cloud.google.com/billing (required for Compute Engine).
@@ -120,7 +120,7 @@ gcloud services enable compute.googleapis.com
 **CLI:**
 
 ```bash
-gcloud compute instances create moltbot-gateway \
+gcloud compute instances create zee-gateway \
   --zone=us-central1-a \
   --machine-type=e2-small \
   --boot-disk-size=20GB \
@@ -131,7 +131,7 @@ gcloud compute instances create moltbot-gateway \
 **Console:**
 
 1. Go to Compute Engine > VM instances > Create instance
-2. Name: `moltbot-gateway`
+2. Name: `zee-gateway`
 3. Region: `us-central1`, Zone: `us-central1-a`
 4. Machine type: `e2-small`
 5. Boot disk: Debian 12, 20GB
@@ -144,7 +144,7 @@ gcloud compute instances create moltbot-gateway \
 **CLI:**
 
 ```bash
-gcloud compute ssh moltbot-gateway --zone=us-central1-a
+gcloud compute ssh zee-gateway --zone=us-central1-a
 ```
 
 **Console:**
@@ -173,7 +173,7 @@ exit
 Then SSH back in:
 
 ```bash
-gcloud compute ssh moltbot-gateway --zone=us-central1-a
+gcloud compute ssh zee-gateway --zone=us-central1-a
 ```
 
 Verify:
@@ -185,11 +185,11 @@ docker compose version
 
 ---
 
-## 6) Clone the Moltbot repository
+## 6) Clone the Zee repository
 
 ```bash
-git clone https://github.com/moltbot/moltbot.git
-cd moltbot
+git clone https://github.com/zee/zee.git
+cd zee
 ```
 
 This guide assumes you will build a custom image to guarantee binary persistence.
@@ -202,8 +202,8 @@ Docker containers are ephemeral.
 All long-lived state must live on the host.
 
 ```bash
-mkdir -p ~/.clawdbot
-mkdir -p ~/clawd
+mkdir -p ~/.zee
+mkdir -p ~/zee
 ```
 
 ---
@@ -213,16 +213,16 @@ mkdir -p ~/clawd
 Create `.env` in the repository root.
 
 ```bash
-CLAWDBOT_IMAGE=moltbot:latest
+CLAWDBOT_IMAGE=zee:latest
 CLAWDBOT_GATEWAY_TOKEN=change-me-now
 CLAWDBOT_GATEWAY_BIND=lan
 CLAWDBOT_GATEWAY_PORT=18789
 
-CLAWDBOT_CONFIG_DIR=/home/$USER/.clawdbot
-CLAWDBOT_WORKSPACE_DIR=/home/$USER/clawd
+CLAWDBOT_CONFIG_DIR=/home/$USER/.zee
+CLAWDBOT_WORKSPACE_DIR=/home/$USER/zee
 
 GOG_KEYRING_PASSWORD=change-me-now
-XDG_CONFIG_HOME=/home/node/.clawdbot
+XDG_CONFIG_HOME=/home/node/.zee
 ```
 
 Generate strong secrets:
@@ -241,7 +241,7 @@ Create or update `docker-compose.yml`.
 
 ```yaml
 services:
-  moltbot-gateway:
+  zee-gateway:
     image: ${CLAWDBOT_IMAGE}
     build: .
     restart: unless-stopped
@@ -258,8 +258,8 @@ services:
       - XDG_CONFIG_HOME=${XDG_CONFIG_HOME}
       - PATH=/home/linuxbrew/.linuxbrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     volumes:
-      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.clawdbot
-      - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/clawd
+      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.zee
+      - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/zee
     ports:
       # Recommended: keep the Gateway loopback-only on the VM; access via SSH tunnel.
       # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
@@ -347,15 +347,15 @@ CMD ["node","dist/index.js"]
 
 ```bash
 docker compose build
-docker compose up -d moltbot-gateway
+docker compose up -d zee-gateway
 ```
 
 Verify binaries:
 
 ```bash
-docker compose exec moltbot-gateway which gog
-docker compose exec moltbot-gateway which goplaces
-docker compose exec moltbot-gateway which wacli
+docker compose exec zee-gateway which gog
+docker compose exec zee-gateway which goplaces
+docker compose exec zee-gateway which wacli
 ```
 
 Expected output:
@@ -371,7 +371,7 @@ Expected output:
 ## 12) Verify Gateway
 
 ```bash
-docker compose logs -f moltbot-gateway
+docker compose logs -f zee-gateway
 ```
 
 Success:
@@ -387,7 +387,7 @@ Success:
 Create an SSH tunnel to forward the Gateway port:
 
 ```bash
-gcloud compute ssh moltbot-gateway --zone=us-central1-a -- -L 18789:127.0.0.1:18789
+gcloud compute ssh zee-gateway --zone=us-central1-a -- -L 18789:127.0.0.1:18789
 ```
 
 Open in your browser:
@@ -400,17 +400,17 @@ Paste your gateway token.
 
 ## What persists where (source of truth)
 
-Moltbot runs in Docker, but Docker is not the source of truth.
+Zee runs in Docker, but Docker is not the source of truth.
 All long-lived state must survive restarts, rebuilds, and reboots.
 
 | Component | Location | Persistence mechanism | Notes |
 |---|---|---|---|
-| Gateway config | `/home/node/.clawdbot/` | Host volume mount | Includes `moltbot.json`, tokens |
-| Model auth profiles | `/home/node/.clawdbot/` | Host volume mount | OAuth tokens, API keys |
-| Skill configs | `/home/node/.clawdbot/skills/` | Host volume mount | Skill-level state |
-| Agent workspace | `/home/node/clawd/` | Host volume mount | Code and agent artifacts |
-| WhatsApp session | `/home/node/.clawdbot/` | Host volume mount | Preserves QR login |
-| Gmail keyring | `/home/node/.clawdbot/` | Host volume + password | Requires `GOG_KEYRING_PASSWORD` |
+| Gateway config | `/home/node/.zee/` | Host volume mount | Includes `zee.json`, tokens |
+| Model auth profiles | `/home/node/.zee/` | Host volume mount | OAuth tokens, API keys |
+| Skill configs | `/home/node/.zee/skills/` | Host volume mount | Skill-level state |
+| Agent workspace | `/home/node/zee/` | Host volume mount | Code and agent artifacts |
+| WhatsApp session | `/home/node/.zee/` | Host volume mount | Preserves QR login |
+| Gmail keyring | `/home/node/.zee/` | Host volume + password | Requires `GOG_KEYRING_PASSWORD` |
 | External binaries | `/usr/local/bin/` | Docker image | Must be baked at build time |
 | Node runtime | Container filesystem | Docker image | Rebuilt every image build |
 | OS packages | Container filesystem | Docker image | Do not install at runtime |
@@ -420,10 +420,10 @@ All long-lived state must survive restarts, rebuilds, and reboots.
 
 ## Updates
 
-To update Moltbot on the VM:
+To update Zee on the VM:
 
 ```bash
-cd ~/moltbot
+cd ~/zee
 git pull
 docker compose build
 docker compose up -d
@@ -453,15 +453,15 @@ If using e2-micro and hitting OOM, upgrade to e2-small or e2-medium:
 
 ```bash
 # Stop the VM first
-gcloud compute instances stop moltbot-gateway --zone=us-central1-a
+gcloud compute instances stop zee-gateway --zone=us-central1-a
 
 # Change machine type
-gcloud compute instances set-machine-type moltbot-gateway \
+gcloud compute instances set-machine-type zee-gateway \
   --zone=us-central1-a \
   --machine-type=e2-small
 
 # Start the VM
-gcloud compute instances start moltbot-gateway --zone=us-central1-a
+gcloud compute instances start zee-gateway --zone=us-central1-a
 ```
 
 ---
@@ -474,14 +474,14 @@ For automation or CI/CD pipelines, create a dedicated service account with minim
 
 1. Create a service account:
    ```bash
-   gcloud iam service-accounts create moltbot-deploy \
-     --display-name="Moltbot Deployment"
+   gcloud iam service-accounts create zee-deploy \
+     --display-name="Zee Deployment"
    ```
 
 2. Grant Compute Instance Admin role (or narrower custom role):
    ```bash
-   gcloud projects add-iam-policy-binding my-moltbot-project \
-     --member="serviceAccount:moltbot-deploy@my-moltbot-project.iam.gserviceaccount.com" \
+   gcloud projects add-iam-policy-binding my-zee-project \
+     --member="serviceAccount:zee-deploy@my-zee-project.iam.gserviceaccount.com" \
      --role="roles/compute.instanceAdmin.v1"
    ```
 

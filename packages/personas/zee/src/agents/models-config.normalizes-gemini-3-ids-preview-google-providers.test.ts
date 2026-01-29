@@ -2,13 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
   return withTempHomeBase(fn, { prefix: "moltbot-models-" });
 }
 
-const _MODELS_CONFIG: MoltbotConfig = {
+const _MODELS_CONFIG: ZeeConfig = {
   models: {
     providers: {
       "custom-proxy": {
@@ -49,7 +49,7 @@ describe("models-config", () => {
       const { ensureMoltbotModelsJson } = await import("./models-config.js");
       const { resolveMoltbotAgentDir } = await import("./agent-paths.js");
 
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         models: {
           providers: {
             google: {

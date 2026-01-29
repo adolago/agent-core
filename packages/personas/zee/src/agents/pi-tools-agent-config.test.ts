@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { createMoltbotCodingTools } from "./pi-tools.js";
 import type { SandboxDockerConfig } from "./sandbox.js";
 
 describe("Agent-specific tool filtering", () => {
   it("should apply global tool policy when no agent-specific policy exists", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "write"],
         deny: ["bash"],
@@ -36,7 +36,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should keep global tool policy when agent only sets tools.elevated", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         deny: ["write"],
       },
@@ -71,7 +71,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should allow apply_patch when exec is allow-listed and applyPatch is enabled", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "exec"],
         exec: {
@@ -96,7 +96,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply agent-specific tool policy", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "write", "exec"],
         deny: [],
@@ -131,7 +131,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply provider-specific tool policy", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         allow: ["read", "write", "exec"],
         byProvider: {
@@ -159,7 +159,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply provider-specific tool profile overrides", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         profile: "coding",
         byProvider: {
@@ -184,7 +184,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should allow different tool policies for different agents", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         list: [
           {
@@ -233,7 +233,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply group tool policy overrides (group-specific beats wildcard)", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         whatsapp: {
           groups: {
@@ -272,7 +272,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply per-sender tool policies for group tools", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         whatsapp: {
           groups: {
@@ -311,7 +311,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should not let default sender policy override group tools", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         whatsapp: {
           groups: {
@@ -341,7 +341,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should resolve telegram group tool policy for topic session keys", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         telegram: {
           groups: {
@@ -366,7 +366,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should inherit group tool policy for subagents from spawnedBy session keys", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: {
         whatsapp: {
           groups: {
@@ -391,7 +391,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should apply global tool policy before agent-specific policy", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         deny: ["browser"], // Global deny
       },
@@ -424,7 +424,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should work with sandbox tools filtering", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           sandbox: {
@@ -497,7 +497,7 @@ describe("Agent-specific tool filtering", () => {
   });
 
   it("should run exec synchronously when process is denied", async () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         deny: ["process"],
       },

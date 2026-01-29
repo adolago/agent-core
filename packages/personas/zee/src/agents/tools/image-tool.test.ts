@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { __testing, createImageTool, resolveImageModelConfigForTool } from "./image-tool.js";
 
 async function writeAuthProfiles(agentDir: string, profiles: unknown) {
@@ -38,7 +38,7 @@ describe("image tool implicit imageModel config", () => {
 
   it("stays disabled without auth when no pairing is possible", async () => {
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-image-"));
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { model: { primary: "openai/gpt-5.2" } } },
     };
     expect(resolveImageModelConfigForTool({ cfg, agentDir })).toBeNull();
@@ -50,7 +50,7 @@ describe("image tool implicit imageModel config", () => {
     vi.stubEnv("MINIMAX_API_KEY", "minimax-test");
     vi.stubEnv("OPENAI_API_KEY", "openai-test");
     vi.stubEnv("ANTHROPIC_API_KEY", "anthropic-test");
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { model: { primary: "minimax/MiniMax-M2.1" } } },
     };
     expect(resolveImageModelConfigForTool({ cfg, agentDir })).toEqual({
@@ -68,7 +68,7 @@ describe("image tool implicit imageModel config", () => {
         "acme:default": { type: "api_key", provider: "acme", key: "sk-test" },
       },
     });
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { model: { primary: "acme/text-1" } } },
       models: {
         providers: {
@@ -89,7 +89,7 @@ describe("image tool implicit imageModel config", () => {
 
   it("prefers explicit agents.defaults.imageModel", async () => {
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-image-"));
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           model: { primary: "minimax/MiniMax-M2.1" },
@@ -108,7 +108,7 @@ describe("image tool implicit imageModel config", () => {
     // adjusted via modelHasVision to discourage redundant usage.
     vi.stubEnv("OPENAI_API_KEY", "test-key");
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-image-"));
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           model: { primary: "acme/vision-1" },
@@ -143,7 +143,7 @@ describe("image tool implicit imageModel config", () => {
     await fs.writeFile(path.join(sandboxRoot, "img.png"), "fake", "utf8");
 
     vi.stubEnv("OPENAI_API_KEY", "openai-test");
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { model: { primary: "minimax/MiniMax-M2.1" } } },
     };
     const tool = createImageTool({ config: cfg, agentDir, sandboxRoot });
@@ -188,7 +188,7 @@ describe("image tool implicit imageModel config", () => {
     global.fetch = fetch;
     vi.stubEnv("MINIMAX_API_KEY", "minimax-test");
 
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           model: { primary: "minimax/MiniMax-M2.1" },
@@ -261,7 +261,7 @@ describe("image tool MiniMax VLM routing", () => {
 
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-minimax-vlm-"));
     vi.stubEnv("MINIMAX_API_KEY", "minimax-test");
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { model: { primary: "minimax/MiniMax-M2.1" } } },
     };
     const tool = createImageTool({ config: cfg, agentDir });
@@ -303,7 +303,7 @@ describe("image tool MiniMax VLM routing", () => {
 
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-minimax-vlm-"));
     vi.stubEnv("MINIMAX_API_KEY", "minimax-test");
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { model: { primary: "minimax/MiniMax-M2.1" } } },
     };
     const tool = createImageTool({ config: cfg, agentDir });

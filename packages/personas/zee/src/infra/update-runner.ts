@@ -347,7 +347,7 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
       status: "error",
       mode: "unknown",
       root: gitRoot,
-      reason: "not-moltbot-root",
+      reason: "not-zee-root",
       steps: [],
       durationMs: Date.now() - startedAt,
     };

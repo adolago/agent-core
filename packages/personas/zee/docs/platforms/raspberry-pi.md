@@ -1,16 +1,16 @@
 ---
-summary: "Moltbot on Raspberry Pi (budget self-hosted setup)"
+summary: "Zee on Raspberry Pi (budget self-hosted setup)"
 read_when:
-  - Setting up Moltbot on a Raspberry Pi
-  - Running Moltbot on ARM devices
+  - Setting up Zee on a Raspberry Pi
+  - Running Zee on ARM devices
   - Building a cheap always-on personal AI
 ---
 
-# Moltbot on Raspberry Pi
+# Zee on Raspberry Pi
 
 ## Goal
 
-Run a persistent, always-on Moltbot Gateway on a Raspberry Pi for **~$35-80** one-time cost (no monthly fees).
+Run a persistent, always-on Zee Gateway on a Raspberry Pi for **~$35-80** one-time cost (no monthly fees).
 
 Perfect for:
 - 24/7 personal AI assistant
@@ -105,7 +105,7 @@ echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 ```
 
-## 6) Install Moltbot
+## 6) Install Zee
 
 ### Option A: Standard Install (Recommended)
 
@@ -116,8 +116,8 @@ curl -fsSL https://molt.bot/install.sh | bash
 ### Option B: Hackable Install (For tinkering)
 
 ```bash
-git clone https://github.com/moltbot/moltbot.git
-cd moltbot
+git clone https://github.com/zee/zee.git
+cd zee
 npm install
 npm run build
 npm link
@@ -128,7 +128,7 @@ The hackable install gives you direct access to logs and code — useful for deb
 ## 7) Run Onboarding
 
 ```bash
-moltbot onboard --install-daemon
+zee onboard --install-daemon
 ```
 
 Follow the wizard:
@@ -141,13 +141,13 @@ Follow the wizard:
 
 ```bash
 # Check status
-moltbot status
+zee status
 
 # Check service
-sudo systemctl status moltbot
+sudo systemctl status zee
 
 # View logs
-journalctl -u moltbot -f
+journalctl -u zee -f
 ```
 
 ## 9) Access the Dashboard
@@ -170,8 +170,8 @@ curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 
 # Update config
-moltbot config set gateway.bind tailnet
-sudo systemctl restart moltbot
+zee config set gateway.bind tailnet
+sudo systemctl restart zee
 ```
 
 ---
@@ -218,7 +218,7 @@ htop
 
 ### Binary Compatibility
 
-Most Moltbot features work on ARM64, but some external binaries may need ARM builds:
+Most Zee features work on ARM64, but some external binaries may need ARM builds:
 
 | Tool | ARM64 Status | Notes |
 |------|--------------|-------|
@@ -268,13 +268,13 @@ The onboarding wizard sets this up, but to verify:
 
 ```bash
 # Check service is enabled
-sudo systemctl is-enabled moltbot
+sudo systemctl is-enabled zee
 
 # Enable if not
-sudo systemctl enable moltbot
+sudo systemctl enable zee
 
 # Start on boot
-sudo systemctl start moltbot
+sudo systemctl start zee
 ```
 
 ---
@@ -301,12 +301,12 @@ free -h
 
 ```bash
 # Check logs
-journalctl -u moltbot --no-pager -n 100
+journalctl -u zee --no-pager -n 100
 
 # Common fix: rebuild
-cd ~/moltbot  # if using hackable install
+cd ~/zee  # if using hackable install
 npm run build
-sudo systemctl restart moltbot
+sudo systemctl restart zee
 ```
 
 ### ARM Binary Issues

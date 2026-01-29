@@ -1,6 +1,7 @@
 type CustomEntryLike = { type?: unknown; customType?: unknown; data?: unknown };
 
-export const CACHE_TTL_CUSTOM_TYPE = "moltbot.cache-ttl";
+export const CACHE_TTL_CUSTOM_TYPE = "zee.cache-ttl";
+const LEGACY_CACHE_TTL_CUSTOM_TYPE = "moltbot.cache-ttl";
 
 export type CacheTtlEntryData = {
   timestamp: number;
@@ -25,7 +26,10 @@ export function readLastCacheTtlTimestamp(sessionManager: unknown): number | nul
     let last: number | null = null;
     for (let i = entries.length - 1; i >= 0; i--) {
       const entry = entries[i];
-      if (entry?.type !== "custom" || entry?.customType !== CACHE_TTL_CUSTOM_TYPE) continue;
+      if (entry?.type !== "custom") continue;
+      if (entry?.customType !== CACHE_TTL_CUSTOM_TYPE && entry?.customType !== LEGACY_CACHE_TTL_CUSTOM_TYPE) {
+        continue;
+      }
       const data = entry?.data as Partial<CacheTtlEntryData> | undefined;
       const ts = typeof data?.timestamp === "number" ? data.timestamp : null;
       if (ts && Number.isFinite(ts)) {

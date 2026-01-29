@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as replyModule from "../auto-reply/reply.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { runHeartbeatOnce } from "./heartbeat-runner.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
@@ -35,7 +35,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -97,7 +97,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -159,7 +159,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -226,7 +226,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -289,7 +289,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     try {
       const originalUpdatedAt = 1000;
       const bumpedUpdatedAt = 2000;
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -360,7 +360,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -422,7 +422,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
     process.env.TELEGRAM_BOT_TOKEN = "";
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -490,7 +490,7 @@ describe("resolveHeartbeatIntervalMs", () => {
     const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
     process.env.TELEGRAM_BOT_TOKEN = "";
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,

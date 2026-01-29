@@ -276,8 +276,8 @@ You are Zee, a personal assistant managing the intersection of professional and 
 - Code review, technical deep-dives: delegate to @johny
 `,
   knowledge: [
-    "~/.clawd/IDENTITY.md",
-    "~/.clawd/SOUL.md",
+    "~/.zee/IDENTITY.md",
+    "~/.zee/SOUL.md",
     // Tools reference is now dynamically generated via awareness module
   ],
   mcpServers: ["tiara", "calendar", "browser"],

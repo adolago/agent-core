@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveGatewayPort, resolveIsNixMode } from "../config/paths.js";
 import { findExtraGatewayServices, renderGatewayServiceCleanupHints } from "../daemon/inspect.js";
 import { findLegacyGatewayServices, uninstallLegacyGatewayServices } from "../daemon/legacy.js";
@@ -43,7 +43,7 @@ function normalizeExecutablePath(value: string): string {
 }
 
 export async function maybeMigrateLegacyGatewayService(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   mode: "local" | "remote",
   runtime: RuntimeEnv,
   prompter: DoctorPrompter,
@@ -127,7 +127,7 @@ export async function maybeMigrateLegacyGatewayService(
 }
 
 export async function maybeRepairGatewayServiceConfig(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   mode: "local" | "remote",
   runtime: RuntimeEnv,
   prompter: DoctorPrompter,

@@ -1,11 +1,11 @@
 ---
-summary: "Direct `moltbot agent` CLI runs (with optional delivery)"
+summary: "Direct `zee agent` CLI runs (with optional delivery)"
 read_when:
   - Adding or modifying the agent CLI entrypoint
 ---
-# `moltbot agent` (direct agent runs)
+# `zee agent` (direct agent runs)
 
-`moltbot agent` runs a single agent turn without needing an inbound chat message.
+`zee agent` runs a single agent turn without needing an inbound chat message.
 By default it goes **through the Gateway**; add `--local` to force the embedded
 runtime on the current machine.
 
@@ -21,7 +21,7 @@ runtime on the current machine.
 - Output:
   - default: prints reply text (plus `MEDIA:<url>` lines)
   - `--json`: prints structured payload + metadata
-- Optional delivery back to a channel with `--deliver` + `--channel` (target formats match `moltbot message --target`).
+- Optional delivery back to a channel with `--deliver` + `--channel` (target formats match `zee message --target`).
 - Use `--reply-channel`/`--reply-to`/`--reply-account` to override delivery without changing the session.
 
 If the Gateway is unreachable, the CLI **falls back** to the embedded local run.
@@ -29,12 +29,12 @@ If the Gateway is unreachable, the CLI **falls back** to the embedded local run.
 ## Examples
 
 ```bash
-moltbot agent --to +15555550123 --message "status update"
-moltbot agent --agent ops --message "Summarize logs"
-moltbot agent --session-id 1234 --message "Summarize inbox" --thinking medium
-moltbot agent --to +15555550123 --message "Trace logs" --verbose on --json
-moltbot agent --to +15555550123 --message "Summon reply" --deliver
-moltbot agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"
+zee agent --to +15555550123 --message "status update"
+zee agent --agent ops --message "Summarize logs"
+zee agent --session-id 1234 --message "Summarize inbox" --thinking medium
+zee agent --to +15555550123 --message "Trace logs" --verbose on --json
+zee agent --to +15555550123 --message "Summon reply" --deliver
+zee agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"
 ```
 
 ## Flags

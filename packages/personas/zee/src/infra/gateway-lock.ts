@@ -72,6 +72,7 @@ function isGatewayArgv(args: string[]): boolean {
     "dist/index.js",
     "dist/index.mjs",
     "dist/entry.js",
+    "zee.mjs",
     "moltbot.mjs",
     "dist/entry.mjs",
     "scripts/run-node.mjs",
@@ -82,7 +83,14 @@ function isGatewayArgv(args: string[]): boolean {
   }
 
   const exe = normalized[0] ?? "";
-  return exe.endsWith("/moltbot") || exe === "moltbot";
+  return (
+    exe.endsWith("/zee") ||
+    exe === "zee" ||
+    exe.endsWith("/moltbot") ||
+    exe === "moltbot" ||
+    exe.endsWith("/clawdbot") ||
+    exe === "clawdbot"
+  );
 }
 
 function readLinuxCmdline(pid: number): string[] | null {
@@ -162,6 +170,8 @@ export async function acquireGatewayLock(
   const env = opts.env ?? process.env;
   const allowInTests = opts.allowInTests === true;
   if (
+    env.ZEE_ALLOW_MULTI_GATEWAY === "1" ||
+    env.MOLTBOT_ALLOW_MULTI_GATEWAY === "1" ||
     env.CLAWDBOT_ALLOW_MULTI_GATEWAY === "1" ||
     (!allowInTests && (env.VITEST || env.NODE_ENV === "test"))
   ) {

@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { MsgContext } from "../auto-reply/templating.js";
 import {
   buildProviderRegistry,
@@ -45,7 +45,7 @@ describe("runCapability auto audio entries", () => {
           },
         },
       },
-    } as unknown as MoltbotConfig;
+    } as unknown as ZeeConfig;
 
     try {
       const result = await runCapability({
@@ -101,7 +101,7 @@ describe("runCapability auto audio entries", () => {
           },
         },
       },
-    } as unknown as MoltbotConfig;
+    } as unknown as ZeeConfig;
 
     try {
       const result = await runCapability({

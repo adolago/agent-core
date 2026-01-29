@@ -7,7 +7,7 @@ import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-prof
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ChannelDock } from "../channels/dock.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { ModelProviderConfig } from "../config/types.js";
@@ -56,7 +56,7 @@ export type MoltbotPluginConfigSchema = {
 };
 
 export type MoltbotPluginToolContext = {
-  config?: MoltbotConfig;
+  config?: ZeeConfig;
   workspaceDir?: string;
   agentDir?: string;
   agentId?: string;
@@ -87,13 +87,13 @@ export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "
 
 export type ProviderAuthResult = {
   profiles: Array<{ profileId: string; credential: AuthProfileCredential }>;
-  configPatch?: Partial<MoltbotConfig>;
+  configPatch?: Partial<ZeeConfig>;
   defaultModel?: string;
   notes?: string[];
 };
 
 export type ProviderAuthContext = {
-  config: MoltbotConfig;
+  config: ZeeConfig;
   agentDir?: string;
   workspaceDir?: string;
   prompter: WizardPrompter;
@@ -149,7 +149,7 @@ export type PluginCommandContext = {
   /** The full normalized command body */
   commandBody: string;
   /** Current moltbot configuration */
-  config: MoltbotConfig;
+  config: ZeeConfig;
 };
 
 /**
@@ -192,7 +192,7 @@ export type MoltbotPluginHttpRouteHandler = (
 
 export type MoltbotPluginCliContext = {
   program: Command;
-  config: MoltbotConfig;
+  config: ZeeConfig;
   workspaceDir?: string;
   logger: PluginLogger;
 };
@@ -200,7 +200,7 @@ export type MoltbotPluginCliContext = {
 export type MoltbotPluginCliRegistrar = (ctx: MoltbotPluginCliContext) => void | Promise<void>;
 
 export type MoltbotPluginServiceContext = {
-  config: MoltbotConfig;
+  config: ZeeConfig;
   workspaceDir?: string;
   stateDir: string;
   logger: PluginLogger;
@@ -238,7 +238,7 @@ export type MoltbotPluginApi = {
   version?: string;
   description?: string;
   source: string;
-  config: MoltbotConfig;
+  config: ZeeConfig;
   pluginConfig?: Record<string, unknown>;
   runtime: PluginRuntime;
   logger: PluginLogger;

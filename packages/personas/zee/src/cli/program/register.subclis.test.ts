@@ -42,7 +42,7 @@ describe("registerSubCliCommands", () => {
   });
 
   it("registers only the primary placeholder and dispatches", async () => {
-    process.argv = ["node", "moltbot", "acp"];
+    process.argv = ["node", "zee", "acp"];
     const program = new Command();
     registerSubCliCommands(program, process.argv);
 
@@ -55,7 +55,7 @@ describe("registerSubCliCommands", () => {
   });
 
   it("registers placeholders for all subcommands when no primary", () => {
-    process.argv = ["node", "moltbot"];
+    process.argv = ["node", "zee"];
     const program = new Command();
     registerSubCliCommands(program, process.argv);
 
@@ -66,9 +66,9 @@ describe("registerSubCliCommands", () => {
   });
 
   it("re-parses argv for lazy subcommands", async () => {
-    process.argv = ["node", "moltbot", "nodes", "list"];
+    process.argv = ["node", "zee", "nodes", "list"];
     const program = new Command();
-    program.name("moltbot");
+    program.name("zee");
     registerSubCliCommands(program, process.argv);
 
     expect(program.commands.map((cmd) => cmd.name())).toEqual(["nodes"]);
@@ -80,9 +80,9 @@ describe("registerSubCliCommands", () => {
   });
 
   it("replaces placeholder when registering a subcommand by name", async () => {
-    process.argv = ["node", "moltbot", "acp", "--help"];
+    process.argv = ["node", "zee", "acp", "--help"];
     const program = new Command();
-    program.name("moltbot");
+    program.name("zee");
     registerSubCliCommands(program, process.argv);
 
     await registerSubCliByName(program, "acp");
@@ -90,7 +90,7 @@ describe("registerSubCliCommands", () => {
     const names = program.commands.map((cmd) => cmd.name());
     expect(names.filter((name) => name === "acp")).toHaveLength(1);
 
-    await program.parseAsync(["node", "moltbot", "acp"], { from: "user" });
+    await program.parseAsync(["node", "zee", "acp"], { from: "user" });
     expect(registerAcpCli).toHaveBeenCalledTimes(1);
     expect(acpAction).toHaveBeenCalledTimes(1);
   });

@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 
+declare const __ZEE_VERSION__: string | undefined;
 declare const __CLAWDBOT_VERSION__: string | undefined;
 
 function readVersionFromPackageJson(): string | null {
@@ -12,11 +13,14 @@ function readVersionFromPackageJson(): string | null {
   }
 }
 
-// Single source of truth for the current moltbot version.
+// Single source of truth for the current Zee version.
 // - Embedded/bundled builds: injected define or env var.
 // - Dev/npm builds: package.json.
 export const VERSION =
-  (typeof __CLAWDBOT_VERSION__ === "string" && __CLAWDBOT_VERSION__) ||
+  (typeof __ZEE_VERSION__ === "string" && __ZEE_VERSION__) ||
+  process.env.ZEE_BUNDLED_VERSION ||
+  process.env.MOLTBOT_BUNDLED_VERSION ||
   process.env.CLAWDBOT_BUNDLED_VERSION ||
+  (typeof __CLAWDBOT_VERSION__ === "string" && __CLAWDBOT_VERSION__) ||
   readVersionFromPackageJson() ||
   "0.0.0";

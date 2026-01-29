@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import {
   estimateUsageCost,
   formatTokenCount,
@@ -35,7 +35,7 @@ describe("usage-format", () => {
           },
         },
       },
-    } as MoltbotConfig;
+    } as ZeeConfig;
 
     const cost = resolveModelCostConfig({
       provider: "test",

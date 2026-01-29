@@ -24,7 +24,7 @@ function normalizePluginHookEntry(api: MoltbotPluginApi, entry: HookEntry): Hook
     ...entry,
     hook: {
       ...entry.hook,
-      source: "moltbot-plugin",
+      source: "zee-plugin",
       pluginId: api.id,
     },
     metadata: {
@@ -63,7 +63,7 @@ export async function registerPluginHooksFromDir(
   const resolvedDir = resolveHookDir(api, dir);
   const hooks = loadHookEntriesFromDir({
     dir: resolvedDir,
-    source: "moltbot-plugin",
+    source: "zee-plugin",
     pluginId: api.id,
   });
 

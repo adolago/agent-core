@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { ensureMoltbotModelsJson } from "./models-config.js";
 import { buildEmbeddedSandboxInfo } from "./pi-embedded-runner.js";
 import type { SandboxContext } from "./sandbox.js";
@@ -68,9 +68,9 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
         },
       },
     },
-  }) satisfies MoltbotConfig;
+  }) satisfies ZeeConfig;
 
-const _ensureModels = (cfg: MoltbotConfig, agentDir: string) =>
+const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
   ensureMoltbotModelsJson(cfg, agentDir) as unknown;
 
 const _textFromContent = (content: unknown) => {

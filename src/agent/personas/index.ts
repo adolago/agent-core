@@ -353,7 +353,7 @@ export const ZEE_ASSISTANT: PersonaDefinition = {
   default: true,
   color: "#6366f1",
   temperature: 0.7,
-  identityFiles: ["~/clawd/IDENTITY.md", "~/clawd/SOUL.md"],
+  identityFiles: ["~/.zee/IDENTITY.md", "~/.zee/SOUL.md"],
   tools: {
     memory: true,
     calendar: true,
@@ -386,7 +386,7 @@ export const ZEE_CODER: PersonaDefinition = {
   color: "#10b981",
   extends: "agent-core/release",
   temperature: 0.3,
-  identityFiles: ["~/clawd/IDENTITY.md", "~/clawd/SOUL.md"],
+  identityFiles: ["~/.zee/IDENTITY.md", "~/.zee/SOUL.md"],
   prompt: `You are Zee in coder mode. Apply your personal context while focusing on:
 
 1. Writing clean, maintainable code
@@ -408,7 +408,7 @@ export const ZEE_RESEARCHER: PersonaDefinition = {
   useCase: "zee",
   color: "#8b5cf6",
   temperature: 0.5,
-  identityFiles: ["~/clawd/IDENTITY.md", "~/clawd/SOUL.md"],
+  identityFiles: ["~/.zee/IDENTITY.md", "~/.zee/SOUL.md"],
   tools: {
     web_search: true,
     web_fetch: true,

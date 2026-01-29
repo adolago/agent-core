@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { isAbortTrigger, tryFastAbortFromMessage } from "./abort.js";
 import { enqueueFollowupRun, getFollowupQueueDepth, type FollowupRun } from "./queue.js";
 import { initSessionState } from "./session.js";
@@ -31,7 +31,7 @@ describe("abort detection", () => {
   it("triggerBodyNormalized extracts /stop from RawBody for abort detection", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-abort-"));
     const storePath = path.join(root, "sessions.json");
-    const cfg = { session: { store: storePath } } as MoltbotConfig;
+    const cfg = { session: { store: storePath } } as ZeeConfig;
 
     const groupMessageCtx = {
       Body: `[Context]\nJake: /stop\n[from: Jake]`,
@@ -65,7 +65,7 @@ describe("abort detection", () => {
   it("fast-aborts even when text commands are disabled", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-abort-"));
     const storePath = path.join(root, "sessions.json");
-    const cfg = { session: { store: storePath }, commands: { text: false } } as MoltbotConfig;
+    const cfg = { session: { store: storePath }, commands: { text: false } } as ZeeConfig;
 
     const result = await tryFastAbortFromMessage({
       ctx: buildTestCtx({
@@ -87,7 +87,7 @@ describe("abort detection", () => {
   it("fast-abort clears queued followups and session lane", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-abort-"));
     const storePath = path.join(root, "sessions.json");
-    const cfg = { session: { store: storePath } } as MoltbotConfig;
+    const cfg = { session: { store: storePath } } as ZeeConfig;
     const sessionKey = "telegram:123";
     const sessionId = "session-123";
     await fs.writeFile(
@@ -152,7 +152,7 @@ describe("abort detection", () => {
   it("fast-abort stops active subagent runs for requester session", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-abort-"));
     const storePath = path.join(root, "sessions.json");
-    const cfg = { session: { store: storePath } } as MoltbotConfig;
+    const cfg = { session: { store: storePath } } as ZeeConfig;
     const sessionKey = "telegram:parent";
     const childKey = "agent:main:subagent:child-1";
     const sessionId = "session-parent";

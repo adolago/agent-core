@@ -4,13 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { AuthProfileStore } from "./auth-profiles.js";
 import { saveAuthProfileStore } from "./auth-profiles.js";
 import { AUTH_STORE_VERSION } from "./auth-profiles/constants.js";
 import { runWithModelFallback } from "./model-fallback.js";
 
-function makeCfg(overrides: Partial<MoltbotConfig> = {}): MoltbotConfig {
+function makeCfg(overrides: Partial<ZeeConfig> = {}): ZeeConfig {
   return {
     agents: {
       defaults: {
@@ -21,7 +21,7 @@ function makeCfg(overrides: Partial<MoltbotConfig> = {}): MoltbotConfig {
       },
     },
     ...overrides,
-  } as MoltbotConfig;
+  } as ZeeConfig;
 }
 
 describe("runWithModelFallback", () => {
@@ -279,7 +279,7 @@ describe("runWithModelFallback", () => {
           },
         },
       },
-    } as MoltbotConfig;
+    } as ZeeConfig;
 
     const calls: Array<{ provider: string; model: string }> = [];
 
@@ -316,7 +316,7 @@ describe("runWithModelFallback", () => {
           },
         },
       },
-    } as MoltbotConfig;
+    } as ZeeConfig;
 
     const calls: Array<{ provider: string; model: string }> = [];
 

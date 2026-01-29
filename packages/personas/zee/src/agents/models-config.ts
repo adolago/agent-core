@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { type MoltbotConfig, loadConfig } from "../config/config.js";
-import { resolveMoltbotAgentDir } from "./agent-paths.js";
+import { type ZeeConfig, loadConfig } from "../config/config.js";
+import { resolveZeeAgentDir } from "./agent-paths.js";
 import {
   normalizeProviders,
   type ProviderConfig,
@@ -11,7 +11,7 @@ import {
   resolveImplicitProviders,
 } from "./models-config.providers.js";
 
-type ModelsConfig = NonNullable<MoltbotConfig["models"]>;
+type ModelsConfig = NonNullable<ZeeConfig["models"]>;
 
 const DEFAULT_MODE: NonNullable<ModelsConfig["mode"]> = "merge";
 
@@ -72,12 +72,12 @@ async function readJson(pathname: string): Promise<unknown> {
   }
 }
 
-export async function ensureMoltbotModelsJson(
-  config?: MoltbotConfig,
+export async function ensureZeeModelsJson(
+  config?: ZeeConfig,
   agentDirOverride?: string,
 ): Promise<{ agentDir: string; wrote: boolean }> {
   const cfg = config ?? loadConfig();
-  const agentDir = agentDirOverride?.trim() ? agentDirOverride.trim() : resolveMoltbotAgentDir();
+  const agentDir = agentDirOverride?.trim() ? agentDirOverride.trim() : resolveZeeAgentDir();
 
   const explicitProviders = (cfg.models?.providers ?? {}) as Record<string, ProviderConfig>;
   const implicitProviders = await resolveImplicitProviders({ agentDir });
@@ -135,4 +135,12 @@ export async function ensureMoltbotModelsJson(
   await fs.mkdir(agentDir, { recursive: true, mode: 0o700 });
   await fs.writeFile(targetPath, next, { mode: 0o600 });
   return { agentDir, wrote: true };
+}
+
+// Legacy alias
+export async function ensureMoltbotModelsJson(
+  config?: ZeeConfig,
+  agentDirOverride?: string,
+): Promise<{ agentDir: string; wrote: boolean }> {
+  return ensureZeeModelsJson(config, agentDirOverride);
 }

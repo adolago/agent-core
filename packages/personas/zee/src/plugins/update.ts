@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { UpdateChannel } from "../infra/update-channels.js";
 import { resolveUserPath } from "../utils.js";
 import { discoverMoltbotPlugins } from "./discovery.js";
@@ -25,7 +25,7 @@ export type PluginUpdateOutcome = {
 };
 
 export type PluginUpdateSummary = {
-  config: MoltbotConfig;
+  config: ZeeConfig;
   changed: boolean;
   outcomes: PluginUpdateOutcome[];
 };
@@ -38,7 +38,7 @@ export type PluginChannelSyncSummary = {
 };
 
 export type PluginChannelSyncResult = {
-  config: MoltbotConfig;
+  config: ZeeConfig;
   changed: boolean;
   summary: PluginChannelSyncSummary;
 };
@@ -127,7 +127,7 @@ function buildLoadPathHelpers(existing: string[]) {
 }
 
 export async function updateNpmInstalledPlugins(params: {
-  config: MoltbotConfig;
+  config: ZeeConfig;
   logger?: PluginUpdateLogger;
   pluginIds?: string[];
   skipIds?: Set<string>;
@@ -290,7 +290,7 @@ export async function updateNpmInstalledPlugins(params: {
 }
 
 export async function syncPluginsForUpdateChannel(params: {
-  config: MoltbotConfig;
+  config: ZeeConfig;
   channel: UpdateChannel;
   workspaceDir?: string;
   logger?: PluginUpdateLogger;

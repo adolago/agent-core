@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { loginWeb } from "../../../channel-web.js";
-import type { MoltbotConfig } from "../../../config/config.js";
+import type { ZeeConfig } from "../../../config/config.js";
 import { mergeWhatsAppConfig } from "../../../config/merge-config.js";
 import type { DmPolicy } from "../../../config/types.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../../routing/session-key.js";
@@ -20,15 +20,15 @@ import { promptAccountId } from "./helpers.js";
 
 const channel = "whatsapp" as const;
 
-function setWhatsAppDmPolicy(cfg: MoltbotConfig, dmPolicy: DmPolicy): MoltbotConfig {
+function setWhatsAppDmPolicy(cfg: ZeeConfig, dmPolicy: DmPolicy): ZeeConfig {
   return mergeWhatsAppConfig(cfg, { dmPolicy });
 }
 
-function setWhatsAppAllowFrom(cfg: MoltbotConfig, allowFrom?: string[]): MoltbotConfig {
+function setWhatsAppAllowFrom(cfg: ZeeConfig, allowFrom?: string[]): ZeeConfig {
   return mergeWhatsAppConfig(cfg, { allowFrom }, { unsetOnUndefined: ["allowFrom"] });
 }
 
-function setWhatsAppSelfChatMode(cfg: MoltbotConfig, selfChatMode: boolean): MoltbotConfig {
+function setWhatsAppSelfChatMode(cfg: ZeeConfig, selfChatMode: boolean): ZeeConfig {
   return mergeWhatsAppConfig(cfg, { selfChatMode });
 }
 
@@ -41,18 +41,18 @@ async function pathExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function detectWhatsAppLinked(cfg: MoltbotConfig, accountId: string): Promise<boolean> {
+async function detectWhatsAppLinked(cfg: ZeeConfig, accountId: string): Promise<boolean> {
   const { authDir } = resolveWhatsAppAuthDir({ cfg, accountId });
   const credsPath = path.join(authDir, "creds.json");
   return await pathExists(credsPath);
 }
 
 async function promptWhatsAppAllowFrom(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   _runtime: RuntimeEnv,
   prompter: WizardPrompter,
   options?: { forceAllowlist?: boolean },
-): Promise<MoltbotConfig> {
+): Promise<ZeeConfig> {
   const existingPolicy = cfg.channels?.whatsapp?.dmPolicy ?? "pairing";
   const existingAllowFrom = cfg.channels?.whatsapp?.allowFrom ?? [];
   const existingLabel = existingAllowFrom.length > 0 ? existingAllowFrom.join(", ") : "unset";

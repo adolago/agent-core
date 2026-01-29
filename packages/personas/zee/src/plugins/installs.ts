@@ -1,12 +1,12 @@
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 
 export type PluginInstallUpdate = PluginInstallRecord & { pluginId: string };
 
 export function recordPluginInstall(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   update: PluginInstallUpdate,
-): MoltbotConfig {
+): ZeeConfig {
   const { pluginId, ...record } = update;
   const installs = {
     ...cfg.plugins?.installs,

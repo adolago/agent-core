@@ -5,7 +5,7 @@
  * These commands are processed before built-in commands and before agent invocation.
  */
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type {
   MoltbotPluginCommandDefinition,
   PluginCommandContext,
@@ -221,7 +221,7 @@ export async function executePluginCommand(params: {
   channel: string;
   isAuthorizedSender: boolean;
   commandBody: string;
-  config: MoltbotConfig;
+  config: ZeeConfig;
 }): Promise<PluginCommandResult> {
   const { command, args, senderId, channel, isAuthorizedSender, commandBody, config } = params;
 

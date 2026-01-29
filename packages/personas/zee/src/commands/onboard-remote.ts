@@ -1,4 +1,4 @@
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { GatewayBonjourBeacon } from "../infra/bonjour-discovery.js";
 import { discoverGatewayBeacons } from "../infra/bonjour-discovery.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
@@ -25,9 +25,9 @@ function ensureWsUrl(value: string): string {
 }
 
 export async function promptRemoteGatewayConfig(
-  cfg: MoltbotConfig,
+  cfg: ZeeConfig,
   prompter: WizardPrompter,
-): Promise<MoltbotConfig> {
+): Promise<ZeeConfig> {
   let selectedBeacon: GatewayBonjourBeacon | null = null;
   let suggestedUrl = cfg.gateway?.remote?.url ?? DEFAULT_GATEWAY_URL;
 

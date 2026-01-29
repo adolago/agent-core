@@ -113,11 +113,11 @@ export function buildSandboxCreateArgs(params: {
 }) {
   const createdAtMs = params.createdAtMs ?? Date.now();
   const args = ["create", "--name", params.name];
-  args.push("--label", "moltbot.sandbox=1");
-  args.push("--label", `moltbot.sessionKey=${params.scopeKey}`);
-  args.push("--label", `moltbot.createdAtMs=${createdAtMs}`);
+  args.push("--label", "zee.sandbox=1");
+  args.push("--label", `zee.sessionKey=${params.scopeKey}`);
+  args.push("--label", `zee.createdAtMs=${createdAtMs}`);
   if (params.configHash) {
-    args.push("--label", `moltbot.configHash=${params.configHash}`);
+    args.push("--label", `zee.configHash=${params.configHash}`);
   }
   for (const [key, value] of Object.entries(params.labels ?? {})) {
     if (key && value) args.push("--label", `${key}=${value}`);
@@ -208,25 +208,28 @@ async function createSandboxContainer(params: {
 }
 
 async function readContainerConfigHash(containerName: string): Promise<string | null> {
-  const result = await execDocker(
-    ["inspect", "-f", '{{ index .Config.Labels "moltbot.configHash" }}', containerName],
-    { allowFailure: true },
+  const tryLabel = async (label: string) => {
+    const result = await execDocker(["inspect", "-f", label, containerName], { allowFailure: true });
+    if (result.code !== 0) return null;
+    const raw = result.stdout.trim();
+    if (!raw || raw === "<no value>") return null;
+    return raw;
+  };
+  return (
+    (await tryLabel('{{ index .Config.Labels "zee.configHash" }}')) ??
+    (await tryLabel('{{ index .Config.Labels "moltbot.configHash" }}'))
   );
-  if (result.code !== 0) return null;
-  const raw = result.stdout.trim();
-  if (!raw || raw === "<no value>") return null;
-  return raw;
 }
 
 function formatSandboxRecreateHint(params: { scope: SandboxConfig["scope"]; sessionKey: string }) {
   if (params.scope === "session") {
-    return formatCliCommand(`moltbot sandbox recreate --session ${params.sessionKey}`);
+    return formatCliCommand(`zee sandbox recreate --session ${params.sessionKey}`);
   }
   if (params.scope === "agent") {
     const agentId = resolveSandboxAgentId(params.sessionKey) ?? "main";
-    return formatCliCommand(`moltbot sandbox recreate --agent ${agentId}`);
+    return formatCliCommand(`zee sandbox recreate --agent ${agentId}`);
   }
-  return formatCliCommand("moltbot sandbox recreate --all");
+  return formatCliCommand("zee sandbox recreate --all");
 }
 
 export async function ensureSandboxContainer(params: {

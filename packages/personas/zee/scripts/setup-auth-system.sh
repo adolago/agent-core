@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup Moltbot Auth Management System
+# Setup Zee Auth Management System
 # Run this once to set up:
 # 1. Long-lived Claude Code token
 # 2. Auth monitoring with notifications
@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "=== Moltbot Auth System Setup ==="
+echo "=== Zee Auth System Setup ==="
 echo ""
 
 # Step 1: Check current auth status
@@ -49,19 +49,19 @@ echo ""
 # Check for ntfy
 echo "  ntfy.sh: Free push notifications to your phone"
 echo "  1. Install ntfy app on your phone"
-echo "  2. Subscribe to a topic (e.g., 'moltbot-alerts')"
+echo "  2. Subscribe to a topic (e.g., 'zee-alerts')"
 echo ""
 echo "Enter ntfy.sh topic (or leave blank to skip):"
 read -r NTFY_TOPIC
 
 # Phone notification
 echo ""
-echo "  Moltbot message: Send warning via Moltbot itself"
+echo "  Zee message: Send warning via Zee itself"
 echo "Enter your phone number for alerts (or leave blank to skip):"
 read -r PHONE_NUMBER
 
 # Update service file
-SERVICE_FILE="$SCRIPT_DIR/systemd/moltbot-auth-monitor.service"
+SERVICE_FILE="$SCRIPT_DIR/systemd/zee-auth-monitor.service"
 if [ -n "$NTFY_TOPIC" ]; then
     sed -i "s|# Environment=NOTIFY_NTFY=.*|Environment=NOTIFY_NTFY=$NTFY_TOPIC|" "$SERVICE_FILE"
 fi
@@ -73,10 +73,10 @@ fi
 echo ""
 echo "Installing systemd timer..."
 mkdir -p ~/.config/systemd/user
-cp "$SCRIPT_DIR/systemd/moltbot-auth-monitor.service" ~/.config/systemd/user/
-cp "$SCRIPT_DIR/systemd/moltbot-auth-monitor.timer" ~/.config/systemd/user/
+cp "$SCRIPT_DIR/systemd/zee-auth-monitor.service" ~/.config/systemd/user/
+cp "$SCRIPT_DIR/systemd/zee-auth-monitor.timer" ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now moltbot-auth-monitor.timer
+systemctl --user enable --now zee-auth-monitor.timer
 
 echo "Auth monitor installed and running."
 echo ""
@@ -91,17 +91,17 @@ echo "2. Create ~/.shortcuts/ directory in Termux:"
 echo "   mkdir -p ~/.shortcuts"
 echo ""
 echo "3. Copy the widget scripts:"
-echo "   scp $SCRIPT_DIR/termux-quick-auth.sh phone:~/.shortcuts/ClawdAuth"
-echo "   scp $SCRIPT_DIR/termux-auth-widget.sh phone:~/.shortcuts/ClawdAuth-Full"
+echo "   scp $SCRIPT_DIR/termux-quick-auth.sh phone:~/.shortcuts/ZeeAuth"
+echo "   scp $SCRIPT_DIR/termux-auth-widget.sh phone:~/.shortcuts/ZeeAuth-Full"
 echo ""
 echo "4. Make them executable on phone:"
-echo "   ssh phone 'chmod +x ~/.shortcuts/Clawd*'"
+echo "   ssh phone 'chmod +x ~/.shortcuts/Zee*'"
 echo ""
 echo "5. Add Termux:Widget to your home screen"
 echo "6. Tap the widget to see your auth scripts"
 echo ""
-echo "The quick widget (ClawdAuth) shows status and opens auth URL if needed."
-echo "The full widget (ClawdAuth-Full) provides guided re-auth flow."
+echo "The quick widget (ZeeAuth) shows status and opens auth URL if needed."
+echo "The full widget (ZeeAuth-Full) provides guided re-auth flow."
 echo ""
 
 # Summary
@@ -110,7 +110,7 @@ echo ""
 echo "What's configured:"
 echo "  - Auth status: $SCRIPT_DIR/claude-auth-status.sh"
 echo "  - Mobile re-auth: $SCRIPT_DIR/mobile-reauth.sh"
-echo "  - Auth monitor: systemctl --user status moltbot-auth-monitor.timer"
+echo "  - Auth monitor: systemctl --user status zee-auth-monitor.timer"
 echo ""
 echo "Quick commands:"
 echo "  Check auth:  $SCRIPT_DIR/claude-auth-status.sh"

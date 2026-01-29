@@ -1,5 +1,5 @@
 ---
-summary: "Run multiple Moltbot Gateways on one host (isolation, ports, and profiles)"
+summary: "Run multiple Zee Gateways on one host (isolation, ports, and profiles)"
 read_when:
   - Running more than one Gateway on the same machine
   - You need isolated config/state/ports per Gateway
@@ -23,18 +23,18 @@ Profiles auto-scope `CLAWDBOT_STATE_DIR` + `CLAWDBOT_CONFIG_PATH` and suffix ser
 
 ```bash
 # main
-moltbot --profile main setup
-moltbot --profile main gateway --port 18789
+zee --profile main setup
+zee --profile main gateway --port 18789
 
 # rescue
-moltbot --profile rescue setup
-moltbot --profile rescue gateway --port 19001
+zee --profile rescue setup
+zee --profile rescue gateway --port 19001
 ```
 
 Per-profile services:
 ```bash
-moltbot --profile main gateway install
-moltbot --profile rescue gateway install
+zee --profile main gateway install
+zee --profile rescue gateway install
 ```
 
 ## Rescue-bot guide
@@ -54,11 +54,11 @@ Port spacing: leave at least 20 ports between base ports so the derived browser/
 ```bash
 # Main bot (existing or fresh, without --profile param)
 # Runs on port 18789 + Chrome CDC/Canvas/... Ports 
-moltbot onboard
-moltbot gateway install
+zee onboard
+zee gateway install
 
 # Rescue bot (isolated profile + ports)
-moltbot --profile rescue onboard
+zee --profile rescue onboard
 # Notes: 
 # - workspace name will be postfixed with -rescue per default
 # - Port should be at least 18789 + 20 Ports, 
@@ -66,7 +66,7 @@ moltbot --profile rescue onboard
 # - rest of the onboarding is the same as normal
 
 # To install the service (if not happened automatically during onboarding)
-moltbot --profile rescue gateway install
+zee --profile rescue gateway install
 ```
 
 ## Port mapping (derived)
@@ -89,19 +89,19 @@ If you override any of these in config or env, you must keep them unique per ins
 ## Manual env example
 
 ```bash
-CLAWDBOT_CONFIG_PATH=~/.clawdbot/main.json \
-CLAWDBOT_STATE_DIR=~/.clawdbot-main \
-moltbot gateway --port 18789
+CLAWDBOT_CONFIG_PATH=~/.zee/main.json \
+CLAWDBOT_STATE_DIR=~/.zee-main \
+zee gateway --port 18789
 
-CLAWDBOT_CONFIG_PATH=~/.clawdbot/rescue.json \
-CLAWDBOT_STATE_DIR=~/.clawdbot-rescue \
-moltbot gateway --port 19001
+CLAWDBOT_CONFIG_PATH=~/.zee/rescue.json \
+CLAWDBOT_STATE_DIR=~/.zee-rescue \
+zee gateway --port 19001
 ```
 
 ## Quick checks
 
 ```bash
-moltbot --profile main status
-moltbot --profile rescue status
-moltbot --profile rescue browser status
+zee --profile main status
+zee --profile rescue status
+zee --profile rescue browser status
 ```

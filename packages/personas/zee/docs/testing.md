@@ -8,7 +8,7 @@ read_when:
 
 # Testing
 
-Moltbot has three Vitest suites (unit/integration, e2e, live) and a small set of Docker runners.
+Zee has three Vitest suites (unit/integration, e2e, live) and a small set of Docker runners.
 
 This doc is a “how we test” guide:
 - What each suite covers (and what it deliberately does *not* cover)
@@ -113,7 +113,7 @@ Live tests are split into two layers so we can isolate failures:
   - Separates “provider API is broken / key is invalid” from “gateway agent pipeline is broken”
   - Contains small, isolated regressions (example: OpenAI Responses/Codex Responses reasoning replay + tool-call flows)
 
-### Layer 2: Gateway + dev agent smoke (what “@moltbot” actually does)
+### Layer 2: Gateway + dev agent smoke (what “@zee” actually does)
 
 - Test: `src/gateway/gateway-models.profiles.live.test.ts`
 - Goal:
@@ -150,8 +150,8 @@ Live tests are split into two layers so we can isolate failures:
 Tip: to see what you can test on your machine (and the exact `provider/model` ids), run:
 
 ```bash
-moltbot models list
-moltbot models list --json
+zee models list
+zee models list --json
 ```
 
 ## Live: Anthropic setup-token smoke
@@ -170,7 +170,7 @@ moltbot models list --json
 Setup example:
 
 ```bash
-moltbot models auth paste-token --provider anthropic --profile-id anthropic:setup-token-test
+zee models auth paste-token --provider anthropic --profile-id anthropic:setup-token-test
 CLAWDBOT_LIVE_SETUP_TOKEN=1 CLAWDBOT_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-token-test pnpm test:live src/agents/anthropic.setup-token.live.test.ts
 ```
 
@@ -227,8 +227,8 @@ Notes:
 - `google-antigravity/...` uses the Antigravity OAuth bridge (Cloud Code Assist-style agent endpoint).
 - `google-gemini-cli/...` uses the local Gemini CLI on your machine (separate auth + tooling quirks).
 - Gemini API vs Gemini CLI:
-  - API: Moltbot calls Google’s hosted Gemini API over HTTP (API key / profile auth); this is what most users mean by “Gemini”.
-  - CLI: Moltbot shells out to a local `gemini` binary; it has its own auth and can behave differently (streaming/tool support/version skew).
+  - API: Zee calls Google’s hosted Gemini API over HTTP (API key / profile auth); this is what most users mean by “Gemini”.
+  - CLI: Zee shells out to a local `gemini` binary; it has its own auth and can behave differently (streaming/tool support/version skew).
 
 ## Live: model matrix (what we cover)
 
@@ -270,7 +270,7 @@ Include at least one image-capable model in `CLAWDBOT_LIVE_GATEWAY_MODELS` (Clau
 ### Aggregators / alternate gateways
 
 If you have keys enabled, we also support testing via:
-- OpenRouter: `openrouter/...` (hundreds of models; use `moltbot models scan` to find tool+image capable candidates)
+- OpenRouter: `openrouter/...` (hundreds of models; use `zee models scan` to find tool+image capable candidates)
 - OpenCode Zen: `opencode/...` (auth via `OPENCODE_API_KEY` / `OPENCODE_ZEN_API_KEY`)
 
 More providers you can include in the live matrix (if you have creds/config):
@@ -283,10 +283,10 @@ Tip: don’t try to hardcode “all models” in docs. The authoritative list is
 
 Live tests discover credentials the same way the CLI does. Practical implications:
 - If the CLI works, live tests should find the same keys.
-- If a live test says “no creds”, debug the same way you’d debug `moltbot models list` / model selection.
+- If a live test says “no creds”, debug the same way you’d debug `zee models list` / model selection.
 
-- Profile store: `~/.clawdbot/credentials/` (preferred; what “profile keys” means in the tests)
-- Config: `~/.clawdbot/moltbot.json` (or `CLAWDBOT_CONFIG_PATH`)
+- Profile store: `~/.zee/credentials/` (preferred; what “profile keys” means in the tests)
+- Config: `~/.zee/zee.json` (or `CLAWDBOT_CONFIG_PATH`)
 
 If you want to rely on env keys (e.g. exported in your `~/.profile`), run local tests after `source ~/.profile`, or use the Docker runners below (they can mount `~/.profile` into the container).
 
@@ -307,8 +307,8 @@ These run `pnpm test:live` inside the repo Docker image, mounting your local con
 
 Useful env vars:
 
-- `CLAWDBOT_CONFIG_DIR=...` (default: `~/.clawdbot`) mounted to `/home/node/.clawdbot`
-- `CLAWDBOT_WORKSPACE_DIR=...` (default: `~/clawd`) mounted to `/home/node/clawd`
+- `CLAWDBOT_CONFIG_DIR=...` (default: `~/.zee`) mounted to `/home/node/.zee`
+- `CLAWDBOT_WORKSPACE_DIR=...` (default: `~/zee`) mounted to `/home/node/zee`
 - `CLAWDBOT_PROFILE_FILE=...` (default: `~/.profile`) mounted to `/home/node/.profile` and sourced before running tests
 - `CLAWDBOT_LIVE_GATEWAY_MODELS=...` / `CLAWDBOT_LIVE_MODELS=...` to narrow the run
 - `CLAWDBOT_LIVE_REQUIRE_PROFILE_KEYS=1` to ensure creds come from the profile store (not env)

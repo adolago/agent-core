@@ -31,7 +31,7 @@ The agent persona system provides a unified approach to agent identity and behav
 ### 2. Context Hierarchy
 
 ```
-Global Identity (~/clawd/)
+Global Identity (~/.zee/)
     |
     +-- Project Personas (.agent-core/persona/)
     |       |
@@ -350,8 +350,8 @@ Personas are defined in `.claude/skills/` and loaded at runtime. The core repo d
 {
   "persona": {
     "default": "zee/assistant",
-    "identityPath": "~/clawd/IDENTITY.md",
-    "soulPath": "~/clawd/SOUL.md",
+    "identityPath": "~/.zee/IDENTITY.md",
+    "soulPath": "~/.zee/SOUL.md",
     "personaDirs": [
       ".agent-core/persona",
       "~/.agent-core/persona"

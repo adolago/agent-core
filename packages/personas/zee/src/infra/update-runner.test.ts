@@ -320,7 +320,7 @@ describe("runGatewayUpdate", () => {
     cwdSpy.mockRestore();
 
     expect(result.status).toBe("error");
-    expect(result.reason).toBe("not-moltbot-root");
+    expect(result.reason).toBe("not-zee-root");
     expect(calls.some((call) => call.includes("status --porcelain"))).toBe(false);
   });
 });

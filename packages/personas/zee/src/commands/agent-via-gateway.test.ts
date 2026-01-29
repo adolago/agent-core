@@ -12,7 +12,7 @@ vi.mock("./agent.js", () => ({
   agentCommand: vi.fn(),
 }));
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import * as configModule from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -27,7 +27,7 @@ const runtime: RuntimeEnv = {
 
 const configSpy = vi.spyOn(configModule, "loadConfig");
 
-function mockConfig(storePath: string, overrides?: Partial<MoltbotConfig>) {
+function mockConfig(storePath: string, overrides?: Partial<ZeeConfig>) {
   configSpy.mockReturnValue({
     agents: {
       defaults: {

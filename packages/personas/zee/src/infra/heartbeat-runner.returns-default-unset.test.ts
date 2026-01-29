@@ -4,7 +4,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HEARTBEAT_PROMPT } from "../auto-reply/heartbeat.js";
 import * as replyModule from "../auto-reply/reply.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
   resolveAgentMainSessionKey,
@@ -95,7 +95,7 @@ describe("resolveHeartbeatPrompt", () => {
   });
 
   it("uses a trimmed override when configured", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { heartbeat: { prompt: "  ping  " } } },
     };
     expect(resolveHeartbeatPrompt(cfg)).toBe("ping");
@@ -104,7 +104,7 @@ describe("resolveHeartbeatPrompt", () => {
 
 describe("isHeartbeatEnabledForAgent", () => {
   it("enables only explicit heartbeat agents when configured", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
@@ -115,7 +115,7 @@ describe("isHeartbeatEnabledForAgent", () => {
   });
 
   it("falls back to default agent when no explicit heartbeat entries", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops" }],
@@ -133,7 +133,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   };
 
   it("respects target none", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { heartbeat: { target: "none" } } },
     };
     expect(resolveHeartbeatDeliveryTarget({ cfg, entry: baseEntry })).toEqual({
@@ -146,7 +146,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("uses last route by default", () => {
-    const cfg: MoltbotConfig = {};
+    const cfg: ZeeConfig = {};
     const entry = {
       ...baseEntry,
       lastChannel: "whatsapp" as const,
@@ -162,7 +162,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("normalizes explicit WhatsApp targets when allowFrom is '*'", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           heartbeat: { target: "whatsapp", to: "whatsapp:(555) 123" },
@@ -180,7 +180,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("skips when last route is webchat", () => {
-    const cfg: MoltbotConfig = {};
+    const cfg: ZeeConfig = {};
     const entry = {
       ...baseEntry,
       lastChannel: "webchat" as const,
@@ -196,7 +196,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("applies allowFrom fallback for WhatsApp targets", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { heartbeat: { target: "whatsapp", to: "+1999" } } },
       channels: { whatsapp: { allowFrom: ["+1555", "+1666"] } },
     };
@@ -216,7 +216,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("keeps WhatsApp group targets even with allowFrom set", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: { whatsapp: { allowFrom: ["+1555"] } },
     };
     const entry = {
@@ -234,7 +234,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("normalizes prefixed WhatsApp group targets for heartbeat delivery", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       channels: { whatsapp: { allowFrom: ["+1555"] } },
     };
     const entry = {
@@ -252,7 +252,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("keeps explicit telegram targets", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { heartbeat: { target: "telegram", to: "123" } } },
     };
     expect(resolveHeartbeatDeliveryTarget({ cfg, entry: baseEntry })).toEqual({
@@ -265,7 +265,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   });
 
   it("prefers per-agent heartbeat overrides when provided", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: { defaults: { heartbeat: { target: "telegram", to: "123" } } },
     };
     const heartbeat = { target: "whatsapp", to: "+1555" } as const;
@@ -287,7 +287,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
 
 describe("runHeartbeatOnce", () => {
   it("skips when agent heartbeat is not enabled", async () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
@@ -302,7 +302,7 @@ describe("runHeartbeatOnce", () => {
   });
 
   it("skips outside active hours", async () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           userTimezone: "UTC",
@@ -330,7 +330,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -388,7 +388,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             heartbeat: { every: "30m", prompt: "Default prompt" },
@@ -459,7 +459,7 @@ describe("runHeartbeatOnce", () => {
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
       const groupId = "120363401234567890@g.us";
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -541,7 +541,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -597,7 +597,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -669,7 +669,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -740,7 +740,7 @@ describe("runHeartbeatOnce", () => {
     const storeTemplate = path.join(tmpDir, "agents", "{agentId}", "sessions.json");
     const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
     try {
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: { workspace: tmpDir, heartbeat: { every: "5m" } },
           list: [{ id: "work", default: true }],
@@ -814,7 +814,7 @@ describe("runHeartbeatOnce", () => {
         "utf-8",
       );
 
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: workspaceDir,
@@ -886,7 +886,7 @@ describe("runHeartbeatOnce", () => {
         "utf-8",
       );
 
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: workspaceDir,
@@ -950,7 +950,7 @@ describe("runHeartbeatOnce", () => {
       await fs.mkdir(workspaceDir, { recursive: true });
       // Don't create HEARTBEAT.md - it doesn't exist
 
-      const cfg: MoltbotConfig = {
+      const cfg: ZeeConfig = {
         agents: {
           defaults: {
             workspace: workspaceDir,

@@ -1,5 +1,5 @@
 [Unit]
-Description=Check Moltbot auth expiry every 30 minutes
+Description=Check Zee auth expiry every 30 minutes
 
 [Timer]
 OnBootSec=5min

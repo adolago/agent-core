@@ -24,9 +24,9 @@ import type { PluginsConfig } from "./types.plugins.js";
 import type { SkillsConfig } from "./types.skills.js";
 import type { ToolsConfig } from "./types.tools.js";
 
-export type MoltbotConfig = {
+export type ZeeConfig = {
   meta?: {
-    /** Last moltbot version that wrote this config. */
+    /** Last Zee version that wrote this config. */
     lastTouchedVersion?: string;
     /** ISO timestamp when this config was last written. */
     lastTouchedAt?: string;
@@ -65,7 +65,7 @@ export type MoltbotConfig = {
   };
   browser?: BrowserConfig;
   ui?: {
-    /** Accent color for Moltbot UI chrome (hex). */
+    /** Accent color for Zee UI chrome (hex). */
     seamColor?: string;
     assistant?: {
       /** Assistant display name for UI surfaces. */
@@ -113,7 +113,7 @@ export type ConfigFileSnapshot = {
   raw: string | null;
   parsed: unknown;
   valid: boolean;
-  config: MoltbotConfig;
+  config: ZeeConfig;
   hash?: string;
   issues: ConfigValidationIssue[];
   warnings: ConfigValidationIssue[];

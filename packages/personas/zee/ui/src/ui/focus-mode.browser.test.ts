@@ -1,18 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MoltbotApp } from "./app";
+import { ZeeApp } from "./app";
 
-const originalConnect = MoltbotApp.prototype.connect;
+const originalConnect = ZeeApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("moltbot-app") as MoltbotApp;
+  const app = document.createElement("zee-app") as ZeeApp;
   document.body.append(app);
   return app;
 }
 
 beforeEach(() => {
-  MoltbotApp.prototype.connect = () => {
+  ZeeApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
   window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  MoltbotApp.prototype.connect = originalConnect;
+  ZeeApp.prototype.connect = originalConnect;
   window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";

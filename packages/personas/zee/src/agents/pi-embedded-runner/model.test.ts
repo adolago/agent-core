@@ -5,7 +5,7 @@ vi.mock("@mariozechner/pi-coding-agent", () => ({
   discoverModels: vi.fn(() => ({ find: vi.fn(() => null) })),
 }));
 
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { buildInlineProviderModels, resolveModel } from "./model.js";
 
 const makeModel = (id: string) => ({
@@ -119,7 +119,7 @@ describe("resolveModel", () => {
           },
         },
       },
-    } as MoltbotConfig;
+    } as ZeeConfig;
 
     const result = resolveModel("custom", "missing-model", "/tmp/agent", cfg);
 

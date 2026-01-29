@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import {
   resolveLegacyStateDir,
   resolveNewStateDir,
@@ -399,7 +399,7 @@ export async function autoMigrateLegacyStateDir(params: {
 }
 
 export async function detectLegacyStateMigrations(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   env?: NodeJS.ProcessEnv;
   homedir?: () => string;
 }): Promise<LegacyStateDetection> {
@@ -690,7 +690,7 @@ export async function runLegacyStateMigrations(params: {
 }
 
 export async function autoMigrateLegacyAgentDir(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   env?: NodeJS.ProcessEnv;
   homedir?: () => string;
   log?: MigrationLogger;
@@ -705,7 +705,7 @@ export async function autoMigrateLegacyAgentDir(params: {
 }
 
 export async function autoMigrateLegacyState(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   env?: NodeJS.ProcessEnv;
   homedir?: () => string;
   log?: MigrationLogger;

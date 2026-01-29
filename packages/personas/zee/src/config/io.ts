@@ -30,7 +30,7 @@ import { findLegacyConfigIssues } from "./legacy.js";
 import { normalizeConfigPaths } from "./normalize-paths.js";
 import { resolveConfigPath, resolveDefaultConfigCandidates, resolveStateDir } from "./paths.js";
 import { applyConfigOverrides } from "./runtime-overrides.js";
-import type { MoltbotConfig, ConfigFileSnapshot, LegacyConfigIssue } from "./types.js";
+import type { ZeeConfig, ConfigFileSnapshot, LegacyConfigIssue } from "./types.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 import { compareMoltbotVersions } from "./version.js";
 
@@ -81,11 +81,11 @@ export function resolveConfigSnapshotHash(snapshot: {
   return hashConfigRaw(snapshot.raw);
 }
 
-function coerceConfig(value: unknown): MoltbotConfig {
+function coerceConfig(value: unknown): ZeeConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
-  return value as MoltbotConfig;
+  return value as ZeeConfig;
 }
 
 async function rotateConfigBackups(configPath: string, ioFs: typeof fs.promises): Promise<void> {
@@ -125,7 +125,7 @@ function warnOnConfigMiskeys(raw: unknown, logger: Pick<typeof console, "warn">)
   }
 }
 
-function stampConfigVersion(cfg: MoltbotConfig): MoltbotConfig {
+function stampConfigVersion(cfg: ZeeConfig): ZeeConfig {
   const now = new Date().toISOString();
   return {
     ...cfg,
@@ -137,7 +137,7 @@ function stampConfigVersion(cfg: MoltbotConfig): MoltbotConfig {
   };
 }
 
-function warnIfConfigFromFuture(cfg: MoltbotConfig, logger: Pick<typeof console, "warn">): void {
+function warnIfConfigFromFuture(cfg: ZeeConfig, logger: Pick<typeof console, "warn">): void {
   const touched = cfg.meta?.lastTouchedVersion;
   if (!touched) return;
   const cmp = compareMoltbotVersions(VERSION, touched);
@@ -149,7 +149,7 @@ function warnIfConfigFromFuture(cfg: MoltbotConfig, logger: Pick<typeof console,
   }
 }
 
-function applyConfigEnv(cfg: MoltbotConfig, env: NodeJS.ProcessEnv): void {
+function applyConfigEnv(cfg: ZeeConfig, env: NodeJS.ProcessEnv): void {
   const entries = collectConfigEnvVars(cfg);
   for (const [key, value] of Object.entries(entries)) {
     if (env[key]?.trim()) continue;
@@ -193,7 +193,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
   const configPath =
     candidatePaths.find((candidate) => deps.fs.existsSync(candidate)) ?? requestedConfigPath;
 
-  function loadConfig(): MoltbotConfig {
+  function loadConfig(): ZeeConfig {
     try {
       if (!deps.fs.existsSync(configPath)) {
         if (shouldEnableShellEnvFallback(deps.env) && !shouldDeferShellEnvFallback(deps.env)) {
@@ -218,7 +218,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
       // Apply config.env to process.env BEFORE substitution so ${VAR} can reference config-defined vars
       if (resolved && typeof resolved === "object" && "env" in resolved) {
-        applyConfigEnv(resolved as MoltbotConfig, deps.env);
+        applyConfigEnv(resolved as ZeeConfig, deps.env);
       }
 
       // Substitute ${VAR} env var references
@@ -227,7 +227,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       const resolvedConfig = substituted;
       warnOnConfigMiskeys(resolvedConfig, deps.logger);
       if (typeof resolvedConfig !== "object" || resolvedConfig === null) return {};
-      const preValidationDuplicates = findDuplicateAgentDirs(resolvedConfig as MoltbotConfig, {
+      const preValidationDuplicates = findDuplicateAgentDirs(resolvedConfig as ZeeConfig, {
         env: deps.env,
         homedir: deps.homedir,
       });
@@ -377,7 +377,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
       // Apply config.env to process.env BEFORE substitution so ${VAR} can reference config-defined vars
       if (resolved && typeof resolved === "object" && "env" in resolved) {
-        applyConfigEnv(resolved as MoltbotConfig, deps.env);
+        applyConfigEnv(resolved as ZeeConfig, deps.env);
       }
 
       // Substitute ${VAR} env var references
@@ -459,7 +459,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     }
   }
 
-  async function writeConfigFile(cfg: MoltbotConfig) {
+  async function writeConfigFile(cfg: ZeeConfig) {
     clearConfigCache();
     const validated = validateConfigObjectWithPlugins(cfg);
     if (!validated.ok) {
@@ -533,7 +533,7 @@ const DEFAULT_CONFIG_CACHE_MS = 200;
 let configCache: {
   configPath: string;
   expiresAt: number;
-  config: MoltbotConfig;
+  config: ZeeConfig;
 } | null = null;
 
 function resolveConfigCacheMs(env: NodeJS.ProcessEnv): number {
@@ -554,7 +554,7 @@ function clearConfigCache(): void {
   configCache = null;
 }
 
-export function loadConfig(): MoltbotConfig {
+export function loadConfig(): ZeeConfig {
   const io = createConfigIO();
   const configPath = io.configPath;
   const now = Date.now();
@@ -582,7 +582,7 @@ export async function readConfigFileSnapshot(): Promise<ConfigFileSnapshot> {
   return await createConfigIO().readConfigFileSnapshot();
 }
 
-export async function writeConfigFile(cfg: MoltbotConfig): Promise<void> {
+export async function writeConfigFile(cfg: ZeeConfig): Promise<void> {
   clearConfigCache();
   await createConfigIO().writeConfigFile(cfg);
 }

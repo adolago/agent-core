@@ -10,7 +10,7 @@ import {
   resolveEnvApiKey,
 } from "../../agents/model-auth.js";
 import { ensureMoltbotModelsJson } from "../../agents/models-config.js";
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import type { ModelRow } from "./list.types.js";
 import { modelKey } from "./shared.js";
 
@@ -30,7 +30,7 @@ const isLocalBaseUrl = (baseUrl: string) => {
   }
 };
 
-const hasAuthForProvider = (provider: string, cfg: MoltbotConfig, authStore: AuthProfileStore) => {
+const hasAuthForProvider = (provider: string, cfg: ZeeConfig, authStore: AuthProfileStore) => {
   if (listProfilesForProvider(authStore, provider).length > 0) return true;
   if (provider === "amazon-bedrock" && resolveAwsSdkEnvVarName()) return true;
   if (resolveEnvApiKey(provider)) return true;
@@ -38,7 +38,7 @@ const hasAuthForProvider = (provider: string, cfg: MoltbotConfig, authStore: Aut
   return false;
 };
 
-export async function loadModelRegistry(cfg: MoltbotConfig) {
+export async function loadModelRegistry(cfg: ZeeConfig) {
   await ensureMoltbotModelsJson(cfg);
   const agentDir = resolveMoltbotAgentDir();
   const authStorage = discoverAuthStorage(agentDir);
@@ -55,7 +55,7 @@ export function toModelRow(params: {
   tags: string[];
   aliases?: string[];
   availableKeys?: Set<string>;
-  cfg?: MoltbotConfig;
+  cfg?: ZeeConfig;
   authStore?: AuthProfileStore;
 }): ModelRow {
   const { model, key, tags, aliases = [], availableKeys, cfg, authStore } = params;

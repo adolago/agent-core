@@ -1,14 +1,14 @@
 ---
-summary: "CLI reference for `moltbot browser` (profiles, tabs, actions, extension relay)"
+summary: "CLI reference for `zee browser` (profiles, tabs, actions, extension relay)"
 read_when:
-  - You use `moltbot browser` and want examples for common tasks
+  - You use `zee browser` and want examples for common tasks
   - You want to control a browser running on another machine via a node host
   - You want to use the Chrome extension relay (attach/detach via toolbar button)
 ---
 
-# `moltbot browser`
+# `zee browser`
 
-Manage Moltbot’s browser control server and run browser actions (tabs, snapshots, screenshots, navigation, clicks, typing).
+Manage Zee’s browser control server and run browser actions (tabs, snapshots, screenshots, navigation, clicks, typing).
 
 Related:
 - Browser tool + API: [Browser tool](/tools/browser)
@@ -25,37 +25,37 @@ Related:
 ## Quick start (local)
 
 ```bash
-moltbot browser --browser-profile chrome tabs
-moltbot browser --browser-profile clawd start
-moltbot browser --browser-profile clawd open https://example.com
-moltbot browser --browser-profile clawd snapshot
+zee browser --browser-profile chrome tabs
+zee browser --browser-profile zee start
+zee browser --browser-profile zee open https://example.com
+zee browser --browser-profile zee snapshot
 ```
 
 ## Profiles
 
 Profiles are named browser routing configs. In practice:
-- `clawd`: launches/attaches to a dedicated Moltbot-managed Chrome instance (isolated user data dir).
+- `zee`: launches/attaches to a dedicated Zee-managed Chrome instance (isolated user data dir).
 - `chrome`: controls your existing Chrome tab(s) via the Chrome extension relay.
 
 ```bash
-moltbot browser profiles
-moltbot browser create-profile --name work --color "#FF5A36"
-moltbot browser delete-profile --name work
+zee browser profiles
+zee browser create-profile --name work --color "#FF5A36"
+zee browser delete-profile --name work
 ```
 
 Use a specific profile:
 
 ```bash
-moltbot browser --browser-profile work tabs
+zee browser --browser-profile work tabs
 ```
 
 ## Tabs
 
 ```bash
-moltbot browser tabs
-moltbot browser open https://docs.molt.bot
-moltbot browser focus <targetId>
-moltbot browser close <targetId>
+zee browser tabs
+zee browser open https://docs.molt.bot
+zee browser focus <targetId>
+zee browser close <targetId>
 ```
 
 ## Snapshot / screenshot / actions
@@ -63,21 +63,21 @@ moltbot browser close <targetId>
 Snapshot:
 
 ```bash
-moltbot browser snapshot
+zee browser snapshot
 ```
 
 Screenshot:
 
 ```bash
-moltbot browser screenshot
+zee browser screenshot
 ```
 
 Navigate/click/type (ref-based UI automation):
 
 ```bash
-moltbot browser navigate https://example.com
-moltbot browser click <ref>
-moltbot browser type <ref> "hello"
+zee browser navigate https://example.com
+zee browser click <ref>
+zee browser type <ref> "hello"
 ```
 
 ## Chrome extension relay (attach via toolbar button)
@@ -87,8 +87,8 @@ This mode lets the agent control an existing Chrome tab that you attach manually
 Install the unpacked extension to a stable path:
 
 ```bash
-moltbot browser extension install
-moltbot browser extension path
+zee browser extension install
+zee browser extension path
 ```
 
 Then Chrome → `chrome://extensions` → enable “Developer mode” → “Load unpacked” → select the printed folder.

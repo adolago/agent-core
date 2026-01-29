@@ -1,4 +1,4 @@
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import type { ExecAsk, ExecHost, ExecSecurity } from "../../infra/exec-approvals.js";
 import { extractModelDirective } from "../model.js";
 import type { MsgContext } from "../templating.js";
@@ -193,7 +193,7 @@ export function isDirectiveOnly(params: {
   directives: InlineDirectives;
   cleanedBody: string;
   ctx: MsgContext;
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   agentId?: string;
   isGroup: boolean;
 }): boolean {

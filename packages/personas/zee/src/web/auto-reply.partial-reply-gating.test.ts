@@ -16,7 +16,7 @@ vi.mock("../agents/pi-embedded.js", () => ({
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
 import { getReplyFromConfig } from "../auto-reply/reply.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { monitorWebChannel } from "./auto-reply.js";
 import { resetLoadConfigMock, setLoadConfigMock } from "./test-helpers.js";
 
@@ -102,7 +102,7 @@ describe("partial reply gating", () => {
 
     const replyResolver = vi.fn().mockResolvedValue({ text: "final reply" });
 
-    const mockConfig: MoltbotConfig = {
+    const mockConfig: ZeeConfig = {
       channels: { whatsapp: { allowFrom: ["*"] } },
     };
 
@@ -145,7 +145,7 @@ describe("partial reply gating", () => {
 
     const replyResolver = vi.fn().mockResolvedValue({ text: "final reply" });
 
-    const mockConfig: MoltbotConfig = {
+    const mockConfig: ZeeConfig = {
       channels: {
         whatsapp: {
           allowFrom: ["*"],
@@ -195,7 +195,7 @@ describe("partial reply gating", () => {
 
     const replyResolver = vi.fn().mockResolvedValue(undefined);
 
-    const mockConfig: MoltbotConfig = {
+    const mockConfig: ZeeConfig = {
       channels: { whatsapp: { allowFrom: ["*"] } },
       session: { store: store.storePath },
     };
@@ -249,7 +249,7 @@ describe("partial reply gating", () => {
 
     const replyResolver = vi.fn().mockResolvedValue(undefined);
 
-    const mockConfig: MoltbotConfig = {
+    const mockConfig: ZeeConfig = {
       channels: { whatsapp: { allowFrom: ["*"] } },
       session: { store: store.storePath },
     };

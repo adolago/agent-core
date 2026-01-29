@@ -8,7 +8,7 @@
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { registerInternalHook } from "./internal-hooks.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { InternalHookHandler } from "./internal-hooks.js";
 import { loadWorkspaceHookEntries } from "./workspace.js";
 import { resolveHookConfig } from "./config.js";
@@ -33,7 +33,7 @@ import { shouldIncludeHook } from "./config.js";
  * console.log(`Loaded ${count} hook handlers`);
  * ```
  */
-export async function loadInternalHooks(cfg: MoltbotConfig, workspaceDir: string): Promise<number> {
+export async function loadInternalHooks(cfg: ZeeConfig, workspaceDir: string): Promise<number> {
   // Check if hooks are enabled
   if (!cfg.hooks?.internal?.enabled) {
     return 0;

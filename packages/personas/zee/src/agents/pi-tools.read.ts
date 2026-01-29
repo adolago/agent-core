@@ -249,7 +249,7 @@ function wrapSandboxPathGuard(tool: AnyAgentTool, root: string): AnyAgentTool {
 
 export function createSandboxedReadTool(root: string) {
   const base = createReadTool(root) as unknown as AnyAgentTool;
-  return wrapSandboxPathGuard(createMoltbotReadTool(base), root);
+  return wrapSandboxPathGuard(createZeeReadTool(base), root);
 }
 
 export function createSandboxedWriteTool(root: string) {
@@ -262,7 +262,7 @@ export function createSandboxedEditTool(root: string) {
   return wrapSandboxPathGuard(wrapToolParamNormalization(base, CLAUDE_PARAM_GROUPS.edit), root);
 }
 
-export function createMoltbotReadTool(base: AnyAgentTool): AnyAgentTool {
+export function createZeeReadTool(base: AnyAgentTool): AnyAgentTool {
   const patched = patchToolSchemaForClaudeCompatibility(base);
   return {
     ...patched,
@@ -283,3 +283,6 @@ export function createMoltbotReadTool(base: AnyAgentTool): AnyAgentTool {
     },
   };
 }
+
+// Legacy alias
+export const createMoltbotReadTool = createZeeReadTool;

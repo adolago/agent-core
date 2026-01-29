@@ -527,7 +527,7 @@ pgrep -af agent-core
 
 Messaging transport remains in Zee, but the gateway is launched by agent-core to:
 
-1. Avoid duplication with zee gateway (ClawdBot fork)
+1. Avoid duplication with the Zee gateway transport layer
 2. Keep agent-core clean for upstream sync
 3. Centralize messaging transport in one place
 

@@ -245,7 +245,7 @@ interface MessagingPlatformHandler {
 ## References
 
 - Stanley: GPUI-based desktop client
-- Clawdis: Existing messaging patterns (`/src/discord/monitor.ts`, `/src/telegram/monitor.ts`)
+- Zee: Existing messaging patterns (`/src/discord/monitor.ts`, `/src/telegram/monitor.ts`)
 
 ## Sign-Off
 

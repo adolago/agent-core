@@ -26,7 +26,7 @@ beforeEach(() => {
 
   readConfigFileSnapshot.mockReset();
   writeConfigFile.mockReset().mockResolvedValue(undefined);
-  resolveMoltbotPackageRoot.mockReset().mockResolvedValue(null);
+  resolveZeePackageRoot.mockReset().mockResolvedValue(null);
   runGatewayUpdate.mockReset().mockResolvedValue({
     status: "skipped",
     mode: "unknown",
@@ -110,7 +110,7 @@ const confirm = vi.fn().mockResolvedValue(true);
 const select = vi.fn().mockResolvedValue("node");
 const note = vi.fn();
 const writeConfigFile = vi.fn().mockResolvedValue(undefined);
-const resolveMoltbotPackageRoot = vi.fn().mockResolvedValue(null);
+const resolveZeePackageRoot = vi.fn().mockResolvedValue(null);
 const runGatewayUpdate = vi.fn().mockResolvedValue({
   status: "skipped",
   mode: "unknown",
@@ -216,8 +216,8 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("../infra/moltbot-root.js", () => ({
-  resolveMoltbotPackageRoot,
+vi.mock("../infra/zee-root.js", () => ({
+  resolveZeePackageRoot,
 }));
 
 vi.mock("../infra/update-runner.js", () => ({

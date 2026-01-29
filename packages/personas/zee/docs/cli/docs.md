@@ -1,15 +1,15 @@
 ---
-summary: "CLI reference for `moltbot docs` (search the live docs index)"
+summary: "CLI reference for `zee docs` (search the live docs index)"
 read_when:
-  - You want to search the live Moltbot docs from the terminal
+  - You want to search the live Zee docs from the terminal
 ---
 
-# `moltbot docs`
+# `zee docs`
 
 Search the live docs index.
 
 ```bash
-moltbot docs browser extension
-moltbot docs sandbox allowHostControl
+zee docs browser extension
+zee docs sandbox allowHostControl
 ```
 

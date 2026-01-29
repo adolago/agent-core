@@ -1,60 +1,78 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { MoltbotConfig } from "./types.js";
+import type { ZeeConfig } from "./types.js";
 
 /**
- * Nix mode detection: When CLAWDBOT_NIX_MODE=1, the gateway is running under Nix.
+ * Nix mode detection: When ZEE_NIX_MODE=1, the gateway is running under Nix.
  * In this mode:
  * - No auto-install flows should be attempted
  * - Missing dependencies should produce actionable Nix-specific error messages
  * - Config is managed externally (read-only from Nix perspective)
  */
 export function resolveIsNixMode(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.CLAWDBOT_NIX_MODE === "1";
+  return (
+    env.ZEE_NIX_MODE === "1" || env.MOLTBOT_NIX_MODE === "1" || env.CLAWDBOT_NIX_MODE === "1"
+  );
 }
 
 export const isNixMode = resolveIsNixMode();
 
-const LEGACY_STATE_DIRNAME = ".clawdbot";
-const NEW_STATE_DIRNAME = ".moltbot";
-const CONFIG_FILENAME = "moltbot.json";
-const LEGACY_CONFIG_FILENAME = "clawdbot.json";
+const DEFAULT_STATE_DIRNAME = ".zee";
+const LEGACY_STATE_DIRNAMES = [".moltbot", ".clawdbot"] as const;
+const CONFIG_FILENAME = "zee.json";
+const LEGACY_CONFIG_FILENAMES = ["moltbot.json", "clawdbot.json"] as const;
 
-function legacyStateDir(homedir: () => string = os.homedir): string {
-  return path.join(homedir(), LEGACY_STATE_DIRNAME);
+function defaultStateDir(homedir: () => string = os.homedir): string {
+  return path.join(homedir(), DEFAULT_STATE_DIRNAME);
 }
 
-function newStateDir(homedir: () => string = os.homedir): string {
-  return path.join(homedir(), NEW_STATE_DIRNAME);
+function legacyStateDirs(homedir: () => string = os.homedir): string[] {
+  return LEGACY_STATE_DIRNAMES.map((name) => path.join(homedir(), name));
 }
 
 export function resolveLegacyStateDir(homedir: () => string = os.homedir): string {
-  return legacyStateDir(homedir);
+  const candidates = legacyStateDirs(homedir);
+  const existing = candidates.find((candidate) => {
+    try {
+      return fs.existsSync(candidate);
+    } catch {
+      return false;
+    }
+  });
+  return existing ?? candidates[0];
 }
 
 export function resolveNewStateDir(homedir: () => string = os.homedir): string {
-  return newStateDir(homedir);
+  return defaultStateDir(homedir);
 }
 
 /**
  * State directory for mutable data (sessions, logs, caches).
- * Can be overridden via MOLTBOT_STATE_DIR (preferred) or CLAWDBOT_STATE_DIR (legacy).
- * Default: ~/.clawdbot (legacy default for compatibility)
- * If ~/.moltbot exists and ~/.clawdbot does not, prefer ~/.moltbot.
+ * Can be overridden via ZEE_STATE_DIR (preferred) or legacy env vars.
+ * Default: ~/.zee (preferred). If only legacy dirs exist, prefer them.
  */
 export function resolveStateDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const override = env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  const override =
+    env.ZEE_STATE_DIR?.trim() ||
+    env.MOLTBOT_STATE_DIR?.trim() ||
+    env.CLAWDBOT_STATE_DIR?.trim();
   if (override) return resolveUserPath(override);
-  const legacyDir = legacyStateDir(homedir);
-  const newDir = newStateDir(homedir);
-  const hasLegacy = fs.existsSync(legacyDir);
+  const newDir = defaultStateDir(homedir);
+  const legacyDirs = legacyStateDirs(homedir);
   const hasNew = fs.existsSync(newDir);
-  if (!hasLegacy && hasNew) return newDir;
-  return legacyDir;
+  if (hasNew) return newDir;
+  const legacy = legacyDirs.find((candidate) => {
+    try {
+      return fs.existsSync(candidate);
+    } catch {
+      return false;
+    }
+  });
+  return legacy ?? newDir;
 }
 
 function resolveUserPath(input: string): string {
@@ -71,14 +89,17 @@ export const STATE_DIR = resolveStateDir();
 
 /**
  * Config file path (JSON5).
- * Can be overridden via MOLTBOT_CONFIG_PATH (preferred) or CLAWDBOT_CONFIG_PATH (legacy).
- * Default: ~/.clawdbot/moltbot.json (or $*_STATE_DIR/moltbot.json)
+ * Can be overridden via ZEE_CONFIG_PATH (preferred) or legacy env vars.
+ * Default: ~/.zee/zee.json (or $*_STATE_DIR/zee.json)
  */
 export function resolveCanonicalConfigPath(
   env: NodeJS.ProcessEnv = process.env,
   stateDir: string = resolveStateDir(env, os.homedir),
 ): string {
-  const override = env.MOLTBOT_CONFIG_PATH?.trim() || env.CLAWDBOT_CONFIG_PATH?.trim();
+  const override =
+    env.ZEE_CONFIG_PATH?.trim() ||
+    env.MOLTBOT_CONFIG_PATH?.trim() ||
+    env.CLAWDBOT_CONFIG_PATH?.trim();
   if (override) return resolveUserPath(override);
   return path.join(stateDir, CONFIG_FILENAME);
 }
@@ -111,13 +132,17 @@ export function resolveConfigPath(
   stateDir: string = resolveStateDir(env, os.homedir),
   homedir: () => string = os.homedir,
 ): string {
-  const override = env.MOLTBOT_CONFIG_PATH?.trim() || env.CLAWDBOT_CONFIG_PATH?.trim();
+  const override =
+    env.ZEE_CONFIG_PATH?.trim() ||
+    env.MOLTBOT_CONFIG_PATH?.trim() ||
+    env.CLAWDBOT_CONFIG_PATH?.trim();
   if (override) return resolveUserPath(override);
-  const stateOverride = env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
-  const candidates = [
-    path.join(stateDir, CONFIG_FILENAME),
-    path.join(stateDir, LEGACY_CONFIG_FILENAME),
-  ];
+  const stateOverride =
+    env.ZEE_STATE_DIR?.trim() || env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  const candidates = [path.join(stateDir, CONFIG_FILENAME)];
+  for (const legacyName of LEGACY_CONFIG_FILENAMES) {
+    candidates.push(path.join(stateDir, legacyName));
+  }
   const existing = candidates.find((candidate) => {
     try {
       return fs.existsSync(candidate);
@@ -144,25 +169,49 @@ export function resolveDefaultConfigCandidates(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string[] {
-  const explicit = env.MOLTBOT_CONFIG_PATH?.trim() || env.CLAWDBOT_CONFIG_PATH?.trim();
+  const explicit =
+    env.ZEE_CONFIG_PATH?.trim() ||
+    env.MOLTBOT_CONFIG_PATH?.trim() ||
+    env.CLAWDBOT_CONFIG_PATH?.trim();
   if (explicit) return [resolveUserPath(explicit)];
 
   const candidates: string[] = [];
+  const zeeStateDir = env.ZEE_STATE_DIR?.trim();
+  if (zeeStateDir) {
+    const resolved = resolveUserPath(zeeStateDir);
+    candidates.push(path.join(resolved, CONFIG_FILENAME));
+    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
+      candidates.push(path.join(resolved, legacyName));
+    }
+  }
   const moltbotStateDir = env.MOLTBOT_STATE_DIR?.trim();
   if (moltbotStateDir) {
-    candidates.push(path.join(resolveUserPath(moltbotStateDir), CONFIG_FILENAME));
-    candidates.push(path.join(resolveUserPath(moltbotStateDir), LEGACY_CONFIG_FILENAME));
+    const resolved = resolveUserPath(moltbotStateDir);
+    candidates.push(path.join(resolved, CONFIG_FILENAME));
+    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
+      candidates.push(path.join(resolved, legacyName));
+    }
   }
   const legacyStateDirOverride = env.CLAWDBOT_STATE_DIR?.trim();
   if (legacyStateDirOverride) {
-    candidates.push(path.join(resolveUserPath(legacyStateDirOverride), CONFIG_FILENAME));
-    candidates.push(path.join(resolveUserPath(legacyStateDirOverride), LEGACY_CONFIG_FILENAME));
+    const resolved = resolveUserPath(legacyStateDirOverride);
+    candidates.push(path.join(resolved, CONFIG_FILENAME));
+    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
+      candidates.push(path.join(resolved, legacyName));
+    }
   }
 
-  candidates.push(path.join(newStateDir(homedir), CONFIG_FILENAME));
-  candidates.push(path.join(newStateDir(homedir), LEGACY_CONFIG_FILENAME));
-  candidates.push(path.join(legacyStateDir(homedir), CONFIG_FILENAME));
-  candidates.push(path.join(legacyStateDir(homedir), LEGACY_CONFIG_FILENAME));
+  const newDir = defaultStateDir(homedir);
+  candidates.push(path.join(newDir, CONFIG_FILENAME));
+  for (const legacyName of LEGACY_CONFIG_FILENAMES) {
+    candidates.push(path.join(newDir, legacyName));
+  }
+  for (const legacyDir of legacyStateDirs(homedir)) {
+    candidates.push(path.join(legacyDir, CONFIG_FILENAME));
+    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
+      candidates.push(path.join(legacyDir, legacyName));
+    }
+  }
   return candidates;
 }
 
@@ -170,12 +219,12 @@ export const DEFAULT_GATEWAY_PORT = 18789;
 
 /**
  * Gateway lock directory (ephemeral).
- * Default: os.tmpdir()/moltbot-<uid> (uid suffix when available).
+ * Default: os.tmpdir()/zee-<uid> (uid suffix when available).
  */
 export function resolveGatewayLockDir(tmpdir: () => string = os.tmpdir): string {
   const base = tmpdir();
   const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
-  const suffix = uid != null ? `moltbot-${uid}` : "moltbot";
+  const suffix = uid != null ? `zee-${uid}` : "zee";
   return path.join(base, suffix);
 }
 
@@ -185,15 +234,18 @@ const OAUTH_FILENAME = "oauth.json";
  * OAuth credentials storage directory.
  *
  * Precedence:
- * - `CLAWDBOT_OAUTH_DIR` (explicit override)
+ * - `ZEE_OAUTH_DIR` (explicit override)
  * - `$*_STATE_DIR/credentials` (canonical server/default)
- * - `~/.clawdbot/credentials` (legacy default)
+ * - legacy state dirs for backwards compatibility
  */
 export function resolveOAuthDir(
   env: NodeJS.ProcessEnv = process.env,
   stateDir: string = resolveStateDir(env, os.homedir),
 ): string {
-  const override = env.CLAWDBOT_OAUTH_DIR?.trim();
+  const override =
+    env.ZEE_OAUTH_DIR?.trim() ||
+    env.MOLTBOT_OAUTH_DIR?.trim() ||
+    env.CLAWDBOT_OAUTH_DIR?.trim();
   if (override) return resolveUserPath(override);
   return path.join(stateDir, "credentials");
 }
@@ -206,10 +258,13 @@ export function resolveOAuthPath(
 }
 
 export function resolveGatewayPort(
-  cfg?: MoltbotConfig,
+  cfg?: ZeeConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  const envRaw = env.CLAWDBOT_GATEWAY_PORT?.trim();
+  const envRaw =
+    env.ZEE_GATEWAY_PORT?.trim() ||
+    env.MOLTBOT_GATEWAY_PORT?.trim() ||
+    env.CLAWDBOT_GATEWAY_PORT?.trim();
   if (envRaw) {
     const parsed = Number.parseInt(envRaw, 10);
     if (Number.isFinite(parsed) && parsed > 0) return parsed;

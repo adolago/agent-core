@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 import type { CliDeps } from "../cli/deps.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { CronJob } from "./types.js";
 
 vi.mock("../agents/pi-embedded.js", () => ({
@@ -51,9 +51,9 @@ async function writeSessionStore(home: string) {
 function makeCfg(
   home: string,
   storePath: string,
-  overrides: Partial<MoltbotConfig> = {},
-): MoltbotConfig {
-  const base: MoltbotConfig = {
+  overrides: Partial<ZeeConfig> = {},
+): ZeeConfig {
+  const base: ZeeConfig = {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
@@ -61,7 +61,7 @@ function makeCfg(
       },
     },
     session: { store: storePath, mainKey: "main" },
-  } as MoltbotConfig;
+  } as ZeeConfig;
   return { ...base, ...overrides };
 }
 

@@ -1,6 +1,6 @@
 import { CHANNEL_IDS } from "../channels/registry.js";
 import { VERSION } from "../version.js";
-import { MoltbotSchema } from "./zod-schema.js";
+import { ZeeSchema } from "./zod-schema.js";
 
 export type ConfigUiHint = {
   label?: string;
@@ -15,7 +15,7 @@ export type ConfigUiHint = {
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;
 
-export type ConfigSchema = ReturnType<typeof MoltbotSchema.toJSONSchema>;
+export type ConfigSchema = ReturnType<typeof ZeeSchema.toJSONSchema>;
 
 type JsonSchemaNode = Record<string, unknown>;
 
@@ -951,11 +951,11 @@ function stripChannelSchema(schema: ConfigSchema): ConfigSchema {
 
 function buildBaseConfigSchema(): ConfigSchemaResponse {
   if (cachedBase) return cachedBase;
-  const schema = MoltbotSchema.toJSONSchema({
+  const schema = ZeeSchema.toJSONSchema({
     target: "draft-07",
     unrepresentable: "any",
   });
-  schema.title = "MoltbotConfig";
+  schema.title = "ZeeConfig";
   const hints = applySensitiveHints(buildBaseHints());
   const next = {
     schema: stripChannelSchema(schema),

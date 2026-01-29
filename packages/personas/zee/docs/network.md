@@ -7,7 +7,7 @@ read_when:
 ---
 # Network hub
 
-This hub links the core docs for how Moltbot connects, pairs, and secures
+This hub links the core docs for how Zee connects, pairs, and secures
 devices across localhost, LAN, and tailnet.
 
 ## Core model
@@ -40,8 +40,7 @@ Local trust:
 
 - [Nodes overview](/nodes)
 - [Bridge protocol (legacy nodes)](/gateway/bridge-protocol)
-- [Node runbook: iOS](/platforms/ios)
-- [Node runbook: Android](/platforms/android)
+- [Node runbook: macOS](/platforms/macos)
 
 ## Security
 

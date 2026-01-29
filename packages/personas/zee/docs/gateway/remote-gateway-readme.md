@@ -1,11 +1,11 @@
 ---
-summary: "SSH tunnel setup for Moltbot.app connecting to a remote gateway"
+summary: "SSH tunnel setup for Zee.app connecting to a remote gateway"
 read_when: "Connecting the macOS app to a remote gateway over SSH"
 ---
 
-# Running Moltbot.app with a Remote Gateway
+# Running Zee.app with a Remote Gateway
 
-Moltbot.app uses SSH tunneling to connect to a remote gateway. This guide shows you how to set it up.
+Zee.app uses SSH tunneling to connect to a remote gateway. This guide shows you how to set it up.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Moltbot.app uses SSH tunneling to connect to a remote gateway. This guide shows 
 ┌─────────────────────────────────────────────────────────────┐
 │                        Client Machine                          │
 │                                                              │
-│  Moltbot.app ──► ws://127.0.0.1:18789 (local port)           │
+│  Zee.app ──► ws://127.0.0.1:18789 (local port)           │
 │                     │                                        │
 │                     ▼                                        │
 │  SSH Tunnel ────────────────────────────────────────────────│
@@ -65,11 +65,11 @@ launchctl setenv CLAWDBOT_GATEWAY_TOKEN "<your-token>"
 ssh -N remote-gateway &
 ```
 
-### Step 5: Restart Moltbot.app
+### Step 5: Restart Zee.app
 
 ```bash
-# Quit Moltbot.app (⌘Q), then reopen:
-open /path/to/Moltbot.app
+# Quit Zee.app (⌘Q), then reopen:
+open /path/to/Zee.app
 ```
 
 The app will now connect to the remote gateway through the SSH tunnel.
@@ -116,7 +116,7 @@ The tunnel will now:
 - Restart if it crashes
 - Keep running in the background
 
-Legacy note: remove any leftover `com.clawdbot.ssh-tunnel` LaunchAgent if present.
+Legacy note: remove any leftover `com.zee.ssh-tunnel` LaunchAgent if present.
 
 ---
 
@@ -152,4 +152,4 @@ launchctl bootout gui/$UID/bot.molt.ssh-tunnel
 | `KeepAlive` | Automatically restarts tunnel if it crashes |
 | `RunAtLoad` | Starts tunnel when the agent loads |
 
-Moltbot.app connects to `ws://127.0.0.1:18789` on your client machine. The SSH tunnel forwards that connection to port 18789 on the remote machine where the Gateway is running.
+Zee.app connects to `ws://127.0.0.1:18789` on your client machine. The SSH tunnel forwards that connection to port 18789 on the remote machine where the Gateway is running.

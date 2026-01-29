@@ -524,7 +524,7 @@ export async function runAgentTurnWithFallback(params: {
         return {
           kind: "final",
           payload: {
-            text: "⚠️ Session history was corrupted. I've reset the conversation - please try again!",
+            text: "Session history was corrupted. The conversation was reset. Please try again.",
           },
         };
       }
@@ -532,10 +532,10 @@ export async function runAgentTurnWithFallback(params: {
       defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
       const trimmedMessage = message.replace(/\.\s*$/, "");
       const fallbackText = isContextOverflow
-        ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
+        ? "Context overflow: prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
-          ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: moltbot logs --follow`;
+          ? "Message ordering conflict. Please try again. If this persists, use /new to start a fresh session."
+          : `Agent failed before reply: ${trimmedMessage}.\nLogs: zee logs --follow`;
 
       return {
         kind: "final",

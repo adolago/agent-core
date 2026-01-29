@@ -14,7 +14,7 @@ vi.mock("../agents/pi-embedded.js", () => ({
 }));
 
 import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { monitorWebChannel } from "./auto-reply.js";
 import { resetLoadConfigMock, setLoadConfigMock } from "./test-helpers.js";
 
@@ -103,7 +103,7 @@ describe("broadcast groups", () => {
       broadcast: {
         "+1000": ["alfred", "missing"],
       },
-    } satisfies MoltbotConfig);
+    } satisfies ZeeConfig);
 
     const sendMedia = vi.fn();
     const reply = vi.fn().mockResolvedValue(undefined);

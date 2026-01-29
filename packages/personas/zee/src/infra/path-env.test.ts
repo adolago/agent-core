@@ -4,9 +4,9 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { ensureMoltbotCliOnPath } from "./path-env.js";
+import { ensureZeeCliOnPath } from "./path-env.js";
 
-describe("ensureMoltbotCliOnPath", () => {
+describe("ensureZeeCliOnPath", () => {
   it("prepends the bundled app bin dir when a sibling moltbot exists", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-path-"));
     try {
@@ -21,7 +21,7 @@ describe("ensureMoltbotCliOnPath", () => {
       process.env.PATH = "/usr/bin";
       delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
       try {
-        ensureMoltbotCliOnPath({
+        ensureZeeCliOnPath({
           execPath: cliPath,
           cwd: tmp,
           homeDir: tmp,
@@ -45,7 +45,7 @@ describe("ensureMoltbotCliOnPath", () => {
     process.env.PATH = "/bin";
     process.env.CLAWDBOT_PATH_BOOTSTRAPPED = "1";
     try {
-      ensureMoltbotCliOnPath({
+      ensureZeeCliOnPath({
         execPath: "/tmp/does-not-matter",
         cwd: "/tmp",
         homeDir: "/tmp",
@@ -84,7 +84,7 @@ describe("ensureMoltbotCliOnPath", () => {
       process.env.PATH = "/usr/bin";
       delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
 
-      ensureMoltbotCliOnPath({
+      ensureZeeCliOnPath({
         execPath: appCli,
         cwd: tmp,
         homeDir: tmp,
@@ -131,7 +131,7 @@ describe("ensureMoltbotCliOnPath", () => {
       delete process.env.HOMEBREW_BREW_FILE;
       delete process.env.XDG_BIN_HOME;
 
-      ensureMoltbotCliOnPath({
+      ensureZeeCliOnPath({
         execPath: path.join(execDir, "node"),
         cwd: tmp,
         homeDir: tmp,

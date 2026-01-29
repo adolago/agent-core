@@ -16,7 +16,7 @@ vi.mock("../agents/model-catalog.js", () => ({
 
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import * as configModule from "../config/config.js";
 import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -44,8 +44,8 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
 function mockConfig(
   home: string,
   storePath: string,
-  agentOverrides?: Partial<NonNullable<NonNullable<MoltbotConfig["agents"]>["defaults"]>>,
-  telegramOverrides?: Partial<NonNullable<MoltbotConfig["telegram"]>>,
+  agentOverrides?: Partial<NonNullable<NonNullable<ZeeConfig["agents"]>["defaults"]>>,
+  telegramOverrides?: Partial<NonNullable<ZeeConfig["telegram"]>>,
   agentsList?: Array<{ id: string; default?: boolean }>,
 ) {
   configSpy.mockReturnValue({

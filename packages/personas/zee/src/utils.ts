@@ -215,18 +215,22 @@ export function resolveConfigDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const override = env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  const override =
+    env.ZEE_STATE_DIR?.trim() ||
+    env.MOLTBOT_STATE_DIR?.trim() ||
+    env.CLAWDBOT_STATE_DIR?.trim();
   if (override) return resolveUserPath(override);
-  const legacyDir = path.join(homedir(), ".clawdbot");
-  const newDir = path.join(homedir(), ".moltbot");
+  const newDir = path.join(homedir(), ".zee");
+  const legacyDirs = [path.join(homedir(), ".moltbot"), path.join(homedir(), ".clawdbot")];
   try {
-    const hasLegacy = fs.existsSync(legacyDir);
     const hasNew = fs.existsSync(newDir);
-    if (!hasLegacy && hasNew) return newDir;
+    if (hasNew) return newDir;
+    const legacy = legacyDirs.find((dir) => fs.existsSync(dir));
+    if (legacy) return legacy;
   } catch {
     // best-effort
   }
-  return legacyDir;
+  return newDir;
 }
 
 export function resolveHomeDir(): string | undefined {
@@ -282,5 +286,5 @@ export function formatTerminalLink(
   return `\u001b]8;;${safeUrl}\u0007${safeLabel}\u001b]8;;\u0007`;
 }
 
-// Configuration root; can be overridden via CLAWDBOT_STATE_DIR.
+// Configuration root; can be overridden via ZEE_STATE_DIR (or legacy envs).
 export const CONFIG_DIR = resolveConfigDir();

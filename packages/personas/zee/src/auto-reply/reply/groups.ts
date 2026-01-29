@@ -1,6 +1,6 @@
 import { getChannelDock } from "../../channels/dock.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import type { GroupKeyResolution, SessionEntry } from "../../config/sessions.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import { normalizeGroupActivation } from "../group-activation.js";
@@ -27,7 +27,7 @@ function extractGroupId(raw: string | undefined | null): string | undefined {
 }
 
 export function resolveGroupRequireMention(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   ctx: TemplateContext;
   groupResolution?: GroupKeyResolution;
 }): boolean {
@@ -54,7 +54,7 @@ export function defaultGroupActivation(requireMention: boolean): "always" | "men
 }
 
 export function buildGroupIntro(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   sessionCtx: TemplateContext;
   sessionEntry?: SessionEntry;
   defaultActivation: "always" | "mention";

@@ -3,7 +3,7 @@ import { getFinishedSession, getSession, markExited } from "../../agents/bash-pr
 import { createExecTool } from "../../agents/bash-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { killProcessTree } from "../../agents/shell-utils.js";
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { logVerbose } from "../../globals.js";
 import { clampInt } from "../../utils.js";
@@ -33,7 +33,7 @@ type ActiveBashJob =
 
 let activeJob: ActiveBashJob | null = null;
 
-function resolveForegroundMs(cfg: MoltbotConfig): number {
+function resolveForegroundMs(cfg: ZeeConfig): number {
   const raw = cfg.commands?.bashForegroundMs;
   if (typeof raw !== "number" || Number.isNaN(raw)) return DEFAULT_FOREGROUND_MS;
   return clampInt(raw, 0, MAX_FOREGROUND_MS);
@@ -87,7 +87,7 @@ function parseBashRequest(raw: string): BashRequest | null {
 
 function resolveRawCommandBody(params: {
   ctx: MsgContext;
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   agentId?: string;
   isGroup: boolean;
 }) {
@@ -177,7 +177,7 @@ function formatElevatedUnavailableMessage(params: {
 
 export async function handleBashChatCommand(params: {
   ctx: MsgContext;
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   agentId?: string;
   sessionKey: string;
   isGroup: boolean;

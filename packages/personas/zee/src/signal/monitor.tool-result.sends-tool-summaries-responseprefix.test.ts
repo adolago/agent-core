@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { peekSystemEvents, resetSystemEventsForTest } from "../infra/system-events.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { normalizeE164 } from "../utils.js";
@@ -412,7 +412,7 @@ describe("monitorSignalProvider tool results", () => {
     await flush();
 
     const route = resolveAgentRoute({
-      cfg: config as MoltbotConfig,
+      cfg: config as ZeeConfig,
       channel: "signal",
       accountId: "default",
       peer: { kind: "dm", id: normalizeE164("+15550001111") },
@@ -468,7 +468,7 @@ describe("monitorSignalProvider tool results", () => {
     await flush();
 
     const route = resolveAgentRoute({
-      cfg: config as MoltbotConfig,
+      cfg: config as ZeeConfig,
       channel: "signal",
       accountId: "default",
       peer: { kind: "dm", id: normalizeE164("+15550001111") },

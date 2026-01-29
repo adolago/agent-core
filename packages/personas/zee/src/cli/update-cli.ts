@@ -5,7 +5,7 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
-import { resolveMoltbotPackageRoot } from "../infra/moltbot-root.js";
+import { resolveZeePackageRoot } from "../infra/zee-root.js";
 import {
   checkUpdateStatus,
   compareSemverStrings,
@@ -336,7 +336,7 @@ export async function updateStatusCommand(opts: UpdateStatusOptions): Promise<vo
   }
 
   const root =
-    (await resolveMoltbotPackageRoot({
+    (await resolveZeePackageRoot({
       moduleUrl: import.meta.url,
       argv1: process.argv[1],
       cwd: process.cwd(),
@@ -576,7 +576,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   }
 
   const root =
-    (await resolveMoltbotPackageRoot({
+    (await resolveZeePackageRoot({
       moduleUrl: import.meta.url,
       argv1: process.argv[1],
       cwd: process.cwd(),
@@ -989,7 +989,7 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
   }
 
   const root =
-    (await resolveMoltbotPackageRoot({
+    (await resolveZeePackageRoot({
       moduleUrl: import.meta.url,
       argv1: process.argv[1],
       cwd: process.cwd(),
@@ -1156,7 +1156,7 @@ ${theme.heading("Notes:")}
   - Downgrades require confirmation (can break configuration)
   - Skips update if the working directory has uncommitted changes
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/update")}`;
+${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.zee/cli/update")}`;
     })
     .action(async (opts) => {
       try {
@@ -1180,7 +1180,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/updat
     .option("--timeout <seconds>", "Timeout for each update step in seconds (default: 1200)")
     .addHelpText(
       "after",
-      `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/update")}\n`,
+      `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.zee/cli/update")}\n`,
     )
     .action(async (opts) => {
       try {
@@ -1207,7 +1207,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/updat
           "- Shows current update channel (stable/beta/dev) and source",
         )}\n${theme.muted("- Includes git tag/branch/SHA for source checkouts")}\n\n${theme.muted(
           "Docs:",
-        )} ${formatDocsLink("/cli/update", "docs.molt.bot/cli/update")}`,
+        )} ${formatDocsLink("/cli/update", "docs.zee/cli/update")}`,
     )
     .action(async (opts) => {
       try {

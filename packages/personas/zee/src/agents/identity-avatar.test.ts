@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveAgentAvatar } from "./identity-avatar.js";
 
 async function writeFile(filePath: string, contents = "avatar") {
@@ -19,7 +19,7 @@ describe("resolveAgentAvatar", () => {
     const avatarPath = path.join(workspace, "avatars", "main.png");
     await writeFile(avatarPath);
 
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         list: [
           {
@@ -47,7 +47,7 @@ describe("resolveAgentAvatar", () => {
     const outsidePath = path.join(root, "outside.png");
     await writeFile(outsidePath);
 
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         list: [
           {
@@ -78,7 +78,7 @@ describe("resolveAgentAvatar", () => {
       "utf-8",
     );
 
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         list: [{ id: "main", workspace }],
       },
@@ -94,7 +94,7 @@ describe("resolveAgentAvatar", () => {
   });
 
   it("accepts remote and data avatars", () => {
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         list: [
           { id: "main", identity: { avatar: "https://example.com/avatar.png" } },

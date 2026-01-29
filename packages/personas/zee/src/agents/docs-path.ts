@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { resolveMoltbotPackageRoot } from "../infra/moltbot-root.js";
+import { resolveZeePackageRoot } from "../infra/zee-root.js";
 
-export async function resolveMoltbotDocsPath(params: {
+export async function resolveZeeDocsPath(params: {
   workspaceDir?: string;
   argv1?: string;
   cwd?: string;
@@ -15,7 +15,7 @@ export async function resolveMoltbotDocsPath(params: {
     if (fs.existsSync(workspaceDocs)) return workspaceDocs;
   }
 
-  const packageRoot = await resolveMoltbotPackageRoot({
+  const packageRoot = await resolveZeePackageRoot({
     cwd: params.cwd,
     argv1: params.argv1,
     moduleUrl: params.moduleUrl,
@@ -24,4 +24,14 @@ export async function resolveMoltbotDocsPath(params: {
 
   const packageDocs = path.join(packageRoot, "docs");
   return fs.existsSync(packageDocs) ? packageDocs : null;
+}
+
+// Legacy alias
+export async function resolveMoltbotDocsPath(params: {
+  workspaceDir?: string;
+  argv1?: string;
+  cwd?: string;
+  moduleUrl?: string;
+}): Promise<string | null> {
+  return resolveZeeDocsPath(params);
 }

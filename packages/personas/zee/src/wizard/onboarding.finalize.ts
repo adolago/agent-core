@@ -20,7 +20,7 @@ import {
 } from "../commands/onboard-helpers.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { OnboardOptions } from "../commands/onboard-types.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
@@ -37,8 +37,8 @@ import type { WizardPrompter } from "./prompts.js";
 type FinalizeOnboardingOptions = {
   flow: WizardFlow;
   opts: OnboardOptions;
-  baseConfig: MoltbotConfig;
-  nextConfig: MoltbotConfig;
+  baseConfig: ZeeConfig;
+  nextConfig: ZeeConfig;
   workspaceDir: string;
   settings: GatewayWizardSettings;
   prompter: WizardPrompter;
@@ -277,7 +277,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       tokenParam ? `Web UI (with token): ${authedUrl}` : undefined,
       `Gateway WS: ${links.wsUrl}`,
       gatewayStatusLine,
-      "Docs: https://docs.molt.bot/web/control-ui",
+      "Docs: docs/web/control-ui.md",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -305,9 +305,9 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     await prompter.note(
       [
         "Gateway token: shared auth for the Gateway + Control UI.",
-        "Stored in: ~/.clawdbot/moltbot.json (gateway.auth.token) or CLAWDBOT_GATEWAY_TOKEN.",
-        "Web UI stores a copy in this browser's localStorage (moltbot.control.settings.v1).",
-        `Get the tokenized link anytime: ${formatCliCommand("moltbot dashboard --no-open")}`,
+        "Stored in: ~/.zee/zee.json (gateway.auth.token) or ZEE_GATEWAY_TOKEN (legacy: CLAWDBOT_GATEWAY_TOKEN).",
+        "Web UI stores a copy in this browser's localStorage (zee.control.settings.v1; legacy: moltbot.control.settings.v1).",
+        `Get the tokenized link anytime: ${formatCliCommand("zee dashboard --no-open")}`,
       ].join("\n"),
       "Token",
     );
@@ -337,7 +337,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       if (seededInBackground) {
         await prompter.note(
           `Web UI seeded in the background. Open later with: ${formatCliCommand(
-            "moltbot dashboard --no-open",
+            "zee dashboard --no-open",
           )}`,
           "Web UI",
         );
@@ -364,8 +364,8 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
         [
           `Dashboard link (with token): ${authedUrl}`,
           controlUiOpened
-            ? "Opened in your browser. Keep that tab to control Moltbot."
-            : "Copy/paste this URL in a browser on this machine to control Moltbot.",
+            ? "Opened in your browser. Keep that tab to control Zee."
+            : "Copy/paste this URL in a browser on this machine to control Zee.",
           controlUiOpenHint,
         ]
           .filter(Boolean)
@@ -374,7 +374,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       );
     } else {
       await prompter.note(
-        `When you're ready: ${formatCliCommand("moltbot dashboard --no-open")}`,
+        `When you're ready: ${formatCliCommand("zee dashboard --no-open")}`,
         "Later",
       );
     }
@@ -451,7 +451,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
           "Moltbot uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won’t work.",
           "",
           "Set it up interactively:",
-          `- Run: ${formatCliCommand("moltbot configure --section web")}`,
+          `- Run: ${formatCliCommand("zee configure --section web")}`,
           "- Enable web_search and paste your Brave Search API key",
           "",
           "Alternative: set BRAVE_API_KEY in the Gateway environment (no config changes).",

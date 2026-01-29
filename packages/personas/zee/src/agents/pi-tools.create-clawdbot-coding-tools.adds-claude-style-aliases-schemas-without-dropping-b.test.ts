@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import "./test-helpers/fast-coding-tools.js";
 import { createMoltbotCodingTools } from "./pi-tools.js";
 
@@ -51,7 +51,7 @@ describe("createMoltbotCodingTools", () => {
     expect(defaultTools.some((tool) => tool.name === "apply_patch")).toBe(false);
   });
   it("gates apply_patch behind tools.exec.applyPatch for OpenAI models", () => {
-    const config: MoltbotConfig = {
+    const config: ZeeConfig = {
       tools: {
         exec: {
           applyPatch: { enabled: true },
@@ -73,7 +73,7 @@ describe("createMoltbotCodingTools", () => {
     expect(anthropicTools.some((tool) => tool.name === "apply_patch")).toBe(false);
   });
   it("respects apply_patch allowModels", () => {
-    const config: MoltbotConfig = {
+    const config: ZeeConfig = {
       tools: {
         exec: {
           applyPatch: { enabled: true, allowModels: ["gpt-5.2"] },

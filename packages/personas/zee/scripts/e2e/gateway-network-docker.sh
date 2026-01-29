@@ -2,12 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-IMAGE_NAME="moltbot-gateway-network-e2e"
+IMAGE_NAME="zee-gateway-network-e2e"
 
 PORT="18789"
 TOKEN="e2e-$(date +%s)-$$"
-NET_NAME="moltbot-net-e2e-$$"
-GW_NAME="moltbot-gateway-e2e-$$"
+NET_NAME="zee-net-e2e-$$"
+GW_NAME="zee-gateway-e2e-$$"
 
 cleanup() {
   docker rm -f "$GW_NAME" >/dev/null 2>&1 || true

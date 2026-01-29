@@ -163,7 +163,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   if (!opts.allowUnconfigured && mode !== "local") {
     if (!configExists) {
       defaultRuntime.error(
-        `Missing config. Run \`${formatCliCommand("moltbot setup")}\` or set gateway.mode=local (or pass --allow-unconfigured).`,
+        `Missing config. Run \`${formatCliCommand("zee setup")}\` or set gateway.mode=local (or pass --allow-unconfigured).`,
       );
     } else {
       defaultRuntime.error(
@@ -286,7 +286,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
     ) {
       const errMessage = describeUnknownError(err);
       defaultRuntime.error(
-        `Gateway failed to start: ${errMessage}\nIf the gateway is supervised, stop it with: ${formatCliCommand("moltbot gateway stop")}`,
+        `Gateway failed to start: ${errMessage}\nIf the gateway is supervised, stop it with: ${formatCliCommand("zee gateway stop")}`,
       );
       try {
         const diagnostics = await inspectPortUsage(port);

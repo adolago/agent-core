@@ -1,52 +1,25 @@
-# Contributing to Moltbot
+# Contributing to Zee
 
-Welcome to the lobster tank! 🦞
+Thanks for contributing. Keep changes focused, tested, and aligned with Zee
+naming and architecture.
 
-## Quick Links
-- **GitHub:** https://github.com/moltbot/moltbot
-- **Discord:** https://discord.gg/qkhbAGHRBT
-- **X/Twitter:** [@steipete](https://x.com/steipete) / [@moltbot](https://x.com/moltbot)
+## Quick links
 
-## Maintainers
+- Use this repository's issue tracker and pull requests.
+- If a change is large or architectural, start with a discussion first.
 
-- **Peter Steinberger** - Benevolent Dictator
-  - GitHub: [@steipete](https://github.com/steipete) · X: [@steipete](https://x.com/steipete)
+## Before you open a PR
 
-- **Shadow** - Discord + Slack subsystem
-  - GitHub: [@thewilloftheshadow](https://github.com/thewilloftheshadow) · X: [@4shad0wed](https://x.com/4shad0wed)
+- Test locally with your Zee instance.
+- Run the lint command for the affected package.
+- Keep PRs focused (one change per PR).
+- Describe what changed and why.
 
-- **Jos** - Telegram, API, Nix mode
-  - GitHub: [@joshp123](https://github.com/joshp123) · X: [@jjpcodes](https://x.com/jjpcodes)
+## AI-assisted PRs
 
-## How to Contribute
-1. **Bugs & small fixes** → Open a PR!
-2. **New features / architecture** → Start a [GitHub Discussion](https://github.com/moltbot/moltbot/discussions) or ask in Discord first
-3. **Questions** → Discord #setup-help
+AI-assisted contributions are welcome. Please include:
 
-## Before You PR
-- Test locally with your Moltbot instance
-- Run linter: `npm run lint`
-- Keep PRs focused (one thing per PR)
-- Describe what & why
-
-## AI/Vibe-Coded PRs Welcome! 🤖
-
-Built with Codex, Claude, or other AI tools? **Awesome - just mark it!**
-
-Please include in your PR:
-- [ ] Mark as AI-assisted in the PR title or description
-- [ ] Note the degree of testing (untested / lightly tested / fully tested)
-- [ ] Include prompts or session logs if possible (super helpful!)
-- [ ] Confirm you understand what the code does
-
-AI PRs are first-class citizens here. We just want transparency so reviewers know what to look for.
-
-## Current Focus & Roadmap 🗺
-
-We are currently prioritizing:
-- **Stability**: Fixing edge cases in channel connections (WhatsApp/Telegram).
-- **UX**: Improving the onboarding wizard and error messages.
-- **Skills**: Expanding the library of bundled skills and improving the Skill Creation developer experience.
-- **Performance**: Optimizing token usage and compaction logic.
-
-Check the [GitHub Issues](https://github.com/moltbot/moltbot/issues) for "good first issue" labels!
+- A note that the PR was AI-assisted.
+- The level of testing (untested / lightly tested / fully tested).
+- Prompts or session logs if available.
+- Confirmation that you understand the change.

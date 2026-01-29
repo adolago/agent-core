@@ -487,8 +487,8 @@ export async function modelsStatusCommand(
     for (const provider of missingProvidersInUse) {
       const hint =
         provider === "anthropic"
-          ? `Run \`claude setup-token\`, then \`${formatCliCommand("moltbot models auth setup-token")}\` or \`${formatCliCommand("moltbot configure")}\`.`
-          : `Run \`${formatCliCommand("moltbot configure")}\` or set an API key env var.`;
+          ? `Run \`claude setup-token\`, then \`${formatCliCommand("zee models auth setup-token")}\` or \`${formatCliCommand("zee configure")}\`.`
+          : `Run \`${formatCliCommand("zee configure")}\` or set an API key env var.`;
       runtime.log(`- ${theme.heading(provider)} ${hint}`);
     }
   }

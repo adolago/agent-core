@@ -69,11 +69,11 @@ if claude setup-token; then
     echo ""
     "$SCRIPT_DIR/claude-auth-status.sh" full
 
-    # Restart moltbot service if running
-    if systemctl --user is-active moltbot >/dev/null 2>&1; then
+    # Restart zee service if running
+    if systemctl --user is-active zee >/dev/null 2>&1; then
         echo ""
-        echo "Restarting moltbot service..."
-        systemctl --user restart moltbot
+        echo "Restarting zee service..."
+        systemctl --user restart zee
         echo -e "${GREEN}Service restarted.${NC}"
     fi
 else

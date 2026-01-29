@@ -55,7 +55,7 @@ CLAWDBOT_DIAGNOSTICS=0
 Flags emit logs into the standard diagnostics log file. By default:
 
 ```
-/tmp/moltbot/moltbot-YYYY-MM-DD.log
+/tmp/zee/zee-YYYY-MM-DD.log
 ```
 
 If you set `logging.file`, use that path instead. Logs are JSONL (one JSON object per line). Redaction still applies based on `logging.redactSensitive`.
@@ -65,22 +65,22 @@ If you set `logging.file`, use that path instead. Logs are JSONL (one JSON objec
 Pick the latest log file:
 
 ```bash
-ls -t /tmp/moltbot/moltbot-*.log | head -n 1
+ls -t /tmp/zee/zee-*.log | head -n 1
 ```
 
 Filter for Telegram HTTP diagnostics:
 
 ```bash
-rg "telegram http error" /tmp/moltbot/moltbot-*.log
+rg "telegram http error" /tmp/zee/zee-*.log
 ```
 
 Or tail while reproducing:
 
 ```bash
-tail -f /tmp/moltbot/moltbot-$(date +%F).log | rg "telegram http error"
+tail -f /tmp/zee/zee-$(date +%F).log | rg "telegram http error"
 ```
 
-For remote gateways, you can also use `moltbot logs --follow` (see [/cli/logs](/cli/logs)).
+For remote gateways, you can also use `zee logs --follow` (see [/cli/logs](/cli/logs)).
 
 ## Notes
 

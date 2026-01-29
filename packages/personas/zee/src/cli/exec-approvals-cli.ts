@@ -233,7 +233,7 @@ export function registerExecApprovalsCli(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/approvals", "docs.molt.bot/cli/approvals")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/approvals", "docs.zee/cli/approvals")}\n`,
     );
 
   const getCmd = approvals
@@ -326,18 +326,18 @@ export function registerExecApprovalsCli(program: Command) {
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatExample(
-          'moltbot approvals allowlist add "~/Projects/**/bin/rg"',
+          'zee approvals allowlist add "~/Projects/**/bin/rg"',
           "Allowlist a local binary pattern for the main agent.",
         )}\n${formatExample(
-          'moltbot approvals allowlist add --agent main --node <id|name|ip> "/usr/bin/uptime"',
+          'zee approvals allowlist add --agent main --node <id|name|ip> "/usr/bin/uptime"',
           "Allowlist on a specific node/agent.",
         )}\n${formatExample(
-          'moltbot approvals allowlist add --agent "*" "/usr/bin/uname"',
+          'zee approvals allowlist add --agent "*" "/usr/bin/uname"',
           "Allowlist for all agents (wildcard).",
         )}\n${formatExample(
-          'moltbot approvals allowlist remove "~/Projects/**/bin/rg"',
+          'zee approvals allowlist remove "~/Projects/**/bin/rg"',
           "Remove an allowlist pattern.",
-        )}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/approvals", "docs.molt.bot/cli/approvals")}\n`,
+        )}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/approvals", "docs.zee/cli/approvals")}\n`,
     );
 
   const allowlistAdd = allowlist

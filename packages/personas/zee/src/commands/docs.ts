@@ -1,11 +1,11 @@
 import { hasBinary } from "../agents/skills.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { formatDocsLink } from "../terminal/links.js";
+import { DOCS_ROOT, formatDocsLink } from "../terminal/links.js";
 import { isRich, theme } from "../terminal/theme.js";
 import { formatCliCommand } from "../cli/command-format.js";
 
-const SEARCH_TOOL = "https://docs.molt.bot/mcp.SearchMoltbot";
+const SEARCH_TOOL = `${DOCS_ROOT}/mcp.SearchZee`;
 const SEARCH_TIMEOUT_MS = 30_000;
 const DEFAULT_SNIPPET_MAX = 220;
 
@@ -148,13 +148,13 @@ async function renderMarkdown(markdown: string, runtime: RuntimeEnv) {
 export async function docsSearchCommand(queryParts: string[], runtime: RuntimeEnv) {
   const query = queryParts.join(" ").trim();
   if (!query) {
-    const docs = formatDocsLink("/", "docs.molt.bot");
+    const docs = formatDocsLink("/", DOCS_ROOT.replace(/^https?:\\/\\//i, ""));
     if (isRich()) {
       runtime.log(`${theme.muted("Docs:")} ${docs}`);
-      runtime.log(`${theme.muted("Search:")} ${formatCliCommand('moltbot docs "your query"')}`);
+      runtime.log(`${theme.muted("Search:")} ${formatCliCommand('zee docs "your query"')}`);
     } else {
-      runtime.log("Docs: https://docs.molt.bot/");
-      runtime.log(`Search: ${formatCliCommand('moltbot docs "your query"')}`);
+      runtime.log(`Docs: ${DOCS_ROOT}/`);
+      runtime.log(`Search: ${formatCliCommand('zee docs "your query"')}`);
     }
     return;
   }

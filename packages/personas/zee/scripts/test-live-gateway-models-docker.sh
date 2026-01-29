@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE_NAME="${CLAWDBOT_IMAGE:-moltbot:local}"
-CONFIG_DIR="${CLAWDBOT_CONFIG_DIR:-$HOME/.clawdbot}"
-WORKSPACE_DIR="${CLAWDBOT_WORKSPACE_DIR:-$HOME/clawd}"
+IMAGE_NAME="${CLAWDBOT_IMAGE:-zee:local}"
+CONFIG_DIR="${CLAWDBOT_CONFIG_DIR:-$HOME/.zee}"
+WORKSPACE_DIR="${CLAWDBOT_WORKSPACE_DIR:-$HOME/zee}"
 PROFILE_FILE="${CLAWDBOT_PROFILE_FILE:-$HOME/.profile}"
 
 PROFILE_MOUNT=()
@@ -25,8 +25,8 @@ docker run --rm -t \
   -e CLAWDBOT_LIVE_GATEWAY_MODELS="${CLAWDBOT_LIVE_GATEWAY_MODELS:-all}" \
   -e CLAWDBOT_LIVE_GATEWAY_PROVIDERS="${CLAWDBOT_LIVE_GATEWAY_PROVIDERS:-}" \
   -e CLAWDBOT_LIVE_GATEWAY_MODEL_TIMEOUT_MS="${CLAWDBOT_LIVE_GATEWAY_MODEL_TIMEOUT_MS:-}" \
-  -v "$CONFIG_DIR":/home/node/.clawdbot \
-  -v "$WORKSPACE_DIR":/home/node/clawd \
+  -v "$CONFIG_DIR":/home/node/.zee \
+  -v "$WORKSPACE_DIR":/home/node/zee \
   "${PROFILE_MOUNT[@]}" \
   "$IMAGE_NAME" \
   -lc "set -euo pipefail; [ -f \"$HOME/.profile\" ] && source \"$HOME/.profile\" || true; cd /app && pnpm test:live"

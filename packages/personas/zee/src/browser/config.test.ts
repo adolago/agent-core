@@ -16,10 +16,10 @@ describe("browser config", () => {
     expect(profile?.cdpPort).toBe(18792);
     expect(profile?.cdpUrl).toBe("http://127.0.0.1:18792");
 
-    const clawd = resolveProfile(resolved, "clawd");
-    expect(clawd?.driver).toBe("clawd");
-    expect(clawd?.cdpPort).toBe(18800);
-    expect(clawd?.cdpUrl).toBe("http://127.0.0.1:18800");
+    const zee = resolveProfile(resolved, "zee");
+    expect(zee?.driver).toBe("zee");
+    expect(zee?.cdpPort).toBe(18800);
+    expect(zee?.cdpUrl).toBe("http://127.0.0.1:18800");
     expect(resolved.remoteCdpTimeoutMs).toBe(1500);
     expect(resolved.remoteCdpHandshakeTimeoutMs).toBe(3000);
   });
@@ -35,9 +35,9 @@ describe("browser config", () => {
       expect(chrome?.cdpPort).toBe(19004);
       expect(chrome?.cdpUrl).toBe("http://127.0.0.1:19004");
 
-      const clawd = resolveProfile(resolved, "clawd");
-      expect(clawd?.cdpPort).toBe(19012);
-      expect(clawd?.cdpUrl).toBe("http://127.0.0.1:19012");
+      const zee = resolveProfile(resolved, "zee");
+      expect(zee?.cdpPort).toBe(19012);
+      expect(zee?.cdpUrl).toBe("http://127.0.0.1:19012");
     } finally {
       if (prev === undefined) {
         delete process.env.CLAWDBOT_GATEWAY_PORT;
@@ -58,9 +58,9 @@ describe("browser config", () => {
       expect(chrome?.cdpPort).toBe(19014);
       expect(chrome?.cdpUrl).toBe("http://127.0.0.1:19014");
 
-      const clawd = resolveProfile(resolved, "clawd");
-      expect(clawd?.cdpPort).toBe(19022);
-      expect(clawd?.cdpUrl).toBe("http://127.0.0.1:19022");
+      const zee = resolveProfile(resolved, "zee");
+      expect(zee?.cdpPort).toBe(19022);
+      expect(zee?.cdpUrl).toBe("http://127.0.0.1:19022");
     } finally {
       if (prev === undefined) {
         delete process.env.CLAWDBOT_GATEWAY_PORT;
@@ -97,7 +97,7 @@ describe("browser config", () => {
     const resolved = resolveBrowserConfig({
       cdpUrl: "http://example.com:9222",
     });
-    const profile = resolveProfile(resolved, "clawd");
+    const profile = resolveProfile(resolved, "zee");
     expect(profile?.cdpIsLoopback).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe("browser config", () => {
     const resolved = resolveBrowserConfig({
       cdpUrl: "http://example.com:9222",
     });
-    const profile = resolveProfile(resolved, "clawd");
+    const profile = resolveProfile(resolved, "zee");
     expect(profile?.cdpPort).toBe(9222);
     expect(profile?.cdpUrl).toBe("http://example.com:9222");
     expect(profile?.cdpIsLoopback).toBe(false);
@@ -143,10 +143,10 @@ describe("browser config", () => {
   it("does not add the built-in chrome extension profile if the derived relay port is already used", () => {
     const resolved = resolveBrowserConfig({
       profiles: {
-        clawd: { cdpPort: 18792, color: "#FF4500" },
+        zee: { cdpPort: 18792, color: "#FF4500" },
       },
     });
     expect(resolveProfile(resolved, "chrome")).toBe(null);
-    expect(resolved.defaultProfile).toBe("clawd");
+    expect(resolved.defaultProfile).toBe("zee");
   });
 });

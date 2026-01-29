@@ -23,7 +23,7 @@ import { isModernModelRef } from "../agents/live-model-filter.js";
 import { getApiKeyForModel } from "../agents/model-auth.js";
 import { ensureMoltbotModelsJson } from "../agents/models-config.js";
 import { loadConfig } from "../config/config.js";
-import type { MoltbotConfig, ModelProviderConfig } from "../config/types.js";
+import type { ZeeConfig, ModelProviderConfig } from "../config/types.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
@@ -331,7 +331,7 @@ async function connectClient(params: { url: string; token: string }) {
 
 type GatewayModelSuiteParams = {
   label: string;
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   candidates: Array<Model<Api>>;
   extraToolProbes: boolean;
   extraImageProbes: boolean;
@@ -340,10 +340,10 @@ type GatewayModelSuiteParams = {
 };
 
 function buildLiveGatewayConfig(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   candidates: Array<Model<Api>>;
   providerOverrides?: Record<string, ModelProviderConfig>;
-}): MoltbotConfig {
+}): ZeeConfig {
   const providerOverrides = params.providerOverrides ?? {};
   const lmstudioProvider = params.cfg.models?.providers?.lmstudio;
   const baseProviders = params.cfg.models?.providers ?? {};
@@ -382,16 +382,16 @@ function buildLiveGatewayConfig(params: {
 }
 
 function sanitizeAuthConfig(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   agentDir: string;
-}): MoltbotConfig["auth"] | undefined {
+}): ZeeConfig["auth"] | undefined {
   const auth = params.cfg.auth;
   if (!auth) return auth;
   const store = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,
   });
 
-  let profiles: NonNullable<MoltbotConfig["auth"]>["profiles"] | undefined;
+  let profiles: NonNullable<ZeeConfig["auth"]>["profiles"] | undefined;
   if (auth.profiles) {
     profiles = {};
     for (const [profileId, profile] of Object.entries(auth.profiles)) {
@@ -421,7 +421,7 @@ function sanitizeAuthConfig(params: {
 }
 
 function buildMinimaxProviderOverride(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   api: "openai-completions" | "anthropic-messages";
   baseUrl: string;
 }): ModelProviderConfig | null {
@@ -490,7 +490,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
   await fs.writeFile(toolProbePath, `nonceA=${nonceA}\nnonceB=${nonceB}\n`);
 
   const agentDir = resolveMoltbotAgentDir();
-  const sanitizedCfg: MoltbotConfig = {
+  const sanitizedCfg: ZeeConfig = {
     ...params.cfg,
     auth: sanitizeAuthConfig({ cfg: params.cfg, agentDir }),
   };

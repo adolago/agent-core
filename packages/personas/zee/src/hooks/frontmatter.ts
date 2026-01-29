@@ -4,12 +4,14 @@ import { LEGACY_MANIFEST_KEY } from "../compat/legacy-names.js";
 import { parseFrontmatterBlock } from "../markdown/frontmatter.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import type {
-  MoltbotHookMetadata,
+  ZeeHookMetadata,
   HookEntry,
   HookInstallSpec,
   HookInvocationPolicy,
   ParsedHookFrontmatter,
 } from "./types.js";
+
+const HOOK_METADATA_KEY = "zee";
 
 export function parseFrontmatter(content: string): ParsedHookFrontmatter {
   return parseFrontmatterBlock(content);
@@ -63,17 +65,20 @@ function parseFrontmatterBool(value: string | undefined, fallback: boolean): boo
   return parsed === undefined ? fallback : parsed;
 }
 
-export function resolveMoltbotMetadata(
+export function resolveZeeMetadata(
   frontmatter: ParsedHookFrontmatter,
-): MoltbotHookMetadata | undefined {
+): ZeeHookMetadata | undefined {
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON5.parse(raw) as { moltbot?: unknown } & Partial<
+    const parsed = JSON5.parse(raw) as { zee?: unknown; moltbot?: unknown } & Partial<
       Record<typeof LEGACY_MANIFEST_KEY, unknown>
     >;
     if (!parsed || typeof parsed !== "object") return undefined;
-    const metadataRaw = parsed.moltbot ?? parsed[LEGACY_MANIFEST_KEY];
+    const metadataRaw =
+      parsed[HOOK_METADATA_KEY] ??
+      parsed.moltbot ??
+      parsed[LEGACY_MANIFEST_KEY];
     if (!metadataRaw || typeof metadataRaw !== "object") return undefined;
     const metadataObj = metadataRaw as Record<string, unknown>;
     const requiresRaw =

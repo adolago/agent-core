@@ -75,10 +75,10 @@ async function main() {
   }
 
   const baseDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "moltbot-zai-fallback-"),
+    path.join(os.tmpdir(), "zee-zai-fallback-"),
   );
   const stateDir = path.join(baseDir, "state");
-  const configPath = path.join(baseDir, "moltbot.json");
+  const configPath = path.join(baseDir, "zee.json");
   await fs.mkdir(stateDir, { recursive: true });
 
   const config = {
@@ -127,7 +127,7 @@ async function main() {
   const run1 = await runCommand(
     "run1",
     [
-      "moltbot",
+      "zee",
       "agent",
       "--local",
       "--session-id",
@@ -159,7 +159,7 @@ async function main() {
   const run2 = await runCommand(
     "run2",
     [
-      "moltbot",
+      "zee",
       "agent",
       "--local",
       "--session-id",

@@ -5,7 +5,7 @@ import path from "node:path";
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { EmbeddedRunAttemptResult } from "./pi-embedded-runner/run/types.js";
 
 const runEmbeddedAttemptMock = vi.fn<Promise<EmbeddedRunAttemptResult>, [unknown]>();
@@ -63,7 +63,7 @@ const makeAttempt = (overrides: Partial<EmbeddedRunAttemptResult>): EmbeddedRunA
   ...overrides,
 });
 
-const makeConfig = (opts?: { fallbacks?: string[]; apiKey?: string }): MoltbotConfig =>
+const makeConfig = (opts?: { fallbacks?: string[]; apiKey?: string }): ZeeConfig =>
   ({
     agents: {
       defaults: {
@@ -92,7 +92,7 @@ const makeConfig = (opts?: { fallbacks?: string[]; apiKey?: string }): MoltbotCo
         },
       },
     },
-  }) satisfies MoltbotConfig;
+  }) satisfies ZeeConfig;
 
 const writeAuthStore = async (
   agentDir: string,

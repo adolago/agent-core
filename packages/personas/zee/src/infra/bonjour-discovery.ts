@@ -29,6 +29,13 @@ export type GatewayBonjourDiscoverOpts = {
 const DEFAULT_TIMEOUT_MS = 2000;
 
 const DEFAULT_DOMAINS = ["local.", WIDE_AREA_DISCOVERY_DOMAIN] as const;
+const PRIMARY_GATEWAY_SERVICE_TYPE = "_zee-gw._tcp";
+const LEGACY_GATEWAY_SERVICE_TYPES = ["_moltbot-gw._tcp"] as const;
+const ALL_GATEWAY_SERVICE_TYPES = [
+  PRIMARY_GATEWAY_SERVICE_TYPE,
+  ...LEGACY_GATEWAY_SERVICE_TYPES,
+] as const;
+const SERVICE_TYPE_PATTERN = /_(?:zee|moltbot)-gw\._tcp/;
 
 function decodeDnsSdEscapes(value: string): string {
   let decoded = false;
@@ -166,14 +173,18 @@ function parseDnsSdBrowse(stdout: string): string[] {
   const instances = new Set<string>();
   for (const raw of stdout.split("\n")) {
     const line = raw.trim();
-    if (!line || !line.includes("_moltbot-gw._tcp")) continue;
+    if (!line || !SERVICE_TYPE_PATTERN.test(line)) continue;
     if (!line.includes("Add")) continue;
-    const match = line.match(/_moltbot-gw\._tcp\.?\s+(.+)$/);
+    const match = line.match(/_(?:zee|moltbot)-gw\._tcp\.?\s+(.+)$/);
     if (match?.[1]) {
       instances.add(decodeDnsSdEscapes(match[1].trim()));
     }
   }
   return Array.from(instances.values());
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function parseDnsSdResolve(stdout: string, instanceName: string): GatewayBonjourBeacon | null {
@@ -225,17 +236,24 @@ async function discoverViaDnsSd(
   timeoutMs: number,
   run: typeof runCommandWithTimeout,
 ): Promise<GatewayBonjourBeacon[]> {
-  const browse = await run(["dns-sd", "-B", "_moltbot-gw._tcp", domain], {
-    timeoutMs,
-  });
-  const instances = parseDnsSdBrowse(browse.stdout);
   const results: GatewayBonjourBeacon[] = [];
-  for (const instance of instances) {
-    const resolved = await run(["dns-sd", "-L", instance, "_moltbot-gw._tcp", domain], {
+  const seen = new Set<string>();
+  for (const serviceType of ALL_GATEWAY_SERVICE_TYPES) {
+    const browse = await run(["dns-sd", "-B", serviceType, domain], {
       timeoutMs,
     });
-    const parsed = parseDnsSdResolve(resolved.stdout, instance);
-    if (parsed) results.push({ ...parsed, domain });
+    const instances = parseDnsSdBrowse(browse.stdout);
+    for (const instance of instances) {
+      const resolved = await run(["dns-sd", "-L", instance, serviceType, domain], {
+        timeoutMs,
+      });
+      const parsed = parseDnsSdResolve(resolved.stdout, instance);
+      if (!parsed) continue;
+      const key = `${parsed.instanceName}|${domain}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({ ...parsed, domain });
+    }
   }
   return results;
 }
@@ -268,7 +286,8 @@ async function discoverWideAreaViaTailnetDns(
   // Keep scans bounded: this is a fallback and should not block long.
   ips = ips.slice(0, 40);
 
-  const probeName = `_moltbot-gw._tcp.${domain.replace(/\.$/, "")}`;
+  const domainName = domain.replace(/\.$/, "");
+  let serviceType = PRIMARY_GATEWAY_SERVICE_TYPE;
 
   const concurrency = 6;
   let nextIndex = 0;
@@ -285,11 +304,19 @@ async function discoverWideAreaViaTailnetDns(
       const ip = ips[i] ?? "";
       if (!ip) continue;
       try {
-        const probe = await run(
-          ["dig", "+short", "+time=1", "+tries=1", `@${ip}`, probeName, "PTR"],
-          { timeoutMs: Math.max(1, Math.min(250, budget)) },
-        );
-        const lines = parseDigShortLines(probe.stdout);
+        let lines: string[] = [];
+        for (const candidate of ALL_GATEWAY_SERVICE_TYPES) {
+          const candidateProbe = `${candidate}.${domainName}`;
+          const probe = await run(
+            ["dig", "+short", "+time=1", "+tries=1", `@${ip}`, candidateProbe, "PTR"],
+            { timeoutMs: Math.max(1, Math.min(250, budget)) },
+          );
+          lines = parseDigShortLines(probe.stdout);
+          if (lines.length > 0) {
+            serviceType = candidate;
+            break;
+          }
+        }
         if (lines.length === 0) continue;
         nameserver = ip;
         ptrs = lines;
@@ -312,7 +339,10 @@ async function discoverWideAreaViaTailnetDns(
     if (budget <= 0) break;
     const ptrName = ptr.trim().replace(/\.$/, "");
     if (!ptrName) continue;
-    const instanceName = ptrName.replace(/\.?_moltbot-gw\._tcp\..*$/, "");
+    const instanceName = ptrName.replace(
+      new RegExp(`\\.?${escapeRegExp(serviceType)}\\..*$`),
+      "",
+    );
 
     const srv = await run(["dig", "+short", "+time=1", "+tries=1", nameserverArg, ptrName, "SRV"], {
       timeoutMs: Math.max(1, Math.min(350, budget)),
@@ -371,9 +401,12 @@ function parseAvahiBrowse(stdout: string): GatewayBonjourBeacon[] {
   for (const raw of stdout.split("\n")) {
     const line = raw.trimEnd();
     if (!line) continue;
-    if (line.startsWith("=") && line.includes("_moltbot-gw._tcp")) {
+    if (line.startsWith("=") && SERVICE_TYPE_PATTERN.test(line)) {
       if (current) results.push(current);
-      const marker = " _moltbot-gw._tcp";
+      const marker = ALL_GATEWAY_SERVICE_TYPES.map((type) => ` ${type}`).find((m) =>
+        line.includes(m),
+      );
+      if (!marker) continue;
       const idx = line.indexOf(marker);
       const left = idx >= 0 ? line.slice(0, idx).trim() : line;
       const parts = left.split(/\s+/);
@@ -429,16 +462,22 @@ async function discoverViaAvahi(
   timeoutMs: number,
   run: typeof runCommandWithTimeout,
 ): Promise<GatewayBonjourBeacon[]> {
-  const args = ["avahi-browse", "-rt", "_moltbot-gw._tcp"];
-  if (domain && domain !== "local.") {
-    // avahi-browse wants a plain domain (no trailing dot)
-    args.push("-d", domain.replace(/\.$/, ""));
+  const results: GatewayBonjourBeacon[] = [];
+  for (const serviceType of ALL_GATEWAY_SERVICE_TYPES) {
+    const args = ["avahi-browse", "-rt", serviceType];
+    if (domain && domain !== "local.") {
+      // avahi-browse wants a plain domain (no trailing dot)
+      args.push("-d", domain.replace(/\.$/, ""));
+    }
+    const browse = await run(args, { timeoutMs });
+    results.push(
+      ...parseAvahiBrowse(browse.stdout).map((beacon) => ({
+        ...beacon,
+        domain,
+      })),
+    );
   }
-  const browse = await run(args, { timeoutMs });
-  return parseAvahiBrowse(browse.stdout).map((beacon) => ({
-    ...beacon,
-    domain,
-  }));
+  return results;
 }
 
 export async function discoverGatewayBeacons(

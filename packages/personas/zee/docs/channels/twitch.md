@@ -1,11 +1,11 @@
 ---
 summary: "Twitch chat bot configuration and setup"
 read_when:
-  - Setting up Twitch chat integration for Moltbot
+  - Setting up Twitch chat integration for Zee
 ---
 # Twitch (plugin)
 
-Twitch chat support via IRC connection. Moltbot connects as a Twitch user (bot account) to receive and send messages in channels.
+Twitch chat support via IRC connection. Zee connects as a Twitch user (bot account) to receive and send messages in channels.
 
 ## Plugin required
 
@@ -14,13 +14,13 @@ Twitch ships as a plugin and is not bundled with the core install.
 Install via CLI (npm registry):
 
 ```bash
-moltbot plugins install @moltbot/twitch
+zee plugins install @zee/twitch
 ```
 
 Local checkout (when running from a git repo):
 
 ```bash
-moltbot plugins install ./extensions/twitch
+zee plugins install ./extensions/twitch
 ```
 
 Details: [Plugins](/plugin)
@@ -48,7 +48,7 @@ Minimal config:
   channels: {
     twitch: {
       enabled: true,
-      username: "moltbot",              // Bot's Twitch account
+      username: "zee",              // Bot's Twitch account
       accessToken: "oauth:abc123...",    // OAuth Access Token (or use CLAWDBOT_TWITCH_ACCESS_TOKEN env var)
       clientId: "xyz789...",             // Client ID from Token Generator
       channel: "vevisk",                 // Which Twitch channel's chat to join (required)
@@ -89,7 +89,7 @@ CLAWDBOT_TWITCH_ACCESS_TOKEN=oauth:abc123...
   channels: {
     twitch: {
       enabled: true,
-      username: "moltbot",
+      username: "zee",
       accessToken: "oauth:abc123...",
       clientId: "xyz789...",
       channel: "vevisk"
@@ -150,13 +150,13 @@ Example (one bot account in two channels):
     twitch: {
       accounts: {
         channel1: {
-          username: "moltbot",
+          username: "zee",
           accessToken: "oauth:abc123...",
           clientId: "xyz789...",
           channel: "vevisk"
         },
         channel2: {
-          username: "moltbot",
+          username: "zee",
           accessToken: "oauth:def456...",
           clientId: "uvw012...",
           channel: "secondchannel"
@@ -245,8 +245,8 @@ By default, `requireMention` is `true`. To disable and respond to all messages:
 First, run diagnostic commands:
 
 ```bash
-moltbot doctor
-moltbot channels status --probe
+zee doctor
+zee channels status --probe
 ```
 
 ### Bot doesn't respond to messages
@@ -305,7 +305,7 @@ Full example:
   channels: {
     twitch: {
       enabled: true,
-      username: "moltbot",
+      username: "zee",
       accessToken: "oauth:abc123...",
       clientId: "xyz789...",
       channel: "vevisk",

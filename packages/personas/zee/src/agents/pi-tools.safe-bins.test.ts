@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { ExecApprovalsResolved } from "../infra/exec-approvals.js";
 import { createMoltbotCodingTools } from "./pi-tools.js";
 
@@ -45,7 +45,7 @@ describe("createMoltbotCodingTools safeBins", () => {
     if (process.platform === "win32") return;
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-safe-bins-"));
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       tools: {
         exec: {
           host: "gateway",

@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { loadCostUsageSummary, loadSessionCostSummary } from "./session-cost-usage.js";
 
 describe("session cost usage", () => {
@@ -92,7 +92,7 @@ describe("session cost usage", () => {
           },
         },
       },
-    } as MoltbotConfig;
+    } as ZeeConfig;
 
     const originalState = process.env.CLAWDBOT_STATE_DIR;
     process.env.CLAWDBOT_STATE_DIR = root;

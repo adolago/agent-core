@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 
 type SpawnCall = {
   command: string;
@@ -99,7 +99,7 @@ describe("sandbox skill mirroring", () => {
       description: "Demo skill",
     });
 
-    const cfg: MoltbotConfig = {
+    const cfg: ZeeConfig = {
       agents: {
         defaults: {
           sandbox: {

@@ -3,14 +3,14 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { MessageEvent, PostbackEvent } from "@line/bot-sdk";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import type { ResolvedLineAccount } from "./types.js";
 import { buildLineMessageContext, buildLinePostbackContext } from "./bot-message-context.js";
 
 describe("buildLineMessageContext", () => {
   let tmpDir: string;
   let storePath: string;
-  let cfg: MoltbotConfig;
+  let cfg: ZeeConfig;
   const account: ResolvedLineAccount = {
     accountId: "default",
     enabled: true,

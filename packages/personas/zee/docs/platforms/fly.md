@@ -1,11 +1,11 @@
 ---
 title: Fly.io
-description: Deploy Moltbot on Fly.io
+description: Deploy Zee on Fly.io
 ---
 
 # Fly.io Deployment
 
-**Goal:** Moltbot Gateway running on a [Fly.io](https://fly.io) machine with persistent storage, automatic HTTPS, and Discord/channel access.
+**Goal:** Zee Gateway running on a [Fly.io](https://fly.io) machine with persistent storage, automatic HTTPS, and Discord/channel access.
 
 ## What you need
 
@@ -25,14 +25,14 @@ description: Deploy Moltbot on Fly.io
 
 ```bash
 # Clone the repo
-git clone https://github.com/moltbot/moltbot.git
-cd moltbot
+git clone https://github.com/zee/zee.git
+cd zee
 
 # Create a new Fly app (pick your own name)
-fly apps create my-moltbot
+fly apps create my-zee
 
 # Create a persistent volume (1GB is usually enough)
-fly volumes create moltbot_data --size 1 --region iad
+fly volumes create zee_data --size 1 --region iad
 ```
 
 **Tip:** Choose a region close to you. Common options: `lhr` (London), `iad` (Virginia), `sjc` (San Jose).
@@ -44,7 +44,7 @@ Edit `fly.toml` to match your app name and requirements.
 **Security note:** The default config exposes a public URL. For a hardened deployment with no public IP, see [Private Deployment](#private-deployment-hardened) or use `fly.private.toml`.
 
 ```toml
-app = "my-moltbot"  # Your app name
+app = "my-zee"  # Your app name
 primary_region = "iad"
 
 [build]
@@ -72,7 +72,7 @@ primary_region = "iad"
   memory = "2048mb"
 
 [mounts]
-  source = "moltbot_data"
+  source = "zee_data"
   destination = "/data"
 ```
 
@@ -106,7 +106,7 @@ fly secrets set DISCORD_BOT_TOKEN=MTQ...
 **Notes:**
 - Non-loopback binds (`--bind lan`) require `CLAWDBOT_GATEWAY_TOKEN` for security.
 - Treat these tokens like passwords.
-- **Prefer env vars over config file** for all API keys and tokens. This keeps secrets out of `moltbot.json` where they could be accidentally exposed or logged.
+- **Prefer env vars over config file** for all API keys and tokens. This keeps secrets out of `zee.json` where they could be accidentally exposed or logged.
 
 ## 4) Deploy
 
@@ -139,7 +139,7 @@ fly ssh console
 Create the config directory and file:
 ```bash
 mkdir -p /data
-cat > /data/moltbot.json << 'EOF'
+cat > /data/zee.json << 'EOF'
 {
   "agents": {
     "defaults": {
@@ -191,7 +191,7 @@ cat > /data/moltbot.json << 'EOF'
 EOF
 ```
 
-**Note:** With `CLAWDBOT_STATE_DIR=/data`, the config path is `/data/moltbot.json`.
+**Note:** With `CLAWDBOT_STATE_DIR=/data`, the config path is `/data/zee.json`.
 
 **Note:** The Discord token can come from either:
 - Environment variable: `DISCORD_BOT_TOKEN` (recommended for secrets)
@@ -214,7 +214,7 @@ Open in browser:
 fly open
 ```
 
-Or visit `https://my-moltbot.fly.dev/`
+Or visit `https://my-zee.fly.dev/`
 
 Paste your gateway token (the one from `CLAWDBOT_GATEWAY_TOKEN`) to authenticate.
 
@@ -278,11 +278,11 @@ The lock file is at `/data/gateway.*.lock` (not in a subdirectory).
 
 ### Config Not Being Read
 
-If using `--allow-unconfigured`, the gateway creates a minimal config. Your custom config at `/data/moltbot.json` should be read on restart.
+If using `--allow-unconfigured`, the gateway creates a minimal config. Your custom config at `/data/zee.json` should be read on restart.
 
 Verify the config exists:
 ```bash
-fly ssh console --command "cat /data/moltbot.json"
+fly ssh console --command "cat /data/zee.json"
 ```
 
 ### Writing Config via SSH
@@ -291,16 +291,16 @@ The `fly ssh console -C` command doesn't support shell redirection. To write a c
 
 ```bash
 # Use echo + tee (pipe from local to remote)
-echo '{"your":"config"}' | fly ssh console -C "tee /data/moltbot.json"
+echo '{"your":"config"}' | fly ssh console -C "tee /data/zee.json"
 
 # Or use sftp
 fly sftp shell
-> put /local/path/config.json /data/moltbot.json
+> put /local/path/config.json /data/zee.json
 ```
 
 **Note:** `fly sftp` may fail if the file already exists. Delete first:
 ```bash
-fly ssh console --command "rm /data/moltbot.json"
+fly ssh console --command "rm /data/zee.json"
 ```
 
 ### State Not Persisting
@@ -366,18 +366,18 @@ Or convert an existing deployment:
 
 ```bash
 # List current IPs
-fly ips list -a my-moltbot
+fly ips list -a my-zee
 
 # Release public IPs
-fly ips release <public-ipv4> -a my-moltbot
-fly ips release <public-ipv6> -a my-moltbot
+fly ips release <public-ipv4> -a my-zee
+fly ips release <public-ipv6> -a my-zee
 
 # Switch to private config so future deploys don't re-allocate public IPs
 # (remove [http_service] or deploy with the private template)
 fly deploy -c fly.private.toml
 
 # Allocate private-only IPv6
-fly ips allocate-v6 --private -a my-moltbot
+fly ips allocate-v6 --private -a my-zee
 ```
 
 After this, `fly ips list` should show only a `private` type IP:
@@ -393,7 +393,7 @@ Since there's no public URL, use one of these methods:
 **Option 1: Local proxy (simplest)**
 ```bash
 # Forward local port 3000 to the app
-fly proxy 3000:3000 -a my-moltbot
+fly proxy 3000:3000 -a my-zee
 
 # Then open http://localhost:3000 in browser
 ```
@@ -409,7 +409,7 @@ fly wireguard create
 
 **Option 3: SSH only**
 ```bash
-fly ssh console -a my-moltbot
+fly ssh console -a my-zee
 ```
 
 ### Webhooks with private deployment

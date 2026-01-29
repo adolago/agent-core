@@ -6,9 +6,12 @@ import { fileURLToPath } from "node:url";
 import { LEGACY_CANVAS_HANDLER_NAME } from "../compat/legacy-names.js";
 import { detectMime } from "../media/mime.js";
 
-export const A2UI_PATH = "/__moltbot__/a2ui";
-export const CANVAS_HOST_PATH = "/__moltbot__/canvas";
-export const CANVAS_WS_PATH = "/__moltbot/ws";
+export const A2UI_PATH = "/__zee__/a2ui";
+export const LEGACY_A2UI_PATHS = ["/__moltbot__/a2ui"] as const;
+export const CANVAS_HOST_PATH = "/__zee__/canvas";
+export const LEGACY_CANVAS_HOST_PATHS = ["/__moltbot__/canvas"] as const;
+export const CANVAS_WS_PATH = "/__zee__/ws";
+export const LEGACY_CANVAS_WS_PATHS = ["/__moltbot/ws"] as const;
 
 let cachedA2uiRootReal: string | null | undefined;
 let resolvingA2uiRoot: Promise<string | null> | null = null;
@@ -100,7 +103,7 @@ export function injectCanvasLiveReload(html: string): string {
   // Works on:
   // - iOS: window.webkit.messageHandlers.(current|legacy)CanvasA2UIAction.postMessage(...)
   // - Android: window.(current|legacy)CanvasA2UIAction.postMessage(...)
-  const handlerNames = ["moltbotCanvasA2UIAction", "${legacyHandlerName}"];
+  const handlerNames = ["zeeCanvasA2UIAction", "moltbotCanvasA2UIAction", "${legacyHandlerName}"];
   function postToNode(payload) {
     try {
       const raw = typeof payload === "string" ? payload : JSON.stringify(payload);
@@ -127,7 +130,12 @@ export function injectCanvasLiveReload(html: string): string {
     const action = { ...userAction, id };
     return postToNode({ userAction: action });
   }
-  globalThis.Moltbot = globalThis.Moltbot ?? {};
+  globalThis.Zee = globalThis.Zee ?? {};
+  globalThis.Zee.postMessage = postToNode;
+  globalThis.Zee.sendUserAction = sendUserAction;
+  globalThis.zeePostMessage = postToNode;
+  globalThis.zeeSendUserAction = sendUserAction;
+  globalThis.Moltbot = globalThis.Moltbot ?? globalThis.Zee ?? {};
   globalThis.Moltbot.postMessage = postToNode;
   globalThis.Moltbot.sendUserAction = sendUserAction;
   globalThis.moltbotPostMessage = postToNode;
@@ -161,7 +169,13 @@ export async function handleA2uiHttpRequest(
   if (!urlRaw) return false;
 
   const url = new URL(urlRaw, "http://localhost");
-  if (url.pathname !== A2UI_PATH && !url.pathname.startsWith(`${A2UI_PATH}/`)) {
+  const basePath =
+    url.pathname === A2UI_PATH || url.pathname.startsWith(`${A2UI_PATH}/`)
+      ? A2UI_PATH
+      : LEGACY_A2UI_PATHS.find(
+          (legacy) => url.pathname === legacy || url.pathname.startsWith(`${legacy}/`),
+        );
+  if (!basePath) {
     return false;
   }
 
@@ -180,7 +194,7 @@ export async function handleA2uiHttpRequest(
     return true;
   }
 
-  const rel = url.pathname.slice(A2UI_PATH.length);
+  const rel = url.pathname.slice(basePath.length);
   const filePath = await resolveA2uiFilePath(a2uiRootReal, rel || "/");
   if (!filePath) {
     res.statusCode = 404;

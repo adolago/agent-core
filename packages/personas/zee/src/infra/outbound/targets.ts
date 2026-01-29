@@ -1,7 +1,7 @@
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import type { ChannelId, ChannelOutboundTargetMode } from "../../channels/plugins/types.js";
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { AgentDefaultsConfig } from "../../config/types.agent-defaults.js";
 import { deliveryContextFromSession } from "../../utils/delivery-context.js";
@@ -119,7 +119,7 @@ export function resolveOutboundTarget(params: {
   channel: GatewayMessageChannel;
   to?: string;
   allowFrom?: string[];
-  cfg?: MoltbotConfig;
+  cfg?: ZeeConfig;
   accountId?: string | null;
   mode?: ChannelOutboundTargetMode;
 }): OutboundTargetResolution {
@@ -172,7 +172,7 @@ export function resolveOutboundTarget(params: {
 }
 
 export function resolveHeartbeatDeliveryTarget(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   entry?: SessionEntry;
   heartbeat?: AgentDefaultsConfig["heartbeat"];
 }): OutboundTarget {
@@ -289,7 +289,7 @@ function resolveHeartbeatSenderId(params: {
 }
 
 export function resolveHeartbeatSenderContext(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   entry?: SessionEntry;
   delivery: OutboundTarget;
 }): HeartbeatSenderContext {

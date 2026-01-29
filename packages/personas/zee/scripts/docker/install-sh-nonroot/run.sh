@@ -2,15 +2,15 @@
 set -euo pipefail
 
 INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://molt.bot/install.sh}"
-DEFAULT_PACKAGE="moltbot"
-if [[ -z "${CLAWDBOT_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"clawd.bot"* ]]; then
-  DEFAULT_PACKAGE="clawdbot"
+DEFAULT_PACKAGE="zee"
+if [[ -z "${CLAWDBOT_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"zee.bot"* ]]; then
+  DEFAULT_PACKAGE="zee"
 fi
 PACKAGE_NAME="${CLAWDBOT_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
-if [[ "$PACKAGE_NAME" == "moltbot" ]]; then
-  ALT_PACKAGE_NAME="clawdbot"
+if [[ "$PACKAGE_NAME" == "zee" ]]; then
+  ALT_PACKAGE_NAME="zee"
 else
-  ALT_PACKAGE_NAME="moltbot"
+  ALT_PACKAGE_NAME="zee"
 fi
 
 echo "==> Pre-flight: ensure git absent"

@@ -22,8 +22,8 @@ vi.mock("../infra/update-runner.js", () => ({
   runGatewayUpdate: vi.fn(),
 }));
 
-vi.mock("../infra/moltbot-root.js", () => ({
-  resolveMoltbotPackageRoot: vi.fn(),
+vi.mock("../infra/zee-root.js", () => ({
+  resolveZeePackageRoot: vi.fn(),
 }));
 
 vi.mock("../config/config.js", () => ({
@@ -88,12 +88,12 @@ describe("update-cli", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { resolveMoltbotPackageRoot } = await import("../infra/moltbot-root.js");
+    const { resolveZeePackageRoot } = await import("../infra/zee-root.js");
     const { readConfigFileSnapshot } = await import("../config/config.js");
     const { checkUpdateStatus, fetchNpmTagVersion, resolveNpmChannelTag } =
       await import("../infra/update-check.js");
     const { runCommandWithTimeout } = await import("../process/exec.js");
-    vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue(process.cwd());
+    vi.mocked(resolveZeePackageRoot).mockResolvedValue(process.cwd());
     vi.mocked(readConfigFileSnapshot).mockResolvedValue(baseSnapshot);
     vi.mocked(fetchNpmTagVersion).mockResolvedValue({
       tag: "latest",
@@ -185,7 +185,7 @@ describe("update-cli", () => {
     await updateStatusCommand({ json: false });
 
     const logs = vi.mocked(defaultRuntime.log).mock.calls.map((call) => call[0]);
-    expect(logs.join("\n")).toContain("Moltbot update status");
+    expect(logs.join("\n")).toContain("Zee update status");
   });
 
   it("updateStatusCommand emits JSON", async () => {
@@ -218,20 +218,20 @@ describe("update-cli", () => {
   });
 
   it("defaults to stable channel for package installs when unset", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-"));
     try {
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+        JSON.stringify({ name: "zee", version: "1.0.0" }),
         "utf-8",
       );
 
-      const { resolveMoltbotPackageRoot } = await import("../infra/moltbot-root.js");
+      const { resolveZeePackageRoot } = await import("../infra/zee-root.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { checkUpdateStatus } = await import("../infra/update-check.js");
       const { updateCommand } = await import("./update-cli.js");
 
-      vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue(tempDir);
+      vi.mocked(resolveZeePackageRoot).mockResolvedValue(tempDir);
       vi.mocked(checkUpdateStatus).mockResolvedValue({
         root: tempDir,
         installKind: "package",
@@ -283,22 +283,22 @@ describe("update-cli", () => {
   });
 
   it("falls back to latest when beta tag is older than release", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-"));
     try {
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+        JSON.stringify({ name: "zee", version: "1.0.0" }),
         "utf-8",
       );
 
-      const { resolveMoltbotPackageRoot } = await import("../infra/moltbot-root.js");
+      const { resolveZeePackageRoot } = await import("../infra/zee-root.js");
       const { readConfigFileSnapshot } = await import("../config/config.js");
       const { resolveNpmChannelTag } = await import("../infra/update-check.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { updateCommand } = await import("./update-cli.js");
       const { checkUpdateStatus } = await import("../infra/update-check.js");
 
-      vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue(tempDir);
+      vi.mocked(resolveZeePackageRoot).mockResolvedValue(tempDir);
       vi.mocked(readConfigFileSnapshot).mockResolvedValue({
         ...baseSnapshot,
         config: { update: { channel: "beta" } },
@@ -336,19 +336,19 @@ describe("update-cli", () => {
   });
 
   it("honors --tag override", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-"));
     try {
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+        JSON.stringify({ name: "zee", version: "1.0.0" }),
         "utf-8",
       );
 
-      const { resolveMoltbotPackageRoot } = await import("../infra/moltbot-root.js");
+      const { resolveZeePackageRoot } = await import("../infra/zee-root.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { updateCommand } = await import("./update-cli.js");
 
-      vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue(tempDir);
+      vi.mocked(resolveZeePackageRoot).mockResolvedValue(tempDir);
       vi.mocked(runGatewayUpdate).mockResolvedValue({
         status: "ok",
         mode: "npm",
@@ -514,23 +514,23 @@ describe("update-cli", () => {
   });
 
   it("requires confirmation on downgrade when non-interactive", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-"));
     try {
       setTty(false);
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "moltbot", version: "2.0.0" }),
+        JSON.stringify({ name: "zee", version: "2.0.0" }),
         "utf-8",
       );
 
-      const { resolveMoltbotPackageRoot } = await import("../infra/moltbot-root.js");
+      const { resolveZeePackageRoot } = await import("../infra/zee-root.js");
       const { resolveNpmChannelTag } = await import("../infra/update-check.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { defaultRuntime } = await import("../runtime.js");
       const { updateCommand } = await import("./update-cli.js");
       const { checkUpdateStatus } = await import("../infra/update-check.js");
 
-      vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue(tempDir);
+      vi.mocked(resolveZeePackageRoot).mockResolvedValue(tempDir);
       vi.mocked(checkUpdateStatus).mockResolvedValue({
         root: tempDir,
         installKind: "package",
@@ -567,23 +567,23 @@ describe("update-cli", () => {
   });
 
   it("allows downgrade with --yes in non-interactive mode", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-"));
     try {
       setTty(false);
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "moltbot", version: "2.0.0" }),
+        JSON.stringify({ name: "zee", version: "2.0.0" }),
         "utf-8",
       );
 
-      const { resolveMoltbotPackageRoot } = await import("../infra/moltbot-root.js");
+      const { resolveZeePackageRoot } = await import("../infra/zee-root.js");
       const { resolveNpmChannelTag } = await import("../infra/update-check.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { defaultRuntime } = await import("../runtime.js");
       const { updateCommand } = await import("./update-cli.js");
       const { checkUpdateStatus } = await import("../infra/update-check.js");
 
-      vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue(tempDir);
+      vi.mocked(resolveZeePackageRoot).mockResolvedValue(tempDir);
       vi.mocked(checkUpdateStatus).mockResolvedValue({
         root: tempDir,
         installKind: "package",
@@ -636,7 +636,7 @@ describe("update-cli", () => {
   });
 
   it("updateWizardCommand offers dev checkout and forwards selections", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-update-wizard-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-wizard-"));
     const previousGitDir = process.env.CLAWDBOT_GIT_DIR;
     try {
       setTty(true);

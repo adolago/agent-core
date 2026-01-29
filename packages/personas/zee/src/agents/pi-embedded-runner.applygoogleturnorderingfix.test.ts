@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ZeeConfig } from "../config/config.js";
 import { ensureMoltbotModelsJson } from "./models-config.js";
 import { applyGoogleTurnOrderingFix } from "./pi-embedded-runner.js";
 
@@ -69,9 +69,9 @@ const _makeOpenAiConfig = (modelIds: string[]) =>
         },
       },
     },
-  }) satisfies MoltbotConfig;
+  }) satisfies ZeeConfig;
 
-const _ensureModels = (cfg: MoltbotConfig, agentDir: string) =>
+const _ensureModels = (cfg: ZeeConfig, agentDir: string) =>
   ensureMoltbotModelsJson(cfg, agentDir) as unknown;
 
 const _textFromContent = (content: unknown) => {

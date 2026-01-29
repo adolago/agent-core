@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "Moltbot",
+  "name": "Zee",
   "theme": "mint",
   "logo": {
     "light": "/assets/pixel-lobster.svg",
@@ -13,11 +13,11 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/moltbot/moltbot"
+      "url": "https://github.com/zee/zee"
     },
     {
       "name": "Releases",
-      "url": "https://github.com/moltbot/moltbot/releases"
+      "url": "https://github.com/zee/zee/releases"
     }
   ],
   "redirects": [
@@ -302,10 +302,6 @@
       "destination": "/concepts/agent-workspace"
     },
     {
-      "source": "/android",
-      "destination": "/platforms/android"
-    },
-    {
       "source": "/architecture",
       "destination": "/concepts/architecture"
     },
@@ -350,12 +346,12 @@
       "destination": "/nodes/camera"
     },
     {
-      "source": "/clawd",
-      "destination": "/start/clawd"
+      "source": "/zee",
+      "destination": "/start/zee"
     },
     {
-      "source": "/clawdhub",
-      "destination": "/tools/clawdhub"
+      "source": "/zeehub",
+      "destination": "/tools/zeehub"
     },
     {
       "source": "/configuration",
@@ -452,10 +448,6 @@
     {
       "source": "/imessage",
       "destination": "/channels/imessage"
-    },
-    {
-      "source": "/ios",
-      "destination": "/platforms/ios"
     },
     {
       "source": "/linux",
@@ -824,7 +816,7 @@
           "start/wizard",
           "start/setup",
           "start/pairing",
-          "start/clawd",
+          "start/zee",
           "start/showcase",
           "start/hubs",
           "start/onboarding",
@@ -1057,7 +1049,7 @@
           "tools/reactions",
           "tools/skills",
           "tools/skills-config",
-          "tools/clawdhub"
+          "tools/zeehub"
         ]
       },
       {
@@ -1078,8 +1070,6 @@
           "platforms",
           "platforms/macos",
           "platforms/macos-vm",
-          "platforms/ios",
-          "platforms/android",
           "platforms/windows",
           "platforms/linux",
           "platforms/fly",

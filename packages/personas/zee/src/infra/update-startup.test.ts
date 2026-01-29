@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { UpdateCheckResult } from "./update-check.js";
 
-vi.mock("./moltbot-root.js", () => ({
-  resolveMoltbotPackageRoot: vi.fn(),
+vi.mock("./zee-root.js", () => ({
+  resolveZeePackageRoot: vi.fn(),
 }));
 
 vi.mock("./update-check.js", async () => {
@@ -43,11 +43,11 @@ describe("update-startup", () => {
   });
 
   it("logs update hint for npm installs when newer tag exists", async () => {
-    const { resolveMoltbotPackageRoot } = await import("./moltbot-root.js");
+    const { resolveZeePackageRoot } = await import("./zee-root.js");
     const { checkUpdateStatus, resolveNpmChannelTag } = await import("./update-check.js");
     const { runGatewayUpdateCheck } = await import("./update-startup.js");
 
-    vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue("/opt/moltbot");
+    vi.mocked(resolveZeePackageRoot).mockResolvedValue("/opt/moltbot");
     vi.mocked(checkUpdateStatus).mockResolvedValue({
       root: "/opt/moltbot",
       installKind: "package",
@@ -77,11 +77,11 @@ describe("update-startup", () => {
   });
 
   it("uses latest when beta tag is older than release", async () => {
-    const { resolveMoltbotPackageRoot } = await import("./moltbot-root.js");
+    const { resolveZeePackageRoot } = await import("./zee-root.js");
     const { checkUpdateStatus, resolveNpmChannelTag } = await import("./update-check.js");
     const { runGatewayUpdateCheck } = await import("./update-startup.js");
 
-    vi.mocked(resolveMoltbotPackageRoot).mockResolvedValue("/opt/moltbot");
+    vi.mocked(resolveZeePackageRoot).mockResolvedValue("/opt/moltbot");
     vi.mocked(checkUpdateStatus).mockResolvedValue({
       root: "/opt/moltbot",
       installKind: "package",

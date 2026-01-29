@@ -204,8 +204,8 @@ vi.mock("../gateway/call.js", async (importOriginal) => {
 vi.mock("../gateway/session-utils.js", () => ({
   listAgentsForGateway: mocks.listAgentsForGateway,
 }));
-vi.mock("../infra/moltbot-root.js", () => ({
-  resolveMoltbotPackageRoot: vi.fn().mockResolvedValue("/tmp/moltbot"),
+vi.mock("../infra/zee-root.js", () => ({
+  resolveZeePackageRoot: vi.fn().mockResolvedValue("/tmp/moltbot"),
 }));
 vi.mock("../infra/os-summary.js", () => ({
   resolveOsSummary: () => ({

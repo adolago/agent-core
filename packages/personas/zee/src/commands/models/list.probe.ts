@@ -15,7 +15,7 @@ import { getCustomProviderApiKey, resolveEnvApiKey } from "../../agents/model-au
 import { normalizeProviderId, parseModelRef } from "../../agents/model-selection.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ZeeConfig } from "../../config/config.js";
 import {
   resolveSessionTranscriptPath,
   resolveSessionTranscriptsDirForAgent,
@@ -117,7 +117,7 @@ function selectProbeModel(params: {
 }
 
 function buildProbeTargets(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   providers: string[];
   modelCandidates: string[];
   options: AuthProbeOptions;
@@ -260,7 +260,7 @@ function buildProbeTargets(params: {
 }
 
 async function probeTarget(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   agentId: string;
   agentDir: string;
   workspaceDir: string;
@@ -335,7 +335,7 @@ async function probeTarget(params: {
 }
 
 async function runTargetsWithConcurrency(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   targets: AuthProbeTarget[];
   timeoutMs: number;
   maxTokens: number;
@@ -389,7 +389,7 @@ async function runTargetsWithConcurrency(params: {
 }
 
 export async function runAuthProbes(params: {
-  cfg: MoltbotConfig;
+  cfg: ZeeConfig;
   providers: string[];
   modelCandidates: string[];
   options: AuthProbeOptions;
