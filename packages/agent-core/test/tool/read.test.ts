@@ -14,6 +14,7 @@ const baseCtx = {
   callID: "",
   agent: "zee",
   abort: AbortSignal.any([]),
+  messages: [],
   metadata: () => {},
   ask: async () => {},
 }

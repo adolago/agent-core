@@ -2,6 +2,7 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { Log } from "../util/log"
 import { OAUTH_DUMMY_KEY } from "../auth"
 import { ProviderTransform } from "../provider/transform"
+import { Installation } from "../installation"
 
 const log = Log.create({ service: "plugin.codex" })
 

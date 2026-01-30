@@ -1693,7 +1693,7 @@ function Bash(props: ToolProps<typeof BashTool>) {
     const workdir = props.input.workdir
     if (!workdir || workdir === ".") return undefined
 
-    const base = sync.data.path.directory
+    const base = sync.data.path?.directory
     if (!base) return undefined
 
     const absolute = path.resolve(base, workdir)

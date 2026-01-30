@@ -13,6 +13,7 @@ const baseCtx: Omit<Tool.Context, "ask"> = {
   abort: AbortSignal.any([]),
   directory: "/tmp/project", // Default, overridden per-test as needed
   worktree: "/tmp/project",
+  messages: [],
   metadata: () => {},
 }
 

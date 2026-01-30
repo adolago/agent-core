@@ -17,6 +17,7 @@ import type { Agent as SDKAgent } from "@opencode-ai/sdk/v2"
 // Extended agent type with fallback model support (internal feature not yet in SDK)
 type AgentWithFallback = SDKAgent & {
   fallback?: { providerID: string; modelID: string }
+  knowledge?: string[]
 }
 
 export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
@@ -90,6 +91,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         options: {},
         model: undefined as { providerID: string; modelID: string } | undefined,
         fallback: undefined as { providerID: string; modelID: string } | undefined,
+        knowledge: [],
       }
 
       return {
