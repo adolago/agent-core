@@ -1669,12 +1669,15 @@ export namespace Config {
       for (const mcp of Object.values(copy.mcp)) {
         if (
           typeof mcp === "object" &&
+          "type" in mcp &&
           mcp.type === "remote" &&
+          "oauth" in mcp &&
           mcp.oauth &&
           typeof mcp.oauth === "object" &&
+          "clientSecret" in mcp.oauth &&
           mcp.oauth.clientSecret
         ) {
-          mcp.oauth.clientSecret = "********"
+          ;(mcp.oauth as { clientSecret?: string }).clientSecret = "********"
         }
       }
     }
