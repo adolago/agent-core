@@ -231,7 +231,12 @@ async function resolveTargetPaneId(): Promise<string | undefined> {
   const envPane = process.env.WEZTERM_PANE?.trim()
   if (envPane && isPaneId(envPane) && paneIds.has(envPane)) return envPane
 
-  // 3. Find a pane in the same working directory (same project/tab)
+  // Determine which tab we're in by looking at the active pane
+  // This ensures we open canvases in the same tab, not a different one
+  const activePane = list.find((x) => x.is_active)
+  const currentTabId = activePane?.tab_id
+
+  // 3. Find a pane in the same working directory AND same tab
   const cwd = process.cwd()
 
   // Filter panes that match our current working directory
@@ -241,18 +246,37 @@ async function resolveTargetPaneId(): Promise<string | undefined> {
   })
 
   if (cwdMatches.length > 0) {
-    // Prefer the active pane within matching cwd, otherwise take the first match
+    // Prefer panes in the same tab as the active pane
+    if (currentTabId !== undefined) {
+      const sameTabMatches = cwdMatches.filter((x) => x.tab_id === currentTabId)
+      if (sameTabMatches.length > 0) {
+        const activeInCwd = sameTabMatches.find((x) => x.is_active)
+        const target = activeInCwd ?? sameTabMatches[0]
+        const paneId = getPaneId(target)
+        if (paneId) return paneId
+      }
+    }
+    // Fall back to any cwd match if no same-tab matches
     const activeInCwd = cwdMatches.find((x) => x.is_active)
     const target = activeInCwd ?? cwdMatches[0]
     const paneId = getPaneId(target)
     if (paneId) return paneId
   }
 
-  // 4. Last resort: use globally active pane (may be in wrong tab)
-  // This maintains backwards compatibility but will likely open in wrong tab
+  // 4. Last resort: use active pane in the same tab
+  // Only consider panes in the current tab to avoid opening in wrong tab
   if (list.length === 0) return undefined
-  const active = list.find((x) => x.is_active) ?? list[0]
-  return getPaneId(active)
+  if (currentTabId !== undefined) {
+    const sameTabPanes = list.filter((x) => x.tab_id === currentTabId)
+    if (sameTabPanes.length > 0) {
+      const activeInTab = sameTabPanes.find((x) => x.is_active)
+      const target = activeInTab ?? sameTabPanes[0]
+      const paneId = getPaneId(target)
+      if (paneId) return paneId
+    }
+  }
+  // Final fallback: any active pane (may be in wrong tab, but we tried)
+  return getPaneId(activePane ?? list[0])
 }
 
 function safeString(input: unknown): string | undefined {
