@@ -34,7 +34,4 @@ export function compareZeeVersions(
   return 0;
 }
 
-// Legacy aliases
-export type ZeeVersion = ZeeVersion;
-export const parseZeeVersion = parseZeeVersion;
-export const compareZeeVersions = compareZeeVersions;
+

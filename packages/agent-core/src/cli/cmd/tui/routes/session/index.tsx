@@ -380,6 +380,19 @@ export function Session() {
 
   const local = useLocal()
 
+  // Persona-based scrollbar colors with transparency
+  const personaColor = createMemo(() => local.agent.color(local.agent.current().name))
+  const scrollbarTrackColor = createMemo(() => {
+    const color = personaColor()
+    if (!color) return theme.backgroundElement
+    return RGBA.fromValues(color.r, color.g, color.b, 0.15)
+  })
+  const scrollbarThumbColor = createMemo(() => {
+    const color = personaColor()
+    if (!color) return theme.border
+    return RGBA.fromValues(color.r, color.g, color.b, 0.5)
+  })
+
   // Track session changes to reset model selection (session-scoped)
   createEffect(
     on(
@@ -1048,8 +1061,8 @@ export function Session() {
                   paddingLeft: 1,
                   visible: showScrollbar(),
                   trackOptions: {
-                    backgroundColor: theme.backgroundElement,
-                    foregroundColor: theme.border,
+                    backgroundColor: scrollbarTrackColor(),
+                    foregroundColor: scrollbarThumbColor(),
                   },
                 }}
                 stickyScroll={true}

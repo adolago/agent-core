@@ -14,6 +14,8 @@
     "stanleyPrimaryLight": "#10b981",
     "stanleySecondary": "#047857",
     "stanleyAccent": "#34d399",
+    "darkPanelBg": "#0a1e1599",
+    "lightPanelBg": "#f0fff599",
     "darkRed": "#e06c75",
     "darkOrange": "#f5a742",
     "darkCyan": "#56b6c2",
@@ -69,16 +71,20 @@
       "light": "lightStep11"
     },
     "background": {
-      "dark": "darkStep1",
-      "light": "lightStep1"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "backgroundPanel": {
-      "dark": "darkStep2",
-      "light": "lightStep2"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "backgroundElement": {
-      "dark": "darkStep3",
-      "light": "lightStep3"
+      "dark": "transparent",
+      "light": "transparent"
+    },
+    "backgroundMenu": {
+      "dark": "darkPanelBg",
+      "light": "lightPanelBg"
     },
     "border": {
       "dark": "darkStep7",
@@ -117,28 +123,28 @@
       "light": "#f52a65"
     },
     "diffAddedBg": {
-      "dark": "#0d2818",
-      "light": "#d5e5d5"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "diffRemovedBg": {
-      "dark": "#37222c",
-      "light": "#f7d8db"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "diffContextBg": {
-      "dark": "darkStep2",
-      "light": "lightStep2"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "diffLineNumber": {
-      "dark": "darkStep3",
-      "light": "lightStep3"
+      "dark": "#666666",
+      "light": "#999999"
     },
     "diffAddedLineNumberBg": {
-      "dark": "#0a2010",
-      "light": "#c5d5c5"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "diffRemovedLineNumberBg": {
-      "dark": "#2d1f26",
-      "light": "#e7c8cb"
+      "dark": "transparent",
+      "light": "transparent"
     },
     "markdownText": {
       "dark": "darkStep12",

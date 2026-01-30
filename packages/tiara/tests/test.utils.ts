@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { jest, expect } from 'bun:test';
 
 // Mock logger utilities
 export const mockLogger = {
@@ -118,8 +118,7 @@ export const teardownTestEnvironment = () => {
 };
 
 // Re-export commonly used test utilities
-export { jest } from '@jest/globals';
-export { describe, it, test, beforeEach, afterEach, beforeAll, afterAll, expect } from '@jest/globals';
+export { jest, expect, describe, it, beforeEach, afterEach, beforeAll, afterAll } from 'bun:test';
 
 // Export assertion utilities
 export const assert = (condition: boolean, message?: string) => {
@@ -181,7 +180,8 @@ export class FakeTime {
   }
   
   async tickAsync(ms: number) {
-    await jest.advanceTimersByTimeAsync(ms);
+    jest.advanceTimersByTime(ms);
+    await Promise.resolve();
   }
   
   runAll() {

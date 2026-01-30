@@ -2,12 +2,8 @@
  * Unit tests for utility helpers
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, beforeEach, afterEach, expect, jest } from 'bun:test';
 import {
-  describe,
-  it,
-  beforeEach,
-  afterEach,
   assertEquals,
   assertExists,
   assertRejects,

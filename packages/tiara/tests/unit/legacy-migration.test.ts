@@ -107,6 +107,7 @@ describe('migrateLegacyMemory', () => {
 
       expect(summary.memoryEntries).toBe(1);
       expect(fakeStore.store).not.toHaveBeenCalled();
-      await expect(fs.access(memoryPath)).resolves.toBeUndefined();
+      const accessResult = await fs.access(memoryPath).then(() => true).catch(() => false);
+      expect(accessResult).toBe(true);
     }));
 });

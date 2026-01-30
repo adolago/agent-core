@@ -579,6 +579,7 @@ export namespace ACP {
           this.sessionManager.setModel(sessionId, lastModel)
           if (result.modes.availableModes.some((m) => m.id === lastUser.agent)) {
             result.modes.currentModeId = lastUser.agent
+            this.sessionManager.setMode(sessionId, lastUser.agent)
           }
         }
 

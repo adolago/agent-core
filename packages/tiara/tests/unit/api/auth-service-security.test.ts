@@ -1,12 +1,11 @@
-
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { AuthService, AuthConfig } from '../../../src/api/auth-service';
 import { ILogger } from '../../../src/core/logger';
 import { createHmac } from 'crypto';
-import { jest } from '@jest/globals';
 
 describe('AuthService Security Vulnerability', () => {
   let authService: AuthService;
-  let mockLogger: jest.Mocked<ILogger>;
+  let mockLogger: ILogger;
   const config: AuthConfig = {
     jwtSecret: 'test-secret',
     sessionTimeout: 3600000
@@ -14,12 +13,12 @@ describe('AuthService Security Vulnerability', () => {
 
   beforeEach(() => {
     mockLogger = {
-      debug: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      configure: jest.fn(),
-    } as unknown as jest.Mocked<ILogger>;
+      debug: mock(() => {}),
+      info: mock(() => {}),
+      warn: mock(() => {}),
+      error: mock(() => {}),
+      configure: mock(() => {}),
+    } as unknown as ILogger;
 
     authService = new AuthService(config, mockLogger);
   });
