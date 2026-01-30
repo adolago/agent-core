@@ -14,7 +14,8 @@ export namespace ConfigMarkdown {
     return Array.from(template.matchAll(SHELL_REGEX))
   }
 
-  export function preprocessFrontmatter(content: string): string {
+  // other coding agents allow invalid yaml in frontmatter; sanitize when parsing fails
+  export function fallbackSanitization(content: string): string {
     const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (!match) return content
 
@@ -53,7 +54,7 @@ export namespace ConfigMarkdown {
 
       // if value contains a colon, convert to block scalar
       if (value.includes(":")) {
-        result.push(`${key}: |`)
+        result.push(`${key}: |-`)
         result.push(`  ${value}`)
         continue
       }
@@ -66,20 +67,23 @@ export namespace ConfigMarkdown {
   }
 
   export async function parse(filePath: string) {
-    const raw = await Bun.file(filePath).text()
-    const template = preprocessFrontmatter(raw)
+    const template = await Bun.file(filePath).text()
 
     try {
       const md = matter(template)
       return md
-    } catch (err) {
-      throw new FrontmatterError(
-        {
-          path: filePath,
-          message: `${filePath}: Failed to parse YAML frontmatter: ${err instanceof Error ? err.message : String(err)}`,
-        },
-        { cause: err },
-      )
+    } catch {
+      try {
+        return matter(fallbackSanitization(template))
+      } catch (err) {
+        throw new FrontmatterError(
+          {
+            path: filePath,
+            message: `${filePath}: Failed to parse YAML frontmatter: ${err instanceof Error ? err.message : String(err)}`,
+          },
+          { cause: err },
+        )
+      }
     }
   }
 

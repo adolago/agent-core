@@ -53,7 +53,7 @@ describe("createZeeCodingTools", () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-read-"));
     try {
       const textPath = path.join(tmpDir, "sample.txt");
-      const contents = "Hello from moltbot read tool.";
+      const contents = "Hello from zee read tool.";
       await fs.writeFile(textPath, contents, "utf8");
 
       const result = await readTool?.execute("tool-2", {

@@ -1,5 +1,3 @@
-This is a temporary package used primarily for GitHub Copilot compatibility.
+This is a temporary package used for openai-compatible provider interoperability.
 
-Avoid making changes to these files unless you only want to affect the Copilot provider.
-
-Also, this should ONLY be used for the Copilot provider.
+Avoid making changes to these files unless you only want to affect openai-compatible providers.

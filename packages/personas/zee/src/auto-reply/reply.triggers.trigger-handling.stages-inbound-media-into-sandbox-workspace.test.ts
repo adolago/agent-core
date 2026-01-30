@@ -24,7 +24,7 @@ afterEach(() => {
 describe("stageSandboxMedia", () => {
   it("stages inbound media into the sandbox workspace", async () => {
     await withTempHome(async (home) => {
-      const inboundDir = join(home, ".clawdbot", "media", "inbound");
+      const inboundDir = join(home, ".zee", "media", "inbound");
       await fs.mkdir(inboundDir, { recursive: true });
       const mediaPath = join(inboundDir, "photo.jpg");
       await fs.writeFile(mediaPath, "test");
@@ -54,7 +54,7 @@ describe("stageSandboxMedia", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: join(home, "clawd"),
+              workspace: join(home, "zee"),
               sandbox: {
                 mode: "non-main",
                 workspaceRoot: join(home, "sandboxes"),
@@ -65,7 +65,7 @@ describe("stageSandboxMedia", () => {
           session: { store: join(home, "sessions.json") },
         },
         sessionKey: "agent:main:main",
-        workspaceDir: join(home, "clawd"),
+        workspaceDir: join(home, "zee"),
       });
 
       const stagedPath = `media/inbound/${basename(mediaPath)}`;

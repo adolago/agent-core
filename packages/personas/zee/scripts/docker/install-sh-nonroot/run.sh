@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://docs.zee/install.sh}"
+INSTALL_URL="${ZEE_INSTALL_URL:-https://docs.zee/install.sh}"
 DEFAULT_PACKAGE="zee"
-if [[ -z "${CLAWDBOT_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"zee.bot"* ]]; then
+if [[ -z "${ZEE_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"zee.bot"* ]]; then
   DEFAULT_PACKAGE="zee"
 fi
-PACKAGE_NAME="${CLAWDBOT_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
+PACKAGE_NAME="${ZEE_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
 if [[ "$PACKAGE_NAME" == "zee" ]]; then
   ALT_PACKAGE_NAME="zee"
 else
@@ -28,7 +28,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 echo "==> Verify git installed"
 command -v git >/dev/null
 
-EXPECTED_VERSION="${CLAWDBOT_INSTALL_EXPECT_VERSION:-}"
+EXPECTED_VERSION="${ZEE_INSTALL_EXPECT_VERSION:-}"
 if [[ -n "$EXPECTED_VERSION" ]]; then
   LATEST_VERSION="$EXPECTED_VERSION"
 else

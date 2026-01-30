@@ -7,11 +7,11 @@ read_when:
 
 # Logging
 
-For a user-facing overview (CLI + Control UI + config), see [/logging](/logging).
+For a user-facing overview (CLI + config), see [/logging](/logging).
 
 Zee has two log “surfaces”:
 
-- **Console output** (what you see in the terminal / Debug UI).
+- **Console output** (what you see in the terminal).
 - **File logs** (JSON lines) written by the gateway logger.
 
 ## File-based logger
@@ -24,7 +24,6 @@ Zee has two log “surfaces”:
 
 The file format is one JSON object per line.
 
-The Control UI Logs tab tails this file via the gateway (`logs.tail`).
 CLI can do the same:
 
 ```bash

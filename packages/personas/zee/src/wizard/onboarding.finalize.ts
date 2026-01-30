@@ -10,20 +10,15 @@ import {
 import { healthCommand } from "../commands/health.js";
 import { formatHealthCheckFailure } from "../commands/health-format.js";
 import {
-  detectBrowserOpenSupport,
-  formatControlUiSshHint,
-  openUrl,
-  openUrlInBackground,
   probeGatewayReachable,
   waitForGatewayReachable,
-  resolveControlUiLinks,
+  resolveGatewayUrls,
 } from "../commands/onboard-helpers.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { OnboardOptions } from "../commands/onboard-types.js";
 import type { ZeeConfig } from "../config/config.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
-import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { runTui } from "../tui/tui.js";
 import { resolveUserPath } from "../utils.js";
@@ -195,11 +190,10 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
   }
 
   if (!opts.skipHealth) {
-    const probeLinks = resolveControlUiLinks({
+    const probeLinks = resolveGatewayUrls({
       bind: nextConfig.gateway?.bind ?? "loopback",
       port: settings.port,
       customBindHost: nextConfig.gateway?.customBindHost,
-      basePath: undefined,
     });
     // Daemon install/restart can briefly flap the WS; wait a bit so health check doesn't false-fail.
     await waitForGatewayReachable({
@@ -222,15 +216,6 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     }
   }
 
-  const controlUiEnabled =
-    nextConfig.gateway?.controlUi?.enabled ?? baseConfig.gateway?.controlUi?.enabled ?? true;
-  if (!opts.skipUi && controlUiEnabled) {
-    const controlUiAssets = await ensureControlUiAssetsBuilt(runtime);
-    if (!controlUiAssets.ok && controlUiAssets.message) {
-      runtime.error(controlUiAssets.message);
-    }
-  }
-
   await prompter.note(
     [
       "Add node hosts for extra features:",
@@ -240,19 +225,11 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     "Optional nodes",
   );
 
-  const controlUiBasePath =
-    nextConfig.gateway?.controlUi?.basePath ?? baseConfig.gateway?.controlUi?.basePath;
-  const links = resolveControlUiLinks({
+  const links = resolveGatewayUrls({
     bind: settings.bind,
     port: settings.port,
     customBindHost: settings.customBindHost,
-    basePath: controlUiBasePath,
   });
-  const tokenParam =
-    settings.authMode === "token" && settings.gatewayToken
-      ? `?token=${encodeURIComponent(settings.gatewayToken)}`
-      : "";
-  const authedUrl = `${links.httpUrl}${tokenParam}`;
   const gatewayProbe = await probeGatewayReachable({
     url: links.wsUrl,
     token: settings.authMode === "token" ? settings.gatewayToken : undefined,
@@ -272,21 +249,18 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
 
   await prompter.note(
     [
-      `Web UI: ${links.httpUrl}`,
-      tokenParam ? `Web UI (with token): ${authedUrl}` : undefined,
+      `Gateway HTTP: ${links.httpUrl}`,
       `Gateway WS: ${links.wsUrl}`,
       gatewayStatusLine,
-      "Docs: docs/web/control-ui.md",
+      "Docs: https://docs.zee/gateway/health",
     ]
       .filter(Boolean)
       .join("\n"),
-    "Control UI",
+    "Gateway",
   );
 
-  let controlUiOpened = false;
-  let controlUiOpenHint: string | undefined;
-  let seededInBackground = false;
-  let hatchChoice: "tui" | "web" | "later" | null = null;
+  let hatchChoice: "tui" | "later" | null = null;
+  let ranTui = false;
 
   if (!opts.skipUi && gatewayProbe.ok) {
     if (hasBootstrap) {
@@ -302,24 +276,22 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     }
 
     await prompter.note(
-      [
-        "Gateway token: shared auth for the Gateway + Control UI.",
-        "Stored in: ~/.zee/zee.json (gateway.auth.token) or ZEE_GATEWAY_TOKEN (legacy: CLAWDBOT_GATEWAY_TOKEN).",
-        "Web UI stores a copy in this browser's localStorage (zee.control.settings.v1; legacy: moltbot.control.settings.v1).",
-        `Get the tokenized link anytime: ${formatCliCommand("zee dashboard --no-open")}`,
-      ].join("\n"),
-      "Token",
+        [
+          "Gateway auth is required for CLI/TUI connections.",
+          "Token: ~/.zee/zee.json (gateway.auth.token) or ZEE_GATEWAY_TOKEN.",
+          "Password: ~/.zee/zee.json (gateway.auth.password) or ZEE_GATEWAY_PASSWORD.",
+        ].join("\n"),
+      "Gateway auth",
     );
 
     hatchChoice = (await prompter.select({
       message: "How do you want to hatch your bot?",
       options: [
         { value: "tui", label: "Hatch in TUI (recommended)" },
-        { value: "web", label: "Open the Web UI" },
         { value: "later", label: "Do this later" },
       ],
       initialValue: "tui",
-    })) as "tui" | "web" | "later";
+    })) as "tui" | "later";
 
     if (hatchChoice === "tui") {
       await runTui({
@@ -330,55 +302,15 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
         deliver: false,
         message: hasBootstrap ? "Wake up, my friend!" : undefined,
       });
-      if (settings.authMode === "token" && settings.gatewayToken) {
-        seededInBackground = await openUrlInBackground(authedUrl);
-      }
-      if (seededInBackground) {
-        await prompter.note(
-          `Web UI seeded in the background. Open later with: ${formatCliCommand(
-            "zee dashboard --no-open",
-          )}`,
-          "Web UI",
-        );
-      }
-    } else if (hatchChoice === "web") {
-      const browserSupport = await detectBrowserOpenSupport();
-      if (browserSupport.ok) {
-        controlUiOpened = await openUrl(authedUrl);
-        if (!controlUiOpened) {
-          controlUiOpenHint = formatControlUiSshHint({
-            port: settings.port,
-            basePath: controlUiBasePath,
-            token: settings.gatewayToken,
-          });
-        }
-      } else {
-        controlUiOpenHint = formatControlUiSshHint({
-          port: settings.port,
-          basePath: controlUiBasePath,
-          token: settings.gatewayToken,
-        });
-      }
-      await prompter.note(
-        [
-          `Dashboard link (with token): ${authedUrl}`,
-          controlUiOpened
-            ? "Opened in your browser. Keep that tab to control Zee."
-            : "Copy/paste this URL in a browser on this machine to control Zee.",
-          controlUiOpenHint,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        "Dashboard ready",
-      );
+      ranTui = true;
     } else {
       await prompter.note(
-        `When you're ready: ${formatCliCommand("zee dashboard --no-open")}`,
+        `When you're ready: ${formatCliCommand("zee tui")}`,
         "Later",
       );
     }
   } else if (opts.skipUi) {
-    await prompter.note("Skipping Control UI/TUI prompts.", "Control UI");
+    await prompter.note("Skipping TUI prompts.", "TUI");
   }
 
   await prompter.note(
@@ -393,43 +325,6 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     "Security",
   );
 
-  const shouldOpenControlUi =
-    !opts.skipUi &&
-    settings.authMode === "token" &&
-    Boolean(settings.gatewayToken) &&
-    hatchChoice === null;
-  if (shouldOpenControlUi) {
-    const browserSupport = await detectBrowserOpenSupport();
-    if (browserSupport.ok) {
-      controlUiOpened = await openUrl(authedUrl);
-      if (!controlUiOpened) {
-        controlUiOpenHint = formatControlUiSshHint({
-          port: settings.port,
-          basePath: controlUiBasePath,
-          token: settings.gatewayToken,
-        });
-      }
-    } else {
-      controlUiOpenHint = formatControlUiSshHint({
-        port: settings.port,
-        basePath: controlUiBasePath,
-        token: settings.gatewayToken,
-      });
-    }
-
-    await prompter.note(
-      [
-        `Dashboard link (with token): ${authedUrl}`,
-        controlUiOpened
-          ? "Opened in your browser. Keep that tab to control Zee."
-          : "Copy/paste this URL in a browser on this machine to control Zee.",
-        controlUiOpenHint,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      "Dashboard ready",
-    );
-  }
 
   const webSearchKey = (nextConfig.tools?.web?.search?.apiKey ?? "").trim();
   const webSearchEnv = (process.env.BRAVE_API_KEY ?? "").trim();
@@ -465,10 +360,8 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
   );
 
   await prompter.outro(
-    controlUiOpened
-      ? "Onboarding complete. Dashboard opened with your token; keep that tab to control Zee."
-      : seededInBackground
-        ? "Onboarding complete. Web UI seeded in the background; open it anytime with the tokenized link above."
-        : "Onboarding complete. Use the tokenized dashboard link above to control Zee.",
+    ranTui
+      ? "Onboarding complete. TUI started."
+      : `Onboarding complete. Start the TUI with ${formatCliCommand("zee tui")} or chat via WhatsApp/Telegram.`,
   );
 }

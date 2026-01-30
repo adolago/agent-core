@@ -161,4 +161,4 @@ export function createZeeTools(options?: {
 }
 
 // Legacy alias
-export const createMoltbotTools = createZeeTools;
+export const createZeeTools = createZeeTools;

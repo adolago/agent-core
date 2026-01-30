@@ -92,7 +92,7 @@ export function registerOnboardCommand(program: Command) {
     .option("--skip-channels", "Skip channel setup")
     .option("--skip-skills", "Skip skills setup")
     .option("--skip-health", "Skip health check")
-    .option("--skip-ui", "Skip Control UI/TUI prompts")
+    .option("--skip-ui", "Skip TUI prompts")
     .option("--node-manager <name>", "Node manager for skills: npm|pnpm|bun")
     .option("--json", "Output JSON summary", false)
     .action(async (opts, command) => {

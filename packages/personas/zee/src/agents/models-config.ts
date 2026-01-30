@@ -138,7 +138,7 @@ export async function ensureZeeModelsJson(
 }
 
 // Legacy alias
-export async function ensureMoltbotModelsJson(
+export async function ensureZeeModelsJson(
   config?: ZeeConfig,
   agentDirOverride?: string,
 ): Promise<{ agentDir: string; wrote: boolean }> {

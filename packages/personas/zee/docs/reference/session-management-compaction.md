@@ -29,7 +29,7 @@ If you want a higher-level overview first, start with:
 
 Zee is designed around a single **Gateway process** that owns session state.
 
-- UIs (web Control UI, TUI) should query the Gateway for session lists and token counts.
+- UIs (web CLI/TUI, TUI) should query the Gateway for session lists and token counts.
 - In remote mode, session files are on the remote host; “checking your local host files” won’t reflect what the Gateway is using.
 
 ---
@@ -141,7 +141,7 @@ Zee intentionally does **not** “fix up” transcripts; the Gateway uses `Sessi
 Two different concepts matter:
 
 1) **Model context window**: hard cap per model (tokens visible to the model)
-2) **Session store counters**: rolling stats written into `sessions.json` (used for /status and dashboards)
+2) **Session store counters**: rolling stats written into `sessions.json` (used for /status and status views)
 
 If you’re tuning limits:
 - The context window comes from the model catalog (and can be overridden via config).

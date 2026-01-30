@@ -63,23 +63,15 @@ When the audit prints findings, treat this as a priority order:
 
 1. **Anything “open” + tools enabled**: lock down DMs/groups first (pairing/allowlists), then tighten tool policy/sandboxing.
 2. **Public network exposure** (LAN bind, Funnel, missing auth): fix immediately.
-3. **Browser control remote exposure**: treat it like operator access (tailnet-only, pair nodes deliberately, avoid public exposure).
+3. **Operator remote exposure**: treat it like privileged access (tailnet-only, pair nodes deliberately, avoid public exposure).
 4. **Permissions**: make sure state/config/credentials/auth are not group/world-readable.
 5. **Plugins/extensions**: only load what you explicitly trust.
 6. **Model choice**: prefer modern, instruction-hardened models for any bot with tools.
 
-## Control UI over HTTP
+## Gateway access over HTTP
 
-The Control UI needs a **secure context** (HTTPS or localhost) to generate device
-identity. If you enable `gateway.controlUi.allowInsecureAuth`, the UI falls back
-to **token-only auth** and skips device pairing when device identity is omitted. This is a security
-downgrade—prefer HTTPS (Tailscale Serve) or open the UI on `127.0.0.1`.
-
-For break-glass scenarios only, `gateway.controlUi.dangerouslyDisableDeviceAuth`
-disables device identity checks entirely. This is a severe security downgrade;
-keep it off unless you are actively debugging and can revert quickly.
-
-`zee security audit` warns when this setting is enabled.
+Use HTTPS or localhost for HTTP endpoints. Keep gateway auth enabled and avoid
+public exposure for loopback-only services. Prefer Tailscale Serve for remote access.
 
 ## Reverse Proxy Configuration
 
@@ -428,7 +420,7 @@ Trusted proxies:
 - Zee will trust `x-forwarded-for` (or `x-real-ip`) from those IPs to determine the client IP for local pairing checks and HTTP auth/local checks.
 - Ensure your proxy **overwrites** `x-forwarded-for` and blocks direct access to the Gateway port.
 
-See [Tailscale](/gateway/tailscale) and [Web overview](/web).
+See [Tailscale](/gateway/tailscale).
 
 ### 0.6.1) Browser control via node host (recommended)
 

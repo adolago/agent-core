@@ -81,18 +81,12 @@ function formatGatewayAuthFailureMessage(params: {
 }): string {
   const { authMode, authProvided, reason, client } = params;
   const isCli = isGatewayCliClient(client);
-  const isControlUi = client?.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
-  const uiHint = "open a tokenized dashboard URL or paste token in Control UI settings";
   const tokenHint = isCli
     ? "set gateway.remote.token to match gateway.auth.token"
-    : isControlUi
-      ? uiHint
-      : "provide gateway auth token";
+    : "provide gateway auth token";
   const passwordHint = isCli
     ? "set gateway.remote.password to match gateway.auth.password"
-    : isControlUi
-      ? "enter the password in Control UI settings"
-      : "provide gateway auth password";
+    : "provide gateway auth password";
   switch (reason) {
     case "token_missing":
       return `unauthorized: gateway token missing (${tokenHint})`;
@@ -365,36 +359,10 @@ export function attachGatewayWsMessageHandler(params: {
         const hasTokenAuth = Boolean(connectParams.auth?.token);
         const hasPasswordAuth = Boolean(connectParams.auth?.password);
         const hasSharedAuth = hasTokenAuth || hasPasswordAuth;
-        const isControlUi = connectParams.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
-        const allowInsecureControlUi =
-          isControlUi && configSnapshot.gateway?.controlUi?.allowInsecureAuth === true;
-        const disableControlUiDeviceAuth =
-          isControlUi && configSnapshot.gateway?.controlUi?.dangerouslyDisableDeviceAuth === true;
-        const allowControlUiBypass = allowInsecureControlUi || disableControlUiDeviceAuth;
-        const device = disableControlUiDeviceAuth ? null : deviceRaw;
+        const device = deviceRaw;
         if (!device) {
-          const canSkipDevice = allowControlUiBypass ? hasSharedAuth : hasTokenAuth;
+          const canSkipDevice = hasSharedAuth;
 
-          if (isControlUi && !allowControlUiBypass) {
-            const errorMessage = "control ui requires HTTPS or localhost (secure context)";
-            setHandshakeState("failed");
-            setCloseCause("control-ui-insecure-auth", {
-              client: connectParams.client.id,
-              clientDisplayName: connectParams.client.displayName,
-              mode: connectParams.client.mode,
-              version: connectParams.client.version,
-            });
-            send({
-              type: "res",
-              id: frame.id,
-              ok: false,
-              error: errorShape(ErrorCodes.INVALID_REQUEST, errorMessage),
-            });
-            close(1008, errorMessage);
-            return;
-          }
-
-          // Allow token-authenticated connections (e.g., control-ui) to skip device identity
           if (!canSkipDevice) {
             setHandshakeState("failed");
             setCloseCause("device-required", {
@@ -787,7 +755,7 @@ export function attachGatewayWsMessageHandler(params: {
           type: "hello-ok",
           protocol: PROTOCOL_VERSION,
           server: {
-            version: process.env.CLAWDBOT_VERSION ?? process.env.npm_package_version ?? "dev",
+            version: process.env.ZEE_VERSION ?? process.env.npm_package_version ?? "dev",
             commit: process.env.GIT_COMMIT,
             host: os.hostname(),
             connId,

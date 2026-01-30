@@ -96,7 +96,7 @@ function spawnGogServe(cfg: GmailHookRuntimeConfig): ChildProcess {
     if (addressInUse) {
       log.warn(
         "gog serve failed to bind (address already in use); stopping restarts. " +
-          "Another watcher is likely running. Set CLAWDBOT_SKIP_GMAIL_WATCHER=1 or stop the other process.",
+          "Another watcher is likely running. Set ZEE_SKIP_GMAIL_WATCHER=1 or stop the other process.",
       );
       watcherProcess = null;
       return;

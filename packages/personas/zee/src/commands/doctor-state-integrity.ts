@@ -102,7 +102,7 @@ function findOtherStateDirs(stateDir: string): string[] {
         ? [path.dirname(os.homedir())]
         : [];
   const found = new Set<string>();
-  const dirNames = [".zee", ".moltbot", ".clawdbot"];
+  const dirNames = [".zee", ".zee", ".zee"];
   for (const root of roots) {
     let entries: fs.Dirent[] = [];
     try {
@@ -361,7 +361,7 @@ export function noteWorkspaceBackupTip(workspaceDir: string) {
   note(
     [
       "- Tip: back up the workspace in a private git repo (GitHub or GitLab).",
-      "- Keep ~/.zee out of git; it contains credentials and session history (legacy: ~/.moltbot, ~/.clawdbot).",
+      "- Keep ~/.zee out of git; it contains credentials and session history (legacy: ~/.zee, ~/.zee).",
       "- Details: /concepts/agent-workspace#git-backup-recommended",
     ].join("\n"),
     "Workspace",

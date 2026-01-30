@@ -37,34 +37,6 @@ export function isTruthyEnvValue(value?: string): boolean {
   return parseBooleanValue(value) === true;
 }
 
-function mirrorEnvPrefix(primary: string, legacyPrefixes: string[]): void {
-  const env = process.env;
-  const keys = Object.keys(env);
-
-  for (const key of keys) {
-    if (!key.startsWith(primary)) continue;
-    const suffix = key.slice(primary.length);
-    const value = env[key];
-    if (!value?.trim()) continue;
-    for (const legacyPrefix of legacyPrefixes) {
-      const legacyKey = `${legacyPrefix}${suffix}`;
-      if (!env[legacyKey]) env[legacyKey] = value;
-    }
-  }
-
-  for (const key of keys) {
-    for (const legacyPrefix of legacyPrefixes) {
-      if (!key.startsWith(legacyPrefix)) continue;
-      const suffix = key.slice(legacyPrefix.length);
-      const primaryKey = `${primary}${suffix}`;
-      if (!env[primaryKey] && env[key]?.trim()) {
-        env[primaryKey] = env[key];
-      }
-    }
-  }
-}
-
 export function normalizeEnv(): void {
   normalizeZaiEnv();
-  mirrorEnvPrefix("ZEE_", ["MOLTBOT_", "CLAWDBOT_"]);
 }

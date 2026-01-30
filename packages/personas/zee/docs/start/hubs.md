@@ -80,8 +80,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Doctor](/gateway/doctor)
 - [Logging](/gateway/logging)
 - [Sandboxing](/gateway/sandboxing)
-- [Dashboard](/web/dashboard)
-- [Control UI](/web/control-ui)
 - [Remote access](/gateway/remote)
 - [Tailscale](/gateway/tailscale)
 - [Security](/gateway/security)
@@ -114,7 +112,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Platforms overview](/platforms)
 - [Windows (WSL2)](/platforms/windows)
 - [Linux](/platforms/linux)
-- [Web surfaces](/web)
 
 
 ## Workspace + templates

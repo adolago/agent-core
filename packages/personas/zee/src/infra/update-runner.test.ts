@@ -37,7 +37,7 @@ describe("runGatewayUpdate", () => {
     await fs.mkdir(path.join(tempDir, ".git"));
     await fs.writeFile(
       path.join(tempDir, "package.json"),
-      JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+      JSON.stringify({ name: "zee", version: "1.0.0" }),
       "utf-8",
     );
     const { runner, calls } = createRunner({
@@ -62,7 +62,7 @@ describe("runGatewayUpdate", () => {
     await fs.mkdir(path.join(tempDir, ".git"));
     await fs.writeFile(
       path.join(tempDir, "package.json"),
-      JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+      JSON.stringify({ name: "zee", version: "1.0.0" }),
       "utf-8",
     );
     const { runner, calls } = createRunner({
@@ -93,7 +93,7 @@ describe("runGatewayUpdate", () => {
     await fs.mkdir(path.join(tempDir, ".git"));
     await fs.writeFile(
       path.join(tempDir, "package.json"),
-      JSON.stringify({ name: "moltbot", version: "1.0.0", packageManager: "pnpm@8.0.0" }),
+      JSON.stringify({ name: "zee", version: "1.0.0", packageManager: "pnpm@8.0.0" }),
       "utf-8",
     );
     const stableTag = "v1.0.1-1";
@@ -127,7 +127,7 @@ describe("runGatewayUpdate", () => {
   it("skips update when no git root", async () => {
     await fs.writeFile(
       path.join(tempDir, "package.json"),
-      JSON.stringify({ name: "moltbot", packageManager: "pnpm@8.0.0" }),
+      JSON.stringify({ name: "zee", packageManager: "pnpm@8.0.0" }),
       "utf-8",
     );
     await fs.writeFile(path.join(tempDir, "pnpm-lock.yaml"), "", "utf-8");
@@ -151,11 +151,11 @@ describe("runGatewayUpdate", () => {
 
   it("updates global npm installs when detected", async () => {
     const nodeModules = path.join(tempDir, "node_modules");
-    const pkgRoot = path.join(nodeModules, "moltbot");
+    const pkgRoot = path.join(nodeModules, "zee");
     await fs.mkdir(pkgRoot, { recursive: true });
     await fs.writeFile(
       path.join(pkgRoot, "package.json"),
-      JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+      JSON.stringify({ name: "zee", version: "1.0.0" }),
       "utf-8",
     );
 
@@ -169,10 +169,10 @@ describe("runGatewayUpdate", () => {
       if (key === "npm root -g") {
         return { stdout: nodeModules, stderr: "", code: 0 };
       }
-      if (key === "npm i -g moltbot@latest") {
+      if (key === "npm i -g zee@latest") {
         await fs.writeFile(
           path.join(pkgRoot, "package.json"),
-          JSON.stringify({ name: "moltbot", version: "2.0.0" }),
+          JSON.stringify({ name: "zee", version: "2.0.0" }),
           "utf-8",
         );
         return { stdout: "ok", stderr: "", code: 0 };
@@ -193,16 +193,16 @@ describe("runGatewayUpdate", () => {
     expect(result.mode).toBe("npm");
     expect(result.before?.version).toBe("1.0.0");
     expect(result.after?.version).toBe("2.0.0");
-    expect(calls.some((call) => call === "npm i -g moltbot@latest")).toBe(true);
+    expect(calls.some((call) => call === "npm i -g zee@latest")).toBe(true);
   });
 
   it("updates global npm installs with tag override", async () => {
     const nodeModules = path.join(tempDir, "node_modules");
-    const pkgRoot = path.join(nodeModules, "moltbot");
+    const pkgRoot = path.join(nodeModules, "zee");
     await fs.mkdir(pkgRoot, { recursive: true });
     await fs.writeFile(
       path.join(pkgRoot, "package.json"),
-      JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+      JSON.stringify({ name: "zee", version: "1.0.0" }),
       "utf-8",
     );
 
@@ -216,10 +216,10 @@ describe("runGatewayUpdate", () => {
       if (key === "npm root -g") {
         return { stdout: nodeModules, stderr: "", code: 0 };
       }
-      if (key === "npm i -g moltbot@beta") {
+      if (key === "npm i -g zee@beta") {
         await fs.writeFile(
           path.join(pkgRoot, "package.json"),
-          JSON.stringify({ name: "moltbot", version: "2.0.0" }),
+          JSON.stringify({ name: "zee", version: "2.0.0" }),
           "utf-8",
         );
         return { stdout: "ok", stderr: "", code: 0 };
@@ -241,7 +241,7 @@ describe("runGatewayUpdate", () => {
     expect(result.mode).toBe("npm");
     expect(result.before?.version).toBe("1.0.0");
     expect(result.after?.version).toBe("2.0.0");
-    expect(calls.some((call) => call === "npm i -g moltbot@beta")).toBe(true);
+    expect(calls.some((call) => call === "npm i -g zee@beta")).toBe(true);
   });
 
   it("updates global bun installs when detected", async () => {
@@ -251,11 +251,11 @@ describe("runGatewayUpdate", () => {
 
     try {
       const bunGlobalRoot = path.join(bunInstall, "install", "global", "node_modules");
-      const pkgRoot = path.join(bunGlobalRoot, "moltbot");
+      const pkgRoot = path.join(bunGlobalRoot, "zee");
       await fs.mkdir(pkgRoot, { recursive: true });
       await fs.writeFile(
         path.join(pkgRoot, "package.json"),
-        JSON.stringify({ name: "moltbot", version: "1.0.0" }),
+        JSON.stringify({ name: "zee", version: "1.0.0" }),
         "utf-8",
       );
 
@@ -272,10 +272,10 @@ describe("runGatewayUpdate", () => {
         if (key === "pnpm root -g") {
           return { stdout: "", stderr: "", code: 1 };
         }
-        if (key === "bun add -g moltbot@latest") {
+        if (key === "bun add -g zee@latest") {
           await fs.writeFile(
             path.join(pkgRoot, "package.json"),
-            JSON.stringify({ name: "moltbot", version: "2.0.0" }),
+            JSON.stringify({ name: "zee", version: "2.0.0" }),
             "utf-8",
           );
           return { stdout: "ok", stderr: "", code: 0 };
@@ -293,14 +293,14 @@ describe("runGatewayUpdate", () => {
       expect(result.mode).toBe("bun");
       expect(result.before?.version).toBe("1.0.0");
       expect(result.after?.version).toBe("2.0.0");
-      expect(calls.some((call) => call === "bun add -g moltbot@latest")).toBe(true);
+      expect(calls.some((call) => call === "bun add -g zee@latest")).toBe(true);
     } finally {
       if (oldBunInstall === undefined) delete process.env.BUN_INSTALL;
       else process.env.BUN_INSTALL = oldBunInstall;
     }
   });
 
-  it("rejects git roots that are not a moltbot checkout", async () => {
+  it("rejects git roots that are not a zee checkout", async () => {
     await fs.mkdir(path.join(tempDir, ".git"));
     const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(tempDir);
     const { runner, calls } = createRunner({

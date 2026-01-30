@@ -5,14 +5,14 @@ read_when: "Changing onboarding wizard steps or config schema endpoints"
 
 # Onboarding + Config Protocol
 
-Purpose: shared onboarding + config surfaces across CLI, Control UI, and Web UI.
+Purpose: shared onboarding + config surfaces across CLI, TUI, and GPUI desktop clients.
 
 ## Components
 - Wizard engine (shared session + prompts + onboarding state).
-- CLI onboarding uses the same wizard flow as the UI clients.
+- CLI onboarding uses the same wizard flow as the desktop clients.
 - Gateway RPC exposes wizard + config schema endpoints.
-- Control UI onboarding uses the wizard step model.
-- Web UI renders config forms from JSON Schema + UI hints.
+- CLI/TUI onboarding uses the wizard step model.
+- Desktop clients render config forms from JSON Schema + UI hints.
 
 ## Gateway RPC
 - `wizard.start` params: `{ mode?: "local"|"remote", workspace?: string }`

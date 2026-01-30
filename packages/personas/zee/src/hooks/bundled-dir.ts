@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export function resolveBundledHooksDir(): string | undefined {
-  const override = process.env.CLAWDBOT_BUNDLED_HOOKS_DIR?.trim();
+  const override = process.env.ZEE_BUNDLED_HOOKS_DIR?.trim();
   if (override) return override;
 
   // bun --compile: ship a sibling `hooks/bundled/` next to the executable.

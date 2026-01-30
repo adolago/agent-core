@@ -27,7 +27,7 @@ export async function resolveZeeDocsPath(params: {
 }
 
 // Legacy alias
-export async function resolveMoltbotDocsPath(params: {
+export async function resolveZeeDocsPath(params: {
   workspaceDir?: string;
   argv1?: string;
   cwd?: string;

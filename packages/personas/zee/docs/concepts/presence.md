@@ -9,9 +9,9 @@ read_when:
 
 Zee “presence” is a lightweight, best-effort view of:
 - the **Gateway** itself, and
-- **clients connected to the Gateway** (Control UI, CLI, etc.)
+- **clients connected to the Gateway** (CLI/TUI, CLI, etc.)
 
-Presence is used primarily to render the Control UI **Instances** list and to
+Presence is used primarily to render the CLI/TUI **Instances** list and to
 provide quick operator visibility.
 
 ## Presence fields (what shows up)
@@ -83,9 +83,9 @@ IP, loopback remote addresses are ignored.
 
 ## Consumers
 
-### Control UI Instances list
+### CLI/TUI Instances list
 
-The Control UI renders the output of `system-presence` and applies a small status
+The CLI/TUI renders the output of `system-presence` and applies a small status
 indicator (Active/Idle/Stale) based on the age of the last update.
 
 ## Debugging tips

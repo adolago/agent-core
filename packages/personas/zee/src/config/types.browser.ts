@@ -4,7 +4,7 @@ export type BrowserProfileConfig = {
   /** CDP URL for this profile (use for remote Chrome). */
   cdpUrl?: string;
   /** Profile driver (default: zee). */
-  driver?: "zee" | "clawd" | "extension";
+  driver?: "zee" | "extension";
   /** Profile color (hex). Auto-assigned at creation. */
   color: string;
 };

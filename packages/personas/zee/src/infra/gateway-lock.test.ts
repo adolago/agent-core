@@ -11,14 +11,14 @@ import { resolveConfigPath, resolveGatewayLockDir, resolveStateDir } from "../co
 
 async function makeEnv() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gateway-lock-"));
-  const configPath = path.join(dir, "moltbot.json");
+  const configPath = path.join(dir, "zee.json");
   await fs.writeFile(configPath, "{}", "utf8");
   await fs.mkdir(resolveGatewayLockDir(), { recursive: true });
   return {
     env: {
       ...process.env,
-      CLAWDBOT_STATE_DIR: dir,
-      CLAWDBOT_CONFIG_PATH: configPath,
+      ZEE_STATE_DIR: dir,
+      ZEE_CONFIG_PATH: configPath,
     },
     cleanup: async () => {
       await fs.rm(dir, { recursive: true, force: true });

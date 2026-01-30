@@ -61,9 +61,6 @@ export const TIMEOUT_WEBFETCH_MAX_MS = 300_000;
 /** Default API server port */
 export const DEFAULT_API_PORT = 3456;
 
-/** Default web UI port */
-export const DEFAULT_WEB_PORT = 3000;
-
 // =============================================================================
 // Memory Limits
 // =============================================================================

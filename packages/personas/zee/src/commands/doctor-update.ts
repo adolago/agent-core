@@ -31,7 +31,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
 }) {
   const updateInProgress =
     isTruthyEnvValue(process.env.ZEE_UPDATE_IN_PROGRESS) ||
-    isTruthyEnvValue(process.env.CLAWDBOT_UPDATE_IN_PROGRESS);
+    isTruthyEnvValue(process.env.ZEE_UPDATE_IN_PROGRESS);
   const canOfferUpdate =
     !updateInProgress &&
     params.options.nonInteractive !== true &&

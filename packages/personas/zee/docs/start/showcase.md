@@ -116,14 +116,6 @@ Full setup walkthrough (28m) by VelvetShark.
   <img src="/assets/showcase/snag.png" alt="SNAG screenshot-to-markdown tool" />
 </Card>
 
-<Card title="Agents UI" icon="window-maximize" href="https://releaseflow.net/kitze/agents-ui">
-  **@kitze** • `ui` `skills` `sync`
-
-  Desktop app to manage skills/commands across Agents, Claude, Codex, and Zee.
-
-  <img src="/assets/showcase/agents-ui.jpg" alt="Agents UI app" />
-</Card>
-
 <Card title="Telegram Voice Notes (papla.media)" icon="microphone" href="https://papla.media/docs">
   **Community** • `voice` `tts` `telegram`
 

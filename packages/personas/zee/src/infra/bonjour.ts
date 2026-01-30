@@ -30,8 +30,8 @@ export type GatewayBonjourAdvertiseOpts = {
 function isDisabledByEnv() {
   if (
     isTruthyEnvValue(process.env.ZEE_DISABLE_BONJOUR) ||
-    isTruthyEnvValue(process.env.MOLTBOT_DISABLE_BONJOUR) ||
-    isTruthyEnvValue(process.env.CLAWDBOT_DISABLE_BONJOUR)
+    isTruthyEnvValue(process.env.ZEE_DISABLE_BONJOUR) ||
+    isTruthyEnvValue(process.env.ZEE_DISABLE_BONJOUR)
   ) {
     return true;
   }

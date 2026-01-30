@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { LEGACY_MANIFEST_KEY } from "../compat/legacy-names.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import {
@@ -24,8 +23,6 @@ type HookPackageManifest = {
   version?: string;
   dependencies?: Record<string, string>;
   zee?: { hooks?: string[] };
-  moltbot?: { hooks?: string[] };
-  [LEGACY_MANIFEST_KEY]?: { hooks?: string[] };
 };
 
 export type InstallHooksResult =
@@ -58,8 +55,7 @@ export function resolveHookInstallDir(hookId: string, hooksDir?: string): string
 }
 
 async function ensureZeeHooks(manifest: HookPackageManifest) {
-  const hooks =
-    manifest.zee?.hooks ?? manifest.moltbot?.hooks ?? manifest[LEGACY_MANIFEST_KEY]?.hooks;
+  const hooks = manifest.zee?.hooks;
   if (!Array.isArray(hooks)) {
     throw new Error("package.json missing zee.hooks");
   }

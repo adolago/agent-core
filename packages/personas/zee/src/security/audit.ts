@@ -256,7 +256,6 @@ function collectGatewayConfigFindings(
   const bind = typeof cfg.gateway?.bind === "string" ? cfg.gateway.bind : "loopback";
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
   const auth = resolveGatewayAuth({ authConfig: cfg.gateway?.auth, tailscaleMode, env });
-  const controlUiEnabled = cfg.gateway?.controlUi?.enabled !== false;
   const trustedProxies = Array.isArray(cfg.gateway?.trustedProxies)
     ? cfg.gateway.trustedProxies
     : [];
@@ -277,29 +276,29 @@ function collectGatewayConfigFindings(
     });
   }
 
-  if (bind === "loopback" && controlUiEnabled && trustedProxies.length === 0) {
+  if (bind === "loopback" && trustedProxies.length === 0) {
     findings.push({
       checkId: "gateway.trusted_proxies_missing",
       severity: "warn",
       title: "Reverse proxy headers are not trusted",
       detail:
         "gateway.bind is loopback and gateway.trustedProxies is empty. " +
-        "If you expose the Control UI through a reverse proxy, configure trusted proxies " +
+        "If you expose the Gateway through a reverse proxy, configure trusted proxies " +
         "so local-client checks cannot be spoofed.",
       remediation:
-        "Set gateway.trustedProxies to your proxy IPs or keep the Control UI local-only.",
+        "Set gateway.trustedProxies to your proxy IPs or keep the Gateway local-only.",
     });
   }
 
-  if (bind === "loopback" && controlUiEnabled && !hasGatewayAuth) {
+  if (bind === "loopback" && !hasGatewayAuth) {
     findings.push({
       checkId: "gateway.loopback_no_auth",
       severity: "critical",
       title: "Gateway auth missing on loopback",
       detail:
         "gateway.bind is loopback but no gateway auth secret is configured. " +
-        "If the Control UI is exposed through a reverse proxy, unauthenticated access is possible.",
-      remediation: "Set gateway.auth (token recommended) or keep the Control UI local-only.",
+        "If the Gateway is exposed through a reverse proxy, unauthenticated access is possible.",
+      remediation: "Set gateway.auth (token recommended) or keep the Gateway local-only.",
     });
   }
 
@@ -317,28 +316,6 @@ function collectGatewayConfigFindings(
       severity: "info",
       title: "Tailscale Serve exposure enabled",
       detail: `gateway.tailscale.mode="serve" exposes the Gateway to your tailnet (loopback behind Tailscale).`,
-    });
-  }
-
-  if (cfg.gateway?.controlUi?.allowInsecureAuth === true) {
-    findings.push({
-      checkId: "gateway.control_ui.insecure_auth",
-      severity: "critical",
-      title: "Control UI allows insecure HTTP auth",
-      detail:
-        "gateway.controlUi.allowInsecureAuth=true allows token-only auth over HTTP and skips device identity.",
-      remediation: "Disable it or switch to HTTPS (Tailscale Serve) or localhost.",
-    });
-  }
-
-  if (cfg.gateway?.controlUi?.dangerouslyDisableDeviceAuth === true) {
-    findings.push({
-      checkId: "gateway.control_ui.device_auth_disabled",
-      severity: "critical",
-      title: "DANGEROUS: Control UI device auth disabled",
-      detail:
-        "gateway.controlUi.dangerouslyDisableDeviceAuth=true disables device identity checks for the Control UI.",
-      remediation: "Disable it unless you are in a short-lived break-glass scenario.",
     });
   }
 
@@ -678,10 +655,10 @@ async function maybeProbeGateway(params: {
         ? typeof remote?.token === "string" && remote.token.trim()
           ? remote.token.trim()
           : undefined
-        : process.env.CLAWDBOT_GATEWAY_TOKEN?.trim() ||
+        : process.env.ZEE_GATEWAY_TOKEN?.trim() ||
           (typeof authToken === "string" && authToken.trim() ? authToken.trim() : undefined);
     const password =
-      process.env.CLAWDBOT_GATEWAY_PASSWORD?.trim() ||
+      process.env.ZEE_GATEWAY_PASSWORD?.trim() ||
       (mode === "remote"
         ? typeof remote?.password === "string" && remote.password.trim()
           ? remote.password.trim()

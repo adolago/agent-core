@@ -1,6 +1,5 @@
 import JSON5 from "json5";
 
-import { LEGACY_MANIFEST_KEY } from "../compat/legacy-names.js";
 import { parseFrontmatterBlock } from "../markdown/frontmatter.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import type {
@@ -71,14 +70,9 @@ export function resolveZeeMetadata(
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON5.parse(raw) as { zee?: unknown; moltbot?: unknown } & Partial<
-      Record<typeof LEGACY_MANIFEST_KEY, unknown>
-    >;
+    const parsed = JSON5.parse(raw) as { zee?: unknown };
     if (!parsed || typeof parsed !== "object") return undefined;
-    const metadataRaw =
-      parsed[HOOK_METADATA_KEY] ??
-      parsed.moltbot ??
-      parsed[LEGACY_MANIFEST_KEY];
+    const metadataRaw = parsed[HOOK_METADATA_KEY];
     if (!metadataRaw || typeof metadataRaw !== "object") return undefined;
     const metadataObj = metadataRaw as Record<string, unknown>;
     const requiresRaw =

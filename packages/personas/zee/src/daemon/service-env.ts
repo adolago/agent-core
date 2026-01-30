@@ -125,29 +125,20 @@ export function buildServiceEnvironment(params: {
   token?: string;
 }): Record<string, string | undefined> {
   const { env, port, token } = params;
-  const profile = env.ZEE_PROFILE ?? env.CLAWDBOT_PROFILE;
+  const profile = env.ZEE_PROFILE;
   const systemdUnit = `${resolveGatewaySystemdServiceName(profile)}.service`;
   return {
     HOME: env.HOME,
     PATH: buildMinimalServicePath({ env }),
     ZEE_PROFILE: profile,
-    ZEE_STATE_DIR: env.ZEE_STATE_DIR ?? env.CLAWDBOT_STATE_DIR,
-    ZEE_CONFIG_PATH: env.ZEE_CONFIG_PATH ?? env.CLAWDBOT_CONFIG_PATH,
+    ZEE_STATE_DIR: env.ZEE_STATE_DIR,
+    ZEE_CONFIG_PATH: env.ZEE_CONFIG_PATH,
     ZEE_GATEWAY_PORT: String(port),
     ZEE_GATEWAY_TOKEN: token,
     ZEE_SYSTEMD_UNIT: systemdUnit,
     ZEE_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
     ZEE_SERVICE_KIND: GATEWAY_SERVICE_KIND,
     ZEE_SERVICE_VERSION: VERSION,
-    CLAWDBOT_PROFILE: profile,
-    CLAWDBOT_STATE_DIR: env.CLAWDBOT_STATE_DIR,
-    CLAWDBOT_CONFIG_PATH: env.CLAWDBOT_CONFIG_PATH,
-    CLAWDBOT_GATEWAY_PORT: String(port),
-    CLAWDBOT_GATEWAY_TOKEN: token,
-    CLAWDBOT_SYSTEMD_UNIT: systemdUnit,
-    CLAWDBOT_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
-    CLAWDBOT_SERVICE_KIND: GATEWAY_SERVICE_KIND,
-    CLAWDBOT_SERVICE_VERSION: VERSION,
   };
 }
 
@@ -158,8 +149,8 @@ export function buildNodeServiceEnvironment(params: {
   return {
     HOME: env.HOME,
     PATH: buildMinimalServicePath({ env }),
-    ZEE_STATE_DIR: env.ZEE_STATE_DIR ?? env.CLAWDBOT_STATE_DIR,
-    ZEE_CONFIG_PATH: env.ZEE_CONFIG_PATH ?? env.CLAWDBOT_CONFIG_PATH,
+    ZEE_STATE_DIR: env.ZEE_STATE_DIR,
+    ZEE_CONFIG_PATH: env.ZEE_CONFIG_PATH,
     ZEE_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
     ZEE_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
     ZEE_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
@@ -167,14 +158,5 @@ export function buildNodeServiceEnvironment(params: {
     ZEE_SERVICE_MARKER: NODE_SERVICE_MARKER,
     ZEE_SERVICE_KIND: NODE_SERVICE_KIND,
     ZEE_SERVICE_VERSION: VERSION,
-    CLAWDBOT_STATE_DIR: env.CLAWDBOT_STATE_DIR,
-    CLAWDBOT_CONFIG_PATH: env.CLAWDBOT_CONFIG_PATH,
-    CLAWDBOT_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    CLAWDBOT_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    CLAWDBOT_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    CLAWDBOT_LOG_PREFIX: "node",
-    CLAWDBOT_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    CLAWDBOT_SERVICE_KIND: NODE_SERVICE_KIND,
-    CLAWDBOT_SERVICE_VERSION: VERSION,
   };
 }

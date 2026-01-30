@@ -126,9 +126,9 @@ describe("runReplyAgent typing (heartbeat)", () => {
   });
 
   it("retries after compaction failure by resetting the session", async () => {
-    const prevStateDir = process.env.CLAWDBOT_STATE_DIR;
+    const prevStateDir = process.env.ZEE_STATE_DIR;
     const stateDir = await fs.mkdtemp(path.join(tmpdir(), "zee-session-compaction-reset-"));
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
+    process.env.ZEE_STATE_DIR = stateDir;
     try {
       const sessionId = "session";
       const storePath = path.join(stateDir, "sessions", "sessions.json");
@@ -167,17 +167,17 @@ describe("runReplyAgent typing (heartbeat)", () => {
       expect(persisted.main.sessionId).toBe(sessionStore.main.sessionId);
     } finally {
       if (prevStateDir) {
-        process.env.CLAWDBOT_STATE_DIR = prevStateDir;
+        process.env.ZEE_STATE_DIR = prevStateDir;
       } else {
-        delete process.env.CLAWDBOT_STATE_DIR;
+        delete process.env.ZEE_STATE_DIR;
       }
     }
   });
 
   it("retries after context overflow payload by resetting the session", async () => {
-    const prevStateDir = process.env.CLAWDBOT_STATE_DIR;
+    const prevStateDir = process.env.ZEE_STATE_DIR;
     const stateDir = await fs.mkdtemp(path.join(tmpdir(), "zee-session-overflow-reset-"));
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
+    process.env.ZEE_STATE_DIR = stateDir;
     try {
       const sessionId = "session";
       const storePath = path.join(stateDir, "sessions", "sessions.json");
@@ -221,17 +221,17 @@ describe("runReplyAgent typing (heartbeat)", () => {
       expect(persisted.main.sessionId).toBe(sessionStore.main.sessionId);
     } finally {
       if (prevStateDir) {
-        process.env.CLAWDBOT_STATE_DIR = prevStateDir;
+        process.env.ZEE_STATE_DIR = prevStateDir;
       } else {
-        delete process.env.CLAWDBOT_STATE_DIR;
+        delete process.env.ZEE_STATE_DIR;
       }
     }
   });
 
   it("resets the session after role ordering payloads", async () => {
-    const prevStateDir = process.env.CLAWDBOT_STATE_DIR;
+    const prevStateDir = process.env.ZEE_STATE_DIR;
     const stateDir = await fs.mkdtemp(path.join(tmpdir(), "zee-session-role-ordering-"));
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
+    process.env.ZEE_STATE_DIR = stateDir;
     try {
       const sessionId = "session";
       const storePath = path.join(stateDir, "sessions", "sessions.json");
@@ -275,9 +275,9 @@ describe("runReplyAgent typing (heartbeat)", () => {
       expect(persisted.main.sessionId).toBe(sessionStore.main.sessionId);
     } finally {
       if (prevStateDir) {
-        process.env.CLAWDBOT_STATE_DIR = prevStateDir;
+        process.env.ZEE_STATE_DIR = prevStateDir;
       } else {
-        delete process.env.CLAWDBOT_STATE_DIR;
+        delete process.env.ZEE_STATE_DIR;
       }
     }
   });

@@ -11,11 +11,11 @@ describe("renderTable", () => {
         { key: "Item", header: "Item", minWidth: 10 },
         { key: "Value", header: "Value", flex: true, minWidth: 24 },
       ],
-      rows: [{ Item: "Dashboard", Value: "http://127.0.0.1:18789/" }],
+      rows: [{ Item: "Gateway", Value: "http://127.0.0.1:18789/" }],
     });
 
-    expect(out).toContain("Dashboard");
-    expect(out).toMatch(/│ Dashboard\s+│/);
+    expect(out).toContain("Gateway");
+    expect(out).toMatch(/│ Gateway\s+│/);
   });
 
   it("expands flex columns to fill available width", () => {

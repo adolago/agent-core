@@ -59,17 +59,6 @@ export type TalkConfig = {
   interruptOnSpeech?: boolean;
 };
 
-export type GatewayControlUiConfig = {
-  /** If false, the Gateway will not serve the Control UI (default /). */
-  enabled?: boolean;
-  /** Optional base path prefix for the Control UI (e.g. "/zee"). */
-  basePath?: string;
-  /** Allow token-only auth over insecure HTTP (default: false). */
-  allowInsecureAuth?: boolean;
-  /** DANGEROUS: Disable device identity checks for the Control UI (default: false). */
-  dangerouslyDisableDeviceAuth?: boolean;
-};
-
 export type GatewayAuthMode = "token" | "password";
 
 export type GatewayAuthConfig = {
@@ -86,7 +75,7 @@ export type GatewayAuthConfig = {
 export type GatewayTailscaleMode = "off" | "serve" | "funnel";
 
 export type GatewayTailscaleConfig = {
-  /** Tailscale exposure mode for the Gateway control UI. */
+  /** Tailscale exposure mode for the Gateway. */
   mode?: GatewayTailscaleMode;
   /** Reset serve/funnel configuration on shutdown. */
   resetOnExit?: boolean;
@@ -227,7 +216,7 @@ export type GatewayConfig = {
    */
   mode?: "local" | "remote";
   /**
-   * Bind address policy for the Gateway WebSocket + Control UI HTTP server.
+   * Bind address policy for the Gateway WebSocket + HTTP server.
    * - auto: Loopback (127.0.0.1) if available, else 0.0.0.0 (fallback to all interfaces)
    * - lan: 0.0.0.0 (all interfaces, no fallback)
    * - loopback: 127.0.0.1 (local-only)
@@ -238,7 +227,6 @@ export type GatewayConfig = {
   bind?: GatewayBindMode;
   /** Custom IP address for bind="custom" mode. Fallback: 0.0.0.0. */
   customBindHost?: string;
-  controlUi?: GatewayControlUiConfig;
   auth?: GatewayAuthConfig;
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;

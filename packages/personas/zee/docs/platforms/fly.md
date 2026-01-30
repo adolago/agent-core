@@ -19,7 +19,7 @@ description: Deploy Zee on Fly.io
 1. Clone repo → customize `fly.toml`
 2. Create app + volume → set secrets
 3. Deploy with `fly deploy`
-4. SSH in to create config or use Control UI
+4. SSH in to create config or use CLI/TUI
 
 ## 1) Create the Fly app
 
@@ -204,7 +204,7 @@ fly machine restart <machine-id>
 
 ## 6) Access the Gateway
 
-### Control UI
+### CLI/TUI
 
 Open in browser:
 ```bash
@@ -442,7 +442,7 @@ The ngrok tunnel runs inside the container and provides a public webhook URL wit
 |--------|--------|---------|
 | Internet scanners | Discoverable | Hidden |
 | Direct attacks | Possible | Blocked |
-| Control UI access | Browser | Proxy/VPN |
+| CLI/TUI access | Browser | Proxy/VPN |
 | Webhook delivery | Direct | Via tunnel |
 
 ## Notes

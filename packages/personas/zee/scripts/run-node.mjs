@@ -7,7 +7,7 @@ import process from "node:process";
 const args = process.argv.slice(2);
 const env = { ...process.env };
 const cwd = process.cwd();
-const compiler = env.CLAWDBOT_TS_COMPILER === "tsc" ? "tsc" : "tsgo";
+const compiler = env.ZEE_TS_COMPILER === "tsc" ? "tsc" : "tsgo";
 const projectArgs = ["--project", "tsconfig.json"];
 
 const distRoot = path.join(cwd, "dist");
@@ -65,7 +65,7 @@ const findLatestMtime = (dirPath, shouldSkip) => {
 };
 
 const shouldBuild = () => {
-  if (env.CLAWDBOT_FORCE_BUILD === "1") return true;
+  if (env.ZEE_FORCE_BUILD === "1") return true;
   const stampMtime = statMtime(buildStampPath);
   if (stampMtime == null) return true;
   if (statMtime(distEntry) == null) return true;
@@ -81,7 +81,7 @@ const shouldBuild = () => {
 };
 
 const logRunner = (message) => {
-  if (env.CLAWDBOT_RUNNER_LOG === "0") return;
+  if (env.ZEE_RUNNER_LOG === "0") return;
   process.stderr.write(`[zee] ${message}\n`);
 };
 

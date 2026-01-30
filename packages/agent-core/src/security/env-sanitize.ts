@@ -2,7 +2,7 @@
  * Environment Variable Sanitization
  *
  * Prevents PATH injection and other environment-based attacks.
- * Based on ClawdBot commit 771f23d36b (PATH injection prevention).
+ * Based on Zee commit 771f23d36b (PATH injection prevention).
  *
  * The risk: If an attacker can control environment variables like PATH,
  * and those values contain shell metacharacters (e.g., $(command)),

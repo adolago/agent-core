@@ -63,8 +63,8 @@ const DEFAULT_ASK_FALLBACK: ExecSecurity = "deny";
 const DEFAULT_AUTO_ALLOW_SKILLS = false;
 const DEFAULT_SOCKET = "~/.zee/exec-approvals.sock";
 const DEFAULT_FILE = "~/.zee/exec-approvals.json";
-const LEGACY_SOCKET = "~/.clawdbot/exec-approvals.sock";
-const LEGACY_FILE = "~/.clawdbot/exec-approvals.json";
+const LEGACY_SOCKET = "~/.zee/exec-approvals.sock";
+const LEGACY_FILE = "~/.zee/exec-approvals.json";
 export const DEFAULT_SAFE_BINS = ["jq", "grep", "cut", "sort", "uniq", "head", "tail", "tr", "wc"];
 
 function hashExecApprovalsRaw(raw: string | null): string {

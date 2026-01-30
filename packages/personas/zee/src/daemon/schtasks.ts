@@ -17,19 +17,15 @@ const formatLine = (label: string, value: string) => {
 };
 
 function resolveTaskName(env: Record<string, string | undefined>): string {
-  const override =
-    env.ZEE_WINDOWS_TASK_NAME?.trim() ?? env.CLAWDBOT_WINDOWS_TASK_NAME?.trim();
+  const override = env.ZEE_WINDOWS_TASK_NAME?.trim();
   if (override) return override;
-  return resolveGatewayWindowsTaskName(env.ZEE_PROFILE ?? env.CLAWDBOT_PROFILE);
+  return resolveGatewayWindowsTaskName(env.ZEE_PROFILE);
 }
 
 export function resolveTaskScriptPath(env: Record<string, string | undefined>): string {
-  const override = env.ZEE_TASK_SCRIPT?.trim() ?? env.CLAWDBOT_TASK_SCRIPT?.trim();
+  const override = env.ZEE_TASK_SCRIPT?.trim();
   if (override) return override;
-  const scriptName =
-    env.ZEE_TASK_SCRIPT_NAME?.trim() ??
-    env.CLAWDBOT_TASK_SCRIPT_NAME?.trim() ??
-    "gateway.cmd";
+  const scriptName = env.ZEE_TASK_SCRIPT_NAME?.trim() ?? "gateway.cmd";
   const stateDir = resolveGatewayStateDir(env);
   return path.join(stateDir, scriptName);
 }
@@ -229,8 +225,8 @@ export async function installScheduledTask({
   const taskDescription =
     description ??
     formatGatewayServiceDescription({
-      profile: env.CLAWDBOT_PROFILE,
-      version: environment?.CLAWDBOT_SERVICE_VERSION ?? env.CLAWDBOT_SERVICE_VERSION,
+      profile: env.ZEE_PROFILE,
+      version: environment?.ZEE_SERVICE_VERSION ?? env.ZEE_SERVICE_VERSION,
     });
   const script = buildTaskScript({
     description: taskDescription,

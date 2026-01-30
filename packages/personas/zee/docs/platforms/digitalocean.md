@@ -98,7 +98,7 @@ journalctl --user -u zee-gateway.service -f
 
 ## 6) Access the Dashboard
 
-The gateway binds to loopback by default. To access the Control UI:
+The gateway binds to loopback by default. To access the CLI/TUI:
 
 **Option A: SSH Tunnel (recommended)**
 ```bash

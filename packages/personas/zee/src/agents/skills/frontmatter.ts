@@ -80,12 +80,12 @@ export function resolveZeeMetadata(
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON5.parse(raw) as { zee?: unknown; moltbot?: unknown } & Partial<
+    const parsed = JSON5.parse(raw) as { zee?: unknown; zee?: unknown } & Partial<
       Record<typeof LEGACY_MANIFEST_KEY, unknown>
     >;
     if (!parsed || typeof parsed !== "object") return undefined;
     const metadataRaw =
-      parsed[SKILL_METADATA_KEY] ?? parsed.moltbot ?? parsed[LEGACY_MANIFEST_KEY];
+      parsed[SKILL_METADATA_KEY] ?? parsed.zee ?? parsed[LEGACY_MANIFEST_KEY];
     if (!metadataRaw || typeof metadataRaw !== "object") return undefined;
     const metadataObj = metadataRaw as Record<string, unknown>;
     const requiresRaw =

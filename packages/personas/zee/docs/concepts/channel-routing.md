@@ -92,10 +92,10 @@ Session stores live under the state directory (default `~/.zee`):
 
 You can override the store path via `session.store` and `{agentId}` templating.
 
-## Control UI behavior
+## CLI/TUI behavior
 
-Control UI attaches to the **selected agent** and defaults to the agent’s main
-session. Because of this, Control UI lets you see cross-channel context for that
+CLI/TUI attaches to the **selected agent** and defaults to the agent’s main
+session. Because of this, CLI/TUI lets you see cross-channel context for that
 agent in one place.
 
 ## Reply context

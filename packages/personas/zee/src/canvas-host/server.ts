@@ -173,7 +173,7 @@ async function resolveFilePath(rootReal: string, urlPath: string) {
 
 function isDisabledByEnv() {
   if (isTruthyEnvValue(process.env.ZEE_SKIP_CANVAS_HOST)) return true;
-  if (isTruthyEnvValue(process.env.CLAWDBOT_SKIP_CANVAS_HOST)) return true;
+  if (isTruthyEnvValue(process.env.ZEE_SKIP_CANVAS_HOST)) return true;
   if (process.env.NODE_ENV === "test") return true;
   if (process.env.VITEST) return true;
   return false;

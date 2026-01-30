@@ -18,7 +18,7 @@ function writeTempPlugin(params: { dir: string; id: string; body: string }): str
   const file = path.join(pluginDir, `${params.id}.mjs`);
   fs.writeFileSync(file, params.body, "utf-8");
   fs.writeFileSync(
-    path.join(pluginDir, "moltbot.plugin.json"),
+    path.join(pluginDir, "zee.plugin.json"),
     JSON.stringify(
       {
         id: params.id,
@@ -68,7 +68,7 @@ describe("tool_result_persist hook", () => {
 
   it("composes transforms in priority order and allows stripping toolResult.details", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zee-toolpersist-"));
-    process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
 
     const pluginA = writeTempPlugin({
       dir: tmp,

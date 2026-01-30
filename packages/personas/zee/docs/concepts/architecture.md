@@ -9,8 +9,8 @@ Last updated: 2026-01-22
 
 ## Overview
 
-- A single long‑lived **Gateway** owns all messaging surfaces (WhatsApp via
-- Control-plane clients (CLI, web UI, automations) connect to the
+- A single long‑lived **Gateway** owns all messaging surfaces.
+- Control-plane clients (CLI/TUI, GPUI desktop, automations) connect to the
   Gateway over **WebSocket** on the configured bind host (default
   `127.0.0.1:18789`).
 - **Nodes** (headless node hosts) also connect over **WebSocket**, but
@@ -26,7 +26,7 @@ Last updated: 2026-01-22
 - Validates inbound frames against JSON Schema.
 - Emits events like `agent`, `chat`, `presence`, `health`, `heartbeat`, `cron`.
 
-### Clients (CLI / web admin)
+### Clients (CLI / TUI / GPUI desktop)
 - One WS connection per client.
 - Send requests (`health`, `status`, `send`, `agent`, `system-presence`).
 - Subscribe to events (`tick`, `agent`, `presence`, `shutdown`).
@@ -40,7 +40,7 @@ Last updated: 2026-01-22
 Protocol details:
 - [Gateway protocol](/gateway/protocol)
 
-### Control UI
+### CLI/TUI
 - Static UI that uses the Gateway WS API for chat history and sends.
 - In remote setups, connects through the same SSH/Tailscale tunnel as other
   clients.

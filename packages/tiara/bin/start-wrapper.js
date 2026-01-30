@@ -16,64 +16,14 @@ export async function startCommand(subArgs, flags) {
   const port = flags.port || getArgValue(subArgs, '--port') || getArgValue(subArgs, '-p') || 3000;
   const verbose = subArgs.includes('--verbose') || subArgs.includes('-v') || flags.verbose;
   const ui = subArgs.includes('--ui') || subArgs.includes('-u') || flags.ui;
-  const web = subArgs.includes('--web') || subArgs.includes('-w') || flags.web;
 
   try {
     printSuccess('Starting Claude-Flow Orchestration System...');
     console.log();
 
-    // Check if we should launch the web UI mode
-    if (web) {
-      try {
-        // Launch the web server
-        const { startWebServer } = await import('./web-server.js');
-        const server = await startWebServer(port);
-
-        printSuccess(`🌐 Web UI is running!`);
-        console.log(`📍 Open your browser to: http://localhost:${port}/console`);
-        console.log('   Press Ctrl+C to stop the server');
-        console.log();
-
-        // Keep process running
-        await new Promise(() => {});
-        return;
-      } catch (err) {
-        printError('Failed to launch web UI: ' + err.message);
-        console.error(err.stack);
-        return;
-      }
-    }
-
-    // Check if we should launch the UI mode (web UI by default)
-    if (ui && !web) {
-      try {
-        // Launch the web UI by default when --ui is used
-        const { ClaudeCodeWebServer } = await import('./web-server.js');
-        const webServer = new ClaudeCodeWebServer(port);
-        await webServer.start();
-
-        printSuccess('🌐 Claude Flow Web UI is running!');
-        console.log(`📍 Open your browser to: http://localhost:${port}/console`);
-        console.log('   Press Ctrl+C to stop the server');
-        console.log();
-
-        // Keep process running
-        await new Promise(() => {});
-        return;
-      } catch (err) {
-        // If web UI fails, fall back to terminal UI
-        printWarning('Web UI failed, launching terminal UI...');
-        try {
-          const { launchEnhancedUI } = await import('./process-ui-enhanced.js');
-          await launchEnhancedUI();
-          return;
-        } catch (fallbackErr) {
-          // If both fail, show error
-          printError('Failed to launch UI: ' + err.message);
-          console.error(err.stack);
-          return;
-        }
-      }
+    if (ui) {
+      printWarning('Terminal UI is not available in the simple CLI build.');
+      printInfo('Use the full CLI build to run: claude-flow start --ui');
     }
 
     // Check if required directories exist
@@ -95,7 +45,7 @@ export async function startCommand(subArgs, flags) {
     }
 
     // Display startup information
-    console.log('🚀 System Configuration:');
+    console.log('System Configuration:');
     console.log(`   Mode: ${daemon ? 'Daemon (background)' : 'Interactive'}`);
     console.log(`   MCP Port: ${port}`);
     console.log(`   Working Directory: ${cwd()}`);
@@ -104,7 +54,7 @@ export async function startCommand(subArgs, flags) {
     console.log();
 
     // Initialize components
-    console.log('📋 Initializing Components:');
+    console.log('Initializing Components:');
 
     // Memory system
     console.log('   ✓ Memory Bank: Ready');
@@ -147,9 +97,9 @@ export async function startCommand(subArgs, flags) {
       console.log(`Process ID: ${pid} (saved to .claude-flow.pid)`);
     } else {
       // Interactive mode
-      printSuccess('Orchestration system started!');
+      printSuccess('Orchestration system started.');
       console.log();
-      console.log('🎯 Available Actions:');
+      console.log('Available Actions:');
       console.log('   • Open another terminal and run:');
       console.log('     - claude-flow agent spawn researcher');
       console.log('     - claude-flow task create "your task"');
@@ -159,26 +109,23 @@ export async function startCommand(subArgs, flags) {
       console.log('   • View system status:');
       console.log('     - claude-flow status');
       console.log();
-      console.log('   • Launch process management UI:');
-      console.log('     - claude-flow start --ui');
-      console.log();
       console.log('   • Press Ctrl+C to stop the orchestrator');
       console.log();
 
       if (verbose) {
-        console.log('📊 Verbose Mode - Showing system activity:');
+        console.log('Verbose Mode - Showing system activity:');
         console.log('[' + new Date().toISOString() + '] System initialized');
         console.log('[' + new Date().toISOString() + '] Waiting for commands...');
       }
 
       // Keep the process running
-      console.log('🟢 System is running...');
+      console.log('System is running...');
 
       // Set up signal handlers
       const abortController = new AbortController();
 
       compat.terminal.onSignal('SIGINT', () => {
-        console.log('\n⏹️  Shutting down orchestrator...');
+        console.log('\nShutting down orchestrator...');
         cleanup();
         compat.terminal.exit(0);
       });
@@ -238,8 +185,7 @@ function showStartHelp() {
   console.log('Options:');
   console.log('  -d, --daemon        Run as daemon in background');
   console.log('  -p, --port <port>   Server port (default: 3000)');
-  console.log('  -u, --ui            Launch terminal-based process management UI');
-  console.log('  -w, --web           Launch web-based UI server');
+  console.log('  -u, --ui            Launch terminal-based process management UI (full CLI)');
   console.log('  -v, --verbose       Show detailed system activity');
   console.log('  -h, --help          Show this help message');
   console.log();
@@ -247,34 +193,11 @@ function showStartHelp() {
   console.log('  claude-flow start                    # Start in interactive mode');
   console.log('  claude-flow start --daemon           # Start as background daemon');
   console.log('  claude-flow start --port 8080        # Use custom server port');
-  console.log('  claude-flow start --ui               # Launch terminal-based UI');
-  console.log('  claude-flow start --web              # Launch web-based UI');
+  console.log('  claude-flow start --ui               # Launch terminal-based UI (full CLI)');
   console.log('  claude-flow start --verbose          # Show detailed logs');
   console.log();
-  console.log('Web-based UI:');
-  console.log('  The --web flag starts a web server with:');
-  console.log('    - Full-featured web console at http://localhost:3000/console');
-  console.log('    - Real-time WebSocket communication');
-  console.log('    - Mobile-responsive design');
-  console.log('    - Multiple themes and customization options');
-  console.log('    - Claude Flow swarm integration');
-  console.log();
   console.log('Terminal-based UI:');
-  console.log('  The --ui flag launches an advanced multi-view interface with:');
-  console.log();
-  console.log('  Views (press 1-6 to switch):');
-  console.log('    1. Process Management - Start/stop individual components');
-  console.log('    2. System Status - Health metrics and resource usage');
-  console.log('    3. Orchestration - Agent and task management');
-  console.log('    4. Memory Bank - Namespace browser and operations');
-  console.log('    5. System Logs - Real-time log viewer with filters');
-  console.log('    6. Help - Comprehensive keyboard shortcuts');
-  console.log();
-  console.log('  Features:');
-  console.log('    - Color-coded status indicators');
-  console.log('    - Real-time updates and monitoring');
-  console.log('    - Context-sensitive controls');
-  console.log('    - Tab navigation between views');
+  console.log('  The --ui flag is available in the full CLI build.');
   console.log();
   console.log('Notes:');
   console.log('  - Requires "claude-flow init" to be run first');

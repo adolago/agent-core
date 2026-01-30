@@ -316,7 +316,14 @@ export namespace ProviderTransform {
     if (!model.capabilities.reasoning) return {}
 
     const id = model.id.toLowerCase()
-    if (id.includes("minimax") || id.includes("glm")) return {}
+    if (
+      id.includes("deepseek") ||
+      id.includes("minimax") ||
+      id.includes("glm") ||
+      id.includes("mistral") ||
+      id.includes("kimi")
+    )
+      return {}
 
     // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
     // grok-3-mini only supports low/high
@@ -340,23 +347,6 @@ export namespace ProviderTransform {
 
       case "@ai-sdk/gateway":
         return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
-
-      case "@ai-sdk/github-copilot": {
-        const copilotEfforts = iife(() => {
-          if (id.includes("5.1-codex-max") || id.includes("5.2")) return [...WIDELY_SUPPORTED_EFFORTS, "xhigh"]
-          return WIDELY_SUPPORTED_EFFORTS
-        })
-        return Object.fromEntries(
-          copilotEfforts.map((effort) => [
-            effort,
-            {
-              reasoningEffort: effort,
-              reasoningSummary: "auto",
-              include: ["reasoning.encrypted_content"],
-            },
-          ]),
-        )
-      }
 
       case "@ai-sdk/cerebras":
       case "@ai-sdk/togetherai":
@@ -527,13 +517,10 @@ export namespace ProviderTransform {
     providerOptions?: Record<string, any>
   }): Record<string, any> {
     const result: Record<string, any> = {}
+    const cacheKey = `${input.model.providerID}:${input.sessionID}`
 
     // openai and providers using openai package should set store to false by default.
-    if (
-      input.model.providerID === "openai" ||
-      input.model.api.npm === "@ai-sdk/openai" ||
-      input.model.api.npm === "@ai-sdk/github-copilot"
-    ) {
+    if (input.model.providerID === "openai" || input.model.api.npm === "@ai-sdk/openai") {
       result["store"] = false
     }
 
@@ -564,7 +551,7 @@ export namespace ProviderTransform {
     }
 
     if (input.model.providerID === "openai" || input.providerOptions?.setCacheKey) {
-      result["promptCacheKey"] = input.sessionID
+      result["promptCacheKey"] = cacheKey
     }
 
     if (input.model.api.npm === "@ai-sdk/google" || input.model.api.npm === "@ai-sdk/google-vertex") {
@@ -593,14 +580,14 @@ export namespace ProviderTransform {
       // These params are NOT supported by @ai-sdk/openai-compatible
       // and cause "Bad Request" errors if sent to openai-compatible backends
       if (input.model.providerID === "openai" && input.model.api.npm === "@ai-sdk/openai") {
-        result["promptCacheKey"] = input.sessionID
+        result["promptCacheKey"] = cacheKey
         result["include"] = ["reasoning.encrypted_content"]
         result["reasoningSummary"] = "auto"
       }
     }
 
     if (input.model.providerID === "venice") {
-      result["promptCacheKey"] = input.sessionID
+      result["promptCacheKey"] = cacheKey
     }
     return result
   }

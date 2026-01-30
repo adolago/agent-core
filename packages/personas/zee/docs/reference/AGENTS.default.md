@@ -100,7 +100,7 @@ git commit -m "Add Zee workspace"
 - **agent-tools** — Utility toolkit for automations and helper scripts.
 
 ## Usage Notes
-- Prefer the `zee` CLI for scripting; Control UI handles permissions.
+- Prefer the `zee` CLI for scripting; CLI/TUI handles permissions.
 - Run installs from the Skills tab; it hides the button if a binary is already present.
 - Keep heartbeats enabled so the assistant can schedule reminders, monitor inboxes, and trigger camera captures.
 - Canvas UI runs full-screen with native overlays. Avoid placing critical controls in the top-left/top-right/bottom edges; add explicit gutters in the layout and don’t rely on safe-area insets.

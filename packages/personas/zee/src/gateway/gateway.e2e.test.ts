@@ -29,39 +29,39 @@ describe("gateway e2e", () => {
     async () => {
       const prev = {
         home: process.env.HOME,
-        configPath: process.env.CLAWDBOT_CONFIG_PATH,
-        token: process.env.CLAWDBOT_GATEWAY_TOKEN,
-        skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
-        skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
-        skipCron: process.env.CLAWDBOT_SKIP_CRON,
-        skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
-        skipBrowser: process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER,
+        configPath: process.env.ZEE_CONFIG_PATH,
+        token: process.env.ZEE_GATEWAY_TOKEN,
+        skipChannels: process.env.ZEE_SKIP_CHANNELS,
+        skipGmail: process.env.ZEE_SKIP_GMAIL_WATCHER,
+        skipCron: process.env.ZEE_SKIP_CRON,
+        skipCanvas: process.env.ZEE_SKIP_CANVAS_HOST,
+        skipBrowser: process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER,
       };
 
       const { baseUrl: openaiBaseUrl, restore } = installOpenAiResponsesMock();
 
       const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "zee-gw-mock-home-"));
       process.env.HOME = tempHome;
-      process.env.CLAWDBOT_SKIP_CHANNELS = "1";
-      process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
-      process.env.CLAWDBOT_SKIP_CRON = "1";
-      process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
-      process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = "1";
+      process.env.ZEE_SKIP_CHANNELS = "1";
+      process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
+      process.env.ZEE_SKIP_CRON = "1";
+      process.env.ZEE_SKIP_CANVAS_HOST = "1";
+      process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER = "1";
 
       const token = `test-${randomUUID()}`;
-      process.env.CLAWDBOT_GATEWAY_TOKEN = token;
+      process.env.ZEE_GATEWAY_TOKEN = token;
 
-      const workspaceDir = path.join(tempHome, "clawd");
+      const workspaceDir = path.join(tempHome, "zee");
       await fs.mkdir(workspaceDir, { recursive: true });
 
       const nonceA = randomUUID();
       const nonceB = randomUUID();
-      const toolProbePath = path.join(workspaceDir, `.clawdbot-tool-probe.${nonceA}.txt`);
+      const toolProbePath = path.join(workspaceDir, `.zee-tool-probe.${nonceA}.txt`);
       await fs.writeFile(toolProbePath, `nonceA=${nonceA}\nnonceB=${nonceB}\n`);
 
-      const configDir = path.join(tempHome, ".clawdbot");
+      const configDir = path.join(tempHome, ".zee");
       await fs.mkdir(configDir, { recursive: true });
-      const configPath = path.join(configDir, "moltbot.json");
+      const configPath = path.join(configDir, "zee.json");
 
       const cfg = {
         agents: { defaults: { workspace: workspaceDir } },
@@ -91,13 +91,12 @@ describe("gateway e2e", () => {
       };
 
       await fs.writeFile(configPath, `${JSON.stringify(cfg, null, 2)}\n`);
-      process.env.CLAWDBOT_CONFIG_PATH = configPath;
+      process.env.ZEE_CONFIG_PATH = configPath;
 
       const port = await getFreeGatewayPort();
       const server = await startGatewayServer(port, {
         bind: "loopback",
         auth: { mode: "token", token },
-        controlUiEnabled: false,
       });
 
       const client = await connectGatewayClient({
@@ -141,13 +140,13 @@ describe("gateway e2e", () => {
         await fs.rm(tempHome, { recursive: true, force: true });
         restore();
         process.env.HOME = prev.home;
-        process.env.CLAWDBOT_CONFIG_PATH = prev.configPath;
-        process.env.CLAWDBOT_GATEWAY_TOKEN = prev.token;
-        process.env.CLAWDBOT_SKIP_CHANNELS = prev.skipChannels;
-        process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = prev.skipGmail;
-        process.env.CLAWDBOT_SKIP_CRON = prev.skipCron;
-        process.env.CLAWDBOT_SKIP_CANVAS_HOST = prev.skipCanvas;
-        process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = prev.skipBrowser;
+        process.env.ZEE_CONFIG_PATH = prev.configPath;
+        process.env.ZEE_GATEWAY_TOKEN = prev.token;
+        process.env.ZEE_SKIP_CHANNELS = prev.skipChannels;
+        process.env.ZEE_SKIP_GMAIL_WATCHER = prev.skipGmail;
+        process.env.ZEE_SKIP_CRON = prev.skipCron;
+        process.env.ZEE_SKIP_CANVAS_HOST = prev.skipCanvas;
+        process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER = prev.skipBrowser;
       }
     },
   );
@@ -155,34 +154,33 @@ describe("gateway e2e", () => {
   it("runs wizard over ws and writes auth token config", { timeout: 90_000 }, async () => {
     const prev = {
       home: process.env.HOME,
-      stateDir: process.env.CLAWDBOT_STATE_DIR,
-      configPath: process.env.CLAWDBOT_CONFIG_PATH,
-      token: process.env.CLAWDBOT_GATEWAY_TOKEN,
-      skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
-      skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
-      skipCron: process.env.CLAWDBOT_SKIP_CRON,
-      skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
-      skipBrowser: process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER,
+      stateDir: process.env.ZEE_STATE_DIR,
+      configPath: process.env.ZEE_CONFIG_PATH,
+      token: process.env.ZEE_GATEWAY_TOKEN,
+      skipChannels: process.env.ZEE_SKIP_CHANNELS,
+      skipGmail: process.env.ZEE_SKIP_GMAIL_WATCHER,
+      skipCron: process.env.ZEE_SKIP_CRON,
+      skipCanvas: process.env.ZEE_SKIP_CANVAS_HOST,
+      skipBrowser: process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER,
     };
 
-    process.env.CLAWDBOT_SKIP_CHANNELS = "1";
-    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
-    process.env.CLAWDBOT_SKIP_CRON = "1";
-    process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
-    process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = "1";
-    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    process.env.ZEE_SKIP_CHANNELS = "1";
+    process.env.ZEE_SKIP_GMAIL_WATCHER = "1";
+    process.env.ZEE_SKIP_CRON = "1";
+    process.env.ZEE_SKIP_CANVAS_HOST = "1";
+    process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER = "1";
+    delete process.env.ZEE_GATEWAY_TOKEN;
 
     const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "zee-wizard-home-"));
     process.env.HOME = tempHome;
-    delete process.env.CLAWDBOT_STATE_DIR;
-    delete process.env.CLAWDBOT_CONFIG_PATH;
+    delete process.env.ZEE_STATE_DIR;
+    delete process.env.ZEE_CONFIG_PATH;
 
     const wizardToken = `wiz-${randomUUID()}`;
     const port = await getFreeGatewayPort();
     const server = await startGatewayServer(port, {
       bind: "loopback",
       auth: { mode: "token", token: wizardToken },
-      controlUiEnabled: false,
       wizardRunner: async (_opts, _runtime, prompter) => {
         await prompter.intro("Wizard E2E");
         await prompter.note("write token");
@@ -245,7 +243,6 @@ describe("gateway e2e", () => {
     const port2 = await getFreeGatewayPort();
     const server2 = await startGatewayServer(port2, {
       bind: "loopback",
-      controlUiEnabled: false,
     });
     try {
       const resNoToken = await connectDeviceAuthReq({
@@ -263,14 +260,14 @@ describe("gateway e2e", () => {
       await server2.close({ reason: "wizard auth verify" });
       await fs.rm(tempHome, { recursive: true, force: true });
       process.env.HOME = prev.home;
-      process.env.CLAWDBOT_STATE_DIR = prev.stateDir;
-      process.env.CLAWDBOT_CONFIG_PATH = prev.configPath;
-      process.env.CLAWDBOT_GATEWAY_TOKEN = prev.token;
-      process.env.CLAWDBOT_SKIP_CHANNELS = prev.skipChannels;
-      process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = prev.skipGmail;
-      process.env.CLAWDBOT_SKIP_CRON = prev.skipCron;
-      process.env.CLAWDBOT_SKIP_CANVAS_HOST = prev.skipCanvas;
-      process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = prev.skipBrowser;
+      process.env.ZEE_STATE_DIR = prev.stateDir;
+      process.env.ZEE_CONFIG_PATH = prev.configPath;
+      process.env.ZEE_GATEWAY_TOKEN = prev.token;
+      process.env.ZEE_SKIP_CHANNELS = prev.skipChannels;
+      process.env.ZEE_SKIP_GMAIL_WATCHER = prev.skipGmail;
+      process.env.ZEE_SKIP_CRON = prev.skipCron;
+      process.env.ZEE_SKIP_CANVAS_HOST = prev.skipCanvas;
+      process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER = prev.skipBrowser;
     }
   });
 });

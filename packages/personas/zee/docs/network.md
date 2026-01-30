@@ -15,7 +15,7 @@ devices across localhost, LAN, and tailnet.
 - [Gateway architecture](/concepts/architecture)
 - [Gateway protocol](/gateway/protocol)
 - [Gateway runbook](/gateway)
-- [Web surfaces + bind modes](/web)
+- [Remote access](/gateway/remote)
 
 ## Pairing + identity
 

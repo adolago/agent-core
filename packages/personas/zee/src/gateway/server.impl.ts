@@ -107,11 +107,6 @@ export type GatewayServerOptions = {
    */
   host?: string;
   /**
-   * If false, do not serve the browser Control UI.
-   * Default: config `gateway.controlUi.enabled` (or true when absent).
-   */
-  controlUiEnabled?: boolean;
-  /**
    * If false, do not serve `POST /v1/chat/completions`.
    * Default: config `gateway.http.endpoints.chatCompletions.enabled` (or false when absent).
    */
@@ -148,13 +143,13 @@ export async function startGatewayServer(
   opts: GatewayServerOptions = {},
 ): Promise<GatewayServer> {
   // Ensure all default port derivations (browser/canvas) see the actual runtime port.
-  process.env.CLAWDBOT_GATEWAY_PORT = String(port);
+  process.env.ZEE_GATEWAY_PORT = String(port);
   logAcceptedEnvOption({
-    key: "CLAWDBOT_RAW_STREAM",
+    key: "ZEE_RAW_STREAM",
     description: "raw stream logging enabled",
   });
   logAcceptedEnvOption({
-    key: "CLAWDBOT_RAW_STREAM_PATH",
+    key: "ZEE_RAW_STREAM_PATH",
     description: "raw stream log path override",
   });
 
@@ -239,7 +234,6 @@ export async function startGatewayServer(
     port,
     bind: opts.bind,
     host: opts.host,
-    controlUiEnabled: opts.controlUiEnabled,
     openAiChatCompletionsEnabled: opts.openAiChatCompletionsEnabled,
     openResponsesEnabled: opts.openResponsesEnabled,
     auth: opts.auth,
@@ -247,11 +241,9 @@ export async function startGatewayServer(
   });
   const {
     bindHost,
-    controlUiEnabled,
     openAiChatCompletionsEnabled,
     openResponsesEnabled,
     openResponsesConfig,
-    controlUiBasePath,
     resolvedAuth,
     tailscaleConfig,
     tailscaleMode,
@@ -288,8 +280,6 @@ export async function startGatewayServer(
     cfg: cfgAtStart,
     bindHost,
     port,
-    controlUiEnabled,
-    controlUiBasePath,
     openAiChatCompletionsEnabled,
     openResponsesEnabled,
     openResponsesConfig,
@@ -485,7 +475,6 @@ export async function startGatewayServer(
     tailscaleMode,
     resetOnExit: tailscaleConfig.resetOnExit,
     port,
-    controlUiBasePath,
     logTailscale,
   });
 

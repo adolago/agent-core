@@ -24,7 +24,6 @@ async function startServerWithDefaultConfig(port: number) {
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "token", token: "secret" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: false,
   });
 }
@@ -34,7 +33,6 @@ async function startServer(port: number, opts?: { openAiChatCompletionsEnabled?:
   return await startGatewayServer(port, {
     host: "127.0.0.1",
     auth: { mode: "token", token: "secret" },
-    controlUiEnabled: false,
     openAiChatCompletionsEnabled: opts?.openAiChatCompletionsEnabled ?? true,
   });
 }
@@ -67,7 +65,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       const server = await startServerWithDefaultConfig(port);
       try {
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(404);
@@ -83,7 +81,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       });
       try {
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(404);
@@ -124,7 +122,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(
           port,
-          { model: "moltbot", messages: [{ role: "user", content: "hi" }] },
+          { model: "zee", messages: [{ role: "user", content: "hi" }] },
           { "x-zee-agent-id": "beta" },
         );
         expect(res.status).toBe(200);
@@ -140,7 +138,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "moltbot:beta",
+          model: "zee:beta",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(200);
@@ -158,7 +156,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const res = await postChatCompletions(
           port,
           {
-            model: "moltbot:beta",
+            model: "zee:beta",
             messages: [{ role: "user", content: "hi" }],
           },
           { "x-zee-agent-id": "alpha" },
@@ -177,7 +175,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(
           port,
-          { model: "moltbot", messages: [{ role: "user", content: "hi" }] },
+          { model: "zee", messages: [{ role: "user", content: "hi" }] },
           {
             "x-zee-agent-id": "beta",
             "x-zee-session-key": "agent:beta:openai:custom",
@@ -196,7 +194,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
           user: "alice",
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(200);
@@ -211,7 +209,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [
             {
               role: "user",
@@ -232,7 +230,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "I am Claude" }]);
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [
             { role: "system", content: "You are a helpful assistant." },
             { role: "user", content: "Hello, who are you?" },
@@ -255,7 +253,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [
             { role: "system", content: "You are a helpful assistant." },
             { role: "user", content: "Hello" },
@@ -274,7 +272,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [
             { role: "developer", content: "You are a helpful assistant." },
             { role: "user", content: "Hello" },
@@ -292,7 +290,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "ok" }]);
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [
             { role: "system", content: "You are a helpful assistant." },
             { role: "user", content: "What's the weather?" },
@@ -316,7 +314,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
           stream: false,
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(200);
@@ -331,7 +329,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
       {
         const res = await postChatCompletions(port, {
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "system", content: "yo" }],
         });
         expect(res.status).toBe(400);
@@ -359,7 +357,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const res = await postChatCompletions(port, {
           stream: true,
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(200);
@@ -392,7 +390,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const repeatedRes = await postChatCompletions(port, {
           stream: true,
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(repeatedRes.status).toBe(200);
@@ -417,7 +415,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const fallbackRes = await postChatCompletions(port, {
           stream: true,
-          model: "moltbot",
+          model: "zee",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(fallbackRes.status).toBe(200);

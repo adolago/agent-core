@@ -10,7 +10,6 @@ services:
     container_name: hive-mind-main
     ports:
       - "8080:8080"  # API port
-      - "3000:3000"  # Web UI port
     volumes:
       - hive-data:/data
       - hive-logs:/app/logs

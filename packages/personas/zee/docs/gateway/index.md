@@ -27,7 +27,7 @@ pnpm gateway:watch
   - Hot reload uses in-process restart via **SIGUSR1** when needed.
   - Disable with `gateway.reload.mode="off"`.
 - Binds WebSocket control plane to `127.0.0.1:<port>` (default 18789).
-- The same port also serves HTTP (control UI, hooks, A2UI). Single-port multiplex.
+- The same port also serves HTTP (hooks, A2UI, and API endpoints). Single-port multiplex.
   - OpenAI Chat Completions (HTTP): [`/v1/chat/completions`](/gateway/openai-http-api).
   - OpenResponses (HTTP): [`/v1/responses`](/gateway/openresponses-http-api).
   - Tools Invoke (HTTP): [`/tools/invoke`](/gateway/tools-invoke-http-api).
@@ -82,15 +82,12 @@ Defaults (can be overridden via env/flags/config):
 - `ZEE_STATE_DIR=~/.zee-dev`
 - `ZEE_CONFIG_PATH=~/.zee-dev/zee.json`
 - `ZEE_GATEWAY_PORT=19001` (Gateway WS + HTTP)
-- browser control service port = `19003` (derived: `gateway.port+2`, loopback only)
 - `canvasHost.port=19005` (derived: `gateway.port+4`)
 - `agents.defaults.workspace` default becomes `~/zee-dev` when you run `setup`/`onboard` under `--dev`.
 
 Derived ports (rules of thumb):
 - Base port = `gateway.port` (or `ZEE_GATEWAY_PORT` / `--port`)
-- browser control service port = base + 2 (loopback only)
 - `canvasHost.port = base + 4` (or `ZEE_CANVAS_HOST_PORT` / config override)
-- Browser profile CDP ports auto-allocate from `browser.controlPort + 9 .. + 108` (persisted per profile).
 
 Checklist per instance:
 - unique `gateway.port`
@@ -141,8 +138,8 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
 - `tick` — periodic keepalive/no-op to confirm liveness.
 - `shutdown` — Gateway is exiting; payload includes `reason` and optional `restartExpectedMs`. Clients should reconnect.
 
-## Control UI integration
-- Control UI is a browser UI served from the Gateway and talks directly to the Gateway WebSocket for history, sends, abort, and events.
+## Client integration
+- CLI/TUI connects directly to the Gateway WebSocket for history, sends, abort, and events.
 - Remote use goes through the same SSH/Tailscale tunnel; if a gateway token is configured, the client includes it during `connect`.
 
 ## Typing and validation
@@ -168,7 +165,7 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
 - Send/agent acknowledgements remain separate responses; do not overload ticks for sends.
 
 ## Replay / gaps
-- Events are not replayed. Clients detect seq gaps and should refresh (`health` + `system-presence`) before continuing. Control UI clients auto-refresh on gap.
+- Events are not replayed. Clients detect seq gaps and should refresh (`health` + `system-presence`) before continuing.
 
 ## Supervision (systemd example)
 - Use systemd user services to keep the gateway alive.

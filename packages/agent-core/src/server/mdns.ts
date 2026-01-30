@@ -11,7 +11,7 @@ export interface MdnsPublishOptions {
   /**
    * Minimal mode - only advertise service type, not detailed metadata.
    * This helps prevent information disclosure on the network.
-   * Based on ClawdBot security audit commit a1f9825d63.
+   * Based on Zee security audit commit a1f9825d63.
    */
   minimal?: boolean
 }
@@ -41,7 +41,7 @@ export namespace MDNS {
       bonjour = new Bonjour()
 
       // In minimal mode, don't include txt records that could leak operational details
-      // This follows the security recommendation from ClawdBot's mDNS disclosure fix
+      // This follows the security recommendation from Zee's mDNS disclosure fix
       const serviceConfig: Parameters<Bonjour["publish"]>[0] = {
         name,
         type: "http",

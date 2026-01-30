@@ -140,7 +140,6 @@ export namespace Server {
 
               if (input.startsWith("http://localhost:")) return input
               if (input.startsWith("http://127.0.0.1:")) return input
-              if (input === "tauri://localhost" || input === "http://tauri.localhost") return input
               if (_corsWhitelist.includes(input)) {
                 return input
               }
@@ -259,7 +258,7 @@ export namespace Server {
           })
           response.headers.set(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'",
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self'",
           )
           return response
         }) as unknown as Hono,

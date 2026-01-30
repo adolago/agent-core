@@ -86,11 +86,11 @@ describe("workspace path resolution", () => {
           await editTool?.execute("ws-edit", {
             path: testFile,
             oldText: "world",
-            newText: "moltbot",
+            newText: "zee",
           });
 
           const updated = await fs.readFile(path.join(workspaceDir, testFile), "utf8");
-          expect(updated).toBe("hello moltbot");
+          expect(updated).toBe("hello zee");
         } finally {
           process.chdir(prevCwd);
         }

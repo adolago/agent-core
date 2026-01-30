@@ -270,10 +270,6 @@
       "destination": "/gateway/configuration"
     },
     {
-      "source": "/control-ui",
-      "destination": "/web/control-ui"
-    },
-    {
       "source": "/cron-jobs",
       "destination": "/automation/cron-jobs"
     },
@@ -284,10 +280,6 @@
     {
       "source": "/cron-vs-heartbeat/",
       "destination": "/automation/cron-vs-heartbeat"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/web/dashboard"
     },
     {
       "source": "/device-models",
@@ -668,7 +660,6 @@
           "cli/onboard",
           "cli/configure",
           "cli/doctor",
-          "cli/dashboard",
           "cli/reset",
           "cli/uninstall",
           "cli/browser",
@@ -690,6 +681,7 @@
           "cli/approvals",
           "cli/gateway",
           "cli/tui",
+          "tui",
           "cli/voicecall",
           "cli/cron",
           "cli/dns",
@@ -769,15 +761,6 @@
           "gateway/discovery",
           "gateway/bonjour",
           "gateway/tailscale"
-        ]
-      },
-      {
-        "group": "Web & Interfaces",
-        "pages": [
-          "web",
-          "web/control-ui",
-          "web/dashboard",
-          "tui"
         ]
       },
       {

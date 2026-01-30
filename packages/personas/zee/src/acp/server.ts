@@ -27,12 +27,12 @@ export function serveAcpGateway(opts: AcpServerOptions = {}): void {
   const token =
     opts.gatewayToken ??
     (isRemoteMode ? remote?.token?.trim() : undefined) ??
-    process.env.CLAWDBOT_GATEWAY_TOKEN ??
+    process.env.ZEE_GATEWAY_TOKEN ??
     auth.token;
   const password =
     opts.gatewayPassword ??
     (isRemoteMode ? remote?.password?.trim() : undefined) ??
-    process.env.CLAWDBOT_GATEWAY_PASSWORD ??
+    process.env.ZEE_GATEWAY_PASSWORD ??
     auth.password;
 
   let agent: AcpGatewayAgent | null = null;

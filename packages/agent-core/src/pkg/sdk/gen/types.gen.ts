@@ -1093,10 +1093,6 @@ export type ProviderConfig = {
     apiKey?: string
     baseURL?: string
     /**
-     * GitHub Enterprise URL for copilot authentication
-     */
-    enterpriseUrl?: string
-    /**
      * Enable promptCacheKey for this provider (default false)
      */
     setCacheKey?: boolean
@@ -1375,10 +1371,6 @@ export type Config = {
      * Enable the batch tool
      */
     batch_tool?: boolean
-    /**
-     * Enable OpenTelemetry spans for AI SDK calls (using the 'experimental_telemetry' flag)
-     */
-    openTelemetry?: boolean
     /**
      * Tools that should only be available to primary agents.
      */
@@ -1667,7 +1659,6 @@ export type OAuth = {
   refresh: string
   access: string
   expires: number
-  enterpriseUrl?: string
 }
 
 export type ApiAuth = {

@@ -31,7 +31,7 @@ describe("update-startup", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-17T10:00:00Z"));
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-update-check-"));
-    process.env.CLAWDBOT_STATE_DIR = tempDir;
+    process.env.ZEE_STATE_DIR = tempDir;
     delete process.env.VITEST;
     process.env.NODE_ENV = "test";
   });
@@ -47,9 +47,9 @@ describe("update-startup", () => {
     const { checkUpdateStatus, resolveNpmChannelTag } = await import("./update-check.js");
     const { runGatewayUpdateCheck } = await import("./update-startup.js");
 
-    vi.mocked(resolveZeePackageRoot).mockResolvedValue("/opt/moltbot");
+    vi.mocked(resolveZeePackageRoot).mockResolvedValue("/opt/zee");
     vi.mocked(checkUpdateStatus).mockResolvedValue({
-      root: "/opt/moltbot",
+      root: "/opt/zee",
       installKind: "package",
       packageManager: "npm",
     } satisfies UpdateCheckResult);
@@ -81,9 +81,9 @@ describe("update-startup", () => {
     const { checkUpdateStatus, resolveNpmChannelTag } = await import("./update-check.js");
     const { runGatewayUpdateCheck } = await import("./update-startup.js");
 
-    vi.mocked(resolveZeePackageRoot).mockResolvedValue("/opt/moltbot");
+    vi.mocked(resolveZeePackageRoot).mockResolvedValue("/opt/zee");
     vi.mocked(checkUpdateStatus).mockResolvedValue({
-      root: "/opt/moltbot",
+      root: "/opt/zee",
       installKind: "package",
       packageManager: "npm",
     } satisfies UpdateCheckResult);

@@ -7,7 +7,7 @@ read_when:
 
 This repo supports “remote over SSH” by keeping a single Gateway (the master) running on a dedicated host (desktop/server) and connecting clients to it.
 
-- For **operators (CLI / Control UI)**: SSH tunneling is the universal fallback.
+- For **operators (CLI/TUI)**: SSH tunneling is the universal fallback.
 - For **node hosts**: connect to the Gateway **WebSocket** (LAN/tailnet or SSH tunnel as needed).
 
 ## The core idea
@@ -24,7 +24,7 @@ Your laptop/desktop (and nodes) connect to that host.
 
 Run the Gateway on a persistent host and reach it via **Tailscale** or SSH.
 
-- **Best UX:** keep `gateway.bind: "loopback"` and use **Tailscale Serve** for the Control UI.
+- **Best UX:** keep `gateway.bind: "loopback"` and use **Tailscale Serve** for Gateway access.
 - **Fallback:** keep loopback + SSH tunnel from any machine that needs access.
 - **Examples:** [exe.dev](/platforms/exe-dev) (easy VM) or [Hetzner](/platforms/hetzner) (production VPS).
 
@@ -35,16 +35,16 @@ This is ideal when your laptop sleeps often but you want the agent always-on.
 The laptop does **not** run the agent. It connects remotely:
 
 - Use an SSH tunnel or tailnet connection.
-- Open the Control UI in a browser over the tunnel.
+- Use CLI/TUI over the tunnel.
 
 ### 3) Laptop runs the Gateway, remote access from other machines
 
 Keep the Gateway local but expose it safely:
 
 - SSH tunnel to the laptop from other machines, or
-- Tailscale Serve the Control UI and keep the Gateway loopback-only.
+- Tailscale Serve the Gateway and keep it loopback-only.
 
-Guide: [Tailscale](/gateway/tailscale) and [Web overview](/web).
+Guide: [Tailscale](/gateway/tailscale).
 
 ## Command flow (what runs where)
 
@@ -90,10 +90,6 @@ You can persist a remote target so CLI commands use it by default:
 ```
 
 When the gateway is loopback-only, keep the URL at `ws://127.0.0.1:18789` and open the SSH tunnel first.
-
-## Control UI over SSH
-
-Forward `18789` over SSH (see above), then open the Control UI in a browser at `http://127.0.0.1:18789/`.
 
 ## Security rules (remote/VPN)
 

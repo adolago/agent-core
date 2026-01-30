@@ -2,7 +2,7 @@
  * Security Utilities
  *
  * Centralized security functions for agent-core.
- * Ported from OpenCode and ClawdBot security audit improvements.
+ * Ported from OpenCode and Zee security audit improvements.
  *
  * @module security
  */

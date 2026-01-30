@@ -15,7 +15,6 @@ import {
   type Tone,
 } from "../memory/status-format.js";
 import { formatHealthChannelLines, type HealthSummary } from "./health.js";
-import { resolveControlUiLinks } from "./onboard-helpers.js";
 import { getDaemonStatusSummary, getNodeDaemonStatusSummary } from "./status.daemon.js";
 import {
   formatAge,
@@ -180,18 +179,6 @@ export async function statusCommand(
 
   const tableWidth = Math.max(60, (process.stdout.columns ?? 120) - 1);
 
-  const dashboard = (() => {
-    const controlUiEnabled = cfg.gateway?.controlUi?.enabled ?? true;
-    if (!controlUiEnabled) return "disabled";
-    const links = resolveControlUiLinks({
-      port: resolveGatewayPort(cfg),
-      bind: cfg.gateway?.bind,
-      customBindHost: cfg.gateway?.customBindHost,
-      basePath: cfg.gateway?.controlUi?.basePath,
-    });
-    return links.httpUrl;
-  })();
-
   const gatewayValue = (() => {
     const target = remoteUrlMissing
       ? `fallback ${gatewayConnection.url}`
@@ -332,7 +319,6 @@ export async function statusCommand(
       : null;
 
   const overviewRows = [
-    { Item: "Dashboard", Value: dashboard },
     { Item: "OS", Value: `${osSummary.label} · node ${process.versions.node}` },
     {
       Item: "Tailscale",

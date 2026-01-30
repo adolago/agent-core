@@ -107,13 +107,13 @@ When prompted "How do you want to hatch your bot?", select **"Do this later"**.
 
 ## 6) Configure Gateway (loopback + token auth) and enable Tailscale Serve
 
-Use token auth as the default. It’s predictable and avoids needing any “insecure auth” Control UI flags.
+Use token auth as the default. It’s predictable and avoids needing any “insecure auth” CLI/TUI flags.
 
 ```bash
 # Keep the Gateway private on the VM
 zee config set gateway.bind loopback
 
-# Require auth for the Gateway + Control UI
+# Require auth for the Gateway + CLI/TUI
 zee config set gateway.auth.mode token
 zee doctor --generate-gateway-token
 
@@ -154,7 +154,7 @@ This blocks SSH on port 22, HTTP, HTTPS, and everything else at the network edge
 
 ---
 
-## Access the Control UI
+## Access the CLI/TUI
 
 From any device on your Tailscale network:
 
@@ -247,7 +247,7 @@ zee doctor --non-interactive
 journalctl --user -u zee-gateway -n 50
 ```
 
-### Can't reach Control UI
+### Can't reach CLI/TUI
 ```bash
 # Verify Tailscale Serve is running
 tailscale serve status

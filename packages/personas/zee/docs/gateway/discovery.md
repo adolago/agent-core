@@ -9,7 +9,7 @@ read_when:
 
 Zee has two distinct problems that look similar on the surface:
 
-1) **Operator remote control**: CLI/Control UI connecting to a gateway running elsewhere.
+1) **Operator remote control**: CLI/CLI/TUI connecting to a gateway running elsewhere.
 2) **Node pairing**: headless node hosts finding a gateway and pairing securely.
 
 The design goal is to keep all network discovery/advertising in the **Node Gateway** (`zee` / `zee gateway`) and keep clients as consumers.

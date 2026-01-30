@@ -338,7 +338,6 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     mode: "local",
     port: 18789,
     bind: "loopback",
-    controlUi: { enabled: true, basePath: "/zee" },
     auth: {
       mode: "token",
       token: "gateway-token",

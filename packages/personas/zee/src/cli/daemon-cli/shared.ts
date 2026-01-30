@@ -46,13 +46,11 @@ export function pickProbeHostForBind(
 }
 
 const SAFE_DAEMON_ENV_KEYS = [
-  "MOLTBOT_STATE_DIR",
-  "MOLTBOT_CONFIG_PATH",
-  "CLAWDBOT_PROFILE",
-  "CLAWDBOT_STATE_DIR",
-  "CLAWDBOT_CONFIG_PATH",
-  "CLAWDBOT_GATEWAY_PORT",
-  "CLAWDBOT_NIX_MODE",
+  "ZEE_STATE_DIR",
+  "ZEE_CONFIG_PATH",
+  "ZEE_PROFILE",
+  "ZEE_GATEWAY_PORT",
+  "ZEE_NIX_MODE",
 ];
 
 export function filterDaemonEnv(env: Record<string, string> | undefined): Record<string, string> {
@@ -133,10 +131,10 @@ export function renderRuntimeHints(
   if (runtime.status === "stopped") {
     if (fileLog) hints.push(`File logs: ${fileLog}`);
     if (process.platform === "linux") {
-      const unit = resolveGatewaySystemdServiceName(env.CLAWDBOT_PROFILE);
+      const unit = resolveGatewaySystemdServiceName(env.ZEE_PROFILE);
       hints.push(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`);
     } else if (process.platform === "win32") {
-      const task = resolveGatewayWindowsTaskName(env.CLAWDBOT_PROFILE);
+      const task = resolveGatewayWindowsTaskName(env.ZEE_PROFILE);
       hints.push(`Logs: schtasks /Query /TN "${task}" /V /FO LIST`);
     }
   }
@@ -148,7 +146,7 @@ export function renderGatewayServiceStartHints(env: NodeJS.ProcessEnv = process.
     formatCliCommand("zee gateway install", env),
     formatCliCommand("zee gateway", env),
   ];
-  const profile = env.CLAWDBOT_PROFILE;
+  const profile = env.ZEE_PROFILE;
   switch (process.platform) {
     case "linux": {
       const unit = resolveGatewaySystemdServiceName(profile);

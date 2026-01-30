@@ -66,7 +66,7 @@ export function detectLegacyWorkspaceDirs(params: {
   const exists = params.exists ?? fs.existsSync;
   const home = homedir();
   const activeWorkspace = path.resolve(params.workspaceDir);
-  const candidates = [path.join(home, "moltbot"), path.join(home, "clawd")];
+  const candidates = [path.join(home, "zee")];
   const legacyDirs = candidates
     .filter((candidate) => {
       if (!exists(candidate)) return false;
@@ -83,6 +83,6 @@ export function formatLegacyWorkspaceWarning(detection: LegacyWorkspaceDetection
     "Extra workspace directories detected (may contain old agent files):",
     ...detection.legacyDirs.map((dir) => `- ${shortenHomePath(dir)}`),
     `Active workspace: ${shortenHomePath(detection.activeWorkspace)}`,
-    "If unused, archive or move to Trash (e.g. trash ~/moltbot or ~/clawd).",
+    "If unused, archive or move to Trash (e.g. trash ~/zee).",
   ].join("\n");
 }

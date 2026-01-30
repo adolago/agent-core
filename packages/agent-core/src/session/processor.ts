@@ -622,7 +622,6 @@ export namespace SessionProcessor {
             input.assistantMessage.time.completed = Date.now()
             await Session.updateMessage(input.assistantMessage)
             const error = input.assistantMessage.error
-            // Get stream health report for telemetry
             const streamReport = healthMonitor.getReport()
             // Clean up health monitor and timeout subscription
             unsubscribeTimeout()

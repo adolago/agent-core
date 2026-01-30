@@ -10,8 +10,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 - [Quick start and first-run setup](#quick-start-and-firstrun-setup)
   - [Im stuck whats the fastest way to get unstuck?](#im-stuck-whats-the-fastest-way-to-get-unstuck)
   - [What’s the recommended way to install and set up Zee?](#whats-the-recommended-way-to-install-and-set-up-zee)
-  - [How do I open the dashboard after onboarding?](#how-do-i-open-the-dashboard-after-onboarding)
-  - [How do I authenticate the dashboard (token) on localhost vs remote?](#how-do-i-authenticate-the-dashboard-token-on-localhost-vs-remote)
   - [What runtime do I need?](#what-runtime-do-i-need)
   - [Does it run on Raspberry Pi?](#does-it-run-on-raspberry-pi)
   - [Any tips for Raspberry Pi installs?](#any-tips-for-raspberry-pi-installs)
@@ -157,7 +155,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Why does `zee gateway status` show `Config (cli)` and `Config (service)` different?](#why-does-zee-gateway-status-show-config-cli-and-config-service-different)
   - [What does “another gateway instance is already listening” mean?](#what-does-another-gateway-instance-is-already-listening-mean)
   - [How do I run Zee in remote mode (client connects to a Gateway elsewhere)?](#how-do-i-run-zee-in-remote-mode-client-connects-to-a-gateway-elsewhere)
-  - [The Control UI says “unauthorized” (or keeps reconnecting). What now?](#the-control-ui-says-unauthorized-or-keeps-reconnecting-what-now)
+  - [The CLI/TUI says “unauthorized” (or keeps reconnecting). What now?](#the-clitui-client-says-unauthorized-or-keeps-reconnecting-what-now)
   - [I set `gateway.bind: "tailnet"` but it can’t bind / nothing listens](#i-set-gatewaybind-tailnet-but-it-cant-bind-nothing-listens)
   - [Can I run multiple Gateways on the same host?](#can-i-run-multiple-gateways-on-the-same-host)
   - [What does “invalid handshake” / code 1008 mean?](#what-does-invalid-handshake-code-1008-mean)
@@ -306,24 +304,6 @@ zee onboard
 ```
 
 If you don’t have a global install yet, run it via `pnpm zee onboard`.
-
-### How do I open the dashboard after onboarding
-
-The wizard now opens your browser with a tokenized dashboard URL right after onboarding and also prints the full link (with token) in the summary. Keep that tab open; if it didn’t launch, copy/paste the printed URL on the same machine. Tokens stay local to your host-nothing is fetched from the browser.
-
-### How do I authenticate the dashboard token on localhost vs remote
-
-**Localhost (same machine):**
-- Open `http://127.0.0.1:18789/`.
-- If it asks for auth, run `zee dashboard` and use the tokenized link (`?token=...`).
-- The token is the same value as `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`) and is stored by the UI after first load.
-
-**Not on localhost:**
-- **Tailscale Serve** (recommended): keep bind loopback, run `zee gateway --tailscale serve`, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy auth (no token).
-- **Tailnet bind**: run `zee gateway --bind tailnet --token "<token>"`, open `http://<tailscale-ip>:18789/`, paste token in dashboard settings.
-- **SSH tunnel**: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/?token=...` from `zee dashboard`.
-
-See [Dashboard](/web/dashboard) and [Web surfaces](/web) for bind modes and auth details.
 
 ### What runtime do I need
 
@@ -563,7 +543,7 @@ We keep a **hosting hub** with the common providers. Pick one and follow the gui
 - [exe.dev](/platforms/exe-dev)
 
 How it works in the cloud: the **Gateway runs on the server**, and you access it
-from your laptop/phone via the Control UI (or Tailscale/SSH). Your state + workspace
+from your laptop/phone via the CLI/TUI (or Tailscale/SSH). Your state + workspace
 live on the server, so treat the host as the source of truth and back it up.
 
 You can pair **headless node hosts** to that cloud Gateway to run commands on your
@@ -888,7 +868,7 @@ want durable memory, cross-device access, and tool orchestration.
 
 Advantages:
 - **Persistent memory + workspace** across sessions
-- **Multi-platform access** (WhatsApp, Telegram, TUI, Control UI)
+- **Multi-platform access** (WhatsApp, Telegram, TUI, CLI/TUI)
 - **Tool orchestration** (browser, files, scheduling, hooks)
 - **Always-on Gateway** (run on a VPS, interact from anywhere)
 - **Nodes** for local browser/screen/camera/exec
@@ -1214,11 +1194,11 @@ Non-loopback binds **require auth**. Configure `gateway.auth.mode` + `gateway.au
 
 Notes:
 - `gateway.remote.token` is for **remote CLI calls** only; it does not enable local gateway auth.
-- The Control UI authenticates via `connect.params.auth.token` (stored in app/UI settings). Avoid putting tokens in URLs.
+- The CLI/TUI authenticates via `connect.params.auth.token` or `gateway.remote.token`. Avoid putting tokens in URLs.
 
 ### Why do I need a token on localhost now
 
-The wizard generates a gateway token by default (even on loopback) so **local WS clients must authenticate**. This blocks other local processes from calling the Gateway. Paste the token into the Control UI settings (or your client config) to connect.
+The wizard generates a gateway token by default (even on loopback) so **local WS clients must authenticate**. This blocks other local processes from calling the Gateway. Paste the token into the CLI/TUI settings (or your client config) to connect.
 
 If you **really** want open loopback, remove `gateway.auth` from your config. Doctor can generate a token for you any time: `zee doctor --generate-gateway-token`.
 
@@ -1462,7 +1442,7 @@ Minimal steps:
    - SSH: `ssh user@your-vps.tailnet-xxxx.ts.net`
    - Gateway WS: `ws://your-vps.tailnet-xxxx.ts.net:18789`
 
-If you want the Control UI without SSH, use Tailscale Serve on the VPS:
+If you want the CLI/TUI without SSH, use Tailscale Serve on the VPS:
 ```bash
 zee gateway --tailscale serve
 ```
@@ -1470,7 +1450,7 @@ This keeps the gateway bound to loopback and exposes HTTPS via Tailscale. See [T
 
 ### How do I connect a node to a remote Gateway (Tailscale Serve)
 
-Serve exposes the **Gateway Control UI + WS**. Nodes connect over the same Gateway WS endpoint.
+Serve exposes the **Gateway CLI/TUI + WS**. Nodes connect over the same Gateway WS endpoint.
 
 Recommended setup:
 1) **Make sure the VPS + node host are on the same tailnet**.
@@ -2123,7 +2103,7 @@ The wizard explicitly supports Anthropic setup-token and OpenAI Codex OAuth and 
 
 ### What port does the Gateway use
 
-`gateway.port` controls the single multiplexed port for WebSocket + HTTP (Control UI, hooks, etc.).
+`gateway.port` controls the single multiplexed port for WebSocket + HTTP (CLI/TUI, hooks, etc.).
 
 Precedence:
 
@@ -2176,21 +2156,20 @@ Set `gateway.mode: "remote"` and point to a remote WebSocket URL, optionally wit
 Notes:
 - `zee gateway` only starts when `gateway.mode` is `local` (or you pass the override flag).
 
-### The Control UI says unauthorized or keeps reconnecting What now
+### The CLI/TUI says unauthorized or keeps reconnecting What now
 
-Your gateway is running with auth enabled (`gateway.auth.*`), but the UI is not sending the matching token/password.
+Your gateway is running with auth enabled (`gateway.auth.*`), but the client is not sending the matching token/password.
 
-Facts (from code):
-- The Control UI stores the token in browser localStorage key `zee.control.settings.v1`.
-- The UI can import `?token=...` (and/or `?password=...`) once, then strips it from the URL.
+Facts:
+- Client auth must match the gateway host’s `gateway.auth.*` settings.
+- Remote clients should use `gateway.remote.token` or `gateway.remote.password`.
 
 Fix:
-- Fastest: `zee dashboard` (prints + copies tokenized link, tries to open; shows SSH hint if headless).
 - If you don’t have a token yet: `zee doctor --generate-gateway-token`.
-- If remote, tunnel first: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/?token=...`.
 - Set `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`) on the gateway host.
-- In the Control UI settings, paste the same token (or refresh with a one-time `?token=...` link).
-- Still stuck? Run `zee status --all` and follow [Troubleshooting](/gateway/troubleshooting). See [Dashboard](/web/dashboard) for auth details.
+- If remote, tunnel or use tailnet bind to reach the gateway port.
+- Update your client config to include the token/password and retry.
+- Still stuck? Run `zee status --all` and follow [Troubleshooting](/gateway/troubleshooting).
 
 ### I set gatewaybind tailnet but it cant bind nothing listens
 
@@ -2330,7 +2309,7 @@ zee logs --follow
 Common causes:
 - Model auth not loaded on the **gateway host** (check `models status`).
 - Channel pairing/allowlist blocking replies (check channel config + logs).
-- Control UI/Dashboard is open without the right token.
+- CLI/TUI is using the wrong token.
 
 If you are remote, confirm the tunnel/Tailscale connection is up and that the
 Gateway WebSocket is reachable.
@@ -2343,7 +2322,7 @@ This usually means the UI lost the WebSocket connection. Check:
 
 1) Is the Gateway running? `zee gateway status`
 2) Is the Gateway healthy? `zee status`
-3) Does the UI have the right token? `zee dashboard`
+3) Does the client have the right token?
 4) If remote, is the tunnel/Tailscale link up?
 
 Then tail logs:
@@ -2352,7 +2331,7 @@ Then tail logs:
 zee logs --follow
 ```
 
-Docs: [Dashboard](/web/dashboard), [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
+Docs: [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
 
 ### Telegram setMyCommands fails with network errors What should I check
 
@@ -2533,7 +2512,7 @@ Fix in the chat where you see it:
 /reasoning off
 ```
 
-If it is still noisy, check the session settings in the Control UI and set verbose
+If it is still noisy, check the session settings in the CLI/TUI and set verbose
 to **inherit**. Also confirm you are not using a bot profile with `verboseDefault` set
 to `on` in config.
 

@@ -1,4 +1,4 @@
-export const LEGACY_PROJECT_NAME = "clawdbot" as const;
+export const LEGACY_PROJECT_NAME = "zee" as const;
 
 export const LEGACY_MANIFEST_KEY = LEGACY_PROJECT_NAME;
 

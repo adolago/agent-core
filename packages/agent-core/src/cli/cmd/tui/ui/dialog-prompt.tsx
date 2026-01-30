@@ -27,9 +27,12 @@ export function DialogPrompt(props: DialogPromptProps) {
   onMount(() => {
     dialog.setSize("medium")
     setTimeout(() => {
+      if (textarea.isDestroyed) return
       textarea.focus()
     }, 1)
-    textarea.gotoLineEnd()
+    if (!textarea.isDestroyed) {
+      textarea.gotoLineEnd()
+    }
   })
 
   return (

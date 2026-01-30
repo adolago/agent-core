@@ -233,7 +233,10 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
             focusedTextColor={theme.textMuted}
             ref={(r) => {
               input = r
-              setTimeout(() => input.focus(), 1)
+              setTimeout(() => {
+                if (input.isDestroyed) return
+                input.focus()
+              }, 1)
             }}
             placeholder={props.placeholder ?? "Search"}
           />

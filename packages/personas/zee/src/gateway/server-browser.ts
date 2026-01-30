@@ -7,7 +7,7 @@ export type BrowserControlServer = {
 export async function startBrowserControlServerIfEnabled(): Promise<BrowserControlServer | null> {
   if (
     isTruthyEnvValue(process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER) ||
-    isTruthyEnvValue(process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER)
+    isTruthyEnvValue(process.env.ZEE_SKIP_BROWSER_CONTROL_SERVER)
   ) {
     return null;
   }
@@ -15,7 +15,7 @@ export async function startBrowserControlServerIfEnabled(): Promise<BrowserContr
   // gateway (bun --compile) via the static specifier path.
   const override =
     process.env.ZEE_BROWSER_CONTROL_MODULE?.trim() ||
-    process.env.CLAWDBOT_BROWSER_CONTROL_MODULE?.trim();
+    process.env.ZEE_BROWSER_CONTROL_MODULE?.trim();
   const mod = override ? await import(override) : await import("../browser/control-service.js");
   const start =
     typeof (mod as { startBrowserControlServiceFromConfig?: unknown })

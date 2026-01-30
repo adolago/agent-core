@@ -67,7 +67,7 @@ const MAX_LOG_CHARS = 8000;
 const PREFLIGHT_MAX_COMMITS = 10;
 const START_DIRS = ["cwd", "argv1", "process"];
 const DEFAULT_PACKAGE_NAME = "zee";
-const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME, "moltbot", "clawdbot"]);
+const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME, "zee", "zee"]);
 
 function normalizeDir(value?: string | null) {
   if (!value) return null;
@@ -292,7 +292,7 @@ function normalizeTag(tag?: string) {
   const trimmed = tag?.trim();
   if (!trimmed) return "latest";
   if (trimmed.startsWith("zee@")) return trimmed.slice("zee@".length);
-  if (trimmed.startsWith("moltbot@")) return trimmed.slice("moltbot@".length);
+  if (trimmed.startsWith("zee@")) return trimmed.slice("zee@".length);
   if (trimmed.startsWith(`${DEFAULT_PACKAGE_NAME}@`)) {
     return trimmed.slice(`${DEFAULT_PACKAGE_NAME}@`.length);
   }
@@ -680,8 +680,8 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
         gitRoot,
         {
           ZEE_UPDATE_IN_PROGRESS: "1",
-          MOLTBOT_UPDATE_IN_PROGRESS: "1",
-          CLAWDBOT_UPDATE_IN_PROGRESS: "1",
+          ZEE_UPDATE_IN_PROGRESS: "1",
+          ZEE_UPDATE_IN_PROGRESS: "1",
         },
       ),
     );

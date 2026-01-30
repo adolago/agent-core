@@ -89,19 +89,10 @@ It runs a safe-ish update flow:
 - Requires a clean worktree.
 - Switches to the selected channel (tag or branch).
 - Fetches + rebases against `origin/dev` (dev channel).
-- Installs deps, builds, builds the Control UI, and runs `zee doctor`.
+- Installs deps, builds, builds the CLI/TUI, and runs `zee doctor`.
 - Restarts the gateway by default (use `--no-restart` to skip).
 
 If you installed via **npm/pnpm** (no git metadata), `zee update` will try to update via your package manager. If it can’t detect the install, use “Update (global install)” instead.
-
-## Update (Control UI / RPC)
-
-The Control UI has **Update & Restart** (RPC: `update.run`). It:
-1) Runs the same source-update flow as `zee update` (git checkout only).
-2) Writes a restart sentinel with a structured report (stdout/stderr tail).
-3) Restarts the gateway and pings the last active session with the report.
-
-If the rebase fails, the gateway aborts and restarts without applying the update.
 
 ## Update (from source)
 

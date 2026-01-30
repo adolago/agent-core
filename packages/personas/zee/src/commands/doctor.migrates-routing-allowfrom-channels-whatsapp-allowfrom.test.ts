@@ -389,7 +389,7 @@ describe("doctor command", () => {
     findLegacyGatewayServices.mockResolvedValueOnce([
       {
         platform: "linux",
-        label: "com.steipete.clawdbot.gateway",
+        label: "com.steipete.zee.gateway",
         detail: "loaded",
       },
     ]);

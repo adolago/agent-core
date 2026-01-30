@@ -1,5 +1,4 @@
 import type { Command } from "commander";
-import { dashboardCommand } from "../../commands/dashboard.js";
 import { doctorCommand } from "../../commands/doctor.js";
 import { resetCommand } from "../../commands/reset.js";
 import { uninstallCommand } from "../../commands/uninstall.js";
@@ -35,23 +34,6 @@ export function registerMaintenanceCommands(program: Command) {
           nonInteractive: Boolean(opts.nonInteractive),
           generateGatewayToken: Boolean(opts.generateGatewayToken),
           deep: Boolean(opts.deep),
-        });
-      });
-    });
-
-  program
-    .command("dashboard")
-    .description("Open the Control UI with your current token")
-    .addHelpText(
-      "after",
-      () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dashboard", "docs.zee/cli/dashboard")}\n`,
-    )
-    .option("--no-open", "Print URL but do not launch a browser", false)
-    .action(async (opts) => {
-      await runCommandWithRuntime(defaultRuntime, async () => {
-        await dashboardCommand(defaultRuntime, {
-          noOpen: Boolean(opts.noOpen),
         });
       });
     });

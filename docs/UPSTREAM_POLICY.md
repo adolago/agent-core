@@ -10,8 +10,12 @@ track upstream repositories.
 - Do not introduce legacy naming in new code or documentation.
 
 
-Mobile and desktop apps are intentionally removed from this repo. Do not reintroduce
-app code from external sources. Zee supports the Gateway and CLI only.
+Web UI and mobile apps are intentionally removed from this repo. Do not reintroduce
+non-Rust desktop apps (Tauri/Electron) or web clients from external sources.
+Supported surfaces are:
+- agent-core CLI/TUI
+- Zee Gateway (WhatsApp/Telegram)
+- Rust GPUI desktop (Stanley + agent-core)
 
 ## If you need upstream ideas
 

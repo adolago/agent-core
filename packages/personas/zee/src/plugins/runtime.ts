@@ -17,7 +17,7 @@ const createEmptyRegistry = (): PluginRegistry => ({
 });
 
 const REGISTRY_STATE = Symbol.for("zee.pluginRegistryState");
-const LEGACY_REGISTRY_STATE = Symbol.for("moltbot.pluginRegistryState");
+const LEGACY_REGISTRY_STATE = Symbol.for("zee.pluginRegistryState");
 
 type RegistryState = {
   registry: PluginRegistry | null;

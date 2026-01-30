@@ -82,7 +82,7 @@ export async function maybeRepairGatewayDaemon(params: {
         const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
           env: process.env,
           port,
-          token: params.cfg.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
+          token: params.cfg.gateway?.auth?.token ?? process.env.ZEE_GATEWAY_TOKEN,
           runtime: daemonRuntime,
           warn: (message, title) => note(message, title),
           config: params.cfg,

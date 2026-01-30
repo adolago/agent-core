@@ -61,7 +61,6 @@
 - Rebrand/migration issues or legacy config/service warnings: run `zee doctor` (see `docs/gateway/doctor.md`).
 
 ## Agent-Specific Notes
-- Vocabulary: "makeup" = "control UI".
 - Never edit `node_modules` (global/Homebrew/npm/git installs too). Updates overwrite. Skill notes go in `tools.md` or `AGENTS.md`.
 - When working on a GitHub Issue or PR, print the full URL at the end of the task.
 - When answering questions, respond with high-confidence answers only: verify in code; do not guess.
@@ -71,7 +70,7 @@
 - CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
 - Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
 - Logs: check `~/.local/state/agent-core/logs/daemon.log` and `~/.local/state/agent-core/logs/daemon.err.log`.
-- Connection providers: when adding a new connection, update every UI surface and docs (Control UI, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
+- Connection providers: when adding a new connection, update CLI/TUI surfaces and onboarding/overview docs, and add matching status + configuration forms so provider lists and settings stay in sync.
 - Version locations: `package.json` (CLI), `docs/install/updating.md` (pinned npm version).
 - A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
 - Multi-agent safety: do not create/apply/drop `git stash` entries unless explicitly requested. Do not switch branches or modify worktrees unless explicitly requested.

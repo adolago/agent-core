@@ -67,7 +67,7 @@ describe("Agent-specific sandbox config", () => {
           list: [
             {
               id: "main",
-              workspace: "~/clawd",
+              workspace: "~/zee",
             },
           ],
         },
@@ -100,7 +100,7 @@ describe("Agent-specific sandbox config", () => {
         list: [
           {
             id: "work",
-            workspace: "~/clawd-work",
+            workspace: "~/zee-work",
             sandbox: {
               mode: "all",
               scope: "agent",
@@ -148,7 +148,7 @@ describe("Agent-specific sandbox config", () => {
         list: [
           {
             id: "work",
-            workspace: "~/clawd-work",
+            workspace: "~/zee-work",
             sandbox: {
               mode: "all",
               scope: "shared",

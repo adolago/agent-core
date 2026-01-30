@@ -64,7 +64,6 @@ Default behavior on Telegram/WhatsApp:
 - **Multi-agent routing** — route inbound channels/accounts/peers to isolated agents (workspaces + per-agent sessions).
 - **Live Canvas** — agent-driven visual workspace with A2UI.
 - **First-class tools** — browser, canvas, nodes, cron, and sessions.
-- **Control UI** — hosted directly from the Gateway.
 
 ## How it works (short)
 
@@ -80,12 +79,12 @@ WhatsApp / Telegram
                │
                ├─ Pi agent (RPC)
                ├─ CLI (zee …)
-               └─ Control UI
+               └─ TUI
 ```
 
 ## Remote Gateway
 
-It is fine to run the Gateway on a small Linux instance. Clients (CLI, Control UI) can connect over **Tailscale Serve/Funnel** or **SSH tunnels**, and you can still pair headless node hosts to execute remote `system.run` actions when needed.
+It is fine to run the Gateway on a small Linux instance. Clients (CLI/TUI) can connect over **Tailscale Serve/Funnel** or **SSH tunnels**, and you can still pair headless node hosts to execute remote `system.run` actions when needed.
 
 - **Gateway host** runs the exec tool and channel connections by default.
 - **Node hosts** run `system.run` on the node machine via `node.invoke`.

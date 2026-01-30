@@ -228,71 +228,75 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         providerID: msg.info.providerID,
       }
 
-      function cancel() {
-        SessionPrompt.cancel(session.id)
-      }
-      ctx.abort.addEventListener("abort", cancel)
-      // Check if already aborted AFTER adding listener to avoid race condition
-      // where abort happens between listener add and this check
-      if (ctx.abort.aborted) {
-        cancel()
-        throw ctx.abort.reason ?? new DOMException("Task aborted", "AbortError")
-      }
-      using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
-      const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
+      try {
+        function cancel() {
+          SessionPrompt.cancel(session.id)
+        }
+        ctx.abort.addEventListener("abort", cancel)
+        // Check if already aborted AFTER adding listener to avoid race condition
+        // where abort happens between listener add and this check
+        if (ctx.abort.aborted) {
+          cancel()
+          throw ctx.abort.reason ?? new DOMException("Task aborted", "AbortError")
+        }
+        using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
+        const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
 
-      const timeoutMs = params.timeout ?? 300000 // 5 minute default
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Task timed out after ${timeoutMs}ms`)), timeoutMs),
-      )
+        const timeoutMs = params.timeout ?? 300000 // 5 minute default
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Task timed out after ${timeoutMs}ms`)), timeoutMs),
+        )
 
-      const result = await Promise.race([
-        SessionPrompt.prompt({
-          messageID,
-          sessionID: session.id,
-          model: {
-            modelID: model.modelID,
-            providerID: model.providerID,
+        const result = await Promise.race([
+          SessionPrompt.prompt({
+            messageID,
+            sessionID: session.id,
+            model: {
+              modelID: model.modelID,
+              providerID: model.providerID,
+            },
+            agent: agent.name,
+            options: agent.options,
+            tools: {
+              todowrite: false,
+              todoread: false,
+              ...(hasTaskPermission ? {} : { task: false }),
+              ...Object.fromEntries((config.experimental?.primary_tools ?? []).map((t) => [t, false])),
+            },
+            parts: promptParts,
+          }),
+          timeoutPromise,
+        ]).catch((error) => {
+          SessionPrompt.cancel(session.id)
+          throw error
+        })
+
+        const messages = await Session.messages({ sessionID: session.id })
+        const summary = messages
+          .filter((x) => x.info.role === "assistant")
+          .flatMap((msg) => msg.parts.filter((x: any) => x.type === "tool") as MessageV2.ToolPart[])
+          .map((part) => ({
+            id: part.id,
+            tool: part.tool,
+            state: {
+              status: part.state.status,
+              title: part.state.status === "completed" ? part.state.title : undefined,
+            },
+          }))
+        const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
+
+        const output = text + "\n\n" + ["<task_metadata>", `session_id: ${session.id}`, "</task_metadata>"].join("\n")
+
+        return {
+          title: params.description,
+          metadata: {
+            summary,
+            sessionId: session.id,
           },
-          agent: agent.name,
-          options: agent.options,
-          tools: {
-            todowrite: false,
-            todoread: false,
-            ...(hasTaskPermission ? {} : { task: false }),
-            ...Object.fromEntries((config.experimental?.primary_tools ?? []).map((t) => [t, false])),
-          },
-          parts: promptParts,
-        }),
-        timeoutPromise,
-      ]).catch((error) => {
-        SessionPrompt.cancel(session.id)
-        throw error
-      })
-      unsub()
-      const messages = await Session.messages({ sessionID: session.id })
-      const summary = messages
-        .filter((x) => x.info.role === "assistant")
-        .flatMap((msg) => msg.parts.filter((x: any) => x.type === "tool") as MessageV2.ToolPart[])
-        .map((part) => ({
-          id: part.id,
-          tool: part.tool,
-          state: {
-            status: part.state.status,
-            title: part.state.status === "completed" ? part.state.title : undefined,
-          },
-        }))
-      const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-
-      const output = text + "\n\n" + ["<task_metadata>", `session_id: ${session.id}`, "</task_metadata>"].join("\n")
-
-      return {
-        title: params.description,
-        metadata: {
-          summary,
-          sessionId: session.id,
-        },
-        output,
+          output,
+        }
+      } finally {
+        unsub()
       }
     },
   }

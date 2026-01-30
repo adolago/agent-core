@@ -74,31 +74,31 @@ describe("buildWorkspaceSkillsPrompt", () => {
       dir: path.join(skillsDir, "bin-skill"),
       name: "bin-skill",
       description: "Needs a bin",
-      metadata: '{"moltbot":{"requires":{"bins":["fakebin"]}}}',
+      metadata: '{"zee":{"requires":{"bins":["fakebin"]}}}',
     });
     await writeSkill({
       dir: path.join(skillsDir, "anybin-skill"),
       name: "anybin-skill",
       description: "Needs any bin",
-      metadata: '{"moltbot":{"requires":{"anyBins":["missingbin","fakebin"]}}}',
+      metadata: '{"zee":{"requires":{"anyBins":["missingbin","fakebin"]}}}',
     });
     await writeSkill({
       dir: path.join(skillsDir, "config-skill"),
       name: "config-skill",
       description: "Needs config",
-      metadata: '{"moltbot":{"requires":{"config":["browser.enabled"]}}}',
+      metadata: '{"zee":{"requires":{"config":["browser.enabled"]}}}',
     });
     await writeSkill({
       dir: path.join(skillsDir, "always-skill"),
       name: "always-skill",
       description: "Always on",
-      metadata: '{"moltbot":{"always":true,"requires":{"env":["MISSING"]}}}',
+      metadata: '{"zee":{"always":true,"requires":{"env":["MISSING"]}}}',
     });
     await writeSkill({
       dir: path.join(skillsDir, "env-skill"),
       name: "env-skill",
       description: "Needs env",
-      metadata: '{"moltbot":{"requires":{"env":["ENV_KEY"]},"primaryEnv":"ENV_KEY"}}',
+      metadata: '{"zee":{"requires":{"env":["ENV_KEY"]},"primaryEnv":"ENV_KEY"}}',
     });
 
     try {
@@ -140,7 +140,7 @@ describe("buildWorkspaceSkillsPrompt", () => {
       dir: skillDir,
       name: "alias-skill",
       description: "Uses skillKey",
-      metadata: '{"moltbot":{"skillKey":"alias"}}',
+      metadata: '{"zee":{"skillKey":"alias"}}',
     });
 
     const prompt = buildWorkspaceSkillsPrompt(workspaceDir, {

@@ -31,9 +31,22 @@ export namespace Session {
 
   const parentTitlePrefix = "New session - "
   const childTitlePrefix = "Child session - "
+  const forkTitlePrefix = "Fork "
 
   function createDefaultTitle(isChild = false) {
     return (isChild ? childTitlePrefix : parentTitlePrefix) + new Date().toISOString()
+  }
+
+  function getForkedTitle(parent: Info, siblings: Info[]) {
+    const suffix = ` - ${parent.title}`
+    let max = 0
+    for (const sibling of siblings) {
+      if (!sibling.title.startsWith(forkTitlePrefix) || !sibling.title.endsWith(suffix)) continue
+      const raw = sibling.title.slice(forkTitlePrefix.length, sibling.title.length - suffix.length).trim()
+      const num = Number.parseInt(raw, 10)
+      if (Number.isFinite(num)) max = Math.max(max, num)
+    }
+    return `${forkTitlePrefix}${max + 1}${suffix}`
   }
 
   export function isDefaultTitle(title: string) {
@@ -161,8 +174,12 @@ export namespace Session {
       messageID: Identifier.schema("message").optional(),
     }),
     async (input) => {
+      const parent = await get(input.sessionID)
+      const siblings = parent ? await children(parent.id) : []
       const session = await createNext({
         directory: Instance.directory,
+        parentID: parent?.id,
+        title: parent ? getForkedTitle(parent, siblings) : createDefaultTitle(false),
       })
       const msgs = await messages({ sessionID: input.sessionID })
       const idMap = new Map<string, string>()
@@ -400,13 +417,18 @@ export namespace Session {
         if (!Number.isFinite(value)) return 0
         return value
       }
+      const cacheWriteTokens =
+        (input.metadata?.["anthropic"]?.["cacheCreationInputTokens"] ??
+          input.metadata?.["venice"]?.["cacheWriteInputTokens"] ??
+          input.metadata?.["venice"]?.["cacheCreationInputTokens"] ??
+          0) as number
 
       const tokens = {
         input: safe(adjustedInputTokens),
         output: safe(input.usage.outputTokens ?? 0),
         reasoning: safe(input.usage?.reasoningTokens ?? 0),
         cache: {
-          write: safe((input.metadata?.["anthropic"]?.["cacheCreationInputTokens"] ?? 0) as number),
+          write: safe(cacheWriteTokens),
           read: safe(cachedInputTokens),
         },
       }

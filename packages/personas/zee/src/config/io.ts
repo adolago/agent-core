@@ -50,8 +50,8 @@ const SHELL_ENV_EXPECTED_KEYS = [
   "SYNTHETIC_API_KEY",
   "ELEVENLABS_API_KEY",
   "TELEGRAM_BOT_TOKEN",
-  "CLAWDBOT_GATEWAY_TOKEN",
-  "CLAWDBOT_GATEWAY_PASSWORD",
+  "ZEE_GATEWAY_TOKEN",
+  "ZEE_GATEWAY_PASSWORD",
 ];
 
 const CONFIG_BACKUP_COUNT = 5;
@@ -524,7 +524,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 }
 
 // NOTE: These wrappers intentionally do *not* cache the resolved config path at
-// module scope. `CLAWDBOT_CONFIG_PATH` (and friends) are expected to work even
+// module scope. `ZEE_CONFIG_PATH` (and friends) are expected to work even
 // when set after the module has been imported (tests, one-off scripts, etc.).
 const DEFAULT_CONFIG_CACHE_MS = 200;
 let configCache: {
@@ -534,7 +534,7 @@ let configCache: {
 } | null = null;
 
 function resolveConfigCacheMs(env: NodeJS.ProcessEnv): number {
-  const raw = env.CLAWDBOT_CONFIG_CACHE_MS?.trim();
+  const raw = env.ZEE_CONFIG_CACHE_MS?.trim();
   if (raw === "" || raw === "0") return 0;
   if (!raw) return DEFAULT_CONFIG_CACHE_MS;
   const parsed = Number.parseInt(raw, 10);
@@ -543,7 +543,7 @@ function resolveConfigCacheMs(env: NodeJS.ProcessEnv): number {
 }
 
 function shouldUseConfigCache(env: NodeJS.ProcessEnv): boolean {
-  if (env.CLAWDBOT_DISABLE_CONFIG_CACHE?.trim()) return false;
+  if (env.ZEE_DISABLE_CONFIG_CACHE?.trim()) return false;
   return resolveConfigCacheMs(env) > 0;
 }
 

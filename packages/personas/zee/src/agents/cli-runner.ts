@@ -167,7 +167,7 @@ export async function runCliAgent(params: {
       log.info(
         `cli exec: provider=${params.provider} model=${normalizedModel} promptChars=${params.prompt.length}`,
       );
-      const logOutputText = isTruthyEnvValue(process.env.CLAWDBOT_CLAUDE_CLI_LOG_OUTPUT);
+      const logOutputText = isTruthyEnvValue(process.env.ZEE_CLAUDE_CLI_LOG_OUTPUT);
       if (logOutputText) {
         const logArgs: string[] = [];
         for (let i = 0; i < args.length; i += 1) {

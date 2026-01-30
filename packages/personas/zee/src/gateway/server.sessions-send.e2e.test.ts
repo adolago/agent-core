@@ -19,25 +19,25 @@ let prevGatewayPort: string | undefined;
 let prevGatewayToken: string | undefined;
 
 beforeAll(async () => {
-  prevGatewayPort = process.env.CLAWDBOT_GATEWAY_PORT;
-  prevGatewayToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+  prevGatewayPort = process.env.ZEE_GATEWAY_PORT;
+  prevGatewayToken = process.env.ZEE_GATEWAY_TOKEN;
   gatewayPort = await getFreePort();
-  process.env.CLAWDBOT_GATEWAY_PORT = String(gatewayPort);
-  process.env.CLAWDBOT_GATEWAY_TOKEN = "test-token";
+  process.env.ZEE_GATEWAY_PORT = String(gatewayPort);
+  process.env.ZEE_GATEWAY_TOKEN = "test-token";
   server = await startGatewayServer(gatewayPort);
 });
 
 afterAll(async () => {
   await server.close();
   if (prevGatewayPort === undefined) {
-    delete process.env.CLAWDBOT_GATEWAY_PORT;
+    delete process.env.ZEE_GATEWAY_PORT;
   } else {
-    process.env.CLAWDBOT_GATEWAY_PORT = prevGatewayPort;
+    process.env.ZEE_GATEWAY_PORT = prevGatewayPort;
   }
   if (prevGatewayToken === undefined) {
-    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    delete process.env.ZEE_GATEWAY_TOKEN;
   } else {
-    process.env.CLAWDBOT_GATEWAY_TOKEN = prevGatewayToken;
+    process.env.ZEE_GATEWAY_TOKEN = prevGatewayToken;
   }
 });
 

@@ -27,21 +27,16 @@ export function resolveUserPathWithHome(input: string, home?: string): string {
 }
 
 export function resolveGatewayStateDir(env: Record<string, string | undefined>): string {
-  const override =
-    env.ZEE_STATE_DIR?.trim() || env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  const override = env.ZEE_STATE_DIR?.trim();
   if (override) {
     const home = override.startsWith("~") ? resolveHomeDir(env) : undefined;
     return resolveUserPathWithHome(override, home);
   }
   const home = resolveHomeDir(env);
-  const profile = env.ZEE_PROFILE ?? env.MOLTBOT_PROFILE ?? env.CLAWDBOT_PROFILE;
+  const profile = env.ZEE_PROFILE;
   const suffix = resolveGatewayProfileSuffix(profile);
   const preferred = path.join(home, `.zee${suffix}`);
   if (fs.existsSync(preferred)) return preferred;
-  const legacyClawdbot = path.join(home, `.clawdbot${suffix}`);
-  if (fs.existsSync(legacyClawdbot)) return legacyClawdbot;
-  const legacyMoltbot = path.join(home, `.moltbot${suffix}`);
-  if (fs.existsSync(legacyMoltbot)) return legacyMoltbot;
   return preferred;
 }
 
@@ -52,7 +47,7 @@ export function resolveGatewayLogPaths(env: Record<string, string | undefined>):
 } {
   const stateDir = resolveGatewayStateDir(env);
   const logDir = path.join(stateDir, "logs");
-  const prefix = env.ZEE_LOG_PREFIX?.trim() || env.CLAWDBOT_LOG_PREFIX?.trim() || "gateway";
+  const prefix = env.ZEE_LOG_PREFIX?.trim() || "gateway";
   return {
     logDir,
     stdoutPath: path.join(logDir, `${prefix}.log`),

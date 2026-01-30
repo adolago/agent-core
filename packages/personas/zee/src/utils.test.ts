@@ -122,10 +122,10 @@ describe("jidToE164", () => {
 });
 
 describe("resolveConfigDir", () => {
-  it("prefers ~/.moltbot when legacy dir is missing", async () => {
+  it("prefers ~/.zee when legacy dir is missing", async () => {
     const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "zee-config-dir-"));
     try {
-      const newDir = path.join(root, ".moltbot");
+      const newDir = path.join(root, ".zee");
       await fs.promises.mkdir(newDir, { recursive: true });
       const resolved = resolveConfigDir({} as NodeJS.ProcessEnv, () => root);
       expect(resolved).toBe(newDir);
@@ -159,7 +159,7 @@ describe("resolveUserPath", () => {
   });
 
   it("expands ~/ to home dir", () => {
-    expect(resolveUserPath("~/clawd")).toBe(path.resolve(os.homedir(), "clawd"));
+    expect(resolveUserPath("~/zee")).toBe(path.resolve(os.homedir(), "zee"));
   });
 
   it("resolves relative paths", () => {

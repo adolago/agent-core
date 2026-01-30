@@ -2,7 +2,7 @@
 summary: "Run Zee Gateway on exe.dev (VM + HTTPS proxy) for remote access"
 read_when:
   - You want a cheap always-on Linux host for the Gateway
-  - You want remote Control UI access without running your own VPS
+  - You want remote CLI/TUI access without running your own VPS
 ---
 
 # exe.dev
@@ -31,7 +31,7 @@ Shelley, [exe.dev](https://exe.dev)'s agent, can install Zee instantly with our
 prompt. The prompt used is as below:
 
 ```
-Set up Zee (https://docs.zee/install) on this VM. Use the non-interactive and accept-risk flags for zee onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "zee devices list" and "zee device approve <request id>". Make sure the dashboard shows that Zee's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
+Set up Zee (https://docs.zee/install) on this VM. Use the non-interactive and accept-risk flags for zee onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "zee devices list" and "zee device approve <request id>". Make sure `zee health` shows OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
 ```
 
 ## Manual installation

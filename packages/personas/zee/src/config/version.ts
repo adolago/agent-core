@@ -35,6 +35,6 @@ export function compareZeeVersions(
 }
 
 // Legacy aliases
-export type MoltbotVersion = ZeeVersion;
-export const parseMoltbotVersion = parseZeeVersion;
-export const compareMoltbotVersions = compareZeeVersions;
+export type ZeeVersion = ZeeVersion;
+export const parseZeeVersion = parseZeeVersion;
+export const compareZeeVersions = compareZeeVersions;

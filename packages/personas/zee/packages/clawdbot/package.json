@@ -1,16 +1,16 @@
 {
-  "name": "moltbot",
+  "name": "zee",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Compatibility shim that forwards to moltbot",
+  "description": "Compatibility shim that forwards to zee",
   "exports": {
     ".": "./index.js",
     "./plugin-sdk": "./plugin-sdk/index.js"
   },
   "bin": {
-    "moltbot": "./bin/moltbot.js"
+    "zee": "./bin/zee.js"
   },
   "dependencies": {
-    "moltbot": "workspace:*"
+    "zee": "workspace:*"
   }
 }

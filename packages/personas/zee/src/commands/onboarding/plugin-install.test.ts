@@ -34,7 +34,7 @@ const baseEntry: ChannelPluginCatalogEntry = {
     blurb: "Test",
   },
   install: {
-    npmSpec: "@moltbot/custom",
+    npmSpec: "@zee/custom",
     localPath: "extensions/custom",
   },
 };
@@ -69,10 +69,10 @@ describe("ensureOnboardingPluginInstalled", () => {
     expect(result.cfg.plugins?.entries?.custom?.enabled).toBe(true);
     expect(result.cfg.plugins?.allow).toContain("custom");
     expect(result.cfg.plugins?.installs?.custom?.source).toBe("npm");
-    expect(result.cfg.plugins?.installs?.custom?.spec).toBe("@moltbot/custom");
+    expect(result.cfg.plugins?.installs?.custom?.spec).toBe("@zee/custom");
     expect(result.cfg.plugins?.installs?.custom?.installPath).toBe("/tmp/custom");
     expect(installPluginFromNpmSpec).toHaveBeenCalledWith(
-      expect.objectContaining({ spec: "@moltbot/custom" }),
+      expect.objectContaining({ spec: "@zee/custom" }),
     );
   });
 

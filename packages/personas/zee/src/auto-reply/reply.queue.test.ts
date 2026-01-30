@@ -45,7 +45,7 @@ function makeCfg(home: string, queue?: Record<string, unknown>) {
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-5",
-        workspace: path.join(home, "clawd"),
+        workspace: path.join(home, "zee"),
       },
     },
     channels: { whatsapp: { allowFrom: ["*"] } },

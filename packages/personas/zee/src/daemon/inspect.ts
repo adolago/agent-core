@@ -4,10 +4,10 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import {
+  GATEWAY_SYSTEMD_SERVICE_NAME,
+  GATEWAY_WINDOWS_TASK_NAME,
   GATEWAY_SERVICE_KIND,
   GATEWAY_SERVICE_MARKER,
-  LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES,
-  LEGACY_GATEWAY_WINDOWS_TASK_NAMES,
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
 } from "./constants.js";
@@ -23,13 +23,13 @@ export type FindExtraGatewayServicesOptions = {
   deep?: boolean;
 };
 
-const EXTRA_MARKERS = ["zee", "moltbot", "clawdbot"];
+const EXTRA_MARKERS = ["zee"];
 const execFileAsync = promisify(execFile);
 
 export function renderGatewayServiceCleanupHints(
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): string[] {
-  const profile = env.ZEE_PROFILE ?? env.MOLTBOT_PROFILE ?? env.CLAWDBOT_PROFILE;
+  const profile = env.ZEE_PROFILE;
   switch (process.platform) {
     case "linux": {
       const unit = resolveGatewaySystemdServiceName(profile);
@@ -62,11 +62,7 @@ function hasGatewayServiceMarker(content: string): boolean {
   const lower = content.toLowerCase();
   const marker = GATEWAY_SERVICE_MARKER.toLowerCase();
   const kind = GATEWAY_SERVICE_KIND.toLowerCase();
-  const candidates: Array<[string, string]> = [
-    ["zee_service_marker", "zee_service_kind"],
-    ["moltbot_service_marker", "moltbot_service_kind"],
-    ["clawdbot_service_marker", "clawdbot_service_kind"],
-  ];
+  const candidates: Array<[string, string]> = [["zee_service_marker", "zee_service_kind"]];
   return candidates.some(
     ([markerKey, kindKey]) =>
       lower.includes(markerKey) &&
@@ -80,11 +76,7 @@ function isGatewaySystemdService(name: string, contents: string): boolean {
   if (hasGatewayServiceMarker(contents)) return true;
   const normalized = name.trim().toLowerCase();
   if (!normalized) return false;
-  if (
-    !normalized.startsWith("zee-gateway") &&
-    !normalized.startsWith("moltbot-gateway") &&
-    !normalized.startsWith("clawdbot-gateway")
-  ) {
+  if (!normalized.startsWith("zee-gateway")) {
     return false;
   }
   return contents.toLowerCase().includes("gateway");
@@ -96,17 +88,12 @@ function isGatewayTaskName(name: string): boolean {
   const defaultName = resolveGatewayWindowsTaskName().toLowerCase();
   return (
     normalized === defaultName ||
-    normalized.startsWith("zee gateway") ||
-    normalized.startsWith("moltbot gateway") ||
-    normalized.startsWith("clawdbot gateway")
+    normalized.startsWith("zee gateway")
   );
 }
 
 function isIgnoredSystemdName(name: string): boolean {
-  return (
-    name === resolveGatewaySystemdServiceName() ||
-    LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES.includes(name)
-  );
+  return name === resolveGatewaySystemdServiceName() || name === GATEWAY_SYSTEMD_SERVICE_NAME;
 }
 
 
@@ -265,7 +252,7 @@ export async function findExtraGatewayServices(
       const name = task.name.trim();
       if (!name) continue;
       if (isGatewayTaskName(name)) continue;
-      if (LEGACY_GATEWAY_WINDOWS_TASK_NAMES.includes(name)) continue;
+      if (name === GATEWAY_WINDOWS_TASK_NAME) continue;
       const lowerName = name.toLowerCase();
       const lowerCommand = task.taskToRun?.toLowerCase() ?? "";
       const matches = EXTRA_MARKERS.some(

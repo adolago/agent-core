@@ -30,12 +30,12 @@ const DEFAULT_TIMEOUT_MS = 2000;
 
 const DEFAULT_DOMAINS = ["local.", WIDE_AREA_DISCOVERY_DOMAIN] as const;
 const PRIMARY_GATEWAY_SERVICE_TYPE = "_zee-gw._tcp";
-const LEGACY_GATEWAY_SERVICE_TYPES = ["_moltbot-gw._tcp"] as const;
+const LEGACY_GATEWAY_SERVICE_TYPES = ["_zee-gw._tcp"] as const;
 const ALL_GATEWAY_SERVICE_TYPES = [
   PRIMARY_GATEWAY_SERVICE_TYPE,
   ...LEGACY_GATEWAY_SERVICE_TYPES,
 ] as const;
-const SERVICE_TYPE_PATTERN = /_(?:zee|moltbot)-gw\._tcp/;
+const SERVICE_TYPE_PATTERN = /_(?:zee|zee)-gw\._tcp/;
 
 function decodeDnsSdEscapes(value: string): string {
   let decoded = false;
@@ -175,7 +175,7 @@ function parseDnsSdBrowse(stdout: string): string[] {
     const line = raw.trim();
     if (!line || !SERVICE_TYPE_PATTERN.test(line)) continue;
     if (!line.includes("Add")) continue;
-    const match = line.match(/_(?:zee|moltbot)-gw\._tcp\.?\s+(.+)$/);
+    const match = line.match(/_(?:zee|zee)-gw\._tcp\.?\s+(.+)$/);
     if (match?.[1]) {
       instances.add(decodeDnsSdEscapes(match[1].trim()));
     }

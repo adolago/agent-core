@@ -24,8 +24,8 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
     },
     {
       env: {
-        CLAWDBOT_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
-        PI_CODING_AGENT_DIR: (home) => path.join(home, ".clawdbot", "agent"),
+        ZEE_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
+        PI_CODING_AGENT_DIR: (home) => path.join(home, ".zee", "agent"),
       },
       prefix: "zee-rawbody-",
     },
@@ -64,7 +64,7 @@ describe("RawBody directive parsing", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -98,7 +98,7 @@ describe("RawBody directive parsing", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
               models: {
                 "anthropic/claude-opus-4-5": {},
               },
@@ -135,7 +135,7 @@ describe("RawBody directive parsing", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },
@@ -173,7 +173,7 @@ describe("RawBody directive parsing", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["+1222"] } },
@@ -221,7 +221,7 @@ describe("RawBody directive parsing", () => {
           agents: {
             defaults: {
               model: "anthropic/claude-opus-4-5",
-              workspace: path.join(home, "clawd"),
+              workspace: path.join(home, "zee"),
             },
           },
           channels: { whatsapp: { allowFrom: ["*"] } },

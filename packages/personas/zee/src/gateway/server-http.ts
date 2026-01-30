@@ -11,8 +11,6 @@ import { handleA2uiHttpRequest } from "../canvas-host/a2ui.js";
 import type { CanvasHostHandler } from "../canvas-host/server.js";
 import { loadConfig } from "../config/config.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
-import { resolveAgentAvatar } from "../agents/identity-avatar.js";
-import { handleControlUiAvatarRequest, handleControlUiHttpRequest } from "./control-ui.js";
 import {
   extractHookToken,
   getHookChannelError,
@@ -201,8 +199,6 @@ export function createHooksRequestHandler(
 
 export function createGatewayHttpServer(opts: {
   canvasHost: CanvasHostHandler | null;
-  controlUiEnabled: boolean;
-  controlUiBasePath: string;
   openAiChatCompletionsEnabled: boolean;
   openResponsesEnabled: boolean;
   openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
@@ -213,8 +209,6 @@ export function createGatewayHttpServer(opts: {
 }): HttpServer {
   const {
     canvasHost,
-    controlUiEnabled,
-    controlUiBasePath,
     openAiChatCompletionsEnabled,
     openResponsesEnabled,
     openResponsesConfig,
@@ -268,22 +262,6 @@ export function createGatewayHttpServer(opts: {
       if (canvasHost) {
         if (await handleA2uiHttpRequest(req, res)) return;
         if (await canvasHost.handleHttpRequest(req, res)) return;
-      }
-      if (controlUiEnabled) {
-        if (
-          handleControlUiAvatarRequest(req, res, {
-            basePath: controlUiBasePath,
-            resolveAvatar: (agentId) => resolveAgentAvatar(configSnapshot, agentId),
-          })
-        )
-          return;
-        if (
-          handleControlUiHttpRequest(req, res, {
-            basePath: controlUiBasePath,
-            config: configSnapshot,
-          })
-        )
-          return;
       }
 
       res.statusCode = 404;

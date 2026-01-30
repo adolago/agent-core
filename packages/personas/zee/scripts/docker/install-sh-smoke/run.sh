@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://docs.zee/install.sh}"
-SMOKE_PREVIOUS_VERSION="${CLAWDBOT_INSTALL_SMOKE_PREVIOUS:-}"
-SKIP_PREVIOUS="${CLAWDBOT_INSTALL_SMOKE_SKIP_PREVIOUS:-0}"
+INSTALL_URL="${ZEE_INSTALL_URL:-https://docs.zee/install.sh}"
+SMOKE_PREVIOUS_VERSION="${ZEE_INSTALL_SMOKE_PREVIOUS:-}"
+SKIP_PREVIOUS="${ZEE_INSTALL_SMOKE_SKIP_PREVIOUS:-0}"
 DEFAULT_PACKAGE="zee"
-if [[ -z "${CLAWDBOT_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"zee.bot"* ]]; then
+if [[ -z "${ZEE_INSTALL_PACKAGE:-}" && "$INSTALL_URL" == *"zee.bot"* ]]; then
   DEFAULT_PACKAGE="zee"
 fi
-PACKAGE_NAME="${CLAWDBOT_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
+PACKAGE_NAME="${ZEE_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
 if [[ "$PACKAGE_NAME" == "zee" ]]; then
   ALT_PACKAGE_NAME="zee"
 else
@@ -49,7 +49,7 @@ fi
 echo "package=$PACKAGE_NAME latest=$LATEST_VERSION previous=$PREVIOUS_VERSION"
 
 if [[ "$SKIP_PREVIOUS" == "1" ]]; then
-  echo "==> Skip preinstall previous (CLAWDBOT_INSTALL_SMOKE_SKIP_PREVIOUS=1)"
+  echo "==> Skip preinstall previous (ZEE_INSTALL_SMOKE_SKIP_PREVIOUS=1)"
 else
   echo "==> Preinstall previous (forces installer upgrade path)"
   npm install -g "${PACKAGE_NAME}@${PREVIOUS_VERSION}"
@@ -70,8 +70,8 @@ if ! command -v "$CLI_NAME" >/dev/null 2>&1; then
     exit 1
   fi
 fi
-if [[ -n "${CLAWDBOT_INSTALL_LATEST_OUT:-}" ]]; then
-  printf "%s" "$LATEST_VERSION" > "$CLAWDBOT_INSTALL_LATEST_OUT"
+if [[ -n "${ZEE_INSTALL_LATEST_OUT:-}" ]]; then
+  printf "%s" "$LATEST_VERSION" > "$ZEE_INSTALL_LATEST_OUT"
 fi
 INSTALLED_VERSION="$("$CLI_NAME" --version 2>/dev/null | head -n 1 | tr -d '\r')"
 echo "cli=$CLI_NAME installed=$INSTALLED_VERSION expected=$LATEST_VERSION"

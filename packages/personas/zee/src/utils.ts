@@ -215,22 +215,9 @@ export function resolveConfigDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const override =
-    env.ZEE_STATE_DIR?.trim() ||
-    env.MOLTBOT_STATE_DIR?.trim() ||
-    env.CLAWDBOT_STATE_DIR?.trim();
+  const override = env.ZEE_STATE_DIR?.trim();
   if (override) return resolveUserPath(override);
-  const newDir = path.join(homedir(), ".zee");
-  const legacyDirs = [path.join(homedir(), ".moltbot"), path.join(homedir(), ".clawdbot")];
-  try {
-    const hasNew = fs.existsSync(newDir);
-    if (hasNew) return newDir;
-    const legacy = legacyDirs.find((dir) => fs.existsSync(dir));
-    if (legacy) return legacy;
-  } catch {
-    // best-effort
-  }
-  return newDir;
+  return path.join(homedir(), ".zee");
 }
 
 export function resolveHomeDir(): string | undefined {

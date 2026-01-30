@@ -13,13 +13,13 @@ type SubCliEntry = {
 };
 
 const shouldRegisterPrimaryOnly = (argv: string[]) => {
-  if (isTruthyEnvValue(process.env.CLAWDBOT_DISABLE_LAZY_SUBCOMMANDS)) return false;
+  if (isTruthyEnvValue(process.env.ZEE_DISABLE_LAZY_SUBCOMMANDS)) return false;
   if (hasHelpOrVersion(argv)) return false;
   return true;
 };
 
 const shouldEagerRegisterSubcommands = (_argv: string[]) => {
-  return isTruthyEnvValue(process.env.CLAWDBOT_DISABLE_LAZY_SUBCOMMANDS);
+  return isTruthyEnvValue(process.env.ZEE_DISABLE_LAZY_SUBCOMMANDS);
 };
 
 const loadConfig = async (): Promise<ZeeConfig> => {

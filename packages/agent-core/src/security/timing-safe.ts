@@ -2,7 +2,7 @@
  * Timing-Safe Comparison Utilities
  *
  * Prevents timing attacks in security-sensitive comparisons.
- * Based on ClawdBot commit 3b8792ee29 (timing attack fix).
+ * Based on Zee commit 3b8792ee29 (timing attack fix).
  *
  * The risk: String comparison using === can leak information through timing differences.
  * An attacker can measure response times to deduce the correct value character by character.

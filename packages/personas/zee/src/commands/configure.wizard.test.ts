@@ -11,13 +11,12 @@ const mocks = vi.hoisted(() => ({
   readConfigFileSnapshot: vi.fn(),
   writeConfigFile: vi.fn(),
   resolveGatewayPort: vi.fn(),
-  ensureControlUiAssetsBuilt: vi.fn(),
   createClackPrompter: vi.fn(),
   note: vi.fn(),
   printWizardHeader: vi.fn(),
   probeGatewayReachable: vi.fn(),
   waitForGatewayReachable: vi.fn(),
-  resolveControlUiLinks: vi.fn(),
+  resolveGatewayUrls: vi.fn(),
   summarizeExistingConfig: vi.fn(),
 }));
 
@@ -30,14 +29,10 @@ vi.mock("@clack/prompts", () => ({
 }));
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH: "~/.clawdbot/moltbot.json",
+  CONFIG_PATH: "~/.zee/zee.json",
   readConfigFileSnapshot: mocks.readConfigFileSnapshot,
   writeConfigFile: mocks.writeConfigFile,
   resolveGatewayPort: mocks.resolveGatewayPort,
-}));
-
-vi.mock("../infra/control-ui-assets.js", () => ({
-  ensureControlUiAssetsBuilt: mocks.ensureControlUiAssetsBuilt,
 }));
 
 vi.mock("../wizard/clack-prompter.js", () => ({
@@ -49,13 +44,13 @@ vi.mock("../terminal/note.js", () => ({
 }));
 
 vi.mock("./onboard-helpers.js", () => ({
-  DEFAULT_WORKSPACE: "~/.clawdbot/workspace",
+  DEFAULT_WORKSPACE: "~/.zee/workspace",
   applyWizardMetadata: (cfg: ZeeConfig) => cfg,
   ensureWorkspaceAndSessions: vi.fn(),
   guardCancel: <T>(value: T) => value,
   printWizardHeader: mocks.printWizardHeader,
   probeGatewayReachable: mocks.probeGatewayReachable,
-  resolveControlUiLinks: mocks.resolveControlUiLinks,
+  resolveGatewayUrls: mocks.resolveGatewayUrls,
   summarizeExistingConfig: mocks.summarizeExistingConfig,
   waitForGatewayReachable: mocks.waitForGatewayReachable,
 }));
@@ -108,7 +103,7 @@ describe("runConfigureWizard", () => {
     });
     mocks.resolveGatewayPort.mockReturnValue(18789);
     mocks.probeGatewayReachable.mockResolvedValue({ ok: false });
-    mocks.resolveControlUiLinks.mockReturnValue({ wsUrl: "ws://127.0.0.1:18789" });
+    mocks.resolveGatewayUrls.mockReturnValue({ wsUrl: "ws://127.0.0.1:18789" });
     mocks.summarizeExistingConfig.mockReturnValue("");
     mocks.createClackPrompter.mockReturnValue({});
 

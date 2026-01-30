@@ -1,13 +1,13 @@
 ---
-summary: "Integrated Tailscale Serve/Funnel for the Gateway dashboard"
+summary: "Integrated Tailscale Serve/Funnel for Gateway remote access"
 read_when:
-  - Exposing the Gateway Control UI outside localhost
-  - Automating tailnet or public dashboard access
+  - Exposing the Gateway HTTP/WS endpoints outside localhost
+  - Automating tailnet or public access
 ---
-# Tailscale (Gateway dashboard)
+# Tailscale (Gateway access)
 
 Zee can auto-configure Tailscale **Serve** (tailnet) or **Funnel** (public) for the
-Gateway dashboard and WebSocket port. This keeps the Gateway bound to loopback while
+Gateway HTTP endpoints and WebSocket port. This keeps the Gateway bound to loopback while
 Tailscale provides HTTPS, routing, and (for Serve) identity headers.
 
 ## Modes
@@ -47,7 +47,7 @@ force `gateway.auth.mode: "password"`.
 }
 ```
 
-Open: `https://<magicdns>/` (or your configured `gateway.controlUi.basePath`)
+Open: `https://<magicdns>/`
 
 ### Tailnet-only (bind to Tailnet IP)
 
@@ -63,7 +63,7 @@ Use this when you want the Gateway to listen directly on the Tailnet IP (no Serv
 ```
 
 Connect from another Tailnet device:
-- Control UI: `http://<tailscale-ip>:18789/`
+- HTTP: `http://<tailscale-ip>:18789/`
 - WebSocket: `ws://<tailscale-ip>:18789`
 
 Note: loopback (`http://127.0.0.1:18789`) will **not** work in this mode.
@@ -97,7 +97,7 @@ zee gateway --tailscale funnel --auth password
   or `tailscale funnel` configuration on shutdown.
 - `gateway.bind: "tailnet"` is a direct Tailnet bind (no HTTPS, no Serve/Funnel).
 - `gateway.bind: "auto"` prefers loopback; use `tailnet` if you want Tailnet-only.
-- Serve/Funnel only expose the **Gateway control UI + WS**. Nodes connect over
+- Serve/Funnel only expose the **Gateway HTTP/WS endpoints**. Nodes connect over
   the same Gateway WS endpoint, so Serve can work for node access.
 
 ## Browser control (remote Gateway + local browser)

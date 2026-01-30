@@ -25,8 +25,6 @@ export async function createGatewayRuntimeState(params: {
   cfg: import("../config/config.js").ZeeConfig;
   bindHost: string;
   port: number;
-  controlUiEnabled: boolean;
-  controlUiBasePath: string;
   openAiChatCompletionsEnabled: boolean;
   openResponsesEnabled: boolean;
   openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
@@ -110,8 +108,6 @@ export async function createGatewayRuntimeState(params: {
   for (const host of bindHosts) {
     const httpServer = createGatewayHttpServer({
       canvasHost,
-      controlUiEnabled: params.controlUiEnabled,
-      controlUiBasePath: params.controlUiBasePath,
       openAiChatCompletionsEnabled: params.openAiChatCompletionsEnabled,
       openResponsesEnabled: params.openResponsesEnabled,
       openResponsesConfig: params.openResponsesConfig,

@@ -21,7 +21,7 @@ Hetzner pricing changes; pick the smallest Debian/Ubuntu VPS and scale up if you
 - Install Docker (isolated app runtime)
 - Start the Zee Gateway in Docker
 - Persist `~/.zee` + `~/zee` on the host (survives restarts/rebuilds)
-- Access the Control UI from your laptop via an SSH tunnel
+- Access the CLI/TUI from your laptop via an SSH tunnel
 
 The Gateway can be accessed via:
 - SSH port forwarding from your laptop

@@ -14,23 +14,23 @@ function makeTempDir() {
 }
 
 async function withStateDir<T>(stateDir: string, fn: () => Promise<T>) {
-  const prev = process.env.CLAWDBOT_STATE_DIR;
-  const prevBundled = process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
-  process.env.CLAWDBOT_STATE_DIR = stateDir;
-  process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+  const prev = process.env.ZEE_STATE_DIR;
+  const prevBundled = process.env.ZEE_BUNDLED_PLUGINS_DIR;
+  process.env.ZEE_STATE_DIR = stateDir;
+  process.env.ZEE_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
   vi.resetModules();
   try {
     return await fn();
   } finally {
     if (prev === undefined) {
-      delete process.env.CLAWDBOT_STATE_DIR;
+      delete process.env.ZEE_STATE_DIR;
     } else {
-      process.env.CLAWDBOT_STATE_DIR = prev;
+      process.env.ZEE_STATE_DIR = prev;
     }
     if (prevBundled === undefined) {
-      delete process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR;
+      delete process.env.ZEE_BUNDLED_PLUGINS_DIR;
     } else {
-      process.env.CLAWDBOT_BUNDLED_PLUGINS_DIR = prevBundled;
+      process.env.ZEE_BUNDLED_PLUGINS_DIR = prevBundled;
     }
     vi.resetModules();
   }
@@ -55,7 +55,7 @@ describe("discoverZeePlugins", () => {
     fs.mkdirSync(globalExt, { recursive: true });
     fs.writeFileSync(path.join(globalExt, "alpha.ts"), "export default function () {}", "utf-8");
 
-    const workspaceExt = path.join(workspaceDir, ".clawdbot", "extensions");
+    const workspaceExt = path.join(workspaceDir, ".zee", "extensions");
     fs.mkdirSync(workspaceExt, { recursive: true });
     fs.writeFileSync(path.join(workspaceExt, "beta.ts"), "export default function () {}", "utf-8");
 
@@ -78,7 +78,7 @@ describe("discoverZeePlugins", () => {
       path.join(globalExt, "package.json"),
       JSON.stringify({
         name: "pack",
-        moltbot: { extensions: ["./src/one.ts", "./src/two.ts"] },
+        zee: { extensions: ["./src/one.ts", "./src/two.ts"] },
       }),
       "utf-8",
     );
@@ -111,8 +111,8 @@ describe("discoverZeePlugins", () => {
     fs.writeFileSync(
       path.join(globalExt, "package.json"),
       JSON.stringify({
-        name: "@moltbot/voice-call",
-        moltbot: { extensions: ["./src/index.ts"] },
+        name: "@zee/voice-call",
+        zee: { extensions: ["./src/index.ts"] },
       }),
       "utf-8",
     );
@@ -139,8 +139,8 @@ describe("discoverZeePlugins", () => {
     fs.writeFileSync(
       path.join(packDir, "package.json"),
       JSON.stringify({
-        name: "@moltbot/demo-plugin-dir",
-        moltbot: { extensions: ["./index.js"] },
+        name: "@zee/demo-plugin-dir",
+        zee: { extensions: ["./index.js"] },
       }),
       "utf-8",
     );

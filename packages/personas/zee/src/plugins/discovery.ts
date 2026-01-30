@@ -328,8 +328,8 @@ export function discoverZeePlugins(params: {
     const workspaceRoot = resolveUserPath(workspaceDir);
     const workspaceExtDirs = [
       path.join(workspaceRoot, ".zee", "extensions"),
-      path.join(workspaceRoot, ".moltbot", "extensions"),
-      path.join(workspaceRoot, ".clawdbot", "extensions"),
+      path.join(workspaceRoot, ".zee", "extensions"),
+      path.join(workspaceRoot, ".zee", "extensions"),
     ];
     for (const dir of workspaceExtDirs) {
       discoverInDirectory({

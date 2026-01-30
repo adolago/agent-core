@@ -43,7 +43,7 @@ Disable with:
 
 ## Architecture (who owns what)
 - **Gateway** owns the Baileys socket and inbox loop.
-- **CLI / Control UI** talk to the gateway; no direct Baileys use.
+- **CLI / CLI/TUI** talk to the gateway; no direct Baileys use.
 - **Active listener** is required for outbound sends; otherwise send fails fast.
 
 ## Getting a phone number (two modes)

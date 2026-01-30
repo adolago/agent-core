@@ -1,120 +1,177 @@
 import path from "path"
-import { Instance } from "../project/instance"
+import os from "os"
+import { Global } from "../global"
 import { Filesystem } from "../util/filesystem"
+import { Config } from "../config/config"
+import { Instance } from "../project/instance"
+import { Flag } from "@/flag/flag"
+import { Log } from "../util/log"
+import type { MessageV2 } from "./message-v2"
 
-/**
- * Dynamic instruction loading for AGENTS.md files.
- *
- * As the agent explores the codebase and reads files, this module auto-loads
- * any AGENTS.md files found in the accessed directories or their parents
- * (up to the project root). This allows subdirectories to have their own
- * specialized instructions that are loaded on-demand.
- */
+const log = Log.create({ service: "instruction" })
+
+const FILES = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  "CONTEXT.md", // deprecated
+]
+
+function globalFiles() {
+  const files = [path.join(Global.Path.config, "AGENTS.md"), path.join(os.homedir(), ".claude", "CLAUDE.md")]
+  if (Flag.OPENCODE_CONFIG_DIR) {
+    files.push(path.join(Flag.OPENCODE_CONFIG_DIR, "AGENTS.md"))
+  }
+  return files
+}
+
+async function resolveRelative(instruction: string): Promise<string[]> {
+  return Filesystem.globUp(instruction, Instance.directory, Instance.worktree).catch(() => [])
+}
+
 export namespace InstructionPrompt {
-  const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"]
+  const state = Instance.state(() => {
+    return {
+      claims: new Map<string, Set<string>>(),
+    }
+  })
 
-  /**
-   * Tracks which instruction file paths have been loaded per session.
-   * Uses a Map keyed by sessionID to avoid re-loading the same file.
-   */
-  const loadedInstructions = Instance.state(
-    () => new Map<string, Set<string>>(),
-    async (state) => state.clear()
-  )
+  function isClaimed(messageID: string, filepath: string) {
+    const claimed = state().claims.get(messageID)
+    if (!claimed) return false
+    return claimed.has(filepath)
+  }
 
-  /**
-   * Resolve any new instruction files for a given file path.
-   * Looks for AGENTS.md or CLAUDE.md files in the directory of the file
-   * and its parent directories up to the project root.
-   *
-   * @param sessionID - The session ID to track loaded instructions
-   * @param filepath - The absolute path to the file being accessed
-   * @returns Array of instruction content strings (with source header) for newly discovered files
-   */
-  export async function resolve(sessionID: string, filepath: string): Promise<string[]> {
-    const state = loadedInstructions()
-    let sessionLoaded = state.get(sessionID)
-    if (!sessionLoaded) {
-      sessionLoaded = new Set()
-      state.set(sessionID, sessionLoaded)
+  function claim(messageID: string, filepath: string) {
+    const current = state()
+    let claimed = current.claims.get(messageID)
+    if (!claimed) {
+      claimed = new Set()
+      current.claims.set(messageID, claimed)
+    }
+    claimed.add(filepath)
+  }
+
+  export function clear(messageID: string) {
+    state().claims.delete(messageID)
+  }
+
+  export async function systemPaths() {
+    const config = await Config.get()
+    const paths = new Set<string>()
+
+    for (const file of FILES) {
+      const matches = await Filesystem.findUp(file, Instance.directory, Instance.worktree)
+      if (matches.length > 0) {
+        matches.forEach((p) => paths.add(path.resolve(p)))
+        break
+      }
     }
 
-    const instructions: string[] = []
-    const projectRoot = Instance.directory
-    const worktree = Instance.worktree
-
-    // Get the directory of the file being accessed
-    const fileDir = path.dirname(filepath)
-
-    // Only look for instructions if the file is within the project
-    if (!Filesystem.contains(projectRoot, filepath) && !Filesystem.contains(worktree, filepath)) {
-      return instructions
+    for (const file of globalFiles()) {
+      if (await Bun.file(file).exists()) {
+        paths.add(path.resolve(file))
+        break
+      }
     }
 
-    // Walk up from the file's directory to the project root
-    // looking for instruction files that haven't been loaded yet
-    let currentDir = fileDir
-    const root = worktree !== "/" ? worktree : projectRoot
+    if (config.instructions) {
+      for (let instruction of config.instructions) {
+        if (instruction.startsWith("https://") || instruction.startsWith("http://")) continue
+        if (instruction.startsWith("~/")) {
+          instruction = path.join(os.homedir(), instruction.slice(2))
+        }
+        const matches = path.isAbsolute(instruction)
+          ? await Array.fromAsync(
+              new Bun.Glob(path.basename(instruction)).scan({
+                cwd: path.dirname(instruction),
+                absolute: true,
+                onlyFiles: true,
+              }),
+            ).catch(() => [])
+          : await resolveRelative(instruction)
+        matches.forEach((p) => paths.add(path.resolve(p)))
+      }
+    }
 
-    while (Filesystem.contains(root, currentDir) || currentDir === root) {
-      for (const instructionFile of INSTRUCTION_FILES) {
-        const instructionPath = path.join(currentDir, instructionFile)
+    return paths
+  }
 
-        // Skip if already loaded for this session
-        if (sessionLoaded.has(instructionPath)) continue
+  export async function system() {
+    const config = await Config.get()
+    const paths = await systemPaths()
 
-        // Check if the file exists
-        const file = Bun.file(instructionPath)
-        if (await file.exists()) {
-          try {
-            const content = await file.text()
-            if (content.trim()) {
-              sessionLoaded.add(instructionPath)
+    const files = Array.from(paths).map(async (p) => {
+      const content = await Bun.file(p)
+        .text()
+        .catch(() => "")
+      return content ? "Instructions from: " + p + "\n" + content : ""
+    })
 
-              // Format with source path for transparency
-              const relativePath = path.relative(projectRoot, instructionPath)
-              instructions.push(
-                `<dynamic-instruction source="${relativePath}">\n${content}\n</dynamic-instruction>`
-              )
-            }
-          } catch {
-            // Ignore read errors
+    const urls: string[] = []
+    if (config.instructions) {
+      for (const instruction of config.instructions) {
+        if (instruction.startsWith("https://") || instruction.startsWith("http://")) {
+          urls.push(instruction)
+        }
+      }
+    }
+    const fetches = urls.map((url) =>
+      fetch(url, { signal: AbortSignal.timeout(5000) })
+        .then((res) => (res.ok ? res.text() : ""))
+        .catch(() => "")
+        .then((x) => (x ? "Instructions from: " + url + "\n" + x : "")),
+    )
+
+    return Promise.all([...files, ...fetches]).then((result) => result.filter(Boolean))
+  }
+
+  export function loaded(messages: MessageV2.WithParts[]) {
+    const paths = new Set<string>()
+    for (const msg of messages) {
+      for (const part of msg.parts) {
+        if (part.type === "tool" && part.tool === "read" && part.state.status === "completed") {
+          if (part.state.time.compacted) continue
+          const loaded = part.state.metadata?.loaded
+          if (!loaded || !Array.isArray(loaded)) continue
+          for (const p of loaded) {
+            if (typeof p === "string") paths.add(p)
           }
         }
       }
+    }
+    return paths
+  }
 
-      // Move to parent directory
-      const parentDir = path.dirname(currentDir)
-      if (parentDir === currentDir) break // Reached filesystem root
-      currentDir = parentDir
+  export async function find(dir: string) {
+    for (const file of FILES) {
+      const filepath = path.resolve(path.join(dir, file))
+      if (await Bun.file(filepath).exists()) return filepath
+    }
+  }
+
+  export async function resolve(messages: MessageV2.WithParts[], filepath: string, messageID: string) {
+    const system = await systemPaths()
+    const already = loaded(messages)
+    const results: { filepath: string; content: string }[] = []
+
+    let current = path.dirname(path.resolve(filepath))
+    const root = path.resolve(Instance.directory)
+
+    while (current.startsWith(root)) {
+      const found = await find(current)
+      if (found && !system.has(found) && !already.has(found) && !isClaimed(messageID, found)) {
+        claim(messageID, found)
+        const content = await Bun.file(found)
+          .text()
+          .catch(() => undefined)
+        if (content) {
+          results.push({ filepath: found, content: "Instructions from: " + found + "\n" + content })
+        }
+      }
+      if (current === root) break
+      current = path.dirname(current)
     }
 
-    return instructions
-  }
-
-  /**
-   * Clear loaded instructions for a session.
-   * Called when a session is reset or reverted.
-   */
-  export function clear(sessionID: string): void {
-    const state = loadedInstructions()
-    state.delete(sessionID)
-  }
-
-  /**
-   * Check if any instructions have been loaded for a session.
-   */
-  export function hasLoaded(sessionID: string): boolean {
-    const state = loadedInstructions()
-    const loaded = state.get(sessionID)
-    return loaded !== undefined && loaded.size > 0
-  }
-
-  /**
-   * Get the count of loaded instruction files for a session.
-   */
-  export function loadedCount(sessionID: string): number {
-    const state = loadedInstructions()
-    return state.get(sessionID)?.size ?? 0
+    return results
   }
 }

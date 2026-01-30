@@ -186,10 +186,10 @@ describe("resolveZeeMetadata", () => {
     expect(result).toBeUndefined();
   });
 
-  it("accepts legacy moltbot metadata", () => {
+  it("accepts legacy zee metadata", () => {
     const frontmatter = {
       metadata: JSON.stringify({
-        moltbot: {
+        zee: {
           events: ["command:legacy"],
         },
       }),

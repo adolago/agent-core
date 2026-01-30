@@ -26,7 +26,7 @@ async function tryRealpath(targetPath: string): Promise<string> {
   }
 }
 
-const GLOBAL_PACKAGE_NAMES = ["zee", "moltbot", "clawdbot"] as const;
+const GLOBAL_PACKAGE_NAMES = ["zee", "zee", "zee"] as const;
 
 function resolveBunGlobalRoot(): string {
   const bunInstall = process.env.BUN_INSTALL?.trim() || path.join(os.homedir(), ".bun");

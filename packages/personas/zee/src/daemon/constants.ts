@@ -8,8 +8,6 @@ export const NODE_WINDOWS_TASK_NAME = "Zee Node";
 export const NODE_SERVICE_MARKER = "zee";
 export const NODE_SERVICE_KIND = "node";
 export const NODE_WINDOWS_TASK_SCRIPT_NAME = "node.cmd";
-export const LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES = ["moltbot-gateway"];
-export const LEGACY_GATEWAY_WINDOWS_TASK_NAMES = ["Moltbot Gateway"];
 
 export function normalizeGatewayProfile(profile?: string): string | null {
   const trimmed = profile?.trim();

@@ -14,7 +14,7 @@ Recent gateway logs show repeated `cron.add` failures with invalid parameters (m
 - Stop `cron.add` INVALID_REQUEST spam by normalizing common wrapper payloads and inferring missing `kind` fields.
 - Align cron provider lists across gateway schema, cron types, CLI docs, and UI forms.
 - Make agent cron tool schema explicit so the LLM produces correct job payloads.
-- Fix the Control UI cron status job count display.
+- Fix the CLI/TUI cron status job count display.
 - Add tests to cover normalization and tool behavior.
 
 ## Non-goals
@@ -23,7 +23,7 @@ Recent gateway logs show repeated `cron.add` failures with invalid parameters (m
 - Overhaul the UI/UX for cron beyond the necessary field fixes.
 
 ## Findings (current gaps)
-- Control UI CronStatus expects `jobCount`, but gateway returns `jobs`.
+- CLI/TUI CronStatus expects `jobCount`, but gateway returns `jobs`.
 - Agent cron tool schema allows arbitrary `job` objects, enabling malformed inputs.
 - Gateway strictly validates `cron.add` with no normalization, so wrapped payloads fail.
 
@@ -32,7 +32,7 @@ Recent gateway logs show repeated `cron.add` failures with invalid parameters (m
 - `cron.add` and `cron.update` now normalize common wrapper shapes and infer missing `kind` fields.
 - Agent cron tool schema matches the gateway schema, which reduces invalid payloads.
 - Provider enums are aligned across gateway, CLI, and UI pickers.
-- Control UI uses the gateway’s `jobs` count field for status.
+- CLI/TUI uses the gateway’s `jobs` count field for status.
 
 ## Current behavior
 
@@ -44,11 +44,11 @@ See [Cron jobs](/automation/cron-jobs) for the normalized shape and examples.
 ## Verification
 
 - Watch gateway logs for reduced `cron.add` INVALID_REQUEST errors.
-- Confirm Control UI cron status shows job count after refresh.
+- Confirm CLI/TUI cron status shows job count after refresh.
 
 ## Optional Follow-ups
 
-- Manual Control UI smoke: add a cron job per provider + verify status job count.
+- Manual CLI/TUI smoke: add a cron job per provider + verify status job count.
 
 ## Open Questions
 - Should `cron.add` accept explicit `state` from clients (currently disallowed by schema)?

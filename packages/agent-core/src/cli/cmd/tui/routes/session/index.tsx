@@ -373,7 +373,8 @@ export function Session() {
 
   function toBottom() {
     setTimeout(() => {
-      if (scroll) scroll.scrollTo(scroll.scrollHeight)
+      if (!scroll || scroll.isDestroyed) return
+      scroll.scrollTo(scroll.scrollHeight)
     }, 50)
   }
 
@@ -633,7 +634,7 @@ export function Session() {
       },
     },
     {
-      title: "Toggle diff wrapping",
+      title: diffWrapMode() === "word" ? "Disable diff wrapping" : "Enable diff wrapping",
       value: "session.toggle.diffwrap",
       category: "Session",
       slash: {
@@ -1238,30 +1239,21 @@ function UserMessage(props: {
   return (
     <>
       <Show when={text()}>
+        {/* Amp-style user message: colored text with small bar, no box */}
         <box
           id={props.message.id}
-          border={["left"]}
-          borderColor={color()}
-          customBorderChars={SplitBorder.customBorderChars}
           marginTop={props.index === 0 ? 0 : 1}
+          onMouseOver={() => setHover(true)}
+          onMouseOut={() => setHover(false)}
+          onMouseUp={props.onMouseUp}
+          flexDirection="row"
+          gap={0}
         >
-          <box
-            onMouseOver={() => {
-              setHover(true)
-            }}
-            onMouseOut={() => {
-              setHover(false)
-            }}
-            onMouseUp={props.onMouseUp}
-            paddingTop={1}
-            paddingBottom={1}
-            paddingLeft={2}
-            backgroundColor={hover() ? theme.backgroundElement : theme.backgroundPanel}
-            flexShrink={0}
-          >
-            <text fg={theme.text}>{text()?.text}</text>
+          <text fg={color()}>│ </text>
+          <box flexDirection="column" flexGrow={1}>
+            <text fg={color()}>{text()?.text}</text>
             <Show when={files().length}>
-              <box flexDirection="row" paddingBottom={metadataVisible() ? 1 : 0} paddingTop={1} gap={1} flexWrap="wrap">
+              <box flexDirection="row" paddingTop={1} gap={1} flexWrap="wrap">
                 <For each={files()}>
                   {(file) => {
                     const bg = createMemo(() => {
@@ -1279,18 +1271,7 @@ function UserMessage(props: {
                 </For>
               </box>
             </Show>
-            <Show
-              when={queued()}
-              fallback={
-                <Show when={ctx.showTimestamps()}>
-                  <text fg={theme.textMuted}>
-                    <span style={{ fg: theme.textMuted }}>
-                      {Locale.todayTimeOrDateTime(props.message.time.created)}
-                    </span>
-                  </text>
-                </Show>
-              }
-            >
+            <Show when={queued()}>
               <text fg={theme.textMuted}>
                 <span style={{ bg: theme.accent, fg: theme.backgroundPanel, bold: true }}> QUEUED </span>
               </text>
@@ -1384,25 +1365,29 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
       </Show>
       <Switch>
         <Match when={final() || props.message.error?.name === "MessageAbortedError"}>
-          <box paddingLeft={3}>
-            <text marginTop={1}>
+          {/* Codex-style: all on one line with horizontal line */}
+          <box marginTop={1} flexDirection="row" height={1}>
+            <text fg={theme.border}>─ </text>
+            <text>
               <span
                 style={{
                   fg: props.message.error?.name === "MessageAbortedError"
                     ? theme.textMuted
                     : local.agent.color(props.message.agent),
                 }}
-              >
-                ▣
-              </span>
+              >●</span>
               <span style={{ fg: theme.textMuted }}> {props.message.modelID}</span>
+              <Show when={props.message.mode}>
+                <span style={{ fg: theme.textMuted }}> {props.message.mode}</span>
+              </Show>
               <Show when={duration()}>
-                <span style={{ fg: theme.textMuted }}> · {Locale.duration(duration())}</span>
+                <span style={{ fg: theme.textMuted }}> worked for {Locale.duration(duration())}</span>
               </Show>
               <Show when={props.message.error?.name === "MessageAbortedError"}>
-                <span style={{ fg: theme.textMuted }}> · interrupted</span>
+                <span style={{ fg: theme.textMuted }}> interrupted</span>
               </Show>
             </text>
+            <text fg={theme.border}> {"─".repeat(150)}</text>
           </box>
         </Match>
       </Switch>

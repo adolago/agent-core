@@ -285,4 +285,4 @@ export function createZeeReadTool(base: AnyAgentTool): AnyAgentTool {
 }
 
 // Legacy alias
-export const createMoltbotReadTool = createZeeReadTool;
+export const createZeeReadTool = createZeeReadTool;

@@ -18,12 +18,12 @@ describe("ensureZeeCliOnPath", () => {
 
       const originalPath = process.env.PATH;
       const originalFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
-      const originalMoltbotFlag = process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      const originalClawdbotFlag = process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+      const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
+      const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
       process.env.PATH = "/usr/bin";
       delete process.env.ZEE_PATH_BOOTSTRAPPED;
-      delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+      delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      delete process.env.ZEE_PATH_BOOTSTRAPPED;
       try {
         ensureZeeCliOnPath({
           execPath: cliPath,
@@ -37,10 +37,10 @@ describe("ensureZeeCliOnPath", () => {
         process.env.PATH = originalPath;
         if (originalFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
         else process.env.ZEE_PATH_BOOTSTRAPPED = originalFlag;
-        if (originalMoltbotFlag === undefined) delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-        else process.env.MOLTBOT_PATH_BOOTSTRAPPED = originalMoltbotFlag;
-        if (originalClawdbotFlag === undefined) delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
-        else process.env.CLAWDBOT_PATH_BOOTSTRAPPED = originalClawdbotFlag;
+        if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+        else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
+        if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+        else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
       }
     } finally {
       await fs.rm(tmp, { recursive: true, force: true });
@@ -50,8 +50,8 @@ describe("ensureZeeCliOnPath", () => {
   it("is idempotent", () => {
     const originalPath = process.env.PATH;
     const originalFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
-    const originalMoltbotFlag = process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-    const originalClawdbotFlag = process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+    const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
+    const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
     process.env.PATH = "/bin";
     process.env.ZEE_PATH_BOOTSTRAPPED = "1";
     try {
@@ -66,10 +66,10 @@ describe("ensureZeeCliOnPath", () => {
       process.env.PATH = originalPath;
       if (originalFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
       else process.env.ZEE_PATH_BOOTSTRAPPED = originalFlag;
-      if (originalMoltbotFlag === undefined) delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      else process.env.MOLTBOT_PATH_BOOTSTRAPPED = originalMoltbotFlag;
-      if (originalClawdbotFlag === undefined) delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
-      else process.env.CLAWDBOT_PATH_BOOTSTRAPPED = originalClawdbotFlag;
+      if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
+      if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
     }
   });
 
@@ -77,8 +77,8 @@ describe("ensureZeeCliOnPath", () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "zee-path-"));
     const originalPath = process.env.PATH;
     const originalFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
-    const originalMoltbotFlag = process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-    const originalClawdbotFlag = process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+    const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
+    const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
     const originalMiseDataDir = process.env.MISE_DATA_DIR;
     try {
       const appBinDir = path.join(tmp, "AppBin");
@@ -99,8 +99,8 @@ describe("ensureZeeCliOnPath", () => {
       process.env.MISE_DATA_DIR = miseDataDir;
       process.env.PATH = "/usr/bin";
       delete process.env.ZEE_PATH_BOOTSTRAPPED;
-      delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+      delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      delete process.env.ZEE_PATH_BOOTSTRAPPED;
 
       ensureZeeCliOnPath({
         execPath: appCli,
@@ -121,10 +121,10 @@ describe("ensureZeeCliOnPath", () => {
       process.env.PATH = originalPath;
       if (originalFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
       else process.env.ZEE_PATH_BOOTSTRAPPED = originalFlag;
-      if (originalMoltbotFlag === undefined) delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      else process.env.MOLTBOT_PATH_BOOTSTRAPPED = originalMoltbotFlag;
-      if (originalClawdbotFlag === undefined) delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
-      else process.env.CLAWDBOT_PATH_BOOTSTRAPPED = originalClawdbotFlag;
+      if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
+      if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
       if (originalMiseDataDir === undefined) delete process.env.MISE_DATA_DIR;
       else process.env.MISE_DATA_DIR = originalMiseDataDir;
       await fs.rm(tmp, { recursive: true, force: true });
@@ -135,8 +135,8 @@ describe("ensureZeeCliOnPath", () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "zee-path-"));
     const originalPath = process.env.PATH;
     const originalFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
-    const originalMoltbotFlag = process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-    const originalClawdbotFlag = process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+    const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
+    const originalZeeFlag = process.env.ZEE_PATH_BOOTSTRAPPED;
     const originalMiseDataDir = process.env.MISE_DATA_DIR;
     const originalHomebrewPrefix = process.env.HOMEBREW_PREFIX;
     const originalHomebrewBrewFile = process.env.HOMEBREW_BREW_FILE;
@@ -152,8 +152,8 @@ describe("ensureZeeCliOnPath", () => {
 
       process.env.PATH = "/usr/bin";
       delete process.env.ZEE_PATH_BOOTSTRAPPED;
-      delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
+      delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      delete process.env.ZEE_PATH_BOOTSTRAPPED;
       delete process.env.HOMEBREW_PREFIX;
       delete process.env.HOMEBREW_BREW_FILE;
       delete process.env.XDG_BIN_HOME;
@@ -174,10 +174,10 @@ describe("ensureZeeCliOnPath", () => {
       process.env.PATH = originalPath;
       if (originalFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
       else process.env.ZEE_PATH_BOOTSTRAPPED = originalFlag;
-      if (originalMoltbotFlag === undefined) delete process.env.MOLTBOT_PATH_BOOTSTRAPPED;
-      else process.env.MOLTBOT_PATH_BOOTSTRAPPED = originalMoltbotFlag;
-      if (originalClawdbotFlag === undefined) delete process.env.CLAWDBOT_PATH_BOOTSTRAPPED;
-      else process.env.CLAWDBOT_PATH_BOOTSTRAPPED = originalClawdbotFlag;
+      if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
+      if (originalZeeFlag === undefined) delete process.env.ZEE_PATH_BOOTSTRAPPED;
+      else process.env.ZEE_PATH_BOOTSTRAPPED = originalZeeFlag;
       if (originalMiseDataDir === undefined) delete process.env.MISE_DATA_DIR;
       else process.env.MISE_DATA_DIR = originalMiseDataDir;
       if (originalHomebrewPrefix === undefined) delete process.env.HOMEBREW_PREFIX;

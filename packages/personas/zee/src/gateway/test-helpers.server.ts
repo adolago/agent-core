@@ -88,10 +88,10 @@ async function setupGatewayTestHome() {
   process.env.USERPROFILE = tempHome;
   process.env.ZEE_STATE_DIR = path.join(tempHome, ".zee");
   delete process.env.ZEE_CONFIG_PATH;
-  delete process.env.MOLTBOT_STATE_DIR;
-  delete process.env.CLAWDBOT_STATE_DIR;
-  delete process.env.MOLTBOT_CONFIG_PATH;
-  delete process.env.CLAWDBOT_CONFIG_PATH;
+  delete process.env.ZEE_STATE_DIR;
+  delete process.env.ZEE_STATE_DIR;
+  delete process.env.ZEE_CONFIG_PATH;
+  delete process.env.ZEE_CONFIG_PATH;
 }
 
 function applyGatewaySkipEnv() {
@@ -263,7 +263,7 @@ export async function startGatewayServer(port: number, opts?: GatewayServerOptio
 
 export async function startServerWithClient(token?: string, opts?: GatewayServerOptions) {
   let port = await getFreePort();
-  const prev = process.env.CLAWDBOT_GATEWAY_TOKEN;
+  const prev = process.env.ZEE_GATEWAY_TOKEN;
   if (typeof token === "string") {
     testState.gatewayAuth = { mode: "token", token };
   }
@@ -273,9 +273,9 @@ export async function startServerWithClient(token?: string, opts?: GatewayServer
       ? (testState.gatewayAuth as { token?: string }).token
       : undefined);
   if (fallbackToken === undefined) {
-    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    delete process.env.ZEE_GATEWAY_TOKEN;
   } else {
-    process.env.CLAWDBOT_GATEWAY_TOKEN = fallbackToken;
+    process.env.ZEE_GATEWAY_TOKEN = fallbackToken;
   }
 
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;
@@ -352,13 +352,13 @@ export async function connectReq(
       ? undefined
       : typeof (testState.gatewayAuth as { token?: unknown } | undefined)?.token === "string"
         ? ((testState.gatewayAuth as { token?: string }).token ?? undefined)
-        : process.env.CLAWDBOT_GATEWAY_TOKEN;
+        : process.env.ZEE_GATEWAY_TOKEN;
   const defaultPassword =
     opts?.skipDefaultAuth === true
       ? undefined
       : typeof (testState.gatewayAuth as { password?: unknown } | undefined)?.password === "string"
         ? ((testState.gatewayAuth as { password?: string }).password ?? undefined)
-        : process.env.CLAWDBOT_GATEWAY_PASSWORD;
+        : process.env.ZEE_GATEWAY_PASSWORD;
   const token = opts?.token ?? defaultToken;
   const password = opts?.password ?? defaultPassword;
   const requestedScopes = Array.isArray(opts?.scopes) ? opts?.scopes : [];

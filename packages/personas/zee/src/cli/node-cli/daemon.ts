@@ -544,7 +544,7 @@ export async function runNodeDaemonStatus(opts: NodeDaemonStatusOptions = {}) {
   };
   const hintEnv = {
     ...baseEnv,
-    CLAWDBOT_LOG_PREFIX: baseEnv.CLAWDBOT_LOG_PREFIX ?? "node",
+    ZEE_LOG_PREFIX: baseEnv.ZEE_LOG_PREFIX ?? "node",
   } as NodeJS.ProcessEnv;
 
   if (runtime?.missingUnit) {

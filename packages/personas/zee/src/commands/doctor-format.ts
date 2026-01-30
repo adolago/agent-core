@@ -69,10 +69,10 @@ export function buildGatewayRuntimeHints(
     hints.push("Service is loaded but not running (likely exited immediately).");
     if (fileLog) hints.push(`File logs: ${fileLog}`);
     if (platform === "linux") {
-      const unit = resolveGatewaySystemdServiceName(env.CLAWDBOT_PROFILE);
+      const unit = resolveGatewaySystemdServiceName(env.ZEE_PROFILE);
       hints.push(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`);
     } else if (platform === "win32") {
-      const task = resolveGatewayWindowsTaskName(env.CLAWDBOT_PROFILE);
+      const task = resolveGatewayWindowsTaskName(env.ZEE_PROFILE);
       hints.push(`Logs: schtasks /Query /TN "${task}" /V /FO LIST`);
     }
   }

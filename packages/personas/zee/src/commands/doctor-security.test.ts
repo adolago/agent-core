@@ -20,17 +20,17 @@ describe("noteSecurityWarnings gateway exposure", () => {
 
   beforeEach(() => {
     note.mockClear();
-    prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
-    prevPassword = process.env.CLAWDBOT_GATEWAY_PASSWORD;
-    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
-    delete process.env.CLAWDBOT_GATEWAY_PASSWORD;
+    prevToken = process.env.ZEE_GATEWAY_TOKEN;
+    prevPassword = process.env.ZEE_GATEWAY_PASSWORD;
+    delete process.env.ZEE_GATEWAY_TOKEN;
+    delete process.env.ZEE_GATEWAY_PASSWORD;
   });
 
   afterEach(() => {
-    if (prevToken === undefined) delete process.env.CLAWDBOT_GATEWAY_TOKEN;
-    else process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
-    if (prevPassword === undefined) delete process.env.CLAWDBOT_GATEWAY_PASSWORD;
-    else process.env.CLAWDBOT_GATEWAY_PASSWORD = prevPassword;
+    if (prevToken === undefined) delete process.env.ZEE_GATEWAY_TOKEN;
+    else process.env.ZEE_GATEWAY_TOKEN = prevToken;
+    if (prevPassword === undefined) delete process.env.ZEE_GATEWAY_PASSWORD;
+    else process.env.ZEE_GATEWAY_PASSWORD = prevPassword;
   });
 
   const lastMessage = () => String(note.mock.calls.at(-1)?.[0] ?? "");
@@ -44,7 +44,7 @@ describe("noteSecurityWarnings gateway exposure", () => {
   });
 
   it("uses env token to avoid critical warning", async () => {
-    process.env.CLAWDBOT_GATEWAY_TOKEN = "token-123";
+    process.env.ZEE_GATEWAY_TOKEN = "token-123";
     const cfg = { gateway: { bind: "lan" } } as ZeeConfig;
     await noteSecurityWarnings(cfg);
     const message = lastMessage();

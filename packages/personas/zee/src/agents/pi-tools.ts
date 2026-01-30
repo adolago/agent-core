@@ -420,4 +420,4 @@ export function createZeeCodingTools(options?: {
 }
 
 // Legacy alias
-export const createMoltbotCodingTools = createZeeCodingTools;
+export const createZeeCodingTools = createZeeCodingTools;

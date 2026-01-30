@@ -19,8 +19,8 @@ type StoredIdentity = {
 
 const DEFAULT_DIR = path.join(os.homedir(), ".zee", "identity");
 const LEGACY_DIRS = [
-  path.join(os.homedir(), ".moltbot", "identity"),
-  path.join(os.homedir(), ".clawdbot", "identity"),
+  path.join(os.homedir(), ".zee", "identity"),
+  path.join(os.homedir(), ".zee", "identity"),
 ];
 const DEFAULT_FILE = path.join(DEFAULT_DIR, "device.json");
 

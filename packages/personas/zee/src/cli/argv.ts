@@ -92,8 +92,8 @@ export function buildParseArgv(params: {
     programName && baseArgv[0] === programName
       ? baseArgv.slice(1)
       : baseArgv[0]?.endsWith("zee") ||
-          baseArgv[0]?.endsWith("moltbot") ||
-          baseArgv[0]?.endsWith("clawdbot")
+          baseArgv[0]?.endsWith("zee") ||
+          baseArgv[0]?.endsWith("zee")
         ? baseArgv.slice(1)
         : baseArgv;
   const executable = (normalizedArgv[0]?.split(/[/\\]/).pop() ?? "").toLowerCase();

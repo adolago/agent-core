@@ -9,7 +9,7 @@ read_when:
 # Gateway protocol (WebSocket)
 
 The Gateway WS protocol is the **single control plane + node transport** for
-Zee. All clients (CLI, web UI, headless node hosts) connect over WebSocket and declare their **role** + **scope** at
+Zee. All clients (CLI, TUI, GPUI desktop, headless node hosts) connect over WebSocket and declare their **role** + **scope** at
 handshake time.
 
 ## Transport
@@ -197,8 +197,6 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 - **Local** connects include loopback and the gateway host’s own tailnet address
   (so same‑host tailnet binds can still auto‑approve).
 - All WS clients must include `device` identity during `connect` (operator + node).
-  Control UI can omit it **only** when `gateway.controlUi.allowInsecureAuth` is enabled
-  (or `gateway.controlUi.dangerouslyDisableDeviceAuth` for break-glass use).
 - Non-local connections must sign the server-provided `connect.challenge` nonce.
 
 ## TLS + pinning

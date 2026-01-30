@@ -155,7 +155,7 @@ export const ZeeSchema = z
                 cdpPort: z.number().int().min(1).max(65535).optional(),
                 cdpUrl: z.string().optional(),
                 driver: z
-                  .union([z.literal("zee"), z.literal("clawd"), z.literal("extension")])
+                  .union([z.literal("zee"), z.literal("extension")])
                   .optional(),
                 color: HexColorSchema,
               })
@@ -314,15 +314,6 @@ export const ZeeSchema = z
             z.literal("custom"),
             z.literal("tailnet"),
           ])
-          .optional(),
-        controlUi: z
-          .object({
-            enabled: z.boolean().optional(),
-            basePath: z.string().optional(),
-            allowInsecureAuth: z.boolean().optional(),
-            dangerouslyDisableDeviceAuth: z.boolean().optional(),
-          })
-          .strict()
           .optional(),
         auth: z
           .object({

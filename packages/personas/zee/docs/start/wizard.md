@@ -18,8 +18,7 @@ Primary entrypoint:
 zee onboard
 ```
 
-Fastest first chat: open the Control UI (no channel setup needed). Run
-`zee dashboard` and chat in the browser. Docs: [Dashboard](/web/dashboard).
+Fastest first chat: finish the wizard and connect WhatsApp or Telegram.
 
 Follow‑up reconfiguration:
 
@@ -138,8 +137,7 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
    - Installs optional dependencies (some use Homebrew).
 
 9) **Finish**
-   - Summary + next steps for the CLI and Control UI.
-  - If no GUI is detected, the wizard prints SSH port-forward instructions for the Control UI instead of opening a browser.
+  - Summary + next steps for the CLI and TUI.
 
 ## Remote mode
 
@@ -268,7 +266,7 @@ zee agents add work \
 ## Gateway wizard RPC
 
 The Gateway exposes the wizard flow over RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
-Clients (Control UI and other operator clients) can render steps without re-implementing onboarding logic.
+Clients (CLI/TUI and other operator clients) can render steps without re-implementing onboarding logic.
 
 
 - Downloads the appropriate release asset.

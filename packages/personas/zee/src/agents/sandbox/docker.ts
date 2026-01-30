@@ -217,7 +217,7 @@ async function readContainerConfigHash(containerName: string): Promise<string | 
   };
   return (
     (await tryLabel('{{ index .Config.Labels "zee.configHash" }}')) ??
-    (await tryLabel('{{ index .Config.Labels "moltbot.configHash" }}'))
+    (await tryLabel('{{ index .Config.Labels "zee.configHash" }}'))
   );
 }
 

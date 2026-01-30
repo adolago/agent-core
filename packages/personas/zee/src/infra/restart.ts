@@ -90,11 +90,8 @@ export function triggerZeeRestart(): RestartAttempt {
   }
   const tried: string[] = [];
   if (process.platform === "linux") {
-    const profile = process.env.ZEE_PROFILE ?? process.env.MOLTBOT_PROFILE ?? process.env.CLAWDBOT_PROFILE;
-    const systemdUnit =
-      process.env.ZEE_SYSTEMD_UNIT ??
-      process.env.MOLTBOT_SYSTEMD_UNIT ??
-      process.env.CLAWDBOT_SYSTEMD_UNIT;
+    const profile = process.env.ZEE_PROFILE;
+    const systemdUnit = process.env.ZEE_SYSTEMD_UNIT;
     const unit = normalizeSystemdUnit(systemdUnit, profile);
     const userArgs = ["--user", "restart", unit];
     tried.push(`systemctl ${userArgs.join(" ")}`);
@@ -127,7 +124,7 @@ export function triggerZeeRestart(): RestartAttempt {
   };
 }
 
-export const triggerMoltbotRestart = triggerZeeRestart;
+export const triggerZeeRestart = triggerZeeRestart;
 
 export type ScheduledRestart = {
   ok: boolean;

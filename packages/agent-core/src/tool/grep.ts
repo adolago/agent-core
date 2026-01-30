@@ -54,11 +54,30 @@ export const GrepTool = Tool.define("grep", {
     const proc = Bun.spawn([rgPath, ...args], {
       stdout: "pipe",
       stderr: "pipe",
+      signal: ctx.abort,
     })
 
-    const output = await new Response(proc.stdout).text()
-    const errorOutput = await new Response(proc.stderr).text()
-    const exitCode = await proc.exited
+    const handleAbort = () => {
+      try {
+        proc.kill()
+      } catch {}
+    }
+    ctx.abort.addEventListener("abort", handleAbort, { once: true })
+
+    let output = ""
+    let errorOutput = ""
+    let exitCode = 0
+    try {
+      output = await new Response(proc.stdout).text()
+      errorOutput = await new Response(proc.stderr).text()
+      exitCode = await proc.exited
+    } finally {
+      ctx.abort.removeEventListener("abort", handleAbort)
+    }
+
+    if (ctx.abort.aborted) {
+      throw ctx.abort.reason ?? new DOMException("Grep aborted", "AbortError")
+    }
 
     // Exit codes: 0 = matches found, 1 = no matches, 2 = errors (but may still have matches)
     // With --no-messages, we suppress error output but still get exit code 2 for broken symlinks etc.

@@ -56,7 +56,6 @@ cat ~/.zee/zee.json
 
 ## What it does (summary)
 - Optional pre-flight update for git installs (interactive only).
-- UI protocol freshness check (rebuilds Control UI when the protocol schema is newer).
 - Health check + restart prompt.
 - Skills status summary (eligible/missing/blocked).
 - Config normalization for legacy values.
@@ -76,7 +75,7 @@ cat ~/.zee/zee.json
 - Security warnings for open DM policies.
 - Gateway auth warnings when no `gateway.auth.token` is set (local mode; offers token generation).
 - systemd linger check on Linux.
-- Source install checks (pnpm workspace mismatch, missing UI assets, missing tsx binary).
+- Source install checks (pnpm workspace mismatch, missing tsx binary).
 - Writes updated config + wizard metadata.
 
 ## Detailed behavior and rationale

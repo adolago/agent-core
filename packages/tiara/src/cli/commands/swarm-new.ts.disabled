@@ -1530,7 +1530,7 @@ OPTIONS:
   --approval-required    Require approval before executing changes
   --reviewer <name>      Set reviewer name (default: current user)
   
-  --ui                   Launch interactive web UI
+  --ui                   Launch interactive terminal UI
   --dry-run, -d          Show configuration without executing
   
   --memory-namespace <ns> Memory namespace (default: swarm)

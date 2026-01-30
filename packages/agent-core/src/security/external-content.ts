@@ -2,7 +2,7 @@
  * External Content Sanitization
  *
  * Prevents prompt injection via external content sources.
- * Based on ClawdBot commit 112f4e3d01 (prompt injection prevention).
+ * Based on Zee commit 112f4e3d01 (prompt injection prevention).
  *
  * The risk: External content (emails, webhooks, API responses) passed to the LLM
  * may contain malicious instructions that attempt to hijack the agent's behavior.

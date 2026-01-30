@@ -55,7 +55,7 @@ export const TOOL_GROUPS: Record<string, string[]> = {
     "image",
   ],
   // Legacy alias
-  "group:moltbot": [
+  "group:zee": [
     "browser",
     "canvas",
     "nodes",

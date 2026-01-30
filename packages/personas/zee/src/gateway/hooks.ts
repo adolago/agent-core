@@ -56,10 +56,10 @@ export function extractHookToken(req: IncomingMessage, url: URL): HookTokenResul
   const headerToken =
     typeof req.headers["x-zee-token"] === "string"
       ? req.headers["x-zee-token"].trim()
-      : typeof req.headers["x-moltbot-token"] === "string"
-        ? req.headers["x-moltbot-token"].trim()
-        : typeof req.headers["x-clawdbot-token"] === "string"
-          ? req.headers["x-clawdbot-token"].trim()
+      : typeof req.headers["x-zee-token"] === "string"
+        ? req.headers["x-zee-token"].trim()
+        : typeof req.headers["x-zee-token"] === "string"
+          ? req.headers["x-zee-token"].trim()
         : "";
   if (headerToken) return { token: headerToken, fromQuery: false };
   const queryToken = url.searchParams.get("token");

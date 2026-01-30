@@ -63,7 +63,7 @@ export async function handlePortError(
     if (details) {
       runtime.error(info("Port listener details:"));
       runtime.error(details);
-      if (/zee|moltbot|src\/index\.ts|dist\/index\.js/.test(details)) {
+      if (/zee|zee|src\/index\.ts|dist\/index\.js/.test(details)) {
         runtime.error(
           warn(
             "It looks like another zee instance is already running. Stop it or pick a different port.",

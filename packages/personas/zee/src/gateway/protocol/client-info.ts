@@ -1,5 +1,4 @@
 export const GATEWAY_CLIENT_IDS = {
-  CONTROL_UI: "zee-control-ui",
   CLI: "cli",
   GATEWAY_CLIENT: "gateway-client",
   NODE_HOST: "node-host",

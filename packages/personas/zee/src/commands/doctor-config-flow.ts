@@ -124,8 +124,8 @@ function noteOpencodeProviderOverrides(cfg: ZeeConfig) {
 function hasExplicitConfigPath(env: NodeJS.ProcessEnv): boolean {
   return Boolean(
     env.ZEE_CONFIG_PATH?.trim() ||
-      env.MOLTBOT_CONFIG_PATH?.trim() ||
-      env.CLAWDBOT_CONFIG_PATH?.trim(),
+      env.ZEE_CONFIG_PATH?.trim() ||
+      env.ZEE_CONFIG_PATH?.trim(),
   );
 }
 
@@ -160,7 +160,7 @@ export async function loadAndMaybeMigrateDoctorConfig(params: {
   let snapshot = await readConfigFileSnapshot();
   if (!hasExplicitConfigPath(process.env) && snapshot.exists) {
     const basename = path.basename(snapshot.path);
-    if (basename === "clawdbot.json" || basename === "moltbot.json") {
+    if (basename === "zee.json" || basename === "zee.json") {
       const canonicalPath = resolveCanonicalConfigPath(process.env);
       if (
         path.resolve(snapshot.path) !== path.resolve(canonicalPath) &&

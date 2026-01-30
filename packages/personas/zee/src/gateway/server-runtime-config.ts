@@ -9,17 +9,14 @@ import {
   type ResolvedGatewayAuth,
   resolveGatewayAuth,
 } from "./auth.js";
-import { normalizeControlUiBasePath } from "./control-ui-shared.js";
 import { resolveHooksConfig } from "./hooks.js";
 import { isLoopbackHost, resolveGatewayBindHost } from "./net.js";
 
 export type GatewayRuntimeConfig = {
   bindHost: string;
-  controlUiEnabled: boolean;
   openAiChatCompletionsEnabled: boolean;
   openResponsesEnabled: boolean;
   openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
-  controlUiBasePath: string;
   resolvedAuth: ResolvedGatewayAuth;
   authMode: ResolvedGatewayAuth["mode"];
   tailscaleConfig: GatewayTailscaleConfig;
@@ -33,7 +30,6 @@ export async function resolveGatewayRuntimeConfig(params: {
   port: number;
   bind?: GatewayBindMode;
   host?: string;
-  controlUiEnabled?: boolean;
   openAiChatCompletionsEnabled?: boolean;
   openResponsesEnabled?: boolean;
   auth?: GatewayAuthConfig;
@@ -42,15 +38,12 @@ export async function resolveGatewayRuntimeConfig(params: {
   const bindMode = params.bind ?? params.cfg.gateway?.bind ?? "loopback";
   const customBindHost = params.cfg.gateway?.customBindHost;
   const bindHost = params.host ?? (await resolveGatewayBindHost(bindMode, customBindHost));
-  const controlUiEnabled =
-    params.controlUiEnabled ?? params.cfg.gateway?.controlUi?.enabled ?? true;
   const openAiChatCompletionsEnabled =
     params.openAiChatCompletionsEnabled ??
     params.cfg.gateway?.http?.endpoints?.chatCompletions?.enabled ??
     false;
   const openResponsesConfig = params.cfg.gateway?.http?.endpoints?.responses;
   const openResponsesEnabled = params.openResponsesEnabled ?? openResponsesConfig?.enabled ?? false;
-  const controlUiBasePath = normalizeControlUiBasePath(params.cfg.gateway?.controlUi?.basePath);
   const authBase = params.cfg.gateway?.auth ?? {};
   const authOverrides = params.auth ?? {};
   const authConfig = {
@@ -77,12 +70,12 @@ export async function resolveGatewayRuntimeConfig(params: {
     (authMode === "token" && hasToken) || (authMode === "password" && hasPassword);
   const hooksConfig = resolveHooksConfig(params.cfg);
   const canvasHostEnabled =
-    process.env.CLAWDBOT_SKIP_CANVAS_HOST !== "1" && params.cfg.canvasHost?.enabled !== false;
+    process.env.ZEE_SKIP_CANVAS_HOST !== "1" && params.cfg.canvasHost?.enabled !== false;
 
   assertGatewayAuthConfigured(resolvedAuth);
   if (tailscaleMode === "funnel" && authMode !== "password") {
     throw new Error(
-      "tailscale funnel requires gateway auth mode=password (set gateway.auth.password or CLAWDBOT_GATEWAY_PASSWORD)",
+      "tailscale funnel requires gateway auth mode=password (set gateway.auth.password or ZEE_GATEWAY_PASSWORD)",
     );
   }
   if (tailscaleMode !== "off" && !isLoopbackHost(bindHost)) {
@@ -90,19 +83,17 @@ export async function resolveGatewayRuntimeConfig(params: {
   }
   if (!isLoopbackHost(bindHost) && !hasSharedSecret) {
     throw new Error(
-      `refusing to bind gateway to ${bindHost}:${params.port} without auth (set gateway.auth.token/password, or set CLAWDBOT_GATEWAY_TOKEN/CLAWDBOT_GATEWAY_PASSWORD)`,
+      `refusing to bind gateway to ${bindHost}:${params.port} without auth (set gateway.auth.token/password, or set ZEE_GATEWAY_TOKEN/ZEE_GATEWAY_PASSWORD)`,
     );
   }
 
   return {
     bindHost,
-    controlUiEnabled,
     openAiChatCompletionsEnabled,
     openResponsesEnabled,
     openResponsesConfig: openResponsesConfig
       ? { ...openResponsesConfig, enabled: openResponsesEnabled }
       : undefined,
-    controlUiBasePath,
     resolvedAuth,
     authMode,
     tailscaleConfig,

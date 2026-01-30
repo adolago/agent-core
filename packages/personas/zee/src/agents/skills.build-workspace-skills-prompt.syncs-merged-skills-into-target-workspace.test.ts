@@ -86,7 +86,7 @@ describe("buildWorkspaceSkillsPrompt", () => {
         name: "nano-banana-pro",
         description: "Generates images",
         metadata:
-          '{"moltbot":{"requires":{"env":["GEMINI_API_KEY"]},"primaryEnv":"GEMINI_API_KEY"}}',
+          '{"zee":{"requires":{"env":["GEMINI_API_KEY"]},"primaryEnv":"GEMINI_API_KEY"}}',
         body: "# Nano Banana\n",
       });
 

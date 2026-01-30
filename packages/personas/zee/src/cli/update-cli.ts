@@ -103,12 +103,12 @@ const UPDATE_QUIPS = [
 
 const MAX_LOG_CHARS = 8000;
 const DEFAULT_PACKAGE_NAME = "zee";
-const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME, "moltbot", "clawdbot"]);
+const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME, "zee", "zee"]);
 const CLI_NAME = resolveCliName();
 const DEFAULT_REPO_URL =
   process.env.ZEE_REPO_URL?.trim() ||
-  process.env.MOLTBOT_REPO_URL?.trim() ||
-  process.env.CLAWDBOT_REPO_URL?.trim() ||
+  process.env.ZEE_REPO_URL?.trim() ||
+  process.env.ZEE_REPO_URL?.trim() ||
   "https://github.com/adolago/agent-core.git";
 const DEFAULT_GIT_DIR = path.join(os.homedir(), "zee");
 
@@ -117,7 +117,7 @@ function normalizeTag(value?: string | null): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (trimmed.startsWith("zee@")) return trimmed.slice("zee@".length);
-  if (trimmed.startsWith("moltbot@")) return trimmed.slice("moltbot@".length);
+  if (trimmed.startsWith("zee@")) return trimmed.slice("zee@".length);
   if (trimmed.startsWith(`${DEFAULT_PACKAGE_NAME}@`)) {
     return trimmed.slice(`${DEFAULT_PACKAGE_NAME}@`.length);
   }
@@ -198,8 +198,8 @@ async function isEmptyDir(targetPath: string): Promise<boolean> {
 function resolveGitInstallDir(): string {
   const override =
     process.env.ZEE_GIT_DIR?.trim() ||
-    process.env.MOLTBOT_GIT_DIR?.trim() ||
-    process.env.CLAWDBOT_GIT_DIR?.trim();
+    process.env.ZEE_GIT_DIR?.trim() ||
+    process.env.ZEE_GIT_DIR?.trim();
   if (override) return path.resolve(override);
   return DEFAULT_GIT_DIR;
 }
@@ -929,8 +929,8 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
         defaultRuntime.log(theme.success("Daemon restarted successfully."));
         defaultRuntime.log("");
         process.env.ZEE_UPDATE_IN_PROGRESS = "1";
-        process.env.MOLTBOT_UPDATE_IN_PROGRESS ??= "1";
-        process.env.CLAWDBOT_UPDATE_IN_PROGRESS ??= "1";
+        process.env.ZEE_UPDATE_IN_PROGRESS ??= "1";
+        process.env.ZEE_UPDATE_IN_PROGRESS ??= "1";
         try {
           const { doctorCommand } = await import("../commands/doctor.js");
           const interactiveDoctor = Boolean(process.stdin.isTTY) && !opts.json && opts.yes !== true;
@@ -939,8 +939,8 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
           defaultRuntime.log(theme.warn(`Doctor failed: ${String(err)}`));
         } finally {
           delete process.env.ZEE_UPDATE_IN_PROGRESS;
-          delete process.env.MOLTBOT_UPDATE_IN_PROGRESS;
-          delete process.env.CLAWDBOT_UPDATE_IN_PROGRESS;
+          delete process.env.ZEE_UPDATE_IN_PROGRESS;
+          delete process.env.ZEE_UPDATE_IN_PROGRESS;
         }
       }
     } catch (err) {

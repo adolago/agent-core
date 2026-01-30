@@ -25,16 +25,7 @@ agents like Pi.
 
 - **New install from zero:** [Getting Started](/start/getting-started)
 - **Guided setup (recommended):** [Wizard](/start/wizard) (`zee onboard`)
-- **Open the dashboard (local Gateway):** http://127.0.0.1:18789/ (or http://localhost:18789/)
-
-If the Gateway is running on the same computer, that link opens the browser Control UI
-immediately. If it fails, start the Gateway first: `zee gateway`.
-
-## Dashboard (browser Control UI)
-
-The dashboard is the browser Control UI for chat, config, nodes, sessions, and more.
-Local default: http://127.0.0.1:18789/
-Remote access: [Web surfaces](/web) and [Tailscale](/gateway/tailscale)
+- **Start the Gateway:** `zee gateway`
 
 ## How it works
 
@@ -77,7 +68,6 @@ Most operations flow through the **Zee Gateway** (`zee gateway`), a single long-
 - **Group Chat Support** — Mention-based by default; owner can toggle `/activation always|mention`
 - **Media Support** — Send and receive images, audio, documents
 - **Voice notes** — Optional transcription hook
-- **Control UI** — Local UI served from the Gateway
 - **Node hosts (external)** — headless node hosts pair via Gateway WS (not shipped in this repo)
 
 Note: legacy Claude/Codex/Gemini/Opencode paths have been removed; Pi is the only coding-agent path.
@@ -169,11 +159,9 @@ Example:
   - [RPC adapters](/reference/rpc)
   - [Gateway runbook](/gateway)
   - [Nodes](/nodes)
-  - [Web surfaces (Control UI)](/web)
   - [Discovery + transports](/gateway/discovery)
   - [Remote access](/gateway/remote)
 - Providers and UX:
-  - [Control UI (browser)](/web/control-ui)
   - [Telegram](/channels/telegram)
   - [WhatsApp](/channels/whatsapp)
   - [Groups](/concepts/groups)

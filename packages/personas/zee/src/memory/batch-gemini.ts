@@ -36,8 +36,8 @@ export type GeminiBatchOutputLine = {
 const GEMINI_BATCH_MAX_REQUESTS = 50000;
 const debugEmbeddings =
   isTruthyEnvValue(process.env.ZEE_DEBUG_MEMORY_EMBEDDINGS) ||
-  isTruthyEnvValue(process.env.MOLTBOT_DEBUG_MEMORY_EMBEDDINGS) ||
-  isTruthyEnvValue(process.env.CLAWDBOT_DEBUG_MEMORY_EMBEDDINGS);
+  isTruthyEnvValue(process.env.ZEE_DEBUG_MEMORY_EMBEDDINGS) ||
+  isTruthyEnvValue(process.env.ZEE_DEBUG_MEMORY_EMBEDDINGS);
 const log = createSubsystemLogger("memory/embeddings");
 
 const debugLog = (message: string, meta?: Record<string, unknown>) => {

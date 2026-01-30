@@ -32,7 +32,7 @@ Doctor never writes changes unless you explicitly opt into `--fix`/`--yes`.
 ## Schema + UI hints
 
 The Gateway exposes a JSON Schema representation of the config via `config.schema` for UI editors.
-The Control UI renders a form from this schema, with a **Raw JSON** editor as an escape hatch.
+The CLI/TUI renders a form from this schema, with a **Raw JSON** editor as an escape hatch.
 
 Channel plugins and extensions can register schema + UI hints for their config, so channel settings
 stay schema-driven across apps without hard-coded forms.
@@ -2458,8 +2458,8 @@ If unset, clients fall back to a muted light-blue.
 {
   ui: {
     seamColor: "#FF4500", // hex (RRGGBB or #RRGGBB)
-    // Optional: Control UI assistant identity override.
-    // If unset, the Control UI uses the active agent identity (config or IDENTITY.md).
+    // Optional: client assistant identity override.
+    // If unset, clients use the active agent identity (config or IDENTITY.md).
     assistant: {
       name: "Zee",
       avatar: "CB" // emoji, short text, or image URL/data URI
@@ -2483,28 +2483,11 @@ Defaults:
     mode: "local", // or "remote"
     port: 18789, // WS + HTTP multiplex
     bind: "loopback",
-    // controlUi: { enabled: true, basePath: "/zee" }
-    // auth: { mode: "token", token: "your-token" } // token gates WS + Control UI access
+    // auth: { mode: "token", token: "your-token" } // token gates WS + client access
     // tailscale: { mode: "off" | "serve" | "funnel" }
   }
 }
 ```
-
-Control UI base path:
-- `gateway.controlUi.basePath` sets the URL prefix where the Control UI is served.
-- Examples: `"/ui"`, `"/zee"`, `"/apps/zee"`.
-- Default: root (`/`) (unchanged).
-- `gateway.controlUi.allowInsecureAuth` allows token-only auth for the Control UI when
-  device identity is omitted (typically over HTTP). Default: `false`. Prefer HTTPS
-  (Tailscale Serve) or `127.0.0.1`.
-- `gateway.controlUi.dangerouslyDisableDeviceAuth` disables device identity checks for the
-  Control UI (token/password only). Default: `false`. Break-glass only.
-
-Related docs:
-- [Control UI](/web/control-ui)
-- [Web overview](/web)
-- [Tailscale](/gateway/tailscale)
-- [Remote access](/gateway/remote)
 
 Trusted proxies:
 - `gateway.trustedProxies`: list of reverse proxy IPs that terminate TLS in front of the Gateway.
@@ -2513,7 +2496,7 @@ Trusted proxies:
 
 Notes:
 - `zee gateway` refuses to start unless `gateway.mode` is set to `local` (or you pass the override flag).
-- `gateway.port` controls the single multiplexed port used for WebSocket + HTTP (control UI, hooks, A2UI).
+- `gateway.port` controls the single multiplexed port used for WebSocket + HTTP (hooks, A2UI).
 - OpenAI Chat Completions endpoint: **disabled by default**; enable with `gateway.http.endpoints.chatCompletions.enabled: true`.
 - Precedence: `--port` > `ZEE_GATEWAY_PORT` > `gateway.port` > default `18789`.
 - Gateway auth is required by default (token/password or Tailscale Serve identity). Non-loopback binds require a shared token/password.
@@ -2533,7 +2516,7 @@ Auth and Tailscale:
   a token/password; set `false` to require explicit credentials. Defaults to
   `true` when `tailscale.mode = "serve"` and auth mode is not `password`.
 - `gateway.tailscale.mode: "serve"` uses Tailscale Serve (tailnet only, loopback bind).
-- `gateway.tailscale.mode: "funnel"` exposes the dashboard publicly; requires auth.
+- `gateway.tailscale.mode: "funnel"` exposes the gateway publicly; requires auth.
 - `gateway.tailscale.resetOnExit` resets Serve/Funnel config on shutdown.
 
 Remote client defaults (CLI):

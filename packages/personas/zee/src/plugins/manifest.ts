@@ -6,7 +6,7 @@ import type { PluginConfigUiHint, PluginKind } from "./types.js";
 
 export const PLUGIN_MANIFEST_FILENAME = "zee.plugin.json";
 const LEGACY_PLUGIN_MANIFEST_FILENAMES = [
-  "moltbot.plugin.json",
+  "zee.plugin.json",
   LEGACY_PLUGIN_MANIFEST_FILENAME,
 ] as const;
 export const PLUGIN_MANIFEST_FILENAMES = [
@@ -106,7 +106,7 @@ export function loadPluginManifest(rootDir: string): PluginManifestLoadResult {
   };
 }
 
-// package.json "zee" metadata (used for onboarding/catalog; legacy: moltbot/clawdbot)
+// package.json "zee" metadata (used for onboarding/catalog; legacy: zee/zee)
 export type PluginPackageChannel = {
   id?: string;
   label?: string;
@@ -145,7 +145,7 @@ export type PackageManifest = {
   version?: string;
   description?: string;
   zee?: ZeePackageManifest;
-  moltbot?: ZeePackageManifest;
+  zee?: ZeePackageManifest;
   [LEGACY_MANIFEST_KEY]?: ZeePackageManifest;
 };
 
@@ -153,5 +153,5 @@ export function getPackageManifestMetadata(
   manifest: PackageManifest | undefined,
 ): ZeePackageManifest | undefined {
   if (!manifest) return undefined;
-  return manifest.zee ?? manifest.moltbot ?? manifest[LEGACY_MANIFEST_KEY];
+  return manifest.zee ?? manifest.zee ?? manifest[LEGACY_MANIFEST_KEY];
 }

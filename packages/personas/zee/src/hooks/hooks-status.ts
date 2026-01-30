@@ -97,7 +97,7 @@ function buildHookStatus(
   const hookKey = resolveHookKey(entry);
   const hookConfig = resolveHookConfig(config, hookKey);
   const managedByPlugin =
-    entry.hook.source === "zee-plugin" || entry.hook.source === "moltbot-plugin";
+    entry.hook.source === "zee-plugin" || entry.hook.source === "zee-plugin";
   const disabled = managedByPlugin ? false : hookConfig?.enabled === false;
   const always = entry.metadata?.always === true;
   const emoji = entry.metadata?.emoji ?? entry.frontmatter.emoji;

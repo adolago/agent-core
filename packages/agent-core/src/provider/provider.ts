@@ -384,7 +384,6 @@ export namespace Provider {
 
     const configProviders = Object.entries(config.provider ?? {}).filter(([providerID]) => !blocked.has(providerID))
 
-    // Add GitHub Copilot Enterprise provider that inherits from GitHub Copilot
     function mergeProvider(providerID: string, provider: Partial<Info>) {
       const existing = providers[providerID]
       if (existing) {

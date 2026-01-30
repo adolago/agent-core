@@ -161,7 +161,7 @@ Fix: ensure the state dir + workspace are owned by the user running the gateway.
 
 ### Footgun: migrating between remote/local modes
 
-- If your UI (WebUI/TUI) points at a **remote** gateway, the remote host owns the session store + workspace.
+- If your UI (TUI/GPUI) points at a **remote** gateway, the remote host owns the session store + workspace.
 - Migrating your laptop won’t move the remote gateway’s state.
 
 If you’re in remote mode, migrate the **gateway host**.
@@ -180,7 +180,7 @@ On the new machine, confirm:
 
 - `zee status` shows the gateway running
 - Your channels are still connected (e.g. WhatsApp doesn’t require re-pair)
-- The dashboard opens and shows existing sessions
+- `zee status --all` shows existing sessions
 - Your workspace files (memory, configs) are present
 
 ## Related

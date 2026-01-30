@@ -18,7 +18,7 @@ Single, rigorous document for:
 - Migration plan, risks, open questions.
 
 ## Goals (from discussion)
-- One protocol for all clients (CLI, web UI, headless node).
+- One protocol for all clients (CLI/TUI, GPUI desktop, headless node).
 - Every network participant authenticated + paired.
 - Role clarity: nodes vs operators.
 - Central approvals routed to where the user is.
@@ -58,10 +58,9 @@ Single, rigorous document for:
   - `docs/gateway/bridge-protocol.md`
 
 ## Control plane clients today
-- CLI → Gateway WS via `callGateway` (`src/gateway/call.ts`).
-- Web Control UI → Gateway WS.
+- CLI/TUI → Gateway WS via `callGateway` (`src/gateway/call.ts`).
+- GPUI desktop → Gateway WS.
 - ACP → Gateway WS.
-- Browser control uses its own HTTP control server.
 
 ## Nodes today
 - Legacy node clients connect to the Gateway bridge.
@@ -217,7 +216,7 @@ Approval is **gateway‑hosted**, UI delivered to operator clients.
 - Optional **operator.read** for status and chat view.
 - Optional **operator.write/admin** only when explicitly enabled.
 
-## Control UI
+## CLI/TUI
 - Operator role by default.
 - Node role when a local node host is enabled (system.run, screen, camera).
 - Same deviceId for both connections -> merged UI entry.

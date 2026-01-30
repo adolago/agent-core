@@ -44,7 +44,7 @@ pnpm add -g zeehub
 
 ## How it fits into Zee
 
-By default, the CLI installs skills into `./skills` under your current working directory. If a Zee workspace is configured, `zeehub` falls back to that workspace unless you override `--workdir` (or `CLAWDHUB_WORKDIR`). Zee loads workspace skills from `<workspace>/skills` and will pick them up in the **next** session. If you already use `~/.zee/skills` or bundled skills, workspace skills take precedence.
+By default, the CLI installs skills into `./skills` under your current working directory. If a Zee workspace is configured, `zeehub` falls back to that workspace unless you override `--workdir` (or `ZEEHUB_WORKDIR`). Zee loads workspace skills from `<workspace>/skills` and will pick them up in the **next** session. If you already use `~/.zee/skills` or bundled skills, workspace skills take precedence.
 
 For more detail on how skills are loaded, shared, and gated, see
 [Skills](/tools/skills).
@@ -117,85 +117,3 @@ Delete/undelete (owner/admin only):
 
 - `zeehub delete <slug> --yes`
 - `zeehub undelete <slug> --yes`
-
-Sync (scan local skills + publish new/updated):
-
-- `zeehub sync`
-- `--root <dir...>`: Extra scan roots.
-- `--all`: Upload everything without prompts.
-- `--dry-run`: Show what would be uploaded.
-- `--bump <type>`: `patch|minor|major` for updates (default: `patch`).
-- `--changelog <text>`: Changelog for non-interactive updates.
-- `--tags <tags>`: Comma-separated tags (default: `latest`).
-- `--concurrency <n>`: Registry checks (default: 4).
-
-## Common workflows for agents
-
-### Search for skills
-
-```bash
-zeehub search "postgres backups"
-```
-
-### Download new skills
-
-```bash
-zeehub install my-skill-pack
-```
-
-### Update installed skills
-
-```bash
-zeehub update --all
-```
-
-### Back up your skills (publish or sync)
-
-For a single skill folder:
-
-```bash
-zeehub publish ./my-skill --slug my-skill --name "My Skill" --version 1.0.0 --tags latest
-```
-
-To scan and back up many skills at once:
-
-```bash
-zeehub sync --all
-```
-
-## Advanced details (technical)
-
-### Versioning and tags
-
-- Each publish creates a new **semver** `SkillVersion`.
-- Tags (like `latest`) point to a version; moving tags lets you roll back.
-- Changelogs are attached per version and can be empty when syncing or publishing updates.
-
-### Local changes vs registry versions
-
-Updates compare the local skill contents to registry versions using a content hash. If local files do not match any published version, the CLI asks before overwriting (or requires `--force` in non-interactive runs).
-
-### Sync scanning and fallback roots
-
-`zeehub sync` scans your current workdir first. If no skills are found, it falls back to known legacy locations (for example `~/zee/skills` and `~/.zee/skills`). This is designed to find older skill installs without extra flags.
-
-### Storage and lockfile
-
-- Installed skills are recorded in `.zeehub/lock.json` under your workdir.
-- Auth tokens are stored in the ZeeHub CLI config file (override via `CLAWDHUB_CONFIG_PATH`).
-
-### Telemetry (install counts)
-
-When you run `zeehub sync` while logged in, the CLI sends a minimal snapshot to compute install counts. You can disable this entirely:
-
-```bash
-export CLAWDHUB_DISABLE_TELEMETRY=1
-```
-
-## Environment variables
-
-- `CLAWDHUB_SITE`: Override the site URL.
-- `CLAWDHUB_REGISTRY`: Override the registry API URL.
-- `CLAWDHUB_CONFIG_PATH`: Override where the CLI stores the token/config.
-- `CLAWDHUB_WORKDIR`: Override the default workdir.
-- `CLAWDHUB_DISABLE_TELEMETRY=1`: Disable telemetry on `sync`.

@@ -56,6 +56,23 @@ const withDirectory = (
   },
 })
 
+const VARIANT_SEPARATOR = "#"
+
+function parseModelId(modelId: string): { providerID: string; modelID: string; variant?: string } {
+  const [base, variant] = modelId.split(VARIANT_SEPARATOR)
+  const parsed = Provider.parseModel(base)
+  return {
+    providerID: parsed.providerID,
+    modelID: parsed.modelID,
+    variant: variant?.trim() || undefined,
+  }
+}
+
+function formatModelId(model: { providerID: string; modelID: string; variant?: string }) {
+  const base = `${model.providerID}/${model.modelID}`
+  return model.variant ? `${base}${VARIANT_SEPARATOR}${model.variant}` : base
+}
+
 export namespace ACP {
   const log = Log.create({ service: "acp-agent" })
 
@@ -553,7 +570,13 @@ export namespace ACP {
 
         const lastUser = messages?.findLast((m) => m.info.role === "user")?.info
         if (lastUser?.role === "user") {
-          result.models.currentModelId = `${lastUser.model.providerID}/${lastUser.model.modelID}`
+          const lastModel = {
+            providerID: lastUser.model.providerID,
+            modelID: lastUser.model.modelID,
+            variant: lastUser.variant,
+          }
+          result.models.currentModelId = formatModelId(lastModel)
+          this.sessionManager.setModel(sessionId, lastModel)
           if (result.modes.availableModes.some((m) => m.id === lastUser.agent)) {
             result.modes.currentModeId = lastUser.agent
           }
@@ -850,6 +873,7 @@ export namespace ACP {
         throw new Error("No model available. Please configure a provider with available models.")
       }
       const sessionId = params.sessionId
+      const currentModel = this.sessionManager.tryGet(sessionId)?.model ?? model
 
       const providers = await this.sdk.config.providers(withDirectory(directory)).then((x) => x.data!.providers)
       const entries = providers.sort((a, b) => {
@@ -861,10 +885,17 @@ export namespace ACP {
       })
       const availableModels = entries.flatMap((provider) => {
         const models = Provider.sort(Object.values(provider.models))
-        return models.map((model) => ({
-          modelId: `${provider.id}/${model.id}`,
-          name: `${provider.name}/${model.name}`,
-        }))
+        return models.flatMap((model) => {
+          const baseId = `${provider.id}/${model.id}`
+          const baseName = `${provider.name}/${model.name}`
+          const variants = Object.entries(model.variants ?? {})
+            .filter(([, config]) => !(config as { disabled?: boolean }).disabled)
+            .map(([variant]) => ({
+              modelId: `${baseId}${VARIANT_SEPARATOR}${variant}`,
+              name: `${baseName} (${variant})`,
+            }))
+          return [{ modelId: baseId, name: baseName }, ...variants]
+        })
       })
 
       const agents = await this.config.sdk.app
@@ -952,7 +983,7 @@ export namespace ACP {
       return {
         sessionId,
         models: {
-          currentModelId: `${model.providerID}/${model.modelID}`,
+          currentModelId: formatModelId(currentModel),
           availableModels,
         },
         modes: {
@@ -966,11 +997,12 @@ export namespace ACP {
     async setSessionModel(params: SetSessionModelRequest) {
       const session = this.sessionManager.get(params.sessionId)
 
-      const model = Provider.parseModel(params.modelId)
+      const model = parseModelId(params.modelId)
 
       this.sessionManager.setModel(session.id, {
         providerID: model.providerID,
         modelID: model.modelID,
+        variant: model.variant,
       })
 
       return {
@@ -1102,6 +1134,7 @@ export namespace ACP {
             },
             parts,
             agent,
+            variant: session.model?.variant,
           },
           withDirectory(directory),
         )

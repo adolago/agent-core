@@ -55,9 +55,9 @@ Adding the following todos to the todo list:
 
 Let me start by researching the existing codebase to understand what metrics we might already be tracking and how we can build on that.
 
-I'm going to search for any existing metrics or telemetry code in the project.
+I'm going to search for any existing metrics tracking code in the project.
 
-I've found some existing telemetry code. Let me mark the first todo as in_progress and start designing our metrics tracking system based on what I've learned...
+I've found some existing metrics code. Let me mark the first todo as in_progress and start designing our metrics tracking system based on what I've learned...
 
 [Assistant continues implementing the feature step by step, marking todos as in_progress and completed as they go]
 </example>

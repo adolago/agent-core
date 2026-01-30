@@ -16,6 +16,7 @@ import { Bus } from "../bus"
 import { LifecycleHooks } from "../hooks/lifecycle"
 import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
+import { InstructionPrompt } from "./instruction"
 import { Plugin } from "../plugin"
 // NOTE: PROMPT_PLAN and BUILD_SWITCH removed - replaced by hold/release mode in TUI
 import MAX_STEPS from "../session/prompt/max-steps.txt"
@@ -649,6 +650,7 @@ export namespace SessionPrompt {
           directory: Instance.directory,
           worktree: Instance.worktree,
           extra: { bypassAgentCheck: true },
+          messages: msgs,
           async metadata(input) {
             await Session.updatePart({
               ...part,
@@ -813,6 +815,7 @@ export namespace SessionPrompt {
         model,
         abort,
       })
+      using _ = defer(() => InstructionPrompt.clear(processor.message.id))
 
       // Check if user explicitly invoked an agent via @ in this turn
       const lastUserMsg = msgs.findLast((m) => m.info.role === "user")
@@ -825,6 +828,7 @@ export namespace SessionPrompt {
         tools: lastUser.tools,
         processor,
         bypassAgentCheck,
+        messages: msgs,
       })
 
       if (step === 1) {
@@ -862,7 +866,11 @@ export namespace SessionPrompt {
         agent,
         abort,
         sessionID,
-        system: [...(await SystemPrompt.environment(model)), ...(await SystemPrompt.custom()), ...(lastUser.tools?.edit === false ? [HOLD_MODE_PROMPT] : [])],
+        system: [
+          ...(await SystemPrompt.environment(model)),
+          ...(await InstructionPrompt.system()),
+          ...(lastUser.tools?.edit === false ? [HOLD_MODE_PROMPT] : []),
+        ],
         messages: [
           ...(await MessageV2.toModelMessage(sessionMessages)),
           ...(isLastStep
@@ -935,6 +943,7 @@ export namespace SessionPrompt {
     tools?: Record<string, boolean>
     processor: SessionProcessor.Info
     bypassAgentCheck: boolean
+    messages: MessageV2.WithParts[]
   }) {
     using _ = log.time("resolveTools")
     const tools: Record<string, AITool> = {}
@@ -948,6 +957,7 @@ export namespace SessionPrompt {
       worktree: Instance.worktree,
       extra: { model: input.model, bypassAgentCheck: input.bypassAgentCheck, holdMode: input.tools?.edit === false },
       agent: input.agent.name,
+      messages: input.messages,
       metadata: async (val: { title?: string; metadata?: any }) => {
         const match = input.processor.partFromToolCall(options.toolCallId)
         if (match && match.state.status === "running") {
@@ -1136,6 +1146,7 @@ export namespace SessionPrompt {
       options: input.options,
       variant: input.variant,
     }
+    using _ = defer(() => InstructionPrompt.clear(info.id))
 
     const parts = await Promise.all(
       input.parts.map(async (part): Promise<MessageV2.Part[]> => {
@@ -1312,6 +1323,7 @@ export namespace SessionPrompt {
                       directory: Instance.directory,
                       worktree: Instance.worktree,
                       extra: { bypassCwdCheck: true, model },
+                      messages: [],
                       metadata: async () => {},
                       ask: async () => {},
                     }
@@ -1375,6 +1387,7 @@ export namespace SessionPrompt {
                   directory: Instance.directory,
                   worktree: Instance.worktree,
                   extra: { bypassCwdCheck: true },
+                  messages: [],
                   metadata: async () => {},
                   ask: async () => {},
                 }

@@ -552,6 +552,7 @@ export namespace Config {
           todowrite: PermissionAction.optional(),
           todoread: PermissionAction.optional(),
           question: PermissionAction.optional(),
+          skill: PermissionRule.optional(),
           webfetch: PermissionAction.optional(),
           websearch: PermissionAction.optional(),
           codesearch: PermissionAction.optional(),
@@ -575,6 +576,11 @@ export namespace Config {
     subtask: z.boolean().optional(),
   })
   export type Command = z.infer<typeof Command>
+
+  export const Skills = z.object({
+    paths: z.array(z.string()).optional().describe("Additional paths to skill folders"),
+  })
+  export type Skills = z.infer<typeof Skills>
 
   export const Agent = z
     .object({
@@ -918,7 +924,7 @@ export namespace Config {
   /**
    * mDNS configuration - supports both boolean shorthand and detailed object.
    * Security note: mDNS broadcasts can disclose operational details on the network.
-   * Based on ClawdBot commit a1f9825d63 (mDNS information disclosure fix).
+   * Based on Zee commit a1f9825d63 (mDNS information disclosure fix).
    */
   export const MdnsConfig = z
     .object({
@@ -1030,7 +1036,6 @@ export namespace Config {
         .object({
           apiKey: z.string().optional(),
           baseURL: z.string().optional(),
-          enterpriseUrl: z.string().optional().describe("GitHub Enterprise URL for copilot authentication"),
           setCacheKey: z.boolean().optional().describe("Enable promptCacheKey for this provider (default false)"),
           timeout: z
             .union([
@@ -1210,6 +1215,7 @@ export namespace Config {
         .record(z.string(), Command)
         .optional()
         .describe("Command configuration"),
+      skills: Skills.optional().describe("Additional skill folder paths"),
       watcher: z
         .object({
           ignore: z.array(z.string()).optional(),
@@ -1383,10 +1389,6 @@ export namespace Config {
           chatMaxRetries: z.number().optional().describe("Number of retries for chat completions on failure"),
           disable_paste_summary: z.boolean().optional(),
           batch_tool: z.boolean().optional().describe("Enable the batch tool"),
-          openTelemetry: z
-            .boolean()
-            .optional()
-            .describe("Enable OpenTelemetry spans for AI SDK calls (using the 'experimental_telemetry' flag)"),
           primary_tools: z
             .array(z.string())
             .optional()

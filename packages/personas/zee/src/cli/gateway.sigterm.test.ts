@@ -84,13 +84,13 @@ describe("gateway SIGTERM", () => {
     const nodeBin = process.execPath;
     const env = {
       ...process.env,
-      CLAWDBOT_NO_RESPAWN: "1",
-      CLAWDBOT_STATE_DIR: stateDir,
-      CLAWDBOT_SKIP_CHANNELS: "1",
-      CLAWDBOT_SKIP_GMAIL_WATCHER: "1",
-      CLAWDBOT_SKIP_CRON: "1",
-      CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER: "1",
-      CLAWDBOT_SKIP_CANVAS_HOST: "1",
+      ZEE_NO_RESPAWN: "1",
+      ZEE_STATE_DIR: stateDir,
+      ZEE_SKIP_CHANNELS: "1",
+      ZEE_SKIP_GMAIL_WATCHER: "1",
+      ZEE_SKIP_CRON: "1",
+      ZEE_SKIP_BROWSER_CONTROL_SERVER: "1",
+      ZEE_SKIP_CANVAS_HOST: "1",
     };
     const bootstrapPath = path.join(stateDir, "zee-entry-bootstrap.mjs");
     const runLoopPath = path.resolve("src/cli/gateway-cli/run-loop.ts");

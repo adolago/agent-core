@@ -23,7 +23,6 @@ import { AttachCommand } from "./cli/cmd/tui/attach"
 import { TuiThreadCommand } from "./cli/cmd/tui/thread"
 import { AcpCommand } from "./cli/cmd/acp"
 import { EOL } from "os"
-import { WebCommand } from "./cli/cmd/web"
 import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
 import { DaemonCommand, DaemonStatusCommand, DaemonStopCommand, GatewayStatusCommand } from "./cli/cmd/daemon"
@@ -155,7 +154,6 @@ const cli = yargs(hideBin(process.argv))
   .command(UpgradeCommand)
   .command(UninstallCommand)
   .command(ServeCommand)
-  .command(WebCommand)
   .command(ModelsCommand)
   .command(StatsCommand)
   .command(ExportCommand)

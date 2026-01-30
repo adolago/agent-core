@@ -26,15 +26,15 @@ function hasExperimentalWarningSuppressed(nodeOptions: string): boolean {
 function ensureExperimentalWarningSuppressed(): boolean {
   if (
     isTruthyEnvValue(process.env.ZEE_NO_RESPAWN) ||
-    isTruthyEnvValue(process.env.MOLTBOT_NO_RESPAWN) ||
-    isTruthyEnvValue(process.env.CLAWDBOT_NO_RESPAWN)
+    isTruthyEnvValue(process.env.ZEE_NO_RESPAWN) ||
+    isTruthyEnvValue(process.env.ZEE_NO_RESPAWN)
   ) {
     return false;
   }
   if (
     isTruthyEnvValue(process.env.ZEE_NODE_OPTIONS_READY) ||
-    isTruthyEnvValue(process.env.MOLTBOT_NODE_OPTIONS_READY) ||
-    isTruthyEnvValue(process.env.CLAWDBOT_NODE_OPTIONS_READY)
+    isTruthyEnvValue(process.env.ZEE_NODE_OPTIONS_READY) ||
+    isTruthyEnvValue(process.env.ZEE_NODE_OPTIONS_READY)
   ) {
     return false;
   }

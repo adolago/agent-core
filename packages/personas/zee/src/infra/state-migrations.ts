@@ -316,13 +316,16 @@ export async function autoMigrateLegacyStateDir(params: {
   autoMigrateStateDirChecked = true;
 
   const env = params.env ?? process.env;
-  if (env.ZEE_STATE_DIR?.trim() || env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim()) {
+  if (env.ZEE_STATE_DIR?.trim()) {
     return { migrated: false, skipped: true, changes: [], warnings: [] };
   }
 
   const homedir = params.homedir ?? os.homedir;
   const legacyDir = resolveLegacyStateDir(homedir);
   const targetDir = resolveNewStateDir(homedir);
+  if (path.resolve(legacyDir) === path.resolve(targetDir)) {
+    return { migrated: false, skipped: true, changes: [], warnings: [] };
+  }
   const warnings: string[] = [];
   const changes: string[] = [];
 
@@ -388,7 +391,7 @@ export async function autoMigrateLegacyStateDir(params: {
           `State dir moved but failed to link legacy path (${legacyDir} → ${targetDir}): ${String(fallbackErr)}`,
         );
         warnings.push(
-          `Rollback failed; set MOLTBOT_STATE_DIR=${targetDir} to avoid split state: ${String(rollbackErr)}`,
+          `Rollback failed; set ZEE_STATE_DIR=${targetDir} to avoid split state: ${String(rollbackErr)}`,
         );
         changes.push(`State dir: ${legacyDir} → ${targetDir}`);
       }
@@ -727,7 +730,7 @@ export async function autoMigrateLegacyState(params: {
     homedir: params.homedir,
     log: params.log,
   });
-  if (env.CLAWDBOT_AGENT_DIR?.trim() || env.PI_CODING_AGENT_DIR?.trim()) {
+  if (env.ZEE_AGENT_DIR?.trim() || env.PI_CODING_AGENT_DIR?.trim()) {
     return {
       migrated: stateDirResult.migrated,
       skipped: true,

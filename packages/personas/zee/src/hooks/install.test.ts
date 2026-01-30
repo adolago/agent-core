@@ -35,9 +35,9 @@ describe("installHooksFromArchive", () => {
     zip.file(
       "package/package.json",
       JSON.stringify({
-        name: "@moltbot/zip-hooks",
+        name: "@zee/zip-hooks",
         version: "0.0.1",
-        moltbot: { hooks: ["./hooks/zip-hook"] },
+        zee: { hooks: ["./hooks/zip-hook"] },
       }),
     );
     zip.file(
@@ -46,7 +46,7 @@ describe("installHooksFromArchive", () => {
         "---",
         "name: zip-hook",
         "description: Zip hook",
-        'metadata: {"moltbot":{"events":["command:new"]}}',
+        'metadata: {"zee":{"events":["command:new"]}}',
         "---",
         "",
         "# Zip Hook",
@@ -78,9 +78,9 @@ describe("installHooksFromArchive", () => {
     fs.writeFileSync(
       path.join(pkgDir, "package.json"),
       JSON.stringify({
-        name: "@moltbot/tar-hooks",
+        name: "@zee/tar-hooks",
         version: "0.0.1",
-        moltbot: { hooks: ["./hooks/tar-hook"] },
+        zee: { hooks: ["./hooks/tar-hook"] },
       }),
       "utf-8",
     );
@@ -90,7 +90,7 @@ describe("installHooksFromArchive", () => {
         "---",
         "name: tar-hook",
         "description: Tar hook",
-        'metadata: {"moltbot":{"events":["command:new"]}}',
+        'metadata: {"zee":{"events":["command:new"]}}',
         "---",
         "",
         "# Tar Hook",
@@ -128,7 +128,7 @@ describe("installHooksFromPath", () => {
         "---",
         "name: my-hook",
         "description: My hook",
-        'metadata: {"moltbot":{"events":["command:new"]}}',
+        'metadata: {"zee":{"events":["command:new"]}}',
         "---",
         "",
         "# My Hook",

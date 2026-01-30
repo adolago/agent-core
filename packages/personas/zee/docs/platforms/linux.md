@@ -1,5 +1,5 @@
 ---
-summary: "Linux support (Gateway + Control UI)"
+summary: "Linux support (Gateway + CLI/TUI)"
 read_when:
   - Looking for Linux support status
   - Planning platform coverage or contributions
@@ -9,7 +9,7 @@ read_when:
 The Gateway is fully supported on Linux. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-No native Linux app is shipped in this repo. Use the Gateway and Control UI.
+No native Linux app is shipped in this repo. Use the Gateway and CLI/TUI.
 
 ## Beginner quick path (VPS)
 

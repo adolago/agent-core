@@ -253,7 +253,7 @@ describe("provider usage loading", () => {
     await withTempHome(
       async (tempHome) => {
         const agentDir = path.join(
-          process.env.CLAWDBOT_STATE_DIR ?? path.join(tempHome, ".clawdbot"),
+          process.env.ZEE_STATE_DIR ?? path.join(tempHome, ".zee"),
           "agents",
           "main",
           "agent",
@@ -328,7 +328,7 @@ describe("provider usage loading", () => {
       },
       {
         env: {
-          CLAWDBOT_STATE_DIR: (home) => path.join(home, ".clawdbot"),
+          ZEE_STATE_DIR: (home) => path.join(home, ".zee"),
         },
         prefix: "zee-provider-usage-",
       },

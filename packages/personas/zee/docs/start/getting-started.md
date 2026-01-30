@@ -9,11 +9,8 @@ read_when:
 
 Goal: go from **zero** → **first working chat** (with sane defaults) as quickly as possible.
 
-Fastest chat: open the Control UI (no channel setup needed). Run `zee dashboard`
-and chat in the browser, or open `http://127.0.0.1:18789/` on the gateway host.
-Docs: [Dashboard](/web/dashboard) and [Control UI](/web/control-ui).
-
-Recommended path: use the **CLI onboarding wizard** (`zee onboard`). It sets up:
+Fastest chat: run the **CLI onboarding wizard** (`zee onboard`) and connect a
+WhatsApp or Telegram channel. It sets up:
 - model/auth (OAuth recommended)
 - gateway settings
 - pairing defaults (secure DMs)
@@ -110,9 +107,6 @@ Manual run (foreground):
 ```bash
 zee gateway --port 18789 --verbose
 ```
-
-Dashboard (local loopback): `http://127.0.0.1:18789/`
-If a token is configured, paste it into the Control UI settings (stored as `connect.params.auth.token`).
 
 ⚠️ **Bun warning (WhatsApp + Telegram):** Bun has known issues with these
 channels. If you use WhatsApp or Telegram, run the Gateway with **Node**.

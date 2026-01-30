@@ -8,7 +8,7 @@ read_when:
 # Gateway-owned pairing (Option B)
 
 In Gateway-owned pairing, the **Gateway** is the source of truth for which nodes
-are allowed to join. UIs (control UI, future clients) are just frontends that
+are allowed to join. UIs (CLI/TUI, future clients) are just frontends that
 approve or reject pending requests.
 
 **Important:** WS nodes use **device pairing** (role `node`) during `connect`.
@@ -64,9 +64,9 @@ Notes:
   `node.pair.request`.
 - Requests may include `silent: true` as a hint for auto-approval flows.
 
-## Auto-approval (control UI)
+## Auto-approval (CLI/TUI)
 
-The control UI can optionally attempt a **silent approval** when:
+The CLI/TUI can optionally attempt a **silent approval** when:
 - the request is marked `silent`, and
 - the UI can verify an SSH connection to the gateway host using the same user.
 

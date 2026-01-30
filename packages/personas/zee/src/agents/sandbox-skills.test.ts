@@ -86,8 +86,8 @@ describe("sandbox skill mirroring", () => {
     const bundledDir = path.join(stateDir, "bundled-skills");
     await fs.mkdir(bundledDir, { recursive: true });
 
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
-    process.env.CLAWDBOT_BUNDLED_SKILLS_DIR = bundledDir;
+    process.env.ZEE_STATE_DIR = stateDir;
+    process.env.ZEE_BUNDLED_SKILLS_DIR = bundledDir;
     vi.resetModules();
 
     const { resolveSandboxContext } = await import("./sandbox.js");

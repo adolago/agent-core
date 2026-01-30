@@ -79,7 +79,7 @@ zee config get agents.list
 zee config set agents.list[0].tools.exec.node "node-id-or-name"
 ```
 
-Control UI: the Nodes tab includes a small “Exec node binding” panel for the same settings.
+CLI/TUI: the Nodes tab includes a small “Exec node binding” panel for the same settings.
 
 ## Session overrides (`/exec`)
 
@@ -98,7 +98,7 @@ It updates **session state only** and does not write config. To hard-disable exe
 policy (`tools.deny: ["exec"]` or per-agent). Host approvals still apply unless you explicitly set
 `security=full` and `ask=off`.
 
-## Exec approvals (control UI / node host)
+## Exec approvals (CLI/TUI / node host)
 
 Sandboxed agents can require per-request approval before `exec` runs on the gateway or node host.
 See [Exec approvals](/tools/exec-approvals) for the policy, allowlist, and UI flow.

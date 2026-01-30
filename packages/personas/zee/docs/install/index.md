@@ -109,7 +109,7 @@ Tip: if you don’t have a global install yet, run repo commands via `pnpm zee .
 - Run onboarding: `zee onboard --install-daemon`
 - Quick check: `zee doctor`
 - Check gateway health: `zee status` + `zee health`
-- Open the dashboard: `zee dashboard`
+- Open the TUI: `zee`
 
 ## Install method: npm vs git (installer)
 

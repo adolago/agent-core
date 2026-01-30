@@ -54,11 +54,6 @@ You can also set `ZEE_VERBOSE=1` instead of the flag.
 - [Gateway troubleshooting](/gateway/troubleshooting)
 - [Gateway authentication](/gateway/authentication)
 
-### Control UI fails on HTTP (device identity required)
-
-- [Gateway troubleshooting](/gateway/troubleshooting)
-- [Control UI](/web/control-ui#insecure-http)
-
 ### `docs.zee` shows an SSL error (Comcast/Xfinity)
 
 Some Comcast/Xfinity connections block `docs.zee` via Xfinity Advanced Security.

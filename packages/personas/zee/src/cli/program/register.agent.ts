@@ -155,7 +155,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.zee/cli/agent")}`,
         `
 ${theme.heading("Examples:")}
 ${formatHelpExamples([
-  ['zee agents set-identity --agent main --name "Clawd" --emoji "🦞"', "Set name + emoji."],
+  ['zee agents set-identity --agent main --name "Zee"', "Set name."],
   ["zee agents set-identity --agent main --avatar avatars/zee.png", "Set avatar path."],
   ["zee agents set-identity --workspace ~/zee --from-identity", "Load from IDENTITY.md."],
   [

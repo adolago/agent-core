@@ -51,7 +51,7 @@ function extractSerial(zoneText: string): number | null {
 }
 
 function extractContentHash(zoneText: string): string | null {
-  const match = zoneText.match(/^\s*;\s*(?:zee|moltbot)-content-hash:\s*(\S+)\s*$/m);
+  const match = zoneText.match(/^\s*;\s*(?:zee|zee)-content-hash:\s*(\S+)\s*$/m);
   return match?.[1] ?? null;
 }
 

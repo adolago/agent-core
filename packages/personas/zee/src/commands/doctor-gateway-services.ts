@@ -98,7 +98,7 @@ export async function maybeMigrateLegacyGatewayService(
   const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
     env: process.env,
     port,
-    token: cfg.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
+    token: cfg.gateway?.auth?.token ?? process.env.ZEE_GATEWAY_TOKEN,
     runtime: daemonRuntime,
     warn: (message, title) => note(message, title),
     config: cfg,
@@ -165,7 +165,7 @@ export async function maybeRepairGatewayServiceConfig(
   const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
     env: process.env,
     port,
-    token: cfg.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
+    token: cfg.gateway?.auth?.token ?? process.env.ZEE_GATEWAY_TOKEN,
     runtime: needsNodeRuntime && systemNodePath ? "node" : runtimeChoice,
     nodePath: systemNodePath ?? undefined,
     warn: (message, title) => note(message, title),

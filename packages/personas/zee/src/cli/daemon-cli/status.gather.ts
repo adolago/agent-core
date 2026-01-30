@@ -4,7 +4,7 @@ import {
   resolveGatewayPort,
   resolveStateDir,
 } from "../../config/config.js";
-import type { GatewayBindMode, GatewayControlUiConfig } from "../../config/types.js";
+import type { GatewayBindMode } from "../../config/types.js";
 import { readLastGatewayErrorLine } from "../../daemon/diagnostics.js";
 import type { FindExtraGatewayServicesOptions } from "../../daemon/inspect.js";
 import { findExtraGatewayServices } from "../../daemon/inspect.js";
@@ -28,7 +28,6 @@ type ConfigSummary = {
   exists: boolean;
   valid: boolean;
   issues?: Array<{ path: string; message: string }>;
-  controlUi?: GatewayControlUiConfig;
 };
 
 type GatewayStatusSummary = {
@@ -150,14 +149,12 @@ export async function gatherDaemonStatus(
     exists: cliSnapshot?.exists ?? false,
     valid: cliSnapshot?.valid ?? true,
     ...(cliSnapshot?.issues?.length ? { issues: cliSnapshot.issues } : {}),
-    controlUi: cliCfg.gateway?.controlUi,
   };
   const daemonConfigSummary: ConfigSummary = {
     path: daemonSnapshot?.path ?? daemonConfigPath,
     exists: daemonSnapshot?.exists ?? false,
     valid: daemonSnapshot?.valid ?? true,
     ...(daemonSnapshot?.issues?.length ? { issues: daemonSnapshot.issues } : {}),
-    controlUi: daemonCfg.gateway?.controlUi,
   };
   const configMismatch = cliConfigSummary.path !== daemonConfigSummary.path;
 
@@ -223,11 +220,11 @@ export async function gatherDaemonStatus(
         url: probeUrl,
         token:
           opts.rpc.token ||
-          mergedDaemonEnv.CLAWDBOT_GATEWAY_TOKEN ||
+          mergedDaemonEnv.ZEE_GATEWAY_TOKEN ||
           daemonCfg.gateway?.auth?.token,
         password:
           opts.rpc.password ||
-          mergedDaemonEnv.CLAWDBOT_GATEWAY_PASSWORD ||
+          mergedDaemonEnv.ZEE_GATEWAY_PASSWORD ||
           daemonCfg.gateway?.auth?.password,
         timeoutMs,
         json: opts.rpc.json,

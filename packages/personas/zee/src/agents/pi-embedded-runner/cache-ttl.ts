@@ -1,7 +1,7 @@
 type CustomEntryLike = { type?: unknown; customType?: unknown; data?: unknown };
 
 export const CACHE_TTL_CUSTOM_TYPE = "zee.cache-ttl";
-const LEGACY_CACHE_TTL_CUSTOM_TYPE = "moltbot.cache-ttl";
+const LEGACY_CACHE_TTL_CUSTOM_TYPE = "zee.cache-ttl";
 
 export type CacheTtlEntryData = {
   timestamp: number;

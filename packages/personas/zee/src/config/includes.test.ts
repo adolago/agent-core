@@ -283,7 +283,7 @@ describe("resolveConfigIncludes", () => {
   it("resolves parent directory references", () => {
     const files = { [sharedPath("common.json")]: { shared: true } };
     const obj = { $include: "../../shared/common.json" };
-    expect(resolve(obj, files, configPath("sub", "moltbot.json"))).toEqual({
+    expect(resolve(obj, files, configPath("sub", "zee.json"))).toEqual({
       shared: true,
     });
   });

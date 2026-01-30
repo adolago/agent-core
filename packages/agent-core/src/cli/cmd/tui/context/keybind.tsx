@@ -66,6 +66,10 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
       if (active) {
         setStore("leader", true)
         focus = renderer.currentFocusedRenderable
+        if (focus?.isDestroyed) {
+          focus = null
+          return
+        }
         focus?.blur()
         return
       }

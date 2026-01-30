@@ -18,7 +18,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "test-key";
 const HAS_OPENAI_KEY = Boolean(process.env.OPENAI_API_KEY);
 const liveEnabled =
   HAS_OPENAI_KEY &&
-  (process.env.ZEE_LIVE_TEST === "1" || process.env.CLAWDBOT_LIVE_TEST === "1");
+  (process.env.ZEE_LIVE_TEST === "1" || process.env.ZEE_LIVE_TEST === "1");
 const describeLive = liveEnabled ? describe : describe.skip;
 
 describe("memory plugin e2e", () => {

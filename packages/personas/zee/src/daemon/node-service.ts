@@ -13,12 +13,12 @@ function withNodeServiceEnv(
 ): Record<string, string | undefined> {
   return {
     ...env,
-    CLAWDBOT_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    CLAWDBOT_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    CLAWDBOT_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    CLAWDBOT_LOG_PREFIX: "node",
-    CLAWDBOT_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    CLAWDBOT_SERVICE_KIND: NODE_SERVICE_KIND,
+    ZEE_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
+    ZEE_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
+    ZEE_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
+    ZEE_LOG_PREFIX: "node",
+    ZEE_SERVICE_MARKER: NODE_SERVICE_MARKER,
+    ZEE_SERVICE_KIND: NODE_SERVICE_KIND,
   };
 }
 
@@ -28,12 +28,12 @@ function withNodeInstallEnv(args: GatewayServiceInstallArgs): GatewayServiceInst
     env: withNodeServiceEnv(args.env),
     environment: {
       ...args.environment,
-      CLAWDBOT_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-      CLAWDBOT_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-      CLAWDBOT_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-      CLAWDBOT_LOG_PREFIX: "node",
-      CLAWDBOT_SERVICE_MARKER: NODE_SERVICE_MARKER,
-      CLAWDBOT_SERVICE_KIND: NODE_SERVICE_KIND,
+      ZEE_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
+      ZEE_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
+      ZEE_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
+      ZEE_LOG_PREFIX: "node",
+      ZEE_SERVICE_MARKER: NODE_SERVICE_MARKER,
+      ZEE_SERVICE_KIND: NODE_SERVICE_KIND,
     },
   };
 }

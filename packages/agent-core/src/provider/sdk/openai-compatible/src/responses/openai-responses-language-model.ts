@@ -836,8 +836,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false
 
-    // Track reasoning by output_index instead of item_id
-    // GitHub Copilot rotates encrypted item IDs on every event
+    // Track reasoning by output_index instead of item_id since some providers
+    // rotate encrypted item IDs across events.
     const activeReasoning: Record<
       number,
       {
@@ -850,8 +850,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Track current active reasoning output_index for correlating summary events
     let currentReasoningOutputIndex: number | null = null
 
-    // Track a stable text part id for the current assistant message.
-    // Copilot may change item_id across text deltas; normalize to one id.
+    // Track a stable text part id for the current assistant message when
+    // providers change item_id across text deltas.
     let currentTextId: string | null = null
 
     let serviceTier: string | undefined

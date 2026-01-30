@@ -16,7 +16,6 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`configure`](/cli/configure)
 - [`config`](/cli/config)
 - [`doctor`](/cli/doctor)
-- [`dashboard`](/cli/dashboard)
 - [`reset`](/cli/reset)
 - [`uninstall`](/cli/uninstall)
 - [`update`](/cli/update)

@@ -51,7 +51,7 @@ type ExternalCatalogEntry = {
   version?: string;
   description?: string;
   zee?: ZeePackageManifest;
-  moltbot?: ZeePackageManifest;
+  zee?: ZeePackageManifest;
   [LEGACY_MANIFEST_KEY]?: ZeePackageManifest;
 };
 
@@ -64,10 +64,10 @@ const DEFAULT_CATALOG_PATHS = [
 const ENV_CATALOG_PATHS = [
   "ZEE_PLUGIN_CATALOG_PATHS",
   "ZEE_MPM_CATALOG_PATHS",
-  "MOLTBOT_PLUGIN_CATALOG_PATHS",
-  "MOLTBOT_MPM_CATALOG_PATHS",
-  "CLAWDBOT_PLUGIN_CATALOG_PATHS",
-  "CLAWDBOT_MPM_CATALOG_PATHS",
+  "ZEE_PLUGIN_CATALOG_PATHS",
+  "ZEE_MPM_CATALOG_PATHS",
+  "ZEE_PLUGIN_CATALOG_PATHS",
+  "ZEE_MPM_CATALOG_PATHS",
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -214,7 +214,7 @@ function buildCatalogEntry(candidate: {
 }
 
 function buildExternalCatalogEntry(entry: ExternalCatalogEntry): ChannelPluginCatalogEntry | null {
-  const manifest = entry.zee ?? entry.moltbot ?? entry[LEGACY_MANIFEST_KEY];
+  const manifest = entry.zee ?? entry.zee ?? entry[LEGACY_MANIFEST_KEY];
   return buildCatalogEntry({
     packageName: entry.name,
     packageZee: manifest,

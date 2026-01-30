@@ -21,7 +21,7 @@ describe("createCacheTrace", () => {
         diagnostics: {
           cacheTrace: {
             enabled: true,
-            filePath: "~/.clawdbot/logs/cache-trace.jsonl",
+            filePath: "~/.zee/logs/cache-trace.jsonl",
           },
         },
       },
@@ -33,7 +33,7 @@ describe("createCacheTrace", () => {
     });
 
     expect(trace).not.toBeNull();
-    expect(trace?.filePath).toBe(resolveUserPath("~/.clawdbot/logs/cache-trace.jsonl"));
+    expect(trace?.filePath).toBe(resolveUserPath("~/.zee/logs/cache-trace.jsonl"));
 
     trace?.recordStage("session:loaded", {
       messages: [],
@@ -80,7 +80,7 @@ describe("createCacheTrace", () => {
         },
       },
       env: {
-        CLAWDBOT_CACHE_TRACE: "0",
+        ZEE_CACHE_TRACE: "0",
       },
       writer: {
         filePath: "memory",

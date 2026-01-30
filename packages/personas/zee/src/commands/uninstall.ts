@@ -101,7 +101,7 @@ export async function uninstallCommand(runtime: RuntimeEnv, opts: UninstallOptio
           label: "Gateway service",
           hint: "systemd / schtasks",
         },
-        { value: "state", label: "State + config", hint: "~/.zee (legacy: ~/.moltbot, ~/.clawdbot)" },
+        { value: "state", label: "State + config", hint: "~/.zee (legacy: ~/.zee, ~/.zee)" },
         { value: "workspace", label: "Workspace", hint: "agent files" },
       ],
       initialValues: ["service", "state", "workspace"],

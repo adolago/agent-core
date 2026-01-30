@@ -1,7 +1,6 @@
 import { createRequire } from "node:module";
 
 declare const __ZEE_VERSION__: string | undefined;
-declare const __CLAWDBOT_VERSION__: string | undefined;
 
 function readVersionFromPackageJson(): string | null {
   try {
@@ -19,8 +18,5 @@ function readVersionFromPackageJson(): string | null {
 export const VERSION =
   (typeof __ZEE_VERSION__ === "string" && __ZEE_VERSION__) ||
   process.env.ZEE_BUNDLED_VERSION ||
-  process.env.MOLTBOT_BUNDLED_VERSION ||
-  process.env.CLAWDBOT_BUNDLED_VERSION ||
-  (typeof __CLAWDBOT_VERSION__ === "string" && __CLAWDBOT_VERSION__) ||
   readVersionFromPackageJson() ||
   "0.0.0";

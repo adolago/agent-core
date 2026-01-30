@@ -410,7 +410,7 @@ export namespace MCP {
         return client.callTool(
           {
             name: mcpTool.name,
-            arguments: args as Record<string, unknown>,
+            arguments: (args ?? {}) as Record<string, unknown>,
           },
           CallToolResultSchema,
           {
@@ -1208,7 +1208,7 @@ export namespace MCP {
       return await client.callTool(
         {
           name: toolName,
-          arguments: args,
+          arguments: args ?? {},
         },
         CallToolResultSchema,
         {

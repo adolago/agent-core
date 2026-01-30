@@ -115,9 +115,9 @@ Shell chaining (`&&`, `||`, `;`) is allowed when every top-level segment satisfi
 
 Default safe bins: `jq`, `grep`, `cut`, `sort`, `uniq`, `head`, `tail`, `tr`, `wc`.
 
-## Control UI editing
+## CLI/TUI editing
 
-Use the **Control UI → Nodes → Exec approvals** card to edit defaults, per‑agent
+Use the **CLI/TUI → Nodes → Exec approvals** card to edit defaults, per‑agent
 overrides, and allowlists. Pick a scope (Defaults or an agent), tweak the policy,
 add/remove allowlist patterns, then **Save**. The UI shows **last used** metadata
 per pattern so you can keep the list tidy.
@@ -132,7 +132,7 @@ CLI: `zee approvals` supports gateway or node editing (see [Approvals CLI](/cli/
 ## Approval flow
 
 When a prompt is required, the gateway broadcasts `exec.approval.requested` to operator clients.
-The Control UI resolves it via `exec.approval.resolve`, then the gateway forwards the
+The CLI/TUI resolves it via `exec.approval.resolve`, then the gateway forwards the
 approved request to the node host.
 
 When approvals are required, the exec tool returns immediately with an approval id. Use that id to
@@ -184,7 +184,7 @@ Reply in chat:
 Gateway -> Node Service (WS)
                  |  IPC (UDS + token + HMAC + TTL)
                  v
-             Control UI (approvals + system.run)
+             CLI/TUI (approvals + system.run)
 ```
 
 Security notes:

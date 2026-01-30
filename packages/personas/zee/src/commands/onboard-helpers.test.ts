@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { openUrl, resolveBrowserOpenCommand, resolveControlUiLinks } from "./onboard-helpers.js";
+import { openUrl, resolveBrowserOpenCommand, resolveGatewayUrls } from "./onboard-helpers.js";
 
 const mocks = vi.hoisted(() => ({
   runCommandWithTimeout: vi.fn(async () => ({
@@ -62,9 +62,9 @@ describe("resolveBrowserOpenCommand", () => {
   });
 });
 
-describe("resolveControlUiLinks", () => {
+describe("resolveGatewayUrls", () => {
   it("uses customBindHost for custom bind", () => {
-    const links = resolveControlUiLinks({
+    const links = resolveGatewayUrls({
       port: 18789,
       bind: "custom",
       customBindHost: "192.168.1.100",
@@ -74,7 +74,7 @@ describe("resolveControlUiLinks", () => {
   });
 
   it("falls back to loopback for invalid customBindHost", () => {
-    const links = resolveControlUiLinks({
+    const links = resolveGatewayUrls({
       port: 18789,
       bind: "custom",
       customBindHost: "192.168.001.100",
@@ -85,7 +85,7 @@ describe("resolveControlUiLinks", () => {
 
   it("uses tailnet IP for tailnet bind", () => {
     mocks.pickPrimaryTailnetIPv4.mockReturnValueOnce("100.64.0.9");
-    const links = resolveControlUiLinks({
+    const links = resolveGatewayUrls({
       port: 18789,
       bind: "tailnet",
     });
@@ -95,7 +95,7 @@ describe("resolveControlUiLinks", () => {
 
   it("keeps loopback for auto even when tailnet is present", () => {
     mocks.pickPrimaryTailnetIPv4.mockReturnValueOnce("100.64.0.9");
-    const links = resolveControlUiLinks({
+    const links = resolveGatewayUrls({
       port: 18789,
       bind: "auto",
     });

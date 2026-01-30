@@ -11,36 +11,20 @@ import type { ZeeConfig } from "./types.js";
  * - Config is managed externally (read-only from Nix perspective)
  */
 export function resolveIsNixMode(env: NodeJS.ProcessEnv = process.env): boolean {
-  return (
-    env.ZEE_NIX_MODE === "1" || env.MOLTBOT_NIX_MODE === "1" || env.CLAWDBOT_NIX_MODE === "1"
-  );
+  return env.ZEE_NIX_MODE === "1";
 }
 
 export const isNixMode = resolveIsNixMode();
 
 const DEFAULT_STATE_DIRNAME = ".zee";
-const LEGACY_STATE_DIRNAMES = [".moltbot", ".clawdbot"] as const;
 const CONFIG_FILENAME = "zee.json";
-const LEGACY_CONFIG_FILENAMES = ["moltbot.json", "clawdbot.json"] as const;
 
 function defaultStateDir(homedir: () => string = os.homedir): string {
   return path.join(homedir(), DEFAULT_STATE_DIRNAME);
 }
 
-function legacyStateDirs(homedir: () => string = os.homedir): string[] {
-  return LEGACY_STATE_DIRNAMES.map((name) => path.join(homedir(), name));
-}
-
 export function resolveLegacyStateDir(homedir: () => string = os.homedir): string {
-  const candidates = legacyStateDirs(homedir);
-  const existing = candidates.find((candidate) => {
-    try {
-      return fs.existsSync(candidate);
-    } catch {
-      return false;
-    }
-  });
-  return existing ?? candidates[0];
+  return defaultStateDir(homedir);
 }
 
 export function resolveNewStateDir(homedir: () => string = os.homedir): string {
@@ -49,30 +33,16 @@ export function resolveNewStateDir(homedir: () => string = os.homedir): string {
 
 /**
  * State directory for mutable data (sessions, logs, caches).
- * Can be overridden via ZEE_STATE_DIR (preferred) or legacy env vars.
- * Default: ~/.zee (preferred). If only legacy dirs exist, prefer them.
+ * Can be overridden via ZEE_STATE_DIR.
+ * Default: ~/.zee.
  */
 export function resolveStateDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const override =
-    env.ZEE_STATE_DIR?.trim() ||
-    env.MOLTBOT_STATE_DIR?.trim() ||
-    env.CLAWDBOT_STATE_DIR?.trim();
+  const override = env.ZEE_STATE_DIR?.trim();
   if (override) return resolveUserPath(override);
-  const newDir = defaultStateDir(homedir);
-  const legacyDirs = legacyStateDirs(homedir);
-  const hasNew = fs.existsSync(newDir);
-  if (hasNew) return newDir;
-  const legacy = legacyDirs.find((candidate) => {
-    try {
-      return fs.existsSync(candidate);
-    } catch {
-      return false;
-    }
-  });
-  return legacy ?? newDir;
+  return defaultStateDir(homedir);
 }
 
 function resolveUserPath(input: string): string {
@@ -89,24 +59,21 @@ export const STATE_DIR = resolveStateDir();
 
 /**
  * Config file path (JSON5).
- * Can be overridden via ZEE_CONFIG_PATH (preferred) or legacy env vars.
- * Default: ~/.zee/zee.json (or $*_STATE_DIR/zee.json)
+ * Can be overridden via ZEE_CONFIG_PATH.
+ * Default: ~/.zee/zee.json (or $ZEE_STATE_DIR/zee.json)
  */
 export function resolveCanonicalConfigPath(
   env: NodeJS.ProcessEnv = process.env,
   stateDir: string = resolveStateDir(env, os.homedir),
 ): string {
-  const override =
-    env.ZEE_CONFIG_PATH?.trim() ||
-    env.MOLTBOT_CONFIG_PATH?.trim() ||
-    env.CLAWDBOT_CONFIG_PATH?.trim();
+  const override = env.ZEE_CONFIG_PATH?.trim();
   if (override) return resolveUserPath(override);
   return path.join(stateDir, CONFIG_FILENAME);
 }
 
 /**
  * Resolve the active config path by preferring existing config candidates
- * (new/legacy filenames) before falling back to the canonical path.
+ * before falling back to the canonical path.
  */
 export function resolveConfigPathCandidate(
   env: NodeJS.ProcessEnv = process.env,
@@ -125,24 +92,17 @@ export function resolveConfigPathCandidate(
 }
 
 /**
- * Active config path (prefers existing legacy/new config files).
+ * Active config path (prefers existing config files).
  */
 export function resolveConfigPath(
   env: NodeJS.ProcessEnv = process.env,
   stateDir: string = resolveStateDir(env, os.homedir),
   homedir: () => string = os.homedir,
 ): string {
-  const override =
-    env.ZEE_CONFIG_PATH?.trim() ||
-    env.MOLTBOT_CONFIG_PATH?.trim() ||
-    env.CLAWDBOT_CONFIG_PATH?.trim();
+  const override = env.ZEE_CONFIG_PATH?.trim();
   if (override) return resolveUserPath(override);
-  const stateOverride =
-    env.ZEE_STATE_DIR?.trim() || env.MOLTBOT_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  const stateOverride = env.ZEE_STATE_DIR?.trim();
   const candidates = [path.join(stateDir, CONFIG_FILENAME)];
-  for (const legacyName of LEGACY_CONFIG_FILENAMES) {
-    candidates.push(path.join(stateDir, legacyName));
-  }
   const existing = candidates.find((candidate) => {
     try {
       return fs.existsSync(candidate);
@@ -162,56 +122,24 @@ export function resolveConfigPath(
 export const CONFIG_PATH = resolveConfigPathCandidate();
 
 /**
- * Resolve default config path candidates across new + legacy locations.
- * Order: explicit config path → state-dir-derived paths → new default → legacy default.
+ * Resolve default config path candidates across standard locations.
+ * Order: explicit config path → state-dir-derived paths → default location.
  */
 export function resolveDefaultConfigCandidates(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string[] {
-  const explicit =
-    env.ZEE_CONFIG_PATH?.trim() ||
-    env.MOLTBOT_CONFIG_PATH?.trim() ||
-    env.CLAWDBOT_CONFIG_PATH?.trim();
+  const explicit = env.ZEE_CONFIG_PATH?.trim();
   if (explicit) return [resolveUserPath(explicit)];
 
   const candidates: string[] = [];
-  const zeeStateDir = env.ZEE_STATE_DIR?.trim();
-  if (zeeStateDir) {
-    const resolved = resolveUserPath(zeeStateDir);
+  const stateOverride = env.ZEE_STATE_DIR?.trim();
+  if (stateOverride) {
+    const resolved = resolveUserPath(stateOverride);
     candidates.push(path.join(resolved, CONFIG_FILENAME));
-    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
-      candidates.push(path.join(resolved, legacyName));
-    }
   }
-  const moltbotStateDir = env.MOLTBOT_STATE_DIR?.trim();
-  if (moltbotStateDir) {
-    const resolved = resolveUserPath(moltbotStateDir);
-    candidates.push(path.join(resolved, CONFIG_FILENAME));
-    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
-      candidates.push(path.join(resolved, legacyName));
-    }
-  }
-  const legacyStateDirOverride = env.CLAWDBOT_STATE_DIR?.trim();
-  if (legacyStateDirOverride) {
-    const resolved = resolveUserPath(legacyStateDirOverride);
-    candidates.push(path.join(resolved, CONFIG_FILENAME));
-    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
-      candidates.push(path.join(resolved, legacyName));
-    }
-  }
-
   const newDir = defaultStateDir(homedir);
   candidates.push(path.join(newDir, CONFIG_FILENAME));
-  for (const legacyName of LEGACY_CONFIG_FILENAMES) {
-    candidates.push(path.join(newDir, legacyName));
-  }
-  for (const legacyDir of legacyStateDirs(homedir)) {
-    candidates.push(path.join(legacyDir, CONFIG_FILENAME));
-    for (const legacyName of LEGACY_CONFIG_FILENAMES) {
-      candidates.push(path.join(legacyDir, legacyName));
-    }
-  }
   return candidates;
 }
 
@@ -236,16 +164,13 @@ const OAUTH_FILENAME = "oauth.json";
  * Precedence:
  * - `ZEE_OAUTH_DIR` (explicit override)
  * - `$*_STATE_DIR/credentials` (canonical server/default)
- * - legacy state dirs for backwards compatibility
+ * - state dir credentials fallback
  */
 export function resolveOAuthDir(
   env: NodeJS.ProcessEnv = process.env,
   stateDir: string = resolveStateDir(env, os.homedir),
 ): string {
-  const override =
-    env.ZEE_OAUTH_DIR?.trim() ||
-    env.MOLTBOT_OAUTH_DIR?.trim() ||
-    env.CLAWDBOT_OAUTH_DIR?.trim();
+  const override = env.ZEE_OAUTH_DIR?.trim();
   if (override) return resolveUserPath(override);
   return path.join(stateDir, "credentials");
 }
@@ -261,10 +186,7 @@ export function resolveGatewayPort(
   cfg?: ZeeConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  const envRaw =
-    env.ZEE_GATEWAY_PORT?.trim() ||
-    env.MOLTBOT_GATEWAY_PORT?.trim() ||
-    env.CLAWDBOT_GATEWAY_PORT?.trim();
+  const envRaw = env.ZEE_GATEWAY_PORT?.trim();
   if (envRaw) {
     const parsed = Number.parseInt(envRaw, 10);
     if (Number.isFinite(parsed) && parsed > 0) return parsed;

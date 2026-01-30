@@ -103,11 +103,6 @@ function getErrorMessage(error: unknown): string {
     const obj = error as Record<string, unknown>;
     if (typeof obj.message === 'string') return obj.message;
     if (typeof obj.error === 'string') return obj.error;
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return String(error);
-    }
   }
   return String(error);
 }
@@ -266,24 +261,8 @@ export class DefaultRetryStrategy implements RetryStrategy {
   }
 
   async sleep(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (signal.aborted) {
-        reject(new DOMException('Aborted', 'AbortError'));
-        return;
-      }
-
-      const timeout = setTimeout(() => {
-        signal.removeEventListener('abort', onAbort);
-        resolve();
-      }, ms);
-
-      const onAbort = () => {
-        clearTimeout(timeout);
-        reject(new DOMException('Aborted', 'AbortError'));
-      };
-
-      signal.addEventListener('abort', onAbort, { once: true });
-    });
+    const { setTimeout: delay } = await import('node:timers/promises');
+    await delay(ms, undefined, { signal });
   }
 
   shouldRetry(error: unknown): boolean {

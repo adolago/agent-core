@@ -44,7 +44,7 @@ Common methods + events:
 | --- | --- | --- |
 | Core | `connect`, `health`, `status` | `connect` must be first |
 | Messaging | `send`, `poll`, `agent`, `agent.wait` | side-effects need `idempotencyKey` |
-| Chat | `chat.history`, `chat.send`, `chat.abort`, `chat.inject` | Control UI uses these |
+| Chat | `chat.history`, `chat.send`, `chat.abort`, `chat.inject` | CLI/TUI uses these |
 | Sessions | `sessions.list`, `sessions.patch`, `sessions.delete` | session admin |
 | Nodes | `node.list`, `node.invoke`, `node.pair.*` | Gateway WS + node actions |
 | Events | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push |
@@ -90,11 +90,11 @@ Connect (first message):
     "minProtocol": 2,
     "maxProtocol": 2,
     "client": {
-      "id": "zee-control-ui",
-      "displayName": "control-ui",
+      "id": "cli",
+      "displayName": "cli",
       "version": "1.0.0",
-      "platform": "desktop",
-      "mode": "ui",
+      "platform": "linux",
+      "mode": "cli",
       "instanceId": "A1B2"
     }
   }

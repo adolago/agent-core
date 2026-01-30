@@ -22,7 +22,7 @@ type PackageManifest = {
   version?: string;
   dependencies?: Record<string, string>;
   zee?: { extensions?: string[] };
-  moltbot?: { extensions?: string[] };
+  zee?: { extensions?: string[] };
   [LEGACY_MANIFEST_KEY]?: { extensions?: string[] };
 };
 
@@ -57,9 +57,9 @@ function safeFileName(input: string): string {
 
 async function ensureZeeExtensions(manifest: PackageManifest) {
   const extensions =
-    manifest.zee?.extensions ?? manifest.moltbot?.extensions ?? manifest[LEGACY_MANIFEST_KEY]?.extensions;
+    manifest.zee?.extensions ?? manifest.zee?.extensions ?? manifest[LEGACY_MANIFEST_KEY]?.extensions;
   if (!Array.isArray(extensions)) {
-    throw new Error("package.json missing zee.extensions (legacy: moltbot.extensions)");
+    throw new Error("package.json missing zee.extensions (legacy: zee.extensions)");
   }
   const list = extensions.map((e) => (typeof e === "string" ? e.trim() : "")).filter(Boolean);
   if (list.length === 0) {

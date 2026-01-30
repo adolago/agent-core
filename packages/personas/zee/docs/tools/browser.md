@@ -3,7 +3,7 @@ summary: "Integrated browser control service + action commands"
 read_when:
   - Adding agent-controlled browser automation
   - Debugging why zee is interfering with your own Chrome
-  - Implementing browser settings + lifecycle in the control UI
+  - Implementing browser settings + lifecycle in the CLI/TUI
 ---
 
 # Browser (zee-managed)

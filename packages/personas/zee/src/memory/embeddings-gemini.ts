@@ -14,8 +14,8 @@ const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1bet
 export const DEFAULT_GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
 const debugEmbeddings =
   isTruthyEnvValue(process.env.ZEE_DEBUG_MEMORY_EMBEDDINGS) ||
-  isTruthyEnvValue(process.env.MOLTBOT_DEBUG_MEMORY_EMBEDDINGS) ||
-  isTruthyEnvValue(process.env.CLAWDBOT_DEBUG_MEMORY_EMBEDDINGS);
+  isTruthyEnvValue(process.env.ZEE_DEBUG_MEMORY_EMBEDDINGS) ||
+  isTruthyEnvValue(process.env.ZEE_DEBUG_MEMORY_EMBEDDINGS);
 const log = createSubsystemLogger("memory/embeddings");
 
 const debugLog = (message: string, meta?: Record<string, unknown>) => {

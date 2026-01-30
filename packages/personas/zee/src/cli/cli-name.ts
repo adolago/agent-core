@@ -1,10 +1,10 @@
 import path from "node:path";
 
 export const DEFAULT_CLI_NAME = "zee";
-export const LEGACY_CLI_NAMES = ["moltbot", "clawdbot"] as const;
+export const LEGACY_CLI_NAMES = ["zee", "zee"] as const;
 
 const KNOWN_CLI_NAMES = new Set([DEFAULT_CLI_NAME, ...LEGACY_CLI_NAMES]);
-const CLI_PREFIX_RE = /^(?:((?:pnpm|npm|bunx|npx)\s+))?(zee|moltbot|clawdbot)\b/;
+const CLI_PREFIX_RE = /^(?:((?:pnpm|npm|bunx|npx)\s+))?(zee|zee|zee)\b/;
 
 export function resolveCliName(
   argv: string[] = process.argv,
@@ -12,8 +12,8 @@ export function resolveCliName(
 ): string {
   const override =
     env.ZEE_CLI_NAME?.trim() ||
-    env.MOLTBOT_CLI_NAME?.trim() ||
-    env.CLAWDBOT_CLI_NAME?.trim();
+    env.ZEE_CLI_NAME?.trim() ||
+    env.ZEE_CLI_NAME?.trim();
   if (override) return override;
   const argv1 = argv[1];
   if (!argv1) return DEFAULT_CLI_NAME;

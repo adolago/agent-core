@@ -21,7 +21,7 @@ export const startCommand = new Command()
   .option('--mcp-transport <transport:string>', 'MCP transport type (stdio, http)', {
     default: 'stdio',
   })
-  .option('-u, --ui', 'Launch interactive process management UI')
+  .option('-u, --ui', 'Launch interactive process management UI (terminal)')
   .option('-v, --verbose', 'Enable verbose logging')
   .option('--auto-start', 'Automatically start all processes')
   .option('--config <path:string>', 'Configuration file path')
@@ -100,61 +100,16 @@ export const startCommand = new Command()
         setupVerboseLogging(systemMonitor);
       }
 
-      // Launch UI mode
+      // Launch UI mode (terminal UI only)
       if (options.ui) {
-        // Check if web server is available
-        try {
-          const { ClaudeCodeWebServer } = await import('../../simple-commands/web-server.js');
+        const ui = new ProcessUI(processManager);
+        await ui.start();
 
-          // Start the web server
-          console.log(chalk.blue('Starting Web UI server...'));
-          const webServer = new ClaudeCodeWebServer(options.port);
-          await webServer.start();
-
-          // Open browser if possible
-          const openCommand = process.platform === 'win32' ? 'start' : 'xdg-open';
-
-          try {
-            const { exec } = await import('child_process');
-            exec(`${openCommand} http://localhost:${options.port}/console`);
-          } catch {
-            // Browser opening failed, that's okay
-          }
-
-          // Keep process running
-          console.log(
-            chalk.green('✨ Web UI is running at:'),
-            chalk.cyan(`http://localhost:${options.port}/console`),
-          );
-          console.log(chalk.gray('Press Ctrl+C to stop'));
-
-          // Handle shutdown
-          const shutdownWebUI = async () => {
-            console.log('\n' + chalk.yellow('Shutting down Web UI...'));
-            await webServer.stop();
-            systemMonitor.stop();
-            await processManager.stopAll();
-            console.log(chalk.green('✓ Shutdown complete'));
-            process.exit(0);
-          };
-
-          Deno.addSignalListener('SIGINT', shutdownWebUI);
-          Deno.addSignalListener('SIGTERM', shutdownWebUI);
-
-          // Keep process alive
-          await new Promise<void>(() => {});
-        } catch (webError) {
-          // Fall back to TUI if web server is not available
-          console.log(chalk.yellow('Web UI not available, falling back to Terminal UI'));
-          const ui = new ProcessUI(processManager);
-          await ui.start();
-
-          // Cleanup on exit
-          systemMonitor.stop();
-          await processManager.stopAll();
-          console.log(chalk.green.bold('✓'), 'Shutdown complete');
-          process.exit(0);
-        }
+        // Cleanup on exit
+        systemMonitor.stop();
+        await processManager.stopAll();
+        console.log(chalk.green.bold('✓'), 'Shutdown complete');
+        process.exit(0);
       }
       // Daemon mode
       else if (options.daemon) {

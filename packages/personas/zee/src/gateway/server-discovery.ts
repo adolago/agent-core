@@ -20,8 +20,7 @@ export function formatBonjourInstanceName(displayName: string) {
 
 export function resolveBonjourCliPath(opts: ResolveBonjourCliPathOptions = {}): string | undefined {
   const env = opts.env ?? process.env;
-  const envPath =
-    env.ZEE_CLI_PATH?.trim() || env.MOLTBOT_CLI_PATH?.trim() || env.CLAWDBOT_CLI_PATH?.trim();
+  const envPath = env.ZEE_CLI_PATH?.trim();
   if (envPath) return envPath;
 
   const statSync = opts.statSync ?? fs.statSync;
@@ -37,8 +36,6 @@ export function resolveBonjourCliPath(opts: ResolveBonjourCliPathOptions = {}): 
   const execDir = path.dirname(execPath);
   const siblingCli = path.join(execDir, "zee");
   if (isFile(siblingCli)) return siblingCli;
-  const siblingLegacyCli = path.join(execDir, "moltbot");
-  if (isFile(siblingLegacyCli)) return siblingLegacyCli;
 
   const argv = opts.argv ?? process.argv;
   const argvPath = argv[1];
@@ -51,8 +48,8 @@ export function resolveBonjourCliPath(opts: ResolveBonjourCliPathOptions = {}): 
   if (isFile(distCli)) return distCli;
   const binCli = path.join(cwd, "zee.mjs");
   if (isFile(binCli)) return binCli;
-  const legacyBinCli = path.join(cwd, "bin", "moltbot.js");
-  if (isFile(legacyBinCli)) return legacyBinCli;
+  const binScript = path.join(cwd, "bin", "zee.js");
+  if (isFile(binScript)) return binScript;
 
   return undefined;
 }
@@ -63,10 +60,7 @@ export async function resolveTailnetDnsHint(opts?: {
   enabled?: boolean;
 }): Promise<string | undefined> {
   const env = opts?.env ?? process.env;
-  const envRaw =
-    env.ZEE_TAILNET_DNS?.trim() ||
-    env.MOLTBOT_TAILNET_DNS?.trim() ||
-    env.CLAWDBOT_TAILNET_DNS?.trim();
+  const envRaw = env.ZEE_TAILNET_DNS?.trim();
   const envValue = envRaw && envRaw.length > 0 ? envRaw.replace(/\.$/, "") : "";
   if (envValue) return envValue;
   if (opts?.enabled === false) return undefined;

@@ -12,7 +12,7 @@ async function writeEnvFile(filePath: string, contents: string) {
 }
 
 describe("loadDotEnv", () => {
-  it("loads ~/.clawdbot/.env as fallback without overriding CWD .env", async () => {
+  it("loads ~/.zee/.env as fallback without overriding CWD .env", async () => {
     const prevEnv = { ...process.env };
     const prevCwd = process.cwd();
 
@@ -20,7 +20,7 @@ describe("loadDotEnv", () => {
     const cwdDir = path.join(base, "cwd");
     const stateDir = path.join(base, "state");
 
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
+    process.env.ZEE_STATE_DIR = stateDir;
 
     await writeEnvFile(path.join(stateDir, ".env"), "FOO=from-global\nBAR=1\n");
     await writeEnvFile(path.join(cwdDir, ".env"), "FOO=from-cwd\n");
@@ -52,7 +52,7 @@ describe("loadDotEnv", () => {
     const cwdDir = path.join(base, "cwd");
     const stateDir = path.join(base, "state");
 
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
+    process.env.ZEE_STATE_DIR = stateDir;
     process.env.FOO = "from-shell";
 
     await writeEnvFile(path.join(stateDir, ".env"), "FOO=from-global\n");

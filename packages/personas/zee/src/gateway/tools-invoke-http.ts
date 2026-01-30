@@ -119,14 +119,14 @@ export async function handleToolsInvokeHttpRequest(
   // Resolve message channel/account hints (optional headers) for policy inheritance.
   const messageChannel = normalizeMessageChannel(
     getHeader(req, "x-zee-message-channel") ??
-      getHeader(req, "x-moltbot-message-channel") ??
-      getHeader(req, "x-clawdbot-message-channel") ??
+      getHeader(req, "x-zee-message-channel") ??
+      getHeader(req, "x-zee-message-channel") ??
       "",
   );
   const accountId =
     getHeader(req, "x-zee-account-id")?.trim() ||
-    getHeader(req, "x-moltbot-account-id")?.trim() ||
-    getHeader(req, "x-clawdbot-account-id")?.trim() ||
+    getHeader(req, "x-zee-account-id")?.trim() ||
+    getHeader(req, "x-zee-account-id")?.trim() ||
     undefined;
 
   const {

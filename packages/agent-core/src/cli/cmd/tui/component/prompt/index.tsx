@@ -966,9 +966,11 @@ export function Prompt(props: PromptProps) {
       return store.prompt
     },
     focus() {
+      if (input.isDestroyed) return
       input.focus()
     },
     blur() {
+      if (input.isDestroyed) return
       input.blur()
     },
     set(prompt) {
@@ -993,8 +995,9 @@ export function Prompt(props: PromptProps) {
   }
 
   createEffect(() => {
-    if (props.visible !== false) input?.focus()
-    if (props.visible === false) input?.blur()
+    if (!input || input.isDestroyed) return
+    if (props.visible !== false) input.focus()
+    if (props.visible === false) input.blur()
   })
 
   function restoreExtmarksFromParts(parts: PromptInfo["parts"]) {
@@ -1431,6 +1434,59 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
+        {/* Amp-style top status bar above input */}
+        <box
+          flexDirection="row"
+          justifyContent="space-between"
+          height={1}
+          paddingLeft={1}
+          paddingRight={1}
+        >
+          {/* Left: context usage, cost */}
+          <box flexDirection="row" gap={1}>
+            {(() => {
+              const usage = contextUsage()
+              const formatLimit = (n: number) => {
+                if (n >= 1000000) return `${(n / 1000000).toFixed(0)}M`
+                if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
+                return n.toString()
+              }
+              const color = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
+              return (
+                <Show when={usage}>
+                  <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
+                  <text fg={theme.textMuted}> · </text>
+                  <text fg={theme.textMuted}>$0.00 (free)</text>
+                </Show>
+              )
+            })()}
+          </box>
+          {/* Right: agent mode, knowledge count, repo info */}
+          <box flexDirection="row" gap={1}>
+            <text fg={theme.accent}>{Locale.titlecase(local.agent.current().name)}</text>
+            <Show when={local.agent.current().knowledge?.length}>
+              <text fg={theme.textMuted}>{local.agent.current().knowledge?.length} knowledge</text>
+            </Show>
+          </box>
+        </box>
+        {/* Horizontal separator line */}
+        <box height={1} flexDirection="row">
+          <text fg={theme.border}>{"─".repeat(200)}</text>
+        </box>
+        {/* Repo/branch info line */}
+        <box
+          flexDirection="row"
+          justifyContent="flex-end"
+          height={1}
+          paddingRight={1}
+        >
+          <Show when={sync.data.vcs?.branch || sync.data.path?.directory}>
+            <text fg={theme.textMuted}>
+              {sync.data.path?.directory ? `~${sync.data.path.directory.replace(process.env.HOME ?? "", "")}` : ""}
+              {sync.data.vcs?.branch ? ` (${sync.data.vcs.branch})` : ""}
+            </text>
+          </Show>
+        </box>
         <box
           border={["left"]}
           borderColor={highlight()}

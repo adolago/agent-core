@@ -227,9 +227,9 @@ Some plugin categories are **exclusive** (only one active at a time). Use
 If multiple plugins declare `kind: "memory"`, only the selected one loads. Others
 are disabled with diagnostics.
 
-## Control UI (schema + labels)
+## CLI/TUI (schema + labels)
 
-The Control UI uses `config.schema` (JSON Schema + `uiHints`) to render better forms.
+The CLI/TUI uses `config.schema` (JSON Schema + `uiHints`) to render better forms.
 
 Zee augments `uiHints` at runtime based on discovered plugins:
 

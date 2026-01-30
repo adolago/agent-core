@@ -40,10 +40,10 @@ export type Hook = {
     | "zee-managed"
     | "zee-workspace"
     | "zee-plugin"
-    | "moltbot-bundled"
-    | "moltbot-managed"
-    | "moltbot-workspace"
-    | "moltbot-plugin";
+    | "zee-bundled"
+    | "zee-managed"
+    | "zee-workspace"
+    | "zee-plugin";
   pluginId?: string;
   filePath: string; // Path to HOOK.md
   baseDir: string; // Directory containing hook

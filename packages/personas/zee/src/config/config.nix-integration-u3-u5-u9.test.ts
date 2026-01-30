@@ -7,10 +7,10 @@ describe("Nix integration (U3, U5, U9)", () => {
   describe("U3: isNixMode env var detection", () => {
     it("isNixMode is false when ZEE_NIX_MODE is not set", async () => {
       await withEnvOverride(
-        { ZEE_NIX_MODE: undefined, MOLTBOT_NIX_MODE: undefined, CLAWDBOT_NIX_MODE: undefined },
+        { ZEE_NIX_MODE: undefined },
         async () => {
-        const { isNixMode } = await import("./config.js");
-        expect(isNixMode).toBe(false);
+          const { isNixMode } = await import("./config.js");
+          expect(isNixMode).toBe(false);
         },
       );
     });
@@ -40,7 +40,7 @@ describe("Nix integration (U3, U5, U9)", () => {
   describe("U5: CONFIG_PATH and STATE_DIR env var overrides", () => {
     it("STATE_DIR defaults to ~/.zee when env not set", async () => {
       await withEnvOverride(
-        { ZEE_STATE_DIR: undefined, MOLTBOT_STATE_DIR: undefined, CLAWDBOT_STATE_DIR: undefined },
+        { ZEE_STATE_DIR: undefined },
         async () => {
           const { STATE_DIR } = await import("./config.js");
           expect(STATE_DIR).toMatch(/\.zee$/);
@@ -58,25 +58,11 @@ describe("Nix integration (U3, U5, U9)", () => {
       );
     });
 
-    it("STATE_DIR prefers ZEE_STATE_DIR over legacy override", async () => {
-      await withEnvOverride(
-        { ZEE_STATE_DIR: "/custom/new", CLAWDBOT_STATE_DIR: "/custom/legacy" },
-        async () => {
-          const { STATE_DIR } = await import("./config.js");
-          expect(STATE_DIR).toBe(path.resolve("/custom/new"));
-        },
-      );
-    });
-
     it("CONFIG_PATH defaults to ~/.zee/zee.json when env not set", async () => {
       await withEnvOverride(
         {
           ZEE_CONFIG_PATH: undefined,
           ZEE_STATE_DIR: undefined,
-          MOLTBOT_CONFIG_PATH: undefined,
-          MOLTBOT_STATE_DIR: undefined,
-          CLAWDBOT_CONFIG_PATH: undefined,
-          CLAWDBOT_STATE_DIR: undefined,
         },
         async () => {
           const { CONFIG_PATH } = await import("./config.js");
@@ -91,19 +77,6 @@ describe("Nix integration (U3, U5, U9)", () => {
         async () => {
           const { CONFIG_PATH } = await import("./config.js");
           expect(CONFIG_PATH).toBe(path.resolve("/nix/store/abc/zee.json"));
-        },
-      );
-    });
-
-    it("CONFIG_PATH prefers ZEE_CONFIG_PATH over legacy override", async () => {
-      await withEnvOverride(
-        {
-          ZEE_CONFIG_PATH: "/nix/store/new/zee.json",
-          CLAWDBOT_CONFIG_PATH: "/nix/store/legacy/moltbot.json",
-        },
-        async () => {
-          const { CONFIG_PATH } = await import("./config.js");
-          expect(CONFIG_PATH).toBe(path.resolve("/nix/store/new/zee.json"));
         },
       );
     });
@@ -125,10 +98,10 @@ describe("Nix integration (U3, U5, U9)", () => {
         {
           ZEE_CONFIG_PATH: undefined,
           ZEE_STATE_DIR: "/custom/state",
-          MOLTBOT_CONFIG_PATH: undefined,
-          MOLTBOT_STATE_DIR: undefined,
-          CLAWDBOT_CONFIG_PATH: undefined,
-          CLAWDBOT_STATE_DIR: undefined,
+          ZEE_CONFIG_PATH: undefined,
+          ZEE_STATE_DIR: undefined,
+          ZEE_CONFIG_PATH: undefined,
+          ZEE_STATE_DIR: undefined,
         },
         async () => {
           const { CONFIG_PATH } = await import("./config.js");
