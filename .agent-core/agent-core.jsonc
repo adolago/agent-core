@@ -72,16 +72,19 @@
   "agent": {
     "zee": {
       "description": "Personal assistant for life admin, memory, messaging, and calendar",
+      "model": "zai-coding-plan/glm-4.7",
       "mode": "primary",
       "color": "#5c9cf5"
     },
     "stanley": {
       "description": "Investing and financial research assistant",
+      "model": "xai/grok-4-1-fast",
       "mode": "primary",
       "color": "#f5a742"
     },
     "johny": {
       "description": "Study assistant for learning and knowledge graphs",
+      "model": "anthropic/claude-opus-4.5",
       "mode": "primary",
       "color": "#7fd88c"
     },

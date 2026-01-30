@@ -642,9 +642,13 @@ export namespace LSPServer {
         else if (arch === "x64") zlsArch = "x86_64"
         else if (arch === "ia32") zlsArch = "x86"
 
-        let zlsPlatform: string = platform
-        if (platform === "darwin") zlsPlatform = "macos"
-        else if (platform === "win32") zlsPlatform = "windows"
+        let zlsPlatform: string
+        if (platform === "win32") zlsPlatform = "windows"
+        else if (platform === "linux") zlsPlatform = "linux"
+        else {
+          log.error(`Platform ${platform} is not supported by zls`)
+          return
+        }
 
         const ext = platform === "win32" ? "zip" : "tar.xz"
 
@@ -652,10 +656,8 @@ export namespace LSPServer {
 
         const supportedCombos = [
           "zls-x86_64-linux.tar.xz",
-          "zls-x86_64-macos.tar.xz",
           "zls-x86_64-windows.zip",
           "zls-aarch64-linux.tar.xz",
-          "zls-aarch64-macos.tar.xz",
           "zls-aarch64-windows.zip",
           "zls-x86-linux.tar.xz",
           "zls-x86-windows.zip",
@@ -796,40 +798,6 @@ export namespace LSPServer {
     },
   }
 
-  export const SourceKit: Info = {
-    id: "sourcekit-lsp",
-    extensions: [".swift", ".objc", "objcpp"],
-    root: NearestRoot(["Package.swift", "*.xcodeproj", "*.xcworkspace"]),
-    async spawn(root) {
-      // Check if sourcekit-lsp is available in the PATH
-      // This is installed with the Swift toolchain
-      const sourcekit = Bun.which("sourcekit-lsp")
-      if (sourcekit) {
-        return {
-          process: spawn(sourcekit, {
-            cwd: root,
-          }),
-        }
-      }
-
-      // If sourcekit-lsp not found, check if xcrun is available
-      // This is specific to macOS where sourcekit-lsp is typically installed with Xcode
-      if (!Bun.which("xcrun")) return
-
-      const lspLoc = await $`xcrun --find sourcekit-lsp`.quiet().nothrow()
-
-      if (lspLoc.exitCode !== 0) return
-
-      const bin = lspLoc.text().trim()
-
-      return {
-        process: spawn(bin, {
-          cwd: root,
-        }),
-      }
-    },
-  }
-
   export const RustAnalyzer: Info = {
     id: "rust",
     root: async (root) => {
@@ -935,7 +903,6 @@ export namespace LSPServer {
       }
       const platform = process.platform
       const tokens: Record<string, string> = {
-        darwin: "mac",
         linux: "linux",
         win32: "windows",
       }
@@ -1172,8 +1139,6 @@ export namespace LSPServer {
         distPath,
         (() => {
           switch (process.platform) {
-            case "darwin":
-              return "config_mac"
             case "linux":
               return "config_linux"
             case "win32":
@@ -1255,12 +1220,15 @@ export namespace LSPServer {
         if (arch === "arm64") kotlinArch = "aarch64"
         else if (arch === "x64") kotlinArch = "x64"
 
-        let kotlinPlatform: string = platform
-        if (platform === "darwin") kotlinPlatform = "mac"
-        else if (platform === "linux") kotlinPlatform = "linux"
+        let kotlinPlatform: string
+        if (platform === "linux") kotlinPlatform = "linux"
         else if (platform === "win32") kotlinPlatform = "win"
+        else {
+          log.error(`Platform ${platform} is not supported by Kotlin LSP`)
+          return
+        }
 
-        const supportedCombos = ["mac-x64", "mac-aarch64", "linux-x64", "linux-aarch64", "win-x64", "win-aarch64"]
+        const supportedCombos = ["linux-x64", "linux-aarch64", "win-x64", "win-aarch64"]
 
         const combo = `${kotlinPlatform}-${kotlinArch}`
 
@@ -1384,18 +1352,19 @@ export namespace LSPServer {
         else if (arch === "x64") lualsArch = "x64"
         else if (arch === "ia32") lualsArch = "ia32"
 
-        let lualsPlatform: string = platform
-        if (platform === "darwin") lualsPlatform = "darwin"
-        else if (platform === "linux") lualsPlatform = "linux"
+        let lualsPlatform: string
+        if (platform === "linux") lualsPlatform = "linux"
         else if (platform === "win32") lualsPlatform = "win32"
+        else {
+          log.error(`Platform ${platform} is not supported by lua-language-server`)
+          return
+        }
 
         const ext = platform === "win32" ? "zip" : "tar.gz"
 
         assetName = `lua-language-server-${release.tag_name}-${lualsPlatform}-${lualsArch}.${ext}`
 
         const supportedCombos = [
-          "darwin-arm64.tar.gz",
-          "darwin-x64.tar.gz",
           "linux-x64.tar.gz",
           "linux-arm64.tar.gz",
           "win32-x64.zip",
@@ -1741,7 +1710,11 @@ export namespace LSPServer {
         const arch = process.arch
 
         const texArch = arch === "arm64" ? "aarch64" : "x86_64"
-        const texPlatform = platform === "darwin" ? "macos" : platform === "win32" ? "windows" : "linux"
+        if (platform !== "linux" && platform !== "win32") {
+          log.error(`Platform ${platform} is not supported by texlab`)
+          return
+        }
+        const texPlatform = platform === "win32" ? "windows" : "linux"
         const ext = platform === "win32" ? "zip" : "tar.gz"
         const assetName = `texlab-${texArch}-${texPlatform}.${ext}`
 
@@ -1936,15 +1909,15 @@ export namespace LSPServer {
         let tinymistPlatform: string
         let ext: string
 
-        if (platform === "darwin") {
-          tinymistPlatform = "apple-darwin"
-          ext = "tar.gz"
-        } else if (platform === "win32") {
+        if (platform === "win32") {
           tinymistPlatform = "pc-windows-msvc"
           ext = "zip"
-        } else {
+        } else if (platform === "linux") {
           tinymistPlatform = "unknown-linux-gnu"
           ext = "tar.gz"
+        } else {
+          log.error(`Platform ${platform} is not supported by tinymist`)
+          return
         }
 
         const assetName = `tinymist-${tinymistArch}-${tinymistPlatform}.${ext}`

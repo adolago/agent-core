@@ -23,9 +23,9 @@ import { SplitBorder } from "@tui/component/border"
 import { useTheme } from "@tui/context/theme"
 import {
   BoxRenderable,
+  LinearScrollAccel,
   ScrollBoxRenderable,
   addDefaultParsers,
-  MacOSScrollAccel,
   type ScrollAcceleration,
   TextAttributes,
   RGBA,
@@ -214,7 +214,7 @@ export function Session() {
   const scrollAcceleration = createMemo(() => {
     const tui = sync.data.config.tui
     if (tui?.scroll_acceleration?.enabled) {
-      return new MacOSScrollAccel()
+      return new LinearScrollAccel()
     }
     if (tui?.scroll_speed) {
       return new CustomSpeedScroll(tui.scroll_speed)
