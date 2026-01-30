@@ -50,6 +50,7 @@ import { RESTART_SENTINEL_TOOLS } from "./restart-sentinel.js";
 import { CRON_TOOLS } from "./cron.js";
 import { PTY_SESSION_TOOLS } from "./pty-sessions.js";
 import { ZEE_BROWSER_TOOLS } from "./browser.js";
+import { ZEE_STANDALONE_BROWSER_TOOLS } from "./browser-standalone.js";
 import { WHATSAPP_TOOLS } from "./whatsapp.js";
 
 // =============================================================================
@@ -1219,6 +1220,7 @@ export const ZEE_TOOLS = [
   ...CRON_TOOLS,
   ...PTY_SESSION_TOOLS,
   ...ZEE_BROWSER_TOOLS,
+  ...ZEE_STANDALONE_BROWSER_TOOLS,
   ...WHATSAPP_TOOLS,
 ];
 

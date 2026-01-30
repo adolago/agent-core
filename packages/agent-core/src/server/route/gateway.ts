@@ -47,7 +47,7 @@ type GatewayResponseFrame = {
   }
 }
 
-const PROTOCOL_VERSION = 2
+const PROTOCOL_VERSION = 3
 const DEFAULT_GATEWAY_PORT = 18789
 const DEFAULT_GATEWAY_SEND_TIMEOUT_MS = 20_000
 
@@ -112,16 +112,17 @@ async function callGateway<T = unknown>(
 
   const token = process.env.ZEE_GATEWAY_TOKEN?.trim() || undefined
   const password = process.env.ZEE_GATEWAY_PASSWORD?.trim() || undefined
-  const auth = token || password ? { token, password } : undefined
+  const auth = token || password ? { ...(token ? { token } : {}), ...(password ? { password } : {}) } : undefined
 
   const connectParams = {
     minProtocol: PROTOCOL_VERSION,
     maxProtocol: PROTOCOL_VERSION,
     client: {
-      name: "agent-core",
+      id: "cli",
+      displayName: "agent-core",
       version: process.env.AGENT_CORE_VERSION?.trim() || "dev",
       platform: process.platform,
-      mode: "daemon",
+      mode: "backend",
     },
     caps: [],
     ...(auth ? { auth } : {}),
@@ -161,6 +162,7 @@ async function callGateway<T = unknown>(
     }
 
     ws.addEventListener("open", () => {
+      log.debug("Gateway connect params", { connectParams: JSON.stringify(connectParams) })
       const frame: GatewayRequestFrame = {
         type: "req",
         id: connectId,

@@ -215,6 +215,7 @@ export function Prompt(props: PromptProps) {
     }
     return { files: diffs.length, additions, deletions, modified }
   })
+  const gitBranch = createMemo(() => sync.data.vcs?.branch)
   const history = usePromptHistory()
   const stash = usePromptStash()
   const command = useCommandDialog()
@@ -1424,6 +1425,18 @@ export function Prompt(props: PromptProps) {
     if (!frame) return ["..."]
     return [frame]
   })
+  const chip = (content: JSX.Element) => (
+    <box
+      flexDirection="row"
+      alignItems="center"
+      gap={1}
+      paddingLeft={1}
+      paddingRight={1}
+      backgroundColor={theme.backgroundElement}
+    >
+      {content}
+    </box>
+  )
 
   return (
     <>
@@ -1830,8 +1843,8 @@ export function Prompt(props: PromptProps) {
             ...EmptyBorder,
             vertical: "┃",
           }}
-          paddingLeft={1}
-          paddingRight={1}
+          paddingLeft={2}
+          paddingRight={2}
         >
           {/* Left side: persona + spinner + vim + mode + stats + abort hint */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
@@ -2092,13 +2105,44 @@ export function Prompt(props: PromptProps) {
                   return (
                     <>
                       <Show when={usage}>
-                        <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
-                        <text fg={theme.textMuted}> · </text>
+                        {chip(<text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>)}
                       </Show>
-                      <text fg={theme.textMuted}>{parsed.provider}</text>
-                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{parsed.model}</text>
-                      <Show when={variant}>
-                        <text fg={theme.primary} attributes={TextAttributes.BOLD}>{variant}</text>
+                      {chip(
+                        <>
+                          <text fg={theme.textMuted}>{parsed.provider}</text>
+                          <text fg={theme.textMuted}>·</text>
+                          <text fg={theme.primary} attributes={TextAttributes.BOLD}>{parsed.model}</text>
+                          <Show when={variant}>
+                            <text fg={theme.textMuted}>·</text>
+                            <text fg={theme.primary} attributes={TextAttributes.BOLD}>{variant}</text>
+                          </Show>
+                        </>
+                      )}
+                      <Show when={gitBranch() || diffStats()}>
+                        {chip(
+                          <>
+                            <Show when={gitBranch()}>
+                              <text fg={theme.success}>{gitBranch()}</text>
+                            </Show>
+                            <Show when={gitBranch() && diffStats()}>
+                              <text fg={theme.textMuted}>·</text>
+                            </Show>
+                            <Show when={diffStats()}>
+                              {(stats) => (
+                                <>
+                                  <text fg={theme.textMuted}>{stats().files}</text>
+                                  <text fg={theme.textMuted}>•</text>
+                                  <Show when={stats().additions > 0}>
+                                    <text fg={theme.success}>+{stats().additions}</text>
+                                  </Show>
+                                  <Show when={stats().deletions > 0}>
+                                    <text fg={theme.error}>-{stats().deletions}</text>
+                                  </Show>
+                                </>
+                              )}
+                            </Show>
+                          </>
+                        )}
                       </Show>
                     </>
                   )

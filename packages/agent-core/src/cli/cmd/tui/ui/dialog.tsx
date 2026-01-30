@@ -26,6 +26,7 @@ export function Dialog(
       height={dimensions().height}
       alignItems="center"
       position="absolute"
+      zIndex={2000}
       paddingTop={dimensions().height / 4}
       left={0}
       top={0}

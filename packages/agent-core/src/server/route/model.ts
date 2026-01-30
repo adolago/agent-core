@@ -7,6 +7,7 @@ import { ModelsDev } from "../../provider/models"
 import { Config } from "../../config/config"
 import { ProviderAuth } from "../../provider/auth"
 import { Auth } from "../../auth"
+import { Env } from "../../env"
 import { Log } from "../../util/log"
 import { errors } from "../error"
 
@@ -129,10 +130,28 @@ export const ModelRoute = new Hono()
         mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),
         connected,
       )
+      const auth = await Auth.all()
+      const env = Env.all()
+      const configProviders = config.provider ?? {}
+      const connectedIds = Object.values(providers)
+        .filter((provider) => {
+          if (auth[provider.id]) return true
+          const envKeys = provider.env ?? []
+          if (envKeys.some((key) => env[key])) return true
+          const cfg = (configProviders as Record<string, { options?: Record<string, unknown>; api?: string }>)[
+            provider.id
+          ]
+          const cfgApiKey = cfg?.options?.apiKey
+          if (typeof cfgApiKey === "string" && cfgApiKey.trim()) return true
+          const baseURL = cfg?.options?.baseURL ?? cfg?.api ?? provider.options?.baseURL
+          if (envKeys.length === 0 && typeof baseURL === "string" && baseURL.trim()) return true
+          return false
+        })
+        .map((provider) => provider.id)
       return c.json({
         all: Object.values(providers),
         default: resolveDefaultModels(providers),
-        connected: Object.keys(connected),
+        connected: connectedIds,
       })
     },
   )

@@ -353,6 +353,7 @@ function createCarouselFrames(options: KnightRiderOptions): string[] {
   const width = options.width ?? 10
   const style = options.style ?? "blocks"
   const activeCount = options.carouselActiveCount ?? 4
+  const transparentInactive = options.inactiveFactor === 0
 
   const colors =
     options.colors ??
@@ -375,12 +376,12 @@ function createCarouselFrames(options: KnightRiderOptions): string[] {
         if (index >= 0 && index < colors.length) {
           return shapes[Math.min(index, shapes.length - 1)]
         }
-        return "·"
+        return transparentInactive ? " " : "·"
       }
 
       // Default to blocks
       const isActive = index >= 0 && index < colors.length
-      return isActive ? "■" : "⬝"
+      return isActive ? "■" : transparentInactive ? " " : "⬝"
     }).join("")
   })
 
@@ -400,6 +401,7 @@ export function createFrames(options: KnightRiderOptions = {}): string[] {
 
   const width = options.width ?? 8
   const style = options.style ?? "diamonds"
+  const transparentInactive = options.inactiveFactor === 0
   const holdStart = options.holdStart ?? 30
   const holdEnd = options.holdEnd ?? 9
 
@@ -443,13 +445,13 @@ export function createFrames(options: KnightRiderOptions = {}): string[] {
         if (index >= 0 && index < trailOptions.colors.length) {
           return shapes[Math.min(index, shapes.length - 1)]
         }
-        return "·"
+        return transparentInactive ? " " : "·"
       }
 
       // Default to blocks
       // It's active if we have a valid color index that is within our colors array
       const isActive = index >= 0 && index < trailOptions.colors.length
-      return isActive ? "■" : "⬝"
+      return isActive ? "■" : transparentInactive ? " " : "⬝"
     }).join("")
   })
 

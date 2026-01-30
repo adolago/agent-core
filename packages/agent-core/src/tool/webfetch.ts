@@ -2,6 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
+import { wrapExternalContent } from "../security/external-content"
 
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024 // 5MB
 const DEFAULT_TIMEOUT = 30 * 1000 // 30 seconds
@@ -93,6 +94,7 @@ export const WebFetchTool = Tool.define("webfetch", {
     const contentType = response.headers.get("content-type") || ""
 
     const title = `${params.url} (${contentType})`
+    const wrap = (text: string) => wrapExternalContent(text, { source: "web" })
 
     // Handle content based on requested format and actual content type
     switch (params.format) {
@@ -100,13 +102,13 @@ export const WebFetchTool = Tool.define("webfetch", {
         if (contentType.includes("text/html")) {
           const markdown = convertHTMLToMarkdown(content)
           return {
-            output: markdown,
+            output: wrap(markdown),
             title,
             metadata: {},
           }
         }
         return {
-          output: content,
+          output: wrap(content),
           title,
           metadata: {},
         }
@@ -115,13 +117,13 @@ export const WebFetchTool = Tool.define("webfetch", {
         if (contentType.includes("text/html")) {
           const text = await extractTextFromHTML(content)
           return {
-            output: text,
+            output: wrap(text),
             title,
             metadata: {},
           }
         }
         return {
-          output: content,
+          output: wrap(content),
           title,
           metadata: {},
         }

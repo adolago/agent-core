@@ -1164,6 +1164,11 @@ export function Session() {
                 </For>
               </scrollbox>
             </Show>
+            <Show when={messages().length > 0}>
+              <box height={1} flexDirection="row">
+                <text fg={theme.border}>{"─".repeat(500)}</text>
+              </box>
+            </Show>
             <box flexShrink={0}>
               <Show when={permissions().length > 0}>
                 <PermissionPrompt request={permissions()[0]} />
@@ -1204,6 +1209,7 @@ export function Session() {
                 right={0}
                 bottom={0}
                 alignItems="flex-end"
+                zIndex={500}
                 backgroundColor={RGBA.fromInts(0, 0, 0, 70)}
               >
                 <Sidebar sessionID={route.sessionID} />
@@ -1386,7 +1392,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
                     : local.agent.color(props.message.agent),
                 }}
               >●</span>
-              <span style={{ fg: theme.textMuted }}> {props.message.modelID}</span>
+              <span style={{ fg: theme.primary }}> {props.message.modelID}</span>
               <Show when={props.message.mode}>
                 <span style={{ fg: theme.textMuted }}> {props.message.mode}</span>
               </Show>

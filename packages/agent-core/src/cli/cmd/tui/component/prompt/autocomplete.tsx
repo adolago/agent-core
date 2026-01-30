@@ -610,7 +610,7 @@ export function Autocomplete(props: {
       top={position().y - height()}
       left={position().x}
       width={position().width}
-      zIndex={100}
+      zIndex={1400}
       {...SplitBorder}
       borderColor={theme.border}
     >

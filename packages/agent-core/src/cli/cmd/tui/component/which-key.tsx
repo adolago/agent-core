@@ -119,6 +119,7 @@ export function WhichKey() {
         width={dimensions().width}
         justifyContent="center"
         alignItems="center"
+        zIndex={1500}
       >
         <box
           backgroundColor={theme.backgroundPanel}
