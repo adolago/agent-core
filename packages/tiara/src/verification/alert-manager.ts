@@ -69,7 +69,7 @@ export interface AlertSuppression {
 export interface AlertChannel {
   id: string;
   name: string;
-  type: 'email' | 'slack' | 'webhook' | 'sms' | 'teams' | 'discord' | 'pagerduty';
+  type: 'email' | 'webhook' | 'sms' | 'teams' | 'pagerduty';
   config: Record<string, any>;
   enabled: boolean;
   filters: AlertFilter[];
@@ -491,20 +491,12 @@ export class TruthAlertManager {
           await this.sendEmailNotification(alert, channel);
           break;
         
-        case 'slack':
-          await this.sendSlackNotification(alert, channel);
-          break;
-        
         case 'webhook':
           await this.sendWebhookNotification(alert, channel);
           break;
         
         case 'teams':
           await this.sendTeamsNotification(alert, channel);
-          break;
-        
-        case 'discord':
-          await this.sendDiscordNotification(alert, channel);
           break;
         
         case 'pagerduty':
@@ -1141,11 +1133,6 @@ export class TruthAlertManager {
     this.logger.info('Email notification sent', { alertId: alert.id, to: channel.config.to });
   }
   
-  private async sendSlackNotification(alert: TruthAlert, channel: AlertChannel): Promise<void> {
-    // Implementation would send to Slack webhook
-    this.logger.info('Slack notification sent', { alertId: alert.id, webhook: channel.config.webhook });
-  }
-  
   private async sendWebhookNotification(alert: TruthAlert, channel: AlertChannel): Promise<void> {
     // Implementation would POST to webhook URL
     this.logger.info('Webhook notification sent', { alertId: alert.id, url: channel.config.url });
@@ -1154,11 +1141,6 @@ export class TruthAlertManager {
   private async sendTeamsNotification(alert: TruthAlert, channel: AlertChannel): Promise<void> {
     // Implementation would send to Teams webhook
     this.logger.info('Teams notification sent', { alertId: alert.id, webhook: channel.config.webhook });
-  }
-  
-  private async sendDiscordNotification(alert: TruthAlert, channel: AlertChannel): Promise<void> {
-    // Implementation would send to Discord webhook
-    this.logger.info('Discord notification sent', { alertId: alert.id, webhook: channel.config.webhook });
   }
   
   private async sendPagerDutyNotification(alert: TruthAlert, channel: AlertChannel): Promise<void> {
@@ -1243,18 +1225,6 @@ export class TruthAlertManager {
         filters: [],
         rateLimits: [
           { window: 300000, maxAlerts: 10, currentCount: 0 }, // 10 alerts per 5 minutes
-        ],
-      },
-      {
-        name: 'Critical Alerts',
-        type: 'slack',
-        config: { webhook: 'https://hooks.slack.com/services/...' },
-        enabled: false, // Disabled until configured
-        filters: [
-          { field: 'severity', operator: 'eq', values: ['critical', 'emergency'], action: 'include' },
-        ],
-        rateLimits: [
-          { window: 60000, maxAlerts: 5, currentCount: 0 }, // 5 alerts per minute
         ],
       },
     ];

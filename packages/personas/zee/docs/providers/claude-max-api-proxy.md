@@ -93,38 +93,9 @@ You can point Zee at the proxy as a custom OpenAI-compatible endpoint:
 | `claude-sonnet-4` | Claude Sonnet 4 |
 | `claude-haiku-4` | Claude Haiku 4 |
 
-## Auto-Start on macOS
+## Auto-Start
 
-Create a LaunchAgent to run the proxy automatically:
-
-```bash
-cat > ~/Library/LaunchAgents/com.claude-max-api.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.claude-max-api</string>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/usr/local/bin/node</string>
-    <string>/usr/local/lib/node_modules/claude-max-api-proxy/dist/server/standalone.js</string>
-  </array>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PATH</key>
-    <string>/usr/local/bin:/opt/homebrew/bin:~/.local/bin:/usr/bin:/bin</string>
-  </dict>
-</dict>
-</plist>
-EOF
-
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.claude-max-api.plist
-```
+Use your system service manager to keep the proxy running on boot.
 
 ## Links
 

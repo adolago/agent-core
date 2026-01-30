@@ -130,6 +130,11 @@ const FIELD_LABELS: Record<string, string> = {
   "gateway.remote.token": "Remote Gateway Token",
   "gateway.remote.password": "Remote Gateway Password",
   "gateway.remote.tlsFingerprint": "Remote Gateway TLS Fingerprint",
+  "gateway.daemonBridge.enabled": "Daemon Bridge Enabled",
+  "gateway.daemonBridge.url": "Daemon Bridge URL",
+  "gateway.daemonBridge.sessionStore": "Daemon Bridge Session Store",
+  "gateway.daemonBridge.timeoutMs": "Daemon Bridge Timeout (ms)",
+  "gateway.daemonBridge.createSession": "Daemon Bridge Auto-Create Sessions",
   "gateway.auth.token": "Gateway Token",
   "gateway.auth.password": "Gateway Password",
   "tools.media.image.enabled": "Enable Image Understanding",
@@ -294,11 +299,6 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.whatsapp": "WhatsApp",
   "channels.telegram": "Telegram",
   "channels.telegram.customCommands": "Telegram Custom Commands",
-  "channels.discord": "Discord",
-  "channels.slack": "Slack",
-  "channels.mattermost": "Mattermost",
-  "channels.signal": "Signal",
-  "channels.msteams": "MS Teams",
   "channels.telegram.botToken": "Telegram Bot Token",
   "channels.telegram.dmPolicy": "Telegram DM Policy",
   "channels.telegram.streamMode": "Telegram Draft Stream Mode",
@@ -315,30 +315,6 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.whatsapp.dmPolicy": "WhatsApp DM Policy",
   "channels.whatsapp.selfChatMode": "WhatsApp Self-Phone Mode",
   "channels.whatsapp.debounceMs": "WhatsApp Message Debounce (ms)",
-  "channels.signal.dmPolicy": "Signal DM Policy",
-  "channels.discord.dm.policy": "Discord DM Policy",
-  "channels.discord.retry.attempts": "Discord Retry Attempts",
-  "channels.discord.retry.minDelayMs": "Discord Retry Min Delay (ms)",
-  "channels.discord.retry.maxDelayMs": "Discord Retry Max Delay (ms)",
-  "channels.discord.retry.jitter": "Discord Retry Jitter",
-  "channels.discord.maxLinesPerMessage": "Discord Max Lines Per Message",
-  "channels.discord.intents.presence": "Discord Presence Intent",
-  "channels.discord.intents.guildMembers": "Discord Guild Members Intent",
-  "channels.slack.dm.policy": "Slack DM Policy",
-  "channels.slack.allowBots": "Slack Allow Bot Messages",
-  "channels.discord.token": "Discord Bot Token",
-  "channels.slack.botToken": "Slack Bot Token",
-  "channels.slack.appToken": "Slack App Token",
-  "channels.slack.userToken": "Slack User Token",
-  "channels.slack.userTokenReadOnly": "Slack User Token Read Only",
-  "channels.slack.thread.historyScope": "Slack Thread History Scope",
-  "channels.slack.thread.inheritParent": "Slack Thread Parent Inheritance",
-  "channels.mattermost.botToken": "Mattermost Bot Token",
-  "channels.mattermost.baseUrl": "Mattermost Base URL",
-  "channels.mattermost.chatmode": "Mattermost Chat Mode",
-  "channels.mattermost.oncharPrefixes": "Mattermost Onchar Prefixes",
-  "channels.mattermost.requireMention": "Mattermost Require Mention",
-  "channels.signal.account": "Signal Account",
   "agents.list[].identity.avatar": "Agent Avatar",
   "discovery.mdns.mode": "mDNS Discovery Mode",
   "plugins.enabled": "Enable Plugins",
@@ -370,6 +346,13 @@ const FIELD_HELP: Record<string, string> = {
   "gateway.remote.sshTarget":
     "Remote gateway over SSH (tunnels the gateway port to localhost). Format: user@host or user@host:port.",
   "gateway.remote.sshIdentity": "Optional SSH identity file path (passed to ssh -i).",
+  "gateway.daemonBridge.enabled": "Route replies through the agent-core daemon (single shared runtime).",
+  "gateway.daemonBridge.url": "Base URL for the agent-core daemon HTTP API.",
+  "gateway.daemonBridge.sessionStore":
+    "Session map file for gateway-to-daemon continuity (default: $ZEE_STATE_DIR/gateway/daemon-sessions.json).",
+  "gateway.daemonBridge.timeoutMs": "HTTP timeout in milliseconds for daemon requests.",
+  "gateway.daemonBridge.createSession":
+    "Auto-create new daemon sessions when no mapping exists (default: true).",
   "agents.list[].identity.avatar":
     "Avatar image path (relative to the agent workspace only) or a remote URL/data URL.",
   "discovery.mdns.mode":
@@ -458,21 +441,6 @@ const FIELD_HELP: Record<string, string> = {
   "tools.web.fetch.firecrawl.maxAgeMs":
     "Firecrawl maxAge (ms) for cached results when supported by the API.",
   "tools.web.fetch.firecrawl.timeoutSeconds": "Timeout in seconds for Firecrawl requests.",
-  "channels.slack.allowBots":
-    "Allow bot-authored messages to trigger Slack replies (default: false).",
-  "channels.slack.thread.historyScope":
-    'Scope for Slack thread history context ("thread" isolates per thread; "channel" reuses channel history).',
-  "channels.slack.thread.inheritParent":
-    "If true, Slack thread sessions inherit the parent channel transcript (default: false).",
-  "channels.mattermost.botToken":
-    "Bot token from Mattermost System Console -> Integrations -> Bot Accounts.",
-  "channels.mattermost.baseUrl":
-    "Base URL for your Mattermost server (e.g., https://chat.example.com).",
-  "channels.mattermost.chatmode":
-    'Reply to channel messages on mention ("oncall"), on trigger chars (">" or "!") ("onchar"), or on every message ("onmessage").',
-  "channels.mattermost.oncharPrefixes": 'Trigger prefixes for onchar mode (default: [">", "!"]).',
-  "channels.mattermost.requireMention":
-    "Require @mention in channels before responding (default: true).",
   "auth.profiles": "Named auth profiles (provider + mode + optional email).",
   "auth.order": "Ordered auth profile IDs per provider (used for automatic failover).",
   "auth.cooldowns.billingBackoffHours":
@@ -575,8 +543,7 @@ const FIELD_HELP: Record<string, string> = {
   "agents.defaults.humanDelay.mode": 'Delay style for block replies ("off", "natural", "custom").',
   "agents.defaults.humanDelay.minMs": "Minimum delay in ms for custom humanDelay (default: 800).",
   "agents.defaults.humanDelay.maxMs": "Maximum delay in ms for custom humanDelay (default: 2500).",
-  "commands.native":
-    "Register native commands with channels that support it (Discord/Slack/Telegram).",
+  "commands.native": "Register native commands with channels that support it (Telegram).",
   "commands.nativeSkills":
     "Register native skill commands (user-invocable skills) with channels that support it.",
   "commands.text": "Allow text command parsing (slash commands only).",
@@ -594,27 +561,13 @@ const FIELD_HELP: Record<string, string> = {
     "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":
     "Allow Telegram to write config in response to channel events/commands (default: true).",
-  "channels.slack.configWrites":
-    "Allow Slack to write config in response to channel events/commands (default: true).",
-  "channels.mattermost.configWrites":
-    "Allow Mattermost to write config in response to channel events/commands (default: true).",
-  "channels.discord.configWrites":
-    "Allow Discord to write config in response to channel events/commands (default: true).",
+  "channels.telegram.configWrites":
+    "Allow Telegram to write config in response to channel events/commands (default: true).",
   "channels.whatsapp.configWrites":
     "Allow WhatsApp to write config in response to channel events/commands (default: true).",
-  "channels.signal.configWrites":
-    "Allow Signal to write config in response to channel events/commands (default: true).",
-  "channels.msteams.configWrites":
-    "Allow Microsoft Teams to write config in response to channel events/commands (default: true).",
-  "channels.discord.commands.native": 'Override native commands for Discord (bool or "auto").',
-  "channels.discord.commands.nativeSkills":
-    'Override native skill commands for Discord (bool or "auto").',
   "channels.telegram.commands.native": 'Override native commands for Telegram (bool or "auto").',
   "channels.telegram.commands.nativeSkills":
     'Override native skill commands for Telegram (bool or "auto").',
-  "channels.slack.commands.native": 'Override native commands for Slack (bool or "auto").',
-  "channels.slack.commands.nativeSkills":
-    'Override native skill commands for Slack (bool or "auto").',
   "session.agentToAgent.maxPingPongTurns":
     "Max reply-back turns between requester and target (0–5).",
   "channels.telegram.customCommands":
@@ -649,22 +602,6 @@ const FIELD_HELP: Record<string, string> = {
   "channels.whatsapp.selfChatMode": "Same-phone setup (bot uses your personal WhatsApp number).",
   "channels.whatsapp.debounceMs":
     "Debounce window (ms) for batching rapid consecutive messages from the same sender (0 to disable).",
-  "channels.signal.dmPolicy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.signal.allowFrom=["*"].',
-  "channels.discord.dm.policy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.discord.dm.allowFrom=["*"].',
-  "channels.discord.retry.attempts":
-    "Max retry attempts for outbound Discord API calls (default: 3).",
-  "channels.discord.retry.minDelayMs": "Minimum retry delay in ms for Discord outbound calls.",
-  "channels.discord.retry.maxDelayMs": "Maximum retry delay cap in ms for Discord outbound calls.",
-  "channels.discord.retry.jitter": "Jitter factor (0-1) applied to Discord retry delays.",
-  "channels.discord.maxLinesPerMessage": "Soft max line count per Discord message (default: 17).",
-  "channels.discord.intents.presence":
-    "Enable the Guild Presences privileged intent. Must also be enabled in the Discord Developer Portal. Allows tracking user activities (e.g. Spotify). Default: false.",
-  "channels.discord.intents.guildMembers":
-    "Enable the Guild Members privileged intent. Must also be enabled in the Discord Developer Portal. Default: false.",
-  "channels.slack.dm.policy":
-    'Direct message access control ("pairing" recommended). "open" requires channels.slack.dm.allowFrom=["*"].',
 };
 
 const FIELD_PLACEHOLDERS: Record<string, string> = {
@@ -672,7 +609,8 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.remote.tlsFingerprint": "sha256:ab12cd34…",
   "gateway.remote.sshTarget": "user@host",
   "gateway.controlUi.basePath": "/zee",
-  "channels.mattermost.baseUrl": "https://chat.example.com",
+  "gateway.daemonBridge.url": "http://127.0.0.1:3210",
+  "gateway.daemonBridge.sessionStore": "~/.zee/gateway/daemon-sessions.json",
   "agents.list[].identity.avatar": "avatars/zee.png",
 };
 

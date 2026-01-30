@@ -1,7 +1,5 @@
 export const GATEWAY_CLIENT_IDS = {
-  WEBCHAT_UI: "webchat-ui",
   CONTROL_UI: "zee-control-ui",
-  WEBCHAT: "webchat",
   CLI: "cli",
   GATEWAY_CLIENT: "gateway-client",
   NODE_HOST: "node-host",
@@ -17,7 +15,6 @@ export const GATEWAY_CLIENT_NAMES = GATEWAY_CLIENT_IDS;
 export type GatewayClientName = GatewayClientId;
 
 export const GATEWAY_CLIENT_MODES = {
-  WEBCHAT: "webchat",
   CLI: "cli",
   UI: "ui",
   BACKEND: "backend",

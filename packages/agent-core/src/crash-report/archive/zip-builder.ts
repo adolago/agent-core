@@ -87,7 +87,7 @@ export class ZipBuilder {
   }
 
   private async createTarGz(sourceDir: string, outputPath: string): Promise<void> {
-    // Use tar command for simplicity (available on Linux/macOS)
+    // Use tar command for simplicity (available on Linux)
     const { execSync } = await import("child_process");
     const parentDir = path.dirname(sourceDir);
     const dirName = path.basename(sourceDir);

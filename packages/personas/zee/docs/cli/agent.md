@@ -18,5 +18,4 @@ Related:
 zee agent --to +15555550123 --message "status update" --deliver
 zee agent --agent ops --message "Summarize logs"
 zee agent --session-id 1234 --message "Summarize inbox" --thinking medium
-zee agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"
 ```

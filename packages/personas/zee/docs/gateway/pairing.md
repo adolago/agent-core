@@ -39,7 +39,7 @@ zee nodes pending
 zee nodes approve <requestId>
 zee nodes reject <requestId>
 zee nodes status
-zee nodes rename --node <id|name|ip> --name "Living Room iPad"
+zee nodes rename --node <id|name|ip> --name "Living Room Desktop"
 ```
 
 `nodes status` shows paired/connected nodes and their capabilities.

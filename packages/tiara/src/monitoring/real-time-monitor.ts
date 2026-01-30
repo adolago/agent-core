@@ -97,7 +97,7 @@ export interface AlertRule {
 }
 
 export interface AlertAction {
-  type: 'email' | 'webhook' | 'slack' | 'log' | 'auto-scale' | 'restart';
+  type: 'email' | 'webhook' | 'log' | 'auto-scale' | 'restart';
   config: Record<string, any>;
   enabled: boolean;
 }

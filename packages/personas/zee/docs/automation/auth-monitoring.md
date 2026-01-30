@@ -33,7 +33,7 @@ gateway host and are tuned for systemd + Termux.
 - `scripts/auth-monitor.sh`: cron/systemd timer target; sends alerts (ntfy or phone).
 - `scripts/systemd/zee-auth-monitor.{service,timer}`: systemd user timer.
 - `scripts/claude-auth-status.sh`: Claude Code + Zee auth checker (full/json/simple).
-- `scripts/mobile-reauth.sh`: guided re‑auth flow over SSH.
+- Use `claude setup-token` to refresh auth without a browser login loop.
 - `scripts/termux-quick-auth.sh`: one‑tap widget status + open auth URL.
 - `scripts/termux-auth-widget.sh`: full guided widget flow.
 - `scripts/termux-sync-widget.sh`: sync Claude Code creds → Zee.

@@ -18,7 +18,6 @@ mobile app code from external sources.
 
 ## Choose your OS
 
-- macOS: [macOS](/platforms/macos)
 - Windows: [Windows](/platforms/windows)
 - Linux: [Linux](/platforms/linux)
 
@@ -47,5 +46,4 @@ Use one of these (all supported):
 - Repair/migrate: `zee doctor` (offers to install or fix the service)
 
 The service target depends on OS:
-- macOS: LaunchAgent (`bot.zee.gateway` or `bot.zee.<profile>`; legacy labels still unload cleanly)
 - Linux/WSL2: systemd user service (`zee-gateway[-<profile>].service`)

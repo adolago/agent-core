@@ -1,5 +1,4 @@
 ---
-summary: "Routing rules per channel (WhatsApp, Telegram, Discord, Slack) and shared context"
 read_when:
   - Changing channel routing or inbox behavior
 ---
@@ -29,21 +28,17 @@ Groups and channels remain isolated per channel:
 
 Threads:
 
-- Slack/Discord threads append `:thread:<threadId>` to the base key.
 - Telegram forum topics embed `:topic:<topicId>` in the group key.
 
 Examples:
 
 - `agent:main:telegram:group:-1001234567890:topic:42`
-- `agent:main:discord:channel:123456:thread:987654`
 
 ## Routing rules (how an agent is chosen)
 
 Routing picks **one agent** for each inbound message:
 
 1. **Exact peer match** (`bindings` with `peer.kind` + `peer.id`).
-2. **Guild match** (Discord) via `guildId`.
-3. **Team match** (Slack) via `teamId`.
 4. **Account match** (`accountId` on the channel).
 5. **Channel match** (any account on that channel).
 6. **Default agent** (`agents.list[].default`, else first list entry, fallback to `main`).
@@ -83,7 +78,6 @@ Example:
     ]
   },
   bindings: [
-    { match: { channel: "slack", teamId: "T123" }, agentId: "support" },
     { match: { channel: "telegram", peer: { kind: "group", id: "-100123" } }, agentId: "support" }
   ]
 }

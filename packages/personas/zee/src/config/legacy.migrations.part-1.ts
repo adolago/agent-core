@@ -122,10 +122,6 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
       const legacyKeys = [
         "whatsapp",
         "telegram",
-        "discord",
-        "slack",
-        "signal",
-        "msteams",
       ];
       const legacyEntries = legacyKeys.filter((key) => isRecord(raw[key]));
       if (legacyEntries.length === 0) return;

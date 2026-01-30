@@ -539,7 +539,6 @@ export class TesterAgent extends BaseAgent {
       },
       environments: ['staging', 'production'],
       notifications: {
-        slack: true,
         email: true,
         github: true,
       },

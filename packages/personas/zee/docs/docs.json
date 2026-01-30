@@ -110,22 +110,6 @@
       "destination": "/providers/opencode"
     },
     {
-      "source": "/mattermost",
-      "destination": "/channels/mattermost"
-    },
-    {
-      "source": "/mattermost/",
-      "destination": "/channels/mattermost"
-    },
-    {
-      "source": "/line",
-      "destination": "/channels/line"
-    },
-    {
-      "source": "/line/",
-      "destination": "/channels/line"
-    },
-    {
       "source": "/glm",
       "destination": "/providers/glm"
     },
@@ -150,22 +134,6 @@
       "destination": "/cli/message"
     },
     {
-      "source": "/providers/discord",
-      "destination": "/channels/discord"
-    },
-    {
-      "source": "/providers/discord/",
-      "destination": "/channels/discord"
-    },
-    {
-      "source": "/providers/googlechat",
-      "destination": "/channels/googlechat"
-    },
-    {
-      "source": "/providers/googlechat/",
-      "destination": "/channels/googlechat"
-    },
-    {
       "source": "/providers/grammy",
       "destination": "/channels/grammy"
     },
@@ -182,46 +150,6 @@
       "destination": "/channels/location"
     },
     {
-      "source": "/providers/mattermost",
-      "destination": "/channels/mattermost"
-    },
-    {
-      "source": "/providers/mattermost/",
-      "destination": "/channels/mattermost"
-    },
-    {
-      "source": "/providers/msteams",
-      "destination": "/channels/msteams"
-    },
-    {
-      "source": "/providers/msteams/",
-      "destination": "/channels/msteams"
-    },
-    {
-      "source": "/providers/line",
-      "destination": "/channels/line"
-    },
-    {
-      "source": "/providers/line/",
-      "destination": "/channels/line"
-    },
-    {
-      "source": "/providers/signal",
-      "destination": "/channels/signal"
-    },
-    {
-      "source": "/providers/signal/",
-      "destination": "/channels/signal"
-    },
-    {
-      "source": "/providers/slack",
-      "destination": "/channels/slack"
-    },
-    {
-      "source": "/providers/slack/",
-      "destination": "/channels/slack"
-    },
-    {
       "source": "/providers/telegram",
       "destination": "/channels/telegram"
     },
@@ -236,14 +164,6 @@
     {
       "source": "/providers/troubleshooting/",
       "destination": "/channels/troubleshooting"
-    },
-    {
-      "source": "/providers/zalo",
-      "destination": "/channels/zalo"
-    },
-    {
-      "source": "/providers/zalo/",
-      "destination": "/channels/zalo"
     },
     {
       "source": "/providers/whatsapp",
@@ -374,10 +294,6 @@
       "destination": "/reference/device-models"
     },
     {
-      "source": "/discord",
-      "destination": "/channels/discord"
-    },
-    {
       "source": "/discovery",
       "destination": "/gateway/discovery"
     },
@@ -452,10 +368,6 @@
     {
       "source": "/lore",
       "destination": "/start/lore"
-    },
-    {
-      "source": "/macos",
-      "destination": "/platforms/macos"
     },
     {
       "source": "/model-failover",
@@ -562,20 +474,12 @@
       "destination": "/start/showcase"
     },
     {
-      "source": "/signal",
-      "destination": "/channels/signal"
-    },
-    {
       "source": "/skills",
       "destination": "/tools/skills"
     },
     {
       "source": "/skills-config",
       "destination": "/tools/skills-config"
-    },
-    {
-      "source": "/slack",
-      "destination": "/channels/slack"
     },
     {
       "source": "/slash-commands",
@@ -660,10 +564,6 @@
     {
       "source": "/voicewake",
       "destination": "/nodes"
-    },
-    {
-      "source": "/webchat",
-      "destination": "/web/control-ui"
     },
     {
       "source": "/webhook",
@@ -887,16 +787,6 @@
           "channels/whatsapp",
           "channels/telegram",
           "channels/grammy",
-          "channels/discord",
-          "channels/slack",
-          "channels/googlechat",
-          "channels/mattermost",
-          "channels/signal",
-          "channels/msteams",
-          "channels/line",
-          "channels/matrix",
-          "channels/zalo",
-          "channels/zalouser",
           "broadcast-groups",
           "channels/troubleshooting",
           "channels/location"
@@ -971,8 +861,6 @@
         "group": "Platforms",
         "pages": [
           "platforms",
-          "platforms/macos",
-          "platforms/macos-vm",
           "platforms/windows",
           "platforms/linux",
           "platforms/fly",

@@ -173,13 +173,7 @@ export type BindMode = "auto" | "lan" | "tailnet" | "loopback";
 export type SessionChatType = "direct" | "group" | "room";
 
 /** Provider identifiers for messaging platforms */
-export type MessagingProvider =
-  | "whatsapp"
-  | "telegram"
-  | "discord"
-  | "slack"
-  | "signal"
-  | "webchat";
+export type MessagingProvider = "whatsapp" | "telegram";
 
 /** Group activation mode */
 export type GroupActivation = "mention" | "always";

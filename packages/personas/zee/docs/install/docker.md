@@ -81,7 +81,7 @@ export ZEE_EXTRA_MOUNTS="$HOME/.codex:/home/node/.codex:ro,$HOME/github:/home/no
 ```
 
 Notes:
-- Paths must be shared with Docker Desktop on macOS/Windows.
+- Paths must be shared with Docker Desktop on Windows.
 - If you edit `ZEE_EXTRA_MOUNTS`, rerun `docker-setup.sh` to regenerate the
   extra compose file.
 - `docker-compose.extra.yml` is generated. Don’t hand-edit it.
@@ -177,12 +177,7 @@ Telegram (bot token):
 docker compose run --rm zee-cli channels add --channel telegram --token "<token>"
 ```
 
-Discord (bot token):
-```bash
-docker compose run --rm zee-cli channels add --channel discord --token "<token>"
-```
-
-Docs: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord)
+Docs: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram)
 
 ### Health check
 
@@ -247,7 +242,7 @@ precedence, and troubleshooting.
 - Auto-prune: idle > 24h OR age > 7d
 - Network: `none` by default (explicitly opt-in if you need egress)
 - Default allow: `exec`, `process`, `read`, `write`, `edit`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status`
-- Default deny: `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`
+- Default deny: `browser`, `canvas`, `nodes`, `cron`, `gateway`
 
 ### Enable sandboxing
 
@@ -302,7 +297,7 @@ log a warning with the exact `zee sandbox recreate ...` command.
     sandbox: {
       tools: {
         allow: ["exec", "process", "read", "write", "edit", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status"],
-        deny: ["browser", "canvas", "nodes", "cron", "discord", "gateway"]
+        deny: ["browser", "canvas", "nodes", "cron", "gateway"]
       }
     }
   }

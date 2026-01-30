@@ -7,8 +7,8 @@ read_when:
 
 # Onboarding Wizard (CLI)
 
-The onboarding wizard is the **recommended** way to set up Zee on macOS,
-Linux, or Windows (via WSL2; strongly recommended).
+The onboarding wizard is the **recommended** way to set up Zee on Linux
+or Windows (via WSL2; strongly recommended).
 It configures a local Gateway or a remote Gateway connection, plus channels, skills,
 and workspace defaults in one guided flow.
 
@@ -51,8 +51,7 @@ The wizard starts with **QuickStart** (defaults) vs **Advanced** (full control).
   - Model/auth (OpenAI Code (Codex) subscription OAuth, Anthropic API key (recommended) or setup-token (paste), plus MiniMax/GLM/Moonshot/AI Gateway options)
 - Workspace location + bootstrap files
 - Gateway settings (port/bind/auth/tailscale)
-- Providers (Telegram, WhatsApp, Discord, Google Chat, Mattermost (plugin), Signal)
-- Daemon install (LaunchAgent / systemd user unit)
+- Daemon install (systemd user unit)
 - Health check
 - Skills (recommended)
 
@@ -82,12 +81,12 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
 
 2) **Model/Auth**
    - **Anthropic API key (recommended)**: uses `ANTHROPIC_API_KEY` if present or prompts for a key, then saves it for daemon use.
-   - **Anthropic OAuth (Claude Code CLI)**: on macOS the wizard checks Keychain item "Claude Code-credentials" (choose "Always Allow" so launchd starts don't block); on Linux/Windows it reuses `~/.claude/.credentials.json` if present.
+  - **Anthropic OAuth (Claude Code CLI)**: the wizard reuses `~/.claude/.credentials.json` if present.
    - **Anthropic token (paste setup-token)**: run `claude setup-token` on any machine, then paste the token (you can name it; blank = default).
    - **OpenAI Code (Codex) subscription (Codex CLI)**: if `~/.codex/auth.json` exists, the wizard can reuse it.
    - **OpenAI Code (Codex) subscription (OAuth)**: browser flow; paste the `code#state`.
      - Sets `agents.defaults.model` to `openai-codex/gpt-5.2` when model is unset or `openai/*`.
-   - **OpenAI API key**: uses `OPENAI_API_KEY` if present or prompts for a key, then saves it to `~/.zee/.env` so launchd can read it.
+  - **OpenAI API key**: uses `OPENAI_API_KEY` if present or prompts for a key, then saves it to `~/.zee/.env` so the service can read it.
    - **OpenCode Zen (multi-model proxy)**: prompts for `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`, get it at https://opencode.ai/auth).
    - **API key**: stores the key for you.
    - **Vercel AI Gateway (multi-model proxy)**: prompts for `AI_GATEWAY_API_KEY`.
@@ -119,15 +118,11 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
 5) **Channels**
   - WhatsApp: optional QR login.
   - Telegram: bot token.
-  - Discord: bot token.
   - Google Chat: service account JSON + webhook audience.
   - Mattermost (plugin): bot token + base URL.
-   - Signal: optional `signal-cli` install + account config.
   - DM security: default is pairing. First DM sends a code; approve via `zee pairing approve <channel> <code>` or use allowlists.
 
 6) **Daemon install**
-   - macOS: LaunchAgent
-     - Requires a logged-in user session; for headless, use a custom LaunchDaemon (not shipped).
    - Linux (and Windows via WSL2): systemd user unit
      - Wizard attempts to enable lingering via `loginctl enable-linger <user>` so the Gateway stays up after logout.
      - May prompt for sudo (writes `/var/lib/systemd/linger`); it tries without sudo first.
@@ -140,7 +135,7 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
 8) **Skills (recommended)**
    - Reads the available skills and checks requirements.
    - Lets you choose a node manager: **npm / pnpm** (bun not recommended).
-   - Installs optional dependencies (some use Homebrew on macOS).
+   - Installs optional dependencies (some use Homebrew).
 
 9) **Finish**
    - Summary + next steps for the CLI and Control UI.
@@ -157,9 +152,8 @@ What you’ll set:
 Notes:
 - No remote installs or daemon changes are performed.
 - If the Gateway is loopback‑only, use SSH tunneling or a tailnet.
-- Discovery hints:
-  - macOS: Bonjour (`dns-sd`)
-  - Linux: Avahi (`avahi-browse`)
+  - Discovery hints:
+  - Bonjour (`dns-sd`) or Avahi (`avahi-browse`)
 
 ## Add another agent
 
@@ -276,17 +270,12 @@ zee agents add work \
 The Gateway exposes the wizard flow over RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
 Clients (Control UI and other operator clients) can render steps without re-implementing onboarding logic.
 
-## Signal setup (signal-cli)
 
-The wizard can install `signal-cli` from GitHub releases:
 - Downloads the appropriate release asset.
-- Stores it under `~/.zee/tools/signal-cli/<version>/`.
-- Writes `channels.signal.cliPath` to your config.
 
 Notes:
 - JVM builds require **Java 21**.
 - Native builds are used when available.
-- Windows uses WSL2; signal-cli install follows the Linux flow inside WSL.
 
 ## What the wizard writes
 
@@ -294,7 +283,6 @@ Typical fields in `~/.zee/zee.json`:
 - `agents.defaults.workspace`
 - `agents.defaults.model` / `models.providers` (if Minimax chosen)
 - `gateway.*` (mode, bind, auth, tailscale)
-- Channel allowlists (Slack/Discord/Matrix/Microsoft Teams) when you opt in during the prompts (names resolve to IDs when possible).
 - `skills.install.nodeManager`
 - `wizard.lastRunAt`
 - `wizard.lastRunVersion`

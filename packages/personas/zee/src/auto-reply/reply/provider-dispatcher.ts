@@ -10,6 +10,7 @@ import type {
   ReplyDispatcherOptions,
   ReplyDispatcherWithTypingOptions,
 } from "./reply-dispatcher.js";
+import { getReplyFromDaemonBridge, isDaemonBridgeEnabled } from "./daemon-bridge.js";
 
 export async function dispatchReplyWithBufferedBlockDispatcher(params: {
   ctx: MsgContext | FinalizedMsgContext;
@@ -18,11 +19,14 @@ export async function dispatchReplyWithBufferedBlockDispatcher(params: {
   replyOptions?: Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
   replyResolver?: typeof import("../reply.js").getReplyFromConfig;
 }): Promise<DispatchInboundResult> {
+  const replyResolver =
+    params.replyResolver ??
+    (isDaemonBridgeEnabled(params.cfg) ? getReplyFromDaemonBridge : undefined);
   return await dispatchInboundMessageWithBufferedDispatcher({
     ctx: params.ctx,
     cfg: params.cfg,
     dispatcherOptions: params.dispatcherOptions,
-    replyResolver: params.replyResolver,
+    replyResolver,
     replyOptions: params.replyOptions,
   });
 }
@@ -34,11 +38,14 @@ export async function dispatchReplyWithDispatcher(params: {
   replyOptions?: Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
   replyResolver?: typeof import("../reply.js").getReplyFromConfig;
 }): Promise<DispatchInboundResult> {
+  const replyResolver =
+    params.replyResolver ??
+    (isDaemonBridgeEnabled(params.cfg) ? getReplyFromDaemonBridge : undefined);
   return await dispatchInboundMessageWithDispatcher({
     ctx: params.ctx,
     cfg: params.cfg,
     dispatcherOptions: params.dispatcherOptions,
-    replyResolver: params.replyResolver,
+    replyResolver,
     replyOptions: params.replyOptions,
   });
 }

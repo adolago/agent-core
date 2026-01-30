@@ -22,7 +22,7 @@
  * +-------------+      +-------------+      +-------------+
  *        |                    |                    |
  *    Terminal           WebSocket           Platform APIs
- *                                           (WA/TG/Discord)
+ *                                           (WA/TG)
  * ```
  *
  * Key Concepts:
@@ -173,7 +173,6 @@ import {
   WEB_CAPABILITIES,
   WHATSAPP_CAPABILITIES,
   TELEGRAM_CAPABILITIES,
-  DISCORD_CAPABILITIES,
   API_CAPABILITIES,
   DEFAULT_CAPABILITIES,
 } from './types.js';
@@ -181,7 +180,7 @@ import {
 /**
  * Create a surface instance based on type.
  *
- * For messaging platforms (whatsapp, telegram, discord), use createMessagingSurface()
+ * For messaging platforms (whatsapp, telegram), use createMessagingSurface()
  * with your own platform handler implementation instead.
  */
 export function createSurface(
@@ -202,7 +201,7 @@ export function createSurface(
  * Get default capabilities for a surface type.
  */
 export function getDefaultCapabilities(
-  type: 'cli' | 'gui' | 'whatsapp' | 'telegram' | 'discord' | 'api'
+  type: 'cli' | 'gui' | 'whatsapp' | 'telegram' | 'api'
 ): SurfaceCapabilities {
   switch (type) {
     case 'cli':
@@ -213,8 +212,6 @@ export function getDefaultCapabilities(
       return WHATSAPP_CAPABILITIES;
     case 'telegram':
       return TELEGRAM_CAPABILITIES;
-    case 'discord':
-      return DISCORD_CAPABILITIES;
     case 'api':
       return API_CAPABILITIES;
     default:

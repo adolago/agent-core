@@ -7,8 +7,6 @@ import { requireActivePluginRegistry } from "../plugins/runtime.js";
 export const CHAT_CHANNEL_ORDER = [
   "telegram",
   "whatsapp",
-  "googlechat",
-  "signal",
 ] as const;
 
 export type ChatChannelId = (typeof CHAT_CHANNEL_ORDER)[number];
@@ -45,32 +43,9 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
     blurb: "works with your own number; recommend a separate phone + eSIM.",
     systemImage: "message",
   },
-  googlechat: {
-    id: "googlechat",
-    label: "Google Chat",
-    selectionLabel: "Google Chat (Chat API)",
-    detailLabel: "Google Chat",
-    docsPath: "/channels/googlechat",
-    docsLabel: "googlechat",
-    blurb: "Google Workspace Chat app with HTTP webhook.",
-    systemImage: "message.badge",
-  },
-  signal: {
-    id: "signal",
-    label: "Signal",
-    selectionLabel: "Signal (signal-cli)",
-    detailLabel: "Signal REST",
-    docsPath: "/channels/signal",
-    docsLabel: "signal",
-    blurb: "signal-cli linked device; more setup required.",
-    systemImage: "antenna.radiowaves.left.and.right",
-  },
 };
 
-export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
-  "google-chat": "googlechat",
-  gchat: "googlechat",
-};
+export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {};
 
 const normalizeChannelKey = (raw?: string | null): string | undefined => {
   const normalized = raw?.trim().toLowerCase();

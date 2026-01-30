@@ -22,8 +22,6 @@ export type ChannelSetupInput = {
   tokenFile?: string;
   botToken?: string;
   appToken?: string;
-  signalNumber?: string;
-  cliPath?: string;
   dbPath?: string;
   service?: "sms" | "auto";
   region?: string;

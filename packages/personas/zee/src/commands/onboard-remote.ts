@@ -42,7 +42,7 @@ export async function promptRemoteGatewayConfig(
   if (!hasBonjourTool) {
     await prompter.note(
       [
-        "Bonjour discovery requires dns-sd (macOS) or avahi-browse (Linux).",
+        "Bonjour discovery requires dns-sd or avahi-browse.",
         "Docs: https://docs.zee/gateway/discovery",
       ].join("\n"),
       "Discovery",

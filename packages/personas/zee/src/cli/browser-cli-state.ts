@@ -311,7 +311,7 @@ export function registerBrowserStateCommands(
 
   set
     .command("device")
-    .description('Apply a Playwright device descriptor (e.g. "iPhone 14")')
+    .description('Apply a Playwright device descriptor (e.g. "Desktop Chrome")')
     .argument("<name>", "Device name (Playwright devices)")
     .option("--target-id <id>", "CDP target id (or unique prefix)")
     .action(async (name: string, opts, cmd) => {

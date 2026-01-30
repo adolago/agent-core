@@ -30,7 +30,6 @@ Inbound messages can steer the current run, wait for a followup turn, or do both
 Steer-backlog means you can get a followup response after the steered run, so
 streaming surfaces can look like duplicates. Prefer `collect`/`steer` if you want
 one response per inbound message.
-Send `/queue collect` as a standalone command (per-session) or set `messages.queue.byChannel.discord: "collect"`.
 
 Defaults (when unset in config):
 - All surfaces → `collect`
@@ -45,7 +44,6 @@ Configure globally or per channel via `messages.queue`:
       debounceMs: 1000,
       cap: 20,
       drop: "summarize",
-      byChannel: { discord: "collect" }
     }
   }
 }

@@ -8,7 +8,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   decorateZeeProfile,
   ensureProfileCleanExit,
-  findChromeExecutableMac,
   findChromeExecutableWindows,
   isChromeReachable,
   resolveBrowserExecutableForPlatform,
@@ -136,24 +135,6 @@ describe("browser chrome helpers", () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-  });
-
-  it("picks the first existing Chrome candidate on macOS", () => {
-    const exists = vi
-      .spyOn(fs, "existsSync")
-      .mockImplementation((p) =>
-        String(p).includes("Google Chrome.app/Contents/MacOS/Google Chrome"),
-      );
-    const exe = findChromeExecutableMac();
-    expect(exe?.kind).toBe("chrome");
-    expect(exe?.path).toMatch(/Google Chrome\.app/);
-    exists.mockRestore();
-  });
-
-  it("returns null when no Chrome candidate exists", () => {
-    const exists = vi.spyOn(fs, "existsSync").mockReturnValue(false);
-    expect(findChromeExecutableMac()).toBeNull();
-    exists.mockRestore();
   });
 
   it("picks the first existing Chrome candidate on Windows", () => {

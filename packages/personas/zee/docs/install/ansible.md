@@ -62,7 +62,7 @@ sudo -i -u zee
 The post-install script will guide you through:
 
 1. **Onboarding wizard**: Configure Zee settings
-2. **Provider login**: Connect WhatsApp/Telegram/Discord/Signal
+2. **Provider login**: Connect WhatsApp/Telegram
 3. **Gateway testing**: Verify the installation
 4. **Tailscale setup**: Connect to your VPN mesh
 

@@ -79,15 +79,8 @@ Process to derive the list:
 
 Current npm plugin list (update as needed):
 - @zee/diagnostics-otel
-- @zee/discord
 - @zee/lobster
-- @zee/matrix
-- @zee/msteams
-- @zee/nextcloud-talk
-- @zee/nostr
 - @zee/voice-call
-- @zee/zalo
-- @zee/zalouser
 
 Release notes must also call out **new optional bundled plugins** that are **not
-on by default** (example: `tlon`).
+on by default**.

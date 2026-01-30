@@ -1807,7 +1807,7 @@ export function Prompt(props: PromptProps) {
               </text>
               <Show when={vim.isNormal && status().type === "idle"}>
                 <text fg={theme.textMuted}>
-                  i:insert v:visual Space:leader
+                  i:insert Space:leader
                 </text>
               </Show>
               <Show when={vim.isVisual && status().type === "idle"}>
@@ -1844,9 +1844,21 @@ export function Prompt(props: PromptProps) {
               <Match when={status().type === "idle"}>
                 {/* Session-wise stats when idle */}
                 {(() => {
-                  const formatTokens = (n: number) => {
-                    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                    return `${n}`
+                  const formatFixedTokens = (n: number, width = 4) => {
+                    const inK = Math.round(n / 1000)
+                    const numStr = inK.toString().padStart(width, "0")
+                    const firstNonZero = numStr.search(/[1-9]/)
+                    const zeroCount = firstNonZero === -1 ? width - 1 : firstNonZero
+                    const zeros = numStr.slice(0, zeroCount)
+                    const rest = numStr.slice(zeroCount)
+                    return (
+                      <>
+                        <Show when={zeros.length > 0}>
+                          <text fg={dim(theme.textMuted, 0.5)}>{zeros}</text>
+                        </Show>
+                        <text fg={theme.textMuted}>{rest}</text>
+                      </>
+                    )
                   }
                   const formatElapsed = (s: number) => {
                     if (s < 60) return `${s}s`
@@ -1869,9 +1881,20 @@ export function Prompt(props: PromptProps) {
                       >
                         <spinner color={spinnerDef().color} frames={idleFrames()} interval={1000} />
                       </Show>
-                      <text fg={theme.textMuted}>
-                        {formatTokens(totals.snt)}t snt {formatTokens(totals.rcvd)}t rcvd {formatTokens(mem.mbd)}t mbd {mem.rrnk}d rrnk {formatElapsed(completedWorkTime())}
-                      </text>
+                      <box flexDirection="row" gap={0}>
+                        <text fg={theme.textMuted}>snt </text>
+                        {formatFixedTokens(totals.snt)}
+                        <text fg={theme.textMuted}>kt </text>
+                        <text fg={theme.textMuted}>rcvd </text>
+                        {formatFixedTokens(totals.rcvd)}
+                        <text fg={theme.textMuted}>kt </text>
+                        <text fg={theme.textMuted}>mbd </text>
+                        {formatFixedTokens(mem.mbd)}
+                        <text fg={theme.textMuted}>kt </text>
+                        <text fg={theme.textMuted}>rrnk </text>
+                        <text fg={theme.textMuted}>{String(mem.rrnk).padStart(4, "0")}d </text>
+                        <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
+                      </box>
                     </box>
                   )
                 })()}
@@ -1942,17 +1965,29 @@ export function Prompt(props: PromptProps) {
                     }
                     const phaseLabel = createMemo(() => {
                       const health = streamHealth()
-                      if (!health?.phase) return "starting"
+                      if (!health?.phase) return "starting  "
                       switch (health.phase) {
-                        case "thinking": return "thinking"
-                        case "tool_calling": return "tools"
-                        case "generating": return "generating"
-                        default: return "starting"
+                        case "thinking": return "thinking  "
+                        case "tool_calling": return "tools     "
+                        case "generating": return "generate  "
+                        default: return "starting  "
                       }
                     })
-                    const formatTokens = (n: number) => {
-                      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-                      return `${n}`
+                    const formatFixedTokens = (n: number, width = 4) => {
+                      const inK = Math.round(n / 1000)
+                      const numStr = inK.toString().padStart(width, "0")
+                      const firstNonZero = numStr.search(/[1-9]/)
+                      const zeroCount = firstNonZero === -1 ? width - 1 : firstNonZero
+                      const zeros = numStr.slice(0, zeroCount)
+                      const rest = numStr.slice(zeroCount)
+                      return (
+                        <>
+                          <Show when={zeros.length > 0}>
+                            <text fg={dim(theme.textMuted, 0.5)}>{zeros}</text>
+                          </Show>
+                          <text fg={theme.textMuted}>{rest}</text>
+                        </>
+                      )
                     }
                     const totalTime = () => completedWorkTime() + elapsed()
                     const mem = memStatsLive()
@@ -1964,9 +1999,21 @@ export function Prompt(props: PromptProps) {
                           </box>
                         </Show>
                         <Show when={!retry() && status().type === "busy"}>
-                          <text fg={theme.textMuted}>
-                            {phaseLabel()} snt {formatTokens(sessionTokenTotals().snt)}t rcvd {formatTokens(rcvdLive())}t mbd {formatTokens(mem.mbd)}t rrnk {mem.rrnk}d {formatElapsed(totalTime())}
-                          </text>
+                          <box flexDirection="row" gap={0}>
+                            <text fg={theme.textMuted}>{phaseLabel()} </text>
+                            <text fg={theme.textMuted}>snt </text>
+                            {formatFixedTokens(sessionTokenTotals().snt)}
+                            <text fg={theme.textMuted}>kt </text>
+                            <text fg={theme.textMuted}>rcvd </text>
+                            {formatFixedTokens(rcvdLive())}
+                            <text fg={theme.textMuted}>kt </text>
+                            <text fg={theme.textMuted}>mbd </text>
+                            {formatFixedTokens(mem.mbd)}
+                            <text fg={theme.textMuted}>kt </text>
+                            <text fg={theme.textMuted}>rrnk </text>
+                            <text fg={theme.textMuted}>{String(mem.rrnk).padStart(4, "0")}d </text>
+                            <text fg={theme.textMuted}>{formatElapsed(totalTime())}</text>
+                          </box>
                         </Show>
                       </>
                     )

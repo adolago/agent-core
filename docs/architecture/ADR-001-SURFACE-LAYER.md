@@ -8,7 +8,7 @@ ACCEPTED (Design Phase)
 The agent-core needs to support multiple UI surfaces:
 1. **CLI/TUI** (agent-core native) - Terminal-based interaction
 2. **GUI** (Stanley) - GPUI-based desktop application
-3. **Messaging** (Zee) - WhatsApp, Telegram, Discord platforms
+3. **Messaging** (Zee) - WhatsApp and Telegram platforms
 
 Each surface has different capabilities:
 - CLI supports streaming and interactive prompts
@@ -48,7 +48,7 @@ Design a Surface Abstraction Layer with the following components:
  +-------------+      +-------------+      +-------------+
         |                    |                    |
     Terminal           WebSocket           Platform APIs
-                                           (WA/TG/Discord)
+                                           (WA/TG)
 ```
 
 ### Core Interface
@@ -111,7 +111,7 @@ Global Config
     |
     +-- Surface Type Config (cli, gui, messaging)
     |       |
-    |       +-- Platform Config (whatsapp, telegram, discord)
+    |       +-- Platform Config (whatsapp, telegram)
     |               |
     |               +-- Instance Config
 ```
@@ -144,11 +144,11 @@ src/surface/
 
 **Decision**: Messaging surface uses pluggable platform handlers.
 
-**Rationale**: Each messaging platform (WhatsApp, Telegram, Discord) has unique SDKs and APIs. The handler interface abstracts these differences while allowing platform-specific implementation.
+**Rationale**: Each messaging platform (WhatsApp, Telegram) has unique SDKs and APIs. The handler interface abstracts these differences while allowing platform-specific implementation.
 
 ```typescript
 interface MessagingPlatformHandler {
-  readonly platform: 'whatsapp' | 'telegram' | 'discord';
+  readonly platform: 'whatsapp' | 'telegram';
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   sendMessage(target, text, options?): Promise<void>;
@@ -167,7 +167,7 @@ interface MessagingPlatformHandler {
 
 **Decision**: Messaging surfaces automatically apply configured permissions without prompting.
 
-**Rationale**: Cannot interrupt a WhatsApp/Telegram/Discord conversation to ask "Allow file write?". Configuration determines what's allowed for each surface.
+**Rationale**: Cannot interrupt a WhatsApp/Telegram conversation to ask "Allow file write?". Configuration determines what's allowed for each surface.
 
 ### 5. Surface Context
 
@@ -228,7 +228,7 @@ interface MessagingPlatformHandler {
 
 ### Phase 3: Integration (Future)
 - [ ] Connect to agent core
-- [ ] Implement platform handlers (Baileys, Telegraf, discord.js)
+- [ ] Implement platform handlers (Baileys, Telegraf)
 - [ ] Add surface router
 
 ### Phase 4: Enhancement (Future)
@@ -245,7 +245,7 @@ interface MessagingPlatformHandler {
 ## References
 
 - Stanley: GPUI-based desktop client
-- Zee: Existing messaging patterns (`/src/discord/monitor.ts`, `/src/telegram/monitor.ts`)
+- Zee: Existing messaging patterns (`/src/telegram/monitor.ts`)
 
 ## Sign-Off
 

@@ -114,7 +114,7 @@ Avoid Funnel for browser control; treat node pairing like operator access.
 - Serve injects Tailscale identity headers; Funnel does not.
 - Funnel requires Tailscale v1.38.3+, MagicDNS, HTTPS enabled, and a funnel node attribute.
 - Funnel only supports ports `443`, `8443`, and `10000` over TLS.
-- Funnel on macOS requires the open-source Tailscale app variant.
+- Funnel may require the open-source Tailscale app variant.
 
 ## Learn more
 

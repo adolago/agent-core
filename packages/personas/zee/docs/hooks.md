@@ -686,11 +686,7 @@ Look for missing requirements in the output.
 Monitor gateway logs to see hook execution:
 
 ```bash
-# macOS
-./scripts/clawlog.sh -f
-
-# Other platforms
-tail -f ~/.zee/gateway.log
+zee logs --follow
 ```
 
 ### Test Hooks Directly

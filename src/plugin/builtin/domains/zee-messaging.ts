@@ -7,7 +7,6 @@
  * Features:
  * - WhatsApp integration
  * - Telegram integration
- * - Signal integration (future)
  * - Message formatting and templating
  * - Contact management
  */

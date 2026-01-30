@@ -96,7 +96,7 @@ The Gateway advertises small non‑secret hints to make UI flows convenient:
 - `cliPath=<path>` (optional; absolute path to a runnable `zee` entrypoint)
 - `tailnetDns=<magicdns>` (optional hint when Tailnet is available)
 
-## Debugging on macOS
+## Debugging
 
 Useful built‑in tools:
 
@@ -125,7 +125,7 @@ The Gateway writes a rolling log file (printed on startup as
 
 - **Bonjour doesn’t cross networks**: use Tailnet or SSH.
 - **Multicast blocked**: some Wi‑Fi networks disable mDNS.
-- **Sleep / interface churn**: macOS may temporarily drop mDNS results; retry.
+- **Sleep / interface churn**: hosts may temporarily drop mDNS results; retry.
 - **Browse works but resolve fails**: keep machine names simple (avoid emojis or
   punctuation), then restart the Gateway. The service instance name derives from
   the host name, so overly complex names can confuse some resolvers.

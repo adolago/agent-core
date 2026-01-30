@@ -38,12 +38,10 @@ Profiles:
 - `messaging`: `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status`
 - `full`: no restriction (same as unset)
 
-Example (messaging-only by default, allow Slack + Discord tools too):
 ```json5
 {
   tools: {
     profile: "messaging",
-    allow: ["slack", "discord"]
   }
 }
 ```
@@ -66,7 +64,6 @@ Example (global coding profile, messaging-only support agent):
     list: [
       {
         id: "support",
-        tools: { profile: "messaging", allow: ["slack"] }
       }
     ]
   }
@@ -287,8 +284,8 @@ Discover and target paired nodes; send notifications; capture camera/screen.
 Core actions:
 - `status`, `describe`
 - `pending`, `approve`, `reject` (pairing)
-- `notify` (macOS `system.notify`)
-- `run` (macOS `system.run`)
+- `notify` (`system.notify`)
+- `run` (`system.run`)
 - `camera_snap`, `camera_clip`, `screen_record`
 - `location_get`
 
@@ -329,7 +326,6 @@ Notes:
 
 Core actions:
 - `send` (text + optional media; MS Teams also supports `card` for Adaptive Cards)
-- `poll` (WhatsApp/Discord/MS Teams polls)
 - `react` / `reactions` / `read` / `edit` / `delete`
 - `pin` / `unpin` / `list-pins`
 - `permissions`
@@ -346,7 +342,6 @@ Core actions:
 
 Notes:
 - `send` routes WhatsApp via the Gateway; other channels go direct.
-- `poll` uses the Gateway for WhatsApp and MS Teams; Discord polls go direct.
 - When a message tool call is bound to an active chat session, sends are constrained to that session’s target to avoid cross-context leaks.
 
 ### `cron`

@@ -98,16 +98,16 @@ export const ZeeMessagingTool = defineTool(
   'zee_messaging',
   'domain',
   {
-    description: `Send messages through various channels.
+    description: `Send messages through supported channels.
 
 Usage:
-- channel: whatsapp, email, or slack
+- channel: whatsapp or telegram
 - to: recipient identifier
 - message: text content
 - Optional attachments`,
 
     parameters: z.object({
-      channel: z.enum(['whatsapp', 'email', 'slack']).describe('Messaging channel'),
+      channel: z.enum(['whatsapp', 'telegram']).describe('Messaging channel'),
       to: z.string().describe('Recipient identifier'),
       message: z.string().describe('Message content'),
       attachments: z.array(z.string()).optional().describe('File paths to attach'),

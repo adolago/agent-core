@@ -40,7 +40,6 @@ export namespace LifecycleHooks {
           persistence: z.boolean(),
           telegram: z.boolean(),
           whatsapp: z.boolean(),
-          discord: z.boolean(),
         }),
         sessionsWithIncompleteTodos: z.number(),
       }),

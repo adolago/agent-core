@@ -21,7 +21,7 @@ import { loadVoiceWakeConfig } from "../../../infra/voicewake.js";
 import { upsertPresence } from "../../../infra/system-presence.js";
 import { rawDataToString } from "../../../infra/ws.js";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
-import { isGatewayCliClient, isWebchatClient } from "../../../utils/message-channel.js";
+import { isGatewayCliClient } from "../../../utils/message-channel.js";
 import type { ResolvedGatewayAuth } from "../../auth.js";
 import { authorizeGatewayConnect, isLocalDirectRequest } from "../../auth.js";
 import { loadConfig } from "../../../config/config.js";
@@ -82,16 +82,15 @@ function formatGatewayAuthFailureMessage(params: {
   const { authMode, authProvided, reason, client } = params;
   const isCli = isGatewayCliClient(client);
   const isControlUi = client?.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
-  const isWebchat = isWebchatClient(client);
   const uiHint = "open a tokenized dashboard URL or paste token in Control UI settings";
   const tokenHint = isCli
     ? "set gateway.remote.token to match gateway.auth.token"
-    : isControlUi || isWebchat
+    : isControlUi
       ? uiHint
       : "provide gateway auth token";
   const passwordHint = isCli
     ? "set gateway.remote.password to match gateway.auth.password"
-    : isControlUi || isWebchat
+    : isControlUi
       ? "enter the password in Control UI settings"
       : "provide gateway auth password";
   switch (reason) {
@@ -227,7 +226,6 @@ export function attachGatewayWsMessageHandler(params: {
     );
   }
 
-  const isWebchatConnect = (p: ConnectParams | null | undefined) => isWebchatClient(p?.client);
 
   socket.on("message", async (data) => {
     if (isClosed()) return;
@@ -755,11 +753,11 @@ export function attachGatewayWsMessageHandler(params: {
           auth: authMethod,
         });
 
-        if (isWebchatConnect(connectParams)) {
-          logWsControl.info(
-            `webchat connected conn=${connId} remote=${remoteAddr ?? "?"} client=${clientLabel} ${connectParams.client.mode} v${connectParams.client.version}`,
-          );
-        }
+      if (connectParams.client.mode === "ui") {
+        logWsControl.info(
+          `ui connected conn=${connId} remote=${remoteAddr ?? "?"} client=${clientLabel} ${connectParams.client.mode} v${connectParams.client.version}`,
+        );
+      }
 
         if (presenceKey) {
           upsertPresence(presenceKey, {
@@ -922,7 +920,6 @@ export function attachGatewayWsMessageHandler(params: {
           req,
           respond,
           client,
-          isWebchatConnect,
           extraHandlers,
           context: buildRequestContext(),
         });

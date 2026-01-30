@@ -353,6 +353,16 @@ export const ZeeSchema = z
           })
           .strict()
           .optional(),
+        daemonBridge: z
+          .object({
+            enabled: z.boolean().optional(),
+            url: z.string().optional(),
+            sessionStore: z.string().optional(),
+            timeoutMs: z.number().int().positive().optional(),
+            createSession: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
         reload: z
           .object({
             mode: z

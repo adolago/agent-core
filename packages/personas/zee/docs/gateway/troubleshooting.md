@@ -106,7 +106,7 @@ Doctor/service will show runtime state (PID/last exit) and log hints.
 **Logs:**
 - Preferred: `zee logs --follow`
 - File logs (always): `/tmp/zee/zee-YYYY-MM-DD.log` (or your configured `logging.file`)
-- macOS LaunchAgent (if installed): `$ZEE_STATE_DIR/logs/gateway.log` and `gateway.err.log`
+- Linux systemd (if installed): `journalctl --user -u zee-gateway.service -n 200 --no-pager`
 - Linux systemd (if installed): `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`
 - Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST`
 
@@ -154,7 +154,6 @@ the gateway.
 ### Service Environment (PATH + runtime)
 
 The gateway service runs with a **minimal PATH** to avoid shell/manager cruft:
-- macOS: `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, `/bin`
 - Linux: `/usr/local/bin`, `/usr/bin`, `/bin`
 
 This intentionally excludes version managers (nvm/fnm/volta/asdf) and package
@@ -368,7 +367,7 @@ Or use the `process` tool to background long commands.
 ```bash
 # Check local status (creds, sessions, queued events)
 zee status
-# Probe the running gateway + channels (WA connect + Telegram + Discord APIs)
+# Probe the running gateway + channels (WA connect + Telegram APIs)
 zee status --deep
 
 # View recent connection events
@@ -474,7 +473,7 @@ zee channels login
 
 1) `git pull origin main && pnpm install`
 2) `zee doctor`
-3) Check GitHub issues or Discord
+3) Check GitHub issues or docs
 4) Temporary workaround: check out an older commit
 
 ### npm install fails (allow-build-scripts / missing tar or yargs). What now?
@@ -533,22 +532,6 @@ Fix checklist:
 
 See [Streaming](/concepts/streaming).
 
-### Discord doesn’t reply in my server even with `requireMention: false`. Why?
-
-`requireMention` only controls mention‑gating **after** the channel passes allowlists.
-By default `channels.discord.groupPolicy` is **allowlist**, so guilds must be explicitly enabled.
-If you set `channels.discord.guilds.<guildId>.channels`, only the listed channels are allowed; omit it to allow all channels in the guild.
-
-Fix checklist:
-1) Set `channels.discord.groupPolicy: "open"` **or** add a guild allowlist entry (and optionally a channel allowlist).
-2) Use **numeric channel IDs** in `channels.discord.guilds.<guildId>.channels`.
-3) Put `requireMention: false` **under** `channels.discord.guilds` (global or per‑channel).
-   Top‑level `channels.discord.requireMention` is not a supported key.
-4) Ensure the bot has **Message Content Intent** and channel permissions.
-5) Run `zee channels status --probe` for audit hints.
-
-Docs: [Discord](/channels/discord), [Channels troubleshooting](/channels/troubleshooting).
-
 ### Cloud Code Assist API error: invalid tool schema (400). What now?
 
 This is almost always a **tool schema compatibility** issue. The Cloud Code Assist
@@ -585,7 +568,7 @@ zee channels login --verbose
 | Log | Location |
 |-----|----------|
 | Gateway file logs (structured) | `/tmp/zee/zee-YYYY-MM-DD.log` (or `logging.file`) |
-| Gateway service logs (supervisor) | macOS: `$ZEE_STATE_DIR/logs/gateway.log` + `gateway.err.log` (default: `~/.zee/logs/...`; profiles use `~/.zee-<profile>/logs/...`)<br />Linux: `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`<br />Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST` |
+| Gateway service logs (supervisor) | Linux: `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`<br />Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST` |
 | Session files | `$ZEE_STATE_DIR/agents/<agentId>/sessions/` |
 | Media cache | `$ZEE_STATE_DIR/media/` |
 | Credentials | `$ZEE_STATE_DIR/credentials/` |

@@ -30,15 +30,10 @@ Outbound sends were mirrored into the *current* agent session (tool session key)
 - Gateway send derives a target session key when none is provided (default agent), and ensures a session entry.
 
 ## Thread/Topic Handling
-- Slack: replyTo/threadId -> `resolveThreadSessionKeys` (suffix).
-- Discord: threadId/replyTo -> `resolveThreadSessionKeys` with `useSuffix=false` to match inbound (thread channel id already scopes session).
 - Telegram: topic IDs map to `chatId:topic:<id>` via `buildTelegramGroupPeerId`.
 
 ## Extensions Covered
 - Notes:
-  - Mattermost targets now strip `@` for DM session key routing.
-  - Zalo Personal uses DM peer kind for 1:1 targets (group only when `group:` is present).
-  - Slack auto-thread mirroring matches channel ids case-insensitively.
   - Gateway send lowercases provided session keys before mirroring.
 
 ## Decisions
@@ -49,9 +44,7 @@ Outbound sends were mirrored into the *current* agent session (tool session key)
 
 ## Tests Added/Updated
 - `src/infra/outbound/outbound-session.test.ts`
-  - Slack thread session key.
   - Telegram topic session key.
-  - dmScope identityLinks with Discord.
 - `src/agents/tools/message-tool.test.ts`
   - Derives agentId from session key (no sessionKey passed through).
 - `src/gateway/server-methods/send.test.ts`

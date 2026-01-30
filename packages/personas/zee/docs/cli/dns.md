@@ -7,7 +7,7 @@ read_when:
 
 # `zee dns`
 
-DNS helpers for wide-area discovery (Tailscale + CoreDNS). Currently focused on macOS + Homebrew CoreDNS.
+DNS helpers for wide-area discovery (Tailscale + CoreDNS). Currently focused on Homebrew CoreDNS installs.
 
 Related:
 - Gateway discovery: [Discovery](/gateway/discovery)
@@ -19,4 +19,3 @@ Related:
 zee dns setup
 zee dns setup --apply
 ```
-

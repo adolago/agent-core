@@ -64,14 +64,13 @@ Example:
 
 - `host=gateway`: merges your login-shell `PATH` into the exec environment (unless the exec call
   already sets `env.PATH`). The daemon itself still runs with a minimal `PATH`:
-  - macOS: `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, `/bin`
-  - Linux: `/usr/local/bin`, `/usr/bin`, `/bin`
+  - `/usr/local/bin`, `/usr/bin`, `/bin`
 - `host=sandbox`: runs `sh -lc` (login shell) inside the container, so `/etc/profile` may reset `PATH`.
   Zee prepends `env.PATH` after profile sourcing via an internal env var (no shell interpolation);
   `tools.exec.pathPrepend` applies here too.
 - `host=node`: only env overrides you pass are sent to the node. `tools.exec.pathPrepend` only applies
   if the exec call already sets `env.PATH`. Headless node hosts accept `PATH` only when it prepends
-  the node host PATH (no replacement). macOS nodes drop `PATH` overrides entirely.
+  the node host PATH (no replacement).
 
 Per-agent node binding (use the agent list index in config):
 

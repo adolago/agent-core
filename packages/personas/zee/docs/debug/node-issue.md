@@ -21,7 +21,7 @@ This began after switching dev scripts from Bun to `tsx` (commit `2871657e`, 202
 ## Environment
 - Node: v25.x (observed on v25.3.0)
 - tsx: 4.21.0
-- OS: macOS (repro also likely on other platforms that run Node 25)
+- OS: Linux (repro also likely on other platforms that run Node 25)
 
 ## Repro (Node-only)
 ```bash

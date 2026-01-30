@@ -26,8 +26,6 @@ export function applyChannelAccountConfig(params: {
   tokenFile?: string;
   botToken?: string;
   appToken?: string;
-  signalNumber?: string;
-  cliPath?: string;
   dbPath?: string;
   service?: "sms" | "auto";
   region?: string;
@@ -63,8 +61,6 @@ export function applyChannelAccountConfig(params: {
     tokenFile: params.tokenFile,
     botToken: params.botToken,
     appToken: params.appToken,
-    signalNumber: params.signalNumber,
-    cliPath: params.cliPath,
     dbPath: params.dbPath,
     service: params.service,
     region: params.region,

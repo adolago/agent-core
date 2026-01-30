@@ -193,11 +193,11 @@ export const DEFAULT_GUI_CONFIG: GUISurfaceConfig = {
 };
 
 /**
- * Messaging surface configuration (WhatsApp, Telegram, Discord).
+ * Messaging surface configuration (WhatsApp, Telegram).
  */
 export type MessagingSurfaceConfig = {
   /** Platform identifier */
-  platform: 'whatsapp' | 'telegram' | 'discord';
+  platform: 'whatsapp' | 'telegram';
   /** Whether to batch messages instead of streaming */
   batchMessages: boolean;
   /** Maximum message length before splitting */
@@ -293,7 +293,6 @@ export type SurfaceConfig = {
   messaging: {
     whatsapp?: MessagingSurfaceConfig;
     telegram?: MessagingSurfaceConfig;
-    discord?: MessagingSurfaceConfig;
   };
   /** Tool availability per surface */
   toolAvailability: Record<string, string[]>;
@@ -357,9 +356,6 @@ export function buildSurfaceConfig(
         : undefined,
       telegram: overrides.messaging?.telegram
         ? { ...DEFAULT_MESSAGING_CONFIG, ...overrides.messaging.telegram, platform: 'telegram' as const }
-        : undefined,
-      discord: overrides.messaging?.discord
-        ? { ...DEFAULT_MESSAGING_CONFIG, ...overrides.messaging.discord, platform: 'discord' as const }
         : undefined,
     },
     toolAvailability: overrides.toolAvailability ?? {},

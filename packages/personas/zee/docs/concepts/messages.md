@@ -47,8 +47,6 @@ Config (global default + per-channel overrides):
       debounceMs: 2000,
       byChannel: {
         whatsapp: 5000,
-        slack: 1500,
-        discord: 1500
       }
     }
   }
@@ -97,7 +95,6 @@ Directive stripping only applies to the **current message** section so history
 remains intact. Channels that wrap history should set `CommandBody` (or
 `RawBody`) to the original message text and keep `Body` as the combined prompt.
 History buffers are configurable via `messages.groupChat.historyLimit` (global
-default) and per-channel overrides like `channels.slack.historyLimit` or
 `channels.telegram.accounts.<id>.historyLimit` (set `0` to disable).
 
 ## Queueing and followups

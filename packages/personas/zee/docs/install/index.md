@@ -30,7 +30,7 @@ zee onboard --install-daemon
 ## System requirements
 
 - **Node >=22**
-- macOS, Linux, or Windows via WSL2
+- Linux or Windows via WSL2
 - `pnpm` only if you build from source
 
 ## Choose your install path
@@ -65,13 +65,13 @@ If you already have Node:
 npm install -g zee@latest
 ```
 
-If you have libvips installed globally (common on macOS via Homebrew) and `sharp` fails to install, force prebuilt binaries:
+If you have libvips installed globally and `sharp` fails to install, force prebuilt binaries:
 
 ```bash
 SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g zee@latest
 ```
 
-If you see `sharp: Please add node-gyp to your dependencies`, either install build tooling (macOS: Xcode CLT + `npm install -g node-gyp`) or use the `SHARP_IGNORE_GLOBAL_LIBVIPS=1` workaround above to skip the native build.
+If you see `sharp: Please add node-gyp to your dependencies`, install build tooling (for example, `npm install -g node-gyp`) or use the `SHARP_IGNORE_GLOBAL_LIBVIPS=1` workaround above to skip the native build.
 
 Or:
 
@@ -160,12 +160,12 @@ npm prefix -g
 echo "$PATH"
 ```
 
-If `$(npm prefix -g)/bin` (macOS/Linux) or `$(npm prefix -g)` (Windows) is **not** present inside `echo "$PATH"`, your shell can’t find global npm binaries (including `zee`).
+If `$(npm prefix -g)/bin` (Linux) or `$(npm prefix -g)` (Windows) is **not** present inside `echo "$PATH"`, your shell can’t find global npm binaries (including `zee`).
 
 Fix: add it to your shell startup file (zsh: `~/.zshrc`, bash: `~/.bashrc`):
 
 ```bash
-# macOS / Linux
+# Linux
 export PATH="$(npm prefix -g)/bin:$PATH"
 ```
 

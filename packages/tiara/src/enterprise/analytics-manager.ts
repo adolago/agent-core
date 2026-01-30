@@ -933,7 +933,7 @@ export class AnalyticsManager extends EventEmitter {
       },
       alerts: {
         enabled: true,
-        channels: ['email', 'slack'],
+        channels: ['email'],
         escalation: {
           levels: 3,
           intervals: [5, 15, 30], // minutes

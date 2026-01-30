@@ -291,7 +291,7 @@ export namespace ZeeTools {
   }
 
   export interface MessagingParams {
-    channel: 'whatsapp' | 'email' | 'slack';
+    channel: 'whatsapp' | 'telegram';
     to: string;
     message: string;
     attachments?: string[];

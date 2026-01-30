@@ -32,8 +32,8 @@ If the installer completes but `zee` is not found in a new terminal, it’s usua
 
 What it does (high level):
 
-- Detect OS (macOS / Linux / WSL).
-- Ensure Node.js **22+** (macOS via Homebrew; Linux via NodeSource).
+- Detect OS (Linux / WSL).
+- Ensure Node.js **22+** (via a package manager or version manager).
 - Choose install method:
   - `npm` (default): `npm install -g zee@latest`
   - `git`: clone/build a source checkout and install a wrapper script

@@ -159,7 +159,7 @@ export function registerDnsCli(program: Command) {
       }
 
       if (process.platform !== "darwin") {
-        throw new Error("dns setup is currently supported on macOS only");
+        throw new Error("dns setup is currently supported only on supported hosts");
       }
       if (!tailnetIPv4 && !tailnetIPv6) {
         throw new Error("no tailnet IP detected; ensure Tailscale is running on this machine");

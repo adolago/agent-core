@@ -320,22 +320,6 @@ Prefer `agent-core.json(c)` for Qdrant and embedding settings. Qdrant connection
 
 ---
 
-## Peekaboo (Zee submodule - macOS screenshots)
-
-### Runner Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RUNNER_DEBUG` | `0` | Enable debug logs (`1` to enable) |
-| `RUNNER_SUMMARY_STYLE` | - | Summary output style |
-| `RUNNER_THE_USER_GAVE_ME_CONSENT` | `0` | Consent override |
-| `RUNNER_SWIFT_PACKAGE` | - | Custom Swift package path |
-| `RUNNER_TMUX` | - | Force/disable tmux mode |
-| `PEEKABOO_REQUIRE_UNIVERSAL` | `0` | Require universal binary |
-| `HOMEBREW_PREFIX` | `/opt/homebrew` | Homebrew installation prefix |
-
----
-
 ## Usage Examples
 
 ### Minimal Production Setup

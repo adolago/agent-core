@@ -118,8 +118,6 @@ Notes:
 Bindings are **deterministic** and **most-specific wins**:
 
 1. `peer` match (exact DM/group/channel id)
-2. `guildId` (Discord)
-3. `teamId` (Slack)
 4. `accountId` match for a channel
 5. channel-level match (`accountId: "*"`)
 6. fallback to default agent (`agents.list[].default`, else first list entry, default: `main`)

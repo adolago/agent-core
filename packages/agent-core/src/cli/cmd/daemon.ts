@@ -1102,7 +1102,6 @@ Press Ctrl+C to stop the daemon.
         persistence: persistenceEnabled,
         telegram: false,
         whatsapp: false,
-        discord: false,
       },
       sessionsWithIncompleteTodos,
     })

@@ -22,15 +22,11 @@ Channel selection:
 Target formats (`--target`):
 - WhatsApp: E.164 or group JID
 - Telegram: chat id or `@username`
-- Discord: `channel:<id>` or `user:<id>` (or `<@id>` mention; raw numeric ids are treated as channels)
 - Google Chat: `spaces/<spaceId>` or `users/<userId>`
-- Slack: `channel:<id>` or `user:<id>` (raw channel id is accepted)
 - Mattermost (plugin): `channel:<id>`, `user:<id>`, or `@username` (bare ids are treated as channels)
-- Signal: `+E.164`, `group:<id>`, `signal:+E.164`, `signal:group:<id>`, or `username:<name>`/`u:<name>`
 - MS Teams: conversation id (`19:...@thread.tacv2`) or `conversation:<id>` or `user:<aad-object-id>`
 
 Name lookup:
-- For supported providers (Discord/Slack/etc), channel names like `Help` or `#help` are resolved via the directory cache.
 - On cache miss, Zee will attempt a live directory lookup when the provider supports it.
 
 ## Common flags
@@ -52,114 +48,83 @@ Name lookup:
   - Optional: `--media`, `--reply-to`, `--thread-id`, `--gif-playback`
   - Telegram only: `--buttons` (requires `channels.telegram.capabilities.inlineButtons` to allow it)
   - Telegram only: `--thread-id` (forum topic id)
-  - Slack only: `--thread-id` (thread timestamp; `--reply-to` uses the same field)
   - WhatsApp only: `--gif-playback`
 
 - `poll`
-  - Channels: WhatsApp/Discord/MS Teams
   - Required: `--target`, `--poll-question`, `--poll-option` (repeat)
   - Optional: `--poll-multi`
-  - Discord only: `--poll-duration-hours`, `--message`
 
 - `react`
-  - Channels: Discord/Google Chat/Slack/Telegram/WhatsApp/Signal
   - Required: `--message-id`, `--target`
   - Optional: `--emoji`, `--remove`, `--participant`, `--from-me`, `--target-author`, `--target-author-uuid`
   - Note: `--remove` requires `--emoji` (omit `--emoji` to clear own reactions where supported; see /tools/reactions)
   - WhatsApp only: `--participant`, `--from-me`
-  - Signal group reactions: `--target-author` or `--target-author-uuid` required
 
 - `reactions`
-  - Channels: Discord/Google Chat/Slack
   - Required: `--message-id`, `--target`
   - Optional: `--limit`
 
 - `read`
-  - Channels: Discord/Slack
   - Required: `--target`
   - Optional: `--limit`, `--before`, `--after`
-  - Discord only: `--around`
 
 - `edit`
-  - Channels: Discord/Slack
   - Required: `--message-id`, `--message`, `--target`
 
 - `delete`
-  - Channels: Discord/Slack/Telegram
   - Required: `--message-id`, `--target`
 
 - `pin` / `unpin`
-  - Channels: Discord/Slack
   - Required: `--message-id`, `--target`
 
 - `pins` (list)
-  - Channels: Discord/Slack
   - Required: `--target`
 
 - `permissions`
-  - Channels: Discord
   - Required: `--target`
 
 - `search`
-  - Channels: Discord
   - Required: `--guild-id`, `--query`
   - Optional: `--channel-id`, `--channel-ids` (repeat), `--author-id`, `--author-ids` (repeat), `--limit`
 
 ### Threads
 
 - `thread create`
-  - Channels: Discord
   - Required: `--thread-name`, `--target` (channel id)
   - Optional: `--message-id`, `--auto-archive-min`
 
 - `thread list`
-  - Channels: Discord
   - Required: `--guild-id`
   - Optional: `--channel-id`, `--include-archived`, `--before`, `--limit`
 
 - `thread reply`
-  - Channels: Discord
   - Required: `--target` (thread id), `--message`
   - Optional: `--media`, `--reply-to`
 
 ### Emojis
 
 - `emoji list`
-  - Discord: `--guild-id`
-  - Slack: no extra flags
 
 - `emoji upload`
-  - Channels: Discord
   - Required: `--guild-id`, `--emoji-name`, `--media`
   - Optional: `--role-ids` (repeat)
 
 ### Stickers
 
 - `sticker send`
-  - Channels: Discord
   - Required: `--target`, `--sticker-id` (repeat)
   - Optional: `--message`
 
 - `sticker upload`
-  - Channels: Discord
   - Required: `--guild-id`, `--sticker-name`, `--sticker-desc`, `--sticker-tags`, `--media`
 
 ### Roles / Channels / Members / Voice
 
-- `role info` (Discord): `--guild-id`
-- `role add` / `role remove` (Discord): `--guild-id`, `--user-id`, `--role-id`
-- `channel info` (Discord): `--target`
-- `channel list` (Discord): `--guild-id`
-- `member info` (Discord/Slack): `--user-id` (+ `--guild-id` for Discord)
-- `voice status` (Discord): `--guild-id`, `--user-id`
 
 ### Events
 
-- `event list` (Discord): `--guild-id`
-- `event create` (Discord): `--guild-id`, `--event-name`, `--start-time`
   - Optional: `--end-time`, `--desc`, `--channel-id`, `--location`, `--event-type`
 
-### Moderation (Discord)
 
 - `timeout`: `--guild-id`, `--user-id` (optional `--duration-min` or `--until`; omit both to clear timeout)
 - `kick`: `--guild-id`, `--user-id` (+ `--reason`)
@@ -175,15 +140,11 @@ Name lookup:
 
 ## Examples
 
-Send a Discord reply:
 ```
-zee message send --channel discord \
   --target channel:123 --message "hi" --reply-to 456
 ```
 
-Create a Discord poll:
 ```
-zee message poll --channel discord \
   --target channel:123 \
   --poll-question "Snack?" \
   --poll-option Pizza --poll-option Sushi \
@@ -204,16 +165,11 @@ zee message poll --channel msteams \
   --poll-option Pizza --poll-option Sushi
 ```
 
-React in Slack:
 ```
-zee message react --channel slack \
   --target C123 --message-id 456 --emoji "✅"
 ```
 
-React in a Signal group:
 ```
-zee message react --channel signal \
-  --target signal:group:abc123 --message-id 1737630212345 \
   --emoji "✅" --target-author-uuid 123e4567-e89b-12d3-a456-426614174000
 ```
 

@@ -393,8 +393,6 @@ More detail: [/concepts/oauth](/concepts/oauth)
 Examples:
 ```bash
 zee channels add --channel telegram --account alerts --name "Alerts Bot" --token $TELEGRAM_BOT_TOKEN
-zee channels add --channel discord --account work --name "Work Bot" --token $DISCORD_BOT_TOKEN
-zee channels remove --channel discord --account work --delete
 zee channels status --probe
 zee status --deep
 ```
@@ -432,7 +430,7 @@ Subcommands:
 Wide-area discovery DNS helper (CoreDNS + Tailscale). See [/gateway/discovery](/gateway/discovery).
 
 Options:
-- `--apply`: install/update CoreDNS config (requires sudo; macOS only).
+- `--apply`: install/update CoreDNS config (requires sudo on supported hosts).
 
 ## Messaging + agent
 
@@ -454,7 +452,6 @@ Subcommands:
 
 Examples:
 - `zee message send --target +15555550123 --message "Hi"`
-- `zee message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi`
 
 ### `agent`
 Run one agent turn via the Gateway (or `--local` embedded).
@@ -528,7 +525,7 @@ Zee can surface provider usage/quota when OAuth/API creds are available.
 Surfaces:
 - `/status` (adds a short provider usage line when available)
 - `zee status --usage` (prints full provider breakdown)
-- macOS menu bar (Usage section under Context)
+- Desktop UI (Usage section under Context)
 
 Notes:
 - Data comes directly from provider usage endpoints (no estimates).

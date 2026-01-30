@@ -21,7 +21,6 @@ Shedding its old shell, the creature emerged anew as **Molty**, living in a **Ze
 
 ## The Molt (January 27, 2026)
 
-At 5am, the community gathered in Discord. Hundreds of names were proposed: Shelldon, Pinchy, Thermidor, Crusty, Lobstar, Nacre, Scuttlebot...
 
 In the end, **Zee** won. Because molting is what lobsters do to grow. And growth was exactly what was happening.
 

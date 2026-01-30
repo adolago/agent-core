@@ -213,7 +213,7 @@ export interface CheckpointCondition {
 }
 
 export interface NotificationConfig {
-  type: 'email' | 'webhook' | 'slack' | 'teams' | 'custom';
+  type: 'email' | 'webhook' | 'teams' | 'custom';
   endpoint: string;
   conditions: string[];
   template: string;

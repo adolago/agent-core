@@ -34,7 +34,6 @@ describe("logs.tail", () => {
       context: {} as unknown as Parameters<(typeof logsHandlers)["logs.tail"]>[0]["context"],
       client: null,
       req: { id: "req-1", type: "req", method: "logs.tail" },
-      isWebchatConnect: noop,
     });
 
     expect(respond).toHaveBeenCalledWith(

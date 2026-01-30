@@ -4,15 +4,10 @@ import { theme } from "../../terminal/theme.js";
 import { formatHelpExamples } from "../help-format.js";
 import type { ProgramContext } from "./context.js";
 import { createMessageCliHelpers } from "./message/helpers.js";
-import { registerMessageDiscordAdminCommands } from "./message/register.discord-admin.js";
 import {
-  registerMessageEmojiCommands,
   registerMessageStickerCommands,
 } from "./message/register.emoji-sticker.js";
-import {
-  registerMessagePermissionsCommand,
-  registerMessageSearchCommand,
-} from "./message/register.permissions-search.js";
+import { registerMessagePermissionsCommand } from "./message/register.permissions-search.js";
 import { registerMessagePinCommands } from "./message/register.pins.js";
 import { registerMessagePollCommand } from "./message/register.poll.js";
 import { registerMessageReactionsCommands } from "./message/register.reactions.js";
@@ -37,11 +32,11 @@ ${formatHelpExamples([
     "Send a message with media.",
   ],
   [
-    'zee message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
-    "Create a Discord poll.",
+    'zee message poll --channel telegram --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
+    "Create a poll.",
   ],
   [
-    'zee message react --channel discord --target 123 --message-id 456 --emoji "✅"',
+    'zee message react --channel telegram --target 123 --message-id 456 --emoji "✅"',
     "React to a message.",
   ],
 ])}
@@ -60,9 +55,6 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/message", "docs.zee/cli/message")
   registerMessageReadEditDeleteCommands(message, helpers);
   registerMessagePinCommands(message, helpers);
   registerMessagePermissionsCommand(message, helpers);
-  registerMessageSearchCommand(message, helpers);
   registerMessageThreadCommands(message, helpers);
-  registerMessageEmojiCommands(message, helpers);
   registerMessageStickerCommands(message, helpers);
-  registerMessageDiscordAdminCommands(message, helpers);
 }

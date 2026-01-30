@@ -74,7 +74,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: null,
       req: { id: "req-1", type: "req", method: "exec.approval.request" },
-      isWebchatConnect: noop,
     });
 
     const requested = broadcasts.find((entry) => entry.event === "exec.approval.requested");
@@ -91,7 +90,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: { connect: { client: { id: "cli", displayName: "CLI" } } },
       req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
-      isWebchatConnect: noop,
     });
 
     await requestPromise;
@@ -127,7 +125,6 @@ describe("exec approval handlers", () => {
           >[0]["context"],
           client: { connect: { client: { id: "cli", displayName: "CLI" } } },
           req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
-          isWebchatConnect: noop,
         });
       },
     };
@@ -145,7 +142,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: null,
       req: { id: "req-1", type: "req", method: "exec.approval.request" },
-      isWebchatConnect: noop,
     });
 
     expect(resolveRespond).toHaveBeenCalledWith(true, { ok: true }, undefined);
@@ -182,7 +178,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: null,
       req: { id: "req-1", type: "req", method: "exec.approval.request" },
-      isWebchatConnect: noop,
     });
 
     const requested = broadcasts.find((entry) => entry.event === "exec.approval.requested");
@@ -198,7 +193,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: { connect: { client: { id: "cli", displayName: "CLI" } } },
       req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
-      isWebchatConnect: noop,
     });
 
     await requestPromise;
@@ -232,7 +226,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: null,
       req: { id: "req-1", type: "req", method: "exec.approval.request" },
-      isWebchatConnect: noop,
     });
 
     await handlers["exec.approval.request"]({
@@ -246,7 +239,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: null,
       req: { id: "req-2", type: "req", method: "exec.approval.request" },
-      isWebchatConnect: noop,
     });
 
     expect(respondB).toHaveBeenCalledWith(
@@ -266,7 +258,6 @@ describe("exec approval handlers", () => {
       >[0]["context"],
       client: { connect: { client: { id: "cli", displayName: "CLI" } } },
       req: { id: "req-3", type: "req", method: "exec.approval.resolve" },
-      isWebchatConnect: noop,
     });
 
     await requestPromise;

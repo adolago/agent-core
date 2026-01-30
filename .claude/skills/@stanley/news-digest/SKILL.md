@@ -251,7 +251,7 @@ macro = false  # Disable macro news
 
 ```bash
 # Zee can trigger digest and send via messaging
-zee agent --message "Generate news digest for my portfolio and send to Slack"
+zee agent --message "Generate news digest for my portfolio and send to Telegram"
 ```
 
 ---

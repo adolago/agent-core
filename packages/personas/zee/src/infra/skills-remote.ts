@@ -68,17 +68,11 @@ function logRemoteBinProbeFailure(nodeId: string, err: unknown) {
   log.warn(`remote bin probe error (${label}): ${message ?? "unknown"}`);
 }
 
-function isMacPlatform(platform?: string, deviceFamily?: string): boolean {
+function isSupportedRemotePlatform(platform?: string): boolean {
   const platformNorm = String(platform ?? "")
     .trim()
     .toLowerCase();
-  const familyNorm = String(deviceFamily ?? "")
-    .trim()
-    .toLowerCase();
-  if (platformNorm.includes("mac")) return true;
-  if (platformNorm.includes("darwin")) return true;
-  if (familyNorm === "mac") return true;
-  return false;
+  return platformNorm === "linux" || platformNorm === "win32" || platformNorm === "windows";
 }
 
 function supportsSystemRun(commands?: string[]): boolean {
@@ -118,7 +112,7 @@ export function setSkillsRemoteRegistry(registry: NodeRegistry | null) {
 export async function primeRemoteSkillsCache() {
   try {
     const list = await listNodePairing();
-    let sawMac = false;
+    let sawEligible = false;
     for (const node of list.paired) {
       upsertNode({
         nodeId: node.nodeId,
@@ -129,11 +123,11 @@ export async function primeRemoteSkillsCache() {
         remoteIp: node.remoteIp,
         bins: node.bins,
       });
-      if (isMacPlatform(node.platform, node.deviceFamily) && supportsSystemRun(node.commands)) {
-        sawMac = true;
+      if (supportsSystemRun(node.commands) && isSupportedRemotePlatform(node.platform)) {
+        sawEligible = true;
       }
     }
-    if (sawMac) {
+    if (sawEligible) {
       bumpSkillsSnapshotVersion({ reason: "remote-node" });
     }
   } catch (err) {
@@ -283,21 +277,22 @@ export async function refreshRemoteNodeBins(params: {
 }
 
 export function getRemoteSkillEligibility(): SkillEligibilityContext["remote"] | undefined {
-  const macNodes = [...remoteNodes.values()].filter(
-    (node) => isMacPlatform(node.platform, node.deviceFamily) && supportsSystemRun(node.commands),
+  const eligibleNodes = [...remoteNodes.values()].filter(
+    (node) => isSupportedRemotePlatform(node.platform) && supportsSystemRun(node.commands),
   );
-  if (macNodes.length === 0) return undefined;
+  if (eligibleNodes.length === 0) return undefined;
   const bins = new Set<string>();
-  for (const node of macNodes) {
+  for (const node of eligibleNodes) {
     for (const bin of node.bins) bins.add(bin);
   }
-  const labels = macNodes.map((node) => node.displayName ?? node.nodeId).filter(Boolean);
-  const note =
-    labels.length > 0
-      ? `Remote macOS node available (${labels.join(", ")}). Run macOS-only skills via nodes.run on that node.`
-      : "Remote macOS node available. Run macOS-only skills via nodes.run on that node.";
+  const labels = eligibleNodes.map((node) => node.displayName ?? node.nodeId).filter(Boolean);
+  const note = labels.length > 0
+    ? `Remote node available (${labels.join(", ")}). Run eligible skills via nodes.run on that node.`
+    : "Remote node available. Run eligible skills via nodes.run on that node.";
   return {
-    platforms: ["darwin"],
+    platforms: eligibleNodes
+      .map((node) => node.platform)
+      .filter((value): value is string => Boolean(value)),
     hasBin: (bin) => bins.has(bin),
     hasAnyBin: (required) => required.some((bin) => bins.has(bin)),
     note,

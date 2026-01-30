@@ -26,7 +26,6 @@ const log = createSubsystemLogger("browser").child("chrome");
 export type { BrowserExecutable } from "./chrome.executables.js";
 export {
   findChromeExecutableLinux,
-  findChromeExecutableMac,
   findChromeExecutableWindows,
   resolveBrowserExecutableForPlatform,
 } from "./chrome.executables.js";
@@ -162,7 +161,7 @@ export async function launchZeeChrome(
   const exe = resolveBrowserExecutable(resolved);
   if (!exe) {
     throw new Error(
-      "No supported browser found (Chrome/Brave/Edge/Chromium on macOS, Linux, or Windows).",
+      "No supported browser found (Chrome/Brave/Edge/Chromium on Linux or Windows).",
     );
   }
 

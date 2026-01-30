@@ -109,7 +109,6 @@ export interface RollbackTriggerConfig {
   notifications: {
     webhook?: string;
     email?: string[];
-    slack?: string;
   };
 }
 
@@ -550,8 +549,7 @@ export class RollbackTrigger extends EventEmitter {
       },
       notifications: {
         webhook: config.notifications?.webhook,
-        email: config.notifications?.email,
-        slack: config.notifications?.slack
+        email: config.notifications?.email
       }
     };
   }
@@ -774,11 +772,6 @@ export class RollbackTrigger extends EventEmitter {
       if (this.config.notifications.webhook) {
         // Send webhook notification
         // Implementation would depend on the webhook service
-      }
-      
-      if (this.config.notifications.slack) {
-        // Send Slack notification
-        // Implementation would depend on Slack integration
       }
       
       if (this.config.notifications.email) {

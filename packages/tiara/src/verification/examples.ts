@@ -486,7 +486,7 @@ export class ProductionDeploymentExample {
     this.alerting.on('criticalAlert', (alert: any) => {
       console.error(`🚨 CRITICAL ALERT: ${alert.type} - ${alert.message}`);
       
-      // Could integrate with PagerDuty, Slack, etc.
+      // Could integrate with PagerDuty or other external alerting systems.
     });
   }
 

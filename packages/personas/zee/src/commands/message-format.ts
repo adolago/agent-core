@@ -158,11 +158,11 @@ function renderPinsFromPayload(payload: unknown, opts: FormatOpts): string[] | n
   return renderMessageList(pins, opts, "No pins.");
 }
 
-function extractDiscordSearchResultsMessages(results: unknown): unknown[] | null {
+function extractSearchResultsMessages(results: unknown): unknown[] | null {
   if (!results || typeof results !== "object") return null;
   const raw = (results as { messages?: unknown }).messages;
   if (!Array.isArray(raw)) return null;
-  // Discord search returns messages as array-of-array; first element is the message.
+  // Some providers return messages as array-of-array; first element is the message.
   const flattened: unknown[] = [];
   for (const entry of raw) {
     if (Array.isArray(entry) && entry.length > 0) {
@@ -367,7 +367,7 @@ export function formatMessageCliText(result: MessageActionRunResult): string[] {
 
   if (result.action === "search") {
     const results = (payload as { results?: unknown }).results;
-    const list = extractDiscordSearchResultsMessages(results);
+    const list = extractSearchResultsMessages(results);
     if (list) {
       lines.push(heading("Search results"));
       lines.push(renderMessageList(list, opts, "No results.")[0] ?? "");

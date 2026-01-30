@@ -266,14 +266,7 @@ function applyConfigFixes(params: { cfg: ZeeConfig; env: NodeJS.ProcessEnv }): {
     changes.push('logging.redactSensitive=off -> "tools"');
   }
 
-  for (const channel of [
-    "telegram",
-    "whatsapp",
-    "discord",
-    "signal",
-    "slack",
-    "msteams",
-  ]) {
+  for (const channel of ["telegram", "whatsapp"]) {
     setGroupPolicyAllowlist({ cfg: next, channel, changes, policyFlips });
   }
 

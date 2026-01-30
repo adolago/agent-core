@@ -2,7 +2,7 @@
 summary: "CLI reference for `zee node` (headless node host)"
 read_when:
   - Running the headless node host
-  - Pairing a non-macOS node for system.run
+  - Pairing a remote node for system.run
 ---
 
 # `zee node`

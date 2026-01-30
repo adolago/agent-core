@@ -100,7 +100,7 @@ Each allowlist entry tracks:
 ## Auto-allow skill CLIs
 
 When **Auto-allow skill CLIs** is enabled, executables referenced by known skills
-are treated as allowlisted on nodes (macOS node or headless node host). This uses
+are treated as allowlisted on nodes with exec support. This uses
 `skills.bins` over the Gateway RPC to fetch the skill bin list. Disable this if you want strict manual allowlists.
 
 ## Safe bins (stdin-only)
@@ -164,9 +164,7 @@ Config:
       enabled: true,
       mode: "session", // "session" | "targets" | "both"
       agentFilter: ["main"],
-      sessionFilter: ["discord"], // substring or regex
       targets: [
-        { channel: "slack", to: "U12345678" },
         { channel: "telegram", to: "123456789" }
       ]
     }

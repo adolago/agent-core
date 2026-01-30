@@ -20,7 +20,7 @@ import type { EmbeddingProvider } from "../../memory/types";
 // =============================================================================
 
 export interface SentinelDeliveryContext {
-  /** Messaging channel (whatsapp, telegram, discord, cli) */
+  /** Messaging channel (whatsapp, telegram, cli) */
   channel?: string;
   /** Recipient identifier */
   to?: string;

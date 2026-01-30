@@ -135,7 +135,6 @@ Delivery notes:
 - Use `deliver: false` to keep output internal even if a `to` is present.
 
 Target format reminders:
-- Slack/Discord/Mattermost (plugin) targets should use explicit prefixes (e.g. `channel:<id>`, `user:<id>`) to avoid ambiguity.
 - Telegram topics should use the `:topic:` form (see below).
 
 #### Telegram delivery targets (topics / forum threads)

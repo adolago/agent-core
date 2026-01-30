@@ -25,19 +25,10 @@ const optionNamesAdd = [
   "tokenFile",
   "botToken",
   "appToken",
-  "signalNumber",
-  "cliPath",
   "dbPath",
   "service",
   "region",
   "authDir",
-  "httpUrl",
-  "httpHost",
-  "httpPort",
-  "webhookPath",
-  "webhookUrl",
-  "audienceType",
-  "audience",
   "useEnv",
   "homeserver",
   "userId",
@@ -108,7 +99,6 @@ export function registerChannelsCli(program: Command) {
     .description("Show provider capabilities (intents/scopes + supported features)")
     .option("--channel <name>", `Channel (${formatCliChannelOptions(["all"])})`)
     .option("--account <id>", "Account id (only with --channel)")
-    .option("--target <dest>", "Channel target for permission audit")
     .option("--timeout <ms>", "Timeout in ms", "10000")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
@@ -160,19 +150,10 @@ export function registerChannelsCli(program: Command) {
     .option("--name <name>", "Display name for this account")
     .option("--token <token>", "Bot token (Telegram)")
     .option("--token-file <path>", "Bot token file (Telegram)")
-    .option("--signal-number <e164>", "Signal account number (E.164)")
-    .option("--cli-path <path>", "CLI path (signal-cli)")
     .option("--db-path <path>", "Database path override")
     .option("--service <service>", "Service mode (sms|auto)")
     .option("--region <region>", "SMS region")
     .option("--auth-dir <path>", "WhatsApp auth directory override")
-    .option("--http-url <url>", "Signal HTTP daemon base URL")
-    .option("--http-host <host>", "Signal HTTP host")
-    .option("--http-port <port>", "Signal HTTP port")
-    .option("--webhook-path <path>", "Webhook path (Google Chat)")
-    .option("--webhook-url <url>", "Google Chat webhook URL")
-    .option("--audience-type <type>", "Google Chat audience type (app-url|project-number)")
-    .option("--audience <value>", "Google Chat audience value (app URL or project number)")
     .option("--homeserver <url>", "Matrix homeserver URL")
     .option("--user-id <id>", "Matrix user ID")
     .option("--access-token <token>", "Matrix access token")

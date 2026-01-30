@@ -16,7 +16,7 @@ read_when:
 - `/usage cost` in chats: local cost summary aggregated from Zee session logs.
 - CLI: `zee status --usage` prints a full per-provider breakdown.
 - CLI: `zee channels list` prints the same usage snapshot alongside provider config (use `--no-usage` to skip).
-- macOS menu bar: “Usage” section under Context (only if available).
+- Desktop UI: “Usage” section under Context (only if available).
 
 ## Providers + credentials
 - **Anthropic (Claude)**: OAuth tokens in auth profiles.

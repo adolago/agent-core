@@ -152,7 +152,6 @@ Example: two agents, only the second agent runs heartbeats.
 
 - Heartbeats run in the agent’s main session by default (`agent:<id>:<mainKey>`),
   or `global` when `session.scope = "global"`. Set `session` to override to a
-  specific channel session (Discord/WhatsApp/etc.).
 - `session` only affects the run context; delivery is controlled by `target` and `to`.
 - To deliver to a specific channel/recipient, set `target` + `to`. With
   `target: "last"`, delivery uses the last external channel for that session.
@@ -203,9 +202,7 @@ channels:
       showOk: false
       showAlerts: true
       useIndicator: true
-  slack:
     heartbeat:
-      showOk: true # all Slack accounts
     accounts:
       ops:
         heartbeat:

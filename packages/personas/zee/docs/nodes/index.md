@@ -10,8 +10,8 @@ read_when:
 A **node host** is a headless runtime that connects to the Gateway WebSocket with
 `role: "node"` and executes `system.run` / `system.which` on the node machine.
 
-Zee does **not** ship mobile or desktop node apps in this repo. UI, camera, and
-screen-capture nodes are out of scope here.
+Zee ships only headless node hosts in this repo. UI, camera, and screen-capture
+nodes are out of scope here.
 
 ## Pairing + status
 
@@ -46,7 +46,6 @@ Exec approvals are **per node host**. Add allowlist entries from the gateway:
 
 ```bash
 zee approvals allowlist add --node <id|name|ip> "/usr/bin/uname"
-zee approvals allowlist add --node <id|name|ip> "/usr/bin/sw_vers"
 ```
 
 Approvals live on the node host at `~/.zee/exec-approvals.json`.

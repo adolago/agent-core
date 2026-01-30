@@ -23,12 +23,7 @@ export type HookMappingConfig = {
   channel?:
     | "last"
     | "whatsapp"
-    | "telegram"
-    | "discord"
-    | "googlechat"
-    | "slack"
-    | "signal"
-    | "msteams";
+    | "telegram";
   to?: string;
   /** Override model for this hook (provider/model or alias). */
   model?: string;

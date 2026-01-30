@@ -127,8 +127,6 @@ USAGE:
   npx claude-flow help hive-mind       # Learn about Hive Mind features
   npx claude-flow swarm "Build API" --claude  # Quick start with Claude Code CLI
 
-💬 Discord Community: https://discord.com/invite/dfxmpwkG2D
-
 `;
 
 export const COMMAND_HELP = {

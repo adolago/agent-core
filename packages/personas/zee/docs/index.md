@@ -10,7 +10,6 @@ read_when:
 </p>
 
 <p align="center">
-  Plugins add Mattermost and more.
   Send a message, get an agent response.
 </p>
 
@@ -20,7 +19,7 @@ read_when:
 </p>
 
 Zee bridges WhatsApp (via WhatsApp Web / Baileys), Telegram (Bot API / grammY),
-agents like Pi. Plugins add Mattermost (Bot API + WebSocket) and more.
+agents like Pi.
 
 ## Start here
 
@@ -70,8 +69,6 @@ Most operations flow through the **Zee Gateway** (`zee gateway`), a single long-
 
 - **WhatsApp Integration** — Uses Baileys for WhatsApp Web protocol
 - **Telegram Bot** — DMs + groups via grammY
-- **Discord Bot** — DMs + guild channels via channels.discord.js
-- **Mattermost Bot (plugin)** — Bot token + WebSocket events
 - **Agent bridge** — Pi (RPC mode) with tool streaming
 - **Streaming + chunking** — Block streaming + Telegram draft streaming details ([/concepts/streaming](/concepts/streaming))
 - **Multi-agent routing** — Route provider accounts/peers to isolated agents (workspace + per-agent sessions)
@@ -178,8 +175,7 @@ Example:
 - Providers and UX:
   - [Control UI (browser)](/web/control-ui)
   - [Telegram](/channels/telegram)
-  - [Discord](/channels/discord)
-  - [Mattermost (plugin)](/channels/mattermost)
+  - [WhatsApp](/channels/whatsapp)
   - [Groups](/concepts/groups)
   - [WhatsApp group messages](/concepts/group-messages)
 - Host environments:

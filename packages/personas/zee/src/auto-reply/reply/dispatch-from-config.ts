@@ -17,6 +17,7 @@ import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 import { isRoutableChannel, routeReply } from "./route-reply.js";
 import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "../../tts/tts.js";
+import { isDaemonBridgeEnabled } from "./daemon-bridge.js";
 
 const AUDIO_PLACEHOLDER_RE = /^<media:audio>(\s*\([^)]*\))?$/i;
 const AUDIO_HEADER_RE = /^\[Audio\b/i;
@@ -186,8 +187,8 @@ export async function dispatchReplyFromConfig(params: {
   // Check if we should route replies to originating channel instead of dispatcher.
   // Only route when the originating channel is DIFFERENT from the current surface.
   // This handles cross-provider routing (e.g., message from Telegram being processed
-  // by a shared session that's currently on Slack) while preserving normal dispatcher
-  // flow when the provider handles its own messages.
+  // by a shared session that's currently on another channel) while preserving normal
+  // dispatcher flow when the provider handles its own messages.
   //
   // Debug: `pnpm test src/auto-reply/reply/dispatch-from-config.test.ts`
   const originatingChannel = ctx.OriginatingChannel;
@@ -231,39 +232,42 @@ export async function dispatchReplyFromConfig(params: {
   markProcessing();
 
   try {
-    const fastAbort = await tryFastAbortFromMessage({ ctx, cfg });
-    if (fastAbort.handled) {
-      const payload = {
-        text: formatAbortReplyText(fastAbort.stoppedSubagents),
-      } satisfies ReplyPayload;
-      let queuedFinal = false;
-      let routedFinalCount = 0;
-      if (shouldRouteToOriginating && originatingChannel && originatingTo) {
-        const result = await routeReply({
-          payload,
-          channel: originatingChannel,
-          to: originatingTo,
-          sessionKey: ctx.SessionKey,
-          accountId: ctx.AccountId,
-          threadId: ctx.MessageThreadId,
-          cfg,
-        });
-        queuedFinal = result.ok;
-        if (result.ok) routedFinalCount += 1;
-        if (!result.ok) {
-          logVerbose(
-            `dispatch-from-config: route-reply (abort) failed: ${result.error ?? "unknown error"}`,
-          );
+    const skipLocalAbort = isDaemonBridgeEnabled(cfg);
+    if (!skipLocalAbort) {
+      const fastAbort = await tryFastAbortFromMessage({ ctx, cfg });
+      if (fastAbort.handled) {
+        const payload = {
+          text: formatAbortReplyText(fastAbort.stoppedSubagents),
+        } satisfies ReplyPayload;
+        let queuedFinal = false;
+        let routedFinalCount = 0;
+        if (shouldRouteToOriginating && originatingChannel && originatingTo) {
+          const result = await routeReply({
+            payload,
+            channel: originatingChannel,
+            to: originatingTo,
+            sessionKey: ctx.SessionKey,
+            accountId: ctx.AccountId,
+            threadId: ctx.MessageThreadId,
+            cfg,
+          });
+          queuedFinal = result.ok;
+          if (result.ok) routedFinalCount += 1;
+          if (!result.ok) {
+            logVerbose(
+              `dispatch-from-config: route-reply (abort) failed: ${result.error ?? "unknown error"}`,
+            );
+          }
+        } else {
+          queuedFinal = dispatcher.sendFinalReply(payload);
         }
-      } else {
-        queuedFinal = dispatcher.sendFinalReply(payload);
+        await dispatcher.waitForIdle();
+        const counts = dispatcher.getQueuedCounts();
+        counts.final += routedFinalCount;
+        recordProcessed("completed", { reason: "fast_abort" });
+        markIdle("message_completed");
+        return { queuedFinal, counts };
       }
-      await dispatcher.waitForIdle();
-      const counts = dispatcher.getQueuedCounts();
-      counts.final += routedFinalCount;
-      recordProcessed("completed", { reason: "fast_abort" });
-      markIdle("message_completed");
-      return { queuedFinal, counts };
     }
 
     // Track accumulated block text for TTS generation after streaming completes.

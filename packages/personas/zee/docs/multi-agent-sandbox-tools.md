@@ -108,7 +108,7 @@ For debugging “why is this blocked?”, see [Sandbox vs Tool Policy vs Elevate
         },
         "tools": {
           "allow": ["read", "write", "apply_patch", "exec"],
-          "deny": ["browser", "gateway", "discord"]
+          "deny": ["browser", "gateway"]
         }
       }
     ]
@@ -127,7 +127,7 @@ For debugging “why is this blocked?”, see [Sandbox vs Tool Policy vs Elevate
     "list": [
       {
         "id": "support",
-        "tools": { "profile": "messaging", "allow": ["slack"] }
+        "tools": { "profile": "messaging", "allow": ["whatsapp", "telegram"] }
       }
     ]
   }
@@ -136,7 +136,7 @@ For debugging “why is this blocked?”, see [Sandbox vs Tool Policy vs Elevate
 
 **Result:**
 - default agents get coding tools
-- `support` agent is messaging-only (+ Slack tool)
+- `support` agent is messaging-only (+ WhatsApp/Telegram tools)
 
 ---
 

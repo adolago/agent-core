@@ -89,7 +89,7 @@ Notes:
 - `metadata` should be a **single-line JSON object**.
 - Use `{baseDir}` in instructions to reference the skill folder path.
 - Optional frontmatter keys:
-  - `homepage` — URL surfaced as “Website” in the macOS Skills UI (also supported via `metadata.zee.homepage`).
+  - `homepage` — URL surfaced as “Website” in the Skills UI (also supported via `metadata.zee.homepage`).
   - `user-invocable` — `true|false` (default: `true`). When `true`, the skill is exposed as a user slash command.
   - `disable-model-invocation` — `true|false` (default: `false`). When `true`, the skill is excluded from the model prompt (still available via user invocation).
   - `command-dispatch` — `tool` (optional). When set to `tool`, the slash command bypasses the model and dispatches directly to a tool.
@@ -113,15 +113,15 @@ metadata: {"zee":{"requires":{"bins":["uv"],"env":["GEMINI_API_KEY"],"config":["
 
 Fields under `metadata.zee`:
 - `always: true` — always include the skill (skip other gates).
-- `emoji` — optional emoji used by the macOS Skills UI.
-- `homepage` — optional URL shown as “Website” in the macOS Skills UI.
-- `os` — optional list of platforms (`darwin`, `linux`, `win32`). If set, the skill is only eligible on those OSes.
+- `emoji` — optional emoji used by the Skills UI.
+- `homepage` — optional URL shown as “Website” in the Skills UI.
+- `os` — optional list of platforms (`linux`, `win32`). If set, the skill is only eligible on those OSes.
 - `requires.bins` — list; each must exist on `PATH`.
 - `requires.anyBins` — list; at least one must exist on `PATH`.
 - `requires.env` — list; env var must exist **or** be provided in config.
 - `requires.config` — list of `zee.json` paths that must be truthy.
 - `primaryEnv` — env var name associated with `skills.entries.<name>.apiKey`.
-- `install` — optional array of installer specs used by the macOS Skills UI (brew/node/go/uv/download).
+- `install` — optional array of installer specs used by the Skills UI (brew/node/go/uv/download).
 
 Note on sandboxing:
 - `requires.bins` is checked on the **host** at skill load time.
@@ -211,11 +211,11 @@ Zee snapshots the eligible skills **when a session starts** and reuses that list
 
 Skills can also refresh mid-session when the skills watcher is enabled or when a new eligible remote node appears (see below). Think of this as a **hot reload**: the refreshed list is picked up on the next agent turn.
 
-## Remote macOS nodes (Linux gateway)
+## Remote nodes
 
-If the Gateway is running on Linux but a **macOS node** is connected **with `system.run` allowed** (Exec approvals security not set to `deny`), Zee can treat macOS-only skills as eligible when the required binaries are present on that node. The agent should execute those skills via the `nodes` tool (typically `nodes.run`).
+If the Gateway is running on Linux but a remote node is connected **with `system.run` allowed** (Exec approvals security not set to `deny`), Zee can treat skills as eligible when the required binaries are present on that node. The agent should execute those skills via the `nodes` tool (typically `nodes.run`).
 
-This relies on the node reporting its command support and on a bin probe via `system.run`. If the macOS node goes offline later, the skills remain visible; invocations may fail until the node reconnects.
+This relies on the node reporting its command support and on a bin probe via `system.run`. If the node goes offline later, the skills remain visible; invocations may fail until the node reconnects.
 
 ## Skills watcher (auto-refresh)
 

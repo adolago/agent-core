@@ -230,7 +230,7 @@ function readCredentialsFromKeychain(): ClaudeCredential | null {
 }
 
 function readClaudeCredentials(): ClaudeCredential | null {
-  // Try keychain first on macOS
+  // Try keychain first when available
   const keychainCreds = readCredentialsFromKeychain();
   if (keychainCreds) {
     return keychainCreds;

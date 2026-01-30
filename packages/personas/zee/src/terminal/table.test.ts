@@ -26,7 +26,7 @@ describe("renderTable", () => {
         { key: "Item", header: "Item", minWidth: 10 },
         { key: "Value", header: "Value", flex: true, minWidth: 24 },
       ],
-      rows: [{ Item: "OS", Value: "macos 26.2 (arm64)" }],
+      rows: [{ Item: "OS", Value: "linux 6.1 (x64)" }],
     });
 
     const firstLine = out.trimEnd().split("\n")[0] ?? "";

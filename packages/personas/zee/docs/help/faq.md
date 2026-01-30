@@ -16,7 +16,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Does it run on Raspberry Pi?](#does-it-run-on-raspberry-pi)
   - [Any tips for Raspberry Pi installs?](#any-tips-for-raspberry-pi-installs)
   - [It is stuck on "wake up my friend" / onboarding will not hatch. What now?](#it-is-stuck-on-wake-up-my-friend-onboarding-will-not-hatch-what-now)
-  - [Can I migrate my setup to a new machine (Mac mini) without redoing onboarding?](#can-i-migrate-my-setup-to-a-new-machine-mac-mini-without-redoing-onboarding)
+  - [Can I migrate my setup to a new machine without redoing onboarding?](#can-i-migrate-my-setup-to-a-new-machine-without-redoing-onboarding)
   - [Where do I see what’s new in the latest version?](#where-do-i-see-whats-new-in-the-latest-version)
   - [I can't access docs.zee (SSL error). What now?](#i-cant-access-docszee-ssl-error-what-now)
   - [What’s the difference between stable and beta?](#whats-the-difference-between-stable-and-beta)
@@ -43,8 +43,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [How do I set up Gemini CLI OAuth](#how-do-i-set-up-gemini-cli-oauth)
   - [Is a local model OK for casual chats?](#is-a-local-model-ok-for-casual-chats)
   - [How do I keep hosted model traffic in a specific region?](#how-do-i-keep-hosted-model-traffic-in-a-specific-region)
-  - [Do I have to buy a Mac Mini to install this?](#do-i-have-to-buy-a-mac-mini-to-install-this)
-  - [If I buy a Mac mini to run Zee, can I connect it to my MacBook Pro?](#if-i-buy-a-mac-mini-to-run-zee-can-i-connect-it-to-my-macbook-pro)
   - [Can I use Bun?](#can-i-use-bun)
   - [Telegram: what goes in `allowFrom`?](#telegram-what-goes-in-allowfrom)
   - [Can multiple people use one WhatsApp number with different Zees?](#can-multiple-people-use-one-whatsapp-number-with-different-zees)
@@ -71,7 +69,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Cron or reminders do not fire. What should I check?](#cron-or-reminders-do-not-fire-what-should-i-check)
   - [How do I install skills on Linux?](#how-do-i-install-skills-on-linux)
   - [Can Zee run tasks on a schedule or continuously in the background?](#can-zee-run-tasks-on-a-schedule-or-continuously-in-the-background)
-  - [Can I run Apple/macOS-only skills from Linux?](#can-i-run-applemacosonly-skills-from-linux)
   - [Do you have a Notion or HeyGen integration?](#do-you-have-a-notion-or-heygen-integration)
   - [How do I install the Chrome extension for browser takeover?](#how-do-i-install-the-chrome-extension-for-browser-takeover)
 - [Sandboxing and memory](#sandboxing-and-memory)
@@ -109,8 +106,8 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Do nodes run a gateway service?](#do-nodes-run-a-gateway-service)
   - [Is there an API / RPC way to apply config?](#is-there-an-api-rpc-way-to-apply-config)
   - [What’s a minimal “sane” config for a first install?](#whats-a-minimal-sane-config-for-a-first-install)
-  - [How do I set up Tailscale on a VPS and connect from my Mac?](#how-do-i-set-up-tailscale-on-a-vps-and-connect-from-my-mac)
-  - [How do I connect a Mac node to a remote Gateway (Tailscale Serve)?](#how-do-i-connect-a-mac-node-to-a-remote-gateway-tailscale-serve)
+  - [How do I set up Tailscale on a VPS and connect from my laptop?](#how-do-i-set-up-tailscale-on-a-vps-and-connect-from-my-laptop)
+  - [How do I connect a node to a remote Gateway (Tailscale Serve)?](#how-do-i-connect-a-node-to-a-remote-gateway-tailscale-serve)
   - [Should I install on a second laptop or just add a node?](#should-i-install-on-a-second-laptop-or-just-add-a-node)
 - [Env vars and .env loading](#env-vars-and-env-loading)
   - [How does Zee load environment variables?](#how-does-zee-load-environment-variables)
@@ -130,7 +127,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Why doesn’t Zee reply in a group?](#why-doesnt-zee-reply-in-a-group)
   - [Do groups/threads share context with DMs?](#do-groupsthreads-share-context-with-dms)
   - [How many workspaces and agents can I create?](#how-many-workspaces-and-agents-can-i-create)
-  - [Can I run multiple bots or chats at the same time (Slack), and how should I set that up?](#can-i-run-multiple-bots-or-chats-at-the-same-time-slack-and-how-should-i-set-that-up)
 - [Models: defaults, selection, aliases, switching](#models-defaults-selection-aliases-switching)
   - [What is the “default model”?](#what-is-the-default-model)
   - [What model do you recommend?](#what-model-do-you-recommend)
@@ -189,7 +185,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 - [Chat commands, aborting tasks, and “it won’t stop”](#chat-commands-aborting-tasks-and-it-wont-stop)
   - [How do I stop internal system messages from showing in chat](#how-do-i-stop-internal-system-messages-from-showing-in-chat)
   - [How do I stop/cancel a running task?](#how-do-i-stopcancel-a-running-task)
-  - [How do I send a Discord message from Telegram? (“Cross-context messaging denied”)](#how-do-i-send-a-discord-message-from-telegram-crosscontext-messaging-denied)
   - [Why does it feel like the bot “ignores” rapid‑fire messages?](#why-does-it-feel-like-the-bot-ignores-rapidfire-messages)
 
 ## First 60 seconds if something's broken
@@ -246,7 +241,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 ### Im stuck whats the fastest way to get unstuck
 
 Use a local AI agent that can **see your machine**. That is far more effective than asking
-in Discord, because most "I'm stuck" cases are **local config or environment issues** that
 remote helpers cannot inspect.
 
 - **Claude Code**: https://www.anthropic.com/claude-code/
@@ -381,7 +375,7 @@ zee doctor
 If the Gateway is remote, ensure the tunnel/Tailscale connection is up and that the UI
 is pointed at the right Gateway. See [Remote access](/gateway/remote).
 
-### Can I migrate my setup to a new machine Mac mini without redoing onboarding
+### Can I migrate my setup to a new machine without redoing onboarding
 
 Yes. Copy the **state directory** and **workspace**, then run Doctor once. This
 keeps your bot “exactly the same” (memory, session history, auth, and channel
@@ -440,7 +434,7 @@ https://github.com/zee/zee/blob/main/CHANGELOG.md
 **Beta** is the npm dist‑tag `beta` (may match `latest`).  
 **Dev** is the moving head of `main` (git); when published, it uses the npm dist‑tag `dev`.
 
-One‑liners (macOS/Linux):
+One‑liners (Linux):
 
 ```bash
 curl -fsSL --proto '=https' --tlsv1.2 https://docs.zee/install.sh | bash -s -- --beta
@@ -610,7 +604,7 @@ Docs: [Update](/cli/update), [Updating](/install/updating).
 - **Model/auth setup** (Anthropic **setup-token** recommended for Claude subscriptions, OpenAI Codex OAuth supported, API keys optional, LM Studio local models supported)
 - **Workspace** location + bootstrap files
 - **Gateway settings** (bind/port/auth/tailscale)
-- **Daemon install** (LaunchAgent on macOS; systemd user unit on Linux/WSL2)
+- **Daemon install** (systemd user unit on Linux/WSL2)
 - **Health checks** and **skills** selection
 
 It also warns if your configured model is unknown or missing auth.
@@ -696,35 +690,6 @@ Usually no. Zee needs large context + strong safety; small cards truncate and le
 ### How do I keep hosted model traffic in a specific region
 
 Pick region-pinned endpoints. OpenRouter exposes US-hosted options for MiniMax, Kimi, and GLM; choose the US-hosted variant to keep data in-region. You can still list Anthropic/OpenAI alongside these by using `models.mode: "merge"` so fallbacks stay available while respecting the regioned provider you select.
-
-### Do I have to buy a Mac Mini to install this
-
-No. Zee runs on macOS or Linux (Windows via WSL2). A Mac mini is optional - some people
-buy one as an always‑on host, but a small VPS, home server, or Raspberry Pi‑class box works too.
-
-If you want other macOS‑only tools, run the Gateway on a Mac or pair a node host.
-
-
-You need **some macOS device** signed into Messages. It does **not** have to be a Mac mini -
-the Gateway can run elsewhere.
-
-Common setups:
-- Run everything on the Mac if you want the simplest single‑machine setup.
-
-[Gateway remote](/gateway/remote).
-
-### If I buy a Mac mini to run Zee can I connect it to my MacBook Pro
-
-Yes. The **Mac mini can run the Gateway**, and your MacBook Pro can connect as a
-**node** (companion device). Nodes don’t run the Gateway - they provide
-`system.run` on that device.
-
-Common pattern:
-- Gateway on the Mac mini (always‑on).
-- MacBook Pro runs a node host and pairs to the Gateway.
-- Use `zee nodes status` / `zee nodes list` to see it.
-
-Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes).
 
 ### Can I use Bun
 
@@ -822,15 +787,14 @@ lowest friction and you’re okay with sleep/restarts, run it locally.
 - **Pros:** always‑on, stable network, no laptop sleep issues, easier to keep running.
 - **Cons:** often run headless (use screenshots), remote file access only, you must SSH for updates.
 
-**Zee-specific note:** WhatsApp/Telegram/Slack/Mattermost (plugin)/Discord all work fine from a VPS. The only real trade-off is **headless browser** vs a visible window. See [Browser](/tools/browser).
 
-**Recommended default:** VPS if you had gateway disconnects before. Local is great when you’re actively using the Mac and want local file access or UI automation with a visible browser.
+**Recommended default:** VPS if you had gateway disconnects before. Local is great when you’re actively using the laptop and want local file access or UI automation with a visible browser.
 
 ### How important is it to run Zee on a dedicated machine
 
 Not required, but **recommended for reliability and isolation**.
 
-- **Dedicated host (VPS/Mac mini/Pi):** always‑on, fewer sleep/reboot interruptions, cleaner permissions, easier to keep running.
+- **Dedicated host (VPS/home server/Pi):** always‑on, fewer sleep/reboot interruptions, cleaner permissions, easier to keep running.
 - **Shared laptop/desktop:** totally fine for testing and active use, but expect pauses when the machine sleeps or updates.
 
 If you want the best of both worlds, keep the Gateway on a dedicated host and pair your laptop as a **node** for local screen/camera/exec tools. See [Nodes](/nodes).
@@ -859,7 +823,6 @@ Baseline guidance:
 
 If you are on Windows, **WSL2 is the easiest VM style setup** and has the best tooling
 compatibility. See [Windows](/platforms/windows), [VPS hosting](/vps).
-If you are running macOS in a VM, see [macOS VM](/platforms/macos-vm).
 
 ## What is Zee?
 
@@ -874,7 +837,7 @@ stateful sessions, memory, and tools - without handing control of your workflows
 SaaS.
 
 Highlights:
-- **Your devices, your data:** run the Gateway wherever you want (Mac, Linux, VPS) and keep the
+- **Your devices, your data:** run the Gateway wherever you want (Linux, VPS) and keep the
   workspace + session history local.  
   plus mobile voice and Canvas on supported platforms.  
 - **Model-agnostic:** use Anthropic, OpenAI, MiniMax, OpenRouter, etc., with per‑agent routing
@@ -1009,29 +972,6 @@ Yes. Use the Gateway scheduler:
 Docs: [Cron jobs](/automation/cron-jobs), [Cron vs Heartbeat](/automation/cron-vs-heartbeat),
 [Heartbeat](/gateway/heartbeat).
 
-**Can I run Apple macOS only skills from Linux**
-
-
-You have three supported patterns:
-
-**Option A - run the Gateway on a Mac (simplest).**  
-Run the Gateway where the macOS binaries exist, then connect from Linux in [remote mode](#how-do-i-run-zee-in-remote-mode-client-connects-to-a-gateway-elsewhere) or over Tailscale. The skills load normally because the Gateway host is macOS.
-
-**Option C - proxy macOS binaries over SSH (advanced).**  
-Keep the Gateway on Linux, but make the required CLI binaries resolve to SSH wrappers that run on a Mac. Then override the skill to allow Linux so it stays eligible.
-
-   ```bash
-   #!/usr/bin/env bash
-   set -euo pipefail
-   ```
-3) Override the skill metadata (workspace or `~/.zee/skills`) to allow Linux:
-   ```markdown
-   ---
-   ---
-   ```
-4) Start a new session so the skills snapshot refreshes.
-
-
 ### Do you have a Notion or HeyGen integration
 
 Not built‑in today.
@@ -1152,7 +1092,6 @@ No - **Zee’s state is local**, but **external services still see what you send
 - **Local by default:** sessions, memory files, config, and workspace live on the Gateway host
   (`~/.zee` + your workspace directory).
 - **Remote by necessity:** messages you send to model providers (Anthropic/OpenAI/etc.) go to
-  their APIs, and chat platforms (WhatsApp/Telegram/Slack/etc.) store message data on their
   servers.
 - **You control the footprint:** using local models keeps prompts on your machine, but channel
   traffic still goes through the channel’s servers.
@@ -1326,7 +1265,6 @@ Docs: [Web tools](/tools/web).
 
 The common pattern is **one Gateway** (e.g. Raspberry Pi) plus **nodes** and **agents**:
 
-- **Gateway (central):** owns channels (Signal/WhatsApp), routing, and sessions.
 - **Node hosts (devices):** headless nodes connect as peripherals and expose `system.run`.
 - **Agents (workers):** separate brains/workspaces for special roles (e.g. “Hetzner ops”, “Personal data”).
 - **Sub‑agents:** spawn background work from a main agent when you want parallelism.
@@ -1417,7 +1355,6 @@ Docs: [Tailscale](/gateway/tailscale), [Remote access](/gateway/remote), [Channe
 Yes. There is no built-in "bot-to-bot" bridge, but you can wire it up in a few
 reliable ways:
 
-**Simplest:** use a normal chat channel both bots can access (Telegram/Slack/WhatsApp).
 Have Bot A send a message to Bot B, then let Bot B reply as usual.
 
 **CLI bridge (generic):** run a script that calls the other Gateway with
@@ -1448,7 +1385,7 @@ use multiple agents or sub-agents.
 ### Is there a benefit to using a node on my personal laptop instead of SSH from a VPS
 
 Yes - nodes are the first‑class way to reach your laptop from a remote Gateway, and they
-unlock more than shell access. The Gateway runs on macOS/Linux (Windows via WSL2) and is
+unlock more than shell access. The Gateway runs on Linux (Windows via WSL2) and is
 lightweight (a small VPS or Raspberry Pi-class box is fine; 4 GB RAM is plenty), so a common
 setup is an always‑on host plus your laptop as a node.
 
@@ -1509,7 +1446,7 @@ Docs: [Config](/cli/config), [Configure](/cli/configure), [Doctor](/gateway/doct
 
 This sets your workspace and restricts who can trigger the bot.
 
-### How do I set up Tailscale on a VPS and connect from my Mac
+### How do I set up Tailscale on a VPS and connect from my laptop
 
 Minimal steps:
 
@@ -1518,7 +1455,7 @@ Minimal steps:
    curl -fsSL https://tailscale.com/install.sh | sh
    sudo tailscale up
    ```
-2) **Install + login on your Mac**
+2) **Install + login on your laptop**
    - Use the Tailscale app and sign in to the same tailnet.
 3) **Enable MagicDNS (recommended)**
    - In the Tailscale admin console, enable MagicDNS so the VPS has a stable name.
@@ -1532,7 +1469,7 @@ zee gateway --tailscale serve
 ```
 This keeps the gateway bound to loopback and exposes HTTPS via Tailscale. See [Tailscale](/gateway/tailscale).
 
-### How do I connect a node host to a remote Gateway Tailscale Serve
+### How do I connect a node to a remote Gateway (Tailscale Serve)
 
 Serve exposes the **Gateway Control UI + WS**. Nodes connect over the same Gateway WS endpoint.
 
@@ -1554,7 +1491,7 @@ Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery).
 
 ### How does Zee load environment variables
 
-Zee reads env vars from the parent process (shell, launchd/systemd, CI, etc.) and additionally loads:
+Zee reads env vars from the parent process (shell, system services, CI, etc.) and additionally loads:
 
 - `.env` from the current working directory
 - a global fallback `.env` from `~/.zee/.env` (aka `$ZEE_STATE_DIR/.env`)
@@ -1601,7 +1538,7 @@ This runs your login shell and imports only missing expected keys (never overrid
 does **not** mean your env vars are missing - it just means Zee won’t load
 your login shell automatically.
 
-If the Gateway runs as a service (launchd/systemd), it won’t inherit your shell
+If the Gateway runs as a service (systemd), it won’t inherit your shell
 environment. Fix by doing one of these:
 
 1) Put the token in `~/.zee/.env`:
@@ -1787,7 +1724,6 @@ See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
 
 ### Do groupsthreads share context with DMs
 
-Direct chats collapse to the main session by default. Groups/channels have their own session keys, and Telegram topics / Discord threads are separate sessions. See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
 
 ### How many workspaces and agents can I create
 
@@ -1801,24 +1737,6 @@ Tips:
 - Keep one **active** workspace per agent (`agents.defaults.workspace`).
 - Prune old sessions (delete JSONL or store entries) if disk grows.
 - Use `zee doctor` to spot stray workspaces and profile mismatches.
-
-### Can I run multiple bots or chats at the same time Slack and how should I set that up
-
-Yes. Use **Multi‑Agent Routing** to run multiple isolated agents and route inbound messages by
-channel/account/peer. Slack is supported as a channel and can be bound to specific agents.
-
-Browser access is powerful but not “do anything a human can” - anti‑bot, CAPTCHAs, and MFA can
-still block automation. For the most reliable browser control, use the Chrome extension relay
-on the machine that runs the browser (and keep the Gateway anywhere).
-
-Best‑practice setup:
-- Always‑on Gateway host (VPS/Mac mini).
-- One agent per role (bindings).
-- Slack channel(s) bound to those agents.
-- Local browser via extension relay (or a node) when needed.
-
-Docs: [Multi‑Agent Routing](/concepts/multi-agent), [Slack](/channels/slack),
-[Browser](/tools/browser), [Chrome extension](/tools/chrome-extension), [Nodes](/nodes).
 
 ## Models: defaults, selection, aliases, switching
 
@@ -2109,7 +2027,7 @@ It means the system attempted to use the auth profile ID `anthropic:default`, bu
   - Current: `~/.zee/agents/<agentId>/agent/auth-profiles.json`
   - Legacy: `~/.zee/agent/*` (migrated by `zee doctor`)
 - **Confirm your env var is loaded by the Gateway**
-  - If you set `ANTHROPIC_API_KEY` in your shell but run the Gateway via systemd/launchd, it may not inherit it. Put it in `~/.zee/.env` or enable `env.shellEnv`.
+  - If you set `ANTHROPIC_API_KEY` in your shell but run the Gateway via systemd, it may not inherit it. Put it in `~/.zee/.env` or enable `env.shellEnv`.
 - **Make sure you’re editing the correct agent**
   - Multi‑agent setups mean there can be multiple `auth-profiles.json` files.
 - **Sanity‑check model/auth status**
@@ -2216,7 +2134,7 @@ Precedence:
 
 ### Why does zee gateway status say Runtime running but RPC probe failed
 
-Because “running” is the **supervisor’s** view (launchd/systemd/schtasks). The RPC probe is the CLI actually connecting to the gateway WebSocket and calling `status`.
+Because “running” is the **supervisor’s** view (systemd/schtasks). The RPC probe is the CLI actually connecting to the gateway WebSocket and calling `status`.
 
 Use `zee gateway status` and trust these lines:
 - `Probe target:` (the URL the probe actually used)
@@ -2345,8 +2263,7 @@ Fastest log tail:
 zee logs --follow
 ```
 
-Service/supervisor logs (when the gateway runs via launchd/systemd):
-- macOS: `$ZEE_STATE_DIR/logs/gateway.log` and `gateway.err.log` (default: `~/.zee/logs/...`; profiles use `~/.zee-<profile>/logs/...`)
+Service/supervisor logs (when the gateway runs via a system service):
 - Linux: `journalctl --user -u zee-gateway[-<profile>].service -n 200 --no-pager`
 - Windows: `schtasks /Query /TN "Zee Gateway (<profile>)" /V /FO LIST`
 
@@ -2476,7 +2393,7 @@ zee gateway stop
 zee gateway start
 ```
 
-This stops/starts the **supervised service** (launchd on macOS, systemd on Linux).
+This stops/starts the **supervised service** (systemd on Linux).
 Use this when the Gateway runs in the background as a daemon.
 
 If you’re running in the foreground, stop with Ctrl‑C, then:
@@ -2489,7 +2406,7 @@ Docs: [Gateway service runbook](/gateway).
 
 ### ELI5 zee gateway restart vs zee gateway
 
-- `zee gateway restart`: restarts the **background service** (launchd/systemd).
+- `zee gateway restart`: restarts the **background service** (systemd).
 - `zee gateway`: runs the gateway **in the foreground** for this terminal session.
 
 If you installed the service, use the gateway commands. Use `zee gateway` when
@@ -2648,33 +2565,6 @@ Slash commands overview: see [Slash commands](/tools/slash-commands).
 
 Most commands must be sent as a **standalone** message that starts with `/`, but a few shortcuts (like `/status`) also work inline for allowlisted senders.
 
-### How do I send a Discord message from Telegram Crosscontext messaging denied
-
-Zee blocks **cross‑provider** messaging by default. If a tool call is bound
-to Telegram, it won’t send to Discord unless you explicitly allow it.
-
-Enable cross‑provider messaging for the agent:
-
-```json5
-{
-  agents: {
-    defaults: {
-      tools: {
-        message: {
-          crossContext: {
-            allowAcrossProviders: true,
-            marker: { enabled: true, prefix: "[from {channel}] " }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-Restart the gateway after editing config. If you only want this for a single
-agent, set it under `agents.list[].tools.message` instead.
-
 ### Why does it feel like the bot ignores rapidfire messages
 
 Queue mode controls how new messages interact with an in‑flight run. Use `/queue` to change modes:
@@ -2694,5 +2584,3 @@ You can add options like `debounce:2s cap:25 drop:summarize` for followup modes.
 **A:** In Zee, credentials and model selection are separate. Setting `ANTHROPIC_API_KEY` (or storing an Anthropic API key in auth profiles) enables authentication, but the actual default model is whatever you configure in `agents.defaults.model.primary` (for example, `anthropic/claude-sonnet-4-5` or `anthropic/claude-opus-4-5`). If you see `No credentials found for profile "anthropic:default"`, it means the Gateway couldn’t find Anthropic credentials in the expected `auth-profiles.json` for the agent that’s running.
 
 ---
-
-Still stuck? Ask in [Discord](https://discord.com/invite/zee) or open a [GitHub discussion](https://github.com/zee/zee/discussions).

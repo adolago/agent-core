@@ -65,7 +65,7 @@ Browser settings live in `~/.zee/zee.json`.
     headless: false,
     noSandbox: false,
     attachOnly: false,
-    executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+    executablePath: "/usr/bin/brave-browser",
     profiles: {
       zee: { cdpPort: 18800, color: "#FF4500" },
       work: { cdpPort: 18801, color: "#0066CC" },
@@ -102,13 +102,6 @@ zee config set browser.executablePath "/usr/bin/google-chrome"
 ```
 
 ```json5
-// macOS
-{
-  browser: {
-    executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-  }
-}
-
 // Windows
 {
   browser: {
@@ -275,7 +268,6 @@ When launching locally, Zee picks the first available:
 You can override with `browser.executablePath`.
 
 Platforms:
-- macOS: checks `/Applications` and `~/Applications`.
 - Linux: looks for `google-chrome`, `brave`, `microsoft-edge`, `chromium`, etc.
 - Windows: checks common install locations.
 
@@ -396,7 +388,7 @@ State:
 - `zee browser set media dark`
 - `zee browser set timezone America/New_York`
 - `zee browser set locale en-US`
-- `zee browser set device "iPhone 14"`
+- `zee browser set device "Desktop Chrome"`
 
 Notes:
 - `upload` and `dialog` are **arming** calls; run them before the click/press
@@ -499,7 +491,7 @@ These are useful for “make the site behave like X” workflows:
 - Media: `set media dark|light|no-preference|none`
 - Timezone / locale: `set timezone ...`, `set locale ...`
 - Device / viewport:
-  - `set device "iPhone 14"` (Playwright device presets)
+  - `set device "Desktop Chrome"` (Playwright device presets)
   - `set viewport 1280 720`
 
 ## Security & privacy

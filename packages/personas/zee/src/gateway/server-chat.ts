@@ -6,7 +6,7 @@ import { loadSessionEntry } from "./session-utils.js";
 import { formatForLog } from "./ws-log.js";
 
 /**
- * Check if webchat broadcasts should be suppressed for heartbeat runs.
+ * Check if internal broadcasts should be suppressed for heartbeat runs.
  * Returns true if the run is a heartbeat and showOk is false.
  */
 function shouldSuppressHeartbeatBroadcast(runId: string): boolean {
@@ -15,7 +15,7 @@ function shouldSuppressHeartbeatBroadcast(runId: string): boolean {
 
   try {
     const cfg = loadConfig();
-    const visibility = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const visibility = resolveHeartbeatVisibility({ cfg, channel: "internal" });
     return !visibility.showOk;
   } catch {
     // Default to suppressing if we can't load config
@@ -150,7 +150,7 @@ export function createAgentEventHandler({
         timestamp: now,
       },
     };
-    // Suppress webchat broadcast for heartbeat runs when showOk is false
+    // Suppress internal broadcast for heartbeat runs when showOk is false
     if (!shouldSuppressHeartbeatBroadcast(clientRunId)) {
       broadcast("chat", payload, { dropIfSlow: true });
     }
@@ -181,7 +181,7 @@ export function createAgentEventHandler({
             }
           : undefined,
       };
-      // Suppress webchat broadcast for heartbeat runs when showOk is false
+      // Suppress internal broadcast for heartbeat runs when showOk is false
       if (!shouldSuppressHeartbeatBroadcast(clientRunId)) {
         broadcast("chat", payload);
       }

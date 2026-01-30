@@ -36,11 +36,7 @@ function detectAutoKind(input: string): ChannelResolveKind {
   if (trimmed.startsWith("@")) return "user";
   if (/^<@!?/.test(trimmed)) return "user";
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "user";
-  if (
-    /^(user|discord|slack|matrix|msteams|teams|zalo|zalouser|googlechat|google-chat|gchat):/i.test(
-      trimmed,
-    )
-  ) {
+  if (/^(user|telegram|whatsapp):/i.test(trimmed)) {
     return "user";
   }
   return "group";

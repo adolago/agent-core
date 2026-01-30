@@ -9,7 +9,6 @@ import { normalizeChannelId } from "../../channels/registry.js";
 import { listPairingChannels } from "../../channels/plugins/pairing.js";
 import { logVerbose } from "../../globals.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
-import { resolveSignalAccount } from "../../signal/accounts.js";
 import { resolveTelegramAccount } from "../../telegram/accounts.js";
 import { resolveWhatsAppAccount } from "../../web/accounts.js";
 import {
@@ -228,21 +227,13 @@ function resolveChannelAllowFromPaths(
 ): string[] | null {
   if (scope === "all") return null;
   if (scope === "dm") {
-    if (
-      channelId === "telegram" ||
-      channelId === "whatsapp" ||
-      channelId === "signal"
-    ) {
+    if (channelId === "telegram" || channelId === "whatsapp") {
       return ["allowFrom"];
     }
     return null;
   }
   if (scope === "group") {
-    if (
-      channelId === "telegram" ||
-      channelId === "whatsapp" ||
-      channelId === "signal"
-    ) {
+    if (channelId === "telegram" || channelId === "whatsapp") {
       return ["groupAllowFrom"];
     }
     return null;
@@ -316,12 +307,6 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
       groupAllowFrom = (account.groupAllowFrom ?? []).map(String);
       dmPolicy = account.dmPolicy;
       groupPolicy = account.groupPolicy;
-    } else if (channelId === "signal") {
-      const account = resolveSignalAccount({ cfg: params.cfg, accountId });
-      dmAllowFrom = (account.config.allowFrom ?? []).map(String);
-      groupAllowFrom = (account.config.groupAllowFrom ?? []).map(String);
-      dmPolicy = account.config.dmPolicy;
-      groupPolicy = account.config.groupPolicy;
     }
 
     const dmDisplay = normalizeAllowFrom({

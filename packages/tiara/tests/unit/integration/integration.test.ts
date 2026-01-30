@@ -18,7 +18,7 @@ describe('Integration Tests', () => {
       chatId: string;
       content: string;
       sender: string;
-      platform: 'whatsapp' | 'telegram' | 'discord' | 'signal';
+      platform: 'whatsapp' | 'telegram';
       timestamp: number;
       attachments?: Array<{ type: string; url: string }>;
     }
@@ -107,7 +107,7 @@ describe('Integration Tests', () => {
     });
 
     it('should validate platform types', () => {
-      const validPlatforms = ['whatsapp', 'telegram', 'discord', 'signal'];
+      const validPlatforms = ['whatsapp', 'telegram'];
 
       function isValidPlatform(platform: string): boolean {
         return validPlatforms.includes(platform.toLowerCase());
@@ -336,7 +336,7 @@ describe('Integration Tests', () => {
       expect(resolveRoute(bindings, { provider: 'telegram', peerId: 'user-123' })).toBe('stanley');
 
       // Guild match
-      expect(resolveRoute(bindings, { provider: 'discord', guildId: 'guild-456' })).toBe('zee');
+      expect(resolveRoute(bindings, { provider: 'telegram', guildId: 'guild-456' })).toBe('zee');
 
       // Provider fallback
       expect(resolveRoute(bindings, { provider: 'telegram', peerId: 'other' })).toBe('johny');

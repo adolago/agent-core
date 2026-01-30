@@ -45,9 +45,6 @@ export function resolveAnnounceTargetFromKey(sessionKey: string): AnnounceTarget
   const channel = normalizedChannel ?? channelRaw.toLowerCase();
   const kindTarget = (() => {
     if (!normalizedChannel) return id;
-    if (normalizedChannel === "discord" || normalizedChannel === "slack") {
-      return `channel:${id}`;
-    }
     return kind === "channel" ? `channel:${id}` : `group:${id}`;
   })();
   const normalized = normalizedChannel

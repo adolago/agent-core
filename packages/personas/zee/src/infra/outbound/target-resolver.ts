@@ -115,15 +115,6 @@ export function formatTargetDisplay(params: {
   return withoutPrefix;
 }
 
-function preserveTargetCase(channel: ChannelId, raw: string, normalized: string): string {
-  if (channel !== "slack") return normalized;
-  const trimmed = raw.trim();
-  if (/^channel:/i.test(trimmed) || /^user:/i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith("#")) return `channel:${trimmed.slice(1).trim()}`;
-  if (trimmed.startsWith("@")) return `user:${trimmed.slice(1).trim()}`;
-  return trimmed;
-}
-
 function detectTargetKind(
   channel: ChannelId,
   raw: string,
@@ -306,7 +297,7 @@ export async function resolveMessagingTarget(params: {
     return false;
   };
   if (looksLikeTargetId()) {
-    const directTarget = preserveTargetCase(params.channel, raw, normalized);
+    const directTarget = normalized;
     return {
       ok: true,
       target: {

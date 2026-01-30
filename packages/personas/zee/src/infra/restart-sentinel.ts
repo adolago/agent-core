@@ -39,7 +39,7 @@ export type RestartSentinelPayload = {
     to?: string;
     accountId?: string;
   };
-  /** Thread ID for reply threading (e.g., Slack thread_ts). */
+  /** Thread ID for reply threading when supported by the channel. */
   threadId?: string;
   message?: string | null;
   doctorHint?: string | null;

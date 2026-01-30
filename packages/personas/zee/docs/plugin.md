@@ -35,15 +35,9 @@ See [Voice Call](/plugins/voice-call) for a concrete example plugin.
 
 ## Available plugins (official)
 
-- Microsoft Teams is plugin-only as of 2026.1.15; install `@zee/msteams` if you use Teams.
 - Memory (Core) — bundled memory search plugin (enabled by default via `plugins.slots.memory`)
 - Memory (LanceDB) — bundled long-term memory plugin (auto-recall/capture; set `plugins.slots.memory = "memory-lancedb"`)
 - [Voice Call](/plugins/voice-call) — `@zee/voice-call`
-- [Zalo Personal](/plugins/zalouser) — `@zee/zalouser`
-- [Matrix](/channels/matrix) — `@zee/matrix`
-- [Nostr](/channels/nostr) — `@zee/nostr`
-- [Zalo](/channels/zalo) — `@zee/zalo`
-- [Microsoft Teams](/channels/msteams) — `@zee/msteams`
 - Google Antigravity OAuth (provider auth) — bundled as `google-antigravity-auth` (disabled by default)
 - Gemini CLI OAuth (provider auth) — bundled as `google-gemini-cli-auth` (disabled by default)
 - Qwen OAuth (provider auth) — bundled as `qwen-portal-auth` (disabled by default)

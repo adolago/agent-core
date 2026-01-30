@@ -211,7 +211,7 @@ export interface DeploymentApproval {
 
 export interface DeploymentNotification {
   id: string;
-  type: 'email' | 'slack' | 'teams' | 'webhook' | 'sms';
+  type: 'email' | 'teams' | 'webhook' | 'sms';
   recipients: string[];
   subject: string;
   message: string;

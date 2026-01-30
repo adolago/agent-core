@@ -76,16 +76,13 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
 
   candidates.push(...resolveBrewPathDirs({ homeDir }));
 
-  // Common global install locations (macOS first).
-  if (platform === "darwin") {
-    candidates.push(path.join(homeDir, "Library", "pnpm"));
-  }
+  // Common global install locations.
   if (process.env.XDG_BIN_HOME) candidates.push(process.env.XDG_BIN_HOME);
   candidates.push(path.join(homeDir, ".local", "bin"));
   candidates.push(path.join(homeDir, ".local", "share", "pnpm"));
   candidates.push(path.join(homeDir, ".bun", "bin"));
   candidates.push(path.join(homeDir, ".yarn", "bin"));
-  candidates.push("/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin");
+  candidates.push("/usr/local/bin", "/usr/bin", "/bin");
 
   return candidates.filter(isDirectory);
 }

@@ -32,7 +32,7 @@ Notes:
 ## Before you update
 
 - Know how you installed: **global** (npm/pnpm) vs **from source** (git clone).
-- Know how your Gateway is running: **foreground terminal** vs **supervised service** (launchd/systemd).
+- Know how your Gateway is running: **foreground terminal** vs **supervised service** (systemd/schtasks).
 - Snapshot your tailoring:
   - Config: `~/.zee/zee.json`
   - Credentials: `~/.zee/credentials/`
@@ -139,7 +139,7 @@ Typical things it does:
 - Migrate deprecated config keys / legacy config file locations.
 - Audit DM policies and warn on risky “open” settings.
 - Check Gateway health and can offer to restart.
-- Detect and migrate older gateway services (launchd/systemd; legacy schtasks) to current Zee services.
+- Detect and migrate older gateway services (systemd; legacy schtasks) to current Zee services.
 - On Linux, ensure systemd user lingering (so the Gateway survives logout).
 
 Details: [Doctor](/gateway/doctor)
@@ -157,7 +157,6 @@ zee logs --follow
 ```
 
 If you’re supervised:
-- macOS launchd (app-bundled LaunchAgent): `launchctl kickstart -k gui/$UID/bot.zee.gateway` (use `bot.zee.<profile>`; legacy `com.zee.*` still works)
 - Linux systemd user service: `systemctl --user restart zee-gateway[-<profile>].service`
 - Windows (WSL2): `systemctl --user restart zee-gateway[-<profile>].service`
   - `launchctl`/`systemctl` only work if the service is installed; otherwise run `zee gateway install`.
@@ -215,4 +214,3 @@ git pull
 
 - Run `zee doctor` again and read the output carefully (it often tells you the fix).
 - Check: [Troubleshooting](/gateway/troubleshooting)
-- Ask in Discord: https://channels.discord.gg/zee

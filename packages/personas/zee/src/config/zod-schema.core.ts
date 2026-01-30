@@ -289,8 +289,6 @@ export const requireOpenAllowFrom = (params: {
   });
 };
 
-export const MSTeamsReplyStyleSchema = z.enum(["thread", "top-level"]);
-
 export const RetryConfigSchema = z
   .object({
     attempts: z.number().int().min(1).optional(),
@@ -305,12 +303,6 @@ export const QueueModeBySurfaceSchema = z
   .object({
     whatsapp: QueueModeSchema.optional(),
     telegram: QueueModeSchema.optional(),
-    discord: QueueModeSchema.optional(),
-    slack: QueueModeSchema.optional(),
-    mattermost: QueueModeSchema.optional(),
-    signal: QueueModeSchema.optional(),
-    msteams: QueueModeSchema.optional(),
-    webchat: QueueModeSchema.optional(),
   })
   .strict()
   .optional();

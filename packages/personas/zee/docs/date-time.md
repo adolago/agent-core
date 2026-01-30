@@ -101,7 +101,7 @@ System: [2026-01-12 12:19:17 PST] Model switched.
 
 ## Time format detection (auto)
 
-When `timeFormat: "auto"`, Zee inspects the OS preference (macOS/Windows)
+When `timeFormat: "auto"`, Zee inspects the host OS preference
 and falls back to locale formatting. The detected value is **cached per process**
 to avoid repeated system calls.
 
@@ -114,8 +114,6 @@ Channel tools return **provider-native timestamps** and add normalized fields fo
 
 Raw provider fields are preserved so nothing is lost.
 
-- Slack: epoch-like strings from the API
-- Discord: UTC ISO timestamps
 - Telegram/WhatsApp: provider-specific numeric/ISO timestamps
 
 If you need local time, convert it downstream using the known timezone.

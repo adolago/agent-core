@@ -91,7 +91,7 @@ under `hooks.transformsDir` (see [Webhooks](/automation/webhook)).
 
 ## Wizard (recommended)
 
-Use the Zee helper to wire everything together (installs deps on macOS via brew):
+Use the Zee helper to wire everything together:
 
 ```bash
 zee webhooks gmail setup \
@@ -113,8 +113,8 @@ If you need the backend to receive the prefixed path, set
 
 Want a custom endpoint? Use `--push-endpoint <url>` or `--tailscale off`.
 
-Platform note: on macOS the wizard installs `gcloud`, `gogcli`, and `tailscale`
-via Homebrew; on Linux install them manually first.
+Platform note: the wizard can install `gcloud`, `gogcli`, and `tailscale`
+via Homebrew; otherwise install them manually first.
 
 Gateway auto-start (recommended):
 - When `hooks.enabled=true` and `hooks.gmail.account` is set, the Gateway starts

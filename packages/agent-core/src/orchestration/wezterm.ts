@@ -85,7 +85,6 @@ export namespace WeztermOrchestration {
     services: {
       persistence: boolean
       telegram: boolean
-      discord: boolean
     }
     sessions: {
       total: number
@@ -345,11 +344,10 @@ export namespace WeztermOrchestration {
       // Services
       const persistence = cachedStatus.services?.persistence ? "●" : "○"
       const telegram = cachedStatus.services?.telegram ? "●" : "○"
-      const discord = cachedStatus.services?.discord ? "●" : "◌"
       const wezterm = isInitialized ? "●" : "○"
 
       lines.push(
-        `║ Services: Persistence ${persistence}  Telegram ${telegram}  Discord ${discord}  WezTerm ${wezterm} ║`,
+        `║ Services: Persistence ${persistence}  Telegram ${telegram}  WezTerm ${wezterm} ║`,
       )
 
       lines.push("╠════════════════════════════════════════════════════════╣")

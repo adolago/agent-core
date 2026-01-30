@@ -176,7 +176,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
 export async function handleGatewayRequest(
   opts: GatewayRequestOptions & { extraHandlers?: GatewayRequestHandlers },
 ): Promise<void> {
-  const { req, respond, client, isWebchatConnect, context } = opts;
+  const { req, respond, client, context } = opts;
   const authError = authorizeGatewayMethod(req.method, client);
   if (authError) {
     respond(false, undefined, authError);
@@ -195,7 +195,6 @@ export async function handleGatewayRequest(
     req,
     params: (req.params ?? {}) as Record<string, unknown>,
     client,
-    isWebchatConnect,
     respond,
     context,
   });

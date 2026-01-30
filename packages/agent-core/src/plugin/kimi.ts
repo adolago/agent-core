@@ -43,7 +43,7 @@ function getDeviceModel(): string {
   const release = os.release()
 
   if (platform === "darwin") {
-    return `macOS ${release} ${arch}`
+    return `Unix ${release} ${arch}`
   }
   if (platform === "win32") {
     return `Windows ${release} ${arch}`

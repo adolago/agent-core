@@ -262,8 +262,6 @@ Result: Agent A and C respond, Agent B logs error
 Broadcast groups currently work with:
 - ✅ WhatsApp (implemented)
 - 🚧 Telegram (planned)
-- 🚧 Discord (planned)
-- 🚧 Slack (planned)
 
 ### Routing
 

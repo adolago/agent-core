@@ -15,7 +15,7 @@ export function registerMessagePollCommand(message: Command, helpers: MessageCli
       [] as string[],
     )
     .option("--poll-multi", "Allow multiple selections", false)
-    .option("--poll-duration-hours <n>", "Poll duration (Discord)")
+    .option("--poll-duration-hours <n>", "Poll duration in hours")
     .option("-m, --message <text>", "Optional message body")
     .action(async (opts) => {
       await helpers.runMessageAction("poll", opts);

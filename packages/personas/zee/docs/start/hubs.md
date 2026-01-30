@@ -65,10 +65,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [WhatsApp](/channels/whatsapp)
 - [Telegram](/channels/telegram)
 - [Telegram (grammY notes)](/channels/grammy)
-- [Slack](/channels/slack)
-- [Discord](/channels/discord)
-- [Mattermost](/channels/mattermost) (plugin)
-- [Signal](/channels/signal)
 - [Location parsing](/channels/location)
 - [Webhooks](/automation/webhook)
 - [Gmail Pub/Sub](/automation/gmail-pubsub)
@@ -116,7 +112,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 ## Platforms
 
 - [Platforms overview](/platforms)
-- [macOS](/platforms/macos)
 - [Windows (WSL2)](/platforms/windows)
 - [Linux](/platforms/linux)
 - [Web surfaces](/web)

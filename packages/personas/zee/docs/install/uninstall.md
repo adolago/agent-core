@@ -70,17 +70,6 @@ Notes:
 
 Use this if the gateway service keeps running but `zee` is missing.
 
-### macOS (launchd)
-
-Default label is `bot.zee.gateway` (or `bot.zee.<profile>`; legacy `com.zee.*` may still exist):
-
-```bash
-launchctl bootout gui/$UID/bot.zee.gateway
-rm -f ~/Library/LaunchAgents/bot.zee.gateway.plist
-```
-
-If you used a profile, replace the label and plist name with `bot.zee.<profile>`. Remove any legacy `com.zee.*` plists if present.
-
 ### Linux (systemd user unit)
 
 Default unit name is `zee-gateway.service` (or `zee-gateway-<profile>.service`):

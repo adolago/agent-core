@@ -134,7 +134,7 @@ export function ensureSkillsWatcher(params: { workspaceDir: string; config?: Zee
       stabilityThreshold: debounceMs,
       pollInterval: 100,
     },
-    // Avoid FD exhaustion on macOS when a workspace contains huge trees.
+    // Avoid FD exhaustion when a workspace contains huge trees.
     // This watcher only needs to react to skill changes.
     ignored: DEFAULT_SKILLS_WATCH_IGNORED,
   });

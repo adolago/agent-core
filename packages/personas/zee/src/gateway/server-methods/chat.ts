@@ -473,7 +473,7 @@ export const chatHandlers: GatewayRequestHandlers = {
         responsePrefix: resolveEffectiveMessagesConfig(cfg, agentId).responsePrefix,
         responsePrefixContextProvider: () => prefixContext,
         onError: (err) => {
-          context.logGateway.warn(`webchat dispatch failed: ${formatForLog(err)}`);
+          context.logGateway.warn(`internal dispatch failed: ${formatForLog(err)}`);
         },
         deliver: async (payload, info) => {
           if (info.kind !== "final") return;
@@ -528,7 +528,7 @@ export const chatHandlers: GatewayRequestHandlers = {
                 message = appended.message;
               } else {
                 context.logGateway.warn(
-                  `webchat transcript append failed: ${appended.error ?? "unknown error"}`,
+                  `internal transcript append failed: ${appended.error ?? "unknown error"}`,
                 );
                 const now = Date.now();
                 message = {
@@ -665,7 +665,7 @@ export const chatHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    // Broadcast to webchat for immediate UI update
+    // Broadcast to internal clients for immediate UI update
     const chatPayload = {
       runId: `inject-${messageId}`,
       sessionKey: p.sessionKey,

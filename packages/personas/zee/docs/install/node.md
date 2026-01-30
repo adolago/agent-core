@@ -24,7 +24,7 @@ npm prefix -g
 echo "$PATH"
 ```
 
-If `$(npm prefix -g)/bin` (macOS/Linux) or `$(npm prefix -g)` (Windows) is **not** present inside `echo "$PATH"`, your shell can’t find global npm binaries (including `zee`).
+If `$(npm prefix -g)/bin` (Linux) or `$(npm prefix -g)` (Windows) is **not** present inside `echo "$PATH"`, your shell can’t find global npm binaries (including `zee`).
 
 ## Fix: put npm’s global bin dir on PATH
 
@@ -42,7 +42,7 @@ npm prefix -g
 Example (replace the path with your `npm prefix -g` output):
 
 ```bash
-# macOS / Linux
+# Linux
 export PATH="/path/from/npm/prefix/bin:$PATH"
 ```
 
@@ -71,7 +71,6 @@ You’ll have the fewest surprises if Node/npm are installed in a way that:
 
 Common choices:
 
-- macOS: Homebrew (`brew install node`) or a version manager
 - Linux: your preferred version manager, or a distro-supported install that provides Node 22+
 - Windows: official Node installer, `winget`, or a Windows Node version manager
 

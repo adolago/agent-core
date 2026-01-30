@@ -56,7 +56,6 @@ Usually unnecessary: one Gateway can serve multiple messaging channels and agent
 Supported if you isolate state + config and use unique ports. Full guide: [Multiple gateways](/gateway/multiple-gateways).
 
 Service names are profile-aware:
-- macOS: `bot.zee.<profile>` (legacy `com.zee.*` may still exist)
 - Linux: `zee-gateway-<profile>.service`
 - Windows: `Zee Gateway (<profile>)`
 
@@ -171,17 +170,13 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
 ## Replay / gaps
 - Events are not replayed. Clients detect seq gaps and should refresh (`health` + `system-presence`) before continuing. Control UI clients auto-refresh on gap.
 
-## Supervision (macOS example)
-- Use launchd to keep the service alive:
-  - Program: path to `zee`
-  - Arguments: `gateway`
-  - KeepAlive: true
-  - StandardOut/Err: file paths or `syslog`
-- On failure, launchd restarts; fatal misconfig should keep exiting so the operator notices.
-- LaunchAgents are per-user and require a logged-in session; for headless setups use a custom LaunchDaemon (not shipped).
-  - `zee gateway install` writes `~/Library/LaunchAgents/bot.zee.gateway.plist`
-    (or `bot.zee.<profile>.plist`; legacy `com.zee.*` is cleaned up).
-  - `zee doctor` audits the LaunchAgent config and can update it to current defaults.
+## Supervision (systemd example)
+- Use systemd user services to keep the gateway alive.
+  - `zee gateway install` writes `~/.config/systemd/user/zee-gateway.service`
+    (or `zee-gateway-<profile>.service`).
+  - `systemctl --user enable --now zee-gateway.service`
+- On failure, systemd restarts; fatal misconfig should keep exiting so the operator notices.
+- `zee doctor` audits the service config and can update it to current defaults.
 
 ## Gateway service management (CLI)
 
@@ -197,7 +192,7 @@ zee logs --follow
 
 Notes:
 - `gateway status` probes the Gateway RPC by default using the service’s resolved port/config (override with `--url`).
-- `gateway status --deep` adds system-level scans (LaunchDaemons/system units).
+- `gateway status --deep` adds system-level scans (system units).
 - `gateway status --no-probe` skips the RPC probe (useful when networking is down).
 - `gateway status --json` is stable for scripts.
 - `gateway status` reports **supervisor runtime** (launchd/systemd running) separately from **RPC reachability** (WS connect + status RPC).

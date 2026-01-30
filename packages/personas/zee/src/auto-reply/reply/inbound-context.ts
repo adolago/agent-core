@@ -57,7 +57,7 @@ export function finalizeInboundContext<T extends Record<string, unknown>>(
   }
 
   // Ensure group/channel messages retain a sender meta line even when the body is a
-  // structured envelope (e.g. "[Signal ...] Alice: hi").
+  // structured envelope (e.g. "[Channel ...] Alice: hi").
   normalized.Body = formatInboundBodyWithSenderMeta({ ctx: normalized, body: normalized.Body });
   normalized.BodyForAgent = formatInboundBodyWithSenderMeta({
     ctx: normalized,

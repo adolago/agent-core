@@ -10,22 +10,6 @@ export const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     message: "telegram config moved to channels.telegram (auto-migrated on load).",
   },
   {
-    path: ["discord"],
-    message: "discord config moved to channels.discord (auto-migrated on load).",
-  },
-  {
-    path: ["slack"],
-    message: "slack config moved to channels.slack (auto-migrated on load).",
-  },
-  {
-    path: ["signal"],
-    message: "signal config moved to channels.signal (auto-migrated on load).",
-  },
-  {
-    path: ["msteams"],
-    message: "msteams config moved to channels.msteams (auto-migrated on load).",
-  },
-  {
     path: ["routing", "allowFrom"],
     message:
       "routing.allowFrom was removed; use channels.whatsapp.allowFrom instead (auto-migrated on load).",

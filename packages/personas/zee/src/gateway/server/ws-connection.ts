@@ -4,7 +4,6 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { resolveCanvasHostUrl } from "../../infra/canvas-host-url.js";
 import { listSystemPresence, upsertPresence } from "../../infra/system-presence.js";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
-import { isWebchatClient } from "../../utils/message-channel.js";
 
 import type { ResolvedGatewayAuth } from "../auth.js";
 import { isLoopbackAddress } from "../net.js";
@@ -168,11 +167,6 @@ export function attachGatewayWsConnectionHandler(params: {
         logFn(
           `closed before connect conn=${connId} remote=${remoteAddr ?? "?"} fwd=${forwardedFor ?? "n/a"} origin=${requestOrigin ?? "n/a"} host=${requestHost ?? "n/a"} ua=${requestUserAgent ?? "n/a"} code=${code ?? "n/a"} reason=${reason?.toString() || "n/a"}`,
           closeContext,
-        );
-      }
-      if (client && isWebchatClient(client.connect.client)) {
-        logWsControl.info(
-          `webchat disconnected code=${code} reason=${reason?.toString() || "n/a"} conn=${connId}`,
         );
       }
       if (client?.presenceKey) {

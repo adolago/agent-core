@@ -1,5 +1,6 @@
 import { DEFAULT_GROUP_HISTORY_LIMIT } from "../../auto-reply/reply/history.js";
 import { getReplyFromConfig } from "../../auto-reply/reply.js";
+import { getReplyFromDaemonBridge, isDaemonBridgeEnabled } from "../../auto-reply/reply/daemon-bridge.js";
 import { hasControlCommand } from "../../auto-reply/command-detection.js";
 import { resolveInboundDebounceMs } from "../../auto-reply/inbound-debounce.js";
 import { waitForever } from "../../cli/wait.js";
@@ -35,7 +36,7 @@ export async function monitorWebChannel(
   verbose: boolean,
   listenerFactory: typeof monitorWebInbox | undefined = monitorWebInbox,
   keepAlive = true,
-  replyResolver: typeof getReplyFromConfig | undefined = getReplyFromConfig,
+  replyResolver?: typeof getReplyFromConfig,
   runtime: RuntimeEnv = defaultRuntime,
   abortSignal?: AbortSignal,
   tuning: WebMonitorTuning = {},
@@ -86,6 +87,9 @@ export async function monitorWebChannel(
       },
     },
   } satisfies ReturnType<typeof loadConfig>;
+
+  const resolvedReplyResolver =
+    replyResolver ?? (isDaemonBridgeEnabled(cfg) ? getReplyFromDaemonBridge : getReplyFromConfig);
 
   const configuredMaxMb = cfg.agents?.defaults?.mediaMaxMb;
   const maxMediaBytes =
@@ -167,7 +171,7 @@ export async function monitorWebChannel(
       groupMemberNames,
       echoTracker,
       backgroundTasks,
-      replyResolver: replyResolver ?? getReplyFromConfig,
+      replyResolver: resolvedReplyResolver,
       replyLogger,
       baseMentionConfig,
       account,

@@ -29,7 +29,6 @@ export interface HealthCheckConfig {
 export interface AlertConfig {
   webhook?: string;
   email?: string;
-  slack?: string;
   threshold?: number; // Alert threshold for unhealthy components
 }
 

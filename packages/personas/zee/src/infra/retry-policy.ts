@@ -1,16 +1,7 @@
-import { RateLimitError } from "@buape/carbon";
-
 import { formatErrorMessage } from "./errors.js";
 import { type RetryConfig, resolveRetryConfig, retryAsync } from "./retry.js";
 
 export type RetryRunner = <T>(fn: () => Promise<T>, label?: string) => Promise<T>;
-
-export const DISCORD_RETRY_DEFAULTS = {
-  attempts: 3,
-  minDelayMs: 500,
-  maxDelayMs: 30_000,
-  jitter: 0.1,
-};
 
 export const TELEGRAM_RETRY_DEFAULTS = {
   attempts: 3,
@@ -39,33 +30,6 @@ function getTelegramRetryAfterMs(err: unknown): number | undefined {
           ? (err.error as { parameters?: { retry_after?: unknown } }).parameters?.retry_after
           : undefined;
   return typeof candidate === "number" && Number.isFinite(candidate) ? candidate * 1000 : undefined;
-}
-
-export function createDiscordRetryRunner(params: {
-  retry?: RetryConfig;
-  configRetry?: RetryConfig;
-  verbose?: boolean;
-}): RetryRunner {
-  const retryConfig = resolveRetryConfig(DISCORD_RETRY_DEFAULTS, {
-    ...params.configRetry,
-    ...params.retry,
-  });
-  return <T>(fn: () => Promise<T>, label?: string) =>
-    retryAsync(fn, {
-      ...retryConfig,
-      label,
-      shouldRetry: (err) => err instanceof RateLimitError,
-      retryAfterMs: (err) => (err instanceof RateLimitError ? err.retryAfter * 1000 : undefined),
-      onRetry: params.verbose
-        ? (info) => {
-            const labelText = info.label ?? "request";
-            const maxRetries = Math.max(1, info.maxAttempts - 1);
-            console.warn(
-              `discord ${labelText} rate limited, retry ${info.attempt}/${maxRetries} in ${info.delayMs}ms`,
-            );
-          }
-        : undefined,
-    });
 }
 
 export function createTelegramRetryRunner(params: {

@@ -53,8 +53,6 @@ Use this when auditing access or deciding what to back up:
 
 - **WhatsApp**: `~/.zee/credentials/whatsapp/<accountId>/creds.json`
 - **Telegram bot token**: config/env or `channels.telegram.tokenFile`
-- **Discord bot token**: config/env (token file not yet supported)
-- **Slack tokens**: config/env (`channels.slack.*`)
 - **Pairing allowlists**: `~/.zee/credentials/<channel>-allowFrom.json`
 - **Model auth profiles**: `~/.zee/agents/<agentId>/agent/auth-profiles.json`
 - **Legacy OAuth import**: `~/.zee/credentials/oauth.json`
@@ -110,7 +108,7 @@ stronger isolation between agents, run them under separate OS users or separate 
 
 ## Node execution (system.run)
 
-If a macOS node is paired, the Gateway can invoke `system.run` on that node. This is **remote code execution** on the Mac:
+If a remote node is paired, the Gateway can invoke `system.run` on that node. This is **remote code execution** on that device:
 
 - Requires node pairing (approval + token).
 - Controlled on the Mac via **Settings → Exec approvals** (security + ask + allowlist).
@@ -120,7 +118,7 @@ If a macOS node is paired, the Gateway can invoke `system.run` on that node. Thi
 
 Zee can refresh the skills list mid-session:
 - **Skills watcher**: changes to `SKILL.md` can update the skills snapshot on the next agent turn.
-- **Remote nodes**: connecting a macOS node can make macOS-only skills eligible (based on bin probing).
+- **Remote nodes**: connecting a node can make additional skills eligible (based on bin probing).
 
 Treat skill folders as **trusted code** and restrict who can modify them.
 
@@ -205,11 +203,11 @@ This prevents cross-user context leakage while keeping group chats isolated. If 
 
 Zee has two separate “who can trigger me?” layers:
 
-- **DM allowlist** (`allowFrom` / `channels.discord.dm.allowFrom` / `channels.slack.dm.allowFrom`): who is allowed to talk to the bot in direct messages.
+- **DM allowlist** (`allowFrom` / `channels.<channel>.dm.allowFrom`): who is allowed to talk to the bot in direct messages.
   - When `dmPolicy="pairing"`, approvals are written to `~/.zee/credentials/<channel>-allowFrom.json` (merged with config allowlists).
 - **Group allowlist** (channel-specific): which groups/channels/guilds the bot will accept messages from at all.
   - Common patterns:
-    - `channels.discord.guilds` / `channels.slack.channels`: per-surface allowlists + mention defaults.
+    - `channels.<channel>.groups`: per-surface allowlists + mention defaults.
   - **Security note:** treat `dmPolicy="open"` and `groupPolicy="open"` as last-resort settings. They should be barely used; prefer pairing + allowlists unless you fully trust every member of the room.
 
 Details: [Configuration](/gateway/configuration) and [Groups](/concepts/groups)
@@ -647,7 +645,7 @@ Common use cases:
           workspaceAccess: "none"
         },
         tools: {
-          allow: ["sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status", "whatsapp", "telegram", "slack", "discord"],
+          allow: ["sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status", "whatsapp", "telegram"],
           deny: ["read", "write", "edit", "apply_patch", "exec", "process", "browser", "canvas", "nodes", "cron", "gateway", "image"]
         }
       }
@@ -683,7 +681,7 @@ If your AI does something bad:
 
 1. Rotate Gateway auth (`gateway.auth.token` / `ZEE_GATEWAY_PASSWORD`) and restart.
 2. Rotate remote client secrets (`gateway.remote.token` / `.password`) on any machine that can call the Gateway.
-3. Rotate provider/API credentials (WhatsApp creds, Slack/Discord tokens, model/API keys in `auth-profiles.json`).
+3. Rotate provider/API credentials (WhatsApp creds, Telegram tokens, model/API keys in `auth-profiles.json`).
 
 ### Audit
 

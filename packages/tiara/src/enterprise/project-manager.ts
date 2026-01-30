@@ -127,7 +127,7 @@ export interface TeamMember {
 export interface CommunicationChannel {
   id: string;
   name: string;
-  type: 'slack' | 'teams' | 'email' | 'webhook' | 'custom';
+  type: 'teams' | 'email' | 'webhook' | 'custom';
   configuration: Record<string, any>;
   isActive: boolean;
 }

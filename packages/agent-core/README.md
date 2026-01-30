@@ -3,7 +3,7 @@
 Agent-core is a CLI + daemon that powers the Personas system (Zee, Stanley, Johny).
 
 - **Version:** v0.1.0-20260114
-- **Prebuilt targets:** Linux x64, macOS arm64 (Apple Silicon)
+- **Prebuilt targets:** Linux x64
 - **Other platforms:** build from source
 
 ## Install

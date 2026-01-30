@@ -112,11 +112,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       drop: "summarize",
       byChannel: {
         whatsapp: "collect",
-        telegram: "collect",
-        discord: "collect",
-        slack: "collect",
-        signal: "collect",
-        webchat: "collect"
+        telegram: "collect"
       }
     }
   },
@@ -150,18 +146,9 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       atHour: 4,
       idleMinutes: 60
     },
-    resetByChannel: {
-      discord: { mode: "idle", idleMinutes: 10080 }
-    },
     resetTriggers: ["/new", "/reset"],
     store: "~/.zee/agents/default/sessions/sessions.json",
-    typingIntervalSeconds: 5,
-    sendPolicy: {
-      default: "allow",
-      rules: [
-        { action: "deny", match: { channel: "discord", chatType: "group" } }
-      ]
-    }
+    typingIntervalSeconds: 5
   },
 
   // Channels
@@ -181,38 +168,6 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       groupPolicy: "allowlist",
       groupAllowFrom: ["123456789"],
       groups: { "*": { requireMention: true } }
-    },
-
-    discord: {
-      enabled: true,
-      token: "YOUR_DISCORD_BOT_TOKEN",
-      dm: { enabled: true, allowFrom: ["steipete"] },
-      guilds: {
-        "123456789012345678": {
-          slug: "friends-of-zee",
-          requireMention: false,
-          channels: {
-            general: { allow: true },
-            help: { allow: true, requireMention: true }
-          }
-        }
-      }
-    },
-
-    slack: {
-      enabled: true,
-      botToken: "xoxb-REPLACE_ME",
-      appToken: "xapp-REPLACE_ME",
-      channels: {
-        "#general": { allow: true, requireMention: true }
-      },
-      dm: { enabled: true, allowFrom: ["U123"] },
-      slashCommand: {
-        enabled: true,
-        name: "zee",
-        sessionPrefix: "slack:slash",
-        ephemeral: true
-      }
     }
   },
 
@@ -300,11 +255,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       enabled: true,
       allowFrom: {
         whatsapp: ["+15555550123"],
-        telegram: ["123456789"],
-        discord: ["steipete"],
-        slack: ["U123"],
-        signal: ["+15555550123"],
-        webchat: ["session:demo"]
+        telegram: ["123456789"]
       }
     }
   },
@@ -421,7 +372,7 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
 
 ## Common patterns
 
-### Multi-platform setup
+### Multi-channel setup
 ```json5
 {
   agent: { workspace: "~/zee" },
@@ -431,11 +382,6 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
       enabled: true,
       botToken: "YOUR_TOKEN",
       allowFrom: ["123456789"]
-    },
-    discord: {
-      enabled: true,
-      token: "YOUR_TOKEN",
-      dm: { allowFrom: ["yourname"] }
     }
   }
 }
@@ -503,30 +449,6 @@ Save to `~/.zee/zee.json` and you can DM the bot from that number.
     model: {
       primary: "anthropic/claude-opus-4-5",
       fallbacks: ["minimax/MiniMax-M2.1"]
-    }
-  }
-}
-```
-
-### Work bot (restricted access)
-```json5
-{
-  identity: {
-    name: "WorkBot",
-    theme: "professional assistant"
-  },
-  agent: {
-    workspace: "~/work-zee",
-    elevated: { enabled: false }
-  },
-  channels: {
-    slack: {
-      enabled: true,
-      botToken: "xoxb-...",
-      channels: {
-        "#engineering": { allow: true, requireMention: true },
-        "#general": { allow: true, requireMention: true }
-      }
     }
   }
 }

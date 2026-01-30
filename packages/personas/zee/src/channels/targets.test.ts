@@ -27,16 +27,16 @@ describe("ensureTargetId", () => {
 describe("requireTargetKind", () => {
   it("returns the target id when the kind matches", () => {
     const target = buildMessagingTarget("channel", "C123", "C123");
-    expect(requireTargetKind({ platform: "Slack", target, kind: "channel" })).toBe("C123");
+    expect(requireTargetKind({ platform: "Telegram", target, kind: "channel" })).toBe("C123");
   });
 
   it("throws when the kind is missing or mismatched", () => {
     expect(() =>
-      requireTargetKind({ platform: "Slack", target: undefined, kind: "channel" }),
-    ).toThrow(/Slack channel id is required/);
+      requireTargetKind({ platform: "Telegram", target: undefined, kind: "channel" }),
+    ).toThrow(/Telegram channel id is required/);
     const target = buildMessagingTarget("user", "U123", "U123");
-    expect(() => requireTargetKind({ platform: "Slack", target, kind: "channel" })).toThrow(
-      /Slack channel id is required/,
+    expect(() => requireTargetKind({ platform: "Telegram", target, kind: "channel" })).toThrow(
+      /Telegram channel id is required/,
     );
   });
 });

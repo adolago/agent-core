@@ -377,7 +377,7 @@ async function checkOrphanedProcesses(): Promise<CheckResult> {
           },
         };
       } catch {
-        // Can't read /proc (macOS or permission issue), assume it's valid
+        // Can't read /proc (unsupported platform or permission issue), assume it's valid
         return {
           id: "integrity.orphan-procs",
           name: "Daemon Process",

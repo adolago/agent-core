@@ -76,6 +76,3 @@ Stored under `~/.zee/devices/`:
 - Channel configs:
   - Telegram: [Telegram](/channels/telegram)
   - WhatsApp: [WhatsApp](/channels/whatsapp)
-  - Signal: [Signal](/channels/signal)
-  - Discord: [Discord](/channels/discord)
-  - Slack: [Slack](/channels/slack)

@@ -14,7 +14,7 @@ read_when:
 - Split execution into a **headless runner service** with optional control UI via local IPC.
 - Provide **per-agent** policy, allowlist, ask mode, and node binding.
 - Support **ask modes** that work *with* or *without* allowlists.
-- Cross-platform: Unix socket + token auth (macOS/Linux/Windows parity).
+- Cross-platform: Unix socket + token auth (Linux/Windows parity).
 
 ## Non-goals
 - No legacy allowlist migration or legacy schema support.
@@ -135,7 +135,7 @@ Notes:
 - Emit Bridge events for exec lifecycle (optional but recommended).
 
 ### Service lifecycle
-- Launchd/daemon on macOS; system service on Linux/Windows.
+- System service on Linux/Windows.
 - Approvals JSON is local to the execution host.
 - UI hosts a local Unix socket; runners connect on demand.
 

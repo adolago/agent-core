@@ -23,7 +23,6 @@ Presence entries are structured objects with fields like:
 - `ip`: best‑effort IP address
 - `version`: client version string
 - `deviceFamily` / `modelIdentifier`: hardware hints
-- `mode`: `ui`, `webchat`, `cli`, `backend`, `probe`, `test`, `node`, ...
 - `lastInputSeconds`: “seconds since last user input” (if known)
 - `reason`: `self`, `connect`, `node-connected`, `periodic`, ...
 - `ts`: last update timestamp (ms since epoch)

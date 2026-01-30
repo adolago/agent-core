@@ -106,7 +106,6 @@ describe("gateway agent handler", () => {
       context: makeContext(),
       req: { type: "req", id: "1", method: "agent" },
       client: null,
-      isWebchatConnect: () => false,
     });
 
     expect(mocks.updateSessionStore).toHaveBeenCalled();
@@ -151,7 +150,6 @@ describe("gateway agent handler", () => {
       context: makeContext(),
       req: { type: "req", id: "2", method: "agent" },
       client: null,
-      isWebchatConnect: () => false,
     });
 
     expect(mocks.updateSessionStore).toHaveBeenCalled();

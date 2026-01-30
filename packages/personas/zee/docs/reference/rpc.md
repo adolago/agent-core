@@ -6,22 +6,15 @@ read_when:
 
 Zee integrates external CLIs via JSON-RPC. Two patterns are used today.
 
-## Pattern A: HTTP daemon (signal-cli)
-- `signal-cli` runs as a daemon with JSON-RPC over HTTP.
-- Event stream is SSE (`/api/v1/events`).
-- Health probe: `/api/v1/check`.
-- Zee owns lifecycle when `channels.signal.autoStart=true`.
+## Pattern A: HTTP daemon (JSON-RPC)
+- External CLI runs as a daemon with JSON-RPC over HTTP.
+- Event stream can be SSE for inbound updates.
+- Health probes are HTTP endpoints.
+- Zee can own lifecycle when the provider is enabled.
 
-See [Signal](/channels/signal) for setup and endpoints.
-
+## Pattern B: stdio JSON-RPC
 - JSON-RPC is line-delimited over stdin/stdout (one JSON object per line).
-- No TCP port, no daemon required.
-
-Core methods used:
-- `watch.subscribe` → notifications (`method: "message"`)
-- `watch.unsubscribe`
-- `send`
-- `chats.list` (probe/diagnostics)
+- No TCP port and no daemon required.
 
 
 ## Adapter guidelines

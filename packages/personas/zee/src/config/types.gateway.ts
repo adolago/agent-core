@@ -95,7 +95,7 @@ export type GatewayTailscaleConfig = {
 export type GatewayRemoteConfig = {
   /** Remote Gateway WebSocket URL (ws:// or wss://). */
   url?: string;
-  /** Transport for macOS remote connections (ssh tunnel or direct WS). */
+  /** Transport for remote connections (ssh tunnel or direct WS). */
   transport?: "ssh" | "direct";
   /** Token for remote auth (when the gateway requires token auth). */
   token?: string;
@@ -107,6 +107,19 @@ export type GatewayRemoteConfig = {
   sshTarget?: string;
   /** SSH identity file path for tunneling remote Gateway. */
   sshIdentity?: string;
+};
+
+export type GatewayDaemonBridgeConfig = {
+  /** If true, route replies through the agent-core daemon. */
+  enabled?: boolean;
+  /** Base URL for the agent-core daemon HTTP API. */
+  url?: string;
+  /** Optional session map file path (defaults to $ZEE_STATE_DIR/gateway/daemon-sessions.json). */
+  sessionStore?: string;
+  /** HTTP timeout in milliseconds (default: 30000). */
+  timeoutMs?: number;
+  /** Auto-create daemon sessions when missing (default: true). */
+  createSession?: boolean;
 };
 
 export type GatewayReloadMode = "off" | "restart" | "hot" | "hybrid";
@@ -229,6 +242,7 @@ export type GatewayConfig = {
   auth?: GatewayAuthConfig;
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
+  daemonBridge?: GatewayDaemonBridgeConfig;
   reload?: GatewayReloadConfig;
   tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;

@@ -9,7 +9,6 @@ summary: "Community-built projects and integrations powered by Zee"
 Real projects from the community. See what people are building with Zee.
 
 <Info>
-**Want to be featured?** Share your project in [#showcase on Discord](https://discord.gg/zee) or [tag @zee on X](https://x.com/zee).
 </Info>
 
 ## Zee in Action
@@ -82,7 +81,6 @@ Full setup walkthrough (28m) by VelvetShark.
 
 [Watch on YouTube](https://www.youtube.com/watch?v=5kkIJNUGFho)
 
-## Fresh from Discord
 
 <CardGroup cols={2}>
 
@@ -266,10 +264,7 @@ Full setup walkthrough (28m) by VelvetShark.
   Logs into TradingView via browser automation, screenshots charts, and performs technical analysis on demand. No API needed—just browser control.
 </Card>
 
-<Card title="Slack Auto-Support" icon="slack">
-  **@henrymascot** • `slack` `automation` `support`
 
-  Watches company Slack channel, responds helpfully, and forwards notifications to Telegram. Autonomously fixed a production bug in a deployed app without being asked.
 </Card>
 
 </CardGroup>
@@ -396,7 +391,6 @@ Have something to share? We'd love to feature it!
 
 <Steps>
   <Step title="Share It">
-    Post in [#showcase on Discord](https://discord.gg/zee) or [tweet @zee](https://x.com/zee)
   </Step>
   <Step title="Include Details">
     Tell us what it does, link to the repo/demo, share a screenshot if you have one

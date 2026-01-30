@@ -40,7 +40,6 @@ Local trust:
 
 - [Nodes overview](/nodes)
 - [Bridge protocol (legacy nodes)](/gateway/bridge-protocol)
-- [Node runbook: macOS](/platforms/macos)
 
 ## Security
 

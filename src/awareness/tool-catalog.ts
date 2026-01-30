@@ -40,7 +40,6 @@ const PERSONA_PRIMARY_TOOLS: Record<string, string[]> = {
     "zee:memory",
     "telegram",
     "whatsapp",
-    "signal",
   ],
   stanley: [
     "stanley:portfolio",

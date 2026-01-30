@@ -42,7 +42,7 @@ Client → Gateway:
     "client": {
       "id": "cli",
       "version": "1.2.3",
-      "platform": "macos",
+      "platform": "linux",
       "mode": "operator"
     },
     "role": "operator",

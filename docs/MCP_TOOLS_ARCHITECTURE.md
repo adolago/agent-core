@@ -119,7 +119,7 @@ Agent-specific tools:
 **Zee (Personal Assistant)**:
 - `zee_memory_store`: Persistent key-value storage with TTL
 - `zee_memory_search`: Semantic vector search
-- `zee_messaging`: WhatsApp, email, Slack
+- `zee_messaging`: WhatsApp, Telegram, email
 - `zee_notification`: Alerts, reminders, summaries
 
 ## Data Flow

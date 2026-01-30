@@ -27,33 +27,25 @@ const SYSTEM_COMMANDS = [
   "browser.proxy",
 ];
 
+const DESKTOP_COMMANDS = [
+  ...CANVAS_COMMANDS,
+  ...CAMERA_COMMANDS,
+  ...SCREEN_COMMANDS,
+  ...LOCATION_COMMANDS,
+  ...SYSTEM_COMMANDS,
+];
+
 const PLATFORM_DEFAULTS: Record<string, string[]> = {
-  macos: [
-    ...CANVAS_COMMANDS,
-    ...CAMERA_COMMANDS,
-    ...SCREEN_COMMANDS,
-    ...LOCATION_COMMANDS,
-    ...SYSTEM_COMMANDS,
-  ],
-  linux: [...SYSTEM_COMMANDS],
+  linux: [...DESKTOP_COMMANDS],
   windows: [...SYSTEM_COMMANDS],
-  unknown: [
-    ...CANVAS_COMMANDS,
-    ...CAMERA_COMMANDS,
-    ...SCREEN_COMMANDS,
-    ...LOCATION_COMMANDS,
-    ...SYSTEM_COMMANDS,
-  ],
+  unknown: [...SYSTEM_COMMANDS],
 };
 
 function normalizePlatformId(platform?: string, deviceFamily?: string): string {
   const raw = (platform ?? "").trim().toLowerCase();
-  if (raw.startsWith("mac")) return "macos";
-  if (raw.startsWith("darwin")) return "macos";
   if (raw.startsWith("win")) return "windows";
   if (raw.startsWith("linux")) return "linux";
   const family = (deviceFamily ?? "").trim().toLowerCase();
-  if (family.includes("mac")) return "macos";
   if (family.includes("windows")) return "windows";
   if (family.includes("linux")) return "linux";
   return "unknown";

@@ -95,21 +95,6 @@ describe("getMinimalServicePathParts - Linux user directories", () => {
     expect(result).toContain("/opt/fnm/current/bin");
   });
 
-  it("does not include Linux user directories on macOS", () => {
-    const result = getMinimalServicePathParts({
-      platform: "darwin",
-      home: "/Users/testuser",
-    });
-
-    // Should not include Linux-specific user dirs even with HOME set
-    expect(result.some((p) => p.includes(".npm-global"))).toBe(false);
-    expect(result.some((p) => p.includes(".nvm"))).toBe(false);
-
-    // Should only include macOS system directories
-    expect(result).toContain("/opt/homebrew/bin");
-    expect(result).toContain("/usr/local/bin");
-  });
-
   it("does not include Linux user directories on Windows", () => {
     const result = getMinimalServicePathParts({
       platform: "win32",
@@ -124,17 +109,6 @@ describe("getMinimalServicePathParts - Linux user directories", () => {
 describe("buildMinimalServicePath", () => {
   const splitPath = (value: string, platform: NodeJS.Platform) =>
     value.split(platform === "win32" ? path.win32.delimiter : path.posix.delimiter);
-
-  it("includes Homebrew + system dirs on macOS", () => {
-    const result = buildMinimalServicePath({
-      platform: "darwin",
-    });
-    const parts = splitPath(result, "darwin");
-    expect(parts).toContain("/opt/homebrew/bin");
-    expect(parts).toContain("/usr/local/bin");
-    expect(parts).toContain("/usr/bin");
-    expect(parts).toContain("/bin");
-  });
 
   it("returns PATH as-is on Windows", () => {
     const result = buildMinimalServicePath({

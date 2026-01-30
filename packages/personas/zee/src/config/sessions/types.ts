@@ -8,7 +8,7 @@ import type { TtsAutoMode } from "../types.tts.js";
 
 export type SessionScope = "per-sender" | "global";
 
-export type SessionChannelId = ChannelId | "webchat";
+export type SessionChannelId = ChannelId | "internal";
 
 export type SessionChatType = NormalizedChatType;
 

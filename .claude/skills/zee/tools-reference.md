@@ -8,7 +8,7 @@ Detailed documentation for Zee's tools and capabilities.
 |------|---------|
 | `zee:memory-store` | Store facts, preferences, tasks, notes |
 | `zee:memory-search` | Semantic search across all memories |
-| `zee:messaging` | Send/receive across WhatsApp, Telegram, Discord |
+| `zee:messaging` | Send/receive across WhatsApp and Telegram |
 | `neomutt` | Email client (read, compose, reply) |
 | `notmuch` | Email search and indexing |
 | `mbsync` | IMAP sync (offline email) |

@@ -94,7 +94,7 @@ export async function initSessionState(params: {
   commandAuthorized: boolean;
 }): Promise<SessionInitResult> {
   const { ctx, cfg, commandAuthorized } = params;
-  // Native slash commands (Telegram/Discord/Slack) are delivered on a separate
+  // Native slash commands are delivered on a separate
   // "slash session" key, but should mutate the target chat session.
   const targetSessionKey =
     ctx.CommandSource === "native" ? ctx.CommandTargetSessionKey?.trim() : undefined;

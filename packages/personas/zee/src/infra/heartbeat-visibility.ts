@@ -1,6 +1,6 @@
 import type { ZeeConfig } from "../config/config.js";
 import type { ChannelHeartbeatVisibilityConfig } from "../config/types.channels.js";
-import type { GatewayMessageChannel } from "../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL, type GatewayMessageChannel } from "../utils/message-channel.js";
 
 export type ResolvedHeartbeatVisibility = {
   showOk: boolean;
@@ -16,8 +16,8 @@ const DEFAULT_VISIBILITY: ResolvedHeartbeatVisibility = {
 
 /**
  * Resolve heartbeat visibility settings for a channel.
- * Supports both deliverable channels (telegram, signal, etc.) and webchat.
- * For webchat, uses channels.defaults.heartbeat since webchat doesn't have per-channel config.
+ * Supports both deliverable channels (telegram, whatsapp) and the internal channel.
+ * For internal runs, uses channels.defaults.heartbeat since it has no per-channel config.
  */
 export function resolveHeartbeatVisibility(params: {
   cfg: ZeeConfig;
@@ -26,8 +26,8 @@ export function resolveHeartbeatVisibility(params: {
 }): ResolvedHeartbeatVisibility {
   const { cfg, channel, accountId } = params;
 
-  // Webchat uses channel defaults only (no per-channel or per-account config)
-  if (channel === "webchat") {
+  // Internal runs use channel defaults only (no per-channel or per-account config)
+  if (channel === INTERNAL_MESSAGE_CHANNEL) {
     const channelDefaults = cfg.channels?.defaults?.heartbeat;
     return {
       showOk: channelDefaults?.showOk ?? DEFAULT_VISIBILITY.showOk,

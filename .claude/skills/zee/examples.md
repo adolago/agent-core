@@ -30,7 +30,7 @@ npx tsx scripts/zee-memory.ts patterns --category preference
 User: "Tell the team I'll be late"
 zee: Identifies "team" from context
      Sends appropriate message to each platform
-     WhatsApp group, Slack channel, or email as configured
+     WhatsApp group, Telegram chat, or email as configured
 ```
 
 ### Multi-platform

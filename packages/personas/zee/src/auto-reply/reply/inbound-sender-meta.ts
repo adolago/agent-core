@@ -33,7 +33,7 @@ function hasSenderMetaLine(body: string, ctx: MsgContext): boolean {
   if (candidates.length === 0) return false;
   return candidates.some((candidate) => {
     const escaped = escapeRegExp(candidate);
-    // Envelope bodies look like "[Signal ...] Alice: hi".
+    // Envelope bodies look like "[Channel ...] Alice: hi".
     // Treat the post-header sender prefix as already having sender metadata.
     const pattern = new RegExp(`(^|\\n|\\]\\s*)${escaped}:\\s`, "i");
     return pattern.test(body);

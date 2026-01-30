@@ -14,15 +14,13 @@ import {
 } from "../gateway/protocol/client-info.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
 
-export const INTERNAL_MESSAGE_CHANNEL = "webchat" as const;
+export const INTERNAL_MESSAGE_CHANNEL = "internal" as const;
 export type InternalMessageChannel = typeof INTERNAL_MESSAGE_CHANNEL;
 
 const MARKDOWN_CAPABLE_CHANNELS = new Set<string>([
-  "slack",
   "telegram",
-  "signal",
-  "discord",
-  "googlechat",
+  "whatsapp",
+  "cli",
   "tui",
   INTERNAL_MESSAGE_CHANNEL,
 ]);
@@ -42,12 +40,6 @@ export function isGatewayCliClient(client?: GatewayClientInfoLike | null): boole
 
 export function isInternalMessageChannel(raw?: string | null): raw is InternalMessageChannel {
   return normalizeMessageChannel(raw) === INTERNAL_MESSAGE_CHANNEL;
-}
-
-export function isWebchatClient(client?: GatewayClientInfoLike | null): boolean {
-  const mode = normalizeGatewayClientMode(client?.mode);
-  if (mode === GATEWAY_CLIENT_MODES.WEBCHAT) return true;
-  return normalizeGatewayClientName(client?.id) === GATEWAY_CLIENT_NAMES.WEBCHAT_UI;
 }
 
 export function normalizeMessageChannel(raw?: string | null): string | undefined {

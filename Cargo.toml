@@ -1,7 +1,6 @@
 [workspace]
 resolver = "3"
 members = [
-    "packages/desktop-gpui",
     "packages/stanley-core",
 ]
 

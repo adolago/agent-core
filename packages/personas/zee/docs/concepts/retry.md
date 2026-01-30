@@ -17,12 +17,9 @@ read_when:
 - Jitter: 0.1 (10 percent)
 - Provider defaults:
   - Telegram min delay: 400 ms
-  - Discord min delay: 500 ms
 
 ## Behavior
-### Discord
 - Retries only on rate-limit errors (HTTP 429).
-- Uses Discord `retry_after` when available, otherwise exponential backoff.
 
 ### Telegram
 - Retries on transient errors (429, timeout, connect/reset/closed, temporarily unavailable).
@@ -43,7 +40,6 @@ Set retry policy per provider in `~/.zee/zee.json`:
         jitter: 0.1
       }
     },
-    discord: {
       retry: {
         attempts: 3,
         minDelayMs: 500,

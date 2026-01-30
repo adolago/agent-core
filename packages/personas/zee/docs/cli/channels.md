@@ -18,8 +18,6 @@ Related docs:
 zee channels list
 zee channels status
 zee channels capabilities
-zee channels capabilities --channel discord --target channel:123
-zee channels resolve --channel slack "#general" "@jane"
 zee channels logs --channel all
 ```
 
@@ -30,7 +28,6 @@ zee channels add --channel telegram --token <bot-token>
 zee channels remove --channel telegram --delete
 ```
 
-Tip: `zee channels add --help` shows per-channel flags (token, app token, signal-cli paths, etc).
 
 ## Login / logout (interactive)
 
@@ -51,21 +48,16 @@ Fetch provider capability hints (intents/scopes where available) plus static fea
 
 ```bash
 zee channels capabilities
-zee channels capabilities --channel discord --target channel:123
 ```
 
 Notes:
 - `--channel` is optional; omit it to list every channel (including extensions).
-- `--target` accepts `channel:<id>` or a raw numeric channel id and only applies to Discord.
-- Probes are provider-specific: Discord intents + optional channel permissions; Slack bot + user scopes; Telegram bot flags + webhook; Signal daemon version; MS Teams app token + Graph roles/scopes (annotated where known). Channels without probes report `Probe: unavailable`.
 
 ## Resolve names to IDs
 
 Resolve channel/user names to IDs using the provider directory:
 
 ```bash
-zee channels resolve --channel slack "#general" "@jane"
-zee channels resolve --channel discord "My Server/#support" "@someone"
 zee channels resolve --channel matrix "Project Room"
 ```
 

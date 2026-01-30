@@ -99,7 +99,6 @@ log.info("server started", { port: 3210 })
 | `hooks` | Webhook processing |
 | `whatsapp` | WhatsApp bridge |
 | `telegram` | Telegram bot |
-| `discord` | Discord integration |
 
 ---
 

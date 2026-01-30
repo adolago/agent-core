@@ -117,11 +117,6 @@ if [[ ! -f "$ENV_FILE" ]]; then
 # Leave empty to allow all users (not recommended for public bots)
 # TELEGRAM_ALLOWED_USERS=123456789,987654321
 
-# =============================================================================
-# Discord Gateway (Future - Phase 2)
-# =============================================================================
-
-# DISCORD_BOT_TOKEN=your-discord-token-here
 EOF
     chown "$SERVICE_USER:$SERVICE_GROUP" "$ENV_FILE"
     chmod 600 "$ENV_FILE"
@@ -222,7 +217,7 @@ echo "Installation complete!"
 echo ""
 echo "The daemon starts:"
 echo "  - agent-core (AI agent engine)"
-echo "  - zee gateway (WhatsApp/Telegram/Signal messaging)"
+echo "  - zee gateway (WhatsApp/Telegram messaging)"
 echo ""
 echo "Next steps:"
 echo "  1. Edit your API keys in: $ENV_FILE"

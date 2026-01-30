@@ -5,14 +5,14 @@ description: Deploy Zee on Fly.io
 
 # Fly.io Deployment
 
-**Goal:** Zee Gateway running on a [Fly.io](https://fly.io) machine with persistent storage, automatic HTTPS, and Discord/channel access.
+**Goal:** Zee Gateway running on a [Fly.io](https://fly.io) machine with persistent storage, automatic HTTPS, and WhatsApp/Telegram access.
 
 ## What you need
 
 - [flyctl CLI](https://fly.io/docs/hands-on/install-flyctl/) installed
 - Fly.io account (free tier works)
 - Model auth: Anthropic API key (or other provider keys)
-- Channel credentials: Discord bot token, Telegram token, etc.
+- Channel credentials: Telegram bot token and WhatsApp pairing
 
 ## Beginner quick path
 
@@ -125,7 +125,7 @@ fly logs
 You should see:
 ```
 [gateway] listening on ws://0.0.0.0:3000 (PID xxx)
-[discord] logged in to discord as xxx
+[telegram] logged in as xxx
 ```
 
 ## 5) Create config file
@@ -165,19 +165,16 @@ cat > /data/zee.json << 'EOF'
   "bindings": [
     {
       "agentId": "main",
-      "match": { "channel": "discord" }
+      "match": { "channel": "telegram" }
     }
   ],
   "channels": {
-    "discord": {
+    "telegram": {
       "enabled": true,
+      "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
       "groupPolicy": "allowlist",
-      "guilds": {
-        "YOUR_GUILD_ID": {
-          "channels": { "general": { "allow": true } },
-          "requireMention": false
-        }
-      }
+      "groupAllowFrom": ["123456789"],
+      "groups": { "*": { "requireMention": true } }
     }
   },
   "gateway": {
@@ -193,11 +190,11 @@ EOF
 
 **Note:** With `ZEE_STATE_DIR=/data`, the config path is `/data/zee.json`.
 
-**Note:** The Discord token can come from either:
-- Environment variable: `DISCORD_BOT_TOKEN` (recommended for secrets)
-- Config file: `channels.discord.token`
+**Note:** The Telegram bot token can come from either:
+- Environment variable: `TELEGRAM_BOT_TOKEN` (recommended for secrets)
+- Config file: `channels.telegram.botToken`
 
-If using env var, no need to add token to config. The gateway reads `DISCORD_BOT_TOKEN` automatically.
+If using env var, no need to add token to config. The gateway reads `TELEGRAM_BOT_TOKEN` automatically.
 
 Restart to apply:
 ```bash
@@ -454,7 +451,6 @@ The ngrok tunnel runs inside the container and provides a public webhook URL wit
 - The Dockerfile is compatible with both architectures
 - For WhatsApp/Telegram onboarding, use `fly ssh console`
 - Persistent data lives on the volume at `/data`
-- Signal requires Java + signal-cli; use a custom image and keep memory at 2GB+.
 
 ## Cost
 
