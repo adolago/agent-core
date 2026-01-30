@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { LEGACY_MANIFEST_KEY } from "../../compat/legacy-names.js";
 import { discoverZeePlugins } from "../../plugins/discovery.js";
 import type { PluginOrigin } from "../../plugins/types.js";
 import type { ZeePackageManifest } from "../../plugins/manifest.js";
@@ -51,8 +50,6 @@ type ExternalCatalogEntry = {
   version?: string;
   description?: string;
   zee?: ZeePackageManifest;
-  zee?: ZeePackageManifest;
-  [LEGACY_MANIFEST_KEY]?: ZeePackageManifest;
 };
 
 const DEFAULT_CATALOG_PATHS = [
@@ -62,10 +59,6 @@ const DEFAULT_CATALOG_PATHS = [
 ];
 
 const ENV_CATALOG_PATHS = [
-  "ZEE_PLUGIN_CATALOG_PATHS",
-  "ZEE_MPM_CATALOG_PATHS",
-  "ZEE_PLUGIN_CATALOG_PATHS",
-  "ZEE_MPM_CATALOG_PATHS",
   "ZEE_PLUGIN_CATALOG_PATHS",
   "ZEE_MPM_CATALOG_PATHS",
 ];
@@ -214,7 +207,7 @@ function buildCatalogEntry(candidate: {
 }
 
 function buildExternalCatalogEntry(entry: ExternalCatalogEntry): ChannelPluginCatalogEntry | null {
-  const manifest = entry.zee ?? entry.zee ?? entry[LEGACY_MANIFEST_KEY];
+  const manifest = entry.zee;
   return buildCatalogEntry({
     packageName: entry.name,
     packageZee: manifest,

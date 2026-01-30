@@ -1,18 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { LEGACY_MANIFEST_KEY, LEGACY_PLUGIN_MANIFEST_FILENAME } from "../compat/legacy-names.js";
 import type { PluginConfigUiHint, PluginKind } from "./types.js";
 
 export const PLUGIN_MANIFEST_FILENAME = "zee.plugin.json";
-const LEGACY_PLUGIN_MANIFEST_FILENAMES = [
-  "zee.plugin.json",
-  LEGACY_PLUGIN_MANIFEST_FILENAME,
-] as const;
-export const PLUGIN_MANIFEST_FILENAMES = [
-  PLUGIN_MANIFEST_FILENAME,
-  ...LEGACY_PLUGIN_MANIFEST_FILENAMES,
-] as const;
+export const PLUGIN_MANIFEST_FILENAMES = [PLUGIN_MANIFEST_FILENAME] as const;
 
 export type PluginManifest = {
   id: string;
@@ -106,7 +98,7 @@ export function loadPluginManifest(rootDir: string): PluginManifestLoadResult {
   };
 }
 
-// package.json "zee" metadata (used for onboarding/catalog; legacy: zee/zee)
+// package.json "zee" metadata (used for onboarding/catalog)
 export type PluginPackageChannel = {
   id?: string;
   label?: string;
@@ -145,13 +137,11 @@ export type PackageManifest = {
   version?: string;
   description?: string;
   zee?: ZeePackageManifest;
-  zee?: ZeePackageManifest;
-  [LEGACY_MANIFEST_KEY]?: ZeePackageManifest;
 };
 
 export function getPackageManifestMetadata(
   manifest: PackageManifest | undefined,
 ): ZeePackageManifest | undefined {
   if (!manifest) return undefined;
-  return manifest.zee ?? manifest.zee ?? manifest[LEGACY_MANIFEST_KEY];
+  return manifest.zee;
 }

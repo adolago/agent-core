@@ -1073,12 +1073,12 @@ export class Session extends HeyApiClient {
   /**
    * Session handoff
    *
-   * Prepare a session for handoff to another platform (mobile, web). Returns session state and a handoff token for resumption.
+   * Prepare a session for handoff to another surface (cli, gui, telegram, whatsapp). Returns session state and a handoff token for resumption.
    */
   public handoff<ThrowOnError extends boolean = false>(
     parameters: {
       sessionID: string
-      targetSurface?: "mobile" | "web" | "cli" | "telegram" | "whatsapp"
+      targetSurface?: "cli" | "gui" | "telegram" | "whatsapp"
     },
     options?: Options<never, ThrowOnError>,
   ) {

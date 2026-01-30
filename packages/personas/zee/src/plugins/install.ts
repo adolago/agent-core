@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { LEGACY_MANIFEST_KEY } from "../compat/legacy-names.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import {
@@ -22,8 +21,6 @@ type PackageManifest = {
   version?: string;
   dependencies?: Record<string, string>;
   zee?: { extensions?: string[] };
-  zee?: { extensions?: string[] };
-  [LEGACY_MANIFEST_KEY]?: { extensions?: string[] };
 };
 
 export type InstallPluginResult =
@@ -56,10 +53,9 @@ function safeFileName(input: string): string {
 }
 
 async function ensureZeeExtensions(manifest: PackageManifest) {
-  const extensions =
-    manifest.zee?.extensions ?? manifest.zee?.extensions ?? manifest[LEGACY_MANIFEST_KEY]?.extensions;
+  const extensions = manifest.zee?.extensions;
   if (!Array.isArray(extensions)) {
-    throw new Error("package.json missing zee.extensions (legacy: zee.extensions)");
+    throw new Error("package.json missing zee.extensions");
   }
   const list = extensions.map((e) => (typeof e === "string" ? e.trim() : "")).filter(Boolean);
   if (list.length === 0) {

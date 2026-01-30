@@ -3168,7 +3168,7 @@ export type SyncDeltaResponse = SyncDeltaResponses[keyof SyncDeltaResponses]
 
 export type SessionHandoffData = {
   body?: {
-    targetSurface: "mobile" | "web" | "cli" | "telegram" | "whatsapp"
+    targetSurface: "cli" | "gui" | "telegram" | "whatsapp"
   }
   path: {
     sessionID: string

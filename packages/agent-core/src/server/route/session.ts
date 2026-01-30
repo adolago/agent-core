@@ -452,7 +452,7 @@ export const SessionRoute = new Hono()
       summary: "Session handoff",
       tags: ["Session"],
       description:
-        "Prepare a session for handoff to another platform (mobile, cli, telegram, whatsapp). Returns session state and a handoff token for resumption.",
+        "Prepare a session for handoff to another surface (cli, gui, telegram, whatsapp). Returns session state and a handoff token for resumption.",
       operationId: "session.handoff",
       responses: {
         200: {
@@ -478,7 +478,7 @@ export const SessionRoute = new Hono()
       },
     }),
     validator("param", z.object({ sessionID: z.string() })),
-    validator("json", z.object({ targetSurface: z.enum(["mobile", "cli", "telegram", "whatsapp"]) })),
+    validator("json", z.object({ targetSurface: z.enum(["cli", "gui", "telegram", "whatsapp"]) })),
     async (c) => {
       const sessionID = c.req.valid("param").sessionID
       const { targetSurface } = c.req.valid("json")

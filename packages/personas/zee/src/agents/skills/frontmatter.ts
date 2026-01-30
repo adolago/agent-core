@@ -1,7 +1,6 @@
 import JSON5 from "json5";
 import type { Skill } from "@mariozechner/pi-coding-agent";
 
-import { LEGACY_MANIFEST_KEY } from "../../compat/legacy-names.js";
 import { parseFrontmatterBlock } from "../../markdown/frontmatter.js";
 import { parseBooleanValue } from "../../utils/boolean.js";
 import type {
@@ -80,12 +79,9 @@ export function resolveZeeMetadata(
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON5.parse(raw) as { zee?: unknown; zee?: unknown } & Partial<
-      Record<typeof LEGACY_MANIFEST_KEY, unknown>
-    >;
+    const parsed = JSON5.parse(raw) as { zee?: unknown };
     if (!parsed || typeof parsed !== "object") return undefined;
-    const metadataRaw =
-      parsed[SKILL_METADATA_KEY] ?? parsed.zee ?? parsed[LEGACY_MANIFEST_KEY];
+    const metadataRaw = parsed[SKILL_METADATA_KEY] ?? parsed.zee;
     if (!metadataRaw || typeof metadataRaw !== "object") return undefined;
     const metadataObj = metadataRaw as Record<string, unknown>;
     const requiresRaw =
