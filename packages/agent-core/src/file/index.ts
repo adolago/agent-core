@@ -135,7 +135,6 @@ export namespace File {
         const dirs = new Set<string>()
         const ignore = new Set<string>()
 
-        if (process.platform === "darwin") ignore.add("Library")
         if (process.platform === "win32") ignore.add("AppData")
 
         const ignoreNested = new Set(["node_modules", "dist", "build", "target", "vendor"])

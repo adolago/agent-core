@@ -56,6 +56,19 @@
     }
   },
   "disabled_providers": ["alibaba"],
+  "fallback": {
+    "enabled": true,
+    "rules": [
+      {
+        "condition": "rate_limit",
+        "fallbacks": ["kimi-for-coding/kimi-k2.5-thinking"]
+      },
+      {
+        "condition": "error",
+        "fallbacks": ["kimi-for-coding/kimi-k2.5-thinking"]
+      }
+    ]
+  },
   "tools": {
     "github-triage": false,
     "github-pr-search": false

@@ -14,9 +14,6 @@ function detectPlatformAndArch() {
   // Map platform names
   let platform
   switch (os.platform()) {
-    case "darwin":
-      platform = "darwin"
-      break
     case "linux":
       platform = "linux"
       break
@@ -24,8 +21,7 @@ function detectPlatformAndArch() {
       platform = "windows"
       break
     default:
-      platform = os.platform()
-      break
+      return null
   }
 
   // Map architecture names
@@ -81,7 +77,11 @@ function resolvePackageScope() {
 }
 
 function findBinary() {
-  const { platform, arch, libc } = detectPlatformAndArch()
+  const detected = detectPlatformAndArch()
+  if (!detected) {
+    throw new Error(`Unsupported platform: ${os.platform()}`)
+  }
+  const { platform, arch, libc } = detected
   const baseName = `agent-core-${platform}-${arch}${libc}`
   const scope = resolvePackageScope()
   const packageNames = [scope ? `${scope}/${baseName}` : null, baseName].filter(Boolean)

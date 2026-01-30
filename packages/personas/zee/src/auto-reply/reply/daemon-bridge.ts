@@ -352,7 +352,8 @@ export async function getReplyFromDaemonBridge(
     });
     return { text: result.text };
   } catch (err) {
-    logVerbose(`daemon bridge request failed: ${err instanceof Error ? err.message : String(err)}`);
-    throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    logVerbose(`daemon bridge request failed: ${message}`);
+    return { text: `Error: ${message}` };
   }
 }

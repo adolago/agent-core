@@ -28,29 +28,25 @@ Directory lookups for channels that support it (contacts/peers, groups, and “m
 
 - WhatsApp: `+15551234567` (DM), `1234567890-1234567890@g.us` (group)
 - Telegram: `@username` or numeric chat id; groups are numeric ids
-- Matrix (plugin): `user:@user:server`, `room:!roomId:server`, or `#alias:server`
-- Microsoft Teams (plugin): `user:<id>` and `conversation:<id>`
-- Zalo (plugin): user id (Bot API)
-- Zalo Personal / `zalouser` (plugin): thread id (DM/group) from `zca` (`me`, `friend list`, `group list`)
 
 ## Self (“me”)
 
 ```bash
-zee directory self --channel zalouser
+zee directory self --channel telegram
 ```
 
 ## Peers (contacts/users)
 
 ```bash
-zee directory peers list --channel zalouser
-zee directory peers list --channel zalouser --query "name"
-zee directory peers list --channel zalouser --limit 50
+zee directory peers list --channel telegram
+zee directory peers list --channel telegram --query "name"
+zee directory peers list --channel telegram --limit 50
 ```
 
 ## Groups
 
 ```bash
-zee directory groups list --channel zalouser
-zee directory groups list --channel zalouser --query "work"
-zee directory groups members --channel zalouser --group-id <id>
+zee directory groups list --channel telegram
+zee directory groups list --channel telegram --query "work"
+zee directory groups members --channel telegram --group-id <id>
 ```

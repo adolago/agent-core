@@ -84,7 +84,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   # FIXME: workaround for concerns about case insensitive filesystems
   # should be removed once binary is renamed or decided otherwise
-  # darwin output is a .app bundle so no conflict
+  # Desktop bundle outputs avoid filename conflicts
   postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
     mv $out/bin/OpenCode $out/bin/opencode-desktop
     sed -i 's|^Exec=OpenCode$|Exec=opencode-desktop|' $out/share/applications/OpenCode.desktop

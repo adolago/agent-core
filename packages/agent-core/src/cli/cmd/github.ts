@@ -327,12 +327,7 @@ export const GithubInstallCommand = cmd({
               s.stop("GitHub app URL invalid or not configured")
               throw new UI.CancelledError()
             }
-            const command =
-              process.platform === "darwin"
-                ? `open "${url}"`
-                : process.platform === "win32"
-                  ? `start "" "${url}"`
-                  : `xdg-open "${url}"`
+            const command = process.platform === "win32" ? `start "" "${url}"` : `xdg-open "${url}"`
 
             exec(command, (error) => {
               if (error) {

@@ -154,31 +154,6 @@ export namespace Dictation {
       return recCommand ?? soxCommand
     }
 
-    if (os === "darwin") {
-      if (recCommand) return recCommand
-      if (soxCommand) return soxCommand
-      if (ffmpeg) {
-        return [
-          ffmpeg,
-          "-hide_banner",
-          "-loglevel",
-          "error",
-          "-f",
-          "avfoundation",
-          "-i",
-          "none:0",
-          "-ac",
-          "1",
-          "-ar",
-          String(input.sampleRate),
-          "-f",
-          "wav",
-          "-",
-        ]
-      }
-      return
-    }
-
     if (os === "win32") {
       if (recCommand) return recCommand
       if (soxCommand) return soxCommand
@@ -605,4 +580,3 @@ export namespace Dictation {
     return new TextDecoder().decode(bytes)
   }
 }
-

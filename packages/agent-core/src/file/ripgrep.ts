@@ -89,12 +89,10 @@ export namespace Ripgrep {
   export type End = z.infer<typeof End>
   export type Summary = z.infer<typeof Summary>
   const PLATFORM = {
-    "arm64-darwin": { platform: "aarch64-apple-darwin", extension: "tar.gz" },
     "arm64-linux": {
       platform: "aarch64-unknown-linux-gnu",
       extension: "tar.gz",
     },
-    "x64-darwin": { platform: "x86_64-apple-darwin", extension: "tar.gz" },
     "x64-linux": { platform: "x86_64-unknown-linux-musl", extension: "tar.gz" },
     "x64-win32": { platform: "x86_64-pc-windows-msvc", extension: "zip" },
   } as const
@@ -146,7 +144,6 @@ export namespace Ripgrep {
       if (config.extension === "tar.gz") {
         const args = ["tar", "-xzf", archivePath, "--strip-components=1"]
 
-        if (platformKey.endsWith("-darwin")) args.push("--include=*/rg")
         if (platformKey.endsWith("-linux")) args.push("--wildcards", "*/rg")
 
         const proc = Bun.spawn(args, {

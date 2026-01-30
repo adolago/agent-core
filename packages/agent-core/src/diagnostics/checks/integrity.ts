@@ -20,9 +20,6 @@ const GATEWAY_ENV_HINTS = [
   "TELEGRAM_USER_PHONE",
   "TELEGRAM_API_ID",
   "TELEGRAM_API_HASH",
-  "DISCORD_BOT_TOKEN",
-  "SLACK_BOT_TOKEN",
-  "SLACK_APP_TOKEN",
 ];
 
 function getStateDir(): string {

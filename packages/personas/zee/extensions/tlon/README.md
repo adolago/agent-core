@@ -1,5 +1,0 @@
-# Tlon (Zee plugin)
-
-Tlon/Urbit channel plugin for Zee. Supports DMs, group mentions, and thread replies.
-
-Docs: https://docs.zee/channels/tlon

@@ -830,8 +830,6 @@
           "tools/lobster",
           "tools/llm-task",
           "plugin",
-          "plugins/voice-call",
-          "plugins/zalouser",
           "tools/exec",
           "tools/web",
           "tools/apply-patch",

@@ -10,7 +10,7 @@ TARGET="${AGENT_CORE_TARGET:-}"
 if [[ -z "$TARGET" ]]; then
   os="$(uname -s | tr '[:upper:]' '[:lower:]')"
   case "$os" in
-    linux|darwin) ;;
+    linux) ;;
     msys*|mingw*|cygwin*) os="windows" ;;
     *) echo "Unsupported OS: $os" >&2; exit 1 ;;
   esac

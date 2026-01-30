@@ -46,7 +46,6 @@ export namespace FileWatcher {
       const cfg = await Config.get()
       const backend = (() => {
         if (process.platform === "win32") return "windows"
-        if (process.platform === "darwin") return "fs-events"
         if (process.platform === "linux") return "inotify"
       })()
       if (!backend) {

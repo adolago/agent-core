@@ -58,7 +58,7 @@ Notes:
 Resolve channel/user names to IDs using the provider directory:
 
 ```bash
-zee channels resolve --channel matrix "Project Room"
+zee channels resolve --channel telegram "Project Room"
 ```
 
 Notes:

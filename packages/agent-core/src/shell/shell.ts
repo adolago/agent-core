@@ -47,7 +47,6 @@ export namespace Shell {
       }
       return process.env.COMSPEC || "cmd.exe"
     }
-    if (process.platform === "darwin") return "/bin/zsh"
     const bash = Bun.which("bash")
     if (bash) return bash
     return "/bin/sh"

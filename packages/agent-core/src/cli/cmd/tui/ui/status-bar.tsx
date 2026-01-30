@@ -62,11 +62,11 @@ export function StatusBar() {
   })
 
   return (
-    <box flexDirection="row" justifyContent="space-between" gap={1} flexShrink={0}>
+    <box flexDirection="row" justifyContent="space-between" gap={0} flexShrink={0}>
       <text fg={theme.textMuted} flexShrink={1}>
         {directory()}
       </text>
-      <box gap={2} flexDirection="row" flexShrink={0}>
+      <box gap={0} flexDirection="row" flexShrink={0}>
         <Switch>
           <Match when={store.welcome}>
             <text fg={theme.text}>
@@ -74,14 +74,16 @@ export function StatusBar() {
             </text>
           </Match>
           <Match when={connected()}>
+            {/* Mode indicator */}
             <text fg={local.mode.isHold() ? theme.warning : theme.success}>
-              {local.mode.isHold() ? "HOLD" : "RELEASE"}
+              {local.mode.isHold() ? "◼ HOLD" : "◻ RELEASE"}
             </text>
+            <text fg={theme.border}> │ </text>
             <Show when={permissions().length > 0}>
               <text fg={theme.warning}>
-                <span style={{ fg: theme.warning }}>△</span> {permissions().length} Permission
-                {permissions().length > 1 ? "s" : ""}
+                △{permissions().length}
               </text>
+              <text fg={theme.border}> │ </text>
             </Show>
             <Show when={streamHealth()}>
               {(() => {
@@ -91,78 +93,77 @@ export function StatusBar() {
 
                 if (health.isStalled) {
                   return (
-                    <text fg={theme.error}>
-                      <span style={{ fg: theme.error }}>⛔</span> Stream stalled ({elapsedSeconds}s)
-                    </text>
+                    <>
+                      <text fg={theme.error}>⛔ stalled {elapsedSeconds}s</text>
+                      <text fg={theme.border}> │ </text>
+                    </>
                   )
                 }
 
                 if (health.isThinking) {
                   const thinkingSeconds = Math.round((health.timeSinceContentMs ?? 0) / 1000)
                   return (
-                    <text fg={theme.warning}>
-                      <span style={{ fg: theme.warning }}>🧠</span> Thinking... ({thinkingSeconds}s without output)
-                    </text>
+                    <>
+                      <text fg={theme.warning}>🧠 thinking {thinkingSeconds}s</text>
+                      <text fg={theme.border}> │ </text>
+                    </>
                   )
                 }
 
                 if (elapsed >= 45_000) {
                   return (
-                    <text fg={theme.error}>
-                      <span style={{ fg: theme.error }}>⚠</span> Response delayed ({elapsedSeconds}s)
-                    </text>
+                    <>
+                      <text fg={theme.error}>⚠ delayed {elapsedSeconds}s</text>
+                      <text fg={theme.border}> │ </text>
+                    </>
                   )
                 }
 
                 if (elapsed >= 30_000) {
                   return (
-                    <text fg={theme.warning}>
-                      <span style={{ fg: theme.warning }}>⏳</span> Waiting for response ({elapsedSeconds}s)
-                    </text>
+                    <>
+                      <text fg={theme.warning}>⏳ waiting {elapsedSeconds}s</text>
+                      <text fg={theme.border}> │ </text>
+                    </>
                   )
                 }
 
                 return null
               })()}
             </Show>
-            <text fg={theme.text}>
+            {/* Network & Models Group */}
+            <box flexDirection="row" gap={0}>
               <Switch>
                 <Match when={internet() === "ok"}>
-                  <span style={{ fg: theme.success }}>◉</span>
+                  <text fg={theme.success}>◉</text>
                 </Match>
                 <Match when={internet() === "fail"}>
-                  <span style={{ fg: theme.error }}>◉</span>
+                  <text fg={theme.error}>◉</text>
                 </Match>
                 <Match when={internet() === "checking"}>
-                  <span style={{ fg: theme.textMuted }}>◉</span>
+                  <text fg={theme.textMuted}>◉</text>
                 </Match>
               </Switch>
-              {" "}Net
-            </text>
-            <Show when={connectedProviders() > 0}>
-              <text fg={theme.text}>
-                <span style={{ fg: theme.success }}>◈</span> {connectedProviders()} LLM
-              </text>
-            </Show>
-            <text fg={theme.text}>
-              <span style={{ fg: lsp().length > 0 ? theme.success : theme.textMuted }}>•</span> {lsp().length} LSP
-            </text>
-            <Show when={mcp()}>
-              <text fg={theme.text}>
+              <Show when={connectedProviders() > 0}>
+                <text fg={theme.border}>│</text>
+                <text fg={theme.success}>◈{connectedProviders()}</text>
+              </Show>
+              <text fg={theme.border}>│</text>
+              <text fg={lsp().length > 0 ? theme.success : theme.textMuted}>●{lsp().length}</text>
+              <Show when={mcp() > 0}>
+                <text fg={theme.border}>│</text>
                 <Switch>
                   <Match when={mcpError()}>
-                    <span style={{ fg: theme.error }}>⊙ </span>
+                    <text fg={theme.error}>⊘{mcp()}</text>
                   </Match>
                   <Match when={true}>
-                    <span style={{ fg: theme.success }}>⊙ </span>
+                    <text fg={theme.success}>⊙{mcp()}</text>
                   </Match>
                 </Switch>
-                {mcp()} MCP
-              </text>
-            </Show>
-            <text fg={theme.textMuted}>?:help</text>
-            <text fg={theme.textMuted}>:legend</text>
-            <text fg={theme.textMuted}>:status</text>
+              </Show>
+            </box>
+            <text fg={theme.border}> │ </text>
+            <text fg={theme.textMuted}>:help</text>
           </Match>
         </Switch>
       </box>

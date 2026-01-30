@@ -22,9 +22,6 @@ Channel selection:
 Target formats (`--target`):
 - WhatsApp: E.164 or group JID
 - Telegram: chat id or `@username`
-- Google Chat: `spaces/<spaceId>` or `users/<userId>`
-- Mattermost (plugin): `channel:<id>`, `user:<id>`, or `@username` (bare ids are treated as channels)
-- MS Teams: conversation id (`19:...@thread.tacv2`) or `conversation:<id>` or `user:<aad-object-id>`
 
 Name lookup:
 - On cache miss, Zee will attempt a live directory lookup when the provider supports it.
@@ -151,16 +148,16 @@ Name lookup:
   --poll-multi --poll-duration-hours 48
 ```
 
-Send a Teams proactive message:
+Send a Telegram message:
 ```
-zee message send --channel msteams \
-  --target conversation:19:abc@thread.tacv2 --message "hi"
+zee message send --channel telegram \
+  --target "@channel" --message "hi"
 ```
 
-Create a Teams poll:
+Create a Telegram poll:
 ```
-zee message poll --channel msteams \
-  --target conversation:19:abc@thread.tacv2 \
+zee message poll --channel telegram \
+  --target "@channel" \
   --poll-question "Lunch?" \
   --poll-option Pizza --poll-option Sushi
 ```

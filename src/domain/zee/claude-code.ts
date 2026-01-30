@@ -25,8 +25,6 @@ const log = Log.create({ service: "zee-claude-code" });
 // =============================================================================
 
 const CLAUDE_CLI_CREDENTIALS_PATH = path.join(os.homedir(), ".claude", ".credentials.json");
-const CLAUDE_CLI_KEYCHAIN_SERVICE = "Claude Code-credentials";
-
 const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes (longer for complex tasks)
 const MAX_TIMEOUT_MS = 600_000; // 10 minutes
 
@@ -181,62 +179,7 @@ function readCredentialsFromFile(): ClaudeCredential | null {
   }
 }
 
-function readCredentialsFromKeychain(): ClaudeCredential | null {
-  if (process.platform !== "darwin") {
-    return null;
-  }
-
-  try {
-    const result = execSync(
-      `security find-generic-password -s "${CLAUDE_CLI_KEYCHAIN_SERVICE}" -w`,
-      { encoding: "utf8", timeout: 5000, stdio: ["pipe", "pipe", "pipe"] }
-    );
-
-    const data = JSON.parse(result.trim());
-    const claudeOauth = data?.claudeAiOauth;
-
-    if (!claudeOauth || typeof claudeOauth !== "object") {
-      return null;
-    }
-
-    const accessToken = claudeOauth.accessToken;
-    const refreshToken = claudeOauth.refreshToken;
-    const expiresAt = claudeOauth.expiresAt;
-
-    if (typeof accessToken !== "string" || !accessToken) {
-      return null;
-    }
-    if (typeof expiresAt !== "number" || expiresAt <= 0) {
-      return null;
-    }
-
-    if (typeof refreshToken === "string" && refreshToken) {
-      return {
-        type: "oauth",
-        accessToken,
-        refreshToken,
-        expiresAt,
-      };
-    }
-
-    return {
-      type: "token",
-      accessToken,
-      expiresAt,
-    };
-  } catch {
-    return null;
-  }
-}
-
 function readClaudeCredentials(): ClaudeCredential | null {
-  // Try keychain first when available
-  const keychainCreds = readCredentialsFromKeychain();
-  if (keychainCreds) {
-    return keychainCreds;
-  }
-
-  // Fall back to file
   return readCredentialsFromFile();
 }
 
@@ -713,20 +656,15 @@ Use this for debugging authentication issues.`,
       const { showTokens = false } = args;
       ctx.metadata({ title: "Claude Credentials" });
 
-      const keychainCreds = readCredentialsFromKeychain();
       const fileCreds = readCredentialsFromFile();
-      const activeCreds = keychainCreds || fileCreds;
+      const activeCreds = fileCreds;
 
-      const source = keychainCreds ? "keychain" : fileCreds ? "file" : "none";
+      const source = fileCreds ? "file" : "none";
       const hasFile = fs.existsSync(CLAUDE_CLI_CREDENTIALS_PATH);
 
       let output = `Claude Code Credentials:
 - Source: ${source}
 - Credentials File: ${hasFile ? "exists" : "not found"} (${CLAUDE_CLI_CREDENTIALS_PATH})`;
-
-      if (process.platform === "darwin") {
-        output += `\n- Keychain: ${keychainCreds ? "found" : "not found"} (${CLAUDE_CLI_KEYCHAIN_SERVICE})`;
-      }
 
       if (activeCreds) {
         const isExpired = activeCreds.expiresAt < Date.now();

@@ -11,8 +11,6 @@
       systems = [
         "aarch64-linux"
         "x86_64-linux"
-        "aarch64-darwin"
-        "x86_64-darwin"
       ];
       inherit (nixpkgs) lib;
       forEachSystem = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
@@ -22,8 +20,6 @@
       bunTarget = {
         "aarch64-linux" = "bun-linux-arm64";
         "x86_64-linux" = "bun-linux-x64";
-        "aarch64-darwin" = "bun-darwin-arm64";
-        "x86_64-darwin" = "bun-darwin-x64";
       };
       defaultNodeModules = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       hashesFile = "${./nix}/hashes.json";
@@ -200,7 +196,7 @@
                   bunOs = os;
                   hash = lib.fakeHash;
                 };
-              }) [ "linux" "darwin" ]
+              }) [ "linux" ]
             ) [ "x86_64" "aarch64" ]
           );
 

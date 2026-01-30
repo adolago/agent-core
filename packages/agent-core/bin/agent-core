@@ -32,7 +32,6 @@ const scriptPath = fs.realpathSync(path.resolve(__filename))
 const scriptDir = path.dirname(scriptPath)
 
 const platformMap = {
-  darwin: "darwin",
   linux: "linux",
   win32: "windows",
 }
@@ -42,10 +41,12 @@ const archMap = {
   arm: "arm",
 }
 
-let platform = platformMap[os.platform()]
-if (!platform) {
-  platform = os.platform()
+const rawPlatform = os.platform()
+if (rawPlatform !== "linux" && rawPlatform !== "win32") {
+  console.error(`agent-core is not supported on ${rawPlatform}`)
+  process.exit(1)
 }
+let platform = platformMap[rawPlatform] ?? rawPlatform
 let arch = archMap[os.arch()]
 if (!arch) {
   arch = os.arch()

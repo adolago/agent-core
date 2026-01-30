@@ -21,16 +21,10 @@ const testEnv = withIsolatedTestHome();
 afterAll(() => testEnv.cleanup());
 const pickSendFn = (id: ChannelId, deps?: OutboundSendDeps) => {
   switch (id) {
-    case "discord":
-      return deps?.sendDiscord;
-    case "slack":
-      return deps?.sendSlack;
     case "telegram":
       return deps?.sendTelegram;
     case "whatsapp":
       return deps?.sendWhatsApp;
-    case "signal":
-      return deps?.sendSignal;
     default:
       return undefined;
   }
@@ -105,16 +99,6 @@ const createStubPlugin = (params: {
 const createDefaultRegistry = () =>
   createTestRegistry([
     {
-      pluginId: "discord",
-      plugin: createStubPlugin({ id: "discord", label: "Discord" }),
-      source: "test",
-    },
-    {
-      pluginId: "slack",
-      plugin: createStubPlugin({ id: "slack", label: "Slack" }),
-      source: "test",
-    },
-    {
       pluginId: "telegram",
       plugin: {
         ...createStubPlugin({ id: "telegram", label: "Telegram" }),
@@ -135,11 +119,6 @@ const createDefaultRegistry = () =>
         deliveryMode: "gateway",
         preferSessionLookupForAnnounceTarget: true,
       }),
-      source: "test",
-    },
-    {
-      pluginId: "signal",
-      plugin: createStubPlugin({ id: "signal", label: "Signal" }),
       source: "test",
     },
   ]);

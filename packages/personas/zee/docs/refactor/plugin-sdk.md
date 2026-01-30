@@ -145,11 +145,10 @@ Notes:
 - Remove duplicated bridge code.
 
 ### Phase 2: light direct-import plugins
-- Migrate Matrix to SDK + runtime.
+- Migrate remaining plugins to SDK + runtime.
 - Validate onboarding, directory, group mention logic.
 
 ### Phase 3: heavy direct-import plugins
-- Migrate MS Teams (largest set of runtime helpers).
 - Ensure reply/typing semantics match current behavior.
 
 - Replace direct core calls with `api.runtime`.

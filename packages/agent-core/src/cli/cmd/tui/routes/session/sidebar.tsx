@@ -79,16 +79,16 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     <Show when={session()}>
       <box
         backgroundColor={theme.backgroundPanel}
-        width={42}
-        paddingTop={1}
-        paddingBottom={1}
-        paddingLeft={2}
-        paddingRight={2}
+        width={40}
+        paddingTop={0}
+        paddingBottom={0}
+        paddingLeft={1}
+        paddingRight={1}
         position={props.overlay ? "absolute" : "relative"}
       >
         <scrollbox flexGrow={1}>
-          <box flexShrink={0} gap={1} paddingRight={1}>
-            <box paddingRight={1}>
+          <box flexShrink={0} gap={0} paddingRight={0}>
+            <box paddingRight={0} paddingBottom={1}>
               <text fg={theme.text}>
                 <b>{session().title}</b>
               </text>
@@ -220,7 +220,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               </box>
             </Show>
             <Show when={diff().length > 0}>
-              <box>
+              <box paddingTop={1}>
                 <box
                   flexDirection="row"
                   gap={1}
@@ -230,18 +230,25 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     <text fg={theme.text}>{expanded.diff ? "▼" : "▶"}</text>
                   </Show>
                   <text fg={theme.text}>
-                    <b>Modified Files</b>
+                    <b>Files</b>
                   </text>
                 </box>
                 <Show when={diff().length <= 2 || expanded.diff}>
                   <For each={diff() || []}>
                     {(item) => {
+                      const statusIcon = item.additions && item.deletions ? "M" : item.additions ? "A" : "D"
+                      const statusColor = item.additions && item.deletions ? theme.warning : item.additions ? theme.success : theme.error
                       return (
-                        <box flexDirection="row" gap={1} justifyContent="space-between">
-                          <text fg={theme.textMuted} wrapMode="none">
-                            {item.file}
-                          </text>
-                          <box flexDirection="row" gap={1} flexShrink={0}>
+                        <box flexDirection="row" gap={0} justifyContent="space-between">
+                          <box flexDirection="row" gap={0}>
+                            <text fg={theme.textMuted}>┊</text>
+                            <text fg={statusColor}>{statusIcon}</text>
+                            <text fg={theme.textMuted}>┊</text>
+                            <text fg={theme.text} wrapMode="none">
+                              {item.file.split("/").pop()}
+                            </text>
+                          </box>
+                          <box flexDirection="row" gap={0} flexShrink={0}>
                             <Show when={item.additions}>
                               <text fg={theme.diffAdded}>+{item.additions}</text>
                             </Show>
@@ -257,46 +264,50 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               </box>
             </Show>
             <Show when={hasBranches()}>
-              <box>
+              <box paddingTop={1}>
                 <text fg={theme.text}>
-                  <b>Branches</b>
+                  <b>Tree</b>
                 </text>
                 <Show when={parentSession()}>
                   <box
                     flexDirection="row"
-                    gap={1}
+                    gap={0}
                     onMouseDown={() => navigate({ type: "session", sessionID: parentSession()!.id })}
                   >
-                    <text fg={theme.textMuted}>↑</text>
-                    <text fg={theme.accent}>{Locale.truncateMiddle(parentSession()!.title ?? "Parent", 30)}</text>
+                    <text fg={theme.textMuted}>┊</text>
+                    <text fg={theme.accent}>{Locale.truncateMiddle(parentSession()!.title ?? "Parent", 32)}</text>
+                  </box>
+                  <box flexDirection="row" gap={0}>
+                    <text fg={theme.textMuted}>┊</text>
                   </box>
                 </Show>
                 <For each={siblingsSessions()}>
-                  {(sibling) => (
+                  {(sibling, idx) => (
                     <box
                       flexDirection="row"
-                      gap={1}
+                      gap={0}
                       onMouseDown={() => navigate({ type: "session", sessionID: sibling.id })}
                     >
-                      <text fg={theme.textMuted}>├</text>
+                      <text fg={theme.textMuted}>├─○ </text>
                       <text fg={theme.textMuted}>{Locale.truncateMiddle(sibling.title ?? "Branch", 30)}</text>
                     </box>
                   )}
                 </For>
-                <box flexDirection="row" gap={1}>
-                  <text fg={theme.primary}>●</text>
+                <box flexDirection="row" gap={0}>
+                  <text fg={theme.textMuted}>├─</text>
+                  <text fg={theme.primary}>◉</text>
                   <text fg={theme.text}>
-                    <b>{Locale.truncateMiddle(session()?.title ?? "Current", 30)}</b>
+                    <b>{Locale.truncateMiddle(session()?.title ?? "Current", 28)}</b>
                   </text>
                 </box>
                 <For each={childSessions()}>
-                  {(child) => (
+                  {(child, idx) => (
                     <box
                       flexDirection="row"
-                      gap={1}
+                      gap={0}
                       onMouseDown={() => navigate({ type: "session", sessionID: child.id })}
                     >
-                      <text fg={theme.textMuted}>↓</text>
+                      <text fg={theme.textMuted}>{idx() === childSessions().length - 1 ? "└─○ " : "├─○ "}</text>
                       <text fg={theme.accent}>{Locale.truncateMiddle(child.title ?? "Child", 30)}</text>
                     </box>
                   )}

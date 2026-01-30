@@ -96,23 +96,6 @@ export namespace Clipboard {
   export async function read(): Promise<Content | undefined> {
     const os = platform()
 
-    if (os === "darwin") {
-      const tempDir = await mkdtemp(path.join(tmpdir(), "agent-core-clipboard-"))
-      const tmpfile = path.join(tempDir, "clipboard.png")
-      try {
-        await $`osascript -e 'set imageData to the clipboard as "PNGf"' -e 'set fileRef to open for access POSIX file "${tmpfile}" with write permission' -e 'set eof fileRef to 0' -e 'write imageData to fileRef' -e 'close access fileRef'`
-          .nothrow()
-          .quiet()
-        const file = Bun.file(tmpfile)
-        const buffer = Buffer.from(await file.arrayBuffer())
-        const compressed = await compressImageIfNeeded(buffer, "image/png")
-        return { data: compressed.data.toString("base64"), mime: compressed.mime }
-      } catch {
-      } finally {
-        await rm(tempDir, { recursive: true, force: true })
-      }
-    }
-
     if (os === "win32" || release().includes("WSL")) {
       const script =
         "Add-Type -AssemblyName System.Windows.Forms; $img = [System.Windows.Forms.Clipboard]::GetImage(); if ($img) { $ms = New-Object System.IO.MemoryStream; $img.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png); [System.Convert]::ToBase64String($ms.ToArray()) }"
@@ -149,14 +132,6 @@ export namespace Clipboard {
 
   const getCopyMethod = lazy(() => {
     const os = platform()
-
-    if (os === "darwin" && Bun.which("osascript")) {
-      console.log("clipboard: using osascript")
-      return async (text: string) => {
-        const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-        await $`osascript -e 'set the clipboard to "${escaped}"'`.nothrow().quiet()
-      }
-    }
 
     if (os === "linux") {
       if (process.env["WAYLAND_DISPLAY"] && Bun.which("wl-copy")) {

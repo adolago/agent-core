@@ -19,8 +19,6 @@ const SENSITIVE_PATTERNS = [
   /^NPM_TOKEN$/i,
   /^TELEGRAM_BOT_TOKEN$/i,
   /^WHATSAPP_TOKEN$/i,
-  /^DISCORD_TOKEN$/i,
-  /^SLACK_TOKEN$/i,
   /^TWILIO_/i,
   /^SENDGRID_/i,
   /^STRIPE_/i,

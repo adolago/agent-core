@@ -134,22 +134,22 @@ Example:
 
 ```json
 {
-  "name": "@zee/nextcloud-talk",
+  "name": "@zee/custom-channel",
   "zee": {
     "extensions": ["./index.ts"],
     "channel": {
-      "id": "nextcloud-talk",
-      "label": "Nextcloud Talk",
-      "selectionLabel": "Nextcloud Talk (self-hosted)",
-      "docsPath": "/channels/nextcloud-talk",
-      "docsLabel": "nextcloud-talk",
-      "blurb": "Self-hosted chat via Nextcloud Talk webhook bots.",
+      "id": "custom",
+      "label": "Custom Chat",
+      "selectionLabel": "Custom Chat",
+      "docsPath": "/channels/custom",
+      "docsLabel": "custom",
+      "blurb": "Custom chat integration via plugin.",
       "order": 65,
-      "aliases": ["nc-talk", "nc"]
+      "aliases": ["custom-chat"]
     },
     "install": {
-      "npmSpec": "@zee/nextcloud-talk",
-      "localPath": "extensions/nextcloud-talk",
+      "npmSpec": "@zee/custom-channel",
+      "localPath": "extensions/custom-channel",
       "defaultChoice": "npm"
     }
   }

@@ -5,7 +5,7 @@
 </p>
 
 **Zee** is a personal AI assistant you run on your own devices.
-It answers on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, Microsoft Teams), plus extension channels like Matrix, Zalo, and Zalo Personal.
+It answers on the channels you already use (WhatsApp, Telegram).
 The Zee Gateway is the control plane for sessions, channels, tools, and events.
 
 If you want a single-user assistant that feels local, fast, and always-on, this is it.
@@ -52,24 +52,24 @@ pnpm gateway:watch
 
 Zee connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.
 
-Default behavior on Telegram/WhatsApp/Signal/Microsoft Teams/Discord/Google Chat/Slack:
-- **DM pairing** (`dmPolicy="pairing"` / `channels.discord.dm.policy="pairing"` / `channels.slack.dm.policy="pairing"`): unknown senders receive a short pairing code and the bot does not process their message.
+Default behavior on Telegram/WhatsApp:
+- **DM pairing** (`dmPolicy="pairing"`): unknown senders receive a short pairing code and the bot does not process their message.
 - Approve with: `zee pairing approve <channel> <code>` (then the sender is added to a local allowlist store).
-- Public inbound DMs require an explicit opt-in: set `dmPolicy="open"` and include `"*"` in the channel allowlist (`allowFrom` / `channels.discord.dm.allowFrom` / `channels.slack.dm.allowFrom`).
+- Public inbound DMs require an explicit opt-in: set `dmPolicy="open"` and include `"*"` in the channel allowlist (`allowFrom`).
 
 ## Highlights
 
 - **Zee Gateway** — single control plane for sessions, channels, tools, and events.
-- **Multi-channel inbox** — WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, Microsoft Teams, Matrix, Zalo, Zalo Personal.
+- **Multi-channel inbox** — WhatsApp and Telegram.
 - **Multi-agent routing** — route inbound channels/accounts/peers to isolated agents (workspaces + per-agent sessions).
 - **Live Canvas** — agent-driven visual workspace with A2UI.
-- **First-class tools** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
+- **First-class tools** — browser, canvas, nodes, cron, and sessions.
 - **Control UI** — hosted directly from the Gateway.
 
 ## How it works (short)
 
 ```
-WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / Microsoft Teams / Matrix / Zalo / Zalo Personal
+WhatsApp / Telegram
                │
                ▼
 ┌───────────────────────────────┐

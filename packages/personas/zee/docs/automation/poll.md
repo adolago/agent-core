@@ -9,7 +9,7 @@ read_when:
 
 ## Supported channels
 - WhatsApp (web channel)
-- MS Teams (Adaptive Cards)
+- Telegram
 
 ## CLI
 
@@ -23,8 +23,8 @@ zee message poll --target 123456789@g.us \
   --poll-question "Snack?" --poll-option "Pizza" --poll-option "Sushi"
   --poll-question "Plan?" --poll-option "A" --poll-option "B" --poll-duration-hours 48
 
-# MS Teams
-zee message poll --channel msteams --target conversation:19:abc@thread.tacv2 \
+# Telegram
+zee message poll --channel telegram --target "@channel" \
   --poll-question "Lunch?" --poll-option "Pizza" --poll-option "Sushi"
 ```
 
@@ -46,10 +46,7 @@ Params:
 
 ## Channel differences
 - WhatsApp: 2-12 options, `maxSelections` must be within option count, ignores `durationHours`.
-- MS Teams: Adaptive Card polls (Zee-managed). No native poll API; `durationHours` is ignored.
+- Telegram: native poll API with per-message limits enforced by Telegram.
 
 ## Agent tool (Message)
 Use the `message` tool with `poll` action (`to`, `pollQuestion`, `pollOption`, optional `pollMulti`, `pollDurationHours`, `channel`).
-
-Teams polls are rendered as Adaptive Cards and require the gateway to stay online
-to record votes in `~/.zee/msteams-polls.json`.

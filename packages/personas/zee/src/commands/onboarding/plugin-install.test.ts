@@ -24,18 +24,18 @@ import { makePrompter, makeRuntime } from "./__tests__/test-utils.js";
 import { ensureOnboardingPluginInstalled } from "./plugin-install.js";
 
 const baseEntry: ChannelPluginCatalogEntry = {
-  id: "zalo",
+  id: "custom",
   meta: {
-    id: "zalo",
-    label: "Zalo",
-    selectionLabel: "Zalo (Bot API)",
-    docsPath: "/channels/zalo",
-    docsLabel: "zalo",
+    id: "custom",
+    label: "Custom",
+    selectionLabel: "Custom (Bot API)",
+    docsPath: "/channels/custom",
+    docsLabel: "custom",
     blurb: "Test",
   },
   install: {
-    npmSpec: "@moltbot/zalo",
-    localPath: "extensions/zalo",
+    npmSpec: "@moltbot/custom",
+    localPath: "extensions/custom",
   },
 };
 
@@ -53,8 +53,8 @@ describe("ensureOnboardingPluginInstalled", () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     installPluginFromNpmSpec.mockResolvedValue({
       ok: true,
-      pluginId: "zalo",
-      targetDir: "/tmp/zalo",
+      pluginId: "custom",
+      targetDir: "/tmp/custom",
       extensions: [],
     });
 
@@ -66,13 +66,13 @@ describe("ensureOnboardingPluginInstalled", () => {
     });
 
     expect(result.installed).toBe(true);
-    expect(result.cfg.plugins?.entries?.zalo?.enabled).toBe(true);
-    expect(result.cfg.plugins?.allow).toContain("zalo");
-    expect(result.cfg.plugins?.installs?.zalo?.source).toBe("npm");
-    expect(result.cfg.plugins?.installs?.zalo?.spec).toBe("@moltbot/zalo");
-    expect(result.cfg.plugins?.installs?.zalo?.installPath).toBe("/tmp/zalo");
+    expect(result.cfg.plugins?.entries?.custom?.enabled).toBe(true);
+    expect(result.cfg.plugins?.allow).toContain("custom");
+    expect(result.cfg.plugins?.installs?.custom?.source).toBe("npm");
+    expect(result.cfg.plugins?.installs?.custom?.spec).toBe("@moltbot/custom");
+    expect(result.cfg.plugins?.installs?.custom?.installPath).toBe("/tmp/custom");
     expect(installPluginFromNpmSpec).toHaveBeenCalledWith(
-      expect.objectContaining({ spec: "@moltbot/zalo" }),
+      expect.objectContaining({ spec: "@moltbot/custom" }),
     );
   });
 
@@ -85,7 +85,7 @@ describe("ensureOnboardingPluginInstalled", () => {
     vi.mocked(fs.existsSync).mockImplementation((value) => {
       const raw = String(value);
       return (
-        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}zalo`)
+        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}custom`)
       );
     });
 
@@ -96,10 +96,10 @@ describe("ensureOnboardingPluginInstalled", () => {
       runtime,
     });
 
-    const expectedPath = path.resolve(process.cwd(), "extensions/zalo");
+    const expectedPath = path.resolve(process.cwd(), "extensions/custom");
     expect(result.installed).toBe(true);
     expect(result.cfg.plugins?.load?.paths).toContain(expectedPath);
-    expect(result.cfg.plugins?.entries?.zalo?.enabled).toBe(true);
+    expect(result.cfg.plugins?.entries?.custom?.enabled).toBe(true);
   });
 
   it("defaults to local on dev channel when local path exists", async () => {
@@ -110,7 +110,7 @@ describe("ensureOnboardingPluginInstalled", () => {
     vi.mocked(fs.existsSync).mockImplementation((value) => {
       const raw = String(value);
       return (
-        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}zalo`)
+        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}custom`)
       );
     });
 
@@ -133,7 +133,7 @@ describe("ensureOnboardingPluginInstalled", () => {
     vi.mocked(fs.existsSync).mockImplementation((value) => {
       const raw = String(value);
       return (
-        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}zalo`)
+        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}custom`)
       );
     });
 
@@ -161,7 +161,7 @@ describe("ensureOnboardingPluginInstalled", () => {
     vi.mocked(fs.existsSync).mockImplementation((value) => {
       const raw = String(value);
       return (
-        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}zalo`)
+        raw.endsWith(`${path.sep}.git`) || raw.endsWith(`${path.sep}extensions${path.sep}custom`)
       );
     });
     installPluginFromNpmSpec.mockResolvedValue({
@@ -176,7 +176,7 @@ describe("ensureOnboardingPluginInstalled", () => {
       runtime,
     });
 
-    const expectedPath = path.resolve(process.cwd(), "extensions/zalo");
+    const expectedPath = path.resolve(process.cwd(), "extensions/custom");
     expect(result.installed).toBe(true);
     expect(result.cfg.plugins?.load?.paths).toContain(expectedPath);
     expect(note).toHaveBeenCalled();

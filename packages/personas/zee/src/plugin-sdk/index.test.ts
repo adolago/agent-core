@@ -28,16 +28,10 @@ describe("plugin-sdk exports", () => {
       "createReplyDispatcherWithTyping",
       "dispatchReplyWithBufferedBlockDispatcher",
       "resolveCommandAuthorizedFromAuthorizers",
-      "monitorSlackProvider",
       "monitorTelegramProvider",
-      "monitorSignalProvider",
-      "sendMessageSlack",
       "sendMessageTelegram",
-      "sendMessageSignal",
       "sendMessageWhatsApp",
-      "probeSlack",
       "probeTelegram",
-      "probeSignal",
     ];
 
     for (const key of forbidden) {

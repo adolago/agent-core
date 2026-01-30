@@ -8,10 +8,10 @@
 - Docs: `docs/` (Mintlify). Built output lives in `dist/`.
 - Plugins/extensions: `extensions/*` (workspace packages). Keep plugin-only deps in the extension `package.json`; do not add them to the root `package.json` unless core uses them.
 - Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `zee` in `devDependencies` or `peerDependencies` instead (runtime resolves `zee/plugin-sdk` via jiti alias).
-- Messaging channels: consider all built-in + extension channels when refactoring routing, allowlists, pairing, command gating, onboarding, or docs.
+- Messaging channels: focus on WhatsApp + Telegram when refactoring routing, allowlists, pairing, command gating, onboarding, or docs.
   - Core channel docs: `docs/channels/`
-  - Core channel code: `src/telegram`, `src/discord`, `src/slack`, `src/signal`, `src/imessage`, `src/web` (WhatsApp web), `src/channels`, `src/routing`
-  - Extensions (channel plugins): `extensions/*` (e.g. `extensions/msteams`, `extensions/matrix`, `extensions/zalo`, `extensions/zalouser`, `extensions/voice-call`)
+  - Core channel code: `src/telegram`, `src/web` (WhatsApp web), `src/channels`, `src/routing`
+  - Extensions (channel plugins): `extensions/*` (if present)
 
 ## Docs Linking (Mintlify)
 - Docs live in `packages/personas/zee/docs` and are published via Mintlify.

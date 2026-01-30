@@ -42,16 +42,13 @@ function getDeviceModel(): string {
   const arch = os.arch()
   const release = os.release()
 
-  if (platform === "darwin") {
-    return `Unix ${release} ${arch}`
-  }
   if (platform === "win32") {
     return `Windows ${release} ${arch}`
   }
   if (platform === "linux") {
     return `Linux ${release} ${arch}`
   }
-  return `${platform} ${release} ${arch}`
+  return `Unix ${release} ${arch}`
 }
 
 async function getKimiHeaders(): Promise<Record<string, string>> {
