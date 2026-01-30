@@ -143,23 +143,7 @@ async function runGcloudCommand(
 export async function ensureDependency(bin: string, brewArgs: string[]) {
   if (bin === "gcloud" && ensureGcloudOnPath()) return;
   if (hasBinary(bin)) return;
-  if (process.platform !== "darwin") {
-    throw new Error(`${bin} not installed; install it and retry`);
-  }
-  if (!hasBinary("brew")) {
-    throw new Error("Homebrew not installed (install brew and retry)");
-  }
-  const brewEnv = bin === "gcloud" ? await gcloudEnv() : undefined;
-  const result = await runCommandWithTimeout(["brew", "install", ...brewArgs], {
-    timeoutMs: 600_000,
-    env: brewEnv,
-  });
-  if (result.code !== 0) {
-    throw new Error(`brew install failed for ${bin}: ${result.stderr || result.stdout}`);
-  }
-  if (!hasBinary(bin)) {
-    throw new Error(`${bin} still not available after brew install`);
-  }
+  throw new Error(`${bin} not installed; install it and retry`);
 }
 
 export async function ensureGcloudAuth() {
@@ -318,9 +302,6 @@ function gogCredentialsPaths(): string[] {
     paths.push(path.join(xdg, "gogcli", "credentials.json"));
   }
   paths.push(resolveUserPath("~/.config/gogcli/credentials.json"));
-  if (process.platform === "darwin") {
-    paths.push(resolveUserPath("~/Library/Application Support/gogcli/credentials.json"));
-  }
   return paths;
 }
 

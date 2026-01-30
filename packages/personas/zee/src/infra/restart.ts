@@ -1,12 +1,9 @@
 import { spawnSync } from "node:child_process";
-import {
-  resolveGatewayLaunchAgentLabel,
-  resolveGatewaySystemdServiceName,
-} from "../daemon/constants.js";
+import { resolveGatewaySystemdServiceName } from "../daemon/constants.js";
 
 export type RestartAttempt = {
   ok: boolean;
-  method: "launchctl" | "systemd" | "supervisor";
+  method: "systemd" | "supervisor";
   detail?: string;
   tried?: string[];
 };
@@ -92,70 +89,41 @@ export function triggerZeeRestart(): RestartAttempt {
     return { ok: true, method: "supervisor", detail: "test mode" };
   }
   const tried: string[] = [];
-  if (process.platform !== "darwin") {
-    if (process.platform === "linux") {
-      const profile = process.env.ZEE_PROFILE ?? process.env.MOLTBOT_PROFILE ?? process.env.CLAWDBOT_PROFILE;
-      const systemdUnit =
-        process.env.ZEE_SYSTEMD_UNIT ??
-        process.env.MOLTBOT_SYSTEMD_UNIT ??
-        process.env.CLAWDBOT_SYSTEMD_UNIT;
-      const unit = normalizeSystemdUnit(
-        systemdUnit,
-        profile,
-      );
-      const userArgs = ["--user", "restart", unit];
-      tried.push(`systemctl ${userArgs.join(" ")}`);
-      const userRestart = spawnSync("systemctl", userArgs, {
-        encoding: "utf8",
-        timeout: SPAWN_TIMEOUT_MS,
-      });
-      if (!userRestart.error && userRestart.status === 0) {
-        return { ok: true, method: "systemd", tried };
-      }
-      const systemArgs = ["restart", unit];
-      tried.push(`systemctl ${systemArgs.join(" ")}`);
-      const systemRestart = spawnSync("systemctl", systemArgs, {
-        encoding: "utf8",
-        timeout: SPAWN_TIMEOUT_MS,
-      });
-      if (!systemRestart.error && systemRestart.status === 0) {
-        return { ok: true, method: "systemd", tried };
-      }
-      const detail = [
-        `user: ${formatSpawnDetail(userRestart)}`,
-        `system: ${formatSpawnDetail(systemRestart)}`,
-      ].join("; ");
-      return { ok: false, method: "systemd", detail, tried };
+  if (process.platform === "linux") {
+    const profile = process.env.ZEE_PROFILE ?? process.env.MOLTBOT_PROFILE ?? process.env.CLAWDBOT_PROFILE;
+    const systemdUnit =
+      process.env.ZEE_SYSTEMD_UNIT ??
+      process.env.MOLTBOT_SYSTEMD_UNIT ??
+      process.env.CLAWDBOT_SYSTEMD_UNIT;
+    const unit = normalizeSystemdUnit(systemdUnit, profile);
+    const userArgs = ["--user", "restart", unit];
+    tried.push(`systemctl ${userArgs.join(" ")}`);
+    const userRestart = spawnSync("systemctl", userArgs, {
+      encoding: "utf8",
+      timeout: SPAWN_TIMEOUT_MS,
+    });
+    if (!userRestart.error && userRestart.status === 0) {
+      return { ok: true, method: "systemd", tried };
     }
-    return {
-      ok: false,
-      method: "supervisor",
-      detail: "unsupported platform restart",
-    };
-  }
-
-  const profile = process.env.ZEE_PROFILE ?? process.env.MOLTBOT_PROFILE ?? process.env.CLAWDBOT_PROFILE;
-  const label =
-    process.env.ZEE_LAUNCHD_LABEL ??
-    process.env.MOLTBOT_LAUNCHD_LABEL ??
-    process.env.CLAWDBOT_LAUNCHD_LABEL ??
-    resolveGatewayLaunchAgentLabel(profile);
-  const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
-  const target = uid !== undefined ? `gui/${uid}/${label}` : label;
-  const args = ["kickstart", "-k", target];
-  tried.push(`launchctl ${args.join(" ")}`);
-  const res = spawnSync("launchctl", args, {
-    encoding: "utf8",
-    timeout: SPAWN_TIMEOUT_MS,
-  });
-  if (!res.error && res.status === 0) {
-    return { ok: true, method: "launchctl", tried };
+    const systemArgs = ["restart", unit];
+    tried.push(`systemctl ${systemArgs.join(" ")}`);
+    const systemRestart = spawnSync("systemctl", systemArgs, {
+      encoding: "utf8",
+      timeout: SPAWN_TIMEOUT_MS,
+    });
+    if (!systemRestart.error && systemRestart.status === 0) {
+      return { ok: true, method: "systemd", tried };
+    }
+    const detail = [
+      `user: ${formatSpawnDetail(userRestart)}`,
+      `system: ${formatSpawnDetail(systemRestart)}`,
+    ].join("; ");
+    return { ok: false, method: "systemd", detail, tried };
   }
   return {
     ok: false,
-    method: "launchctl",
-    detail: formatSpawnDetail(res),
-    tried,
+    method: "supervisor",
+    detail: "unsupported platform restart",
   };
 }
 

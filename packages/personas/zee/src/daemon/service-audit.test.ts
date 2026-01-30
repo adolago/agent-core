@@ -6,9 +6,9 @@ describe("auditGatewayServiceConfig", () => {
   it("flags bun runtime", async () => {
     const audit = await auditGatewayServiceConfig({
       env: { HOME: "/tmp" },
-      platform: "darwin",
+      platform: "linux",
       command: {
-        programArguments: ["/opt/homebrew/bin/bun", "gateway"],
+        programArguments: ["/usr/bin/bun", "gateway"],
         environment: { PATH: "/usr/bin:/bin" },
       },
     });
@@ -19,12 +19,12 @@ describe("auditGatewayServiceConfig", () => {
 
   it("flags version-managed node paths", async () => {
     const audit = await auditGatewayServiceConfig({
-      env: { HOME: "/tmp" },
-      platform: "darwin",
+      env: { HOME: "/home/test" },
+      platform: "linux",
       command: {
-        programArguments: ["/Users/test/.nvm/versions/node/v22.0.0/bin/node", "gateway"],
+        programArguments: ["/home/test/.nvm/versions/node/v22.0.0/bin/node", "gateway"],
         environment: {
-          PATH: "/usr/bin:/bin:/Users/test/.nvm/versions/node/v22.0.0/bin",
+          PATH: "/usr/bin:/bin:/home/test/.nvm/versions/node/v22.0.0/bin",
         },
       },
     });

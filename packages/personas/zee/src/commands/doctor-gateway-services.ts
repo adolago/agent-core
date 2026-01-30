@@ -3,7 +3,6 @@ import path from "node:path";
 import type { ZeeConfig } from "../config/config.js";
 import { resolveGatewayPort, resolveIsNixMode } from "../config/paths.js";
 import { findExtraGatewayServices, renderGatewayServiceCleanupHints } from "../daemon/inspect.js";
-import { findLegacyGatewayServices, uninstallLegacyGatewayServices } from "../daemon/legacy.js";
 import { renderSystemNodeWarning, resolveSystemNodeInfo } from "../daemon/runtime-paths.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import {
@@ -48,7 +47,7 @@ export async function maybeMigrateLegacyGatewayService(
   runtime: RuntimeEnv,
   prompter: DoctorPrompter,
 ) {
-  const legacyServices = await findLegacyGatewayServices(process.env);
+  const legacyServices: Array<{ label: string; platform: string; detail: string }> = [];
   if (legacyServices.length === 0) return;
 
   note(
@@ -62,15 +61,7 @@ export async function maybeMigrateLegacyGatewayService(
   });
   if (!migrate) return;
 
-  try {
-    await uninstallLegacyGatewayServices({
-      env: process.env,
-      stdout: process.stdout,
-    });
-  } catch (err) {
-    runtime.error(`Legacy service cleanup failed: ${String(err)}`);
-    return;
-  }
+  // Legacy service uninstall disabled in zee-only mode.
 
   if (resolveIsNixMode(process.env)) {
     note("Nix mode detected; skip installing services.", "Gateway");
@@ -164,7 +155,7 @@ export async function maybeRepairGatewayServiceConfig(
     const warning = renderSystemNodeWarning(systemNodeInfo);
     if (warning) note(warning, "Gateway runtime");
     note(
-      "System Node 22+ not found. Install via Homebrew/apt/choco and rerun doctor to migrate off Bun/version managers.",
+      "System Node 22+ not found. Install via nodejs.org or your package manager and rerun doctor to migrate off Bun/version managers.",
       "Gateway runtime",
     );
   }

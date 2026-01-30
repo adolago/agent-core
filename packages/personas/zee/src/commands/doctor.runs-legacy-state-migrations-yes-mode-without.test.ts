@@ -233,7 +233,7 @@ vi.mock("../agents/auth-profiles.js", async (importOriginal) => {
 
 vi.mock("../daemon/service.js", () => ({
   resolveGatewayService: () => ({
-    label: "LaunchAgent",
+    label: "systemd",
     loadedText: "loaded",
     notLoadedText: "not loaded",
     install: serviceInstall,

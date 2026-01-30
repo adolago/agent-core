@@ -66,7 +66,7 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
   }
 
   // Project-local installs (best effort): if a `node_modules/.bin/zee` exists near cwd,
-  // include it. This helps when running under launchd or other minimal PATH environments.
+  // include it. This helps when running under minimal PATH environments.
   const localBinDir = path.join(cwd, "node_modules", ".bin");
   if (isExecutable(path.join(localBinDir, "zee"))) candidates.push(localBinDir);
 
@@ -89,8 +89,8 @@ function candidateBinDirs(opts: EnsureZeePathOpts): string[] {
 
 /**
  * Best-effort PATH bootstrap so skills that require the `zee` CLI can run
- * under launchd/minimal environments.
- */
+ * under minimal PATH environments.
+*/
 export function ensureZeeCliOnPath(opts: EnsureZeePathOpts = {}) {
   if (isTruthyEnvValue(process.env.ZEE_PATH_BOOTSTRAPPED)) {
     return;

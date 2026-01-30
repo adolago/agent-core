@@ -1,4 +1,3 @@
-import { resolveGatewayLaunchAgentLabel } from "../daemon/constants.js";
 import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
 import {
   renderSystemNodeWarning,
@@ -58,10 +57,6 @@ export async function buildGatewayInstallPlan(params: {
     env: params.env,
     port: params.port,
     token: params.token,
-    launchdLabel:
-      process.platform === "darwin"
-        ? resolveGatewayLaunchAgentLabel(params.env.CLAWDBOT_PROFILE)
-        : undefined,
   });
 
   // Merge config env vars into the service environment (vars + inline env keys).

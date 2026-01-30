@@ -28,7 +28,7 @@ async function resolveCliEntrypointPathForService(): Promise<string> {
   if (looksLikeDist) {
     await fs.access(resolvedPath);
     // Prefer the original (possibly symlinked) path over the resolved realpath.
-    // This keeps LaunchAgent/systemd paths stable across package version updates,
+    // This keeps service paths stable across package version updates,
     // since symlinks like node_modules/moltbot -> .pnpm/moltbot@X.Y.Z/...
     // are automatically updated by pnpm, while the resolved path contains
     // version-specific directories that break after updates.

@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveLaunchAgentPlistPath } from "./launchd.js";
 import {
   isSystemNodePath,
   isVersionManagedNodePath,
@@ -37,8 +36,6 @@ export const SERVICE_AUDIT_CODES = {
   gatewayRuntimeBun: "gateway-runtime-bun",
   gatewayRuntimeNodeVersionManager: "gateway-runtime-node-version-manager",
   gatewayRuntimeNodeSystemMissing: "gateway-runtime-node-system-missing",
-  launchdKeepAlive: "launchd-keep-alive",
-  launchdRunAtLoad: "launchd-run-at-load",
   systemdAfterNetworkOnline: "systemd-after-network-online",
   systemdRestartSec: "systemd-restart-sec",
   systemdWantsNetworkOnline: "systemd-wants-network-online",
@@ -137,37 +134,6 @@ async function auditSystemdUnit(
   }
 }
 
-async function auditLaunchdPlist(
-  env: Record<string, string | undefined>,
-  issues: ServiceConfigIssue[],
-) {
-  const plistPath = resolveLaunchAgentPlistPath(env);
-  let content = "";
-  try {
-    content = await fs.readFile(plistPath, "utf8");
-  } catch {
-    return;
-  }
-
-  const hasRunAtLoad = /<key>RunAtLoad<\/key>\s*<true\s*\/>/i.test(content);
-  const hasKeepAlive = /<key>KeepAlive<\/key>\s*<true\s*\/>/i.test(content);
-  if (!hasRunAtLoad) {
-    issues.push({
-      code: SERVICE_AUDIT_CODES.launchdRunAtLoad,
-      message: "LaunchAgent is missing RunAtLoad=true",
-      detail: plistPath,
-      level: "recommended",
-    });
-  }
-  if (!hasKeepAlive) {
-    issues.push({
-      code: SERVICE_AUDIT_CODES.launchdKeepAlive,
-      message: "LaunchAgent is missing KeepAlive=true",
-      detail: plistPath,
-      level: "recommended",
-    });
-  }
-}
 
 function auditGatewayCommand(programArguments: string[] | undefined, issues: ServiceConfigIssue[]) {
   if (!programArguments || programArguments.length === 0) return;
@@ -325,8 +291,6 @@ export async function auditGatewayServiceConfig(params: {
 
   if (platform === "linux") {
     await auditSystemdUnit(params.env, issues);
-  } else if (platform === "darwin") {
-    await auditLaunchdPlist(params.env, issues);
   }
 
   return { ok: issues.length === 0, issues };

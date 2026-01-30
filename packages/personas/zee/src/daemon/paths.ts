@@ -44,3 +44,18 @@ export function resolveGatewayStateDir(env: Record<string, string | undefined>):
   if (fs.existsSync(legacyMoltbot)) return legacyMoltbot;
   return preferred;
 }
+
+export function resolveGatewayLogPaths(env: Record<string, string | undefined>): {
+  logDir: string;
+  stdoutPath: string;
+  stderrPath: string;
+} {
+  const stateDir = resolveGatewayStateDir(env);
+  const logDir = path.join(stateDir, "logs");
+  const prefix = env.ZEE_LOG_PREFIX?.trim() || env.CLAWDBOT_LOG_PREFIX?.trim() || "gateway";
+  return {
+    logDir,
+    stdoutPath: path.join(logDir, `${prefix}.log`),
+    stderrPath: path.join(logDir, `${prefix}.err.log`),
+  };
+}

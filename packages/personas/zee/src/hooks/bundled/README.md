@@ -100,7 +100,7 @@ Documentation goes here...
   - **anyBins**: At least one of these binaries must be present
   - **env**: Required environment variables
   - **config**: Required config paths (e.g., `["workspace.dir"]`)
-  - **os**: Required platforms (e.g., `["darwin", "linux"]`)
+  - **os**: Required platforms (e.g., `["linux", "win32"]`)
 - **install**: Installation methods (for bundled hooks: `[{"id":"bundled","kind":"bundled"}]`)
 
 ## Creating Custom Hooks

@@ -66,6 +66,48 @@ export namespace Daemon {
     }
   }
 
+  function parseCmdlineArgs(cmdline: string): string[] {
+    const raw = cmdline.includes("\0") ? cmdline.split("\0") : cmdline.trim().split(/\s+/)
+    return raw.filter(Boolean)
+  }
+
+  function isAgentCoreDaemonArgs(args: string[]): boolean {
+    if (args.length === 0) return false
+    const hasDaemonArg = args.some((arg) => arg === "daemon")
+    if (!hasDaemonArg) return false
+    return args.some((arg) => arg.includes("agent-core"))
+  }
+
+  async function readProcessCmdline(pid: number): Promise<string | null> {
+    try {
+      return await fs.readFile(`/proc/${pid}/cmdline`, "utf-8")
+    } catch {
+      return null
+    }
+  }
+
+  async function isPidAlive(pid: number): Promise<boolean> {
+    try {
+      process.kill(pid, 0)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function isAgentCoreDaemonProcess(pid: number): Promise<boolean> {
+    const procCmdline = await readProcessCmdline(pid)
+    if (procCmdline) return isAgentCoreDaemonArgs(parseCmdlineArgs(procCmdline))
+    try {
+      const psOutput = execSync(`ps -p ${pid} -o command=`, {
+        stdio: ["ignore", "pipe", "ignore"],
+      }).toString()
+      return isAgentCoreDaemonArgs(parseCmdlineArgs(psOutput))
+    } catch {
+      return false
+    }
+  }
+
   export async function isRunning(): Promise<boolean> {
     const state = await readPidFile()
     if (!state) {
@@ -74,16 +116,21 @@ export namespace Daemon {
       return false
     }
 
-    try {
-      // Check if process is running
-      process.kill(state.pid, 0)
-      return true
-    } catch {
+    if (!(await isPidAlive(state.pid))) {
       // Process not running, clean up stale files
       await removePidFile()
       await checkAndCleanStaleLock()
       return false
     }
+
+    if (!(await isAgentCoreDaemonProcess(state.pid))) {
+      log.warn("pid file points to non-daemon process, cleaning up", { pid: state.pid })
+      await removePidFile()
+      await checkAndCleanStaleLock()
+      return false
+    }
+
+    return true
   }
 
   async function checkAndCleanStaleLock() {
@@ -124,11 +171,10 @@ export namespace Daemon {
 
     const existing = await readLockFile()
     if (existing?.pid) {
-      try {
-        process.kill(existing.pid, 0)
-        throw new Error(`Daemon is already running (PID: ${existing.pid})`)
-      } catch {
-        // Stale lock
+      if (await isPidAlive(existing.pid)) {
+        if (await isAgentCoreDaemonProcess(existing.pid)) {
+          throw new Error(`Daemon is already running (PID: ${existing.pid})`)
+        }
       }
     }
 
@@ -811,15 +857,22 @@ export const DaemonCommand = cmd({
     if (await Daemon.isRunning()) {
       const state = await Daemon.readPidFile()
       UI.warn(`Daemon is already running (PID: ${state?.pid}, Port: ${state?.port})`)
-      
-      const shouldKill = await prompts.confirm({
-        message: "Do you want to stop the existing daemon and start a new one?",
-        initialValue: false
-      })
 
-      if (prompts.isCancel(shouldKill) || !shouldKill) {
-        UI.info("Exiting.")
-        process.exit(0)
+      const isInteractive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
+      const headless = process.env.AGENT_CORE_HEADLESS === "1" || !isInteractive
+
+      if (headless) {
+        UI.info("Headless mode detected, stopping existing daemon before restart.")
+      } else {
+        const shouldKill = await prompts.confirm({
+          message: "Do you want to stop the existing daemon and start a new one?",
+          initialValue: false,
+        })
+
+        if (prompts.isCancel(shouldKill) || !shouldKill) {
+          UI.info("Exiting.")
+          process.exit(0)
+        }
       }
 
       UI.info(`Stopping daemon (PID: ${state?.pid})...`)

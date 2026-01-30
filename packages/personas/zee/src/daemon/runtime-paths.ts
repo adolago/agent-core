@@ -33,9 +33,6 @@ function buildSystemNodeCandidates(
   env: Record<string, string | undefined>,
   platform: NodeJS.Platform,
 ): string[] {
-  if (platform === "darwin") {
-    return ["/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node"];
-  }
   if (platform === "linux") {
     return ["/usr/local/bin/node", "/usr/bin/node"];
   }
@@ -141,7 +138,7 @@ export function renderSystemNodeWarning(
   if (!systemNode || systemNode.supported) return null;
   const versionLabel = systemNode.version ?? "unknown";
   const selectedLabel = selectedNodePath ? ` Using ${selectedNodePath} for the daemon.` : "";
-  return `System Node ${versionLabel} at ${systemNode.path} is below the required Node 22+.${selectedLabel} Install Node 22+ from nodejs.org or Homebrew.`;
+  return `System Node ${versionLabel} at ${systemNode.path} is below the required Node 22+.${selectedLabel} Install Node 22+ from nodejs.org.`;
 }
 
 export async function resolvePreferredNodePath(params: {

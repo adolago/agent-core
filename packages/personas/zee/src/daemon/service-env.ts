@@ -4,12 +4,10 @@ import { VERSION } from "../version.js";
 import {
   GATEWAY_SERVICE_KIND,
   GATEWAY_SERVICE_MARKER,
-  resolveGatewayLaunchAgentLabel,
   resolveGatewaySystemdServiceName,
   NODE_SERVICE_KIND,
   NODE_SERVICE_MARKER,
   NODE_WINDOWS_TASK_SCRIPT_NAME,
-  resolveNodeLaunchAgentLabel,
   resolveNodeSystemdServiceName,
   resolveNodeWindowsTaskName,
 } from "./constants.js";
@@ -26,9 +24,6 @@ type BuildServicePathOptions = MinimalServicePathOptions & {
 };
 
 function resolveSystemPathDirs(platform: NodeJS.Platform): string[] {
-  if (platform === "darwin") {
-    return ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
-  }
   if (platform === "linux") {
     return ["/usr/local/bin", "/usr/bin", "/bin"];
   }
@@ -128,13 +123,9 @@ export function buildServiceEnvironment(params: {
   env: Record<string, string | undefined>;
   port: number;
   token?: string;
-  launchdLabel?: string;
 }): Record<string, string | undefined> {
-  const { env, port, token, launchdLabel } = params;
+  const { env, port, token } = params;
   const profile = env.ZEE_PROFILE ?? env.CLAWDBOT_PROFILE;
-  const resolvedLaunchdLabel =
-    launchdLabel ||
-    (process.platform === "darwin" ? resolveGatewayLaunchAgentLabel(profile) : undefined);
   const systemdUnit = `${resolveGatewaySystemdServiceName(profile)}.service`;
   return {
     HOME: env.HOME,
@@ -144,7 +135,6 @@ export function buildServiceEnvironment(params: {
     ZEE_CONFIG_PATH: env.ZEE_CONFIG_PATH ?? env.CLAWDBOT_CONFIG_PATH,
     ZEE_GATEWAY_PORT: String(port),
     ZEE_GATEWAY_TOKEN: token,
-    ZEE_LAUNCHD_LABEL: resolvedLaunchdLabel,
     ZEE_SYSTEMD_UNIT: systemdUnit,
     ZEE_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
     ZEE_SERVICE_KIND: GATEWAY_SERVICE_KIND,
@@ -154,7 +144,6 @@ export function buildServiceEnvironment(params: {
     CLAWDBOT_CONFIG_PATH: env.CLAWDBOT_CONFIG_PATH,
     CLAWDBOT_GATEWAY_PORT: String(port),
     CLAWDBOT_GATEWAY_TOKEN: token,
-    CLAWDBOT_LAUNCHD_LABEL: resolvedLaunchdLabel,
     CLAWDBOT_SYSTEMD_UNIT: systemdUnit,
     CLAWDBOT_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
     CLAWDBOT_SERVICE_KIND: GATEWAY_SERVICE_KIND,
@@ -171,7 +160,6 @@ export function buildNodeServiceEnvironment(params: {
     PATH: buildMinimalServicePath({ env }),
     ZEE_STATE_DIR: env.ZEE_STATE_DIR ?? env.CLAWDBOT_STATE_DIR,
     ZEE_CONFIG_PATH: env.ZEE_CONFIG_PATH ?? env.CLAWDBOT_CONFIG_PATH,
-    ZEE_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
     ZEE_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
     ZEE_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
     ZEE_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
@@ -181,7 +169,6 @@ export function buildNodeServiceEnvironment(params: {
     ZEE_SERVICE_VERSION: VERSION,
     CLAWDBOT_STATE_DIR: env.CLAWDBOT_STATE_DIR,
     CLAWDBOT_CONFIG_PATH: env.CLAWDBOT_CONFIG_PATH,
-    CLAWDBOT_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
     CLAWDBOT_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
     CLAWDBOT_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
     CLAWDBOT_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,

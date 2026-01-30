@@ -8,7 +8,6 @@ import type { GatewayBindMode, GatewayControlUiConfig } from "../../config/types
 import { readLastGatewayErrorLine } from "../../daemon/diagnostics.js";
 import type { FindExtraGatewayServicesOptions } from "../../daemon/inspect.js";
 import { findExtraGatewayServices } from "../../daemon/inspect.js";
-import { findLegacyGatewayServices } from "../../daemon/legacy.js";
 import { resolveGatewayService } from "../../daemon/service.js";
 import type { ServiceConfigAudit } from "../../daemon/service-audit.js";
 import { auditGatewayServiceConfig } from "../../daemon/service-audit.js";
@@ -210,9 +209,7 @@ export async function gatherDaemonStatus(
       }
     : undefined;
 
-  const legacyServices = await findLegacyGatewayServices(
-    process.env as Record<string, string | undefined>,
-  ).catch(() => []);
+  const legacyServices: DaemonStatus["legacyServices"] = [];
   const extraServices = await findExtraGatewayServices(
     process.env as Record<string, string | undefined>,
     { deep: Boolean(opts.deep) },

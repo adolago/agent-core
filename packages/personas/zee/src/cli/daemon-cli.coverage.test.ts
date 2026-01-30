@@ -40,7 +40,7 @@ vi.mock("../daemon/program-args.js", () => ({
 
 vi.mock("../daemon/service.js", () => ({
   resolveGatewayService: () => ({
-    label: "LaunchAgent",
+    label: "systemd",
     loadedText: "loaded",
     notLoadedText: "not loaded",
     install: serviceInstall,
@@ -51,10 +51,6 @@ vi.mock("../daemon/service.js", () => ({
     readCommand: serviceReadCommand,
     readRuntime: serviceReadRuntime,
   }),
-}));
-
-vi.mock("../daemon/legacy.js", () => ({
-  findLegacyGatewayServices: async () => [],
 }));
 
 vi.mock("../daemon/inspect.js", () => ({

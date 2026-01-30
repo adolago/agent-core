@@ -2,16 +2,17 @@
 
 ## REQUIRED CONTEXT: Always Read These Repositories
 
-**Before starting any work, always read the CLAUDE.md and README.md files from these locations:**
+**Before starting any work, always read the AGENTS.md/CLAUDE.md and README.md files from these locations:**
 
 1. **Agent-Core** (`/home/artur/.local/src/agent-core/`)
-   - `CLAUDE.md` - Main project instructions, personas system, architecture overview
+   - `AGENTS.md` (symlinked to `CLAUDE.md`) - Main project instructions, personas system, architecture overview
    - Defines the engine that powers the agent system
 
-2. **Personas** (`/home/artur/Repositories/`)
-   - `johny/` - Study assistant focused on deliberate practice, with knowledge graph and spaced repetition
-   - `stanley/` - Investing assistant with acces to a full platform (NautilusTrader, OpenBB, own GUI in rust) of APIs integration
-   - `zee/` - Personal assistant with memory, messaging, calendar, and more
+2. **Personas** (two repos: `agent-core` and `stanley`)
+   - **Zee persona (skills + domain tools):** `/home/artur/.local/src/agent-core/.claude/skills/zee/` and `/home/artur/.local/src/agent-core/src/domain/zee/`
+   - **Zee gateway (skill/transport, not a persona):** `/home/artur/.local/src/agent-core/packages/personas/zee/`
+   - **Stanley (separate repo):** `/home/artur/.local/src/agent-core/packages/personas/stanley` (set `STANLEY_REPO` to this path)
+   - **Johny:** `/home/artur/.local/src/agent-core/src/personas/johny/`
    - Each persona has its own configuration and capabilities, all have access to Tiara's orchestration offers
 
 **Why this matters:** Tiara is a vendor submodule within agent-core. Understanding the full system context from agent-core and the persona implementations is essential for coherent development.

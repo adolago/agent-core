@@ -861,7 +861,7 @@ async function handleInvoke(
     segments = analysis.segments;
   }
 
-  const useExecHostSocket = process.platform === "darwin";
+  const useExecHostSocket = false;
   if (useExecHostSocket) {
     const approvalDecision =
       params.approvalDecision === "allow-once" || params.approvalDecision === "allow-always"

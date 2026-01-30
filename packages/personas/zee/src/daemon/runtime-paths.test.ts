@@ -20,11 +20,11 @@ afterEach(() => {
 });
 
 describe("resolvePreferredNodePath", () => {
-  const darwinNode = "/opt/homebrew/bin/node";
+  const linuxNode = "/usr/local/bin/node";
 
   it("uses system node when it meets the minimum version", async () => {
     fsMocks.access.mockImplementation(async (target: string) => {
-      if (target === darwinNode) return;
+      if (target === linuxNode) return;
       throw new Error("missing");
     });
 
@@ -33,17 +33,17 @@ describe("resolvePreferredNodePath", () => {
     const result = await resolvePreferredNodePath({
       env: {},
       runtime: "node",
-      platform: "darwin",
+      platform: "linux",
       execFile,
     });
 
-    expect(result).toBe(darwinNode);
+    expect(result).toBe(linuxNode);
     expect(execFile).toHaveBeenCalledTimes(1);
   });
 
   it("skips system node when it is too old", async () => {
     fsMocks.access.mockImplementation(async (target: string) => {
-      if (target === darwinNode) return;
+      if (target === linuxNode) return;
       throw new Error("missing");
     });
 
@@ -52,7 +52,7 @@ describe("resolvePreferredNodePath", () => {
     const result = await resolvePreferredNodePath({
       env: {},
       runtime: "node",
-      platform: "darwin",
+      platform: "linux",
       execFile,
     });
 
@@ -68,7 +68,7 @@ describe("resolvePreferredNodePath", () => {
     const result = await resolvePreferredNodePath({
       env: {},
       runtime: "node",
-      platform: "darwin",
+      platform: "linux",
       execFile,
     });
 
@@ -78,11 +78,11 @@ describe("resolvePreferredNodePath", () => {
 });
 
 describe("resolveSystemNodeInfo", () => {
-  const darwinNode = "/opt/homebrew/bin/node";
+  const linuxNode = "/usr/local/bin/node";
 
   it("returns supported info when version is new enough", async () => {
     fsMocks.access.mockImplementation(async (target: string) => {
-      if (target === darwinNode) return;
+      if (target === linuxNode) return;
       throw new Error("missing");
     });
 
@@ -90,12 +90,12 @@ describe("resolveSystemNodeInfo", () => {
 
     const result = await resolveSystemNodeInfo({
       env: {},
-      platform: "darwin",
+      platform: "linux",
       execFile,
     });
 
     expect(result).toEqual({
-      path: darwinNode,
+      path: linuxNode,
       version: "22.0.0",
       supported: true,
     });
@@ -104,14 +104,14 @@ describe("resolveSystemNodeInfo", () => {
   it("renders a warning when system node is too old", () => {
     const warning = renderSystemNodeWarning(
       {
-        path: darwinNode,
+        path: linuxNode,
         version: "18.19.0",
         supported: false,
       },
-      "/Users/me/.fnm/node-22/bin/node",
+      "/home/me/.fnm/node-22/bin/node",
     );
 
     expect(warning).toContain("below the required Node 22+");
-    expect(warning).toContain(darwinNode);
+    expect(warning).toContain(linuxNode);
   });
 });

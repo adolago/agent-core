@@ -1,20 +1,13 @@
 // Default service labels (for backward compatibility and when no profile specified)
-export const GATEWAY_LAUNCH_AGENT_LABEL = "bot.zee.gateway";
 export const GATEWAY_SYSTEMD_SERVICE_NAME = "zee-gateway";
 export const GATEWAY_WINDOWS_TASK_NAME = "Zee Gateway";
 export const GATEWAY_SERVICE_MARKER = "zee";
 export const GATEWAY_SERVICE_KIND = "gateway";
-export const NODE_LAUNCH_AGENT_LABEL = "bot.zee.node";
 export const NODE_SYSTEMD_SERVICE_NAME = "zee-node";
 export const NODE_WINDOWS_TASK_NAME = "Zee Node";
 export const NODE_SERVICE_MARKER = "zee";
 export const NODE_SERVICE_KIND = "node";
 export const NODE_WINDOWS_TASK_SCRIPT_NAME = "node.cmd";
-export const LEGACY_GATEWAY_LAUNCH_AGENT_LABELS = [
-  "bot.molt.gateway",
-  "com.clawdbot.gateway",
-  "com.steipete.clawdbot.gateway",
-];
 export const LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES = ["moltbot-gateway"];
 export const LEGACY_GATEWAY_WINDOWS_TASK_NAMES = ["Moltbot Gateway"];
 
@@ -27,26 +20,6 @@ export function normalizeGatewayProfile(profile?: string): string | null {
 export function resolveGatewayProfileSuffix(profile?: string): string {
   const normalized = normalizeGatewayProfile(profile);
   return normalized ? `-${normalized}` : "";
-}
-
-export function resolveGatewayLaunchAgentLabel(profile?: string): string {
-  const normalized = normalizeGatewayProfile(profile);
-  if (!normalized) {
-    return GATEWAY_LAUNCH_AGENT_LABEL;
-  }
-  return `bot.zee.${normalized}`;
-}
-
-export function resolveLegacyGatewayLaunchAgentLabels(profile?: string): string[] {
-  const normalized = normalizeGatewayProfile(profile);
-  if (!normalized) {
-    return [...LEGACY_GATEWAY_LAUNCH_AGENT_LABELS];
-  }
-  return [
-    ...LEGACY_GATEWAY_LAUNCH_AGENT_LABELS,
-    `bot.molt.${normalized}`,
-    `com.clawdbot.${normalized}`,
-  ];
 }
 
 export function resolveGatewaySystemdServiceName(profile?: string): string {
@@ -72,10 +45,6 @@ export function formatGatewayServiceDescription(params?: {
   if (version) parts.push(`v${version}`);
   if (parts.length === 0) return "Zee Gateway";
   return `Zee Gateway (${parts.join(", ")})`;
-}
-
-export function resolveNodeLaunchAgentLabel(): string {
-  return NODE_LAUNCH_AGENT_LABEL;
 }
 
 export function resolveNodeSystemdServiceName(): string {

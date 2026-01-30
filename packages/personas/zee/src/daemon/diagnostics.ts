@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { resolveGatewayLogPaths } from "./launchd.js";
+import { resolveGatewayLogPaths } from "./paths.js";
 
 const GATEWAY_LOG_ERROR_PATTERNS = [
   /refusing to bind gateway/i,

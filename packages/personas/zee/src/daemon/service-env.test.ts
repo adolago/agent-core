@@ -203,9 +203,6 @@ describe("buildServiceEnvironment", () => {
     expect(env.ZEE_SERVICE_KIND).toBe("gateway");
     expect(typeof env.ZEE_SERVICE_VERSION).toBe("string");
     expect(env.ZEE_SYSTEMD_UNIT).toBe("zee-gateway.service");
-    if (process.platform === "darwin") {
-      expect(env.ZEE_LAUNCHD_LABEL).toBe("bot.zee.gateway");
-    }
   });
 
   it("uses profile-specific unit and label", () => {
@@ -214,9 +211,6 @@ describe("buildServiceEnvironment", () => {
       port: 18789,
     });
     expect(env.ZEE_SYSTEMD_UNIT).toBe("zee-gateway-work.service");
-    if (process.platform === "darwin") {
-      expect(env.ZEE_LAUNCHD_LABEL).toBe("bot.zee.work");
-    }
   });
 });
 

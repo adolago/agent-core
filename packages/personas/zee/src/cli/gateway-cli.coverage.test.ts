@@ -72,7 +72,7 @@ vi.mock("./ports.js", () => ({
 
 vi.mock("../daemon/service.js", () => ({
   resolveGatewayService: () => ({
-    label: "LaunchAgent",
+    label: "systemd",
     loadedText: "loaded",
     notLoadedText: "not loaded",
     install: vi.fn(),

@@ -1,62 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   formatGatewayServiceDescription,
-  GATEWAY_LAUNCH_AGENT_LABEL,
   GATEWAY_SYSTEMD_SERVICE_NAME,
   GATEWAY_WINDOWS_TASK_NAME,
-  resolveGatewayLaunchAgentLabel,
   resolveGatewayProfileSuffix,
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
 } from "./constants.js";
-
-describe("resolveGatewayLaunchAgentLabel", () => {
-  it("returns default label when no profile is set", () => {
-    const result = resolveGatewayLaunchAgentLabel();
-    expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-    expect(result).toBe("bot.zee.gateway");
-  });
-
-  it("returns default label when profile is undefined", () => {
-    const result = resolveGatewayLaunchAgentLabel(undefined);
-    expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-  });
-
-  it("returns default label when profile is 'default'", () => {
-    const result = resolveGatewayLaunchAgentLabel("default");
-    expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-  });
-
-  it("returns default label when profile is 'Default' (case-insensitive)", () => {
-    const result = resolveGatewayLaunchAgentLabel("Default");
-    expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-  });
-
-  it("returns profile-specific label when profile is set", () => {
-    const result = resolveGatewayLaunchAgentLabel("dev");
-    expect(result).toBe("bot.zee.dev");
-  });
-
-  it("returns profile-specific label for custom profile", () => {
-    const result = resolveGatewayLaunchAgentLabel("work");
-    expect(result).toBe("bot.zee.work");
-  });
-
-  it("trims whitespace from profile", () => {
-    const result = resolveGatewayLaunchAgentLabel("  staging  ");
-    expect(result).toBe("bot.zee.staging");
-  });
-
-  it("returns default label for empty string profile", () => {
-    const result = resolveGatewayLaunchAgentLabel("");
-    expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-  });
-
-  it("returns default label for whitespace-only profile", () => {
-    const result = resolveGatewayLaunchAgentLabel("   ");
-    expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-  });
-});
 
 describe("resolveGatewaySystemdServiceName", () => {
   it("returns default service name when no profile is set", () => {

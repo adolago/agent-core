@@ -1,10 +1,6 @@
 import { resolveControlUiLinks } from "../../commands/onboard-helpers.js";
-import {
-  resolveGatewayLaunchAgentLabel,
-  resolveGatewaySystemdServiceName,
-} from "../../daemon/constants.js";
+import { resolveGatewaySystemdServiceName } from "../../daemon/constants.js";
 import { renderGatewayServiceCleanupHints } from "../../daemon/inspect.js";
-import { resolveGatewayLogPaths } from "../../daemon/launchd.js";
 import {
   isSystemdUnavailableDetail,
   renderSystemdUnavailableHints,
@@ -228,20 +224,6 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     spacer();
   }
 
-  if (service.runtime?.cachedLabel) {
-    const env = (service.command?.environment ?? process.env) as NodeJS.ProcessEnv;
-    const labelValue = resolveGatewayLaunchAgentLabel(env.CLAWDBOT_PROFILE);
-    defaultRuntime.error(
-      errorText(
-        `LaunchAgent label cached but plist missing. Clear with: launchctl bootout gui/$UID/${labelValue}`,
-      ),
-    );
-    defaultRuntime.error(
-      errorText(`Then reinstall: ${formatCliCommand("zee gateway install")}`),
-    );
-    spacer();
-  }
-
   for (const line of renderPortDiagnosticsForCli(status, rpc?.ok)) {
     defaultRuntime.error(errorText(line));
   }
@@ -277,12 +259,6 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
       defaultRuntime.error(
         errorText(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`),
       );
-    } else if (process.platform === "darwin") {
-      const logs = resolveGatewayLogPaths(
-        (service.command?.environment ?? process.env) as NodeJS.ProcessEnv,
-      );
-      defaultRuntime.error(`${errorText("Logs:")} ${shortenHomePath(logs.stdoutPath)}`);
-      defaultRuntime.error(`${errorText("Errors:")} ${shortenHomePath(logs.stderrPath)}`);
     }
     spacer();
   }

@@ -8,14 +8,12 @@ import {
   GATEWAY_SERVICE_MARKER,
   LEGACY_GATEWAY_SYSTEMD_SERVICE_NAMES,
   LEGACY_GATEWAY_WINDOWS_TASK_NAMES,
-  resolveGatewayLaunchAgentLabel,
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
-  resolveLegacyGatewayLaunchAgentLabels,
 } from "./constants.js";
 
 export type ExtraGatewayService = {
-  platform: "darwin" | "linux" | "win32";
+  platform: "linux" | "win32";
   label: string;
   detail: string;
   scope: "user" | "system";
@@ -33,10 +31,6 @@ export function renderGatewayServiceCleanupHints(
 ): string[] {
   const profile = env.ZEE_PROFILE ?? env.MOLTBOT_PROFILE ?? env.CLAWDBOT_PROFILE;
   switch (process.platform) {
-    case "darwin": {
-      const label = resolveGatewayLaunchAgentLabel(profile);
-      return [`launchctl bootout gui/$UID/${label}`, `rm ~/Library/LaunchAgents/${label}.plist`];
-    }
     case "linux": {
       const unit = resolveGatewaySystemdServiceName(profile);
       return [
@@ -82,19 +76,6 @@ function hasGatewayServiceMarker(content: string): boolean {
   );
 }
 
-function isGatewayLaunchdService(label: string, contents: string): boolean {
-  if (hasGatewayServiceMarker(contents)) return true;
-  const lowerContents = contents.toLowerCase();
-  if (!lowerContents.includes("gateway")) return false;
-  const normalizedLabel = label.toLowerCase();
-  return (
-    normalizedLabel.startsWith("bot.zee.") ||
-    normalizedLabel.startsWith("bot.molt.") ||
-    normalizedLabel.startsWith("com.clawdbot.") ||
-    normalizedLabel.startsWith("com.steipete.clawdbot.")
-  );
-}
-
 function isGatewaySystemdService(name: string, contents: string): boolean {
   if (hasGatewayServiceMarker(contents)) return true;
   const normalized = name.trim().toLowerCase();
@@ -121,19 +102,6 @@ function isGatewayTaskName(name: string): boolean {
   );
 }
 
-function tryExtractPlistLabel(contents: string): string | null {
-  const match = contents.match(/<key>Label<\/key>\s*<string>([\s\S]*?)<\/string>/i);
-  if (!match) return null;
-  return match[1]?.trim() || null;
-}
-
-function isIgnoredLaunchdLabel(label: string): boolean {
-  return (
-    label === resolveGatewayLaunchAgentLabel() ||
-    resolveLegacyGatewayLaunchAgentLabels(process.env.CLAWDBOT_PROFILE).includes(label)
-  );
-}
-
 function isIgnoredSystemdName(name: string): boolean {
   return (
     name === resolveGatewaySystemdServiceName() ||
@@ -141,43 +109,6 @@ function isIgnoredSystemdName(name: string): boolean {
   );
 }
 
-async function scanLaunchdDir(params: {
-  dir: string;
-  scope: "user" | "system";
-}): Promise<ExtraGatewayService[]> {
-  const results: ExtraGatewayService[] = [];
-  let entries: string[] = [];
-  try {
-    entries = await fs.readdir(params.dir);
-  } catch {
-    return results;
-  }
-
-  for (const entry of entries) {
-    if (!entry.endsWith(".plist")) continue;
-    const labelFromName = entry.replace(/\.plist$/, "");
-    if (isIgnoredLaunchdLabel(labelFromName)) continue;
-    const fullPath = path.join(params.dir, entry);
-    let contents = "";
-    try {
-      contents = await fs.readFile(fullPath, "utf8");
-    } catch {
-      continue;
-    }
-    if (!containsMarker(contents)) continue;
-    const label = tryExtractPlistLabel(contents) ?? labelFromName;
-    if (isIgnoredLaunchdLabel(label)) continue;
-    if (isGatewayLaunchdService(label, contents)) continue;
-    results.push({
-      platform: "darwin",
-      label,
-      detail: `plist: ${fullPath}`,
-      scope: params.scope,
-    });
-  }
-
-  return results;
-}
 
 async function scanSystemdDir(params: {
   dir: string;
@@ -294,36 +225,6 @@ export async function findExtraGatewayServices(
     seen.add(key);
     results.push(svc);
   };
-
-  if (process.platform === "darwin") {
-    try {
-      const home = resolveHomeDir(env);
-      const userDir = path.join(home, "Library", "LaunchAgents");
-      for (const svc of await scanLaunchdDir({
-        dir: userDir,
-        scope: "user",
-      })) {
-        push(svc);
-      }
-      if (opts.deep) {
-        for (const svc of await scanLaunchdDir({
-          dir: path.join(path.sep, "Library", "LaunchAgents"),
-          scope: "system",
-        })) {
-          push(svc);
-        }
-        for (const svc of await scanLaunchdDir({
-          dir: path.join(path.sep, "Library", "LaunchDaemons"),
-          scope: "system",
-        })) {
-          push(svc);
-        }
-      }
-    } catch {
-      return results;
-    }
-    return results;
-  }
 
   if (process.platform === "linux") {
     try {

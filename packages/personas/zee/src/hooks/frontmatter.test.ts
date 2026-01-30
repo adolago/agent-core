@@ -232,13 +232,13 @@ describe("resolveZeeMetadata", () => {
       metadata: JSON.stringify({
         zee: {
           events: ["command"],
-          os: ["darwin", "linux"],
+          os: ["linux", "win32"],
         },
       }),
     };
 
     const result = resolveZeeMetadata(frontmatter);
-    expect(result?.os).toEqual(["darwin", "linux"]);
+    expect(result?.os).toEqual(["linux", "win32"]);
   });
 
   it("parses real session-memory HOOK.md format", () => {

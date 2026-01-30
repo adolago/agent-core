@@ -40,7 +40,7 @@ export async function applyAuthChoiceOpenAI(
           process.env.OPENAI_API_KEY = envKey.apiKey;
         }
         await params.prompter.note(
-          `Copied OPENAI_API_KEY to ${result.path} for launchd compatibility.`,
+          `Copied OPENAI_API_KEY to ${result.path} for service compatibility.`,
           "OpenAI API key",
         );
         return { config: params.config };
@@ -64,7 +64,7 @@ export async function applyAuthChoiceOpenAI(
     });
     process.env.OPENAI_API_KEY = trimmed;
     await params.prompter.note(
-      `Saved OPENAI_API_KEY to ${result.path} for launchd compatibility.`,
+      `Saved OPENAI_API_KEY to ${result.path} for service compatibility.`,
       "OpenAI API key",
     );
     return { config: params.config };
