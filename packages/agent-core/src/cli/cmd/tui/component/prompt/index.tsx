@@ -38,6 +38,7 @@ import { Dictation } from "@tui/util/dictation"
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
 import { createGrammarChecker, type GrammarError } from "../../util/grammar-realtime"
+import { getRandomPlaceholder } from "./placeholder"
 
 export type PromptProps = {
   sessionID?: string
@@ -59,12 +60,12 @@ export type PromptRef = {
   submit(): void
 }
 
-
 export function Prompt(props: PromptProps) {
   let input: TextareaRenderable
   let anchor: BoxRenderable
   let autocomplete: AutocompleteRef
 
+  const [placeholder] = createSignal(getRandomPlaceholder())
   const keybind = useKeybind()
   const vim = useVim()
   const [visualAnchor, setVisualAnchor] = createSignal<number | null>(null)
@@ -97,7 +98,7 @@ export function Prompt(props: PromptProps) {
     return s.type === "busy" ? (s.streamHealth as StreamHealthExtended | undefined) : undefined
   })
   // Session for token counter
-  const session = createMemo(() => props.sessionID ? sync.session.get(props.sessionID) : undefined)
+  const session = createMemo(() => (props.sessionID ? sync.session.get(props.sessionID) : undefined))
   // Cumulative agent work time for COMPLETED assistant responses only
   const completedWorkTime = createMemo(() => {
     if (!props.sessionID) return 0
@@ -114,7 +115,8 @@ export function Prompt(props: PromptProps) {
   const sessionTokenTotals = createMemo(() => {
     if (!props.sessionID) return { snt: 0, rcvd: 0 }
     const msgs = sync.data.message[props.sessionID] ?? []
-    let snt = 0, rcvd = 0
+    let snt = 0,
+      rcvd = 0
     for (const m of msgs) {
       if (m.role !== "assistant" || !m.tokens) continue
       snt += m.tokens.input ?? 0
@@ -123,8 +125,12 @@ export function Prompt(props: PromptProps) {
     return { snt, rcvd }
   })
   // Session-wise memory stats accumulator (persisted in kv)
-  const memTotalsKey = () => props.sessionID ? `mem_totals_${props.sessionID}` : undefined
-  const [memTotals, setMemTotals] = createSignal<{ mbd: number; rrnk: number; lastReqCount: number }>({ mbd: 0, rrnk: 0, lastReqCount: 0 })
+  const memTotalsKey = () => (props.sessionID ? `mem_totals_${props.sessionID}` : undefined)
+  const [memTotals, setMemTotals] = createSignal<{ mbd: number; rrnk: number; lastReqCount: number }>({
+    mbd: 0,
+    rrnk: 0,
+    lastReqCount: 0,
+  })
   // Load from kv on mount
   createEffect(() => {
     const key = memTotalsKey()
@@ -181,20 +187,20 @@ export function Prompt(props: PromptProps) {
     const messages = sync.data.message[props.sessionID] ?? []
     const lastAssistant = messages.findLast((m): m is typeof m & { role: "assistant" } => m.role === "assistant")
     if (!lastAssistant?.tokens) return null
-    
+
     // Get current model limits
     const model = local.model.current()
     if (!model) return null
     const provider = sync.data.provider.find((p) => p.id === model.providerID)
     const modelInfo = provider?.models[model.modelID]
     if (!modelInfo?.limit?.context) return null
-    
+
     // Calculate usage (same formula as compaction.ts)
     const count = lastAssistant.tokens.input + (lastAssistant.tokens.cache?.read ?? 0) + lastAssistant.tokens.output
     const outputLimit = Math.min(modelInfo.limit.output ?? 8192, 16384)
-    const usable = modelInfo.limit.input ?? (modelInfo.limit.context - outputLimit)
+    const usable = modelInfo.limit.input ?? modelInfo.limit.context - outputLimit
     if (usable <= 0) return null
-    
+
     return {
       count,
       limit: usable,
@@ -412,7 +418,9 @@ export function Prompt(props: PromptProps) {
   function createVimContext(): VimCommands.VimCommandContext {
     return {
       getCursorOffset: () => input.cursorOffset,
-      setCursorOffset: (offset) => { input.cursorOffset = offset },
+      setCursorOffset: (offset) => {
+        input.cursorOffset = offset
+      },
       getText: () => input.plainText,
       setText: (text) => input.setText(text),
       insertText: (text) => input.insertText(text),
@@ -514,7 +522,11 @@ export function Prompt(props: PromptProps) {
 
     for (const error of errors) {
       const styleId =
-        error.category === "spelling" ? spellingStyleId : error.category === "style" ? styleErrorStyleId : grammarStyleId
+        error.category === "spelling"
+          ? spellingStyleId
+          : error.category === "style"
+            ? styleErrorStyleId
+            : grammarStyleId
 
       input.extmarks.create({
         start: error.start,
@@ -782,7 +794,7 @@ export function Prompt(props: PromptProps) {
         onSelect: async (d) => {
           if (!store.prompt.input) return
           d.clear()
-          
+
           toast.show({
             variant: "info",
             message: "Checking grammar...",
@@ -805,7 +817,7 @@ export function Prompt(props: PromptProps) {
               matches={matches}
               onApply={(content) => {
                 input.setText(content)
-                
+
                 // Try to preserve parts if possible (similar to editor logic)
                 const nonTextParts = store.prompt.parts.filter((p) => p.type !== "text")
                 const updatedNonTextParts = nonTextParts
@@ -862,7 +874,7 @@ export function Prompt(props: PromptProps) {
               }}
             />
           ))
-        }
+        },
       },
       {
         title: realtimeGrammarEnabled() ? "Disable real-time grammar" : "Enable real-time grammar",
@@ -902,7 +914,7 @@ export function Prompt(props: PromptProps) {
           const grammarExtmarks = input.extmarks.getAllForTypeId(grammarErrorTypeId)
           const errorAtCursor = grammarExtmarks.find(
             (em: { start: number; end: number; data?: GrammarError }) =>
-              cursorOffset >= em.start && cursorOffset <= em.end && em.data
+              cursorOffset >= em.start && cursorOffset <= em.end && em.data,
           )
 
           if (!errorAtCursor || !errorAtCursor.data) {
@@ -1449,22 +1461,16 @@ export function Prompt(props: PromptProps) {
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
         {/* Zee reminders/agenda section (replaces Amp ads) */}
-        <box
-          flexDirection="row"
-          justifyContent="space-between"
-          height={1}
-          paddingLeft={1}
-          paddingRight={1}
-        >
+        <box flexDirection="row" justifyContent="space-between" height={1} paddingLeft={1} paddingRight={1}>
           {/* Left: Zee reminders placeholder */}
           <box flexDirection="row" gap={1}>
-            <text fg={theme.textMuted}>
-              {/* TODO: Integrate with Zee's calendar/reminders */}
-            </text>
+            <text fg={theme.textMuted}>{/* TODO: Integrate with Zee's calendar/reminders */}</text>
           </box>
           {/* Right: agent mode, knowledge count */}
           <box flexDirection="row" gap={1}>
-            <text fg={local.agent.color(local.agent.current().name)}>{Locale.titlecase(local.agent.current().name)}</text>
+            <text fg={local.agent.color(local.agent.current().name)}>
+              {Locale.titlecase(local.agent.current().name)}
+            </text>
             <Show when={local.agent.current().knowledge?.length}>
               <text fg={theme.textMuted}>{local.agent.current().knowledge?.length} knowledge</text>
             </Show>
@@ -1476,9 +1482,7 @@ export function Prompt(props: PromptProps) {
             <Show when={sync.data.path?.directory}>
               {sync.data.path?.directory ? `~${sync.data.path.directory.replace(process.env.HOME ?? "", "")}` : ""}
             </Show>
-            <Show when={sync.data.vcs?.branch}>
-              {` (${sync.data.vcs?.branch})`}
-            </Show>
+            <Show when={sync.data.vcs?.branch}>{` (${sync.data.vcs?.branch})`}</Show>
           </text>
           <text fg={theme.border}> {"─".repeat(500)}</text>
         </box>
@@ -1486,7 +1490,9 @@ export function Prompt(props: PromptProps) {
         <Show when={diffStats()}>
           {(stats) => (
             <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={1}>
-              <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
+              <text fg={theme.textMuted}>
+                {stats().files} file{stats().files !== 1 ? "s" : ""} changed{" "}
+              </text>
               <Show when={stats().additions > 0}>
                 <text fg={theme.success}>+{stats().additions} </text>
               </Show>
@@ -1508,14 +1514,9 @@ export function Prompt(props: PromptProps) {
             bottomLeft: "╹",
           }}
         >
-          <box
-            paddingLeft={1}
-            paddingRight={1}
-            flexShrink={0}
-            flexGrow={1}
-          >
+          <box paddingLeft={1} paddingRight={1} flexShrink={0} flexGrow={1}>
             <textarea
-              placeholder={null}
+              placeholder={props.showPlaceholder !== false ? placeholder() : null}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}
               minHeight={1}
@@ -1848,44 +1849,42 @@ export function Prompt(props: PromptProps) {
                 {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
               </text>
               <Show when={vim.isNormal && status().type === "idle"}>
-                <text fg={theme.textMuted}>
-                  i:insert Space:leader
-                </text>
+                <text fg={theme.textMuted}>i:insert Space:leader</text>
               </Show>
               <Show when={vim.isVisual && status().type === "idle"}>
-                <text fg={theme.textMuted}>
-                  v:normal esc:normal
-                </text>
+                <text fg={theme.textMuted}>v:normal esc:normal</text>
               </Show>
             </Show>
             <Show when={status().type === "busy"}>
               <text fg={theme.textMuted}>Ctrl+C: abort</text>
             </Show>
-            <Switch fallback={
-              <Switch>
-                <Match when={dictationState() === "listening"}>
-                  <text fg={theme.warning}>
-                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
-                  </text>
-                </Match>
-                <Match when={dictationState() === "sending"}>
-                  <text fg={theme.primary}>[SEND] sending audio...</text>
-                </Match>
-                <Match when={dictationState() === "receiving"}>
-                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
-                </Match>
-                <Match when={dictationState() === "transcribing"}>
-                  <text fg={theme.textMuted}>dictation processing...</text>
-                </Match>
-                <Match when={todoHint()}>
-                  {(hint) => (
+            <Switch
+              fallback={
+                <Switch>
+                  <Match when={dictationState() === "listening"}>
                     <text fg={theme.warning}>
-                      {hint().count} pending · {hint().current}...
+                      [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
                     </text>
-                  )}
-                </Match>
-              </Switch>
-            }>
+                  </Match>
+                  <Match when={dictationState() === "sending"}>
+                    <text fg={theme.primary}>[SEND] sending audio...</text>
+                  </Match>
+                  <Match when={dictationState() === "receiving"}>
+                    <text fg={theme.primary}>[RECV] receiving transcript...</text>
+                  </Match>
+                  <Match when={dictationState() === "transcribing"}>
+                    <text fg={theme.textMuted}>dictation processing...</text>
+                  </Match>
+                  <Match when={todoHint()}>
+                    {(hint) => (
+                      <text fg={theme.warning}>
+                        {hint().count} pending · {hint().current}...
+                      </text>
+                    )}
+                  </Match>
+                </Switch>
+              }
+            >
               <Match when={status().type === "idle"}>
                 {/* Session-wise stats when idle */}
                 {(() => {
@@ -1899,7 +1898,9 @@ export function Prompt(props: PromptProps) {
                     return (
                       <>
                         <Show when={zeros.length > 0}>
-                          <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
+                          <text fg={theme.textMuted} attributes={TextAttributes.DIM}>
+                            {zeros}
+                          </text>
                         </Show>
                         <text fg={theme.textMuted}>{rest}</text>
                       </>
@@ -2012,10 +2013,14 @@ export function Prompt(props: PromptProps) {
                       const health = streamHealth()
                       if (!health?.phase) return "starting"
                       switch (health.phase) {
-                        case "thinking": return "thinking"
-                        case "tool_calling": return "tools"
-                        case "generating": return "generate"
-                        default: return "starting"
+                        case "thinking":
+                          return "thinking"
+                        case "tool_calling":
+                          return "tools"
+                        case "generating":
+                          return "generate"
+                        default:
+                          return "starting"
                       }
                     })
                     const formatFixedTokens = (n: number, width = 4) => {
@@ -2028,7 +2033,9 @@ export function Prompt(props: PromptProps) {
                       return (
                         <>
                           <Show when={zeros.length > 0}>
-                            <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
+                            <text fg={theme.textMuted} attributes={TextAttributes.DIM}>
+                              {zeros}
+                            </text>
                           </Show>
                           <text fg={theme.textMuted}>{rest}</text>
                         </>
@@ -2086,19 +2093,30 @@ export function Prompt(props: PromptProps) {
                     return n.toString()
                   }
                   const usage = contextUsage()
-                  const color = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
+                  const color =
+                    usage && usage.percent >= 80
+                      ? theme.error
+                      : usage && usage.percent >= 60
+                        ? theme.warning
+                        : theme.textMuted
                   const parsed = local.model.parsed()
                   const variant = local.model.variant.current()
                   return (
                     <>
                       <Show when={usage}>
-                        <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
+                        <text fg={color}>
+                          {usage!.percent}% of {formatLimit(usage!.limit)}
+                        </text>
                         <text fg={theme.textMuted}> · </text>
                       </Show>
                       <text fg={theme.textMuted}>{parsed.provider}</text>
-                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>{parsed.model}</text>
+                      <text fg={theme.primary} attributes={TextAttributes.BOLD}>
+                        {parsed.model}
+                      </text>
                       <Show when={variant}>
-                        <text fg={theme.primary} attributes={TextAttributes.BOLD}>{variant}</text>
+                        <text fg={theme.primary} attributes={TextAttributes.BOLD}>
+                          {variant}
+                        </text>
                       </Show>
                     </>
                   )
