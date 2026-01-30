@@ -2,6 +2,9 @@ import { Log } from "@/util/log"
 import { Bus } from "@/bus"
 import { BusEvent } from "@/bus/bus-event"
 import { z } from "zod"
+import { Global } from "@/global"
+import path from "path"
+import fs from "fs/promises"
 
 /**
  * Circuit Breaker pattern for provider health management.
@@ -59,10 +62,17 @@ export namespace CircuitBreaker {
     halfOpenLimit: 1,
   }
 
-  // In-memory state (resets on restart)
+  // RELIABILITY: Persist circuit breaker state to survive restarts
+  // This prevents immediate retries of failing providers after daemon restart
+  const STATE_FILE = path.join(Global.Path.state, "circuit-breaker.json")
+  const PERSISTENCE_INTERVAL = 30_000 // Save every 30 seconds
+
+  // In-memory state (now persisted across restarts)
   const breakers = new Map<string, ProviderState>()
   let config: Config = { ...DEFAULT_CONFIG }
   let stateMutex: Promise<void> = Promise.resolve()
+  let persistenceTimer: NodeJS.Timeout | null = null
+  let lastPersistedState = ""
 
   async function withStateLock<T>(fn: () => T | Promise<T>): Promise<T> {
     const current = stateMutex
@@ -76,6 +86,77 @@ export namespace CircuitBreaker {
     } finally {
       release()
     }
+  }
+
+  // RELIABILITY: Persist state to disk for crash recovery
+  async function saveState(): Promise<void> {
+    const state: Record<string, ProviderState> = {}
+    for (const [id, s] of breakers) {
+      state[id] = { ...s }
+    }
+    const json = JSON.stringify(state)
+    // Only write if state changed
+    if (json === lastPersistedState) return
+    lastPersistedState = json
+    try {
+      await fs.mkdir(Global.Path.state, { recursive: true })
+      await fs.writeFile(STATE_FILE, json)
+    } catch (e) {
+      log.warn("failed to persist circuit breaker state", { error: String(e) })
+    }
+  }
+
+  // RELIABILITY: Load persisted state on startup
+  async function loadState(): Promise<void> {
+    try {
+      const content = await fs.readFile(STATE_FILE, "utf-8")
+      const state = JSON.parse(content) as Record<string, ProviderState>
+      for (const [id, s] of Object.entries(state)) {
+        // Only restore OPEN or HALF_OPEN states - CLOSED is the default
+        // Also check if timeout has passed for OPEN states
+        if (s.state === "open") {
+          if (s.lastFailure && Date.now() - s.lastFailure < config.timeout) {
+            breakers.set(id, s)
+          }
+          // If timeout passed, let it naturally transition to half_open on first check
+        } else if (s.state === "half_open") {
+          // Reset half-open counters since we don't know if requests completed
+          breakers.set(id, { ...s, halfOpenRequests: 0, successes: 0 })
+        }
+      }
+      log.info("loaded persisted circuit breaker state", { providers: breakers.size })
+    } catch (e) {
+      // File doesn't exist or is corrupt - start fresh
+      log.debug("no persisted circuit breaker state found")
+    }
+  }
+
+  // Schedule periodic persistence
+  function startPersistence(): void {
+    if (persistenceTimer) return
+    persistenceTimer = setInterval(() => {
+      void saveState()
+    }, PERSISTENCE_INTERVAL)
+  }
+
+  /**
+   * Initialize the circuit breaker and load persisted state.
+   * Must be called before using other functions.
+   */
+  export async function init(): Promise<void> {
+    await loadState()
+    startPersistence()
+  }
+
+  /**
+   * Shutdown the circuit breaker and save final state.
+   */
+  export async function shutdown(): Promise<void> {
+    if (persistenceTimer) {
+      clearInterval(persistenceTimer)
+      persistenceTimer = null
+    }
+    await saveState()
   }
 
   /**

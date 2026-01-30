@@ -20,6 +20,8 @@ import { HoldMode } from "@/config/hold-mode"
 
 const MAX_METADATA_LENGTH = 30_000
 const DEFAULT_TIMEOUT = Flag.AGENT_CORE_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
+// SAFETY: Hard limit on total output to prevent memory exhaustion from runaway commands
+const MAX_OUTPUT_BYTES = 10 * 1024 * 1024 // 10MB - kills command if exceeded
 
 export const log = Log.create({ service: "bash-tool" })
 
@@ -278,6 +280,8 @@ The pattern "${checkResult.matchedPattern}" in your release_confirm list require
       })
 
       let output = ""
+      let outputBytes = 0
+      let killedForSize = false
 
       // Initialize metadata with empty output
       ctx.metadata({
@@ -288,6 +292,18 @@ The pattern "${checkResult.matchedPattern}" in your release_confirm list require
       })
 
       const append = (chunk: Buffer) => {
+        // SAFETY: Hard limit enforcement - kill process if output exceeds max
+        outputBytes += chunk.length
+        if (outputBytes > MAX_OUTPUT_BYTES && !killedForSize) {
+          killedForSize = true
+          log.warn("command exceeded max output size, killing", {
+            command: params.command,
+            bytes: outputBytes,
+            limit: MAX_OUTPUT_BYTES,
+          })
+          void kill()
+          return
+        }
         output += chunk.toString()
         ctx.metadata({
           metadata: {
@@ -344,6 +360,13 @@ The pattern "${checkResult.matchedPattern}" in your release_confirm list require
       })
 
       const resultMetadata: string[] = []
+
+      if (killedForSize) {
+        resultMetadata.push(
+          `SECURITY: Command killed after exceeding ${MAX_OUTPUT_BYTES} bytes output limit. ` +
+            "This prevents memory exhaustion from runaway commands. Use more specific commands or output redirection to files."
+        )
+      }
 
       if (timedOut) {
         resultMetadata.push(`bash tool terminated command after exceeding timeout ${timeout} ms`)

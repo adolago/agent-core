@@ -43,6 +43,15 @@ export namespace HoldMode {
 
   let cachedConfig: Config | null = null
 
+  // PERFORMANCE: Cache checkCommand results to avoid redundant regex matching
+  // Commands are checked on every bash execution, but config rarely changes
+  const CHECK_CACHE_TTL_MS = 5000 // 5 seconds
+  interface CheckCacheEntry {
+    result: CheckResult
+    timestamp: number
+  }
+  const checkCache = new Map<string, CheckCacheEntry>()
+
   function configDir(): string {
     return process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config", "agent-core")
   }
@@ -197,6 +206,8 @@ export namespace HoldMode {
 
   export function invalidateCache(): void {
     cachedConfig = null
+    // PERFORMANCE: Also invalidate command check cache since config changed
+    checkCache.clear()
   }
 
   export function getStrictAdditions(): Set<string> {
@@ -330,29 +341,42 @@ export namespace HoldMode {
     command: string,
     options: { holdMode: boolean }
   ): Promise<CheckResult> {
+    // PERFORMANCE: Check cache first
+    const cacheKey = `${command}::${options.holdMode}`
+    const cached = checkCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CHECK_CACHE_TTL_MS) {
+      return cached.result
+    }
+
     const config = await load()
 
     // Always check always_block first (applies in both HOLD and RELEASE modes)
     const blockedPattern = findMatchingPattern(command, config.always_block)
     if (blockedPattern) {
-      return { blocked: true, reason: "command in always_block list", matchedPattern: blockedPattern, profile: config.profile }
+      const result: CheckResult = { blocked: true, reason: "command in always_block list", matchedPattern: blockedPattern, profile: config.profile }
+      checkCache.set(cacheKey, { result, timestamp: Date.now() })
+      return result
     }
 
     if (options.holdMode) {
       // Check if command is explicitly allowed in hold mode
       if (matchesPattern(command, config.hold_allow)) {
-        return { blocked: false, profile: config.profile }
+        const result: CheckResult = { blocked: false, profile: config.profile }
+        checkCache.set(cacheKey, { result, timestamp: Date.now() })
+        return result
       }
 
       // Check against profile-based blocklist (includes command parsing, git subcommands, etc.)
       const blocklist = await getEffectiveBlocklist(config.profile)
       const blockCheck = isCommandBlocked(command, blocklist)
       if (blockCheck.blocked) {
-        return {
+        const result: CheckResult = {
           blocked: true,
           reason: blockCheck.reason,
           profile: config.profile,
         }
+        checkCache.set(cacheKey, { result, timestamp: Date.now() })
+        return result
       }
     }
 
@@ -360,11 +384,15 @@ export namespace HoldMode {
     if (!options.holdMode) {
       const confirmPattern = findMatchingPattern(command, config.release_confirm)
       if (confirmPattern) {
-        return { blocked: false, requiresConfirmation: true, matchedPattern: confirmPattern, profile: config.profile }
+        const result: CheckResult = { blocked: false, requiresConfirmation: true, matchedPattern: confirmPattern, profile: config.profile }
+        checkCache.set(cacheKey, { result, timestamp: Date.now() })
+        return result
       }
     }
 
-    return { blocked: false, profile: config.profile }
+    const result: CheckResult = { blocked: false, profile: config.profile }
+    checkCache.set(cacheKey, { result, timestamp: Date.now() })
+    return result
   }
 
   export async function isToolAllowedInHold(

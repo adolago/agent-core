@@ -11,6 +11,7 @@ import { Instance } from "../../project/instance"
 import { LifecycleHooks } from "../../hooks/lifecycle"
 import { WeztermOrchestration } from "../../orchestration/wezterm"
 import { initPersonas } from "../../bootstrap/personas"
+import { CircuitBreaker } from "../../provider/circuit-breaker"
 import * as UsageTracker from "../../usage/tracker"
 import { execSync, spawn, spawnSync, type ChildProcess } from "child_process"
 import fs from "fs/promises"
@@ -974,6 +975,17 @@ export const DaemonCommand = cmd({
       console.error(`Warning: Persistence initialization failed: ${error instanceof Error ? error.message : error}`)
     }
 
+    // RELIABILITY: Initialize circuit breaker with persisted state
+    // This prevents immediate retries of failing providers after daemon restart
+    try {
+      await CircuitBreaker.init()
+      console.log("Circuit Breaker: Initialized with persisted state")
+    } catch (error) {
+      log.error("Failed to initialize circuit breaker", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
     // Initialize persona hooks (cross-session memory, fact extraction)
     try {
       await initPersonas()
@@ -1075,6 +1087,9 @@ export const DaemonCommand = cmd({
           },
         }).catch((e) => log.error("Persistence shutdown error", { error: String(e) }))
       }
+
+      // RELIABILITY: Save circuit breaker state before shutdown
+      await CircuitBreaker.shutdown().catch((e) => log.error("Circuit breaker shutdown error", { error: String(e) }))
 
       await Daemon.removePidFile()
       await Daemon.releaseLock()
