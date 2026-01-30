@@ -7,7 +7,7 @@ read_when:
 
 # `zee tui`
 
-Open the terminal UI connected to the Gateway.
+Open the terminal UI (agent-core TUI). `zee tui` delegates to agent-core.
 
 Related:
 - TUI guide: [TUI](/tui)
@@ -15,8 +15,7 @@ Related:
 ## Examples
 
 ```bash
-zee tui
-zee tui --url ws://127.0.0.1:18789 --token <token>
-zee tui --session main --deliver
+agent-core
+AGENT_CORE_URL=http://127.0.0.1:3210 agent-core
+zee tui --session main
 ```
-

@@ -6,22 +6,27 @@ read_when:
 ---
 # TUI (Terminal UI)
 
+> Note: The TUI now runs via **agent-core**. `zee tui` is a compatibility alias that launches the agent-core TUI.
+> Use `agent-core` directly for the primary experience.
+
 ## Quick start
-1) Start the Gateway.
+1) Start agent-core (optionally with the gateway).
 ```bash
-zee gateway
+agent-core daemon --gateway
 ```
 2) Open the TUI.
 ```bash
+agent-core
+# or:
 zee tui
 ```
 3) Type a message and press Enter.
 
-Remote Gateway:
+Remote daemon:
 ```bash
-zee tui --url ws://<host>:<port> --token <gateway-token>
+AGENT_CORE_URL=http://<host>:<port> agent-core
 ```
-Use `--password` if your Gateway uses password auth.
+If daemon auth is enabled, set `AGENT_CORE_SERVER_PASSWORD` before launching the TUI.
 
 ## What you see
 - Header: connection URL, current agent, current session.

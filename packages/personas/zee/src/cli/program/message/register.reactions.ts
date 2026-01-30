@@ -13,6 +13,8 @@ export function registerMessageReactionsCommands(message: Command, helpers: Mess
     .option("--remove", "Remove reaction", false)
     .option("--participant <id>", "WhatsApp reaction participant")
     .option("--from-me", "WhatsApp reaction fromMe", false)
+    .option("--target-author <id>", "Signal reaction target author id")
+    .option("--target-author-uuid <uuid>", "Signal reaction target author UUID")
     .action(async (opts) => {
       await helpers.runMessageAction("react", opts);
     });

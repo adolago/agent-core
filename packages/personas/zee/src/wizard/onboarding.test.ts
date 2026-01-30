@@ -1,75 +1,71 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
+import * as config from "../config/config.js";
+import * as onboardHelpers from "../commands/onboard-helpers.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { runOnboardingWizard } from "./onboarding.js";
 import type { WizardPrompter } from "./prompts.js";
 
-const setupChannels = vi.hoisted(() => vi.fn(async (cfg) => cfg));
-const setupSkills = vi.hoisted(() => vi.fn(async (cfg) => cfg));
-const healthCommand = vi.hoisted(() => vi.fn(async () => {}));
-const ensureWorkspaceAndSessions = vi.hoisted(() => vi.fn(async () => {}));
-const writeConfigFile = vi.hoisted(() => vi.fn(async () => {}));
-const readConfigFileSnapshot = vi.hoisted(() =>
-  vi.fn(async () => ({ exists: false, valid: true, config: {} })),
-);
-const ensureSystemdUserLingerInteractive = vi.hoisted(() => vi.fn(async () => {}));
-const isSystemdUserServiceAvailable = vi.hoisted(() => vi.fn(async () => true));
-const runTui = vi.hoisted(() => vi.fn(async () => {}));
+let setupChannels: ReturnType<typeof vi.fn>;
+let setupSkills: ReturnType<typeof vi.fn>;
+let healthCommand: ReturnType<typeof vi.fn>;
+let ensureWorkspaceAndSessions: ReturnType<typeof vi.fn>;
+let writeConfigFile: ReturnType<typeof vi.fn>;
+let readConfigFileSnapshot: ReturnType<typeof vi.fn>;
+let ensureSystemdUserLingerInteractive: ReturnType<typeof vi.fn>;
+let isSystemdUserServiceAvailable: ReturnType<typeof vi.fn>;
+let runAgentCoreTui: ReturnType<typeof vi.fn>;
 
 vi.mock("../commands/onboard-channels.js", () => ({
-  setupChannels,
+  setupChannels: (setupChannels = vi.fn(async (cfg) => cfg)),
 }));
 
 vi.mock("../commands/onboard-skills.js", () => ({
-  setupSkills,
+  setupSkills: (setupSkills = vi.fn(async (cfg) => cfg)),
 }));
 
 vi.mock("../commands/health.js", () => ({
-  healthCommand,
+  healthCommand: (healthCommand = vi.fn(async () => {})),
 }));
 
-vi.mock("../config/config.js", async (importActual) => {
-  const actual = await importActual<typeof import("../config/config.js")>();
-  return {
-    ...actual,
-    readConfigFileSnapshot,
-    writeConfigFile,
-  };
-});
-
-vi.mock("../commands/onboard-helpers.js", async (importActual) => {
-  const actual = await importActual<typeof import("../commands/onboard-helpers.js")>();
-  return {
-    ...actual,
-    ensureWorkspaceAndSessions,
-    detectBrowserOpenSupport: vi.fn(async () => ({ ok: false })),
-    openUrl: vi.fn(async () => true),
-    printWizardHeader: vi.fn(),
-    probeGatewayReachable: vi.fn(async () => ({ ok: true })),
-    resolveGatewayUrls: vi.fn(() => ({
-      httpUrl: "http://127.0.0.1:18789",
-      wsUrl: "ws://127.0.0.1:18789",
-    })),
-  };
-});
-
 vi.mock("../commands/systemd-linger.js", () => ({
-  ensureSystemdUserLingerInteractive,
+  ensureSystemdUserLingerInteractive: (ensureSystemdUserLingerInteractive = vi.fn(async () => {})),
 }));
 
 vi.mock("../daemon/systemd.js", () => ({
-  isSystemdUserServiceAvailable,
+  isSystemdUserServiceAvailable: (isSystemdUserServiceAvailable = vi.fn(async () => true)),
 }));
 
-vi.mock("../tui/tui.js", () => ({
-  runTui,
+vi.mock("../tui/agent-core-tui.js", () => ({
+  runAgentCoreTui: (runAgentCoreTui = vi.fn(async () => {})),
 }));
 
 describe("runOnboardingWizard", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    readConfigFileSnapshot = vi
+      .spyOn(config, "readConfigFileSnapshot")
+      .mockResolvedValue({ exists: false, valid: true, config: {} });
+    writeConfigFile = vi.spyOn(config, "writeConfigFile").mockResolvedValue();
+    ensureWorkspaceAndSessions = vi
+      .spyOn(onboardHelpers, "ensureWorkspaceAndSessions")
+      .mockResolvedValue();
+    vi.spyOn(onboardHelpers, "detectBrowserOpenSupport").mockResolvedValue({ ok: false });
+    vi.spyOn(onboardHelpers, "openUrl").mockResolvedValue(true);
+    vi.spyOn(onboardHelpers, "printWizardHeader").mockImplementation(() => {});
+    vi.spyOn(onboardHelpers, "probeGatewayReachable").mockResolvedValue({ ok: true });
+    vi.spyOn(onboardHelpers, "resolveGatewayUrls").mockReturnValue({
+      httpUrl: "http://127.0.0.1:18789",
+      wsUrl: "ws://127.0.0.1:18789",
+    });
+    vi.spyOn(onboardHelpers, "waitForGatewayReachable").mockResolvedValue({ ok: true });
+    vi.spyOn(onboardHelpers, "handleReset").mockResolvedValue();
+  });
+
   it("exits when config is invalid", async () => {
     readConfigFileSnapshot.mockResolvedValueOnce({
       path: "/tmp/.zee/zee.json",
@@ -163,11 +159,11 @@ describe("runOnboardingWizard", () => {
     expect(setupChannels).not.toHaveBeenCalled();
     expect(setupSkills).not.toHaveBeenCalled();
     expect(healthCommand).not.toHaveBeenCalled();
-    expect(runTui).not.toHaveBeenCalled();
+    expect(runAgentCoreTui).not.toHaveBeenCalled();
   });
 
   it("launches TUI without auto-delivery when hatching", async () => {
-    runTui.mockClear();
+    runAgentCoreTui.mockClear();
 
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-onboard-"));
     await fs.writeFile(path.join(workspaceDir, DEFAULT_BOOTSTRAP_FILENAME), "{}");
@@ -212,18 +208,18 @@ describe("runOnboardingWizard", () => {
       prompter,
     );
 
-    expect(runTui).toHaveBeenCalledWith(
+    expect(runAgentCoreTui).toHaveBeenCalledWith(
       expect.objectContaining({
-        deliver: false,
         message: "Wake up, my friend!",
       }),
+      runtime,
     );
 
     await fs.rm(workspaceDir, { recursive: true, force: true });
   });
 
   it("offers TUI hatch even without BOOTSTRAP.md", async () => {
-    runTui.mockClear();
+    runAgentCoreTui.mockClear();
 
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-onboard-"));
 
@@ -267,11 +263,11 @@ describe("runOnboardingWizard", () => {
       prompter,
     );
 
-    expect(runTui).toHaveBeenCalledWith(
+    expect(runAgentCoreTui).toHaveBeenCalledWith(
       expect.objectContaining({
-        deliver: false,
         message: undefined,
       }),
+      runtime,
     );
 
     await fs.rm(workspaceDir, { recursive: true, force: true });

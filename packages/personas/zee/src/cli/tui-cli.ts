@@ -2,16 +2,16 @@ import type { Command } from "commander";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
-import { runTui } from "../tui/tui.js";
+import { runAgentCoreTui } from "../tui/agent-core-tui.js";
 import { parseTimeoutMs } from "./parse-timeout.js";
 
 export function registerTuiCli(program: Command) {
   program
     .command("tui")
-    .description("Open a terminal UI connected to the Gateway")
-    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
-    .option("--token <token>", "Gateway token (if required)")
-    .option("--password <password>", "Gateway password (if required)")
+    .description("Open the agent-core terminal UI (legacy alias)")
+    .option("--url <url>", "Agent-core daemon URL (http[s]://host:port)")
+    .option("--token <token>", "Legacy gateway token (ignored; use agent-core auth)")
+    .option("--password <password>", "Agent-core auth password (if enabled)")
     .option("--session <key>", 'Session key (default: "main", or "global" when scope is global)')
     .option("--deliver", "Deliver assistant replies", false)
     .option("--thinking <level>", "Thinking level override")
@@ -20,7 +20,9 @@ export function registerTuiCli(program: Command) {
     .option("--history-limit <n>", "History entries to load", "200")
     .addHelpText(
       "after",
-      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/tui", "docs.zee/cli/tui")}\n`,
+      () =>
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/tui", "docs.zee/cli/tui")}\n` +
+        `${theme.muted("Tip:")} Use ${theme.bold("agent-core")} directly for the primary TUI.\n`,
     )
     .action(async (opts) => {
       try {
@@ -31,7 +33,7 @@ export function registerTuiCli(program: Command) {
           );
         }
         const historyLimit = Number.parseInt(String(opts.historyLimit ?? "200"), 10);
-        await runTui({
+        await runAgentCoreTui({
           url: opts.url as string | undefined,
           token: opts.token as string | undefined,
           password: opts.password as string | undefined,

@@ -159,6 +159,3 @@ export function createZeeTools(options?: {
 
   return [...tools, ...pluginTools];
 }
-
-// Legacy alias
-export const createZeeTools = createZeeTools;

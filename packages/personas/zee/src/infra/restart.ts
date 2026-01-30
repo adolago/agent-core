@@ -124,7 +124,6 @@ export function triggerZeeRestart(): RestartAttempt {
   };
 }
 
-export const triggerZeeRestart = triggerZeeRestart;
 
 export type ScheduledRestart = {
   ok: boolean;

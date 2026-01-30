@@ -418,6 +418,3 @@ export function createZeeCodingTools(options?: {
   // on the wire and maps them back for tool dispatch.
   return withAbort;
 }
-
-// Legacy alias
-export const createZeeCodingTools = createZeeCodingTools;

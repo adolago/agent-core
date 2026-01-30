@@ -20,7 +20,7 @@ import type { ZeeConfig } from "../config/config.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { runTui } from "../tui/tui.js";
+import { runAgentCoreTui } from "../tui/agent-core-tui.js";
 import { resolveUserPath } from "../utils.js";
 import {
   buildGatewayInstallPlan,
@@ -276,12 +276,12 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     }
 
     await prompter.note(
-        [
-          "Gateway auth is required for CLI/TUI connections.",
-          "Token: ~/.zee/zee.json (gateway.auth.token) or ZEE_GATEWAY_TOKEN.",
-          "Password: ~/.zee/zee.json (gateway.auth.password) or ZEE_GATEWAY_PASSWORD.",
-        ].join("\n"),
-      "Gateway auth",
+      [
+        "The TUI now runs via agent-core.",
+        "It connects to the agent-core daemon (starts it if needed).",
+        "If daemon auth is enabled, set AGENT_CORE_SERVER_PASSWORD.",
+      ].join("\n"),
+      "TUI auth",
     );
 
     hatchChoice = (await prompter.select({
@@ -294,14 +294,9 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     })) as "tui" | "later";
 
     if (hatchChoice === "tui") {
-      await runTui({
-        url: links.wsUrl,
-        token: settings.authMode === "token" ? settings.gatewayToken : undefined,
-        password: settings.authMode === "password" ? nextConfig.gateway?.auth?.password : "",
-        // Safety: onboarding TUI should not auto-deliver to lastProvider/lastTo.
-        deliver: false,
+      await runAgentCoreTui({
         message: hasBootstrap ? "Wake up, my friend!" : undefined,
-      });
+      }, runtime);
       ranTui = true;
     } else {
       await prompter.note(

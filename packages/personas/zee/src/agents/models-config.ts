@@ -136,11 +136,3 @@ export async function ensureZeeModelsJson(
   await fs.writeFile(targetPath, next, { mode: 0o600 });
   return { agentDir, wrote: true };
 }
-
-// Legacy alias
-export async function ensureZeeModelsJson(
-  config?: ZeeConfig,
-  agentDirOverride?: string,
-): Promise<{ agentDir: string; wrote: boolean }> {
-  return ensureZeeModelsJson(config, agentDirOverride);
-}
