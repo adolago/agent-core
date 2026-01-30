@@ -29,7 +29,7 @@ import {
   QDRANT_COLLECTION_MEMORY,
   CONTINUITY_MAX_KEY_FACTS,
 } from "../config/constants";
-import { getMemoryEmbeddingConfig, getMemoryQdrantConfig } from "../config/runtime";
+import { getMemoryEmbeddingConfig, getMemoryQdrantConfig, getMemoryRerankerConfig } from "../config/runtime";
 import { Log } from "../../packages/agent-core/src/util/log";
 
 const log = Log.create({ service: "memory" });
@@ -371,7 +371,7 @@ export class Memory {
     this.namespace = config.namespace ?? "default";
     this.instanceId = generateInstanceId();
     this.maxKeyFacts = config.maxKeyFacts ?? CONTINUITY_MAX_KEY_FACTS;
-    this.rerankerConfig = config.reranker;
+    this.rerankerConfig = config.reranker ?? getMemoryRerankerConfig();
 
     const configuredDimensions = config.embedding?.dimensions ?? fileEmbedding.dimensions;
     const provider = (config.embedding?.provider ?? fileEmbedding.provider ?? "openai") as EmbeddingConfig["provider"];

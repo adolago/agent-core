@@ -37,6 +37,8 @@ const LOCAL_PROVIDER_DEFAULTS: Record<string, { port: number; hint: string }> = 
 /** Providers that only need auth storage (not LLM model providers) */
 const AUTH_ONLY_PROVIDERS: Record<string, { name: string; hint?: string }> = {
   kernel: { name: "Kernel", hint: "Kernel MCP API key" },
+  voyage: { name: "Voyage AI", hint: "Embedding and reranking API key" },
+  minimax: { name: "MiniMax", hint: "Text-to-speech API key (minimaxi.com)" },
 }
 
 const DEFAULT_DAEMON_PORT = 3210

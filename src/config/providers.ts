@@ -165,20 +165,45 @@ export async function hasCredentialsAsync(provider: ProviderDefinition): Promise
 }
 
 /**
- * Get API key for provider from environment variables
+ * Synchronously read auth store file (fallback for when async is not available)
+ */
+function readAuthStoreSync(): Record<string, { type: string; key?: string }> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require("path");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const os = require("os");
+    const authPath = path.join(os.homedir(), ".local", "state", "agent-core", "auth.json");
+    const data = fs.readFileSync(authPath, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Get API key for provider from environment variables or auth store (sync)
  */
 export function getApiKeySync(providerId: string): string | undefined {
   const provider = PROVIDERS[providerId];
-  if (!provider) return undefined;
 
   // Check primary env var
-  if (provider.envKey && process.env[provider.envKey]) {
+  if (provider?.envKey && process.env[provider.envKey]) {
     return process.env[provider.envKey];
   }
 
   // Check aliases
-  for (const alias of provider.envAliases ?? []) {
+  for (const alias of provider?.envAliases ?? []) {
     if (process.env[alias]) return process.env[alias];
+  }
+
+  // Check auth store (sync fallback)
+  const authStore = readAuthStoreSync();
+  const auth = authStore[providerId];
+  if (auth?.type === "api" && auth.key) {
+    return auth.key;
   }
 
   return undefined;

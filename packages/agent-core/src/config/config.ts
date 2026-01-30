@@ -1094,6 +1094,16 @@ export namespace Config {
         })
         .optional()
         .describe("Embedding provider configuration"),
+      reranker: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable reranking for memory search"),
+          provider: z.enum(["voyage", "vllm"]).optional().describe("Reranker provider"),
+          model: z.string().optional().describe("Reranker model name"),
+          apiKey: z.string().optional().describe("Reranker API key"),
+          baseUrl: z.string().optional().describe("Reranker API base URL"),
+        })
+        .optional()
+        .describe("Reranker configuration for two-stage retrieval"),
       defaultTtl: z.number().int().nonnegative().optional().describe("Default TTL in seconds"),
       autoSaveInterval: z.number().int().nonnegative().optional().describe("Auto-save interval in ms"),
       compression: z.boolean().optional().describe("Enable compression"),

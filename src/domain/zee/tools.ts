@@ -49,6 +49,8 @@ import { CLAUDE_CODE_TOOLS, registerClaudeCodeTools } from "./claude-code.js";
 import { RESTART_SENTINEL_TOOLS } from "./restart-sentinel.js";
 import { CRON_TOOLS } from "./cron.js";
 import { PTY_SESSION_TOOLS } from "./pty-sessions.js";
+import { ZEE_BROWSER_TOOLS } from "./browser.js";
+import { WHATSAPP_TOOLS } from "./whatsapp.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -265,6 +267,8 @@ const MessagingParams = z.object({
   message: z.string().describe("Message content"),
   persona: z.enum(["zee", "stanley", "johny"]).optional()
     .describe("For Telegram: which persona's bot to use (default: stanley)"),
+  account: z.string().optional()
+    .describe("For WhatsApp: which account to use (default: 'zee' for bot number, 'personal' for your number)"),
 });
 
 export const messagingTool: ToolDefinition = {
@@ -279,18 +283,22 @@ Channels:
 
 WhatsApp:
 - \`to\`: E164 phone (e.g., "+1555...") or chat JID (e.g., "1234567890@c.us" or "...@g.us")
-- Only Zee can send via WhatsApp
+- \`account\`: Which WhatsApp account to use:
+  - "zee" (default): Zee's dedicated bot number
+  - "personal": Your personal WhatsApp number (must be configured)
+  - Or any custom account ID configured in Zee
 
 Telegram:
 - \`to\`: Chat ID (numeric) or @username
 - \`persona\`: Which bot/account to use - "stanley" (default) or "johny"
 
 Examples:
-- WhatsApp: { channel: "whatsapp", to: "+15551234567", message: "Hello!" }
+- WhatsApp via Zee's number: { channel: "whatsapp", to: "+15551234567", message: "Hello!" }
+- WhatsApp via your number: { channel: "whatsapp", to: "+15551234567", message: "Hello!", account: "personal" }
 - Telegram via Stanley: { channel: "telegram", to: "123456789", message: "Market update!", persona: "stanley" }`,
     parameters: MessagingParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { channel, to, message, persona } = args;
+      const { channel, to, message, persona, account } = args;
 
       ctx.metadata({ title: `Sending via ${channel}` });
 
@@ -303,10 +311,12 @@ Examples:
       try {
         if (channel === "whatsapp") {
           // Send via WhatsApp gateway (Zee only)
+          // account can be 'zee' (bot number) or 'personal' (your number), or any configured account
+          const accountId = account || "zee";
           const response = await fetch(`${baseUrl}/gateway/whatsapp/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chatId: to, message }),
+            body: JSON.stringify({ chatId: to, message, accountId }),
           });
 
           const rawResult = await response.json();
@@ -338,10 +348,11 @@ Troubleshooting:
             };
           }
 
+          const accountLabel = accountId === "personal" ? "your personal WhatsApp" : `WhatsApp account "${accountId}"`;
           return {
             title: `WhatsApp Message Sent`,
-            metadata: { channel, to, success: true },
-            output: `Message sent via WhatsApp to ${to}
+            metadata: { channel, to, account: accountId, success: true },
+            output: `Message sent via ${accountLabel} to ${to}
 
 Preview: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
           };
@@ -1207,6 +1218,8 @@ export const ZEE_TOOLS = [
   ...RESTART_SENTINEL_TOOLS,
   ...CRON_TOOLS,
   ...PTY_SESSION_TOOLS,
+  ...ZEE_BROWSER_TOOLS,
+  ...WHATSAPP_TOOLS,
 ];
 
 export function registerZeeTools(registry: { register: (tool: ToolDefinition, options: { source: string }) => void }): void {

@@ -11,6 +11,7 @@ import path from "path";
 import { parse as parseJsonc, type ParseError } from "jsonc-parser";
 import { Assets } from "../paths";
 import type { EmbeddingProviderType } from "../memory/types";
+import type { RerankerConfig } from "../memory/reranker";
 import { resolveEmbeddingProfile } from "./embedding-profiles";
 
 type RuntimeConfig = {
@@ -29,6 +30,13 @@ type RuntimeConfig = {
       model?: string;
       dimensions?: number;
       dimension?: number;
+      apiKey?: string;
+      baseUrl?: string;
+    };
+    reranker?: {
+      enabled?: boolean;
+      provider?: "voyage" | "vllm";
+      model?: string;
       apiKey?: string;
       baseUrl?: string;
     };
@@ -129,6 +137,10 @@ function mergeConfigs(base: RuntimeConfig, override: RuntimeConfig): RuntimeConf
         ...base.memory?.embedding,
         ...override.memory?.embedding,
       },
+      reranker: {
+        ...base.memory?.reranker,
+        ...override.memory?.reranker,
+      },
     },
     tiara: {
       ...base.tiara,
@@ -207,6 +219,18 @@ export function getMemoryQdrantConfig(): MemoryQdrantConfig {
 
 export function getMemoryEmbeddingConfig(): MemoryEmbeddingConfig {
   return resolveMemoryEmbeddingConfig(loadRuntimeConfig());
+}
+
+export function getMemoryRerankerConfig(): RerankerConfig {
+  const config = loadRuntimeConfig();
+  const reranker = config.memory?.reranker ?? {};
+  return {
+    enabled: reranker.enabled ?? false,
+    provider: reranker.provider ?? "voyage",
+    model: reranker.model?.trim() || undefined,
+    apiKey: reranker.apiKey?.trim() || undefined,
+    baseUrl: reranker.baseUrl?.trim() || undefined,
+  };
 }
 
 export function getTiaraQdrantConfig(): TiaraQdrantConfig {

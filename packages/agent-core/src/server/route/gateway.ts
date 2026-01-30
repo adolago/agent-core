@@ -17,6 +17,8 @@ const WhatsAppSendInput = z.object({
   chatId: z.string().optional(),
   to: z.string().optional(),
   message: z.string(),
+  accountId: z.string().optional(),
+  account: z.string().optional(),  // Alias for accountId (backward compatibility)
 })
 
 const TelegramSendInput = z.object({
@@ -302,7 +304,8 @@ export const GatewayRoute = new Hono()
 
       try {
         const to = normalizeWhatsAppRecipient(toRaw)
-        const data = await sendViaGateway({ provider: "whatsapp", to, message: parsed.data.message })
+        const accountId = parsed.data.accountId ?? parsed.data.account
+        const data = await sendViaGateway({ provider: "whatsapp", to, message: parsed.data.message, accountId })
         return c.json({ success: true, data } satisfies GatewayResponse)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
