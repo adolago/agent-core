@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 
-import solidPlugin from "../node_modules/@opentui/solid/scripts/solid-plugin"
+import solidPlugin from "@opentui/solid/bun-plugin"
 import path from "path"
 import fs from "fs"
+import { createRequire } from "module"
 import { $ } from "bun"
 import { fileURLToPath } from "url"
 
@@ -250,7 +251,9 @@ for (const item of targets) {
   console.log(`building ${name}`)
   await $`mkdir -p dist/${name}/bin`
 
-  const parserWorker = fs.realpathSync(path.resolve(dir, "./node_modules/@opentui/core/parser.worker.js"))
+  const require = createRequire(import.meta.url)
+  const corePkg = require.resolve("@opentui/core/package.json")
+  const parserWorker = path.join(path.dirname(corePkg), "parser.worker.js")
   const workerPath = "./src/cli/cmd/tui/worker.ts"
 
   // Use platform-specific bunfs root path based on target OS
