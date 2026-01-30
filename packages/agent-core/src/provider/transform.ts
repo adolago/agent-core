@@ -411,13 +411,13 @@ export namespace ProviderTransform {
           high: {
             thinking: {
               type: "enabled",
-              budgetTokens: Math.min(16_000, Math.floor(model.limit.output / 2 - 1)),
+              budgetTokens: 16_000,
             },
           },
           max: {
             thinking: {
               type: "enabled",
-              budgetTokens: Math.min(31_999, model.limit.output - 1),
+              budgetTokens: 31_999,
             },
           },
         }
@@ -517,7 +517,7 @@ export namespace ProviderTransform {
     providerOptions?: Record<string, any>
   }): Record<string, any> {
     const result: Record<string, any> = {}
-    const cacheKey = `${input.model.providerID}:${input.sessionID}`
+    const cacheKey = input.sessionID
 
     // openai and providers using openai package should set store to false by default.
     if (input.model.providerID === "openai" || input.model.api.npm === "@ai-sdk/openai") {

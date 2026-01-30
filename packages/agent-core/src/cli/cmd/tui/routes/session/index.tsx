@@ -1033,7 +1033,7 @@ export function Session() {
       }}
     >
       <box flexDirection="row">
-        <box flexGrow={1} paddingBottom={1} paddingTop={1} paddingLeft={2} paddingRight={2} gap={1}>
+        <box flexGrow={1} paddingTop={1} paddingLeft={1} paddingRight={1}>
           <Show when={session()}>
             <Show when={!sidebarVisible() || !wide()}>
               <Header />
@@ -1413,8 +1413,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
     <Show when={content() && ctx.showThinking()}>
       <box
         id={"text-" + props.part.id}
-        paddingLeft={2}
-        marginTop={1}
+        paddingLeft={1}
         flexDirection="column"
         border={["left"]}
         customBorderChars={SplitBorder.customBorderChars}
@@ -1439,7 +1438,7 @@ function TextPart(props: { last: boolean; part: TextPart; message: AssistantMess
   const { theme, syntax } = useTheme()
   return (
     <Show when={props.part.text.trim()}>
-      <box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexShrink={0}>
+      <box id={"text-" + props.part.id} paddingLeft={1} flexShrink={0}>
         <code
           filetype="markdown"
           drawUnstyledText={false}
@@ -1577,8 +1576,9 @@ function InlineTool(props: {
   pending: string
   children: JSX.Element
   part: ToolPart
+  toolName?: string
+  query?: string
 }) {
-  const [margin, setMargin] = createSignal(0)
   const { theme } = useTheme()
   const ctx = use()
   const sync = useSync()
@@ -1605,39 +1605,20 @@ function InlineTool(props: {
   )
 
   return (
-    <box
-      marginTop={margin()}
-      paddingLeft={3}
-      renderBefore={function () {
-        const el = this as BoxRenderable
-        const parent = el.parent
-        if (!parent) {
-          return
-        }
-        if (el.height > 1) {
-          setMargin(1)
-          return
-        }
-        const children = parent.getChildren()
-        const index = children.indexOf(el)
-        const previous = children[index - 1]
-        if (!previous) {
-          setMargin(0)
-          return
-        }
-        if (previous.height > 1 || previous.id.startsWith("text-")) {
-          setMargin(1)
-          return
-        }
-      }}
-    >
-      <text paddingLeft={3} fg={fg()} attributes={denied() ? TextAttributes.STRIKETHROUGH : undefined}>
+    <box flexDirection="column">
+      {/* Amp-style: ✓ ToolName */}
+      <text fg={fg()} attributes={denied() ? TextAttributes.STRIKETHROUGH : undefined}>
         <Show fallback={<>~ {props.pending}</>} when={props.complete}>
-          <span style={{ fg: props.iconColor }}>{props.icon}</span> {props.children}
+          <span style={{ fg: theme.success }}>✓</span>
+          <span style={{ fg: fg() }}> {props.toolName ?? props.part.tool}</span>
         </Show>
       </text>
+      {/* Tree structure for query/details */}
+      <Show when={props.query && props.complete}>
+        <text fg={theme.textMuted} paddingLeft={1}>├── {props.query}</text>
+      </Show>
       <Show when={error() && !denied()}>
-        <text fg={theme.error}>{error()}</text>
+        <text fg={theme.error} paddingLeft={1}>└── {error()}</text>
       </Show>
     </box>
   )
@@ -1651,11 +1632,7 @@ function BlockTool(props: { title: string; children: JSX.Element; onClick?: () =
   return (
     <box
       border={["left"]}
-      paddingTop={1}
-      paddingBottom={1}
-      paddingLeft={2}
-      marginTop={1}
-      gap={1}
+      paddingLeft={1}
       backgroundColor={hover() ? theme.backgroundMenu : theme.backgroundPanel}
       customBorderChars={SplitBorder.customBorderChars}
       borderColor={theme.background}
@@ -1666,7 +1643,7 @@ function BlockTool(props: { title: string; children: JSX.Element; onClick?: () =
         props.onClick?.()
       }}
     >
-      <text paddingLeft={3} fg={theme.textMuted}>
+      <text paddingLeft={1} fg={theme.textMuted}>
         {props.title}
       </text>
       {props.children}
@@ -1683,11 +1660,7 @@ function Bash(props: ToolProps<typeof BashTool>) {
   const output = createMemo(() => stripAnsi(props.metadata.output?.trim() ?? ""))
   const [expanded, setExpanded] = createSignal(false)
   const lines = createMemo(() => output().split("\n"))
-  const overflow = createMemo(() => lines().length > 10)
-  const limited = createMemo(() => {
-    if (expanded() || !overflow()) return output()
-    return [...lines().slice(0, 10), "…"].join("\n")
-  })
+  const hasOutput = createMemo(() => output().length > 0)
 
   const workdirDisplay = createMemo(() => {
     const workdir = props.input.workdir
@@ -1707,9 +1680,11 @@ function Bash(props: ToolProps<typeof BashTool>) {
   })
 
   const title = createMemo(() => {
-    const desc = props.input.description ?? "Shell"
+    const desc = props.input.description ?? ""
     const wd = workdirDisplay()
+    if (!desc && !wd) return ""
     if (!wd) return `# ${desc}`
+    if (!desc) return ""
     if (desc.includes(wd)) return `# ${desc}`
     return `# ${desc} in ${wd}`
   })
@@ -1717,23 +1692,31 @@ function Bash(props: ToolProps<typeof BashTool>) {
   return (
     <Switch>
       <Match when={props.metadata.output !== undefined}>
-        <BlockTool
-          title={title()}
-          part={props.part}
-          onClick={overflow() ? () => setExpanded((prev) => !prev) : undefined}
+        {/* Compact bash: collapsed by default, click to expand */}
+        <box
+          flexDirection="column"
+          onMouseUp={() => hasOutput() && setExpanded((prev) => !prev)}
         >
-          <box gap={1}>
-            <text fg={theme.text}>$ {props.input.command}</text>
-            <text fg={theme.text}>{limited()}</text>
-            <Show when={overflow()}>
-              <text fg={theme.textMuted}>{expanded() ? "Click to collapse" : "Click to expand"}</text>
+          <Show when={title()}>
+            <text fg={theme.textMuted}>{title()}</text>
+          </Show>
+          <text fg={theme.text}>
+            $ {props.input.command}
+            <Show when={hasOutput() && !expanded()}>
+              <span style={{ fg: theme.textMuted }}> ... Click to expand</span>
             </Show>
-          </box>
-        </BlockTool>
+          </text>
+          <Show when={expanded()}>
+            <box paddingLeft={1} border={["left"]} borderColor={theme.backgroundElement}>
+              <text fg={theme.textMuted}>{output()}</text>
+            </box>
+            <text fg={theme.textMuted}>Click to collapse</text>
+          </Show>
+        </box>
       </Match>
       <Match when={true}>
-        <InlineTool icon="$" pending="Writing command..." complete={props.input.command} part={props.part}>
-          {props.input.command}
+        <InlineTool icon="$" pending="Running..." complete={props.input.command} part={props.part} toolName="Shell" query={props.input.command}>
+          Shell
         </InlineTool>
       </Match>
     </Switch>
@@ -1786,69 +1769,70 @@ function Write(props: ToolProps<typeof WriteTool>) {
 }
 
 function Glob(props: ToolProps<typeof GlobTool>) {
+  const query = createMemo(() => {
+    let q = props.input.pattern ?? ""
+    if (props.input.path) q += ` in ${normalizePath(props.input.path)}`
+    return q
+  })
   return (
-    <InlineTool icon="✱" pending="Finding files..." complete={props.input.pattern} part={props.part}>
-      Glob "{props.input.pattern}" <Show when={props.input.path}>in {normalizePath(props.input.path)} </Show>
-      <Show when={props.metadata.count}>({props.metadata.count} matches)</Show>
+    <InlineTool icon="✱" pending="Finding files..." complete={props.input.pattern} part={props.part} toolName="Glob" query={query()}>
+      Glob
     </InlineTool>
   )
 }
 
 function Read(props: ToolProps<typeof ReadTool>) {
   return (
-    <InlineTool icon="→" pending="Reading file..." complete={props.input.filePath} part={props.part}>
-      Read {normalizePath(props.input.filePath!)} {input(props.input, ["filePath"])}
+    <InlineTool icon="→" pending="Reading file..." complete={props.input.filePath} part={props.part} toolName="Read" query={normalizePath(props.input.filePath!)}>
+      Read
     </InlineTool>
   )
 }
 
 function Grep(props: ToolProps<typeof GrepTool>) {
+  const query = createMemo(() => {
+    let q = props.input.pattern ?? ""
+    if (props.input.path) q += ` in ${normalizePath(props.input.path)}`
+    return q
+  })
   return (
-    <InlineTool icon="✱" pending="Searching content..." complete={props.input.pattern} part={props.part}>
-      Grep "{props.input.pattern}" <Show when={props.input.path}>in {normalizePath(props.input.path)} </Show>
-      <Show when={props.metadata.matches}>({props.metadata.matches} matches)</Show>
+    <InlineTool icon="✱" pending="Searching content..." complete={props.input.pattern} part={props.part} toolName="Grep" query={query()}>
+      Grep
     </InlineTool>
   )
 }
 
 function List(props: ToolProps<typeof ListTool>) {
-  const dir = createMemo(() => {
-    if (props.input.path) {
-      return normalizePath(props.input.path)
-    }
-    return ""
-  })
+  const dir = createMemo(() => props.input.path ? normalizePath(props.input.path) : "")
   return (
-    <InlineTool icon="→" pending="Listing directory..." complete={props.input.path !== undefined} part={props.part}>
-      List {dir()}
+    <InlineTool icon="→" pending="Listing directory..." complete={props.input.path !== undefined} part={props.part} toolName="List" query={dir()}>
+      List
     </InlineTool>
   )
 }
 
 function WebFetch(props: ToolProps<typeof WebFetchTool>) {
   return (
-    <InlineTool icon="%" pending="Fetching from the web..." complete={(props.input as any).url} part={props.part}>
-      WebFetch {(props.input as any).url}
+    <InlineTool icon="%" pending="Fetching from the web..." complete={(props.input as any).url} part={props.part} toolName="WebFetch" query={(props.input as any).url}>
+      WebFetch
     </InlineTool>
   )
 }
 
 function CodeSearch(props: ToolProps<any>) {
   const input = props.input as any
-  const metadata = props.metadata as any
   return (
-    <InlineTool icon="◇" pending="Searching code..." complete={input.query} part={props.part}>
-      Exa Code Search "{input.query}" <Show when={metadata.results}>({metadata.results} results)</Show>
+    <InlineTool icon="◇" pending="Searching code..." complete={input.query} part={props.part} toolName="Search" query={input.query}>
+      Search
     </InlineTool>
   )
 }
 
 function WebSearch(props: ToolProps<any>) {
   const input = props.input as any
-  const metadata = props.metadata as any
   return (
-    <InlineTool icon="◈" pending="Searching web..." complete={input.query} part={props.part}>
-      Exa Web Search "{input.query}" <Show when={metadata.numResults}>({metadata.numResults} results)</Show>
+    <InlineTool icon="◈" pending="Searching web..." complete={input.query} part={props.part} toolName="Web Search" query={input.query}>
+      Web Search
     </InlineTool>
   )
 }

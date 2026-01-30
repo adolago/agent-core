@@ -1434,7 +1434,7 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Amp-style top status bar above input */}
+        {/* Zee reminders/agenda section (replaces Amp ads) */}
         <box
           flexDirection="row"
           justifyContent="space-between"
@@ -1442,26 +1442,13 @@ export function Prompt(props: PromptProps) {
           paddingLeft={1}
           paddingRight={1}
         >
-          {/* Left: context usage, cost */}
+          {/* Left: Zee reminders placeholder */}
           <box flexDirection="row" gap={1}>
-            {(() => {
-              const usage = contextUsage()
-              const formatLimit = (n: number) => {
-                if (n >= 1000000) return `${(n / 1000000).toFixed(0)}M`
-                if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
-                return n.toString()
-              }
-              const color = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
-              return (
-                <Show when={usage}>
-                  <text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>
-                  <text fg={theme.textMuted}> · </text>
-                  <text fg={theme.textMuted}>$0.00 (free)</text>
-                </Show>
-              )
-            })()}
+            <text fg={theme.textMuted}>
+              {/* TODO: Integrate with Zee's calendar/reminders */}
+            </text>
           </box>
-          {/* Right: agent mode, knowledge count, repo info */}
+          {/* Right: agent mode, knowledge count */}
           <box flexDirection="row" gap={1}>
             <text fg={theme.accent}>{Locale.titlecase(local.agent.current().name)}</text>
             <Show when={local.agent.current().knowledge?.length}>
@@ -1469,23 +1456,17 @@ export function Prompt(props: PromptProps) {
             </Show>
           </box>
         </box>
-        {/* Horizontal separator line */}
-        <box height={1} flexDirection="row">
-          <text fg={theme.border}>{"─".repeat(200)}</text>
-        </box>
-        {/* Repo/branch info line */}
-        <box
-          flexDirection="row"
-          justifyContent="flex-end"
-          height={1}
-          paddingRight={1}
-        >
-          <Show when={sync.data.vcs?.branch || sync.data.path?.directory}>
-            <text fg={theme.textMuted}>
+        {/* Horizontal separator with repo/branch info */}
+        <box height={1} flexDirection="row" justifyContent="flex-end">
+          <text fg={theme.textMuted}>
+            <Show when={sync.data.path?.directory}>
               {sync.data.path?.directory ? `~${sync.data.path.directory.replace(process.env.HOME ?? "", "")}` : ""}
-              {sync.data.vcs?.branch ? ` (${sync.data.vcs.branch})` : ""}
-            </text>
-          </Show>
+            </Show>
+            <Show when={sync.data.vcs?.branch}>
+              {` (${sync.data.vcs?.branch})`}
+            </Show>
+          </text>
+          <text fg={theme.border}> {"─".repeat(100)}</text>
         </box>
         <box
           border={["left"]}
@@ -1497,11 +1478,9 @@ export function Prompt(props: PromptProps) {
           }}
         >
           <box
-            paddingLeft={2}
-            paddingRight={2}
-            paddingTop={1}
+            paddingLeft={1}
+            paddingRight={1}
             flexShrink={0}
-            backgroundColor={theme.backgroundElement}
             flexGrow={1}
           >
             <textarea
@@ -1807,32 +1786,9 @@ export function Prompt(props: PromptProps) {
             />
           </box>
         </box>
-        {/* Unified bottom status bar */}
-        <box
-          height={1}
-          border={["left"]}
-          borderColor={highlight()}
-          customBorderChars={{
-            ...EmptyBorder,
-            vertical: theme.backgroundElement.a !== 0 ? "┃" : " ",
-          }}
-        >
-          <box
-            height={1}
-            border={["bottom"]}
-            borderColor={theme.backgroundElement}
-            customBorderChars={
-              theme.backgroundElement.a !== 0
-                ? {
-                    ...EmptyBorder,
-                    horizontal: "▀",
-                  }
-                : {
-                    ...EmptyBorder,
-                    horizontal: " ",
-                  }
-            }
-          />
+        {/* Simple separator line */}
+        <box height={1} flexDirection="row">
+          <text fg={theme.border}>{"─".repeat(200)}</text>
         </box>
         <box
           flexDirection="row"
@@ -1841,11 +1797,10 @@ export function Prompt(props: PromptProps) {
           borderColor={highlight()}
           customBorderChars={{
             ...EmptyBorder,
-            vertical: theme.backgroundElement.a !== 0 ? "┃" : " ",
+            vertical: "┃",
           }}
-          paddingLeft={2}
-          paddingRight={2}
-          backgroundColor={theme.backgroundElement}
+          paddingLeft={1}
+          paddingRight={1}
         >
           {/* Left side: persona + vim + mode + spinner + stats */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
