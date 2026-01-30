@@ -27,8 +27,7 @@ function resolveNodeVersions(node: {
   const legacy = node.version?.trim();
   if (!legacy) return { core: undefined, ui: undefined };
   const platform = node.platform?.trim().toLowerCase() ?? "";
-  const headless =
-    platform === "darwin" || platform === "linux" || platform === "win32" || platform === "windows";
+  const headless = platform === "linux" || platform === "win32" || platform === "windows";
   return headless ? { core: legacy, ui: undefined } : { core: undefined, ui: legacy };
 }
 

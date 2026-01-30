@@ -232,7 +232,7 @@ If full-text search is unavailable on your platform, Zee falls back to vector-on
 #### Why hybrid?
 
 Vector search is great at “this means the same thing”:
-- “Mac Studio gateway host” vs “the machine running the gateway”
+- “Gateway host” vs “the machine running the gateway”
 - “debounce file updates” vs “avoid indexing on every write”
 
 But it can be weak at exact, high-signal tokens:

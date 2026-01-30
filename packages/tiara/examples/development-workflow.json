@@ -5,7 +5,12 @@
   "metadata": {
     "author": "Claude-Flow DevOps Team",
     "category": "Development",
-    "tags": ["development", "testing", "deployment", "automation"]
+    "tags": [
+      "development",
+      "testing",
+      "deployment",
+      "automation"
+    ]
   },
   "variables": {
     "project_name": "modern-web-app",
@@ -43,8 +48,16 @@
       "config": {
         "model": "claude-3",
         "specialization": "frontend",
-        "frameworks": ["React", "Vue", "Angular"],
-        "tools": ["Webpack", "Vite", "ESLint"]
+        "frameworks": [
+          "React",
+          "Vue",
+          "Angular"
+        ],
+        "tools": [
+          "Webpack",
+          "Vite",
+          "ESLint"
+        ]
       },
       "resources": {
         "memory": "3GB",
@@ -53,13 +66,21 @@
     },
     {
       "id": "backend-dev",
-      "type": "coder", 
+      "type": "coder",
       "name": "Backend Developer",
       "config": {
         "model": "claude-3",
         "specialization": "backend",
-        "languages": ["Node.js", "Python", "Go"],
-        "databases": ["PostgreSQL", "MongoDB", "Redis"]
+        "languages": [
+          "Node.js",
+          "Python",
+          "Go"
+        ],
+        "databases": [
+          "PostgreSQL",
+          "MongoDB",
+          "Redis"
+        ]
       },
       "resources": {
         "memory": "3GB",
@@ -72,18 +93,37 @@
       "name": "QA Engineer",
       "config": {
         "model": "claude-3",
-        "testing_types": ["unit", "integration", "e2e", "performance"],
-        "tools": ["Jest", "Cypress", "Playwright", "JMeter"]
+        "testing_types": [
+          "unit",
+          "integration",
+          "e2e",
+          "performance"
+        ],
+        "tools": [
+          "Jest",
+          "Cypress",
+          "Playwright",
+          "JMeter"
+        ]
       }
     },
     {
       "id": "devops-engineer",
       "type": "devops",
-      "name": "DevOps Engineer", 
+      "name": "DevOps Engineer",
       "config": {
         "model": "claude-3",
-        "platforms": ["AWS", "GCP", "Azure"],
-        "tools": ["Docker", "Kubernetes", "Terraform", "GitLab CI"]
+        "platforms": [
+          "AWS",
+          "GCP",
+          "Azure"
+        ],
+        "tools": [
+          "Docker",
+          "Kubernetes",
+          "Terraform",
+          "GitLab CI"
+        ]
       }
     },
     {
@@ -92,8 +132,16 @@
       "name": "Security Specialist",
       "config": {
         "model": "claude-3",
-        "focus_areas": ["OWASP", "penetration-testing", "code-analysis"],
-        "tools": ["SonarQube", "OWASP ZAP", "Bandit"]
+        "focus_areas": [
+          "OWASP",
+          "penetration-testing",
+          "code-analysis"
+        ],
+        "tools": [
+          "SonarQube",
+          "OWASP ZAP",
+          "Bandit"
+        ]
       }
     }
   ],
@@ -107,7 +155,7 @@
     {
       "id": "security-approved",
       "expression": "outputs['security-scan.vulnerabilities'] === 0",
-      "type": "javascript", 
+      "type": "javascript",
       "description": "No security vulnerabilities found"
     },
     {
@@ -126,7 +174,10 @@
       "id": "test-retry-loop",
       "type": "while",
       "condition": "outputs['unit-tests.passed'] === false && iteration < 3",
-      "tasks": ["fix-failing-tests", "unit-tests"],
+      "tasks": [
+        "fix-failing-tests",
+        "unit-tests"
+      ],
       "maxIterations": 3,
       "continueOnError": false
     }
@@ -142,7 +193,11 @@
         "project_requirements": "${project_name}",
         "tech_stack": "${tech_stack}",
         "scalability_requirements": "high",
-        "design_patterns": ["microservices", "mvc", "repository"]
+        "design_patterns": [
+          "microservices",
+          "mvc",
+          "repository"
+        ]
       },
       "output": [
         "architecture_diagram",
@@ -153,14 +208,19 @@
       ],
       "timeout": 300000,
       "priority": 1,
-      "tags": ["architecture", "design"]
+      "tags": [
+        "architecture",
+        "design"
+      ]
     },
     {
       "id": "setup-project",
       "name": "Project Setup",
       "type": "initialization",
       "description": "Initialize project structure and dependencies",
-      "depends": ["system-design"],
+      "depends": [
+        "system-design"
+      ],
       "assignTo": "devops-engineer",
       "input": {
         "project_name": "${project_name}",
@@ -181,7 +241,9 @@
       "name": "Frontend Development",
       "type": "implementation",
       "description": "Develop frontend components and user interface",
-      "depends": ["setup-project"],
+      "depends": [
+        "setup-project"
+      ],
       "assignTo": "frontend-dev",
       "input": {
         "ui_requirements": "${system-design.component_specs.ui}",
@@ -207,11 +269,13 @@
       "parallel": true
     },
     {
-      "id": "backend-development", 
+      "id": "backend-development",
       "name": "Backend Development",
       "type": "implementation",
       "description": "Develop backend APIs and business logic",
-      "depends": ["setup-project"],
+      "depends": [
+        "setup-project"
+      ],
       "assignTo": "backend-dev",
       "input": {
         "api_design": "${system-design.api_design}",
@@ -242,7 +306,9 @@
       "name": "Database Setup",
       "type": "infrastructure",
       "description": "Set up database and initial data",
-      "depends": ["system-design"],
+      "depends": [
+        "system-design"
+      ],
       "assignTo": "backend-dev",
       "input": {
         "schema": "${system-design.database_schema}",
@@ -265,13 +331,20 @@
       "name": "Unit Testing",
       "type": "testing",
       "description": "Comprehensive unit testing with coverage analysis",
-      "depends": ["frontend-development", "backend-development"],
+      "depends": [
+        "frontend-development",
+        "backend-development"
+      ],
       "assignTo": "qa-engineer",
       "input": {
         "frontend_code": "${frontend-development.components}",
         "backend_code": "${backend-development.api_endpoints}",
         "coverage_target": "${test_coverage_target}",
-        "test_frameworks": ["Jest", "React Testing Library", "Mocha"]
+        "test_frameworks": [
+          "Jest",
+          "React Testing Library",
+          "Mocha"
+        ]
       },
       "output": [
         "test_results",
@@ -302,10 +375,13 @@
     },
     {
       "id": "integration-tests",
-      "name": "Integration Testing", 
+      "name": "Integration Testing",
       "type": "testing",
       "description": "End-to-end integration testing",
-      "depends": ["unit-tests", "database-setup"],
+      "depends": [
+        "unit-tests",
+        "database-setup"
+      ],
       "assignTo": "qa-engineer",
       "condition": "integration-tests-enabled",
       "input": {
@@ -331,9 +407,11 @@
     {
       "id": "e2e-tests",
       "name": "End-to-End Testing",
-      "type": "testing", 
+      "type": "testing",
       "description": "Full user journey testing",
-      "depends": ["integration-tests"],
+      "depends": [
+        "integration-tests"
+      ],
       "assignTo": "qa-engineer",
       "condition": "tests-passing",
       "input": {
@@ -344,8 +422,16 @@
           "mobile-responsiveness",
           "performance-benchmarks"
         ],
-        "browsers": ["Chrome", "Firefox", "Safari"],
-        "devices": ["Desktop", "Tablet", "Mobile"]
+        "browsers": [
+          "Chrome",
+          "Firefox",
+          "Safari"
+        ],
+        "devices": [
+          "Desktop",
+          "Tablet",
+          "Mobile"
+        ]
       },
       "output": [
         "e2e_results",
@@ -360,8 +446,11 @@
       "id": "security-scan",
       "name": "Security Analysis",
       "type": "security",
-      "description": "Comprehensive security analysis and vulnerability assessment", 
-      "depends": ["backend-development", "frontend-development"],
+      "description": "Comprehensive security analysis and vulnerability assessment",
+      "depends": [
+        "backend-development",
+        "frontend-development"
+      ],
       "assignTo": "security-specialist",
       "condition": "enable_security_scan",
       "input": {
@@ -375,7 +464,11 @@
           "owasp-top-10",
           "penetration-testing"
         ],
-        "compliance_standards": ["OWASP", "NIST", "ISO27001"]
+        "compliance_standards": [
+          "OWASP",
+          "NIST",
+          "ISO27001"
+        ]
       },
       "output": [
         "vulnerabilities",
@@ -393,12 +486,18 @@
       "name": "Performance Optimization",
       "type": "optimization",
       "description": "Optimize application performance",
-      "depends": ["e2e-tests"],
+      "depends": [
+        "e2e-tests"
+      ],
       "assignTo": "frontend-dev",
       "input": {
         "performance_metrics": "${e2e-tests.performance_metrics}",
         "bottlenecks": "${e2e-tests.performance_bottlenecks}",
-        "optimization_targets": ["load-time", "bundle-size", "runtime-performance"]
+        "optimization_targets": [
+          "load-time",
+          "bundle-size",
+          "runtime-performance"
+        ]
       },
       "output": [
         "optimizations_applied",
@@ -413,7 +512,11 @@
       "name": "Documentation Generation",
       "type": "documentation",
       "description": "Generate comprehensive project documentation",
-      "depends": ["system-design", "frontend-development", "backend-development"],
+      "depends": [
+        "system-design",
+        "frontend-development",
+        "backend-development"
+      ],
       "assignTo": "architect",
       "input": {
         "architecture": "${system-design.architecture_diagram}",
@@ -436,7 +539,9 @@
       "name": "DevOps Infrastructure",
       "type": "infrastructure",
       "description": "Set up CI/CD pipeline and deployment infrastructure",
-      "depends": ["setup-project"],
+      "depends": [
+        "setup-project"
+      ],
       "assignTo": "devops-engineer",
       "input": {
         "deployment_architecture": "${system-design.deployment_architecture}",
@@ -465,7 +570,11 @@
       "name": "Application Deployment",
       "type": "deployment",
       "description": "Deploy application to target environment",
-      "depends": ["performance-optimization", "security-scan", "devops-setup"],
+      "depends": [
+        "performance-optimization",
+        "security-scan",
+        "devops-setup"
+      ],
       "assignTo": "devops-engineer",
       "condition": "ready-for-deployment",
       "input": {
@@ -479,7 +588,7 @@
       },
       "output": [
         "deployment_status",
-        "application_url", 
+        "application_url",
         "health_checks",
         "monitoring_dashboards"
       ],
@@ -491,7 +600,9 @@
       "name": "Post-Deployment Validation",
       "type": "validation",
       "description": "Validate deployment and run smoke tests",
-      "depends": ["deployment"],
+      "depends": [
+        "deployment"
+      ],
       "assignTo": "qa-engineer",
       "input": {
         "deployment_url": "${deployment.application_url}",
@@ -527,32 +638,6 @@
       }
     },
     {
-      "id": "slack-notifications",
-      "type": "webhook", 
-      "config": {
-        "url": "${SLACK_WEBHOOK_URL}",
-        "method": "POST"
-      }
-    },
-    {
-      "id": "jira-integration",
-      "type": "api",
-      "config": {
-        "baseUrl": "${JIRA_BASE_URL}",
-        "endpoints": {
-          "create_issue": "/rest/api/2/issue",
-          "update_issue": "/rest/api/2/issue/${issue_key}"
-        }
-      },
-      "auth": {
-        "type": "basic",
-        "credentials": {
-          "username": "${JIRA_USER}",
-          "password": "${JIRA_TOKEN}"
-        }
-      }
-    },
-    {
       "id": "monitoring-system",
       "type": "api",
       "config": {
@@ -581,20 +666,7 @@
         "test_results",
         "deployment_status"
       ],
-      "alerts": [
-        {
-          "condition": "task.status === 'failed' && task.retryCount >= task.maxRetries",
-          "action": "slack-notifications",
-          "threshold": 1,
-          "cooldown": 600000
-        },
-        {
-          "condition": "workflow.duration > 1200000",
-          "action": "slack-notifications", 
-          "threshold": 1,
-          "message": "Development workflow taking longer than expected"
-        }
-      ]
+      "alerts": []
     },
     "resources": {
       "limits": {
@@ -603,28 +675,31 @@
         "disk": "5GB"
       },
       "requests": {
-        "memory": "8GB", 
+        "memory": "8GB",
         "cpu": "4 cores",
         "disk": "2GB"
       }
     },
     "notifications": {
       "enabled": true,
-      "channels": ["slack", "email", "github"],
+      "channels": [
+        "email",
+        "github"
+      ],
       "events": [
         "workflow.started",
-        "workflow.completed", 
+        "workflow.completed",
         "workflow.failed",
         "task.failed",
         "deployment.completed",
         "security.vulnerability_found"
       ],
       "templates": {
-        "workflow.started": "🚀 Development workflow started for ${variables.project_name}",
-        "workflow.completed": "✅ Development workflow completed successfully for ${variables.project_name}. Deployed to: ${outputs.deployment.application_url}",
-        "workflow.failed": "❌ Development workflow failed for ${variables.project_name}: ${error.message}",
-        "deployment.completed": "🌐 Application deployed successfully: ${outputs.deployment.application_url}",
-        "security.vulnerability_found": "🔒 Security vulnerabilities found in ${variables.project_name}. Review required."
+        "workflow.started": "Development workflow started for ${variables.project_name}",
+        "workflow.completed": "Development workflow completed successfully for ${variables.project_name}. Deployed to: ${outputs.deployment.application_url}",
+        "workflow.failed": "Development workflow failed for ${variables.project_name}: ${error.message}",
+        "deployment.completed": "Application deployed successfully: ${outputs.deployment.application_url}",
+        "security.vulnerability_found": "Security vulnerabilities found in ${variables.project_name}. Review required."
       }
     }
   }

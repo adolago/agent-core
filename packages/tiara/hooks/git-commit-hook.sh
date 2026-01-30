@@ -30,7 +30,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
 MODIFIED_MSG="$COMMIT_MSG"
 FORMATTING_NOTE=""
 
-# 1. EXTRACT JIRA TICKET from branch name (e.g., feature/PROJ-123-description -> PROJ-123)
+# 1. EXTRACT TICKET from branch name (e.g., feature/PROJ-123-description -> PROJ-123)
 TICKET=""
 if echo "$BRANCH" | grep -qE "^(feature|bugfix|hotfix)/[A-Z]+-[0-9]+"; then
   TICKET=$(echo "$BRANCH" | grep -oE "[A-Z]+-[0-9]+" | head -n 1)
@@ -77,7 +77,7 @@ if ! echo "$COMMAND" | grep -q "Co-Authored-By: Claude"; then
     # Convert to heredoc format for multi-line commit
     HEREDOC_MSG="${MODIFIED_MSG}
 
-🤖 Generated with Claude Code
+Generated with Claude Code
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
     # Replace the commit message with heredoc format

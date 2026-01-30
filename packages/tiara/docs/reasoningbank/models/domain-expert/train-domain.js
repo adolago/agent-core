@@ -93,7 +93,7 @@ const devOpsPatterns = [
       'Implement automated health checks, canary analysis with Kayenta, and progressive rollback triggers. Store deployment state in etcd.',
       'Use HashiCorp Vault with dynamic secrets, automatic rotation policies, and audit logging. Implement secret injection via init containers.',
       'Deploy Spinnaker with cloud provider abstractions, environment-specific configurations, and deployment verification gates.',
-      'Implement Flagger with Prometheus metrics analysis, automated promotion criteria, and Slack notifications for canary progress.',
+      'Implement Flagger with Prometheus metrics analysis, automated promotion criteria, and chat notifications for canary progress.',
       'Use Liquibase for database versioning, parallel green environment with data sync, and traffic switch via load balancer DNS update.',
       'Deploy LaunchDarkly with trunk-based development, feature flag cleanup automation, and A/B testing capabilities.',
       'Integrate Snyk, Trivy, and OWASP ZAP in pipeline with fail-fast policies, vulnerability database updates, and SLA enforcement.'
@@ -139,7 +139,7 @@ const devOpsPatterns = [
       'Implement Istio with sampling rates, distributed tracing via Jaeger, and metrics aggregation. Use eBPF for low-overhead telemetry.',
       'Use blue-green cluster strategy with control plane upgrade first, gradual node pool rotation, and automated validation tests.',
       'Deploy Kubecost with right-sizing recommendations, spot instance integration, and idle resource detection. Implement node consolidation.',
-      'Use ArgoCD with ApplicationSets, progressive sync waves, and automated pruning. Implement drift detection with Slack alerts.',
+      'Use ArgoCD with ApplicationSets, progressive sync waves, and automated pruning. Implement drift detection with chat alerts.',
       'Integrate Falco for runtime detection, Trivy for image scanning, and OPA for admission control. Use Pod Security Standards.'
     ][i % 10]}`,
     rationale: `Battle-tested approach avoiding: ${[
@@ -519,7 +519,7 @@ const securityPatterns = [
   // Authentication & Authorization (60)
   ...Array.from({ length: 60 }, (_, i) => ({
     problem: `Auth Challenge ${i + 1}: ${[
-      'OAuth 2.0 implementation with PKCE for mobile applications',
+      'OAuth 2.0 implementation with PKCE for client applications',
       'Zero-trust architecture with continuous authentication',
       'Multi-factor authentication with passwordless flows',
       'Role-based access control with dynamic permission evaluation',
@@ -664,7 +664,7 @@ const securityPatterns = [
     ][i % 10]}`,
     solution: `Expert Solution: ${[
       'Implement defense-in-depth controls, access controls with RBAC/ABAC, encryption standards, and network segmentation. Use control matrix mapping.',
-      'Deploy ITSM platform (ServiceNow/Jira) with approval workflows, rollback procedures, and automated audit logs. Implement change advisory board.',
+      'Deploy ITSM platform (ServiceNow or similar) with approval workflows, rollback procedures, and automated audit logs. Implement change advisory board.',
       'Build vendor registry with risk assessments, security questionnaires, right-to-audit clauses, and ongoing monitoring. Use standardized contracts.',
       'Create documented IR plan, conduct quarterly tabletop exercises, maintain runbooks, and track evidence. Use incident management platform.',
       'Implement automated access reviews with attestation workflows, role mining, and orphaned account detection. Use identity governance platform.',

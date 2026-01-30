@@ -19,7 +19,7 @@ vi.mock("node:child_process", () => {
         "data",
         [
           "user steipete",
-          "hostname peters-mac-studio-1.sheep-coho.ts.net",
+          "hostname peters-gateway-host-1.sheep-coho.ts.net",
           "port 2222",
           "identityfile none",
           "identityfile /tmp/id_ed25519",
@@ -51,7 +51,7 @@ describe("ssh-config", () => {
     const { resolveSshConfig } = await import("./ssh-config.js");
     const config = await resolveSshConfig({ user: "me", host: "alias", port: 22 });
     expect(config?.user).toBe("steipete");
-    expect(config?.host).toBe("peters-mac-studio-1.sheep-coho.ts.net");
+    expect(config?.host).toBe("peters-gateway-host-1.sheep-coho.ts.net");
     expect(config?.port).toBe(2222);
     expect(config?.identityFiles).toEqual(["/tmp/id_ed25519"]);
   });

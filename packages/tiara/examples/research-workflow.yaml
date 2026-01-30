@@ -242,14 +242,14 @@ integrations:
   - id: "notification-webhook"
     type: "webhook"
     config:
-      url: "https://hooks.slack.com/services/..."
+      url: "https://hooks.example.com/notify"
       method: "POST"
       headers:
         Content-Type: "application/json"
     auth:
       type: "bearer"
       credentials:
-        token: "${SLACK_WEBHOOK_TOKEN}"
+        token: "${WEBHOOK_TOKEN}"
 
   - id: "results-database"
     type: "database"

@@ -854,7 +854,6 @@ Docs: [Gateway](/gateway), [Channels](/channels), [Multi‑agent](/concepts/mult
 
 Good first projects:
 - Build a website (WordPress, Shopify, or a simple static site).
-- Prototype a mobile app (outline, screens, API plan).
 - Organize files and folders (cleanup, naming, tagging).
 - Connect Gmail and automate summaries or follow ups.
 

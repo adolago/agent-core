@@ -64,7 +64,7 @@ init/
    - `/claude-flow-swarm` - Swarm coordination command
 
 6. **Local Executable**:
-   - `./claude-flow` (Unix/Mac/Linux)
+   - `./claude-flow` (Unix/Linux)
    - `claude-flow.cmd` (Windows)
 
 ### With `--minimal` flag:

@@ -269,14 +269,8 @@ class AuthService {
 
     if (userAgent.includes('Windows')) {
       deviceInfo.os = 'Windows';
-    } else if (userAgent.includes('Mac')) {
-      deviceInfo.os = 'macOS';
     } else if (userAgent.includes('Linux')) {
       deviceInfo.os = 'Linux';
-    } else if (userAgent.includes('Android')) {
-      deviceInfo.os = 'Android';
-    } else if (userAgent.includes('iOS')) {
-      deviceInfo.os = 'iOS';
     }
 
     return deviceInfo;

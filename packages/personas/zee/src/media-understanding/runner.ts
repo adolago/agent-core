@@ -246,7 +246,7 @@ async function probeGeminiCli(): Promise<boolean> {
 async function resolveLocalWhisperCppEntry(): Promise<MediaUnderstandingModelConfig | null> {
   if (!(await hasBinary("whisper-cli"))) return null;
   const envModel = process.env.WHISPER_CPP_MODEL?.trim();
-  const defaultModel = "/opt/homebrew/share/whisper-cpp/for-tests-ggml-tiny.bin";
+  const defaultModel = "/usr/local/share/whisper-cpp/for-tests-ggml-tiny.bin";
   const modelPath = envModel && (await fileExists(envModel)) ? envModel : defaultModel;
   if (!(await fileExists(modelPath))) return null;
   return {

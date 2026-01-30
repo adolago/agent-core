@@ -171,7 +171,7 @@ describe("directive behavior", () => {
               host: "gateway",
               security: "allowlist",
               ask: "always",
-              node: "mac-1",
+              node: "node-1",
             },
           },
           session: { store: path.join(home, "sessions.json") },
@@ -180,7 +180,7 @@ describe("directive behavior", () => {
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain(
-        "Current exec defaults: host=gateway, security=allowlist, ask=always, node=mac-1.",
+        "Current exec defaults: host=gateway, security=allowlist, ask=always, node=node-1.",
       );
       expect(text).toContain(
         "Options: host=sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>.",

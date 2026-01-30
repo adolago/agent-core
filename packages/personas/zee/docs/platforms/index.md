@@ -9,12 +9,9 @@ read_when:
 Zee core is written in TypeScript. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-No native desktop or mobile apps are shipped in this repo. The Gateway is fully
 supported today, and the Control UI provides the browser interface across
 platforms.
 
-Mobile apps are intentionally not shipped in this repo. Do not sync or reintroduce
-mobile app code from external sources.
 
 ## Choose your OS
 

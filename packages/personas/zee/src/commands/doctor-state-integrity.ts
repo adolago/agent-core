@@ -96,7 +96,11 @@ function countJsonlLines(filePath: string): number {
 function findOtherStateDirs(stateDir: string): string[] {
   const resolvedState = path.resolve(stateDir);
   const roots =
-    process.platform === "darwin" ? ["/Users"] : process.platform === "linux" ? ["/home"] : [];
+    process.platform === "linux"
+      ? ["/home"]
+      : process.platform === "win32"
+        ? [path.dirname(os.homedir())]
+        : [];
   const found = new Set<string>();
   const dirNames = [".zee", ".moltbot", ".clawdbot"];
   for (const root of roots) {

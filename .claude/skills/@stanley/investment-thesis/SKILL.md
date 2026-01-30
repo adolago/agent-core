@@ -52,7 +52,7 @@ thesis = notes.create_thesis(
 - Strong cash generation, shareholder returns
 
 ### Bear Case
-- iPhone dependence (50%+ revenue)
+- Flagship handset dependence (50%+ revenue)
 - China regulatory/geopolitical risk
 - Hardware margin pressure
 
@@ -68,7 +68,7 @@ thesis = notes.create_thesis(
 ### Catalysts
 - Q1 2024 earnings (Jan 25)
 - WWDC 2024 (Jun)
-- iPhone 16 launch (Sep)
+- Flagship handset launch (Sep)
 
 ### Risk Monitoring
 - Services growth < 10%

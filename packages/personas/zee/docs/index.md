@@ -91,7 +91,7 @@ Runtime requirement: **Node ≥ 22**.
 npm install -g zee@latest
 # or: pnpm add -g zee@latest
 
-# Onboard + install the service (launchd/systemd user service)
+# Onboard + install the service (systemd user service)
 zee onboard --install-daemon
 
 # Pair WhatsApp Web (shows QR)

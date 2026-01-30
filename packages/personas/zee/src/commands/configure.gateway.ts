@@ -125,9 +125,9 @@ export async function promptGatewayConfig(
     if (!tailscaleBin) {
       note(
         [
-          "Tailscale binary not found in PATH or /Applications.",
+          "Tailscale binary not found in PATH or common install locations.",
           "Ensure Tailscale is installed from:",
-          "  https://tailscale.com/download/mac",
+          "  https://tailscale.com/download",
           "",
           "You can continue setup, but serve/funnel will fail at runtime.",
         ].join("\n"),

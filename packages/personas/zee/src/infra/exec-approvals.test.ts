@@ -36,7 +36,7 @@ describe("exec approvals allowlist matching", () => {
   it("ignores basename-only patterns", () => {
     const resolution = {
       rawExecutable: "rg",
-      resolvedPath: "/opt/homebrew/bin/rg",
+      resolvedPath: "/usr/local/bin/rg",
       executableName: "rg",
     };
     const entries: ExecAllowlistEntry[] = [{ pattern: "RG" }];
@@ -47,7 +47,7 @@ describe("exec approvals allowlist matching", () => {
   it("matches by resolved path with **", () => {
     const resolution = {
       rawExecutable: "rg",
-      resolvedPath: "/opt/homebrew/bin/rg",
+      resolvedPath: "/usr/local/bin/rg",
       executableName: "rg",
     };
     const entries: ExecAllowlistEntry[] = [{ pattern: "/opt/**/rg" }];
@@ -58,7 +58,7 @@ describe("exec approvals allowlist matching", () => {
   it("does not let * cross path separators", () => {
     const resolution = {
       rawExecutable: "rg",
-      resolvedPath: "/opt/homebrew/bin/rg",
+      resolvedPath: "/usr/local/bin/rg",
       executableName: "rg",
     };
     const entries: ExecAllowlistEntry[] = [{ pattern: "/opt/*/rg" }];
@@ -427,10 +427,10 @@ describe("exec approvals node host allowlist check", () => {
   });
 
   it("satisfies allowlist when command matches ** wildcard pattern", () => {
-    // Simulates symlink resolution: /opt/homebrew/bin/python3 -> /opt/homebrew/opt/python@3.14/bin/python3.14
+    // Simulates symlink resolution: /usr/local/bin/python3 -> /usr/local/opt/python@3.14/bin/python3.14
     const resolution = {
       rawExecutable: "python3",
-      resolvedPath: "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      resolvedPath: "/usr/local/opt/python@3.14/bin/python3.14",
       executableName: "python3.14",
     };
     // Pattern with ** matches across multiple directories

@@ -1398,7 +1398,7 @@ async function modifyGitCommitCommand(subArgs, flags) {
     const { execSync } = await import('child_process');
     branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
 
-    // Extract JIRA ticket
+    // Extract ticket id
     const ticketMatch = branch.match(/[A-Z]+-[0-9]+/);
     if (ticketMatch) {
       ticket = ticketMatch[0];
@@ -1501,7 +1501,7 @@ function showHooksHelp() {
   console.log('');
   console.log('  modify-git-commit  Modify git commit messages (reads/writes JSON via stdin/stdout)');
   console.log('                     • Conventional commits: Auto-adds [feat], [fix], [docs], etc.');
-  console.log('                     • Ticket extraction: Extracts JIRA tickets from branch names');
+  console.log('                     • Ticket extraction: Extracts ticket IDs from branch names');
   console.log('                     • Co-author: Adds Claude Flow co-author footer');
 
   console.log('\nExamples:');

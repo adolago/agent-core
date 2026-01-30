@@ -112,12 +112,7 @@ export const startCommand = new Command()
           await webServer.start();
 
           // Open browser if possible
-          const openCommand =
-            process.platform === 'darwin'
-              ? 'open'
-              : process.platform === 'win32'
-                ? 'start'
-                : 'xdg-open';
+          const openCommand = process.platform === 'win32' ? 'start' : 'xdg-open';
 
           try {
             const { exec } = await import('child_process');

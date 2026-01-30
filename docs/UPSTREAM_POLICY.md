@@ -9,7 +9,6 @@ track upstream repositories.
 - No cherry-picking external history into this repo.
 - Do not introduce legacy naming in new code or documentation.
 
-## Mobile apps
 
 Mobile and desktop apps are intentionally removed from this repo. Do not reintroduce
 app code from external sources. Zee supports the Gateway and CLI only.

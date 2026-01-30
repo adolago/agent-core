@@ -94,7 +94,7 @@ export async function startGatewayBonjourAdvertiser(
   const responder = getResponder();
 
   // mDNS service instance names are single DNS labels; dots in hostnames (like
-  // `Mac.localdomain`) can confuse some resolvers/browsers and break discovery.
+  // `Host.localdomain`) can confuse some resolvers/browsers and break discovery.
   // Keep only the first label and normalize away a trailing `.local`.
   const hostname =
     os

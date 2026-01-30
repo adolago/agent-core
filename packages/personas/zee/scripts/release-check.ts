@@ -8,7 +8,6 @@ type PackFile = { path: string };
 type PackResult = { files?: PackFile[] };
 
 const requiredPaths = [
-  "dist/discord/send.js",
   "dist/hooks/gmail.js",
   "dist/whatsapp/normalize.js",
 ];

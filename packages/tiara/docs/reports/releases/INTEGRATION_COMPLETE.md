@@ -187,7 +187,6 @@ memory query api --redact
 
 ### Specialized Development
 - `backend-dev` - Backend API development
-- `mobile-dev` - React Native mobile apps
 - `ml-developer` - Machine learning models
 - `cicd-engineer` - CI/CD pipelines
 - `api-docs` - API documentation

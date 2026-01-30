@@ -94,7 +94,7 @@ Existing upstream code may still contain legacy references - that's fine. But al
 **Why**: Clean, professional text is easier to read, search, and parse programmatically. Emojis add visual noise without semantic value in technical contexts.
 
 **Exceptions**: 
-- Third-party integrations that require emojis (e.g., Discord reactions, Slack status)
+- Third-party integrations that require emojis (for example, platform reactions or status features)
 - User-provided content that may contain emojis
 - Skill metadata `emoji` fields used for external platform identity
 
@@ -473,10 +473,10 @@ pgrep -af agent-core
 │  │                 ~/.local/src/agent-core/packages/personas/zee/                             │
 │  │                                                                 │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │  │ WhatsApp │  │ Telegram │  │  Signal  │  │ Discord  │        │
-│  │  │ (Baileys)│  │ (grammY) │  │          │  │          │        │
-│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
-│  │       └──────────────┼──────────────┼──────────────┘            │
+│  │  │ WhatsApp │  │ Telegram │                                  │
+│  │  │ (Baileys)│  │ (grammY) │                                  │
+│  │  └────┬─────┘  └────┬─────┘                                  │
+│  │       └──────────────┼──────────────┘                         │
 │  │                      ▼                                          │
 │  │          ┌─────────────────────────┐                            │
 │  │          │  Persona Detection      │                            │

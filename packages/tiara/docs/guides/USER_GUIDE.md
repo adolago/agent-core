@@ -328,7 +328,6 @@ npx claude-flow@alpha swarm "implement user service, post service, and notificat
 #### Step 4: Frontend Development
 ```bash
 # Create frontend applications
-npx claude-flow@alpha swarm "build React web app and React Native mobile app" \
   --agents frontend-dev,mobile-dev,ui-ux-specialist
 ```
 
@@ -624,7 +623,6 @@ nvm use 20
 # On Ubuntu/Debian:
 sudo apt-get install build-essential python3
 
-# On macOS:
 xcode-select --install
 
 # On Windows:
@@ -1078,7 +1076,6 @@ A: Claude-Flow includes automatic fault recovery. You can also check logs with `
 A: Use the built-in diagnostics: `npx claude-flow@alpha diagnostics --performance` and monitor real-time metrics.
 
 **Q: Where can I get help if I'm stuck?**
-A: Check this guide, review the comprehensive documentation, search GitHub issues, or join our Discord community.
 
 ### Advanced Features
 
@@ -1097,7 +1094,6 @@ A: Claude-Flow includes enterprise-grade security features including input valid
 
 ### Getting Help
 
-- **💬 Discord Community**: [Join Discord](https://discord.com/invite/dfxmpwkG2D)
 - **📧 Email Support**: support@claude-flow.ai
 
 ### Contributing

@@ -42,7 +42,6 @@ npm install claude-flow@alpha
 # Ubuntu/Debian:
 sudo apt-get install python3 make g++
 
-# macOS:
 xcode-select --install
 
 # Alpine:

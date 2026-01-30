@@ -402,7 +402,6 @@ These 6 files are documented in `README.md` with implementation patterns:
 - Email addresses: `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`
 - SSN: `\b(?:\d{3}-\d{2}-\d{4}|\d{9})\b`
 - API keys: `\b(?:sk-[a-zA-Z0-9]{48}|ghp_[a-zA-Z0-9]{36})\b`
-- Slack tokens: `\b(?:xoxb-[a-zA-Z0-9\-]+)\b`
 - Credit cards: `\b(?:\d{13,19})\b`
 
 **Status**: Patterns defined, scrubbing logic to be implemented in `utils/pii-scrubber.ts`

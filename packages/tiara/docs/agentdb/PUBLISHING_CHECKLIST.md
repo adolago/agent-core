@@ -250,7 +250,6 @@ gh release create v2.8.0 \
 - [ ] Verify package on npm: https://www.npmjs.com/package/claude-flow
 - [ ] Test installation: `npm install -g claude-flow@latest`
 - [ ] Update documentation website (if applicable)
-- [ ] Announce on Discord/Twitter
 - [ ] Update GitHub README badges
 
 ---

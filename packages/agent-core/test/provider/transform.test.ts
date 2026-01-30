@@ -152,6 +152,7 @@ describe("ProviderTransform.variants - mapping parity", () => {
       id: "claude-3-5-sonnet",
       providerID: "anthropic",
       api: { id: "claude-3-5-sonnet", npm: "@ai-sdk/anthropic" },
+      limit: { context: 128000, output: 64000 },
       capabilities: { reasoning: true },
     } as any
 
@@ -932,7 +933,7 @@ describe("ProviderTransform.variants", () => {
     },
     limit: {
       context: 128000,
-      output: 8192,
+      output: 64000,
     },
     status: "active",
     options: {},

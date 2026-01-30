@@ -114,7 +114,6 @@ Third-party platform integrations
 
 ## 📞 Support
 
-- **Discord**: Join our community for real-time help
 - **Documentation Updates**: PRs welcome!
 
 ---

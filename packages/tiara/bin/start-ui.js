@@ -32,12 +32,7 @@ export async function launchUI(args = []) {
 
         // Open browser if possible
         try {
-          const openCommand =
-            process.platform === 'darwin'
-              ? 'open'
-              : process.platform === 'win32'
-                ? 'start'
-                : 'xdg-open';
+          const openCommand = process.platform === 'win32' ? 'start' : 'xdg-open';
 
           const { exec } = await import('child_process');
           exec(`${openCommand} http://localhost:${port}/console`);

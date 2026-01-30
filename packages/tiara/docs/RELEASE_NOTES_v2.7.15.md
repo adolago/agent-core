@@ -294,7 +294,6 @@ mcp__ruv-swarm__swarm_status()
 
 ## 📞 Support
 
-**Discord:** https://discord.com/invite/dfxmpwkG2D
 
 ---
 

@@ -89,7 +89,7 @@ Legacy `agents.default` entries are migrated to `agents.main` on load.
 Examples:
 - `~/Projects/**/bin/bird`
 - `~/.local/bin/*`
-- `/opt/homebrew/bin/rg`
+- `/usr/bin/rg`
 
 Each allowlist entry tracks:
 - **id** stable UUID used for UI identity (optional)

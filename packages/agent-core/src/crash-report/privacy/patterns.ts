@@ -110,11 +110,6 @@ export const PATH_PATTERNS: RedactionPattern[] = [
     replacement: "/home/[USER]",
   },
   {
-    name: "home-path-mac",
-    pattern: /\/Users\/[a-zA-Z0-9_-]+/g,
-    replacement: "/Users/[USER]",
-  },
-  {
     name: "home-path-windows",
     pattern: /C:\\Users\\[a-zA-Z0-9_-]+/gi,
     replacement: "C:\\Users\\[USER]",

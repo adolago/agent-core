@@ -65,7 +65,6 @@ chmod +x ./bin/claude-flow
     "build:esm": "tsc",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:ts": "npm run build:esm && npm run build:cjs",
-    "build:binary": "pkg dist/cli/main.js --targets node20-linux-x64,node20-macos-x64,node20-win-x64 --output bin/claude-flow",
     "clean": "rm -rf dist dist-cjs",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --bail --maxWorkers=1 --forceExit",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
@@ -1173,7 +1172,6 @@ npm run build:binary       # Binary executables
 
 # Binary targets (pkg)
 # - node20-linux-x64
-# - node20-macos-x64
 # - node20-win-x64
 
 # Available binaries
@@ -1315,7 +1313,6 @@ npm update
 
 ### Community
 
-- [Discord Server](https://discord.com/invite/dfxmpwkG2D)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/claude-flow)
 
 ---

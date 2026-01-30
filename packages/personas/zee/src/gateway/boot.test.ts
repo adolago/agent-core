@@ -19,9 +19,6 @@ describe("runBootOnce", () => {
   const makeDeps = () => ({
     sendMessageWhatsApp: vi.fn(),
     sendMessageTelegram: vi.fn(),
-    sendMessageDiscord: vi.fn(),
-    sendMessageSlack: vi.fn(),
-    sendMessageSignal: vi.fn(),
   });
 
   it("skips when BOOT.md is missing", async () => {

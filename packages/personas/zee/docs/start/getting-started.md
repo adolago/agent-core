@@ -82,7 +82,7 @@ zee onboard --install-daemon
 What you’ll choose:
 - **Local vs Remote** gateway
 - **Auth**: OpenAI Code (Codex) subscription (OAuth) or API keys. For Anthropic we recommend an API key; `claude setup-token` is also supported.
-- **Daemon**: background install (launchd/systemd; WSL2 uses systemd)
+- **Daemon**: background install (systemd; WSL2 uses systemd)
   - **Runtime**: Node (recommended; required for WhatsApp/Telegram). Bun is **not recommended**.
 - **Gateway token**: the wizard generates one by default (even on loopback) and stores it in `gateway.auth.token`.
 

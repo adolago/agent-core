@@ -1,6 +1,6 @@
 ---
 name: sag
-description: ElevenLabs text-to-speech with mac-style say UX.
+description: ElevenLabs text-to-speech with say-style UX.
 version: 1.0.0
 author: Artur
 tags: [speech, tts, voice, elevenlabs]

@@ -15,7 +15,7 @@ The recommended way to run Zee with Nix is via **[nix-zee](https://github.com/ze
 Paste this to your AI agent (Claude, Cursor, etc.):
 
 ```text
-I want to set up nix-zee on my Mac.
+I want to set up nix-zee on my Linux host.
 Repository: github:zee/nix-zee
 
 What I need you to do:
@@ -24,7 +24,7 @@ What I need you to do:
 3. Help me create a Telegram bot (@BotFather) and get my chat ID (@userinfobot)
 4. Set up secrets (bot token, Anthropic key) - plain files at ~/.secrets/ is fine
 5. Fill in the template placeholders and run home-manager switch
-6. Verify: launchd running, bot responds to messages
+6. Verify: service running, bot responds to messages
 
 Reference the nix-zee README for module options.
 ```
@@ -36,7 +36,7 @@ Reference the nix-zee README for module options.
 ## What you get
 
 - Gateway + tools (whisper, spotify, cameras) - all pinned
-- Launchd service that survives reboots
+- Service manager entry that survives reboots
 - Plugin system with declarative config
 - Instant rollback: `home-manager switch --rollback`
 

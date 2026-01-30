@@ -126,9 +126,6 @@ function getDeviceModel(): string {
   const arch = os.arch()
   const release = os.release()
 
-  if (platform === "darwin") {
-    return `macOS ${release} ${arch}`.trim()
-  }
   if (platform === "win32") {
     let winRelease = release
     const parts = release.split(".")
@@ -138,8 +135,11 @@ function getDeviceModel(): string {
     }
     return `Windows ${winRelease} ${arch}`.trim()
   }
+  if (platform === "linux") {
+    return `Linux ${release} ${arch}`.trim()
+  }
   if (platform) {
-    return `${platform} ${release} ${arch}`.trim()
+    return `Unix ${release} ${arch}`.trim()
   }
   return `Unknown ${arch}`.trim()
 }
@@ -450,6 +450,7 @@ function buildKimiModelDefinition(model: KimiModelInfo, baseUrl: string) {
 
 async function maybeRefreshKimiModels(provider: any, auth: Auth.Info | undefined) {
   if (!provider?.models || !auth || auth.type !== "oauth") return
+  if (process.env.NODE_ENV === "test" || process.env.VITEST) return
 
   const now = Date.now()
   if (now - lastModelRefreshAt < MODEL_REFRESH_INTERVAL_MS) return

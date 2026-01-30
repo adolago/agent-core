@@ -158,7 +158,6 @@ AWS_SECRET_ACCESS_KEY=...
 S3_BUCKET=claude-flow-backups
 
 # === Notifications ===
-SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 EMAIL_SMTP_HOST=smtp.sendgrid.net
 EMAIL_SMTP_PORT=587
 EMAIL_SMTP_USER=apikey
@@ -1116,12 +1115,10 @@ jobs:
         curl -f "https://$EXTERNAL_IP/health" || exit 1
     
     - name: Notify deployment
-      uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
         text: "Claude Flow ${{ github.ref_name }} deployed to production"
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
 ### Terraform Infrastructure
@@ -1396,7 +1393,6 @@ echo "Backup completed successfully!"
 # Send notification
 curl -X POST -H 'Content-type: application/json' \
     --data "{\"text\":\"✅ Claude Flow backup completed: $DATE\"}" \
-    "$SLACK_WEBHOOK_URL"
 ```
 
 ---
@@ -1945,10 +1941,8 @@ check_disk() {
 # Send alert function
 send_alert() {
   message=$1
-  # Send to Slack
   curl -X POST -H 'Content-type: application/json' \
     --data "{\"text\":\"Alert: $message\"}" \
-    $SLACK_WEBHOOK_URL
 }
 
 # Run checks
@@ -2198,7 +2192,6 @@ kubectl patch hpa claude-flow-hpa -n claude-flow -p='{"spec":{"minReplicas":0,"m
 # Send alert
 curl -X POST -H 'Content-type: application/json' \
   --data '{"text":"🚨 EMERGENCY: Claude Flow has been shut down!"}' \
-  "$SLACK_WEBHOOK_URL"
 
 echo "✅ Emergency shutdown complete"
 ```
@@ -2290,15 +2283,12 @@ kubectl describe nodes | grep -A 5 "Allocated resources"
 ```yaml
 # On-Call Escalation
 Level 1: DevOps Team
-  - Slack: #devops-alerts
   - PagerDuty: claude-flow-devops
   
 Level 2: Engineering Team
-  - Slack: #engineering-oncall
   - Email: engineering-oncall@claude-flow.com
   
 Level 3: Leadership
-  - Slack: #leadership-alerts
   - Phone: Emergency hotline
 ```
 

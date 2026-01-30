@@ -218,7 +218,6 @@ npx claude-flow@alpha --agents 3 swarm "task description"
 
 ### Getting Help
 - **Documentation**: Check specific documentation files for detailed guidance
-- **Community**: Join our Discord community for real-time support
 - **Performance**: SWE-Bench Score: 84.8%, Task Completion: 96.3%
 
 ---
@@ -581,7 +580,6 @@ npx claude-flow@alpha --agents 10 swarm "full enterprise application"
 
 ### 🆘 **Immediate Help**
 - **Documentation**: Browse this comprehensive guide
-- **Community**: Discord community for real-time support
 
 ### 📧 **Contact Information**
 - **Technical Support**: support@claude-flow.ai
@@ -590,7 +588,6 @@ npx claude-flow@alpha --agents 10 swarm "full enterprise application"
 - **General Inquiries**: info@claude-flow.ai
 
 ### 🔗 **Community Links**
-- **Discord**: [Join Community](https://discord.com/invite/dfxmpwkG2D)
 - **Stack Overflow**: [claude-flow tag](https://stackoverflow.com/questions/tagged/claude-flow)
 - **Reddit**: [r/claudeflow](https://reddit.com/r/claudeflow)
 

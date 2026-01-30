@@ -456,14 +456,6 @@ const errors = [];
     if (cfg?.telegram?.botToken) {
       errors.push(`telegram.botToken should be unset (got ${cfg?.telegram?.botToken})`);
     }
-    if (cfg?.discord?.token) {
-      errors.push(`discord.token should be unset (got ${cfg?.discord?.token})`);
-    }
-    if (cfg?.slack?.botToken || cfg?.slack?.appToken) {
-      errors.push(
-        `slack tokens should be unset (got bot=${cfg?.slack?.botToken ?? "unset"}, app=${cfg?.slack?.appToken ?? "unset"})`,
-      );
-    }
     if (cfg?.wizard?.lastRunCommand !== "configure") {
       errors.push(
         `wizard.lastRunCommand mismatch (got ${cfg?.wizard?.lastRunCommand ?? "unset"})`,

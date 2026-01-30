@@ -6,7 +6,7 @@ import { setupGitHooks } from "./setup-git-hooks.js";
 
 function detectPackageManager(ua = process.env.npm_config_user_agent ?? "") {
   // Examples:
-  // - "pnpm/10.23.0 npm/? node/v22.21.1 darwin arm64"
+  // - "pnpm/10.23.0 npm/? node/v22.21.1 linux x64"
   // - "npm/10.9.4 node/v22.12.0 linux x64"
   // - "bun/1.2.2"
   const normalized = String(ua).trim();

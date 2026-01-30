@@ -88,7 +88,7 @@ Send `/exec` with no arguments to show the current values.
 
 Example:
 ```
-/exec host=gateway security=allowlist ask=on-miss node=mac-1
+/exec host=gateway security=allowlist ask=on-miss node=node-1
 ```
 
 ## Authorization model

@@ -3,7 +3,7 @@ import { extractReadableContent, fetchFirecrawlContent } from "../src/agents/too
 const DEFAULT_URLS = [
   "https://en.wikipedia.org/wiki/Web_scraping",
   "https://news.ycombinator.com/",
-  "https://www.apple.com/iphone/",
+  "https://www.mozilla.org/",
   "https://www.nytimes.com/",
   "https://www.reddit.com/r/javascript/",
 ];
@@ -14,7 +14,7 @@ const apiKey = process.env.FIRECRAWL_API_KEY;
 const baseUrl = process.env.FIRECRAWL_BASE_URL ?? "https://api.firecrawl.dev";
 
 const userAgent =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 const timeoutMs = 30_000;
 
 function truncate(value: string, max = 180): string {

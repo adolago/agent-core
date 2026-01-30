@@ -1078,7 +1078,6 @@ Create comprehensive user guide with:
 
 Automatic scrubbing of 9 patterns:
 - Email addresses
-- API keys (Anthropic, OpenAI, GitHub, Slack)
 - Social Security Numbers
 - Credit card numbers
 - Phone numbers
@@ -1117,7 +1116,6 @@ Automatic scrubbing of 9 patterns:
 - [ ] Create REASONINGBANK_GUIDE.md
 - [ ] Add examples to docs/examples/
 - [ ] Update CHANGELOG.md
-- [ ] Test on Linux, macOS, Windows
 - [ ] Alpha release to npm
 
 ### v2.7.0 (Stable Release)

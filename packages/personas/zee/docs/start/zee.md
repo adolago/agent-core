@@ -17,7 +17,7 @@ You are putting an agent in a position to:
 - send messages back out via messaging channels
 
 Start conservative:
-- Always set `channels.whatsapp.allowFrom` (never run open-to-the-world on your personal Mac).
+- Always set `channels.whatsapp.allowFrom` (never run open-to-the-world on your personal machine).
 - Use a dedicated WhatsApp number for the assistant.
 - Heartbeats default to every 30 minutes. Disable until you trust the setup by setting `agents.defaults.heartbeat.every: "0m"`.
 
@@ -53,7 +53,7 @@ Your Phone (personal)          Second Phone (assistant)
                                        │ linked via QR
                                        ▼
                               ┌─────────────────┐
-                              │  Your Mac       │
+                              │  Your Host      │
                               │   (zee)         │
                               │    Pi agent     │
                               └─────────────────┘

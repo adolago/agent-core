@@ -265,7 +265,7 @@ Included files can themselves contain `$include` directives (up to 10 levels dee
 
 ### Env vars + `.env`
 
-Zee reads env vars from the parent process (shell, launchd/systemd, CI, etc.).
+Zee reads env vars from the parent process (shell, systemd, CI, etc.).
 
 Additionally, it loads:
 - `.env` from the current working directory (if present)
@@ -1325,7 +1325,7 @@ Notes:
 - CLI backends are **text-first**; tools are always disabled.
 - Sessions are supported when `sessionArg` is set; session ids are persisted per backend.
 - For `claude-cli`, defaults are wired in. Override the command path if PATH is minimal
-  (launchd/systemd).
+  (systemd).
 
 Example:
 
@@ -1335,7 +1335,7 @@ Example:
     defaults: {
       cliBackends: {
         "claude-cli": {
-          command: "/opt/homebrew/bin/claude"
+          command: "/usr/local/bin/claude"
         },
         "my-cli": {
           command: "my-cli",

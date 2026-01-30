@@ -22,7 +22,7 @@ Quick triage commands (in order):
 | `zee status --deep` | Runs gateway health checks (incl. provider probes; requires reachable gateway) | When “configured” doesn’t mean “working” |
 | `zee gateway probe` | Gateway discovery + reachability (local + remote targets) | When you suspect you’re probing the wrong gateway |
 | `zee channels status --probe` | Asks the running gateway for channel status (and optionally probes) | When gateway is reachable but channels misbehave |
-| `zee gateway status` | Supervisor state (launchd/systemd/schtasks), runtime PID/exit, last gateway error | When the service “looks loaded” but nothing runs |
+| `zee gateway status` | Supervisor state (systemd/schtasks), runtime PID/exit, last gateway error | When the service “looks loaded” but nothing runs |
 | `zee logs --follow` | Live logs (best signal for runtime issues) | When you need the actual failure reason |
 
 **Sharing output:** prefer `zee status --all` (it redacts tokens). If you paste `zee status`, consider setting `ZEE_SHOW_SECRETS=0` first (token previews).
@@ -185,7 +185,7 @@ If the service reports **running** but nothing is listening on the gateway port,
 the Gateway likely refused to bind.
 
 **What "running" means here**
-- `Runtime: running` means your supervisor (launchd/systemd/schtasks) thinks the process is alive.
+- `Runtime: running` means your supervisor (systemd/schtasks) thinks the process is alive.
 - `RPC probe` means the CLI could actually connect to the gateway WebSocket and call `status`.
 - Always trust `Probe target:` + `Config (service):` as the “what did we actually try?” lines.
 
@@ -204,7 +204,7 @@ the Gateway likely refused to bind.
 - Fix: rerun `zee gateway install --force` from the same `--profile` / `ZEE_STATE_DIR` you want the service to use.
 
 **If `zee gateway status` reports service config issues**
-- The supervisor config (launchd/systemd/schtasks) is missing current defaults.
+- The supervisor config (systemd/schtasks) is missing current defaults.
 - Fix: run `zee doctor` to update it (or `zee gateway install --force` for a full rewrite).
 
 **If `Last gateway error:` mentions “refusing to bind … without auth”**

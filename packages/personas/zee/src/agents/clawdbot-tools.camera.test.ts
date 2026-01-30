@@ -21,7 +21,7 @@ describe("nodes camera_snap", () => {
   it("maps jpg payloads to image/jpeg", async () => {
     callGateway.mockImplementation(async ({ method }) => {
       if (method === "node.list") {
-        return { nodes: [{ nodeId: "mac-1" }] };
+        return { nodes: [{ nodeId: "node-1" }] };
       }
       if (method === "node.invoke") {
         return {
@@ -41,7 +41,7 @@ describe("nodes camera_snap", () => {
 
     const result = await tool.execute("call1", {
       action: "camera_snap",
-      node: "mac-1",
+      node: "node-1",
       facing: "front",
     });
 
@@ -53,7 +53,7 @@ describe("nodes camera_snap", () => {
   it("passes deviceId when provided", async () => {
     callGateway.mockImplementation(async ({ method, params }) => {
       if (method === "node.list") {
-        return { nodes: [{ nodeId: "mac-1" }] };
+        return { nodes: [{ nodeId: "node-1" }] };
       }
       if (method === "node.invoke") {
         expect(params).toMatchObject({
@@ -77,7 +77,7 @@ describe("nodes camera_snap", () => {
 
     await tool.execute("call1", {
       action: "camera_snap",
-      node: "mac-1",
+      node: "node-1",
       facing: "front",
       deviceId: "cam-123",
     });
@@ -92,11 +92,11 @@ describe("nodes run", () => {
   it("passes invoke and command timeouts", async () => {
     callGateway.mockImplementation(async ({ method, params }) => {
       if (method === "node.list") {
-        return { nodes: [{ nodeId: "mac-1", commands: ["system.run"] }] };
+        return { nodes: [{ nodeId: "node-1", commands: ["system.run"] }] };
       }
       if (method === "node.invoke") {
         expect(params).toMatchObject({
-          nodeId: "mac-1",
+          nodeId: "node-1",
           command: "system.run",
           timeoutMs: 45_000,
           params: {
@@ -118,7 +118,7 @@ describe("nodes run", () => {
 
     await tool.execute("call1", {
       action: "run",
-      node: "mac-1",
+      node: "node-1",
       command: ["echo", "hi"],
       cwd: "/tmp",
       env: ["FOO=bar"],

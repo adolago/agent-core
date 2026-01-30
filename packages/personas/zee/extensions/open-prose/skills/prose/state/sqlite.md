@@ -23,7 +23,6 @@ This document describes how the OpenProse VM tracks execution state using a **SQ
 
 | Platform | Installation |
 |----------|--------------|
-| macOS | Pre-installed |
 | Linux | `apt install sqlite3` / `dnf install sqlite3` / etc. |
 | Windows | `winget install SQLite.SQLite` or download from sqlite.org |
 

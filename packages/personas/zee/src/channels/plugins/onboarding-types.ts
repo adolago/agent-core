@@ -6,7 +6,6 @@ import type { ChannelId } from "./types.js";
 
 export type SetupChannelsOptions = {
   allowDisable?: boolean;
-  allowSignalInstall?: boolean;
   onSelection?: (selection: ChannelId[]) => void;
   accountIds?: Partial<Record<ChannelId, string>>;
   onAccountId?: (channel: ChannelId, accountId: string) => void;

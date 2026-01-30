@@ -253,7 +253,7 @@ export const SessionRoute = new Hono()
           session.title = updates.title
         }
         if (updates.time?.archived !== undefined) session.time.archived = updates.time.archived
-      })
+      }, { touch: false })
 
       return c.json(updatedSession)
     },
@@ -300,7 +300,7 @@ export const SessionRoute = new Hono()
 
         const updated = await Session.update(sessionID, (draft) => {
           draft.share = { url }
-        })
+        }, { touch: false })
         return c.json(updated)
       } catch (error) {
         log.error("session share failed", { error: error instanceof Error ? error.message : String(error) })
@@ -338,7 +338,7 @@ export const SessionRoute = new Hono()
         await Storage.remove(["session_share", sessionID])
         const updated = await Session.update(sessionID, (draft) => {
           delete draft.share
-        })
+        }, { touch: false })
         return c.json(updated)
       } catch (error) {
         log.error("session unshare failed", { error: error instanceof Error ? error.message : String(error) })

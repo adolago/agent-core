@@ -166,7 +166,7 @@ export function registerNodesInvokeCommands(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("run")
-      .description("Run a shell command on a node (mac only)")
+      .description("Run a shell command on a node (node host only)")
       .option("--node <idOrNameOrIp>", "Node id, name, or IP")
       .option("--cwd <path>", "Working directory")
       .option(

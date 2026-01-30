@@ -30,8 +30,8 @@ describe("buildNodeShellCommand", () => {
     ]);
   });
 
-  it("uses /bin/sh for darwin", () => {
-    expect(buildNodeShellCommand("echo hi", "darwin")).toEqual(["/bin/sh", "-lc", "echo hi"]);
+  it("uses /bin/sh for linux", () => {
+    expect(buildNodeShellCommand("echo hi", "linux")).toEqual(["/bin/sh", "-lc", "echo hi"]);
   });
 
   it("uses /bin/sh when platform missing", () => {

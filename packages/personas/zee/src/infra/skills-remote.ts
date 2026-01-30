@@ -164,11 +164,11 @@ function listWorkspaceDirs(cfg: ZeeConfig): string[] {
   return [...dirs];
 }
 
-function collectRequiredBins(entries: SkillEntry[], targetPlatform: string): string[] {
+function collectRequiredBins(entries: SkillEntry[], targetPlatform?: string): string[] {
   const bins = new Set<string>();
   for (const entry of entries) {
     const os = entry.metadata?.os ?? [];
-    if (os.length > 0 && !os.includes(targetPlatform)) continue;
+    if (targetPlatform && os.length > 0 && !os.includes(targetPlatform)) continue;
     const required = entry.metadata?.requires?.bins ?? [];
     const anyBins = entry.metadata?.requires?.anyBins ?? [];
     for (const bin of required) {
@@ -225,7 +225,11 @@ export async function refreshRemoteNodeBins(params: {
   timeoutMs?: number;
 }) {
   if (!remoteRegistry) return;
-  if (!isMacPlatform(params.platform, params.deviceFamily)) return;
+  const platformRaw = String(params.platform ?? "")
+    .trim()
+    .toLowerCase();
+  const platform = platformRaw === "windows" ? "win32" : platformRaw || undefined;
+  if (!isSupportedRemotePlatform(platform)) return;
   const canWhich = supportsSystemWhich(params.commands);
   const canRun = supportsSystemRun(params.commands);
   if (!canWhich && !canRun) return;
@@ -234,7 +238,7 @@ export async function refreshRemoteNodeBins(params: {
   const requiredBins = new Set<string>();
   for (const workspaceDir of workspaceDirs) {
     const entries = loadWorkspaceSkillEntries(workspaceDir, { config: params.cfg });
-    for (const bin of collectRequiredBins(entries, "darwin")) {
+    for (const bin of collectRequiredBins(entries, platform)) {
       requiredBins.add(bin);
     }
   }

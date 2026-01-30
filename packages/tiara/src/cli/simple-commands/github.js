@@ -32,7 +32,6 @@ async function checkCommandAvailable(command) {
   const commonPaths = [
     '/usr/local/bin',
     '/usr/bin',
-    '/opt/homebrew/bin',
     join(process.env.HOME || '', '.local', 'bin'),
     join(process.env.HOME || '', 'bin'),
   ];

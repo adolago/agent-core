@@ -15,9 +15,9 @@ describe("system-presence", () => {
     });
 
     updateSystemPresence({
-      text: "Node: Peter-Mac-Studio (10.0.0.1) · ui 2.0.0 · last input 5s ago · mode ui · reason beacon",
+      text: "Node: Peter-Gateway-Host (10.0.0.1) · ui 2.0.0 · last input 5s ago · mode ui · reason beacon",
       instanceId: instanceIdLower,
-      host: "Peter-Mac-Studio",
+      host: "Peter-Gateway-Host",
       ip: "10.0.0.1",
       mode: "ui",
       version: "2.0.0",
@@ -29,7 +29,7 @@ describe("system-presence", () => {
       (e) => (e.instanceId ?? "").toLowerCase() === instanceIdLower,
     );
     expect(matches).toHaveLength(1);
-    expect(matches[0]?.host).toBe("Peter-Mac-Studio");
+    expect(matches[0]?.host).toBe("Peter-Gateway-Host");
     expect(matches[0]?.ip).toBe("10.0.0.1");
     expect(matches[0]?.lastInputSeconds).toBe(5);
   });

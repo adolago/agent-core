@@ -193,12 +193,12 @@ zee:browser-profiles-start { profile: "personal" }
 zee:browser-navigate { url: "https://mail.google.com", profile: "personal" }
 ```
 
-## Mobile Node Control
+## Handheld Node Control
 
 ### Take Photo
 ```bash
 zee:node-camera-snap {
-  nodeId: "iphone-12",
+  nodeId: "phone-01",
   facing: "back"
 }
 # -> { format: "jpg", base64: "...", width: 4032, height: 3024 }
@@ -207,7 +207,7 @@ zee:node-camera-snap {
 ### Get Location
 ```bash
 zee:node-location {
-  nodeId: "iphone-12",
+  nodeId: "phone-01",
   desiredAccuracy: "precise"
 }
 # -> { latitude: 37.7749, longitude: -122.4194, accuracy: 5 }
@@ -216,7 +216,7 @@ zee:node-location {
 ### Send Notification
 ```bash
 zee:node-notify {
-  nodeId: "iphone-12",
+  nodeId: "phone-01",
   title: "Reminder",
   body: "Meeting in 5 minutes",
   priority: "timeSensitive"

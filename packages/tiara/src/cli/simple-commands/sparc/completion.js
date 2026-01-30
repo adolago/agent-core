@@ -529,7 +529,6 @@ export class SparcCompletion extends SparcPhase {
       },
       platforms: {
         windows: true,
-        macos: true,
         linux: true,
         score: 100,
       },

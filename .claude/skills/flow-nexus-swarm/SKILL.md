@@ -383,7 +383,7 @@ mcp__flow-nexus__swarm_templates_list({
 
 **Specialized Templates:**
 - `ml-development`: Machine learning project swarm
-- `mobile-dev`: Mobile app development
+- `mobile-dev`: Client UI development
 - `devops-automation`: Infrastructure and deployment
 - `security-audit`: Security analysis and testing
 

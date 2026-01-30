@@ -63,6 +63,7 @@ export const McpCommand = cmd({
       .command(McpListCommand)
       .command(McpAuthCommand)
       .command(McpLogoutCommand)
+      .command(McpResourcesCommand)
       .command(McpDebugCommand)
       .demandCommand(),
   async handler() {},
@@ -388,6 +389,193 @@ export const McpLogoutCommand = cmd({
 
         await MCP.removeAuth(serverName)
         prompts.log.success(`Removed OAuth credentials for ${serverName}`)
+        prompts.outro("Done")
+      },
+    })
+  },
+})
+
+type McpResourceEntry = {
+  key: string
+  server: string
+  name: string
+  uri: string
+  mimeType?: string
+  description?: string
+}
+
+function normalizeMcpResources(resources: Record<string, unknown>): McpResourceEntry[] {
+  return Object.entries(resources).map(([key, value]) => {
+    const resource = value as Record<string, unknown>
+    const mimeType = (resource["mimeType"] ?? resource["mime_type"]) as string | undefined
+    return {
+      key,
+      server: (resource["client"] as string | undefined) ?? "unknown",
+      name: (resource["name"] as string | undefined) ?? key,
+      uri: (resource["uri"] as string | undefined) ?? "",
+      mimeType,
+      description: (resource["description"] as string | undefined) ?? "",
+    }
+  })
+}
+
+export const McpResourcesCommand = cmd({
+  command: "resources",
+  describe: "list and read MCP resources",
+  builder: (yargs) => yargs.command(McpResourcesListCommand).command(McpResourcesReadCommand).demandCommand(),
+  async handler() {},
+})
+
+export const McpResourcesListCommand = cmd({
+  command: "list",
+  aliases: ["ls"],
+  describe: "list MCP resources",
+  builder: (yargs) =>
+    yargs
+      .option("format", {
+        describe: "output format",
+        type: "string",
+        choices: ["text", "json"],
+        default: "text",
+      })
+      .option("server", {
+        describe: "filter resources by MCP server name",
+        type: "string",
+      }),
+  async handler(args) {
+    await Instance.provide({
+      directory: process.cwd(),
+      async fn() {
+        const jsonOutput = args.format === "json"
+        if (!jsonOutput) {
+          UI.empty()
+          prompts.intro("MCP Resources")
+        }
+
+        const resources = await MCP.resources()
+        let entries = normalizeMcpResources(resources)
+
+        if (args.server) {
+          entries = entries.filter((entry) => entry.server === args.server)
+        }
+
+        entries.sort((a, b) => a.server.localeCompare(b.server) || a.name.localeCompare(b.name))
+
+        if (entries.length === 0) {
+          if (jsonOutput) {
+            console.log("[]")
+          } else {
+            prompts.log.warn("No MCP resources found")
+            prompts.outro("Done")
+          }
+          return
+        }
+
+        if (jsonOutput) {
+          console.log(JSON.stringify(entries, null, 2))
+          return
+        }
+
+        for (const entry of entries) {
+          prompts.log.info(`${entry.server}: ${entry.name}`)
+          prompts.log.info(`  uri: ${entry.uri || "(no uri)"}`)
+          if (entry.mimeType) {
+            prompts.log.info(`  type: ${entry.mimeType}`)
+          }
+          if (entry.description) {
+            prompts.log.info(`  description: ${entry.description}`)
+          }
+        }
+
+        prompts.outro(`${entries.length} resource(s)`)
+      },
+    })
+  },
+})
+
+export const McpResourcesReadCommand = cmd({
+  command: "read <server> <uri>",
+  describe: "read an MCP resource",
+  builder: (yargs) =>
+    yargs
+      .positional("server", {
+        describe: "MCP server name",
+        type: "string",
+      })
+      .positional("uri", {
+        describe: "resource URI",
+        type: "string",
+      })
+      .option("format", {
+        describe: "output format",
+        type: "string",
+        choices: ["text", "json"],
+        default: "text",
+      }),
+  async handler(args) {
+    await Instance.provide({
+      directory: process.cwd(),
+      async fn() {
+        const jsonOutput = args.format === "json"
+        if (!jsonOutput) {
+          UI.empty()
+          prompts.intro("MCP Resource")
+        }
+
+        const result = await MCP.readResource(args.server as string, args.uri as string)
+        if (!result) {
+          if (jsonOutput) {
+            console.log("null")
+          } else {
+            prompts.log.error("Failed to read MCP resource")
+            prompts.outro("Done")
+          }
+          return
+        }
+
+        if (jsonOutput) {
+          console.log(JSON.stringify(result, null, 2))
+          return
+        }
+
+        const contents = Array.isArray((result as { contents?: unknown }).contents)
+          ? ((result as { contents?: unknown[] }).contents ?? [])
+          : []
+
+        if (contents.length === 0) {
+          prompts.log.warn("Resource returned no contents")
+          prompts.outro("Done")
+          return
+        }
+
+        const textParts = contents.filter(
+          (item): item is { text: string } => typeof (item as { text?: unknown }).text === "string",
+        )
+
+        if (textParts.length === contents.length) {
+          console.log(textParts.map((item) => item.text).join("\n"))
+          return
+        }
+
+        prompts.log.warn("Resource is not plain text. Use --format json for full response.")
+        for (const item of contents) {
+          const entry = item as Record<string, unknown>
+          const uri = (entry["uri"] as string | undefined) ?? "(no uri)"
+          const mimeType = (entry["mimeType"] ?? entry["mime_type"]) as string | undefined
+          const text = typeof entry["text"] === "string" ? (entry["text"] as string) : undefined
+          const blob = typeof entry["blob"] === "string" ? (entry["blob"] as string) : undefined
+          prompts.log.info(`  uri: ${uri}`)
+          if (mimeType) {
+            prompts.log.info(`  type: ${mimeType}`)
+          }
+          if (text) {
+            prompts.log.info(`  text length: ${text.length}`)
+          }
+          if (blob) {
+            prompts.log.info(`  blob length: ${blob.length}`)
+          }
+        }
+
         prompts.outro("Done")
       },
     })

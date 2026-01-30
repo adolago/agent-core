@@ -29,7 +29,7 @@ describe("ensureZeeCliOnPath", () => {
           execPath: cliPath,
           cwd: tmp,
           homeDir: tmp,
-          platform: "darwin",
+          platform: "linux",
         });
         const updated = process.env.PATH ?? "";
         expect(updated.split(path.delimiter)[0]).toBe(appBinDir);
@@ -59,7 +59,7 @@ describe("ensureZeeCliOnPath", () => {
         execPath: "/tmp/does-not-matter",
         cwd: "/tmp",
         homeDir: "/tmp",
-        platform: "darwin",
+        platform: "linux",
       });
       expect(process.env.PATH).toBe("/bin");
     } finally {
@@ -106,7 +106,7 @@ describe("ensureZeeCliOnPath", () => {
         execPath: appCli,
         cwd: tmp,
         homeDir: tmp,
-        platform: "darwin",
+        platform: "linux",
       });
 
       const updated = process.env.PATH ?? "";

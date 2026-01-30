@@ -19,7 +19,7 @@
       }
     },
     "core-api-staging": {
-      "template": "web-api", 
+      "template": "web-api",
       "environment": "staging",
       "customConfig": {
         "database": "postgresql",
@@ -77,7 +77,11 @@
       "customConfig": {
         "messageQueue": "kafka",
         "delivery": "guaranteed",
-        "channels": ["email", "sms", "push"]
+        "channels": [
+          "email",
+          "sms",
+          "push"
+        ]
       }
     },
     "payment-service": {
@@ -85,7 +89,10 @@
       "environment": "prod",
       "customConfig": {
         "security": "maximum",
-        "compliance": ["pci-dss", "gdpr"],
+        "compliance": [
+          "pci-dss",
+          "gdpr"
+        ],
         "encryption": "aes-256"
       }
     },
@@ -94,7 +101,10 @@
       "environment": "prod",
       "customConfig": {
         "distribution": "npm",
-        "platforms": ["linux", "macos", "windows"]
+        "platforms": [
+          "linux",
+          "windows"
+        ]
       }
     },
     "monitoring-dashboard": {

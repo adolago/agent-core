@@ -140,7 +140,7 @@ const convergentPatterns = [
     tags: "root-cause-analysis,database,performance,systematic-debugging"
   },
   {
-    problem: "Mobile app crashes on specific Android devices",
+    problem: "Client app crashes on specific devices",
     cognitiveType: "convergent",
     domain: "technical",
     reasoning: [
@@ -155,7 +155,7 @@ const convergentPatterns = [
     solution: "Build and package arm64-v8a specific native libraries, add ABI detection in build pipeline",
     outcome: "Crashes eliminated on affected devices, 99.7% crash-free rate achieved",
     successRate: 0.89,
-    tags: "root-cause-analysis,mobile,native-code,debugging"
+    tags: "root-cause-analysis,client-app,native-code,debugging"
   },
   {
     problem: "E-commerce checkout process has 35% abandonment rate",
@@ -198,18 +198,18 @@ const convergentPatterns = [
     cognitiveType: "convergent",
     domain: "business",
     reasoning: [
-      "Segment performance data: Mobile CTR 0.3%, desktop CTR 1.8%",
-      "Analyze mobile experience: Landing page load time 8.5 seconds",
+      "Segment performance data: Handheld CTR 0.3%, desktop CTR 1.8%",
+      "Analyze small-screen experience: Landing page load time 8.5 seconds",
       "Identify bottleneck: Unoptimized hero image 4.2MB",
       "Review asset pipeline: Missing image compression step",
-      "Test hypothesis: Load time impacts mobile engagement",
+      "Test hypothesis: Load time impacts handheld engagement",
       "Deploy optimized images: Load time reduced to 2.1 seconds",
-      "Root cause: Lack of mobile-specific image optimization"
+      "Root cause: Lack of small-screen image optimization"
     ],
     solution: "Implement responsive image serving, WebP format with fallbacks, lazy loading for below-fold content",
-    outcome: "Mobile CTR increased to 2.7%, overall campaign CTR 2.4%",
+    outcome: "Handheld CTR increased to 2.7%, overall campaign CTR 2.4%",
     successRate: 0.88,
-    tags: "root-cause-analysis,marketing,performance,mobile-optimization"
+    tags: "root-cause-analysis,marketing,performance,small-screen-optimization"
   },
 
   // Logical Deduction (80 patterns)
@@ -595,7 +595,7 @@ const divergentPatterns = [
     tags: "divergent,brainstorming,marketing,b2b-saas"
   },
   {
-    problem: "Redesign mobile app to improve user engagement",
+    problem: "Redesign client app to improve user engagement",
     cognitiveType: "divergent",
     domain: "creative",
     reasoning: [
@@ -612,7 +612,7 @@ const divergentPatterns = [
     solution: "Hybrid design: Customizable widget dashboard with gesture-based shortcuts and gamified progress tracking",
     outcome: "Daily active users +52%, session duration +34%, app store rating 4.8",
     successRate: 0.88,
-    tags: "divergent,design,mobile,ux-redesign"
+    tags: "divergent,design,client-app,ux-redesign"
   },
   {
     problem: "Create new revenue streams for existing SaaS platform",

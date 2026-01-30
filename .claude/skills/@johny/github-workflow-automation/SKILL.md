@@ -140,7 +140,7 @@ npx claude-flow github workflow-add-security \
 ```bash
 # Generate matrix strategy
 npx claude-flow github matrix-generate \
-  --platforms "ubuntu-latest,macos-latest,windows-latest" \
+  --platforms "ubuntu-latest,windows-latest" \
   --node-versions "18,20,22" \
   --optimize-order
 ```

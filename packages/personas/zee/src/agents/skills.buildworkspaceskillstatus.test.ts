@@ -59,8 +59,8 @@ describe("buildWorkspaceSkillStatus", () => {
     await writeSkill({
       dir: skillDir,
       name: "os-skill",
-      description: "Darwin only",
-      metadata: '{"moltbot":{"os":["darwin"]}}',
+      description: "Linux only",
+      metadata: '{"moltbot":{"os":["linux"]}}',
     });
 
     const report = buildWorkspaceSkillStatus(workspaceDir, {
@@ -69,12 +69,12 @@ describe("buildWorkspaceSkillStatus", () => {
     const skill = report.skills.find((entry) => entry.name === "os-skill");
 
     expect(skill).toBeDefined();
-    if (process.platform === "darwin") {
+    if (process.platform === "linux") {
       expect(skill?.eligible).toBe(true);
       expect(skill?.missing.os).toEqual([]);
     } else {
       expect(skill?.eligible).toBe(false);
-      expect(skill?.missing.os).toEqual(["darwin"]);
+      expect(skill?.missing.os).toEqual(["linux"]);
     }
   });
   it("marks bundled skills blocked by allowlist", async () => {
@@ -119,7 +119,7 @@ describe("buildWorkspaceSkillStatus", () => {
       name: "install-skill",
       description: "OS-specific installs",
       metadata:
-        '{"moltbot":{"requires":{"bins":["missing-bin"]},"install":[{"id":"mac","kind":"download","os":["darwin"],"url":"https://example.com/mac.tar.bz2"},{"id":"linux","kind":"download","os":["linux"],"url":"https://example.com/linux.tar.bz2"},{"id":"win","kind":"download","os":["win32"],"url":"https://example.com/win.tar.bz2"}]}}',
+        '{"moltbot":{"requires":{"bins":["missing-bin"]},"install":[{"id":"linux","kind":"download","os":["linux"],"url":"https://example.com/linux.tar.bz2"},{"id":"win","kind":"download","os":["win32"],"url":"https://example.com/win.tar.bz2"}]}}',
     });
 
     const report = buildWorkspaceSkillStatus(workspaceDir, {
@@ -128,9 +128,7 @@ describe("buildWorkspaceSkillStatus", () => {
     const skill = report.skills.find((entry) => entry.name === "install-skill");
 
     expect(skill).toBeDefined();
-    if (process.platform === "darwin") {
-      expect(skill?.install.map((opt) => opt.id)).toEqual(["mac"]);
-    } else if (process.platform === "linux") {
+    if (process.platform === "linux") {
       expect(skill?.install.map((opt) => opt.id)).toEqual(["linux"]);
     } else if (process.platform === "win32") {
       expect(skill?.install.map((opt) => opt.id)).toEqual(["win"]);

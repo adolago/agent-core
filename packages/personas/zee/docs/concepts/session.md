@@ -17,7 +17,7 @@ Use `session.identityLinks` to map provider-prefixed peer ids to a canonical ide
 ## Gateway is the source of truth
 All session state is **owned by the gateway** (the “master” Zee). UI clients (Control UI and TUI) must query the gateway for session lists and token counts instead of reading local files.
 
-- In **remote mode**, the session store you care about lives on the remote gateway host, not your Mac.
+- In **remote mode**, the session store you care about lives on the remote gateway host, not your local host.
 - Token counts shown in UIs come from the gateway’s store fields (`inputTokens`, `outputTokens`, `totalTokens`, `contextTokens`). Clients do not parse JSONL transcripts to “fix up” totals.
 
 ## Where state lives

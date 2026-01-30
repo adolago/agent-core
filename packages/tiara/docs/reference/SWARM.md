@@ -931,7 +931,6 @@ interface AlertRule {
 }
 
 interface AlertChannel {
-  type: 'email' | 'slack' | 'webhook' | 'console';
   config: Record<string, any>;
   severityFilter: string[];
 }
@@ -1736,7 +1735,6 @@ alerts:
   warning:
     - metric: "response_time_p95"
       threshold: "> 5s"
-      action: "slack_notification"
     
     - metric: "agent_failure_rate"
       threshold: "> 2%"

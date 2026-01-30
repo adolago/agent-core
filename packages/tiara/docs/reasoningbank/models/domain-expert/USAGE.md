@@ -129,7 +129,6 @@ npx agentic-flow agent devops \
 
 # Security agent with compliance patterns
 npx agentic-flow agent security-engineer \
-  "Implement OAuth 2.0 with PKCE for mobile app" \
   --model claude-sonnet-4-5-20250929
 
 # Data engineer with ML patterns
@@ -382,7 +381,6 @@ sqlite3 memory.db.backup "SELECT COUNT(*) FROM patterns;" | head -1
 
 ## Support & Feedback
 
-- **Community**: Join the Claude Flow Discord
 
 ---
 

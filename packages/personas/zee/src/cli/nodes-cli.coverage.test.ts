@@ -108,7 +108,7 @@ describe("nodes-cli coverage", () => {
         "nodes",
         "run",
         "--node",
-        "mac-1",
+        "node-1",
         "--cwd",
         "/tmp",
         "--env",
@@ -154,7 +154,7 @@ describe("nodes-cli coverage", () => {
     registerNodesCli(program);
 
     await program.parseAsync(
-      ["nodes", "run", "--agent", "main", "--node", "mac-1", "--raw", "echo hi"],
+      ["nodes", "run", "--agent", "main", "--node", "node-1", "--raw", "echo hi"],
       { from: "user" },
     );
 
@@ -187,7 +187,7 @@ describe("nodes-cli coverage", () => {
         "nodes",
         "notify",
         "--node",
-        "mac-1",
+        "node-1",
         "--title",
         "Ping",
         "--body",
@@ -227,7 +227,7 @@ describe("nodes-cli coverage", () => {
         "location",
         "get",
         "--node",
-        "mac-1",
+        "node-1",
         "--accuracy",
         "precise",
         "--max-age",

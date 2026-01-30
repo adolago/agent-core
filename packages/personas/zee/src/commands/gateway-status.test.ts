@@ -208,12 +208,12 @@ describe("gateway-status command", () => {
       loadConfig.mockReturnValueOnce({
         gateway: {
           mode: "remote",
-          remote: { url: "ws://peters-mac-studio-1.sheep-coho.ts.net:18789", token: "rtok" },
+          remote: { url: "ws://peters-gateway-host-1.sheep-coho.ts.net:18789", token: "rtok" },
         },
       });
       resolveSshConfig.mockResolvedValueOnce({
         user: "steipete",
-        host: "peters-mac-studio-1.sheep-coho.ts.net",
+        host: "peters-gateway-host-1.sheep-coho.ts.net",
         port: 2222,
         identityFiles: ["/tmp/id_ed25519"],
       });
@@ -230,7 +230,7 @@ describe("gateway-status command", () => {
         target: string;
         identity?: string;
       };
-      expect(call.target).toBe("steipete@peters-mac-studio-1.sheep-coho.ts.net:2222");
+      expect(call.target).toBe("steipete@peters-gateway-host-1.sheep-coho.ts.net:2222");
       expect(call.identity).toBe("/tmp/id_ed25519");
     } finally {
       process.env.USER = originalUser;

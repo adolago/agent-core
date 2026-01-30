@@ -41,7 +41,7 @@ echo '{"tool_input":{"file_path":"test.js"}}' | npx claude-flow@alpha hooks modi
 
 **Features:**
 - **Conventional Commits**: Auto-adds type prefixes (`[feat]`, `[fix]`, `[docs]`, etc.)
-- **Ticket Extraction**: Extracts JIRA tickets from branch names (e.g., `feature/PROJ-123` → `(PROJ-123)`)
+- **Ticket Extraction**: Extracts ticket IDs from branch names (e.g., `feature/PROJ-123` → `(PROJ-123)`)
 - **Co-Author**: Adds Claude Flow co-author footer
 
 **Example:**

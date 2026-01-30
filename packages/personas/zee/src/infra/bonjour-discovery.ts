@@ -493,26 +493,6 @@ export async function discoverGatewayBeacons(
     .map((d) => (d.endsWith(".") ? d : `${d}.`));
 
   try {
-    if (platform === "darwin") {
-      const perDomain = await Promise.allSettled(
-        domains.map(async (domain) => await discoverViaDnsSd(domain, timeoutMs, run)),
-      );
-      const discovered = perDomain.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
-
-      const wantsWideArea = domains.includes(WIDE_AREA_DISCOVERY_DOMAIN);
-      const hasWideArea = discovered.some((b) => b.domain === WIDE_AREA_DISCOVERY_DOMAIN);
-
-      if (wantsWideArea && !hasWideArea) {
-        const fallback = await discoverWideAreaViaTailnetDns(
-          WIDE_AREA_DISCOVERY_DOMAIN,
-          timeoutMs,
-          run,
-        ).catch(() => []);
-        return [...discovered, ...fallback];
-      }
-
-      return discovered;
-    }
     if (platform === "linux") {
       const perDomain = await Promise.allSettled(
         domains.map(async (domain) => await discoverViaAvahi(domain, timeoutMs, run)),

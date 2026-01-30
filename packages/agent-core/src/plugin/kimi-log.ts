@@ -28,7 +28,10 @@ function computeNextRotation(nowMs: number) {
 }
 
 async function ensureRotation(nowMs: number) {
-  if (!nextRotationAt) nextRotationAt = computeNextRotation(nowMs)
+  if (!nextRotationAt) {
+    nextRotationAt = computeNextRotation(nowMs)
+    await cleanupOldLogs(nowMs)
+  }
   if (nowMs < nextRotationAt) return
 
   const currentPath = logPath()

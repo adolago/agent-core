@@ -164,7 +164,7 @@ Goal: "Migrate from MySQL to PostgreSQL"
 - **Business Risk**: Feature priority changes, market demands
 
 ### Automated Goal Tracking
-- Integration with project management tools (Jira, Linear, etc.)
+- Integration with project management tools (Linear, etc.)
 - Git commit analysis for progress tracking
 - CI/CD pipeline status correlation
 - Automated stakeholder reporting

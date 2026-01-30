@@ -158,8 +158,8 @@ export function registerDnsCli(program: Command) {
         return;
       }
 
-      if (process.platform !== "darwin") {
-        throw new Error("dns setup is currently supported only on supported hosts");
+      if (process.platform === "win32") {
+        throw new Error("dns setup is not supported on Windows hosts");
       }
       if (!tailnetIPv4 && !tailnetIPv6) {
         throw new Error("no tailnet IP detected; ensure Tailscale is running on this machine");

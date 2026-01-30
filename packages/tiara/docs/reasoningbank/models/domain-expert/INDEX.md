@@ -162,7 +162,6 @@ npx agentic-flow agent data-engineer "Build ETL pipeline" --model claude-sonnet-
 
 ## 📞 Support
 
-- **Community**: Claude Flow Discord
 
 ## 📝 Version History
 

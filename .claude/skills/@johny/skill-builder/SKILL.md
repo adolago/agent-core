@@ -894,7 +894,6 @@ See `resources/templates/` for available component templates.
 
 ### Community
 - [Skills Marketplace](https://github.com/anthropics/skills) - Browse community skills
-- [Anthropic Discord](https://discord.gg/anthropic) - Get help from community
 
 ### Advanced Topics
 - Multi-file skills with complex navigation

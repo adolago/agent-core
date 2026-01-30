@@ -367,7 +367,6 @@ if (reasoningbank.shouldConsolidate()) {
 All memories automatically scrubbed with 9 patterns:
 - Emails
 - SSN
-- API keys (Anthropic, GitHub, Slack)
 - Credit card numbers
 - Phone numbers
 - IP addresses

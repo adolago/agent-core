@@ -81,7 +81,7 @@ zee gateway health --url ws://127.0.0.1:18789
 
 ### `gateway status`
 
-`gateway status` shows the Gateway service (launchd/systemd/schtasks) plus an optional RPC probe.
+`gateway status` shows the Gateway service (systemd/schtasks) plus an optional RPC probe.
 
 ```bash
 zee gateway status

@@ -1037,7 +1037,6 @@ The following features are deprecated and will be removed in v4.0.0:
 
 For migration assistance:
 - Migration Guide: https://docs.claude-flow.dev/migration/v3
-- Discord: https://discord.com/invite/dfxmpwkG2D
 ```
 
 #### Task 7.2: Create Automated Migration Script

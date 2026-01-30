@@ -102,7 +102,7 @@ describe("exec approvals CLI", () => {
     program.exitOverride();
     registerExecApprovalsCli(program);
 
-    await program.parseAsync(["approvals", "get", "--node", "macbook"], { from: "user" });
+    await program.parseAsync(["approvals", "get", "--node", "laptop"], { from: "user" });
 
     expect(callGatewayFromCli).toHaveBeenCalledWith("exec.approvals.node.get", expect.anything(), {
       nodeId: "node-1",

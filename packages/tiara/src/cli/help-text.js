@@ -400,7 +400,6 @@ MODES:
   ops            DevOps and infrastructure
   ml             Machine learning workflows
   blockchain     Blockchain development
-  mobile         Mobile app development
   game           Game development
   iot            IoT system development
 

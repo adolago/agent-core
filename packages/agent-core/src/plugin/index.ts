@@ -46,19 +46,26 @@ export namespace Plugin {
       hooks.push(init)
     }
 
-    const plugins = [...(config.plugin ?? []), ...BUILTIN]
+    const configPlugins = config.plugin ?? []
+    const configNames = new Set(configPlugins.map((item) => Config.getPluginName(item)))
+    const builtinNames = new Set(BUILTIN.map((item) => Config.getPluginName(item)))
+
+    // Built-in plugins are lowest precedence; config plugins override by name.
+    const plugins = Config.deduplicatePlugins([...(BUILTIN ?? []), ...configPlugins])
 
     for (let plugin of plugins) {
       // ignore old codex plugin since it is supported first party now
       if (plugin.includes("opencode-openai-codex-auth")) continue
+      const pluginName = Config.getPluginName(plugin)
+      const isBuiltin = builtinNames.has(pluginName) && !configNames.has(pluginName)
+
       log.info("loading plugin", { path: plugin })
       if (!plugin.startsWith("file://")) {
         const lastAtIndex = plugin.lastIndexOf("@")
         const pkg = lastAtIndex > 0 ? plugin.substring(0, lastAtIndex) : plugin
         const version = lastAtIndex > 0 ? plugin.substring(lastAtIndex + 1) : "latest"
-        const builtin = BUILTIN.some((x) => x.startsWith(pkg + "@"))
         plugin = await BunProc.install(pkg, version).catch((err) => {
-          if (!builtin) throw err
+          if (!isBuiltin) throw err
 
           const message = err instanceof Error ? err.message : String(err)
           log.error("failed to install builtin plugin", {
@@ -76,7 +83,24 @@ export namespace Plugin {
         })
         if (!plugin) continue
       }
-      const mod = await import(plugin)
+      let mod: Record<string, PluginInstance>
+      try {
+        mod = await import(plugin)
+      } catch (err) {
+        if (!isBuiltin) throw err
+
+        const message = err instanceof Error ? err.message : String(err)
+        log.error("failed to load builtin plugin", {
+          plugin: pluginName,
+          error: message,
+        })
+        Bus.publish(Session.Event.Error, {
+          error: new NamedError.Unknown({
+            message: `Failed to load built-in plugin ${pluginName}: ${message}`,
+          }).toObject(),
+        })
+        continue
+      }
       // Prevent duplicate initialization when plugins export the same function
       // as both a named export and default export (e.g., `export const X` and `export default X`).
       // Object.entries(mod) would return both entries pointing to the same function reference.

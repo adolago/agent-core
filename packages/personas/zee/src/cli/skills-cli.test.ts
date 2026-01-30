@@ -98,7 +98,7 @@ describe("skills-cli", () => {
             anyBins: ["rg", "grep"],
             env: ["API_KEY"],
             config: [],
-            os: ["darwin"],
+            os: ["linux"],
           },
         }),
       ]);

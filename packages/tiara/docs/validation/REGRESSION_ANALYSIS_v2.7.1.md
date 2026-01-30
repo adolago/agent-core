@@ -72,7 +72,6 @@ Result: 0 files changed
 
 # Binary Build (pkg)
 ⚠️ Warning: Babel parse has failed (expected - import.meta not supported in bytecode)
-✅ Binaries created successfully for node18-linux-x64,node18-macos-x64,node18-win-x64
 ```
 
 **Status**: ✅ Build process working (warnings are expected for import.meta)

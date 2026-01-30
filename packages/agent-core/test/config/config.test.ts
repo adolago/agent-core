@@ -1087,9 +1087,9 @@ test("project config can override MCP server enabled status", async () => {
         JSON.stringify({
           $schema: "agent-core",
           mcp: {
-            jira: {
+            tracker: {
               type: "remote",
-              url: "https://jira.example.com/mcp",
+              url: "https://tracker.example.com/mcp",
               enabled: false,
             },
             wiki: {
@@ -1100,15 +1100,15 @@ test("project config can override MCP server enabled status", async () => {
           },
         }),
       )
-      // Project config enables just jira
+        // Project config enables just tracker
       await Bun.write(
         path.join(dir, "agent-core.json"),
         JSON.stringify({
           $schema: "agent-core",
           mcp: {
-            jira: {
+            tracker: {
               type: "remote",
-              url: "https://jira.example.com/mcp",
+              url: "https://tracker.example.com/mcp",
               enabled: true,
             },
           },
@@ -1120,10 +1120,10 @@ test("project config can override MCP server enabled status", async () => {
     directory: tmp.path,
     fn: async () => {
       const config = await Config.get()
-      // jira should be enabled (overridden by project config)
-      expect(config.mcp?.jira).toEqual({
+      // tracker should be enabled (overridden by project config)
+      expect(config.mcp?.tracker).toEqual({
         type: "remote",
-        url: "https://jira.example.com/mcp",
+        url: "https://tracker.example.com/mcp",
         enabled: true,
       })
       // wiki should still be disabled (not overridden)
@@ -1244,9 +1244,9 @@ test("project config overrides remote well-known config", async () => {
           JSON.stringify({
             config: {
               mcp: {
-                jira: {
+                tracker: {
                   type: "remote",
-                  url: "https://jira.example.com/mcp",
+                  url: "https://tracker.example.com/mcp",
                   enabled: false,
                 },
               },
@@ -1275,15 +1275,15 @@ test("project config overrides remote well-known config", async () => {
     await using tmp = await tmpdir({
       git: true,
       init: async (dir) => {
-        // Project config enables jira (overriding remote default)
+        // Project config enables tracker (overriding remote default)
         await Bun.write(
           path.join(dir, "agent-core.json"),
           JSON.stringify({
             $schema: "agent-core",
             mcp: {
-              jira: {
+              tracker: {
                 type: "remote",
-                url: "https://jira.example.com/mcp",
+                url: "https://tracker.example.com/mcp",
                 enabled: true,
               },
             },
@@ -1298,7 +1298,7 @@ test("project config overrides remote well-known config", async () => {
         // Verify fetch was called for wellknown config
         expect(fetchedUrl).toBe("https://example.com/.well-known/opencode")
         // Project config (enabled: true) should override remote (enabled: false)
-        expect(config.mcp?.jira?.enabled).toBe(true)
+        expect(config.mcp?.tracker?.enabled).toBe(true)
       },
     })
   } finally {

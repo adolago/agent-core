@@ -11,15 +11,8 @@ export type ImageMetadata = {
   height: number;
 };
 
-function isBun(): boolean {
-  return typeof (process.versions as { bun?: unknown }).bun === "string";
-}
-
 function prefersSips(): boolean {
-  return (
-    process.env.CLAWDBOT_IMAGE_BACKEND === "sips" ||
-    (process.env.CLAWDBOT_IMAGE_BACKEND !== "sharp" && isBun() && process.platform === "darwin")
-  );
+  return process.env.ZEE_IMAGE_BACKEND === "sips";
 }
 
 async function loadSharp(): Promise<(buffer: Buffer) => ReturnType<Sharp>> {

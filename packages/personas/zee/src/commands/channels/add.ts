@@ -85,7 +85,6 @@ export async function channelsAddCommand(
     await prompter.intro("Channel setup");
     let nextConfig = await setupChannels(cfg, runtime, prompter, {
       allowDisable: false,
-      allowSignalInstall: false,
       promptAccountIds: true,
       onSelection: (value) => {
         selection = value;

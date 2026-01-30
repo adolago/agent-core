@@ -390,7 +390,6 @@ interface ProfilingData {
 ```typescript
 // Found from sharp package analysis
 const prebuiltPlatforms = [
-  "darwin-arm64", "darwin-x64",
   "linux-arm", "linux-arm64", "linux-s390x", "linux-x64",
   "linuxmusl-arm64", "linuxmusl-x64",
   "win32-ia32", "win32-x64",
@@ -399,16 +398,8 @@ const prebuiltPlatforms = [
 ```
 **Feature**: SDK supports WebAssembly compilation
 
-### 7. **Rosetta Detection** (macOS)
 ```typescript
-// Found in sharp installation code
-function WsQ(): boolean {
-  // Detects if running on Apple Silicon via Rosetta
-  return (spawnSync("sysctl sysctl.proc_translated").stdout || "").trim() ===
-         "sysctl.proc_translated: 1";
-}
 ```
-**Use**: Optimizes performance on ARM Macs
 
 ### 8. **Custom Slash Commands**
 ```typescript

@@ -54,7 +54,7 @@ npx claude-flow@latest %*
     } else {
       const devBinPath = `${workingDir}/bin/claude-flow`;
 
-      // Create Unix/Linux/Mac shell script
+      // Create Unix/Linux shell script
       const wrapperScript = `#!/usr/bin/env bash
 # Claude-Flow local wrapper
 # This script ensures claude-flow runs from your project directory

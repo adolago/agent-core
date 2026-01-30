@@ -97,7 +97,7 @@ ZEE_PROFILE=dev zee gateway --dev --reset
 `--reset` wipes config, credentials, sessions, and the dev workspace (using
 `trash`, not `rm`), then recreates the default dev setup.
 
-Tip: if a non‑dev gateway is already running (launchd/systemd), stop it first:
+Tip: if a non‑dev gateway is already running (systemd), stop it first:
 
 ```bash
 zee gateway stop

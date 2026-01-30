@@ -2,10 +2,10 @@
 name: bird
 description: X/Twitter CLI for reading, searching, posting, and engagement via cookies.
 homepage: https://bird.fast
-metadata: {"zee":{"emoji":"🐦","requires":{"bins":["bird"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/bird","bins":["bird"],"label":"Install bird (brew)","os":["darwin"]},{"id":"npm","kind":"node","package":"@steipete/bird","bins":["bird"],"label":"Install bird (npm)"}]}}
+metadata: {"zee":{"emoji":"🐦","requires":{"bins":["bird"]},"install":[{"id":"npm","kind":"node","package":"@steipete/bird","bins":["bird"],"label":"Install bird (npm)"}]}}
 ---
 
-# bird 🐦
+# bird
 
 Fast X/Twitter CLI using GraphQL + cookie auth.
 
@@ -14,9 +14,6 @@ Fast X/Twitter CLI using GraphQL + cookie auth.
 ```bash
 # npm/pnpm/bun
 npm install -g @steipete/bird
-
-# Homebrew (macOS, prebuilt binary)
-brew install steipete/tap/bird
 
 # One-shot (no install)
 bunx @steipete/bird whoami

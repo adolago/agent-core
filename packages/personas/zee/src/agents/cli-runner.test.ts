@@ -21,7 +21,7 @@ describe("runCliAgent resume cleanup", () => {
   it("kills stale resume processes for codex sessions", async () => {
     runExecMock
       .mockResolvedValueOnce({
-        stdout: "  1 S /bin/launchd\n",
+        stdout: "  1 S /lib/systemd/systemd\n",
         stderr: "",
       }) // cleanupSuspendedCliProcesses (ps)
       .mockResolvedValueOnce({ stdout: "", stderr: "" }); // cleanupResumeProcesses (pkill)

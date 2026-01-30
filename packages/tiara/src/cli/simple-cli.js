@@ -161,7 +161,7 @@ USAGE:
 🔗 INTEGRATION & COMPATIBILITY:
   • Node.js 20+ optimization for enterprise environments
   • Complete Claude Code integration with enhanced capabilities
-  • Multi-platform support (Windows, macOS, Linux)
+  • Multi-platform support (Windows, Linux)
   • Enterprise security with access control and audit logging
   • Cross-package synchronization and dependency management
 

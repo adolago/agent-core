@@ -19,7 +19,7 @@
     "build:esm": "swc src -d dist --config-file .swcrc",
     "build:cjs": "swc src -d dist-cjs --config-file .swcrc",
     "build:ts": "npm run build:esm && npm run build:cjs",
-    "build:binary": "pkg dist/src/cli/main.js --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output bin/tiara",
+    "build:binary": "pkg dist/src/cli/main.js --targets node18-linux-x64,node18-win-x64 --output bin/tiara",
     "build:simple": "npm run build:ts && pkg dist/cli/simple-cli.js --output bin/tiara-simple",
     "typecheck": "tsc --noEmit || echo 'TypeScript errors - to be fixed later'",
     "typecheck:watch": "tsc --noEmit --watch",
@@ -50,7 +50,7 @@
     "format": "prettier --write 'src/**/*.{ts,js,json}'",
     "diagnostics": "node -e \"import('./dist/monitoring/diagnostics.js').then(m => m.DiagnosticManager.quickDiagnostic().then(console.log))\"",
     "health-check": "node -e \"import('./dist/monitoring/health-check.js').then(m => new m.HealthCheckManager().performHealthCheck().then(console.log))\"",
-    "postinstall": "node scripts/install-arm64.js || true && bash scripts/fix-agentdb-imports.sh || true && bash scripts/fix-agentic-flow-sqlite.sh || true && bash scripts/fix-agentic-flow-enabled-log.sh || true",
+    "postinstall": "bash scripts/fix-agentdb-imports.sh || true && bash scripts/fix-agentic-flow-sqlite.sh || true && bash scripts/fix-agentic-flow-enabled-log.sh || true",
     "prepublishOnly": "npm run update-version",
     "publish:alpha": "npm publish --tag alpha",
     "publish:major": "npm version major && npm publish",
@@ -191,7 +191,6 @@
   "pkg": {
     "targets": [
       "node20-linux-x64",
-      "node20-macos-x64",
       "node20-win-x64"
     ],
     "scripts": "dist/**/*.js",

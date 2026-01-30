@@ -471,4 +471,3 @@ Import from backup if available
 5. Test and iterate
 
 **Questions?**
-- Discord: https://discord.com/invite/dfxmpwkG2D

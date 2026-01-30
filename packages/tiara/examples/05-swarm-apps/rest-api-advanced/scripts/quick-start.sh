@@ -81,13 +81,7 @@ if [ ! -f .env ]; then
     JWT_SECRET=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
     
     # Update .env with generated secret
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        sed -i '' "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/" .env
-    else
-        # Linux
-        sed -i "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/" .env
-    fi
+    sed -i "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/" .env
     
     echo -e "${GREEN}✅ Generated secure JWT secret${NC}"
 fi

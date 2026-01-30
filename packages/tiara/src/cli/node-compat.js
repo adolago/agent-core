@@ -174,11 +174,9 @@ export const build = {
   os:
     process.platform === 'win32'
       ? 'windows'
-      : process.platform === 'darwin'
-        ? 'darwin'
-        : process.platform === 'linux'
-          ? 'linux'
-          : process.platform,
+      : process.platform === 'linux'
+        ? 'linux'
+        : 'unix',
   arch: process.arch,
   target: `${process.arch}-${process.platform}`,
 };

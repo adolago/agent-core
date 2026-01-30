@@ -551,7 +551,6 @@ Makes vector databases smaller and faster. Binary quantization compresses vector
 - 768-dim vector: 3072 bytes → 96 bytes
 - 1M vectors: 3GB → 96MB
 - Trade-off: ~2-5% accuracy loss
-- Use for: Mobile apps, large-scale deployments
 
 **2. Scalar Quantization (4x Compression)**
 - Converts float32 to int8

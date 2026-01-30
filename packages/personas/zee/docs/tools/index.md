@@ -274,7 +274,7 @@ Core actions:
 
 Notes:
 - Uses gateway `node.invoke` under the hood.
-- If no `node` is provided, the tool picks a default (single connected node or local mac node).
+- If no `node` is provided, the tool picks a default (single connected node or local node host).
 - A2UI is v0.8 only (no `createSurface`); the CLI rejects v0.9 JSONL with line errors.
 - Quick smoke: `zee nodes canvas a2ui push --node <id> --text "Hello from A2UI"`.
 
@@ -300,7 +300,7 @@ Example (`run`):
 ```json
 {
   "action": "run",
-  "node": "office-mac",
+  "node": "office-node",
   "command": ["echo", "Hello"],
   "env": ["FOO=bar"],
   "commandTimeoutMs": 12000,

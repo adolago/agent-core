@@ -290,7 +290,7 @@ describe('AuthService', () => {
     it('should extract mobile device info', () => {
       const req = {
         headers: {
-          'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) Mobile/15E148 Safari/604.1',
+          'user-agent': 'Mozilla/5.0 (Linux; Mobile; rv:109.0) Gecko/20100101 Firefox/120.0',
         },
         ip: '192.168.1.1',
       };
@@ -298,8 +298,8 @@ describe('AuthService', () => {
       const deviceInfo = authService.extractDeviceInfo(req);
 
       expect(deviceInfo.device).toBe('mobile');
-      expect(deviceInfo.browser).toBe('Safari');
-      expect(deviceInfo.os).toBe('iOS');
+      expect(deviceInfo.browser).toBe('Firefox');
+      expect(deviceInfo.os).toBe('Linux');
       expect(deviceInfo.ip).toBe('192.168.1.1');
     });
 

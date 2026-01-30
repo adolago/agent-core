@@ -1,7 +1,7 @@
 ---
 name: tmux
 description: Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.
-metadata: {"zee":{"emoji":"🧵","os":["darwin","linux"],"requires":{"bins":["tmux"]}}}
+metadata: {"zee":{"emoji":"🧵","os":["linux"],"requires":{"bins":["tmux"]}}}
 ---
 
 # tmux Skill (Zee)
@@ -11,7 +11,7 @@ Use tmux only when you need an interactive TTY. Prefer exec background mode for 
 ## Quickstart (isolated socket, exec tool)
 
 ```bash
-SOCKET_DIR="${CLAWDBOT_TMUX_SOCKET_DIR:-${TMPDIR:-/tmp}/zee-tmux-sockets}"
+SOCKET_DIR="${ZEE_TMUX_SOCKET_DIR:-${TMPDIR:-/tmp}/zee-tmux-sockets}"
 mkdir -p "$SOCKET_DIR"
 SOCKET="$SOCKET_DIR/zee.sock"
 SESSION=zee-python
@@ -31,8 +31,8 @@ To monitor:
 
 ## Socket convention
 
-- Use `CLAWDBOT_TMUX_SOCKET_DIR` (default `${TMPDIR:-/tmp}/zee-tmux-sockets`).
-- Default socket path: `"$CLAWDBOT_TMUX_SOCKET_DIR/zee.sock"`.
+- Use `ZEE_TMUX_SOCKET_DIR` (default `${TMPDIR:-/tmp}/zee-tmux-sockets`).
+- Default socket path: `"$ZEE_TMUX_SOCKET_DIR/zee.sock"`.
 
 ## Targeting panes and naming
 
@@ -43,7 +43,7 @@ To monitor:
 ## Finding sessions
 
 - List sessions on your socket: `{baseDir}/scripts/find-sessions.sh -S "$SOCKET"`.
-- Scan all sockets: `{baseDir}/scripts/find-sessions.sh --all` (uses `CLAWDBOT_TMUX_SOCKET_DIR`).
+- Scan all sockets: `{baseDir}/scripts/find-sessions.sh --all` (uses `ZEE_TMUX_SOCKET_DIR`).
 
 ## Sending input safely
 
@@ -62,8 +62,8 @@ To monitor:
 
 ## Windows / WSL
 
-- tmux is supported on macOS/Linux. On Windows, use WSL and install tmux inside WSL.
-- This skill is gated to `darwin`/`linux` and requires `tmux` on PATH.
+- tmux is supported on Linux. On Windows, use WSL and install tmux inside WSL.
+- This skill is gated to `linux` and requires `tmux` on PATH.
 
 ## Orchestrating Coding Agents (Codex, Claude Code)
 

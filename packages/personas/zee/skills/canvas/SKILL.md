@@ -130,7 +130,7 @@ canvas action:present node:<node-id> target:<full-url>
 
 **Example:**
 ```
-canvas action:present node:mac-63599bc4-b54d-4392-9048-b97abd58343a target:http://peters-mac-studio-1.sheep-coho.ts.net:18793/__zee__/canvas/snake.html
+canvas action:present node:node-63599bc4-b54d-4392-9048-b97abd58343a target:http://peters-gateway-host-1.sheep-coho.ts.net:18793/__zee__/canvas/snake.html
 ```
 
 ### 5. Navigate, snapshot, or hide

@@ -33,7 +33,7 @@ async function basicDomainAnalysis() {
     { id: 'user-db', name: 'User Database', type: 'data' },
     { id: 'cache-layer', name: 'Redis Cache', type: 'data' },
     { id: 'admin-ui', name: 'Admin Dashboard', type: 'ui' },
-    { id: 'mobile-app', name: 'Mobile Application', type: 'ui' }
+    { id: 'client-app', name: 'Client Application', type: 'ui' }
   ];
 
   // Define relationships
@@ -43,8 +43,8 @@ async function basicDomainAnalysis() {
     { source: 'user-service', target: 'cache-layer', type: 'data-flow' },
     { source: 'notification-service', target: 'user-service', type: 'communication' },
     { source: 'admin-ui', target: 'user-service', type: 'communication' },
-    { source: 'mobile-app', target: 'user-service', type: 'communication' },
-    { source: 'mobile-app', target: 'notification-service', type: 'communication' }
+    { source: 'client-app', target: 'user-service', type: 'communication' },
+    { source: 'client-app', target: 'notification-service', type: 'communication' }
   ];
 
   // Create domain graph

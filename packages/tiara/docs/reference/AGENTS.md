@@ -404,14 +404,14 @@ npx claude-flow@alpha memory distributed init --coordinator swarm-memory-manager
 - Server-side optimization
 
 ### `mobile-dev`
-**Type**: Mobile Application Development  
-**Purpose**: React Native and cross-platform mobile development  
+**Type**: Client Application Development  
+**Purpose**: React Native and cross-platform client development  
 **Key Capabilities**:
 - React Native development
-- Native mobile integrations
-- Mobile UI/UX optimization
+- Native client integrations
+- Client UI/UX optimization
 - Performance optimization
-- App store deployment
+- Store deployment
 
 ### `ml-developer`
 **Type**: Machine Learning  
@@ -859,7 +859,7 @@ Coordinator (adaptive-coordinator)
 - Quality: `reviewer`, `security-analyzer`
 - DevOps: `cicd-engineer`, `deployment-coordinator`
 
-**Mobile Application**:
+**Client Application**:
 - Core: `planner`, `mobile-dev`, `backend-dev`, `api-docs`
 - Quality: `tester`, `performance-benchmarker`
 - DevOps: `release-manager`
@@ -991,7 +991,6 @@ npx claude-flow@alpha dashboard --agents --performance
 - [Architecture Overview](/docs/ARCHITECTURE.md)
 
 ### Community
-- [Discord Community](https://discord.com/invite/dfxmpwkG2D)
 
 ### Contact
 - **Email**: support@claude-flow.ai

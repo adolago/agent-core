@@ -160,7 +160,7 @@ The `metadata.zee` object supports:
   - **`anyBins`**: At least one of these binaries must be present
   - **`env`**: Required environment variables
   - **`config`**: Required config paths (e.g., `["workspace.dir"]`)
-  - **`os`**: Required platforms (e.g., `["darwin", "linux"]`)
+  - **`os`**: Required platforms (e.g., `["linux", "win32"]`)
 - **`always`**: Bypass eligibility checks (boolean)
 - **`install`**: Installation methods (for bundled hooks: `[{"id":"bundled","kind":"bundled"}]`)
 
@@ -184,7 +184,7 @@ const myHandler: HookHandler = async (event) => {
   // Your custom logic here
 
   // Optionally send message to user
-  event.messages.push('✨ My hook executed!');
+  event.messages.push('Hook executed.');
 };
 
 export default myHandler;
@@ -802,7 +802,7 @@ Look for missing:
 
 3. Check gateway logs for errors:
    ```bash
-   ./scripts/clawlog.sh | grep hook
+   tail -n 200 ~/.local/state/agent-core/logs/daemon.log | rg hook
    ```
 
 ### Handler Errors

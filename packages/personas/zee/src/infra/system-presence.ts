@@ -64,15 +64,14 @@ function initSelfPresence() {
     const p = os.platform();
     const rel = os.release();
     if (p === "win32") return `windows ${rel}`;
-    if (p === "darwin") return `darwin ${rel}`;
-    return `${p} ${rel}`;
+    if (p === "linux") return `linux ${rel}`;
+    return `unix ${rel}`;
   })();
   const deviceFamily = (() => {
     const p = os.platform();
-    if (p === "darwin") return "Unix";
     if (p === "win32") return "Windows";
     if (p === "linux") return "Linux";
-    return p;
+    return "Unix";
   })();
   const text = `Gateway: ${host}${ip ? ` (${ip})` : ""} · app ${version} · mode gateway · reason self`;
   const selfEntry: SystemPresence = {

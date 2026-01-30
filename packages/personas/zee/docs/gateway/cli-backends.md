@@ -32,7 +32,7 @@ Codex CLI also works out of the box:
 zee agent --message "hi" --model codex-cli/gpt-5.2-codex
 ```
 
-If your gateway runs under launchd/systemd and PATH is minimal, add just the
+If your gateway runs under systemd and PATH is minimal, add just the
 command path:
 
 ```json5
@@ -41,7 +41,7 @@ command path:
     defaults: {
       cliBackends: {
         "claude-cli": {
-          command: "/opt/homebrew/bin/claude"
+          command: "/usr/local/bin/claude"
         }
       }
     }
@@ -102,7 +102,7 @@ The provider id becomes the left side of your model ref:
     defaults: {
       cliBackends: {
         "claude-cli": {
-          command: "/opt/homebrew/bin/claude"
+          command: "/usr/local/bin/claude"
         },
         "my-cli": {
           command: "my-cli",

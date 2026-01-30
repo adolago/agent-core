@@ -176,7 +176,7 @@ export class SparcSpecification extends SparcPhase {
   identifyDomain() {
     const domains = {
       web: ['web', 'website', 'html', 'css', 'javascript'],
-      mobile: ['mobile', 'app', 'android', 'ios'],
+      mobile: ['mobile', 'app'],
       data: ['data', 'analytics', 'ml', 'ai', 'machine learning'],
       security: ['security', 'auth', 'authentication', 'encryption'],
       devops: ['deploy', 'ci/cd', 'docker', 'kubernetes'],

@@ -436,7 +436,6 @@ npx claude-flow --version  # Should show v2.7.33
 - **Deep Code Review**: `docs/DEEP_CODE_REVIEW_v2.7.33.md`
 
 ### Community
-- **Discord**: https://discord.com/invite/dfxmpwkG2D
 
 ### Enterprise
 - **Flow-Nexus Platform**: https://flow-nexus.ruv.io

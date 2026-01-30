@@ -202,7 +202,6 @@ This model represents aggregated industry best practices and patterns from:
 ## Support
 
 For issues or questions about this model:
-- Community: Claude Flow Discord
 
 ---
 

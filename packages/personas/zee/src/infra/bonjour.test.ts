@@ -111,7 +111,7 @@ describe("gateway bonjour advertiser", () => {
       gatewayPort: 18789,
       sshPort: 2222,
       tailnetDns: "host.tailnet.ts.net",
-      cliPath: "/opt/homebrew/bin/zee",
+      cliPath: "/usr/local/bin/zee",
     });
 
     expect(createService).toHaveBeenCalledTimes(1);
@@ -126,7 +126,7 @@ describe("gateway bonjour advertiser", () => {
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.gatewayPort).toBe("18789");
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.sshPort).toBe("2222");
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.cliPath).toBe(
-      "/opt/homebrew/bin/zee",
+      "/usr/local/bin/zee",
     );
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.transport).toBe("gateway");
 
@@ -163,7 +163,7 @@ describe("gateway bonjour advertiser", () => {
     const started = await startGatewayBonjourAdvertiser({
       gatewayPort: 18789,
       sshPort: 2222,
-      cliPath: "/opt/homebrew/bin/zee",
+      cliPath: "/usr/local/bin/zee",
       minimal: true,
     });
 
@@ -342,7 +342,7 @@ describe("gateway bonjour advertiser", () => {
     delete process.env.VITEST;
     process.env.NODE_ENV = "development";
 
-    vi.spyOn(os, "hostname").mockReturnValue("Mac.localdomain");
+    vi.spyOn(os, "hostname").mockReturnValue("Host.localdomain");
 
     const destroy = vi.fn().mockResolvedValue(undefined);
     const advertise = vi.fn().mockResolvedValue(undefined);
@@ -364,10 +364,10 @@ describe("gateway bonjour advertiser", () => {
     });
 
     const [gatewayCall] = createService.mock.calls as Array<[ServiceCall]>;
-    expect(gatewayCall?.[0]?.name).toBe("Mac (Zee)");
+    expect(gatewayCall?.[0]?.name).toBe("Host (Zee)");
     expect(gatewayCall?.[0]?.domain).toBe("local");
-    expect(gatewayCall?.[0]?.hostname).toBe("Mac");
-    expect((gatewayCall?.[0]?.txt as Record<string, string>)?.lanHost).toBe("Mac.local");
+    expect(gatewayCall?.[0]?.hostname).toBe("Host");
+    expect((gatewayCall?.[0]?.txt as Record<string, string>)?.lanHost).toBe("Host.local");
 
     await started.stop();
   });

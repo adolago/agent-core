@@ -32,10 +32,10 @@ pnpm gateway:watch
   - OpenResponses (HTTP): [`/v1/responses`](/gateway/openresponses-http-api).
   - Tools Invoke (HTTP): [`/tools/invoke`](/gateway/tools-invoke-http-api).
 - Starts a Canvas file server by default on `canvasHost.port` (default `18793`), serving `http://<gateway-host>:18793/__zee__/canvas/` from `~/zee/canvas`. Disable with `canvasHost.enabled=false` or `ZEE_SKIP_CANVAS_HOST=1`.
-- Logs to stdout; use launchd/systemd to keep it alive and rotate logs.
+- Logs to stdout; use systemd to keep it alive and rotate logs.
 - Pass `--verbose` to mirror debug logging (handshakes, req/res, events) from the log file into stdio when troubleshooting.
 - `--force` uses `lsof` to find listeners on the chosen port, sends SIGTERM, logs what it killed, then starts the gateway (fails fast if `lsof` is missing).
-- If you run under a supervisor (launchd/systemd), a stop/restart typically sends **SIGTERM**; older builds may surface this as `pnpm` `ELIFECYCLE` exit code **143** (SIGTERM), which is a normal shutdown, not a crash.
+- If you run under a supervisor (systemd), a stop/restart typically sends **SIGTERM**; older builds may surface this as `pnpm` `ELIFECYCLE` exit code **143** (SIGTERM), which is a normal shutdown, not a crash.
 - **SIGUSR1** triggers an in-process restart when authorized (gateway tool/config apply/update, or enable `commands.restart` for manual restarts).
 - Gateway auth is required by default: set `gateway.auth.token` (or `ZEE_GATEWAY_TOKEN`) or `gateway.auth.password`. Clients must send `connect.params.auth.token/password` unless using Tailscale Serve identity.
 - The wizard now generates a token by default, even on loopback.
@@ -195,7 +195,7 @@ Notes:
 - `gateway status --deep` adds system-level scans (system units).
 - `gateway status --no-probe` skips the RPC probe (useful when networking is down).
 - `gateway status --json` is stable for scripts.
-- `gateway status` reports **supervisor runtime** (launchd/systemd running) separately from **RPC reachability** (WS connect + status RPC).
+- `gateway status` reports **supervisor runtime** (systemd running) separately from **RPC reachability** (WS connect + status RPC).
 - `gateway status` prints config path + probe target to avoid “localhost vs LAN bind” confusion and profile mismatches.
 - `gateway status` includes the last gateway error line when the service looks running but the port is closed.
 - `logs` tails the Gateway file log via RPC (no manual `tail`/`grep` needed).
@@ -269,7 +269,7 @@ Windows installs should use **WSL2** and follow the Linux systemd section above.
 - `zee message send --target <num> --message "hi" [--media ...]` — send via Gateway (idempotent for WhatsApp).
 - `zee agent --message "hi" --to <num>` — run an agent turn (waits for final by default).
 - `zee gateway call <method> --params '{"k":"v"}'` — raw method invoker for debugging.
-- `zee gateway stop|restart` — stop/restart the supervised gateway service (launchd/systemd).
+- `zee gateway stop|restart` — stop/restart the supervised gateway service (systemd).
 - Gateway helper subcommands assume a running gateway on `--url`; they no longer auto-spawn one.
 
 ## Migration guidance

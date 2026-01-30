@@ -28,8 +28,6 @@ This document describes how the OpenProse VM tracks execution state using a **Po
 
 | Platform | Command | Notes |
 |----------|---------|-------|
-| macOS (Homebrew) | `brew install libpq && brew link --force libpq` | Client-only; no server |
-| macOS (Postgres.app) | Download from https://postgresapp.com | Full install with GUI |
 | Debian/Ubuntu | `apt install postgresql-client` | Client-only |
 | Fedora/RHEL | `dnf install postgresql` | Client-only |
 | Arch Linux | `pacman -S postgresql-libs` | Client-only |
@@ -164,15 +162,6 @@ docker rm -f prose-pg        # Remove completely
 ### Option 2: Local PostgreSQL
 
 For users who prefer native PostgreSQL:
-
-**macOS (Homebrew):**
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-createdb myproject
-echo "OPENPROSE_POSTGRES_URL=postgresql://localhost/myproject" >> .prose/.env
-```
 
 **Linux (Debian/Ubuntu):**
 

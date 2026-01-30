@@ -96,7 +96,7 @@ describe("late-arriving invoke results", () => {
         client: {
           id: GATEWAY_CLIENT_NAMES.NODE_HOST,
           version: "1.0.0",
-          platform: "darwin",
+          platform: "linux",
           mode: GATEWAY_CLIENT_MODES.NODE,
         },
         commands: [],

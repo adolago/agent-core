@@ -112,7 +112,7 @@ Details: [Gateway protocol](/gateway/protocol), [Pairing](/start/pairing),
 
 - Start: `zee gateway` (foreground, logs to stdout).
 - Health: `health` over WS (also included in `hello-ok`).
-- Supervision: launchd/systemd for auto‑restart.
+- Supervision: systemd for auto‑restart.
 
 ## Invariants
 

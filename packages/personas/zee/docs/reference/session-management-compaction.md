@@ -30,7 +30,7 @@ If you want a higher-level overview first, start with:
 Zee is designed around a single **Gateway process** that owns session state.
 
 - UIs (web Control UI, TUI) should query the Gateway for session lists and token counts.
-- In remote mode, session files are on the remote host; “checking your local Mac files” won’t reflect what the Gateway is using.
+- In remote mode, session files are on the remote host; “checking your local host files” won’t reflect what the Gateway is using.
 
 ---
 

@@ -18,7 +18,6 @@ Detailed documentation for Zee's tools and capabilities.
 | `vdirsyncer` | CalDAV/CardDAV sync |
 | `zee:notification` | Proactive alerts and reminders |
 | `zee:splitwise` | Shared expenses, balances, reimbursements |
-| `zee:codexbar` | Provider usage monitoring via CodexBar CLI |
 
 ## Browser Tools
 
@@ -117,7 +116,7 @@ Manage multiple isolated browser contexts:
 - Session TTL: `PI_BASH_JOB_TTL_MS` (default: 30 min)
 - Output limit: `PI_BASH_MAX_OUTPUT_CHARS` (default: 200KB)
 
-## Node Hosts (mobile and desktop)
+## Node Hosts (handheld and desktop)
 
 | Tool | Purpose |
 |------|---------|
@@ -134,7 +133,7 @@ Manage multiple isolated browser contexts:
 | `zee:node-run` | Execute command on a node host that supports system.run |
 
 **Capability groups (vary by host):**
-- **Mobile nodes**: Canvas, Camera, Screen, Location, Notifications (optional SMS if provided by the host).
+- **Handheld nodes**: Canvas, Camera, Screen, Location, Notifications (optional SMS if provided by the host).
 - **Desktop nodes**: Canvas, Screen, System commands; optional camera/location depending on hardware.
 - **Headless nodes**: System commands only.
 
@@ -263,7 +262,6 @@ agent-core daemon-uninstall
 | `--wezterm` | Enable WezTerm orchestration |
 
 **Service Locations:**
-- macOS: `~/Library/LaunchAgents/com.agent-core.daemon.plist`
 - Linux: `~/.config/systemd/user/agent-core-daemon.service`
 
 **Log Locations:**
@@ -279,14 +277,4 @@ Enable with `zee.splitwise.enabled` in `agent-core.jsonc`.
 # List groups
 curl -H "Authorization: Bearer $SPLITWISE_TOKEN" \
   "https://secure.splitwise.com/api/v3.0/get_groups"
-```
-
-## CodexBar (Usage Monitoring)
-
-Track provider usage from macOS menu bar.
-Enable with `zee.codexbar.enabled` in `agent-core.jsonc`.
-
-```bash
-codexbar cost --provider codex
-codexbar cost --provider claude
 ```

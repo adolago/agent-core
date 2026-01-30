@@ -427,7 +427,7 @@ mcp__flow-nexus__market_data()
 - **data-processing**: ETL pipelines and analytics
 - **ml-models**: Pre-trained machine learning models
 - **blockchain**: Web3 and blockchain applications
-- **mobile**: React Native and mobile apps
+- **mobile**: React Native and client apps
 
 ### Publishing Best Practices
 
@@ -1033,7 +1033,6 @@ mcp__flow-nexus__challenge_submit({
 - **Status Page**: https://status.flow-nexus.ruv.io
 - **Community Forum**: https://community.flow-nexus.ruv.io
 - **GitHub Issues**: https://github.com/ruvnet/flow-nexus/issues
-- **Discord**: https://discord.gg/flow-nexus
 - **Email Support**: support@flow-nexus.ruv.io (Pro/Enterprise only)
 
 ---

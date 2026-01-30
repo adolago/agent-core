@@ -133,7 +133,6 @@
 │                                                                   │
 │  ┌───────────────────────────────────────────────┐              │
 │  │  Multi-Platform Matrix Testing                │              │
-│  │  ubuntu × macos × windows × node18 × node20   │              │
 │  │  = 6 jobs for cross-platform (unnecessary!)   │              │
 │  └───────────────────────────────────────────────┘              │
 │                                                                   │

@@ -81,9 +81,7 @@ function ensurePathIncludes(dirPath: string, position: "append" | "prepend") {
 function ensureGcloudOnPath(): boolean {
   if (hasBinary("gcloud")) return true;
   const candidates = [
-    "/opt/homebrew/share/google-cloud-sdk/bin/gcloud",
     "/usr/local/share/google-cloud-sdk/bin/gcloud",
-    "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/gcloud",
     "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/gcloud",
   ];
   for (const candidate of candidates) {

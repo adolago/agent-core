@@ -170,7 +170,7 @@ OpenProse supports three state management approaches:
 
 **Switching modes:** If the user says "use in-context state" or passes `--in-context`, load `state/in-context.md` instead.
 
-**Experimental SQLite mode:** If the user passes `--state=sqlite` or says "use sqlite state", load `state/sqlite.md`. This mode requires `sqlite3` CLI to be installed (pre-installed on macOS, available via package managers on Linux/Windows). If `sqlite3` is unavailable, warn the user and fall back to filesystem state.
+**Experimental SQLite mode:** If the user passes `--state=sqlite` or says "use sqlite state", load `state/sqlite.md`. This mode requires `sqlite3` CLI to be installed (available via package managers on Linux/Windows). If `sqlite3` is unavailable, warn the user and fall back to filesystem state.
 
 **Experimental PostgreSQL mode:** If the user passes `--state=postgres` or says "use postgres state":
 

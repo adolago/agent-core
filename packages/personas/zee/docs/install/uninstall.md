@@ -34,7 +34,7 @@ Manual steps (same result):
 zee gateway stop
 ```
 
-2) Uninstall the gateway service (launchd/systemd/schtasks):
+2) Uninstall the gateway service (systemd/schtasks):
 
 ```bash
 zee gateway uninstall

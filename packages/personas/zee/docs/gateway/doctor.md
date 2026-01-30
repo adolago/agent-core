@@ -46,7 +46,7 @@ Legacy state migrations run automatically when detected.
 zee doctor --deep
 ```
 
-Scan system services for extra gateway installs (launchd/systemd/schtasks).
+Scan system services for extra gateway installs (systemd/schtasks).
 
 If you want to review changes before writing, open the config file first:
 
@@ -68,9 +68,9 @@ cat ~/.zee/zee.json
 - Extra workspace dir detection (`~/zee`).
 - Sandbox image repair when sandboxing is enabled.
 - Legacy service migration and extra gateway detection.
-- Gateway runtime checks (service installed but not running; cached launchd label).
+- Gateway runtime checks (service installed but not running; cached service label).
 - Channel status warnings (probed from the running gateway).
-- Supervisor config audit (launchd/systemd/schtasks) with optional repair.
+- Supervisor config audit (systemd/schtasks) with optional repair.
 - Gateway runtime best-practice checks (Node vs Bun, version-manager paths).
 - Gateway port collision diagnostics (default `18789`).
 - Security warnings for open DM policies.
@@ -182,7 +182,7 @@ When sandboxing is enabled, doctor checks Docker images and offers to build or
 switch to legacy names if the current image is missing.
 
 ### 8) Gateway service migrations and cleanup hints
-Doctor detects legacy gateway services (launchd/systemd/schtasks) and
+Doctor detects legacy gateway services (systemd/schtasks) and
 offers to remove them and install the Zee service using the current gateway
 port. It can also scan for extra gateway-like services and print cleanup hints.
 Profile-named Zee gateway services are considered first-class and are not
@@ -214,7 +214,7 @@ If the gateway is healthy, doctor runs a channel status probe and reports
 warnings with suggested fixes.
 
 ### 15) Supervisor config audit + repair
-Doctor checks the installed supervisor config (launchd/systemd/schtasks) for
+Doctor checks the installed supervisor config (systemd/schtasks) for
 missing or outdated defaults (e.g., systemd network-online dependencies and
 restart delay). When it finds a mismatch, it recommends an update and can
 rewrite the service file/task to the current defaults.

@@ -703,7 +703,6 @@ npx claude-flow@alpha --version
 ```
 
 ### Community
-- **Discord**: [Join our community](https://discord.com/invite/dfxmpwkG2D)
 
 ---
 

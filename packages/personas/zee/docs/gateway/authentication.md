@@ -25,7 +25,7 @@ export ANTHROPIC_API_KEY="..."
 zee models status
 ```
 
-3) If the Gateway runs under systemd/launchd, prefer putting the key in
+3) If the Gateway runs under systemd, prefer putting the key in
 `~/.zee/.env` so the daemon can read it:
 
 ```bash
@@ -45,7 +45,7 @@ If you’d rather not manage env vars yourself, the onboarding wizard can store
 API keys for daemon use: `zee onboard`.
 
 See [Help](/help) for details on env inheritance (`env.shellEnv`,
-`~/.zee/.env`, systemd/launchd).
+`~/.zee/.env`, systemd).
 
 ## Anthropic: setup-token (subscription auth)
 

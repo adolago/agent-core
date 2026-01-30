@@ -70,12 +70,10 @@
 - Patching dependencies (pnpm patches, overrides, or vendored changes) requires explicit approval; do not do this by default.
 - CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
 - Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
-- Mac logs: use `./scripts/zeelog.sh` to query unified logs for the Zee subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
+- Logs: check `~/.local/state/agent-core/logs/daemon.log` and `~/.local/state/agent-core/logs/daemon.err.log`.
 - Connection providers: when adding a new connection, update every UI surface and docs (Control UI, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
 - Version locations: `package.json` (CLI), `docs/install/updating.md` (pinned npm version).
 - A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
-- Release signing/notary keys are managed outside the repo; follow internal release docs.
-- Notary auth env vars (`APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_API_KEY_P8`) are expected in your environment (per internal release docs).
 - Multi-agent safety: do not create/apply/drop `git stash` entries unless explicitly requested. Do not switch branches or modify worktrees unless explicitly requested.
 - Lint/format churn:
   - If staged+unstaged diffs are formatting-only, auto-resolve without asking.

@@ -1587,7 +1587,6 @@ This release ensures users understand the critical distinction between:
 - Community feedback from issues #653, #645, #640
 - Contributors: @alexx-ftw, @lanemc
 - All alpha testers who provided valuable feedback
-- Discord community for continuous support
 
 ### 📦 Installation
 ```bash
@@ -2273,17 +2272,16 @@ npm install -g claude-flow@alpha
 
 ### 🔧 Bug Fixes
 - **Hooks Command**: Fixed "command.toLowerCase is not a function" error in hooks pre-command
-- **ARM64 Support**: Improved ARM64 compatibility for better-sqlite3 on macOS (#378)
+- **ARM64 Support**: Improved ARM64 compatibility for better-sqlite3 (#378)
 - Added type checking for command parameter in hooks to handle empty/missing values
 - Enhanced postinstall script with ARM64 detection and automatic rebuild
 
 ### 🚀 New Features
-- Automatic SQLite binding verification and rebuild for Apple Silicon Macs
+- Automatic SQLite binding verification and rebuild for ARM64 systems
 - Graceful fallback to in-memory storage if SQLite bindings fail
 - Better error handling and user feedback during installation
 
 ### 🏗️ Infrastructure
-- Added `node20-macos-arm64` target to pkg configuration
 - Improved boolean parameter parsing in hooks commands
 - Enhanced platform detection for ARM64 architecture
 
@@ -2594,7 +2592,7 @@ npm install -g claude-flow@alpha
 - **Production deployment** configurations and best practices
 - **Performance metrics** and monitoring capabilities
 - **Security audit** tools and vulnerability scanning
-- **Cross-platform compatibility** validation (Windows, macOS, Linux)
+- **Cross-platform compatibility** validation (Windows, Linux)
 
 ### Changed
 
@@ -2849,4 +2847,3 @@ cd infrastructure/docker && docker-compose up
 - Integration with Claude Code
 
 ---
-
