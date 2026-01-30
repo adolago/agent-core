@@ -1862,20 +1862,14 @@ export function Prompt(props: PromptProps) {
                 interval={status().type === "idle" ? 1000 : 40}
               />
             </Show>
-            {/* Vim mode indicator with hints - colors: N=accent, I=success, V=warning */}
-            <Show when={vim.enabled && store.mode !== "shell"}>
-              <text
-                fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
-                attributes={TextAttributes.BOLD}
-              >
-                {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
-              </text>
-              <Show when={vim.isNormal && status().type === "idle"}>
+            {/* Vim hints (mode indicator moved to right-side chip) */}
+            <Show when={vim.enabled && store.mode !== "shell" && status().type === "idle"}>
+              <Show when={vim.isNormal}>
                 <text fg={theme.textMuted}>
                   i:insert Space:leader
                 </text>
               </Show>
-              <Show when={vim.isVisual && status().type === "idle"}>
+              <Show when={vim.isVisual}>
                 <text fg={theme.textMuted}>
                   v:normal esc:normal
                 </text>
@@ -2111,10 +2105,10 @@ export function Prompt(props: PromptProps) {
                         <>
                           <text fg={theme.textMuted}>{parsed.provider}</text>
                           <text fg={theme.textMuted}>·</text>
-                          <text fg={theme.primary} attributes={TextAttributes.BOLD}>{parsed.model}</text>
+                          <text fg={theme.text}>{parsed.model}</text>
                           <Show when={variant}>
                             <text fg={theme.textMuted}>·</text>
-                            <text fg={theme.primary} attributes={TextAttributes.BOLD}>{variant}</text>
+                            <text fg={theme.text}>{variant}</text>
                           </Show>
                         </>
                       )}
@@ -2141,6 +2135,19 @@ export function Prompt(props: PromptProps) {
                                 </>
                               )}
                             </Show>
+                          </>
+                        )}
+                      </Show>
+                      <Show when={vim.enabled && store.mode !== "shell"}>
+                        {chip(
+                          <>
+                            <text fg={theme.textMuted}>VIM</text>
+                            <text
+                              fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
+                              attributes={TextAttributes.BOLD}
+                            >
+                              {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
+                            </text>
                           </>
                         )}
                       </Show>
