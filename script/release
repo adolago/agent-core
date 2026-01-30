@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
-BUMP_TYPE=${1:-patch}
+set -euo pipefail
 
-gh workflow run publish.yml -f bump="$BUMP_TYPE"
+VERSION_ARG=${1:-}
+if [ -z "$VERSION_ARG" ]; then
+  VERSION_ARG=$(node -p "require('./packages/agent-core/package.json').version")
+fi
+
+if [ -z "$VERSION_ARG" ]; then
+  echo "release: version is required"
+  exit 1
+fi
+
+gh workflow run publish.yml -f version="$VERSION_ARG"
