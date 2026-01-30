@@ -1,4 +1,4 @@
-import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, t, dim, fg, TextAttributes } from "@opentui/core"
+import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, t, fg, TextAttributes } from "@opentui/core"
 import { createEffect, createMemo, type JSX, onMount, createSignal, onCleanup, Show, Switch, Match } from "solid-js"
 import "opentui-spinner/solid"
 import { useLocal } from "@tui/context/local"
@@ -1854,7 +1854,7 @@ export function Prompt(props: PromptProps) {
                     return (
                       <>
                         <Show when={zeros.length > 0}>
-                          <text fg={dim(theme.textMuted, 0.5)}>{zeros}</text>
+                          <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
                         </Show>
                         <text fg={theme.textMuted}>{rest}</text>
                       </>
@@ -1983,7 +1983,7 @@ export function Prompt(props: PromptProps) {
                       return (
                         <>
                           <Show when={zeros.length > 0}>
-                            <text fg={dim(theme.textMuted, 0.5)}>{zeros}</text>
+                            <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
                           </Show>
                           <text fg={theme.textMuted}>{rest}</text>
                         </>

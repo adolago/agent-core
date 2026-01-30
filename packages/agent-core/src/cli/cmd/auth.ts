@@ -332,6 +332,7 @@ export const AuthLoginCommand = cmd({
       async fn() {
         UI.empty()
         prompts.intro("Add credential")
+        const config = await Config.get()
         const rawInput = typeof args.url === "string" ? args.url.trim() : ""
         let providerArg: string | undefined
         if (rawInput) {
@@ -366,8 +367,6 @@ export const AuthLoginCommand = cmd({
           }
         }
         await ModelsDev.refresh().catch(() => {})
-
-        const config = await Config.get()
 
         const disabled = new Set(config.disabled_providers ?? [])
         const isBlocked = (providerID: string) => disabled.has(providerID) || Provider.isProviderBlocked(providerID)

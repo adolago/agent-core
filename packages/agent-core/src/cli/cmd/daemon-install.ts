@@ -1,7 +1,7 @@
 /**
  * Daemon Install Wizard
  *
- * Installs agent-core daemon as a system service (launchd on macOS, systemd on Linux).
+ * Installs agent-core daemon as a system service (systemd on Linux).
  * Agent-core daemon is the PRIMARY service - it can optionally spawn zee gateway
  * as a child process via the --gateway flag.
  *
@@ -27,11 +27,6 @@ const log = Log.create({ service: "daemon-install" });
 
 const SERVICE_NAME = "agent-core";
 const SERVICE_DESCRIPTION = "Agent-Core Daemon - AI Assistant Platform";
-
-// macOS LaunchAgent
-const LAUNCHD_LABEL = "com.agent-core.daemon";
-const LAUNCHD_PLIST_DIR = path.join(os.homedir(), "Library", "LaunchAgents");
-const LAUNCHD_PLIST_PATH = path.join(LAUNCHD_PLIST_DIR, `${LAUNCHD_LABEL}.plist`);
 
 // Linux systemd user service
 const SYSTEMD_UNIT_NAME = "agent-core-daemon.service";
@@ -60,7 +55,7 @@ export interface DaemonInstallOptions {
 
 export interface DaemonInstallResult {
   success: boolean;
-  platform: "macos" | "linux" | "unsupported";
+  platform: "linux" | "unsupported";
   servicePath?: string;
   error?: string;
   hints?: string[];
@@ -70,16 +65,8 @@ export interface DaemonInstallResult {
 // Platform Detection
 // =============================================================================
 
-function getPlatform(): "macos" | "linux" | "unsupported" {
-  const platform = os.platform();
-  if (platform === "darwin") return "macos";
-  if (platform === "linux") return "linux";
-  return "unsupported";
-}
-
-function getUid(): number {
-  const uid = process.getuid?.();
-  return uid ?? 501; // Default to 501 if undefined (shouldn't happen on macOS/Linux)
+function getPlatform(): "linux" | "unsupported" {
+  return os.platform() === "linux" ? "linux" : "unsupported";
 }
 
 function hasSystemd(): boolean {
@@ -202,7 +189,6 @@ function buildServicePath(): string {
     // pnpm
     process.env.PNPM_HOME,
     path.join(home, ".local", "share", "pnpm"),
-    path.join(home, "Library", "pnpm"),
     // nvm
     process.env.NVM_BIN,
     // fnm
@@ -479,7 +465,7 @@ export async function installDaemon(
     return {
       success: false,
       platform: "unsupported",
-      error: `Platform '${os.platform()}' is not supported. Only macOS and Linux are supported.`,
+      error: `Platform '${os.platform()}' is not supported. Only Linux is supported.`,
     };
   }
 
@@ -501,7 +487,7 @@ export async function installDaemon(
 
   // Check if already installed (unless force)
   if (!options.force) {
-    const existingPath = platform === "macos" ? LAUNCHD_PLIST_PATH : SYSTEMD_UNIT_PATH;
+    const existingPath = SYSTEMD_UNIT_PATH;
     if (fs.existsSync(existingPath)) {
       return {
         success: true,
@@ -512,11 +498,7 @@ export async function installDaemon(
     }
   }
 
-  if (platform === "macos") {
-    return installLaunchAgent(binaryPath, options);
-  } else {
-    return installSystemdService(binaryPath, options);
-  }
+  return installSystemdService(binaryPath, options);
 }
 
 export async function uninstallDaemon(): Promise<DaemonInstallResult> {
@@ -530,11 +512,7 @@ export async function uninstallDaemon(): Promise<DaemonInstallResult> {
     };
   }
 
-  if (platform === "macos") {
-    return uninstallLaunchAgent();
-  } else {
-    return uninstallSystemdService();
-  }
+  return uninstallSystemdService();
 }
 
 export function getDaemonServiceStatus(): {
@@ -549,33 +527,20 @@ export function getDaemonServiceStatus(): {
     return { installed: false, running: false, platform: os.platform() };
   }
 
-  const servicePath = platform === "macos" ? LAUNCHD_PLIST_PATH : SYSTEMD_UNIT_PATH;
+  const servicePath = SYSTEMD_UNIT_PATH;
   const installed = fs.existsSync(servicePath);
 
   let running = false;
   if (installed) {
-    if (platform === "macos") {
-      try {
-        const result = spawnSync(
-          "launchctl",
-          ["print", `gui/${getUid()}/${LAUNCHD_LABEL}`],
-          { stdio: "pipe", timeout: 5000 }
-        );
-        running = result.status === 0;
-      } catch {
-        running = false;
-      }
-    } else {
-      try {
-        const result = spawnSync(
-          "systemctl",
-          ["--user", "is-active", SYSTEMD_UNIT_NAME],
-          { stdio: "pipe", timeout: 5000 }
-        );
-        running = result.stdout?.toString().trim() === "active";
-      } catch {
-        running = false;
-      }
+    try {
+      const result = spawnSync(
+        "systemctl",
+        ["--user", "is-active", SYSTEMD_UNIT_NAME],
+        { stdio: "pipe", timeout: 5000 }
+      );
+      running = result.stdout?.toString().trim() === "active";
+    } catch {
+      running = false;
     }
   }
 
@@ -588,7 +553,7 @@ export function getDaemonServiceStatus(): {
 
 export const DaemonInstallCommand = cmd({
   command: "daemon-install",
-  describe: "Install agent-core daemon as a system service (launchd/systemd)",
+  describe: "Install agent-core daemon as a system service (systemd)",
   builder: (yargs) =>
     yargs
       .option("port", {
@@ -657,7 +622,7 @@ export const DaemonInstallCommand = cmd({
         process.exit(1);
       }
 
-      prompts.log.info(`Platform: ${platform === "macos" ? "macOS (launchd)" : "Linux (systemd)"}`);
+      prompts.log.info("Platform: Linux (systemd)");
 
       // Check existing installation
       const status = getDaemonServiceStatus();
@@ -676,7 +641,7 @@ export const DaemonInstallCommand = cmd({
       // Confirm gateway option
       if (!options.gateway) {
         const enableGateway = await prompts.confirm({
-          message: "Enable zee messaging gateway (WhatsApp/Telegram/Signal)?",
+          message: "Enable zee messaging gateway (WhatsApp/Telegram)?",
           initialValue: false,
         });
         if (!prompts.isCancel(enableGateway)) {
