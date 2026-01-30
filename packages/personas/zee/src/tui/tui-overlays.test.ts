@@ -1,6 +1,7 @@
-import type { Component } from "@mariozechner/pi-tui";
+import type { Component, TUI } from "@mariozechner/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 
+import { OverlayFrame } from "./components/overlay-frame.js";
 import { createOverlayHandlers } from "./tui-overlays.js";
 
 class DummyComponent implements Component {
@@ -16,18 +17,20 @@ describe("createOverlayHandlers", () => {
     const showOverlay = vi.fn();
     const hideOverlay = vi.fn();
     const setFocus = vi.fn();
-    let open = false;
+    const state = { open: false };
+    const overlayHandle = {} as ReturnType<TUI["showOverlay"]>;
 
     const host = {
       showOverlay: (component: Component) => {
-        open = true;
+        state.open = true;
         showOverlay(component);
+        return overlayHandle;
       },
       hideOverlay: () => {
-        open = false;
+        state.open = false;
         hideOverlay();
       },
-      hasOverlay: () => open,
+      hasOverlay: () => state.open,
       setFocus,
     };
 
@@ -35,7 +38,9 @@ describe("createOverlayHandlers", () => {
     const overlay = new DummyComponent();
 
     openOverlay(overlay);
-    expect(showOverlay).toHaveBeenCalledWith(overlay);
+    expect(showOverlay).toHaveBeenCalledTimes(1);
+    const shown = showOverlay.mock.calls[0]?.[0];
+    expect(shown).toBeInstanceOf(OverlayFrame);
 
     closeOverlay();
     expect(hideOverlay).toHaveBeenCalledTimes(1);
@@ -44,8 +49,9 @@ describe("createOverlayHandlers", () => {
 
   it("restores focus when closing without an overlay", () => {
     const setFocus = vi.fn();
+    const overlayHandle = {} as ReturnType<TUI["showOverlay"]>;
     const host = {
-      showOverlay: vi.fn(),
+      showOverlay: vi.fn(() => overlayHandle),
       hideOverlay: vi.fn(),
       hasOverlay: () => false,
       setFocus,
