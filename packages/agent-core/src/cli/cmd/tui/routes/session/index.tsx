@@ -1063,7 +1063,6 @@ export function Session() {
                       <Match when={message.id === revert()?.messageID}>
                         {(function () {
                           const command = useCommandDialog()
-                          const [hover, setHover] = createSignal(false)
                           const dialog = useDialog()
 
                           const handleUnrevert = async () => {
@@ -1079,8 +1078,6 @@ export function Session() {
 
                           return (
                             <box
-                              onMouseOver={() => setHover(true)}
-                              onMouseOut={() => setHover(false)}
                               onMouseUp={handleUnrevert}
                               marginTop={1}
                               flexShrink={0}
@@ -1092,7 +1089,7 @@ export function Session() {
                                 paddingTop={1}
                                 paddingBottom={1}
                                 paddingLeft={2}
-                                backgroundColor={hover() ? theme.backgroundElement : theme.backgroundPanel}
+                                backgroundColor={theme.backgroundPanel}
                               >
                                 <text fg={theme.textMuted}>{revert()!.reverted.length} message reverted</text>
                                 <text fg={theme.textMuted}>
@@ -1229,7 +1226,6 @@ function UserMessage(props: {
   const files = createMemo(() => props.parts.flatMap((x) => (x.type === "file" ? [x] : [])))
   const sync = useSync()
   const { theme } = useTheme()
-  const [hover, setHover] = createSignal(false)
   const queued = createMemo(() => props.pending && props.message.id > props.pending)
   const color = createMemo(() => (queued() ? theme.accent : local.agent.color(props.message.agent)))
   const metadataVisible = createMemo(() => queued() || ctx.showTimestamps())
@@ -1243,8 +1239,6 @@ function UserMessage(props: {
         <box
           id={props.message.id}
           marginTop={props.index === 0 ? 0 : 1}
-          onMouseOver={() => setHover(true)}
-          onMouseOut={() => setHover(false)}
           onMouseUp={props.onMouseUp}
           flexDirection="row"
           gap={0}
@@ -1275,6 +1269,9 @@ function UserMessage(props: {
               <text fg={theme.textMuted}>
                 <span style={{ bg: theme.accent, fg: theme.backgroundPanel, bold: true }}> QUEUED </span>
               </text>
+            </Show>
+            <Show when={metadataVisible() && !queued()}>
+              <text fg={theme.textMuted}>{Locale.messageTimestamp(props.message.time.created)}</text>
             </Show>
           </box>
         </box>
@@ -1387,7 +1384,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
                 <span style={{ fg: theme.textMuted }}> interrupted</span>
               </Show>
             </text>
-            <text fg={theme.border}> {"─".repeat(150)}</text>
+            <text fg={theme.border}> {"─".repeat(500)}</text>
           </box>
         </Match>
       </Switch>
@@ -1627,17 +1624,14 @@ function InlineTool(props: {
 function BlockTool(props: { title: string; children: JSX.Element; onClick?: () => void; part?: ToolPart }) {
   const { theme } = useTheme()
   const renderer = useRenderer()
-  const [hover, setHover] = createSignal(false)
   const error = createMemo(() => (props.part?.state.status === "error" ? props.part.state.error : undefined))
   return (
     <box
       border={["left"]}
       paddingLeft={1}
-      backgroundColor={hover() ? theme.backgroundMenu : theme.backgroundPanel}
+      backgroundColor={theme.backgroundPanel}
       customBorderChars={SplitBorder.customBorderChars}
       borderColor={theme.background}
-      onMouseOver={() => props.onClick && setHover(true)}
-      onMouseOut={() => setHover(false)}
       onMouseUp={() => {
         if (renderer.getSelection()?.getSelectedText()) return
         props.onClick?.()

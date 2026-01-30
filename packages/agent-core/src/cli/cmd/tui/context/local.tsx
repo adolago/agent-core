@@ -75,6 +75,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           themeCtx.set(currentAgent.theme)
         }
       })
+      // Agent/Persona colors: derived from theme, cycled by index
+      // - Zee: theme.secondary (first agent)
+      // - Stanley: theme.accent
+      // - Johny: theme.success
+      // Vim mode colors (defined in prompt/index.tsx):
+      // - Normal: theme.accent (blue) - matches "N" indicator
+      // - Insert: theme.success (green) - "I" indicator
+      // - Visual: theme.warning (yellow) - "V" indicator
       const colors = createMemo(() => [
         theme.secondary,
         theme.accent,

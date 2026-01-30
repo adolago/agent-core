@@ -28,6 +28,34 @@ export namespace Locale {
     }
   }
 
+  export function messageTimestamp(input: number): string {
+    const date = new Date(input)
+    const now = new Date()
+
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate()
+
+    const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false })
+
+    if (isToday) {
+      return timeStr
+    }
+
+    const oneWeekAgo = new Date(now)
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    const isThisWeek = date >= oneWeekAgo
+
+    if (isThisWeek) {
+      const dayName = date.toLocaleDateString(undefined, { weekday: "short" })
+      return `${dayName} ${timeStr}`
+    }
+
+    const monthDay = date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    return monthDay
+  }
+
   export function number(num: number): string {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + "M"

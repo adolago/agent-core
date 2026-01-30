@@ -201,6 +201,20 @@ export function Prompt(props: PromptProps) {
       percent: Math.min(100, Math.round((count / usable) * 100)),
     }
   })
+  const diffStats = createMemo(() => {
+    if (!props.sessionID) return null
+    const diffs = sync.data.session_diff[props.sessionID] ?? []
+    if (diffs.length === 0) return null
+    let additions = 0
+    let deletions = 0
+    let modified = 0
+    for (const d of diffs) {
+      additions += d.additions
+      deletions += d.deletions
+      if (d.additions > 0 && d.deletions > 0) modified++
+    }
+    return { files: diffs.length, additions, deletions, modified }
+  })
   const history = usePromptHistory()
   const stash = usePromptStash()
   const command = useCommandDialog()
@@ -1450,7 +1464,7 @@ export function Prompt(props: PromptProps) {
           </box>
           {/* Right: agent mode, knowledge count */}
           <box flexDirection="row" gap={1}>
-            <text fg={theme.accent}>{Locale.titlecase(local.agent.current().name)}</text>
+            <text fg={local.agent.color(local.agent.current().name)}>{Locale.titlecase(local.agent.current().name)}</text>
             <Show when={local.agent.current().knowledge?.length}>
               <text fg={theme.textMuted}>{local.agent.current().knowledge?.length} knowledge</text>
             </Show>
@@ -1466,8 +1480,25 @@ export function Prompt(props: PromptProps) {
               {` (${sync.data.vcs?.branch})`}
             </Show>
           </text>
-          <text fg={theme.border}> {"─".repeat(100)}</text>
+          <text fg={theme.border}> {"─".repeat(500)}</text>
         </box>
+        {/* Git status: files changed +additions ~modified -deletions */}
+        <Show when={diffStats()}>
+          {(stats) => (
+            <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={1}>
+              <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
+              <Show when={stats().additions > 0}>
+                <text fg={theme.success}>+{stats().additions} </text>
+              </Show>
+              <Show when={stats().modified > 0}>
+                <text fg={theme.warning}>~{stats().modified} </text>
+              </Show>
+              <Show when={stats().deletions > 0}>
+                <text fg={theme.error}>-{stats().deletions}</text>
+              </Show>
+            </box>
+          )}
+        </Show>
         <box
           border={["left"]}
           borderColor={highlight()}
@@ -1788,7 +1819,7 @@ export function Prompt(props: PromptProps) {
         </box>
         {/* Simple separator line */}
         <box height={1} flexDirection="row">
-          <text fg={theme.border}>{"─".repeat(200)}</text>
+          <text fg={theme.border}>{"─".repeat(500)}</text>
         </box>
         <box
           flexDirection="row"
@@ -1808,7 +1839,7 @@ export function Prompt(props: PromptProps) {
             <text fg={highlight()}>
               {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
             </text>
-            {/* Vim mode indicator with hints */}
+            {/* Vim mode indicator with hints - colors: N=accent, I=success, V=warning */}
             <Show when={vim.enabled && store.mode !== "shell"}>
               <text
                 fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
@@ -1826,6 +1857,9 @@ export function Prompt(props: PromptProps) {
                   v:normal esc:normal
                 </text>
               </Show>
+            </Show>
+            <Show when={status().type === "busy"}>
+              <text fg={theme.textMuted}>Ctrl+C: abort</text>
             </Show>
             <Switch fallback={
               <Switch>
