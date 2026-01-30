@@ -1833,12 +1833,22 @@ export function Prompt(props: PromptProps) {
           paddingLeft={1}
           paddingRight={1}
         >
-          {/* Left side: persona + vim + mode + spinner + stats */}
+          {/* Left side: persona + spinner + vim + mode + stats + abort hint */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
             {/* Persona name */}
             <text fg={highlight()}>
               {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
             </text>
+            <Show
+              when={kv.get("animations_enabled", true)}
+              fallback={<text fg={theme.textMuted}>[...]</text>}
+            >
+              <spinner
+                color={spinnerDef().color}
+                frames={status().type === "idle" ? idleFrames() : spinnerDef().frames}
+                interval={status().type === "idle" ? 1000 : 40}
+              />
+            </Show>
             {/* Vim mode indicator with hints - colors: N=accent, I=success, V=warning */}
             <Show when={vim.enabled && store.mode !== "shell"}>
               <text
@@ -1857,9 +1867,6 @@ export function Prompt(props: PromptProps) {
                   v:normal esc:normal
                 </text>
               </Show>
-            </Show>
-            <Show when={status().type === "busy"}>
-              <text fg={theme.textMuted}>Ctrl+C: abort</text>
             </Show>
             <Switch fallback={
               <Switch>
@@ -1920,13 +1927,6 @@ export function Prompt(props: PromptProps) {
                   const mem = memStatsLive()
                   return (
                     <box flexDirection="row" gap={0}>
-                      <Show
-                        when={kv.get("animations_enabled", true)}
-                        fallback={<text fg={theme.textMuted}>[...]</text>}
-                      >
-                        <spinner color={spinnerDef().color} frames={idleFrames()} interval={1000} />
-                      </Show>
-                      <text> </text>
                       <text fg={theme.info}>↑</text>
                       {formatFixedTokens(totals.snt)}
                       <text> </text>
@@ -1946,9 +1946,6 @@ export function Prompt(props: PromptProps) {
               </Match>
               <Match when={true}>
                 <box flexDirection="row" gap={1}>
-                  <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[...]</text>}>
-                    <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                  </Show>
                   {(() => {
                     const retry = createMemo(() => {
                       const s = status()
@@ -2068,6 +2065,9 @@ export function Prompt(props: PromptProps) {
                 </box>
               </Match>
             </Switch>
+            <Show when={status().type === "busy"}>
+              <text fg={theme.textMuted}>Ctrl+C: abort</text>
+            </Show>
           </box>
           {/* Right side: context usage + provider model variant */}
           <box flexDirection="row" gap={1} flexShrink={0}>
