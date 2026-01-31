@@ -80,10 +80,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       // - Normal: theme.accent (blue) - matches "N" indicator
       // - Insert: theme.success (green) - "I" indicator
       // - Visual: theme.warning (yellow) - "V" indicator
-      // Note: User message colors now use persona's theme primary color:
-      // - Zee: zeePrimary (#3F5E99)
-      // - Stanley: stanleyPrimary (#458A5C)
-      // - Johny: johnyPrimary (#9E4D42)
+      // Note: User message colors use persona's theme accent color:
+      // - Zee: zeeAccent (#6995E8)
+      // - Stanley: stanleyAccent (#78E89C)
+      // - Johny: johnyAccent (#E87D6E)
       const colors = createMemo(() => [
         theme.secondary,
         theme.accent,
@@ -93,8 +93,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         theme.error,
       ])
 
-      // Get persona's primary color from their theme
-      function getPersonaPrimaryColor(agentName: string): RGBA | null {
+      // Get persona's accent color from their theme (brighter, more vibrant)
+      function getPersonaAccentColor(agentName: string): RGBA | null {
         const name = agentName.toLowerCase()
 
         // Map persona names to their theme keys
@@ -111,9 +111,9 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         const personaTheme = themeCtx.all()[themeKey]
         if (!personaTheme) return null
 
-        // Return primary color from that theme
+        // Return accent color from that theme (brighter than primary)
         const resolvedTheme = resolveTheme(personaTheme, themeCtx.mode())
-        return resolvedTheme.primary
+        return resolvedTheme.accent
       }
 
       // Placeholder agent for when no agents are loaded yet
@@ -176,8 +176,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           // First check for agent's custom color property
           if (agent?.color) return RGBA.fromHex(agent.color)
 
-          // Check if this is a persona and use their theme's primary color
-          const personaColor = getPersonaPrimaryColor(name)
+          // Check if this is a persona and use their theme's accent color
+          const personaColor = getPersonaAccentColor(name)
           if (personaColor) return personaColor
 
           // Fall back to indexed colors for other agents

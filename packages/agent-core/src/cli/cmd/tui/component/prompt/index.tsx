@@ -1436,7 +1436,6 @@ export function Prompt(props: PromptProps) {
           <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} skills</text>
           <Show when={vim.enabled && store.mode !== "shell"}>
             <text fg={theme.border}>──</text>
-            <text fg={theme.textMuted}>VIM </text>
             <text
               fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
               attributes={TextAttributes.BOLD}
