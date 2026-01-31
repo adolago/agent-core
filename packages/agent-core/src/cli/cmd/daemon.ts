@@ -727,7 +727,7 @@ export const DaemonCommand = cmd({
       .option("gateway", {
         describe: "Start zee messaging gateway (WhatsApp/Telegram/Signal)",
         type: "boolean",
-        default: false,
+        default: true,
       })
       .option("gateway-force", {
         describe: "Start zee gateway even if preflight checks fail",
