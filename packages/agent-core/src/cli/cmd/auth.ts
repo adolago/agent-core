@@ -39,9 +39,41 @@ const AUTH_ONLY_PROVIDERS: Record<string, { name: string; hint?: string }> = {
   kernel: { name: "Kernel", hint: "Kernel MCP API key" },
   voyage: { name: "Voyage AI", hint: "Embedding and reranking API key" },
   minimax: { name: "MiniMax", hint: "Text-to-speech API key (minimaxi.com)" },
+  "google-stt": {
+    name: "Google Speech-to-Text",
+    hint: "Service account JSON (Chirp 2 / Speech-to-Text)",
+  },
 }
 
 const DEFAULT_DAEMON_PORT = 3210
+
+type GoogleServiceAccountKey = {
+  client_email: string
+  private_key: string
+  private_key_id?: string
+}
+
+function parseGoogleServiceAccountKey(value: string): GoogleServiceAccountKey | null {
+  const trimmed = value.trim()
+  if (!trimmed.startsWith("{")) return null
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    const clientEmail = parsed["client_email"]
+    const privateKey = parsed["private_key"]
+    if (typeof clientEmail !== "string" || !clientEmail.trim()) return null
+    if (typeof privateKey !== "string" || !privateKey.trim()) return null
+    const privateKeyId = parsed["private_key_id"]
+    return {
+      client_email: clientEmail,
+      private_key: privateKey,
+      ...(typeof privateKeyId === "string" && privateKeyId.trim()
+        ? { private_key_id: privateKeyId }
+        : {}),
+    }
+  } catch {
+    return null
+  }
+}
 
 function normalizeDaemonHost(hostname?: string): string {
   if (!hostname || hostname === "0.0.0.0") return "127.0.0.1"
@@ -594,6 +626,38 @@ export const AuthLoginCommand = cmd({
           prompts.log.success(`${provider} configured at ${baseURL}`)
           prompts.log.info(`Config updated: ${configPath}`)
           prompts.log.info(`Use models as: ${provider}/<model-name>`)
+          prompts.outro("Done")
+          return
+        }
+
+        if (provider === "google-stt") {
+          const rawInput = await prompts.text({
+            message: "Enter service account JSON (or path to JSON file)",
+            validate: (x) => (x && x.length > 0 ? undefined : "Required"),
+          })
+          if (prompts.isCancel(rawInput)) throw new UI.CancelledError()
+
+          let key = rawInput.trim()
+          if (!key.startsWith("{")) {
+            const file = Bun.file(key)
+            if (await file.exists()) {
+              key = await file.text()
+            }
+          }
+
+          const parsed = parseGoogleServiceAccountKey(key)
+          if (!parsed) {
+            prompts.log.error("Invalid service account JSON (missing client_email/private_key).")
+            prompts.outro("Done")
+            return
+          }
+
+          await Auth.set(provider, {
+            type: "api",
+            key,
+          })
+          await notifyDaemonAuthChange(config)
+          prompts.log.success("Google Speech-to-Text credentials saved")
           prompts.outro("Done")
           return
         }

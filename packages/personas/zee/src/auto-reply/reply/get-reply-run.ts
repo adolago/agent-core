@@ -349,6 +349,11 @@ export async function runPreparedReply(
     isNewSession,
   });
   const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
+  // CRITICAL: Messaging channels must never expose reasoning.
+  const providerKey = sessionCtx.Provider?.trim().toLowerCase() ?? "";
+  if (["whatsapp", "telegram"].includes(providerKey)) {
+    resolvedReasoningLevel = "off";
+  }
   const followupRun = {
     prompt: queuedBody,
     messageId: sessionCtx.MessageSidFull ?? sessionCtx.MessageSid,

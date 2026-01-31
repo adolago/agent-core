@@ -32,6 +32,12 @@ export {
 } from "./auth-store.js";
 
 let credsSaveQueue: Promise<void> = Promise.resolve();
+let cachedBaileysVersion: Awaited<ReturnType<typeof fetchLatestBaileysVersion>>["version"] | null =
+  null;
+let cachedBaileysVersionAt: number | null = null;
+
+const BAILEYS_VERSION_TIMEOUT_MS = 10_000;
+const BAILEYS_VERSION_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 function enqueueSaveCreds(
   authDir: string,
   saveCreds: () => Promise<void> | void,
@@ -51,6 +57,50 @@ function readCredsJsonRaw(filePath: string): string | null {
     if (!stats.isFile() || stats.size <= 1) return null;
     return fsSync.readFileSync(filePath, "utf-8");
   } catch {
+    return null;
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`Timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  });
+}
+
+async function resolveBaileysVersion(logger: ReturnType<typeof getChildLogger>) {
+  const now = Date.now();
+  const cacheFresh =
+    cachedBaileysVersion && cachedBaileysVersionAt
+      ? now - cachedBaileysVersionAt < BAILEYS_VERSION_TTL_MS
+      : false;
+
+  if (cacheFresh && cachedBaileysVersion) {
+    return cachedBaileysVersion;
+  }
+
+  try {
+    const { version } = await withTimeout(fetchLatestBaileysVersion(), BAILEYS_VERSION_TIMEOUT_MS);
+    cachedBaileysVersion = version;
+    cachedBaileysVersionAt = now;
+    return version;
+  } catch (err) {
+    if (cachedBaileysVersion) {
+      logger.warn(
+        { error: String(err) },
+        "failed to fetch latest WhatsApp Web version; using cached version",
+      );
+      return cachedBaileysVersion;
+    }
+    logger.warn(
+      { error: String(err) },
+      "failed to fetch latest WhatsApp Web version; using Baileys defaults",
+    );
     return null;
   }
 }
@@ -105,13 +155,13 @@ export async function createWaSocket(
   const sessionLogger = getChildLogger({ module: "web-session" });
   maybeRestoreCredsFromBackup(authDir);
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
-  const { version } = await fetchLatestBaileysVersion();
+  const version = await resolveBaileysVersion(sessionLogger);
   const sock = makeWASocket({
     auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
-    version,
+    ...(version ? { version } : {}),
     logger,
     printQRInTerminal: false,
     browser: ["zee", "cli", VERSION],

@@ -261,6 +261,31 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return { apiKey: envKey, source: "gcloud adc" };
   }
 
+  if (normalized === "google-stt") {
+    const apiKey = pick("GOOGLE_STT_API_KEY") ?? pick("OPENCODE_GOOGLE_STT_API_KEY");
+    if (apiKey) return apiKey;
+
+    const adcPath = pick("GOOGLE_APPLICATION_CREDENTIALS");
+    if (adcPath) return adcPath;
+
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL?.trim();
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.trim();
+    if (clientEmail && privateKey) {
+      const privateKeyId = process.env.GOOGLE_PRIVATE_KEY_ID?.trim();
+      const payload = {
+        client_email: clientEmail,
+        private_key: privateKey.replace(/\\n/g, "\n"),
+        ...(privateKeyId ? { private_key_id: privateKeyId } : {}),
+      };
+      const source = resolveEnvSourceLabel({
+        applied,
+        envVars: ["GOOGLE_CLIENT_EMAIL", "GOOGLE_PRIVATE_KEY", "GOOGLE_PRIVATE_KEY_ID"],
+        label: "GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY",
+      });
+      return { apiKey: JSON.stringify(payload), source };
+    }
+  }
+
   if (normalized === "opencode") {
     return pick("OPENCODE_API_KEY") ?? pick("OPENCODE_ZEN_API_KEY");
   }

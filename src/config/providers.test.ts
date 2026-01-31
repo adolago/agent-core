@@ -15,6 +15,7 @@ describe("providers registry", () => {
   describe("PROVIDERS", () => {
     it("should have expected providers defined", () => {
       expect(PROVIDERS.google).toBeDefined();
+      expect(PROVIDERS["google-stt"]).toBeDefined();
       expect(PROVIDERS.openai).toBeDefined();
       expect(PROVIDERS.voyage).toBeDefined();
       expect(PROVIDERS.elevenlabs).toBeDefined();
@@ -64,6 +65,7 @@ describe("providers registry", () => {
       const providers = getProvidersForService("stt");
       const ids = providers.map((p) => p.id);
       expect(ids).toContain("google");
+      expect(ids).toContain("google-stt");
     });
 
     it("should return image providers", () => {
@@ -187,6 +189,7 @@ describe("providers registry", () => {
     it("should return all provider IDs", () => {
       const ids = getAllProviderIds();
       expect(ids).toContain("google");
+      expect(ids).toContain("google-stt");
       expect(ids).toContain("openai");
       expect(ids).toContain("voyage");
       expect(ids).toContain("elevenlabs");

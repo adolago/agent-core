@@ -99,7 +99,7 @@ const MESSAGING_CAPABILITIES: SurfaceCapabilities = {
   messageEditing: false, // Limited editing support
   maxMessageLength: 4096, // Default, varies by platform
   supportedMediaTypes: ['image/*', 'video/*', 'audio/*', 'application/pdf'],
-  showThinking: false, // Thinking output is never shown on messaging platforms
+  showThinking: false, // CRITICAL: Reasoning/thinking output must never be shown on messaging platforms
 };
 
 // Platform-specific capability overrides
@@ -108,13 +108,13 @@ const PLATFORM_CAPABILITIES: Record<string, Partial<SurfaceCapabilities>> = {
     maxMessageLength: 65536,
     reactions: true,
     messageEditing: false,
-    showThinking: false, // Locked: never show thinking on WhatsApp
+    showThinking: false, // Locked: never show thinking on WhatsApp (enforced at multiple layers)
   },
   telegram: {
     maxMessageLength: 4096,
     reactions: true,
     messageEditing: true,
-    showThinking: false, // Locked: never show thinking on Telegram
+    showThinking: false, // Locked: never show thinking on Telegram (enforced at multiple layers)
   },
 };
 

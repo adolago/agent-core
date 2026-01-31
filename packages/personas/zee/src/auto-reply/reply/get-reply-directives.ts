@@ -347,10 +347,14 @@ export async function resolveReplyDirectives(params: {
     (directives.verboseLevel as VerboseLevel | undefined) ??
     (sessionEntry?.verboseLevel as VerboseLevel | undefined) ??
     (agentCfg?.verboseDefault as VerboseLevel | undefined);
-  const resolvedReasoningLevel: ReasoningLevel =
+  let resolvedReasoningLevel: ReasoningLevel =
     (directives.reasoningLevel as ReasoningLevel | undefined) ??
     (sessionEntry?.reasoningLevel as ReasoningLevel | undefined) ??
     "off";
+  // CRITICAL: Messaging channels must never expose reasoning.
+  if (["whatsapp", "telegram"].includes(messageProviderKey)) {
+    resolvedReasoningLevel = "off";
+  }
   const resolvedElevatedLevel = elevatedAllowed
     ? ((directives.elevatedLevel as ElevatedLevel | undefined) ??
       (sessionEntry?.elevatedLevel as ElevatedLevel | undefined) ??

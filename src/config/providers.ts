@@ -56,6 +56,20 @@ export const PROVIDERS: Record<string, ProviderDefinition> = {
     validateEndpoint: "https://generativelanguage.googleapis.com/v1/models",
     website: "https://aistudio.google.com/apikey",
   },
+  "google-stt": {
+    id: "google-stt",
+    name: "Google Speech-to-Text",
+    services: ["stt"],
+    envKey: "GOOGLE_STT_API_KEY",
+    envAliases: [
+      "OPENCODE_GOOGLE_STT_API_KEY",
+      "GOOGLE_APPLICATION_CREDENTIALS",
+      "GOOGLE_CLIENT_EMAIL",
+      "GOOGLE_PRIVATE_KEY",
+    ],
+    authType: "service-account",
+    website: "https://console.cloud.google.com/apis/credentials",
+  },
 
   openai: {
     id: "openai",

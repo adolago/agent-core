@@ -1,3 +1,4 @@
+import { DisconnectReason } from "@whiskeysockets/baileys";
 import { DEFAULT_GROUP_HISTORY_LIMIT } from "../../auto-reply/reply/history.js";
 import { getReplyFromConfig } from "../../auto-reply/reply.js";
 import { getReplyFromDaemonBridge, isDaemonBridgeEnabled } from "../../auto-reply/reply/daemon-bridge.js";
@@ -23,7 +24,13 @@ import {
   resolveReconnectPolicy,
   sleepWithAbort,
 } from "../reconnect.js";
-import { formatError, getWebAuthAgeMs, readWebSelfId } from "../session.js";
+import {
+  formatError,
+  getStatusCode,
+  getWebAuthAgeMs,
+  logoutWeb,
+  readWebSelfId,
+} from "../session.js";
 import { DEFAULT_WEB_MEDIA_BYTES } from "./constants.js";
 import { whatsappHeartbeatLog, whatsappLog } from "./loggers.js";
 import { buildMentionConfig } from "./mentions.js";
@@ -62,6 +69,28 @@ export async function monitorWebChannel(
     });
   };
   emitStatus();
+
+  const disconnectCodes = DisconnectReason as Record<string, number | undefined>;
+  const restartRequiredCode = disconnectCodes.restartRequired;
+  const badSessionCode = disconnectCodes.badSession;
+  const connectionReplacedCode = disconnectCodes.connectionReplaced;
+  const multiDeviceMismatchCode =
+    disconnectCodes.multiDeviceMismatch ?? disconnectCodes.multideviceMismatch;
+
+  const resolveFatalDisconnect = (status?: number) => {
+    if (typeof status !== "number") return null;
+    if (status === DisconnectReason.loggedOut) return "logged-out";
+    if (badSessionCode && status === badSessionCode) return "bad-session";
+    if (connectionReplacedCode && status === connectionReplacedCode) return "connection-replaced";
+    if (multiDeviceMismatchCode && status === multiDeviceMismatchCode) return "multi-device-mismatch";
+    return null;
+  };
+
+  const isRestartRequired = (status?: number) => {
+    if (typeof status !== "number") return false;
+    if (status === 515) return true;
+    return Boolean(restartRequiredCode && status === restartRequiredCode);
+  };
 
   const baseCfg = loadConfig();
   const account = resolveWhatsAppAccount({
@@ -184,25 +213,124 @@ export async function monitorWebChannel(
       if (msg.replyToId || msg.replyToBody) return false;
       return !hasControlCommand(msg.body, cfg);
     };
-
-    const listener = await (listenerFactory ?? monitorWebInbox)({
-      verbose,
+    const connectRoute = resolveAgentRoute({
+      cfg,
+      channel: "whatsapp",
       accountId: account.accountId,
-      authDir: account.authDir,
-      mediaMaxMb: account.mediaMaxMb,
-      sendReadReceipts: account.sendReadReceipts,
-      debounceMs: inboundDebounceMs,
-      shouldDebounce,
-      onMessage: async (msg: WebInboundMsg) => {
-        handledMessages += 1;
-        lastMessageAt = Date.now();
-        status.lastMessageAt = lastMessageAt;
-        status.lastEventAt = lastMessageAt;
-        emitStatus();
-        _lastInboundMsg = msg;
-        await onMessage(msg);
-      },
     });
+
+    let listener: Awaited<ReturnType<typeof monitorWebInbox>>;
+    try {
+      listener = await (listenerFactory ?? monitorWebInbox)({
+        verbose,
+        accountId: account.accountId,
+        authDir: account.authDir,
+        mediaMaxMb: account.mediaMaxMb,
+        sendReadReceipts: account.sendReadReceipts,
+        debounceMs: inboundDebounceMs,
+        shouldDebounce,
+        onMessage: async (msg: WebInboundMsg) => {
+          handledMessages += 1;
+          lastMessageAt = Date.now();
+          status.lastMessageAt = lastMessageAt;
+          status.lastEventAt = lastMessageAt;
+          emitStatus();
+          _lastInboundMsg = msg;
+          await onMessage(msg);
+        },
+      });
+    } catch (err) {
+      const statusCode = getStatusCode(err);
+      const statusCodeNumber = typeof statusCode === "number" ? statusCode : undefined;
+      const errorStr = formatError(err);
+      status.connected = false;
+      status.lastEventAt = Date.now();
+      status.lastDisconnect = {
+        at: status.lastEventAt,
+        status: typeof statusCode === "number" ? statusCode : undefined,
+        error: errorStr,
+        loggedOut: resolveFatalDisconnect(statusCodeNumber) === "logged-out",
+      };
+      status.lastError = errorStr;
+      status.reconnectAttempts = reconnectAttempts;
+      emitStatus();
+
+      reconnectLogger.warn(
+        { connectionId, status: statusCode ?? "unknown", error: errorStr },
+        "web reconnect: listener startup failed",
+      );
+
+      const fatalReason = resolveFatalDisconnect(statusCodeNumber);
+      if (fatalReason) {
+        const relinkHint = formatCliCommand(
+          `zee channels login --channel whatsapp --account ${account.accountId}`,
+        );
+        const message =
+          fatalReason === "logged-out"
+            ? `WhatsApp session logged out. Run \`${relinkHint}\` to relink.`
+            : fatalReason === "bad-session"
+              ? `WhatsApp session is corrupted. Run \`${relinkHint}\` to relink.`
+              : fatalReason === "connection-replaced"
+                ? `WhatsApp session was replaced by another login. Run \`${relinkHint}\` to relink.`
+                : `WhatsApp session mismatch detected. Run \`${relinkHint}\` to relink.`;
+        if (fatalReason === "logged-out" || fatalReason === "bad-session") {
+          try {
+            await logoutWeb({
+              authDir: account.authDir,
+              isLegacyAuthDir: account.isLegacyAuthDir,
+              runtime,
+            });
+          } catch {
+            // ignore cleanup failures
+          }
+        }
+        runtime.error(message);
+        enqueueSystemEvent(message, { sessionKey: connectRoute.sessionKey });
+        break;
+      }
+
+      reconnectAttempts += 1;
+      status.reconnectAttempts = reconnectAttempts;
+      emitStatus();
+      if (reconnectPolicy.maxAttempts > 0 && reconnectAttempts >= reconnectPolicy.maxAttempts) {
+        reconnectLogger.warn(
+          {
+            connectionId,
+            status: statusCode,
+            reconnectAttempts,
+            maxAttempts: reconnectPolicy.maxAttempts,
+          },
+          "web reconnect: max attempts reached during startup; continuing in degraded mode",
+        );
+        runtime.error(
+          `WhatsApp Web reconnect: max attempts reached (${reconnectAttempts}/${reconnectPolicy.maxAttempts}). Stopping web monitoring.`,
+        );
+        break;
+      }
+
+      const delay = isRestartRequired(statusCodeNumber)
+        ? Math.min(1_000, computeBackoff(reconnectPolicy, reconnectAttempts))
+        : computeBackoff(reconnectPolicy, reconnectAttempts);
+      reconnectLogger.info(
+        {
+          connectionId,
+          status: statusCode,
+          reconnectAttempts,
+          maxAttempts: reconnectPolicy.maxAttempts || "unlimited",
+          delayMs: delay,
+        },
+        "web reconnect: scheduling retry after startup failure",
+      );
+      runtime.error(
+        `WhatsApp Web connection failed to start (status ${statusCode ?? "unknown"}). Retry ${reconnectAttempts}/${reconnectPolicy.maxAttempts || "∞"} in ${formatDurationMs(delay)}… (${errorStr})`,
+      );
+      try {
+        await sleep(delay, abortSignal);
+      } catch {
+        break;
+      }
+      continue;
+    }
 
     status.connected = true;
     status.lastConnectedAt = Date.now();
@@ -212,11 +340,6 @@ export async function monitorWebChannel(
 
     // Surface a concise connection event for the next main-session turn/heartbeat.
     const { e164: selfE164 } = readWebSelfId(account.authDir);
-    const connectRoute = resolveAgentRoute({
-      cfg,
-      channel: "whatsapp",
-      accountId: account.accountId,
-    });
     enqueueSystemEvent(`WhatsApp gateway connected${selfE164 ? ` as ${selfE164}` : ""}.`, {
       sessionKey: connectRoute.sessionKey,
     });
@@ -349,6 +472,11 @@ export async function monitorWebChannel(
       reason &&
       "isLoggedOut" in reason &&
       (reason as { isLoggedOut?: boolean }).isLoggedOut;
+    const statusCodeNumber = typeof statusCode === "number" ? statusCode : undefined;
+    const explicitLoggedOut = Boolean(loggedOut);
+    const fatalReason =
+      resolveFatalDisconnect(statusCodeNumber) ?? (explicitLoggedOut ? "logged-out" : null);
+    const isLoggedOut = explicitLoggedOut || fatalReason === "logged-out";
 
     const errorStr = formatError(reason);
     status.connected = false;
@@ -357,7 +485,7 @@ export async function monitorWebChannel(
       at: status.lastEventAt,
       status: typeof statusCode === "number" ? statusCode : undefined,
       error: errorStr,
-      loggedOut: Boolean(loggedOut),
+      loggedOut: Boolean(isLoggedOut),
     };
     status.lastError = errorStr;
     status.reconnectAttempts = reconnectAttempts;
@@ -367,7 +495,8 @@ export async function monitorWebChannel(
       {
         connectionId,
         status: statusCode,
-        loggedOut,
+        loggedOut: isLoggedOut,
+        fatalReason,
         reconnectAttempts,
         error: errorStr,
       },
@@ -378,10 +507,30 @@ export async function monitorWebChannel(
       sessionKey: connectRoute.sessionKey,
     });
 
-    if (loggedOut) {
-      runtime.error(
-        `WhatsApp session logged out. Run \`${formatCliCommand("zee channels login --channel web")}\` to relink.`,
+    if (fatalReason) {
+      const relinkHint = formatCliCommand(
+        `zee channels login --channel whatsapp --account ${account.accountId}`,
       );
+      const message =
+        fatalReason === "logged-out"
+          ? `WhatsApp session logged out. Run \\`${relinkHint}\\` to relink.`
+          : fatalReason === "bad-session"
+            ? `WhatsApp session is corrupted. Run \\`${relinkHint}\\` to relink.`
+            : fatalReason === "connection-replaced"
+              ? `WhatsApp session was replaced by another login. Run \\`${relinkHint}\\` to relink.`
+              : `WhatsApp session mismatch detected. Run \\`${relinkHint}\\` to relink.`;
+      if (fatalReason === "logged-out" || fatalReason === "bad-session") {
+        try {
+          await logoutWeb({
+            authDir: account.authDir,
+            isLegacyAuthDir: account.isLegacyAuthDir,
+            runtime,
+          });
+        } catch {
+          // ignore cleanup failures
+        }
+      }
+      runtime.error(message);
       await closeListener();
       break;
     }
@@ -406,7 +555,9 @@ export async function monitorWebChannel(
       break;
     }
 
-    const delay = computeBackoff(reconnectPolicy, reconnectAttempts);
+    const delay = isRestartRequired(statusCodeNumber)
+      ? Math.min(1_000, computeBackoff(reconnectPolicy, reconnectAttempts))
+      : computeBackoff(reconnectPolicy, reconnectAttempts);
     reconnectLogger.info(
       {
         connectionId,

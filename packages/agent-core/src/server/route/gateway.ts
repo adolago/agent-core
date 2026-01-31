@@ -107,10 +107,21 @@ async function callGateway<T = unknown>(
   params?: unknown,
   options: { timeoutMs?: number } = {},
 ): Promise<T> {
+  log.debug("callGateway started", { method })
   const url = resolveGatewayWsUrl()
   const timeoutMs = options.timeoutMs ?? 10_000
 
-  const token = process.env.ZEE_GATEWAY_TOKEN?.trim() || undefined
+  const envToken = process.env.ZEE_GATEWAY_TOKEN?.trim()
+  let fileToken = ""
+  try {
+    const fs = await import("node:fs")
+    fileToken = fs.readFileSync("/tmp/zee_gateway_token", "utf-8").trim()
+  } catch {
+    fileToken = ""
+  }
+  // Use env var or fallback to file
+  const token = envToken || fileToken || undefined
+  log.debug("Gateway auth", { hasEnvToken: !!envToken, hasFileToken: !!fileToken, hasToken: !!token })
   const password = process.env.ZEE_GATEWAY_PASSWORD?.trim() || undefined
   const auth = token || password ? { ...(token ? { token } : {}), ...(password ? { password } : {}) } : undefined
 
@@ -162,7 +173,7 @@ async function callGateway<T = unknown>(
     }
 
     ws.addEventListener("open", () => {
-      log.debug("Gateway connect params", { connectParams: JSON.stringify(connectParams) })
+    
       const frame: GatewayRequestFrame = {
         type: "req",
         id: connectId,
@@ -243,7 +254,7 @@ async function sendViaGateway(input: {
   return await callGateway("send", {
     to: input.to,
     message: input.message,
-    provider: input.provider,
+    channel: input.provider,
     ...(input.accountId ? { accountId: input.accountId } : {}),
     idempotencyKey: crypto.randomUUID(),
   }, { timeoutMs: DEFAULT_GATEWAY_SEND_TIMEOUT_MS })

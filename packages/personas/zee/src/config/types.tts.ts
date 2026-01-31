@@ -1,4 +1,4 @@
-export type TtsProvider = "elevenlabs" | "openai" | "edge";
+export type TtsProvider = "elevenlabs" | "openai" | "edge" | "minimax";
 
 export type TtsMode = "final" | "all";
 
@@ -72,6 +72,19 @@ export type TtsConfig = {
     saveSubtitles?: boolean;
     proxy?: string;
     timeoutMs?: number;
+  };
+  /** MiniMax TTS configuration. */
+  minimax?: {
+    apiKey?: string;
+    baseUrl?: string;
+    model?: string;
+    voice?: string;
+    speed?: number;
+    vol?: number;
+    pitch?: number;
+    sampleRate?: number;
+    bitrate?: number;
+    channel?: number;
   };
   /** Optional path for local TTS user preferences JSON. */
   prefsPath?: string;

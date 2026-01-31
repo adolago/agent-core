@@ -585,11 +585,18 @@ export async function runEmbeddedAttempt(
         });
       };
 
+      // CRITICAL FAILSAFE: Messaging channels must never expose reasoning.
+      const runtimeChannel = (params.messageChannel ?? params.messageProvider ?? "")
+        .trim()
+        .toLowerCase();
+      const effectiveReasoningMode = ["whatsapp", "telegram"].includes(runtimeChannel)
+        ? "off"
+        : (params.reasoningLevel ?? "off");
       const subscription = subscribeEmbeddedPiSession({
         session: activeSession,
         runId: params.runId,
         verboseLevel: params.verboseLevel,
-        reasoningMode: params.reasoningLevel ?? "off",
+        reasoningMode: effectiveReasoningMode,
         toolResultFormat: params.toolResultFormat,
         shouldEmitToolResult: params.shouldEmitToolResult,
         shouldEmitToolOutput: params.shouldEmitToolOutput,

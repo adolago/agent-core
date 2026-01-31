@@ -50,7 +50,8 @@ function ttsUsage(): ReplyPayload {
       `**Providers:**\n` +
       `• edge — Free, fast (default)\n` +
       `• openai — High quality (requires API key)\n` +
-      `• elevenlabs — Premium voices (requires API key)\n\n` +
+      `• elevenlabs — Premium voices (requires API key)\n` +
+      `• minimax — MiniMax TTS (requires API key)\n\n` +
       `**Text Limit (default: 1500, max: 4096):**\n` +
       `When text exceeds the limit:\n` +
       `• Summary ON: AI summarizes, then generates audio\n` +
@@ -151,6 +152,7 @@ export const handleTtsCommands: CommandHandler = async (params, allowTextCommand
     if (!args.trim()) {
       const hasOpenAI = Boolean(resolveTtsApiKey(config, "openai"));
       const hasElevenLabs = Boolean(resolveTtsApiKey(config, "elevenlabs"));
+      const hasMinimax = Boolean(resolveTtsApiKey(config, "minimax"));
       const hasEdge = isTtsProviderConfigured(config, "edge");
       return {
         shouldContinue: false,
@@ -160,14 +162,20 @@ export const handleTtsCommands: CommandHandler = async (params, allowTextCommand
             `Primary: ${currentProvider}\n` +
             `OpenAI key: ${hasOpenAI ? "✅" : "❌"}\n` +
             `ElevenLabs key: ${hasElevenLabs ? "✅" : "❌"}\n` +
+            `MiniMax key: ${hasMinimax ? "✅" : "❌"}\n` +
             `Edge enabled: ${hasEdge ? "✅" : "❌"}\n` +
-            `Usage: /tts provider openai | elevenlabs | edge`,
+            `Usage: /tts provider openai | elevenlabs | minimax | edge`,
         },
       };
     }
 
     const requested = args.trim().toLowerCase();
-    if (requested !== "openai" && requested !== "elevenlabs" && requested !== "edge") {
+    if (
+      requested !== "openai" &&
+      requested !== "elevenlabs" &&
+      requested !== "minimax" &&
+      requested !== "edge"
+    ) {
       return { shouldContinue: false, reply: ttsUsage() };
     }
 
