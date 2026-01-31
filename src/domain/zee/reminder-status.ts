@@ -256,14 +256,14 @@ Examples:
         return a.time.getTime() - b.time.getTime();
       });
 
-      // Format the status message
+      // Format the status message (concise style)
       let statusMessage: string;
 
       if (reminders.length === 0) {
         if (calendarError) {
-          statusMessage = `Zee is online. ${calendarError}.`;
+          statusMessage = calendarError;
         } else {
-          statusMessage = "Zee is online. No active reminders.";
+          statusMessage = "Online.";
         }
       } else {
         const upcomingReminders = reminders.filter(r => {
@@ -276,13 +276,13 @@ Examples:
           if (next.time) {
             const minutesUntil = (next.time.getTime() - now.getTime()) / (1000 * 60);
             const timeStr = formatTimeUntil(minutesUntil);
-            statusMessage = `Zee is online. Next: ${next.title} in ${timeStr}.`;
+            statusMessage = `Next: ${next.title} in ${timeStr}`;
           } else {
-            statusMessage = `Zee is online. Next: ${next.title}.`;
+            statusMessage = `Next: ${next.title}`;
           }
         } else {
           const count = reminders.length;
-          statusMessage = `Zee is online. ${count} reminder${count !== 1 ? "s" : ""} today.`;
+          statusMessage = `${count} reminder${count !== 1 ? "s" : ""} today`;
         }
       }
 

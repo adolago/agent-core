@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js"
+import { For, Show, createMemo, type Accessor } from "solid-js"
 import { DEFAULT_THEMES, useTheme } from "@tui/context/theme"
 import type { JSX } from "solid-js"
 
@@ -33,11 +33,14 @@ function parse(tip: string): TipPart[] {
 
 export type TipsProps = {
   bottomBorder?: JSX.Element
+  billboard?: Accessor<string | undefined>
 }
 
 export function Tips(props: TipsProps) {
   const theme = useTheme().theme
-  const parts = parse(TIPS[Math.floor(Math.random() * TIPS.length)])
+  const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)]
+  const displayText = createMemo(() => props.billboard?.() || randomTip)
+  const parts = createMemo(() => parse(displayText()))
 
   return (
     <box flexDirection="column">
@@ -51,7 +54,7 @@ export function Tips(props: TipsProps) {
       <box flexDirection="row">
         <text fg={theme.border} flexShrink={0}>│ </text>
         <text flexGrow={1} flexShrink={1}>
-          <For each={parts}>
+          <For each={parts()}>
             {(part) => <span style={{ fg: part.highlight ? theme.text : theme.textMuted }}>{part.text}</span>}
           </For>
         </text>

@@ -176,6 +176,7 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const { theme, syntax } = useTheme()
   const kv = useKV()
+  const billboard = createMemo(() => kv.get("zee_status_banner", undefined) as string | undefined)
   const [dictationConfig, setDictationConfig] = createSignal<Dictation.RuntimeConfig | undefined>(undefined)
   createEffect(() => {
     const tui = sync.data.config.tui as { dictation?: Dictation.Config } | undefined
@@ -1427,10 +1428,24 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Tips box with shared middle border (T-junctions) */}
-        <Tips bottomBorder={
+        {/* Tips/billboard box with shared middle border (T-junctions) */}
+        <Tips billboard={billboard} bottomBorder={
           <box height={1} flexDirection="row">
             <text fg={theme.border} flexShrink={0}>├</text>
+            {/* Left side: context usage */}
+            <Show when={contextUsage()}>
+              {(ctx) => (
+                <>
+                  <text
+                    fg={ctx().percent >= 80 ? theme.error : ctx().percent >= 60 ? theme.warning : theme.textMuted}
+                    flexShrink={0}
+                  >
+                    {ctx().percent}% of {ctx().limit >= 1000000 ? `${(ctx().limit / 1000000).toFixed(1)}M` : ctx().limit >= 1000 ? `${Math.round(ctx().limit / 1000)}k` : ctx().limit}
+                  </text>
+                  <text fg={theme.border} flexShrink={0}>─</text>
+                </>
+              )}
+            </Show>
             <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
             <text fg={highlight()} flexShrink={0}>{Locale.titlecase(local.agent.current().name)}</text>
             <text fg={theme.border} flexShrink={0}>─</text>
@@ -1449,14 +1464,18 @@ export function Prompt(props: PromptProps) {
           </box>
         } />
         
-        {/* Input row with side borders (stacked box style) */}
-        <box flexDirection="row">
-          <text fg={theme.border} flexShrink={0}>│ </text>
-          <box
-            flexShrink={1}
-            flexGrow={1}
-            overflow="hidden"
-          >
+        {/* Input area with side borders (stacked box style) */}
+        <box
+          border={["left", "right"]}
+          borderColor={theme.border}
+          customBorderChars={{
+            vertical: "│",
+            topLeft: "", bottomLeft: "", topRight: "", bottomRight: "",
+            horizontal: "", topT: "", bottomT: "", leftT: "", rightT: "", cross: "",
+          }}
+          paddingLeft={1}
+          paddingRight={1}
+        >
             <textarea
               placeholder={null}
               textColor={keybind.leader ? theme.textMuted : theme.text}
@@ -1758,33 +1777,39 @@ export function Prompt(props: PromptProps) {
               cursorColor={theme.primary}
               syntaxStyle={syntax()}
             />
-          </box>
-          <text fg={theme.border} flexShrink={0}> │</text>
         </box>
         {/* Diff stats line inside box */}
         <Show when={diffStats()}>
           {(stats) => (
-            <box height={1} flexDirection="row">
-              <text fg={theme.border} flexShrink={0}>│</text>
+            <box
+              height={1}
+              flexDirection="row"
+              border={["left", "right"]}
+              borderColor={theme.border}
+              customBorderChars={{
+                vertical: "│",
+                topLeft: "", bottomLeft: "", topRight: "", bottomRight: "",
+                horizontal: "", topT: "", bottomT: "", leftT: "", rightT: "", cross: "",
+              }}
+            >
               <box flexGrow={1} flexDirection="row" justifyContent="flex-end" paddingRight={1}>
-              <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
-              <Show when={stats().additions > 0}>
-                <text fg={theme.success}>+{stats().additions}</text>
-              </Show>
-              <Show when={stats().additions > 0 && stats().modified > 0}>
-                <text> </text>
-              </Show>
-              <Show when={stats().modified > 0}>
-                <text fg={theme.warning}>~{stats().modified}</text>
-              </Show>
-              <Show when={(stats().additions > 0 || stats().modified > 0) && stats().deletions > 0}>
-                <text> </text>
-              </Show>
-              <Show when={stats().deletions > 0}>
-                <text fg={theme.error}>-{stats().deletions}</text>
-              </Show>
+                <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
+                <Show when={stats().additions > 0}>
+                  <text fg={theme.success}>+{stats().additions}</text>
+                </Show>
+                <Show when={stats().additions > 0 && stats().modified > 0}>
+                  <text> </text>
+                </Show>
+                <Show when={stats().modified > 0}>
+                  <text fg={theme.warning}>~{stats().modified}</text>
+                </Show>
+                <Show when={(stats().additions > 0 || stats().modified > 0) && stats().deletions > 0}>
+                  <text> </text>
+                </Show>
+                <Show when={stats().deletions > 0}>
+                  <text fg={theme.error}>-{stats().deletions}</text>
+                </Show>
               </box>
-              <text fg={theme.border} flexShrink={0}>│</text>
             </box>
           )}
         </Show>
