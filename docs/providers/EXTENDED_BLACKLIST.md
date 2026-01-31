@@ -1,10 +1,10 @@
 # Extended Provider Blacklist Analysis
 
-Complete analysis of all remaining providers for potential blacklisting.
+Complete analysis of all providers including utility providers and Google variants.
 
 ---
 
-## Currently Blocked (10 Providers)
+## Currently Blocked (9 Providers)
 
 ```typescript
 const PROVIDER_BLACKLIST = new Set<string>([
@@ -15,7 +15,6 @@ const PROVIDER_BLACKLIST = new Set<string>([
   "ollama",           // Local provider - use vLLM instead
   "github-copilot",   // Subscription-based, limited models
   "amazon-bedrock",   // Enterprise AWS only
-  "opencode",         // Unstable internal proxy
   "qwen-portal",      // OAuth complexity, limited models
   "moonshot",         // Duplicate of kimi-for-coding
 ])
@@ -23,175 +22,166 @@ const PROVIDER_BLACKLIST = new Set<string>([
 
 ---
 
-## Remaining Active Providers (8)
+## Active LLM Providers (10)
 
-| Provider | Status | Recommendation |
-|----------|--------|----------------|
-| anthropic | Core | **KEEP** - Essential |
-| openai | Core | **KEEP** - Essential |
-| google | Core | **KEEP** - Essential |
-| xai | Secondary | **KEEP** - Good alternative |
-| deepseek | Secondary | **KEEP** - Cost-effective |
-| minimax | Niche | CONSIDER BLOCK |
-| zai-coding-plan | Niche | CONSIDER BLOCK |
-| kimi-for-coding | Niche | CONSIDER BLOCK |
-| openrouter | Aggregator | **KEEP** - Useful fallback |
-
----
-
-## More Candidates to Block
-
-### 1. MiniMax (`minimax`) - CONSIDER
-**Why block:**
-- Chinese provider with limited English support
-- Only 2 models (M2, M2.1)
-- Anthropic-compatible API (non-standard)
-- Overlaps with other providers' capabilities
-
-**Verdict:** CONSIDER BLOCK - Niche provider
+| Provider | Type | Block Recommendation |
+|----------|------|---------------------|
+| **anthropic** | Core LLM | KEEP |
+| **openai** | Core LLM | KEEP |
+| **google** | Core LLM (AI Studio API) | KEEP |
+| **google-gemini-cli** | OAuth (Gemini CLI) | KEEP |
+| **google-antigravity** | OAuth (Cloud Code) | KEEP |
+| **xai** | Long Context | KEEP |
+| **deepseek** | Budget | KEEP |
+| **minimax** | Niche | KEEP |
+| **zai-coding-plan** | GLM | KEEP (PAID) |
+| **kimi-for-coding** | Coding | KEEP |
+| **opencode** | Multi-model Proxy | KEEP |
+| **openrouter** | Aggregator | KEEP |
 
 ---
 
-### 2. Z.AI Coding Plan (`zai-coding-plan`) - CONSIDER
-**Why block:**
-- Single model (glm-4.7)
-- Chinese-focused (Zhipu AI)
-- Limited global availability
-- Overlaps with OpenAI/Anthropic for coding
+## Utility Providers (Separately Blockable)
 
-**Verdict:** CONSIDER BLOCK - Very niche
+### Embedding Providers
 
----
+| Provider ID | Service | Env Var | Models |
+|-------------|---------|---------|--------|
+| `openai` | Embedding | `OPENAI_API_KEY` | text-embedding-3-small/large |
+| `google` | Embedding | `GOOGLE_API_KEY` | gemini-embedding-001 |
+| `voyage` | Embedding/Reranking | `VOYAGE_API_KEY` | voyage-3-large, voyage-3, voyage-3-lite |
+| `vllm` | Embedding/Reranking | `VLLM_BASE_URL` | User-configurable |
 
-### 3. Kimi for Coding (`kimi-for-coding`) - CONSIDER
-**Why block:**
-- Limited to coding tasks (narrow scope)
-- Only 3 models (K2.5, K2.5-thinking variants)
-- Moonshot already consolidated here
-- Overlaps with Claude/GPT for coding
-
-**Verdict:** CONSIDER BLOCK - Specialized but redundant
+**Note:** Voyage is shared between embedding and reranking.
 
 ---
 
-### 4. OpenRouter (`openrouter`) - KEEP
-**Why keep:**
-- Aggregates 100+ models
-- Good fallback when direct providers fail
-- Single API key for multiple providers
-- Cost comparison features
+### Reranking Providers
 
-**Verdict:** KEEP - Useful aggregator
+| Provider ID | Service | Env Var | Default Model |
+|-------------|---------|---------|---------------|
+| `voyage` | Reranking | `VOYAGE_API_KEY` | rerank-2 |
+| `vllm` | Reranking | `VLLM_RERANKER_URL` | BAAI/bge-reranker-v2-m3 |
 
 ---
 
-### 5. xAI (`xai`) - KEEP
-**Why keep:**
-- Unique 2M context window
-- Grok models different from GPT/Claude
-- Good for long document processing
-- X Premium integration
+### TTS Providers
 
-**Verdict:** KEEP - Unique capability
-
----
-
-### 6. DeepSeek (`deepseek`) - KEEP
-**Why keep:**
-- Cost-effective reasoning
-- Popular for coding tasks
-- Good OpenAI alternative
-- Active development
-
-**Verdict:** KEEP - Popular alternative
+| Provider ID | Service | Env Var | Models |
+|-------------|---------|---------|--------|
+| `openai` | TTS | `OPENAI_API_KEY` | gpt-4o-mini-tts, tts-1, tts-1-hd |
+| `elevenlabs` | TTS | `ELEVENLABS_API_KEY` | eleven_multilingual_v2 |
+| `minimax` | TTS | `MINIMAX_API_KEY` | speech-2.8-hd |
+| `edge` | TTS | None | Microsoft Edge voices |
 
 ---
 
-## Minimal Provider Setup
+### STT Providers
 
-If you want the **leanest possible setup**, keep only:
+| Provider ID | Service | Env Var | Default Model |
+|-------------|---------|---------|---------------|
+| `google` | STT (Gemini) | `GOOGLE_API_KEY` | gemini-3-flash-preview |
+| `google-stt` | STT (Chirp 2) | `GOOGLE_STT_API_KEY` | chirp_2 |
+| `openai` | STT | `OPENAI_API_KEY` | gpt-4o-mini-transcribe |
+| `deepgram` | STT | `DEEPGRAM_API_KEY` | nova-3 |
+| `groq` | STT | `GROQ_API_KEY` | whisper-large-v3-turbo |
+
+---
+
+## Google Provider Variants (3 Separate Providers)
+
+Google has **3 distinct provider IDs** that can be blocked separately:
+
+### 1. `google` - Google AI Studio API
+- **Service:** Main LLM, Embedding, Gemini STT
+- **Env Var:** `GOOGLE_API_KEY` or `GEMINI_API_KEY`
+- **Models:** gemini-3-pro/flash-preview, gemini-embedding-001
+- **Auth:** API Key
+
+### 2. `google-gemini-cli` - Gemini CLI OAuth
+- **Service:** LLM via Gemini CLI
+- **Env Vars:** `ZEE_GEMINI_OAUTH_CLIENT_ID`, `GEMINI_CLI_OAUTH_CLIENT_SECRET`
+- **Default Model:** google-gemini-cli/gemini-3-pro-preview
+- **Auth:** OAuth (PKCE + localhost callback)
+- **Scopes:** cloud-platform, userinfo
+
+### 3. `google-antigravity` - Google Cloud Code (Antigravity)
+- **Service:** LLM via Cloud Code Assist
+- **Default Model:** google-antigravity/claude-opus-4-5-thinking
+- **Auth:** OAuth (PKCE + localhost callback)
+- **Scopes:** cloud-platform, cclog, experimentsandconfigs
+
+### To Block Google Variants Individually:
 
 ```typescript
-const PROVIDER_BLACKLIST = new Set<string>([
-  // ... all current blocks ...
-  "minimax",          // Block - niche Chinese
-  "zai-coding-plan",  // Block - niche GLM
-  "kimi-for-coding",  // Block - niche coding-only
-])
-```
+// Block only Gemini CLI
+"google-gemini-cli"
 
-**Result: Core 5 Providers**
-1. anthropic - Claude models
-2. openai - GPT models
-3. google - Gemini models
-4. xai - Grok models
-5. deepseek - Reasoning models
-6. openrouter - Fallback aggregator
+// Block only Antigravity
+"google-antigravity"
+
+// Block main Google AI Studio (keeps CLI/Antigravity)
+"google"
+```
 
 ---
 
-## Ultra-Minimal Setup (3 Providers)
+## Provider Granularity Summary
 
-For the absolute minimum:
+| Category | Count | Can Block Individually |
+|----------|-------|------------------------|
+| LLM Providers | 10 | Yes |
+| Google Variants | 3 | Yes (google, google-gemini-cli, google-antigravity) |
+| Embedding | 4 | Yes (openai, google, voyage, vllm) |
+| Reranking | 2 | Yes (voyage, vllm) |
+| TTS | 4 | Yes (openai, elevenlabs, minimax, edge) |
+| STT | 5 | Yes (google, google-stt, openai, deepgram, groq) |
+
+**Total Blockable Provider IDs:** ~28
+
+---
+
+## Recommended Minimal Setup
+
+If you want to block by service type:
 
 ```typescript
-const PROVIDER_BLACKLIST = new Set<string>([
-  // ... all current blocks ...
-  "minimax",
-  "zai-coding-plan", 
-  "kimi-for-coding",
-  "xai",              // Block - if you don't need 2M context
-  "deepseek",         // Block - if you have OpenAI/Anthropic
-  "openrouter",       // Block - if you don't need fallback
-])
+// Block all TTS
+const blockTTS = ["elevenlabs", "minimax", "edge"];
+
+// Block all STT except Google
+const blockSTT = ["deepgram", "groq"];
+
+// Block all reranking (if not using)
+const blockRerank = ["voyage"];
+
+// Block Google variants (keep main google)
+const blockGoogleVariants = ["google-gemini-cli", "google-antigravity"];
 ```
 
-**Result: Core 3**
-1. anthropic
-2. openai
-3. google
-
 ---
 
-## Provider Capability Matrix
+## Complete Provider Registry
 
-| Provider | Chat | Code | Vision | Reasoning | Long Context | Cost |
-|----------|------|------|--------|-----------|--------------|------|
-| anthropic | ✅ | ✅ | ✅ | ✅ | 200K | Medium |
-| openai | ✅ | ✅ | ✅ | ✅ | 400K | High |
-| google | ✅ | ✅ | ✅ | ✅ | 1M | Low |
-| xai | ✅ | ✅ | ✅ | ✅ | 2M | Medium |
-| deepseek | ✅ | ✅ | ❌ | ✅ | 128K | Low |
-| minimax | ✅ | ✅ | ✅ | ✅ | 204K | Medium |
-| zai | ✅ | ✅ | ❌ | ✅ | 204K | Low |
-| kimi | ✅ | ✅ | ✅ | ✅ | 256K | Medium |
-| openrouter | ✅ | ✅ | ✅ | ✅ | Varies | Varies |
+### LLM (12)
+anthropic, openai, google, google-gemini-cli, google-antigravity, xai, deepseek, minimax, zai-coding-plan, kimi-for-coding, opencode, openrouter
 
----
+### Embedding (4)
+openai, google, voyage, vllm
 
-## Recommendations
+### Reranking (2)
+voyage, vllm
 
-### Conservative (Keep 8)
-Keep all remaining providers except none.
+### TTS (4)
+openai, elevenlabs, minimax, edge
 
-### Moderate (Keep 6)
-Block: minimax, zai-coding-plan
+### STT (5)
+google, google-stt, openai, deepgram, groq
 
-### Aggressive (Keep 5)
-Block: minimax, zai-coding-plan, kimi-for-coding
+### Image (1)
+openai
 
-### Minimal (Keep 3-4)
-Block: minimax, zai-coding-plan, kimi-for-coding, xai, deepseek
+### Web Search (2)
+brave, perplexity
 
----
-
-## Next Steps
-
-Which providers do you want to block next?
-
-1. **minimax** - Chinese provider
-2. **zai-coding-plan** - GLM models
-3. **kimi-for-coding** - Coding-focused
-4. **xai** - Grok (if you don't need 2M context)
-5. **deepseek** - Budget reasoning (if covered by others)
-6. **openrouter** - Aggregator (if you trust direct providers)
+**Total: ~30 distinct provider IDs**

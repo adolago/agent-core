@@ -38,19 +38,19 @@ export function Tips() {
     <box flexDirection="column">
       {/* Rounded top border */}
       <box height={1} flexDirection="row">
-        <text fg={theme.border}>╭</text>
+        <text fg={theme.border} flexShrink={0}>╭</text>
         <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
-        <text fg={theme.border}>╮</text>
+        <text fg={theme.border} flexShrink={0}>╮</text>
       </box>
       {/* Content row with side borders */}
       <box flexDirection="row">
-        <text fg={theme.border}>│ </text>
+        <text fg={theme.border} flexShrink={0}>│ </text>
         <text flexGrow={1} flexShrink={1}>
           <For each={parts}>
             {(part) => <span style={{ fg: part.highlight ? theme.text : theme.textMuted }}>{part.text}</span>}
           </For>
         </text>
-        <text fg={theme.border}> │</text>
+        <text fg={theme.border} flexShrink={0}> │</text>
       </box>
       {/* No bottom border - shared with input area's top border */}
     </box>

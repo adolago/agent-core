@@ -1427,28 +1427,31 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Top border with persona + skills + VIM (Amp style) */}
+        {/* Tips box (Amp-style ad box) */}
+        <Tips />
+        
+        {/* Shared border: Tips bottom + Input top (Amp style) */}
         <box height={1} flexDirection="row">
-          <text fg={theme.border}>┌</text>
+          <text fg={theme.border} flexShrink={0}>╰</text>
           <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
           <text fg={highlight()} flexShrink={0}>{Locale.titlecase(local.agent.current().name)}</text>
-          <text fg={theme.border}>──</text>
-          <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} skills</text>
+          <text fg={theme.border} flexShrink={0}>─</text>
+          <text fg={theme.textMuted} flexShrink={0}>{sync.data.agent?.length ?? 0} skills</text>
           <Show when={vim.enabled && store.mode !== "shell"}>
-            <text fg={theme.border}>──</text>
+            <text fg={theme.border} flexShrink={0}>─</text>
             <text
               fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
               attributes={TextAttributes.BOLD}
+              flexShrink={0}
             >
               {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
             </text>
           </Show>
-          <text fg={theme.border}>─┐</text>
+          <text fg={theme.border} flexShrink={0}>─╯</text>
         </box>
         
-        {/* Input row with left and right border */}
+        {/* Input row (no side borders - Amp style) */}
         <box flexDirection="row">
-          <text fg={theme.border}>│</text>
           <box
             paddingLeft={1}
             paddingRight={1}
@@ -1757,22 +1760,6 @@ export function Prompt(props: PromptProps) {
               syntaxStyle={syntax()}
             />
           </box>
-          {/* Right border character */}
-          <text fg={theme.border}>│</text>
-        </box>
-        {/* Bottom border with path + branch (Amp style) */}
-        <box height={1} flexDirection="row">
-          <text fg={theme.border}>└</text>
-          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
-          <text fg={theme.textMuted}>
-            <Show when={sync.data.path?.directory}>
-              {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
-            </Show>
-            <Show when={sync.data.vcs?.branch}>
-              {` (${sync.data.vcs?.branch})`}
-            </Show>
-          </text>
-          <text fg={theme.border}>─┘</text>
         </box>
         {/* Diff stats line (Amp style - below box, right-aligned) */}
         <Show when={diffStats()}>
@@ -1797,259 +1784,56 @@ export function Prompt(props: PromptProps) {
             </box>
           )}
         </Show>
-        {/* Status bar (Amp style) */}
-        <box
-          flexDirection="row"
-          justifyContent="space-between"
-          paddingLeft={2}
-          paddingRight={2}
-        >
-          {/* Left side: spinner + phase + abort hint (Amp style) */}
-          <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
-            {/* Animated spinner when busy, accent ~ when idle */}
-            <Show
-              when={status().type === "busy"}
-              fallback={<text fg={highlight()}>~</text>}
-            >
-              <spinner
-                color={spinnerDef().color}
-                frames={spinnerDef().frames}
-                interval={60}
-              />
-            </Show>
-            {/* Vim hints (mode indicator moved to right-side chip) */}
-            <Show when={vim.enabled && store.mode !== "shell" && status().type === "idle"}>
-              <Show when={vim.isNormal}>
-                <text fg={theme.textMuted}>
-                  i:insert Space:leader
-                </text>
-              </Show>
-              <Show when={vim.isVisual}>
-                <text fg={theme.textMuted}>
-                  v:normal esc:normal
-                </text>
-              </Show>
-            </Show>
-            <Switch fallback={
-              <Switch>
-                <Match when={dictationState() === "listening"}>
-                  <text fg={theme.warning}>
-                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
-                  </text>
-                </Match>
-                <Match when={dictationState() === "sending"}>
-                  <text fg={theme.primary}>[SEND] sending audio...</text>
-                </Match>
-                <Match when={dictationState() === "receiving"}>
-                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
-                </Match>
-                <Match when={dictationState() === "transcribing"}>
-                  <text fg={theme.textMuted}>dictation processing...</text>
-                </Match>
-                <Match when={todoHint()}>
-                  {(hint) => (
-                    <text fg={theme.warning}>
-                      {hint().count} pending · {hint().current}...
-                    </text>
-                  )}
-                </Match>
-              </Switch>
-            }>
-              <Match when={status().type === "idle"}>
-                {(() => {
-                  const parsed = local.model.parsed()
-                  return (
-                    <box flexDirection="row" gap={1}>
-                      <Show when={contextUsage()?.percent}>
-                        <text fg={theme.textMuted}>{contextUsage()?.percent}% · {formatTokens(contextUsage()?.count ?? 0)}/{formatTokens(contextUsage()?.limit ?? 0)}</text>
-                      </Show>
-                    </box>
-                  )
-                })()}
-              </Match>
-              <Match when={true}>
-                <box flexDirection="row" gap={1}>
-                  {(() => {
-                    const retry = createMemo(() => {
-                      const s = status()
-                      if (s.type !== "retry") return
-                      return s
-                    })
-                    const message = createMemo(() => {
-                      const r = retry()
-                      if (!r) return
-                      if (r.message.includes("exceeded your current quota") && r.message.includes("gemini"))
-                        return "gemini is way too hot right now"
-                      if (r.message.length > 80) return r.message.slice(0, 80) + "..."
-                      return r.message
-                    })
-                    const isTruncated = createMemo(() => {
-                      const r = retry()
-                      if (!r) return false
-                      return r.message.length > 120
-                    })
-                    const [seconds, setSeconds] = createSignal(0)
-                    const [elapsed, setElapsed] = createSignal(0)
-                    onMount(() => {
-                      const start = Date.now()
-                      const timer = setInterval(() => {
-                        const next = retry()?.next
-                        if (next) setSeconds(Math.round((next - Date.now()) / 1000))
-                        if (status().type === "busy") {
-                          setElapsed(Math.floor((Date.now() - start) / 1000))
-                        }
-                      }, 1000)
-                      onCleanup(() => clearInterval(timer))
-                    })
-                    const handleMessageClick = () => {
-                      const r = retry()
-                      if (!r) return
-                      if (isTruncated()) {
-                        DialogAlert.show(dialog, "Retry Error", r.message)
-                      }
-                    }
-                    const retryText = () => {
-                      const r = retry()
-                      if (!r) return ""
-                      const baseMessage = message()
-                      const truncatedHint = isTruncated() ? " (click to expand)" : ""
-                      const duration = formatDuration(seconds())
-                      const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
-                      return baseMessage + truncatedHint + retryInfo
-                    }
-                    const formatElapsed = (s: number) => {
-                      if (s < 60) return `${s}s`
-                      if (s < 3600) {
-                        const m = Math.floor(s / 60)
-                        const sec = s % 60
-                        return sec > 0 ? `${m}m${sec}s` : `${m}m`
-                      }
-                      const h = Math.floor(s / 3600)
-                      const m = Math.floor((s % 3600) / 60)
-                      return m > 0 ? `${h}h${m}m` : `${h}h`
-                    }
-                    const phaseLabel = createMemo(() => {
-                      const health = streamHealth()
-                      if (!health?.phase) return "Streaming response..."
-                      switch (health.phase) {
-                        case "thinking": return "Thinking..."
-                        case "tool_calling": return "Running tools..."
-                        case "generating": return "Streaming response..."
-                        default: return "Streaming response..."
-                      }
-                    })
-                    const formatFixedTokens = (n: number, width = 4) => {
-                      const inK = Math.round(n / 1000)
-                      const numStr = inK.toString().padStart(width, "0")
-                      const firstNonZero = numStr.search(/[1-9]/)
-                      const zeroCount = firstNonZero === -1 ? width - 1 : firstNonZero
-                      const zeros = numStr.slice(0, zeroCount)
-                      const rest = numStr.slice(zeroCount)
-                      return (
-                        <>
-                          <Show when={zeros.length > 0}>
-                            <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
-                          </Show>
-                          <text fg={theme.textMuted}>{rest}</text>
-                        </>
-                      )
-                    }
-                    const totalTime = () => completedWorkTime() + elapsed()
-                    const embConfig = streamHealth()?.embeddingConfig
-                    return (
-                      <>
-                        <Show when={retry()}>
-                          <box onMouseUp={handleMessageClick}>
-                            <text fg={theme.error}>{retryText()}</text>
-                          </box>
-                        </Show>
-                        <Show when={!retry() && status().type === "busy"}>
-                          <box flexDirection="row" gap={0}>
-                            <text fg={theme.accent}>{phaseLabel()}</text>
-                            <text> </text>
-                            <Show when={contextUsage()?.percent}>
-                              <text fg={theme.textMuted}>{contextUsage()?.percent}% · {formatTokens(contextUsage()?.count ?? 0)}/{formatTokens(contextUsage()?.limit ?? 0)}</text>
-                              <text> </text>
-                            </Show>
-                            <Show when={embConfig}>
-                              <text fg={theme.warning}>◆</text>
-                              <text fg={theme.textMuted}>{embConfig?.maxContext ?? 0}</text>
-                              <text> </text>
-                            </Show>
-                            <text fg={theme.textMuted}>{formatElapsed(totalTime())}</text>
-                          </box>
-                        </Show>
-                      </>
-                    )
-                  })()}
-                </box>
-              </Match>
-            </Switch>
-            <Show when={status().type === "busy"}>
-              <text fg={theme.textMuted}>Esc</text>
-              <text fg={theme.textMuted}> to cancel</text>
-            </Show>
-          </box>
-          {/* Right side: context usage + provider model variant */}
-          <box flexDirection="row" gap={1} flexShrink={0}>
-            <Switch>
-              <Match when={store.mode === "shell"}>
-                <box flexDirection="row" gap={1}>
-                  <text fg={theme.text}>esc</text>
-                  <text fg={theme.textMuted}>exit shell</text>
-                </box>
-              </Match>
-              <Match when={store.mode === "normal"}>
-                {(() => {
-                  const parsed = local.model.parsed()
-                  const variant = local.model.variant.current()
-                  const formatElapsed = (s: number) => {
-                    if (s < 60) return `${s}`
-                    if (s < 3600) {
-                      const m = Math.floor(s / 60)
-                      const sec = s % 60
-                      return sec > 0 ? `${m}m${sec}` : `${m}m`
-                    }
-                    const h = Math.floor(s / 3600)
-                    const m = Math.floor((s % 3600) / 60)
-                    return m > 0 ? `${h}h${m}m` : `${h}h`
-                  }
-                  return (
-                    <box flexDirection="row" gap={0}>
-                      {/* Elapsed · model (Amp style) */}
-                      <Show when={completedWorkTime() > 0}>
-                        <text fg={theme.border}>{formatElapsed(completedWorkTime())}</text>
-                        <text fg={theme.border}> · </text>
-                      </Show>
-                      <text fg={theme.textMuted}>{parsed.provider}</text>
-                      <text fg={theme.textMuted}> </text>
-                      <text fg={theme.textMuted}>{parsed.model}</text>
-                      <Show when={variant}>
-                        <text fg={theme.textMuted}> </text>
-                        <text fg={theme.accent}>{variant}</text>
-                      </Show>
-                      {/* Branch */}
-                      <Show when={gitBranch()}>
-                        <text fg={theme.border}>    </text>
-                        <text fg={theme.success}>{gitBranch()}</text>
-                      </Show>
-                    </box>
-                  )
-                })()}
-              </Match>
-            </Switch>
-          </box>
-        </box>
-        {/* Bottom border to close the box */}
+        {/* Bottom line: vim hints on left, model+path on right (Amp style) */}
         <box height={1} flexDirection="row">
-          <text fg={theme.border}>└</text>
+          {/* Left: spinner + vim hints */}
+          <Show
+            when={status().type === "busy"}
+            fallback={<text fg={highlight()}>~</text>}
+          >
+            <spinner
+              color={spinnerDef().color}
+              frames={spinnerDef().frames}
+              interval={60}
+            />
+          </Show>
+          <text> </text>
+          <Show when={vim.enabled && store.mode !== "shell" && status().type === "idle"}>
+            <Show when={vim.isNormal}>
+              <text fg={theme.textMuted}>i:insert Space:leader</text>
+            </Show>
+            <Show when={vim.isVisual}>
+              <text fg={theme.textMuted}>v:normal esc:normal</text>
+            </Show>
+          </Show>
+          <Show when={status().type === "busy"}>
+            <text fg={theme.textMuted}> Esc to cancel</text>
+          </Show>
+          {/* Center: line fill */}
           <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
-          <text fg={theme.border}>┘</text>
+          {/* Right: model + path */}
+          {(() => {
+            const parsed = local.model.parsed()
+            const variant = local.model.variant.current()
+            return (
+              <>
+                <text fg={theme.textMuted} flexShrink={0}>{parsed.provider} {parsed.model}</text>
+                <Show when={variant}>
+                  <text fg={theme.accent} flexShrink={0}> {variant}</text>
+                </Show>
+              </>
+            )
+          })()}
+          <text fg={theme.textMuted} flexShrink={0}>
+            <Show when={sync.data.path?.directory}>
+              {` ~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
+            </Show>
+            <Show when={sync.data.vcs?.branch}>
+              {` (${sync.data.vcs?.branch})`}
+            </Show>
+          </text>
+          <text fg={theme.border} flexShrink={0}>─</text>
         </box>
-        {/* Zee announcement/tips (like Amp's ad box) */}
-        {/* <box paddingTop={1} paddingLeft={2}>
-          <Tips />
-        </box> */}
       </box>
     </>
   )

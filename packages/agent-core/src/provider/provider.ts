@@ -98,7 +98,7 @@ export namespace Provider {
     "ollama",           // Local provider - use vLLM instead
     "github-copilot",   // Subscription-based, limited models
     "amazon-bedrock",   // Enterprise AWS only
-    "opencode",         // Unstable internal proxy
+    // "opencode",      // KEEP - Multi-model proxy useful
     "qwen-portal",      // OAuth complexity, limited models
     "moonshot",         // Duplicate of kimi-for-coding
   ])
