@@ -442,12 +442,7 @@ export namespace Config {
         .optional()
         .describe("Environment variables to set when running the MCP server"),
       enabled: z.boolean().optional().describe("Enable or disable the MCP server on startup"),
-      timeout: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("Timeout in ms for MCP server requests."),
+      timeout: z.number().int().positive().optional().describe("Timeout in ms for MCP server requests."),
     })
     .strict()
     .meta({
@@ -485,12 +480,7 @@ export namespace Config {
         .describe(
           "OAuth authentication configuration for the MCP server. Set to false to disable OAuth auto-detection.",
         ),
-      timeout: z
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("Timeout in ms for MCP server requests."),
+      timeout: z.number().int().positive().optional().describe("Timeout in ms for MCP server requests."),
     })
     .strict()
     .meta({
@@ -857,7 +847,11 @@ export namespace Config {
       vim_insert_line_start: z.string().optional().default("shift+i").describe("Enter insert mode at line start"),
       vim_insert_line_end: z.string().optional().default("shift+a").describe("Enter insert mode at line end"),
       vim_insert_below: z.string().optional().default("o").describe("Insert new line below and enter insert mode"),
-      vim_insert_above: z.string().optional().default("shift+o").describe("Insert new line above and enter insert mode"),
+      vim_insert_above: z
+        .string()
+        .optional()
+        .default("shift+o")
+        .describe("Insert new line above and enter insert mode"),
     })
     .strict()
     .meta({
@@ -884,7 +878,9 @@ export namespace Config {
           .enum(["default", "chirp_2"])
           .optional()
           .default("default")
-          .describe("Speech recognition model: 'default' uses V1 API, 'chirp_2' uses V2 API with enhanced multilingual accuracy"),
+          .describe(
+            "Speech recognition model: 'default' uses V1 API, 'chirp_2' uses V2 API with enhanced multilingual accuracy",
+          ),
         region: z
           .string()
           .optional()
@@ -1001,13 +997,15 @@ export namespace Config {
   })
   export type Layout = z.infer<typeof Layout>
 
-  export const Grammar = z.object({
-    provider: z.literal("languagetool").describe("Grammar checking provider"),
-    username: z.string().optional().describe("LanguageTool username/email"),
-    apiKey: z.string().optional().describe("LanguageTool API key"),
-  }).meta({
-    ref: "GrammarConfig",
-  })
+  export const Grammar = z
+    .object({
+      provider: z.literal("languagetool").describe("Grammar checking provider"),
+      username: z.string().optional().describe("LanguageTool username/email"),
+      apiKey: z.string().optional().describe("LanguageTool API key"),
+    })
+    .meta({
+      ref: "GrammarConfig",
+    })
   export type Grammar = z.infer<typeof Grammar>
 
   export const Provider = ModelsDev.Provider.partial()
@@ -1064,10 +1062,7 @@ export namespace Config {
 
   export const Memory = z
     .object({
-      required: z
-        .boolean()
-        .optional()
-        .describe("Require memory backend availability before prompting"),
+      required: z.boolean().optional().describe("Require memory backend availability before prompting"),
       backend: z.enum(["file", "redis", "qdrant"]).optional().describe("Memory backend"),
       storagePath: z.string().optional().describe("Storage path for file backend"),
       redisUrl: z.string().optional().describe("Redis connection URL"),
@@ -1171,10 +1166,7 @@ export namespace Config {
       tts: z
         .object({
           provider: z.enum(["minimax", "openai"]).optional().describe("TTS provider to use"),
-          auto: z
-            .enum(["always", "never", "on-request"])
-            .optional()
-            .describe("When to automatically speak responses"),
+          auto: z.enum(["always", "never", "on-request"]).optional().describe("When to automatically speak responses"),
           minimax: z
             .object({
               voice: z.string().optional().describe("MiniMax voice ID"),
@@ -1221,10 +1213,7 @@ export namespace Config {
       grammar: Grammar.optional().describe("Grammar checking configuration"),
       server: Server.optional().describe("Server configuration for agent-core serve and web commands"),
       daemon: Daemon.optional().describe("Daemon mode configuration for headless operation"),
-      command: z
-        .record(z.string(), Command)
-        .optional()
-        .describe("Command configuration"),
+      command: z.record(z.string(), Command).optional().describe("Command configuration"),
       skills: Skills.optional().describe("Additional skill folder paths"),
       watcher: z
         .object({
@@ -1657,5 +1646,68 @@ export namespace Config {
 
   export async function directories() {
     return state().then((x) => x.directories)
+  }
+
+  export function redact(config: Info): Info {
+    const copy = structuredClone(config)
+    // Redact provider api keys
+    if (copy.provider) {
+      for (const provider of Object.values(copy.provider)) {
+        if (provider?.options?.apiKey) {
+          provider.options.apiKey = "********"
+        }
+      }
+    }
+    // Redact memory secrets
+    if (copy.memory) {
+      if (copy.memory.redisUrl) copy.memory.redisUrl = "********"
+      if (copy.memory.qdrantApiKey) copy.memory.qdrantApiKey = "********"
+      if (copy.memory.qdrant?.apiKey) copy.memory.qdrant.apiKey = "********"
+      if (copy.memory.embedding?.apiKey) copy.memory.embedding.apiKey = "********"
+    }
+    // Redact tiara secrets
+    if (copy.tiara?.qdrant?.apiKey) copy.tiara.qdrant.apiKey = "********"
+
+    // Redact zee secrets
+    if (copy.zee?.splitwise?.token) copy.zee.splitwise.token = "********"
+
+    // Redact grammar secrets
+    if (copy.grammar?.apiKey) copy.grammar.apiKey = "********"
+
+    // Redact MCP secrets
+    if (copy.mcp) {
+      for (const mcp of Object.values(copy.mcp)) {
+        if (
+          typeof mcp === "object" &&
+          "type" in mcp &&
+          mcp.type === "remote" &&
+          "oauth" in mcp &&
+          mcp.oauth &&
+          typeof mcp.oauth === "object" &&
+          "clientSecret" in mcp.oauth &&
+          mcp.oauth.clientSecret
+        ) {
+          ;(mcp.oauth as { clientSecret?: string }).clientSecret = "********"
+        }
+      }
+    }
+
+    return copy
+  }
+
+  export function clean(config: Info): Info {
+    const copy = structuredClone(config)
+    const traverse = (obj: any) => {
+      if (!obj || typeof obj !== "object") return
+      for (const key in obj) {
+        if (obj[key] === "********") {
+          delete obj[key]
+        } else {
+          traverse(obj[key])
+        }
+      }
+    }
+    traverse(copy)
+    return copy
   }
 }
