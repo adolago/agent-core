@@ -34,8 +34,8 @@ export const MinimaxTtsAuthPlugin: PluginFactory = async (
   const envApiKey = process.env.MINIMAX_API_KEY ?? process.env.OPENCODE_MINIMAX_API_KEY;
 
   const authProvider: AuthProvider = {
-    provider: 'minimax-tts',
-    displayName: 'MiniMax TTS',
+    provider: 'minimax',
+    displayName: 'MiniMax',
 
     async loader(getAuth) {
       const auth = await getAuth();
@@ -120,7 +120,7 @@ export const MinimaxTtsAuthPlugin: PluginFactory = async (
             return {
               type: 'success',
               key: apiKey,
-              provider: 'minimax-tts',
+              provider: 'minimax',
             };
           } catch (error) {
             ctx.logger.error('Failed to validate MiniMax TTS credentials', {

@@ -38,7 +38,6 @@ const LOCAL_PROVIDER_DEFAULTS: Record<string, { port: number; hint: string }> = 
 const AUTH_ONLY_PROVIDERS: Record<string, { name: string; hint?: string }> = {
   kernel: { name: "Kernel", hint: "Kernel MCP API key" },
   voyage: { name: "Voyage AI", hint: "Embedding and reranking API key" },
-  minimax: { name: "MiniMax", hint: "Text-to-speech API key (minimaxi.com)" },
   "google-stt": {
     name: "Google Speech-to-Text",
     hint: "Service account JSON (Chirp 2 / Speech-to-Text)",
