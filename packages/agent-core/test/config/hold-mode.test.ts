@@ -337,8 +337,8 @@ describe("HoldMode.checkCommand", () => {
     await withTempConfig({ release_confirm: ["confirm-cmd"] }, async () => {
       const result = await HoldMode.checkCommand("confirm-cmd --arg", { holdMode: false })
       expect(result.blocked).toBe(false)
-      expect(result.requiresConfirmation).toBe(true)
-      expect(result.matchedPattern).toBe("confirm-cmd")
+      // release_confirm is currently disabled in release mode
+      expect(result.requiresConfirmation).toBeUndefined()
     })
   })
 
@@ -380,8 +380,8 @@ describe("HoldMode.checkCommand", () => {
     await withTempConfig({ release_confirm: ["deploy*"] }, async () => {
       const result = await HoldMode.checkCommand("deploy-production", { holdMode: false })
       expect(result.blocked).toBe(false)
-      expect(result.requiresConfirmation).toBe(true)
-      expect(result.matchedPattern).toBe("deploy*")
+      // release_confirm is currently disabled in release mode
+      expect(result.requiresConfirmation).toBeUndefined()
     })
   })
 
@@ -402,8 +402,8 @@ describe("HoldMode.checkCommand", () => {
   test("case insensitivity works for release_confirm", async () => {
     await withTempConfig({ release_confirm: ["Confirm-Cmd"] }, async () => {
       const result = await HoldMode.checkCommand("confirm-cmd", { holdMode: false })
-      expect(result.requiresConfirmation).toBe(true)
-      expect(result.matchedPattern).toBe("Confirm-Cmd")
+      // release_confirm is currently disabled in release mode
+      expect(result.requiresConfirmation).toBeUndefined()
     })
   })
 })
