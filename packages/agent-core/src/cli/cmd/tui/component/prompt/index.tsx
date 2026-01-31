@@ -1433,8 +1433,8 @@ export function Prompt(props: PromptProps) {
         {/* Top border with persona + skills + VIM (Amp style) */}
         <box height={1} flexDirection="row">
           <text fg={theme.border}>┌</text>
-          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
-          <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
+          <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
+          <text fg={highlight()} flexShrink={0}>{Locale.titlecase(local.agent.current().name)}</text>
           <text fg={theme.border}>──</text>
           <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} skills</text>
           <Show when={vim.enabled && store.mode !== "shell"}>
@@ -2050,9 +2050,9 @@ export function Prompt(props: PromptProps) {
           </box>
         </box>
         {/* Zee announcement/tips (like Amp's ad box) */}
-        <box paddingTop={1} paddingLeft={2}>
+        {/* <box paddingTop={1} paddingLeft={2}>
           <Tips />
-        </box>
+        </box> */}
       </box>
     </>
   )

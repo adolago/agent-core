@@ -117,9 +117,9 @@ export function Home() {
           />
         </box>
         <box height={3} width="100%" maxWidth={100} alignItems="center" paddingTop={2}>
-          <Show when={showTips()}>
+          {/* <Show when={showTips()}>
             <Tips />
-          </Show>
+          </Show> */}
         </box>
         <Toast />
       </box>
