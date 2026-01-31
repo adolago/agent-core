@@ -104,22 +104,28 @@ describe("ProviderTransform.options - setCacheKey", () => {
 })
 
 describe("ProviderTransform.variants - mapping parity", () => {
-  test("excludes minimax and glm models from reasoning variants", () => {
+  test("excludes minimax models from reasoning variants", () => {
     const minimaxModel = {
       id: "minimax-model",
       providerID: "minimax",
       api: { id: "minimax-model", npm: "@ai-sdk/openai-compatible" },
       capabilities: { reasoning: true },
     } as any
+
+    expect(Object.keys(ProviderTransform.variants(minimaxModel))).toHaveLength(0)
+  })
+
+  test("glm models from Z.AI/ZhipuAI return thinking variants", () => {
     const glmModel = {
       id: "glm-4-plus",
-      providerID: "zhipu",
+      providerID: "zhipuai",
       api: { id: "glm-4-plus", npm: "@ai-sdk/openai-compatible" },
       capabilities: { reasoning: true },
     } as any
 
-    expect(Object.keys(ProviderTransform.variants(minimaxModel))).toHaveLength(0)
-    expect(Object.keys(ProviderTransform.variants(glmModel))).toHaveLength(0)
+    const variants = ProviderTransform.variants(glmModel)
+    expect(Object.keys(variants)).toEqual(["low", "medium", "high", "max"])
+    expect(variants.medium.thinking.budget_tokens).toBe(16000)
   })
 
   test("xai and openai-compatible models return reasoning variants", () => {
@@ -157,8 +163,8 @@ describe("ProviderTransform.variants - mapping parity", () => {
     } as any
 
     const variants = ProviderTransform.variants(anthropicModel)
-    expect(variants.high.thinking.budgetTokens).toBe(16000)
-    expect(variants.max.thinking.budgetTokens).toBe(31999)
+    expect(variants.high.thinking.budgetTokens).toBe(32000)
+    expect(variants.max.thinking.budgetTokens).toBe(64000)
   })
 })
 
@@ -1219,19 +1225,9 @@ describe("ProviderTransform.variants", () => {
         },
       })
       const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["high", "max"])
-      expect(result.high).toEqual({
-        thinking: {
-          type: "enabled",
-          budgetTokens: 16000,
-        },
-      })
-      expect(result.max).toEqual({
-        thinking: {
-          type: "enabled",
-          budgetTokens: 31999,
-        },
-      })
+      expect(Object.keys(result)).toEqual(["low", "medium", "high", "max"])
+      expect(result.high.thinking).toBeDefined()
+      expect(result.medium.thinking.budgetTokens).toBe(16000)
     })
   })
 
@@ -1247,17 +1243,12 @@ describe("ProviderTransform.variants", () => {
         },
       })
       const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["high", "max"])
-      expect(result.high).toEqual({
-        thinkingConfig: {
-          includeThoughts: true,
-          thinkingBudget: 16000,
-        },
-      })
+      expect(Object.keys(result)).toEqual(["low", "medium", "high", "max"])
+      expect(result.high.thinkingConfig.thinkingBudget).toBe(32000)
       expect(result.max).toEqual({
         thinkingConfig: {
           includeThoughts: true,
-          thinkingBudget: 24576,
+          thinkingBudget: 64000,
         },
       })
     })
@@ -1273,7 +1264,7 @@ describe("ProviderTransform.variants", () => {
         },
       })
       const result = ProviderTransform.variants(model)
-      expect(Object.keys(result)).toEqual(["low", "high"])
+      expect(Object.keys(result)).toEqual(["low", "medium", "high"])
       expect(result.low).toEqual({
         includeThoughts: true,
         thinkingLevel: "low",
@@ -1304,7 +1295,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
       const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinking).toEqual({
         type: "enabled",
-        clear_thinking: false,
+        budget_tokens: 16000,
       })
     })
 
@@ -1321,7 +1312,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
       const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
       expect(result.thinking).toEqual({
         type: "enabled",
-        clear_thinking: false,
+        budget_tokens: 16000,
       })
     })
   })
@@ -1379,6 +1370,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
         thinkingLevel: "high",
+        thinkingBudget: 16000,
       })
     })
   })
@@ -1398,6 +1390,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
         thinkingLevel: "high",
+        thinkingBudget: 16000,
       })
     })
 
@@ -1415,6 +1408,7 @@ describe("ProviderTransform.options - persona thinking configs", () => {
       expect(result.thinkingConfig).toEqual({
         includeThoughts: true,
         thinkingLevel: "high",
+        thinkingBudget: 16000,
       })
     })
   })

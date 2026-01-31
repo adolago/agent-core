@@ -44,6 +44,18 @@ export namespace Provider {
     "kimi-for-coding": [
       "kimi-k2-thinking",
     ],
+    openai: [
+      "gpt-4",
+      "gpt-4-turbo",
+      "gpt-4o",
+      "gpt-4o-mini",
+    ],
+    google: [
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash-lite",
+      "gemini-live-2.5-flash",
+    ],
     xai: [
       "grok-2",
       "grok-2-1212",

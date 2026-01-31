@@ -328,11 +328,15 @@ export namespace ProviderTransform {
     if (
       id.includes("deepseek") ||
       id.includes("minimax") ||
-      id.includes("glm") ||
       id.includes("mistral") ||
       id.includes("kimi")
     )
       return {}
+
+    // GLM models only support variants when using Z.AI/ZhipuAI
+    if (id.includes("glm") && !model.providerID.includes("zai") && model.providerID !== "zhipuai" && model.providerID !== "zhipu") {
+      return {}
+    }
 
     // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
     // grok-3-mini only supports low/high
@@ -362,6 +366,14 @@ export namespace ProviderTransform {
       case "@ai-sdk/xai":
       case "@ai-sdk/deepinfra":
       case "@ai-sdk/openai-compatible":
+        if (model.providerID.includes("zai") || model.providerID === "zhipuai" || model.providerID === "zhipu") {
+          return {
+            low: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.low } },
+            medium: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.medium } },
+            high: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.high } },
+            max: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.max } },
+          }
+        }
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
 
       case "@ai-sdk/azure": {
@@ -417,16 +429,28 @@ export namespace ProviderTransform {
       case "@ai-sdk/google-vertex/anthropic":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/anthropic
         return {
+          low: {
+            thinking: {
+              type: "enabled",
+              budgetTokens: THINKING_BUDGETS.low,
+            },
+          },
+          medium: {
+            thinking: {
+              type: "enabled",
+              budgetTokens: THINKING_BUDGETS.medium,
+            },
+          },
           high: {
             thinking: {
               type: "enabled",
-              budgetTokens: 16_000,
+              budgetTokens: THINKING_BUDGETS.high,
             },
           },
           max: {
             thinking: {
               type: "enabled",
-              budgetTokens: 31_999,
+              budgetTokens: THINKING_BUDGETS.max,
             },
           },
         }
@@ -435,16 +459,28 @@ export namespace ProviderTransform {
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock
         if (model.api.id.includes("anthropic")) {
           return {
+            low: {
+              reasoningConfig: {
+                type: "enabled",
+                budgetTokens: THINKING_BUDGETS.low,
+              },
+            },
+            medium: {
+              reasoningConfig: {
+                type: "enabled",
+                budgetTokens: THINKING_BUDGETS.medium,
+              },
+            },
             high: {
               reasoningConfig: {
                 type: "enabled",
-                budgetTokens: 16000,
+                budgetTokens: THINKING_BUDGETS.high,
               },
             },
             max: {
               reasoningConfig: {
                 type: "enabled",
-                budgetTokens: 31999,
+                budgetTokens: THINKING_BUDGETS.max,
               },
             },
           }
@@ -466,22 +502,34 @@ export namespace ProviderTransform {
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
         if (id.includes("2.5")) {
           return {
+            low: {
+              thinkingConfig: {
+                includeThoughts: true,
+                thinkingBudget: THINKING_BUDGETS.low,
+              },
+            },
+            medium: {
+              thinkingConfig: {
+                includeThoughts: true,
+                thinkingBudget: THINKING_BUDGETS.medium,
+              },
+            },
             high: {
               thinkingConfig: {
                 includeThoughts: true,
-                thinkingBudget: 16000,
+                thinkingBudget: THINKING_BUDGETS.high,
               },
             },
             max: {
               thinkingConfig: {
                 includeThoughts: true,
-                thinkingBudget: 24576,
+                thinkingBudget: THINKING_BUDGETS.max,
               },
             },
           }
         }
         return Object.fromEntries(
-          ["low", "high"].map((effort) => [
+          ["low", "medium", "high"].map((effort) => [
             effort,
             {
               includeThoughts: true,
@@ -550,12 +598,14 @@ export namespace ProviderTransform {
     // Enable thinking mode for Z.AI/ZhipuAI models
     // Use .includes() to match provider IDs like "zai-coding-plan"
     if (
-      (input.model.providerID.includes("zai") || input.model.providerID === "zhipuai") &&
+      (input.model.providerID.includes("zai") ||
+        input.model.providerID === "zhipuai" ||
+        input.model.providerID === "zhipu") &&
       input.model.api.npm === "@ai-sdk/openai-compatible"
     ) {
       result["thinking"] = {
         type: "enabled",
-        clear_thinking: false,
+        budget_tokens: THINKING_BUDGETS.medium,
       }
     }
 
@@ -569,6 +619,7 @@ export namespace ProviderTransform {
       }
       if (input.model.api.id.includes("gemini-3")) {
         result["thinkingConfig"]["thinkingLevel"] = "high"
+        result["thinkingConfig"]["thinkingBudget"] = THINKING_BUDGETS.medium
       }
     }
 

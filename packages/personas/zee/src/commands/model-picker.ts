@@ -28,7 +28,7 @@ type PromptDefaultModelParams = {
   allowKeep?: boolean;
   includeManual?: boolean;
   ignoreAllowlist?: boolean;
-  preferredProvider?: string;
+
   agentDir?: string;
   message?: string;
 };
@@ -95,10 +95,6 @@ export async function promptDefaultModel(
   const allowKeep = params.allowKeep ?? true;
   const includeManual = params.includeManual ?? true;
   const ignoreAllowlist = params.ignoreAllowlist ?? false;
-  const preferredProviderRaw = params.preferredProvider?.trim();
-  const preferredProvider = preferredProviderRaw
-    ? normalizeProviderId(preferredProviderRaw)
-    : undefined;
   const configuredRaw = resolveConfiguredModelRaw(cfg);
 
   const resolved = resolveConfiguredModelRef({
@@ -144,9 +140,7 @@ export async function promptDefaultModel(
     a.localeCompare(b),
   );
 
-  const hasPreferredProvider = preferredProvider ? providers.includes(preferredProvider) : false;
-  const shouldPromptProvider =
-    !hasPreferredProvider && providers.length > 1 && models.length > PROVIDER_FILTER_THRESHOLD;
+  const shouldPromptProvider = providers.length > 1 && models.length > PROVIDER_FILTER_THRESHOLD; // Preferred disabled
   if (shouldPromptProvider) {
     const selection = await params.prompter.select({
       message: "Filter models by provider",
@@ -167,9 +161,7 @@ export async function promptDefaultModel(
     }
   }
 
-  if (hasPreferredProvider && preferredProvider) {
-    models = models.filter((entry) => entry.provider === preferredProvider);
-  }
+  // Preferred provider filtering disabled
 
   const authStore = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,
@@ -236,17 +228,7 @@ export async function promptDefaultModel(
   }
 
   let initialValue: string | undefined = allowKeep ? KEEP_VALUE : configuredKey || undefined;
-  if (
-    allowKeep &&
-    hasPreferredProvider &&
-    preferredProvider &&
-    resolved.provider !== preferredProvider
-  ) {
-    const firstModel = models[0];
-    if (firstModel) {
-      initialValue = modelKey(firstModel.provider, firstModel.id);
-    }
-  }
+  // Preferred initial selection disabled
 
   const selection = await params.prompter.select({
     message: params.message ?? "Default model",
