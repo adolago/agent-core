@@ -47,7 +47,7 @@ export type PromptProps = {
   onSubmit?: () => void
   ref?: (ref: PromptRef) => void
   hint?: JSX.Element
-  showPlaceholder?: boolean
+  placeholder?: string
 }
 
 export type PromptRef = {
@@ -59,7 +59,6 @@ export type PromptRef = {
   focus(): void
   submit(): void
 }
-
 
 export function Prompt(props: PromptProps) {
   let input: TextareaRenderable
@@ -98,7 +97,7 @@ export function Prompt(props: PromptProps) {
     return s.type === "busy" ? (s.streamHealth as StreamHealthExtended | undefined) : undefined
   })
   // Session for token counter
-  const session = createMemo(() => props.sessionID ? sync.session.get(props.sessionID) : undefined)
+  const session = createMemo(() => (props.sessionID ? sync.session.get(props.sessionID) : undefined))
   // Cumulative agent work time for COMPLETED assistant responses only
   const completedWorkTime = createMemo(() => {
     if (!props.sessionID) return 0
@@ -115,7 +114,8 @@ export function Prompt(props: PromptProps) {
   const sessionTokenTotals = createMemo(() => {
     if (!props.sessionID) return { snt: 0, rcvd: 0 }
     const msgs = sync.data.message[props.sessionID] ?? []
-    let snt = 0, rcvd = 0
+    let snt = 0,
+      rcvd = 0
     for (const m of msgs) {
       if (m.role !== "assistant" || !m.tokens) continue
       snt += m.tokens.input ?? 0
@@ -131,20 +131,20 @@ export function Prompt(props: PromptProps) {
     const messages = sync.data.message[props.sessionID] ?? []
     const lastAssistant = messages.findLast((m): m is typeof m & { role: "assistant" } => m.role === "assistant")
     if (!lastAssistant?.tokens) return null
-    
+
     // Get current model limits
     const model = local.model.current()
     if (!model) return null
     const provider = sync.data.provider.find((p) => p.id === model.providerID)
     const modelInfo = provider?.models[model.modelID]
     if (!modelInfo?.limit?.context) return null
-    
+
     // Calculate usage (same formula as compaction.ts)
     const count = lastAssistant.tokens.input + (lastAssistant.tokens.cache?.read ?? 0) + lastAssistant.tokens.output
     const outputLimit = Math.min(modelInfo.limit.output ?? 8192, 16384)
-    const usable = modelInfo.limit.input ?? (modelInfo.limit.context - outputLimit)
+    const usable = modelInfo.limit.input ?? modelInfo.limit.context - outputLimit
     if (usable <= 0) return null
-    
+
     return {
       count,
       limit: usable,
@@ -363,7 +363,9 @@ export function Prompt(props: PromptProps) {
   function createVimContext(): VimCommands.VimCommandContext {
     return {
       getCursorOffset: () => input.cursorOffset,
-      setCursorOffset: (offset) => { input.cursorOffset = offset },
+      setCursorOffset: (offset) => {
+        input.cursorOffset = offset
+      },
       getText: () => input.plainText,
       setText: (text) => input.setText(text),
       insertText: (text) => input.insertText(text),
@@ -465,7 +467,11 @@ export function Prompt(props: PromptProps) {
 
     for (const error of errors) {
       const styleId =
-        error.category === "spelling" ? spellingStyleId : error.category === "style" ? styleErrorStyleId : grammarStyleId
+        error.category === "spelling"
+          ? spellingStyleId
+          : error.category === "style"
+            ? styleErrorStyleId
+            : grammarStyleId
 
       input.extmarks.create({
         start: error.start,
@@ -733,7 +739,7 @@ export function Prompt(props: PromptProps) {
         onSelect: async (d) => {
           if (!store.prompt.input) return
           d.clear()
-          
+
           toast.show({
             variant: "info",
             message: "Checking grammar...",
@@ -756,7 +762,7 @@ export function Prompt(props: PromptProps) {
               matches={matches}
               onApply={(content) => {
                 input.setText(content)
-                
+
                 // Try to preserve parts if possible (similar to editor logic)
                 const nonTextParts = store.prompt.parts.filter((p) => p.type !== "text")
                 const updatedNonTextParts = nonTextParts
@@ -813,7 +819,7 @@ export function Prompt(props: PromptProps) {
               }}
             />
           ))
-        }
+        },
       },
       {
         title: realtimeGrammarEnabled() ? "Disable real-time grammar" : "Enable real-time grammar",
@@ -853,7 +859,7 @@ export function Prompt(props: PromptProps) {
           const grammarExtmarks = input.extmarks.getAllForTypeId(grammarErrorTypeId)
           const errorAtCursor = grammarExtmarks.find(
             (em: { start: number; end: number; data?: GrammarError }) =>
-              cursorOffset >= em.start && cursorOffset <= em.end && em.data
+              cursorOffset >= em.start && cursorOffset <= em.end && em.data,
           )
 
           if (!errorAtCursor || !errorAtCursor.data) {
@@ -1422,7 +1428,9 @@ export function Prompt(props: PromptProps) {
         {/* Top border with persona + skills + VIM (Amp style) */}
         <box height={1} flexDirection="row">
           <text fg={theme.border}>┌</text>
-          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
+          <text fg={theme.border} flexGrow={1}>
+            {"─".repeat(500)}
+          </text>
           <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
           <text fg={theme.border}>──</text>
           <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} skills</text>
@@ -1441,14 +1449,9 @@ export function Prompt(props: PromptProps) {
         {/* Input row with left and right border */}
         <box flexDirection="row">
           <text fg={theme.border}>│</text>
-          <box
-            paddingLeft={1}
-            paddingRight={1}
-            flexShrink={0}
-            flexGrow={1}
-          >
+          <box paddingLeft={1} paddingRight={1} flexShrink={0} flexGrow={1}>
             <textarea
-              placeholder={null}
+              placeholder={props.placeholder ?? "Type a message, @file, or /command..."}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}
               minHeight={1}
@@ -1755,14 +1758,14 @@ export function Prompt(props: PromptProps) {
         {/* Bottom border with path + branch (Amp style) */}
         <box height={1} flexDirection="row">
           <text fg={theme.border}>└</text>
-          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
+          <text fg={theme.border} flexGrow={1}>
+            {"─".repeat(500)}
+          </text>
           <text fg={theme.textMuted}>
             <Show when={sync.data.path?.directory}>
               {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
             </Show>
-            <Show when={sync.data.vcs?.branch}>
-              {` (${sync.data.vcs?.branch})`}
-            </Show>
+            <Show when={sync.data.vcs?.branch}>{` (${sync.data.vcs?.branch})`}</Show>
           </text>
           <text fg={theme.border}>─┘</text>
         </box>
@@ -1770,7 +1773,9 @@ export function Prompt(props: PromptProps) {
         <Show when={diffStats()}>
           {(stats) => (
             <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={2}>
-              <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
+              <text fg={theme.textMuted}>
+                {stats().files} file{stats().files !== 1 ? "s" : ""} changed{" "}
+              </text>
               <Show when={stats().additions > 0}>
                 <text fg={theme.success}>+{stats().additions}</text>
               </Show>
@@ -1790,63 +1795,49 @@ export function Prompt(props: PromptProps) {
           )}
         </Show>
         {/* Status bar (Amp style) */}
-        <box
-          flexDirection="row"
-          justifyContent="space-between"
-          paddingLeft={2}
-          paddingRight={2}
-        >
+        <box flexDirection="row" justifyContent="space-between" paddingLeft={2} paddingRight={2}>
           {/* Left side: spinner + phase + abort hint (Amp style) */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
             {/* Animated spinner when busy, accent ~ when idle */}
-            <Show
-              when={status().type === "busy"}
-              fallback={<text fg={highlight()}>~</text>}
-            >
-              <spinner
-                color={spinnerDef().color}
-                frames={spinnerDef().frames}
-                interval={60}
-              />
+            <Show when={status().type === "busy"} fallback={<text fg={highlight()}>~</text>}>
+              <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={60} />
             </Show>
             {/* Vim hints (mode indicator moved to right-side chip) */}
             <Show when={vim.enabled && store.mode !== "shell" && status().type === "idle"}>
               <Show when={vim.isNormal}>
-                <text fg={theme.textMuted}>
-                  i:insert Space:leader
-                </text>
+                <text fg={theme.textMuted}>i:insert Space:leader</text>
               </Show>
               <Show when={vim.isVisual}>
-                <text fg={theme.textMuted}>
-                  v:normal esc:normal
-                </text>
+                <text fg={theme.textMuted}>v:normal esc:normal</text>
               </Show>
             </Show>
-            <Switch fallback={
-              <Switch>
-                <Match when={dictationState() === "listening"}>
-                  <text fg={theme.warning}>
-                    [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
-                  </text>
-                </Match>
-                <Match when={dictationState() === "sending"}>
-                  <text fg={theme.primary}>[SEND] sending audio...</text>
-                </Match>
-                <Match when={dictationState() === "receiving"}>
-                  <text fg={theme.primary}>[RECV] receiving transcript...</text>
-                </Match>
-                <Match when={dictationState() === "transcribing"}>
-                  <text fg={theme.textMuted}>dictation processing...</text>
-                </Match>
-                <Match when={todoHint()}>
-                  {(hint) => (
+            <Switch
+              fallback={
+                <Switch>
+                  <Match when={dictationState() === "listening"}>
                     <text fg={theme.warning}>
-                      {hint().count} pending · {hint().current}...
+                      [REC] listening{dictationKey() ? ` (${dictationKey()} stop)` : ""}...
                     </text>
-                  )}
-                </Match>
-              </Switch>
-            }>
+                  </Match>
+                  <Match when={dictationState() === "sending"}>
+                    <text fg={theme.primary}>[SEND] sending audio...</text>
+                  </Match>
+                  <Match when={dictationState() === "receiving"}>
+                    <text fg={theme.primary}>[RECV] receiving transcript...</text>
+                  </Match>
+                  <Match when={dictationState() === "transcribing"}>
+                    <text fg={theme.textMuted}>dictation processing...</text>
+                  </Match>
+                  <Match when={todoHint()}>
+                    {(hint) => (
+                      <text fg={theme.warning}>
+                        {hint().count} pending · {hint().current}...
+                      </text>
+                    )}
+                  </Match>
+                </Switch>
+              }
+            >
               <Match when={status().type === "idle"}>
                 <></>
               </Match>
@@ -1915,10 +1906,14 @@ export function Prompt(props: PromptProps) {
                       const health = streamHealth()
                       if (!health?.phase) return "Streaming response..."
                       switch (health.phase) {
-                        case "thinking": return "Thinking..."
-                        case "tool_calling": return "Running tools..."
-                        case "generating": return "Streaming response..."
-                        default: return "Streaming response..."
+                        case "thinking":
+                          return "Thinking..."
+                        case "tool_calling":
+                          return "Running tools..."
+                        case "generating":
+                          return "Streaming response..."
+                        default:
+                          return "Streaming response..."
                       }
                     })
                     const formatFixedTokens = (n: number, width = 4) => {
@@ -1931,7 +1926,9 @@ export function Prompt(props: PromptProps) {
                       return (
                         <>
                           <Show when={zeros.length > 0}>
-                            <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
+                            <text fg={theme.textMuted} attributes={TextAttributes.DIM}>
+                              {zeros}
+                            </text>
                           </Show>
                           <text fg={theme.textMuted}>{rest}</text>
                         </>
@@ -2003,7 +2000,7 @@ export function Prompt(props: PromptProps) {
                       <text fg={highlight()}>{variant || parsed.model}</text>
                       {/* Branch */}
                       <Show when={gitBranch()}>
-                        <text fg={theme.border}>    </text>
+                        <text fg={theme.border}> </text>
                         <text fg={theme.success}>{gitBranch()}</text>
                       </Show>
                     </box>

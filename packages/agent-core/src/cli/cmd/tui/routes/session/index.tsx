@@ -198,7 +198,6 @@ export function Session() {
   const [showScrollbar, setShowScrollbar] = kv.signal("scrollbar_visible", false)
   const [diffWrapMode, setDiffWrapMode] = createSignal<"word" | "none">("word")
 
-
   const wide = createMemo(() => dimensions().width > 120)
   const sidebarVisible = createMemo(() => {
     if (session()?.parentID) return false
@@ -1177,6 +1176,7 @@ export function Session() {
                   toBottom()
                 }}
                 sessionID={route.sessionID}
+                placeholder="Type a message, @file, or /command..."
               />
             </box>
           </Show>
@@ -1302,14 +1302,11 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
   const sync = useSync()
   const messages = createMemo(() => sync.data.message[props.message.sessionID] ?? [])
 
-
   const final = createMemo(() => {
     return props.message.finish && !["tool-calls", "unknown"].includes(props.message.finish)
   })
 
-  const hasVisibleText = createMemo(() =>
-    props.parts.some((part) => part.type === "text" && part.text.trim()),
-  )
+  const hasVisibleText = createMemo(() => props.parts.some((part) => part.type === "text" && part.text.trim()))
   const hasVisibleTool = createMemo(() =>
     props.parts.some((part) => {
       if (part.type !== "tool") return false
@@ -1317,14 +1314,11 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
       return part.state.status !== "completed"
     }),
   )
-  const hasVisibleReasoning = createMemo(() =>
-    ctx.showThinking() && props.parts.some((part) => part.type === "reasoning" && part.text.trim()),
+  const hasVisibleReasoning = createMemo(
+    () => ctx.showThinking() && props.parts.some((part) => part.type === "reasoning" && part.text.trim()),
   )
-  const hasVisibleParts = createMemo(
-    () => hasVisibleText() || hasVisibleTool() || hasVisibleReasoning(),
-  )
+  const hasVisibleParts = createMemo(() => hasVisibleText() || hasVisibleTool() || hasVisibleReasoning())
   const isStreaming = createMemo(() => !props.message.time.completed && !props.message.error)
-
 
   const duration = createMemo(() => {
     if (!final()) return 0
@@ -1374,11 +1368,14 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
             <text>
               <span
                 style={{
-                  fg: props.message.error?.name === "MessageAbortedError"
-                    ? theme.textMuted
-                    : local.agent.color(props.message.agent),
+                  fg:
+                    props.message.error?.name === "MessageAbortedError"
+                      ? theme.textMuted
+                      : local.agent.color(props.message.agent),
                 }}
-              >●</span>
+              >
+                ●
+              </span>
               <span style={{ fg: theme.primary }}> {props.message.modelID}</span>
               <Show when={props.message.mode}>
                 <span style={{ fg: theme.textMuted }}> {props.message.mode}</span>
@@ -1618,10 +1615,14 @@ function InlineTool(props: {
       </text>
       {/* Tree structure for query/details */}
       <Show when={props.query && props.complete}>
-        <text fg={theme.textMuted} paddingLeft={1}>├── {props.query}</text>
+        <text fg={theme.textMuted} paddingLeft={1}>
+          ├── {props.query}
+        </text>
       </Show>
       <Show when={error() && !denied()}>
-        <text fg={theme.error} paddingLeft={1}>└── {error()}</text>
+        <text fg={theme.error} paddingLeft={1}>
+          └── {error()}
+        </text>
       </Show>
     </box>
   )
@@ -1693,10 +1694,7 @@ function Bash(props: ToolProps<typeof BashTool>) {
     <Switch>
       <Match when={props.metadata.output !== undefined}>
         {/* Compact bash: collapsed by default, click to expand */}
-        <box
-          flexDirection="column"
-          onMouseUp={() => hasOutput() && setExpanded((prev) => !prev)}
-        >
+        <box flexDirection="column" onMouseUp={() => hasOutput() && setExpanded((prev) => !prev)}>
           <Show when={title()}>
             <text fg={theme.textMuted}>{title()}</text>
           </Show>
@@ -1707,7 +1705,12 @@ function Bash(props: ToolProps<typeof BashTool>) {
             </Show>
           </text>
           <Show when={expanded()}>
-            <box paddingLeft={1} border={["left"]} borderColor={theme.backgroundElement} customBorderChars={SplitBorder.customBorderChars}>
+            <box
+              paddingLeft={1}
+              border={["left"]}
+              borderColor={theme.backgroundElement}
+              customBorderChars={SplitBorder.customBorderChars}
+            >
               <text fg={theme.textMuted}>{output()}</text>
             </box>
             <text fg={theme.textMuted}>Click to collapse</text>
@@ -1715,7 +1718,14 @@ function Bash(props: ToolProps<typeof BashTool>) {
         </box>
       </Match>
       <Match when={true}>
-        <InlineTool icon="$" pending="Running..." complete={props.input.command} part={props.part} toolName="Shell" query={props.input.command}>
+        <InlineTool
+          icon="$"
+          pending="Running..."
+          complete={props.input.command}
+          part={props.part}
+          toolName="Shell"
+          query={props.input.command}
+        >
           Shell
         </InlineTool>
       </Match>
@@ -1775,7 +1785,14 @@ function Glob(props: ToolProps<typeof GlobTool>) {
     return q
   })
   return (
-    <InlineTool icon="✱" pending="Finding files..." complete={props.input.pattern} part={props.part} toolName="Glob" query={query()}>
+    <InlineTool
+      icon="✱"
+      pending="Finding files..."
+      complete={props.input.pattern}
+      part={props.part}
+      toolName="Glob"
+      query={query()}
+    >
       Glob
     </InlineTool>
   )
@@ -1783,7 +1800,14 @@ function Glob(props: ToolProps<typeof GlobTool>) {
 
 function Read(props: ToolProps<typeof ReadTool>) {
   return (
-    <InlineTool icon="→" pending="Reading file..." complete={props.input.filePath} part={props.part} toolName="Read" query={normalizePath(props.input.filePath!)}>
+    <InlineTool
+      icon="→"
+      pending="Reading file..."
+      complete={props.input.filePath}
+      part={props.part}
+      toolName="Read"
+      query={normalizePath(props.input.filePath!)}
+    >
       Read
     </InlineTool>
   )
@@ -1796,16 +1820,30 @@ function Grep(props: ToolProps<typeof GrepTool>) {
     return q
   })
   return (
-    <InlineTool icon="✱" pending="Searching content..." complete={props.input.pattern} part={props.part} toolName="Grep" query={query()}>
+    <InlineTool
+      icon="✱"
+      pending="Searching content..."
+      complete={props.input.pattern}
+      part={props.part}
+      toolName="Grep"
+      query={query()}
+    >
       Grep
     </InlineTool>
   )
 }
 
 function List(props: ToolProps<typeof ListTool>) {
-  const dir = createMemo(() => props.input.path ? normalizePath(props.input.path) : "")
+  const dir = createMemo(() => (props.input.path ? normalizePath(props.input.path) : ""))
   return (
-    <InlineTool icon="→" pending="Listing directory..." complete={props.input.path !== undefined} part={props.part} toolName="List" query={dir()}>
+    <InlineTool
+      icon="→"
+      pending="Listing directory..."
+      complete={props.input.path !== undefined}
+      part={props.part}
+      toolName="List"
+      query={dir()}
+    >
       List
     </InlineTool>
   )
@@ -1813,7 +1851,14 @@ function List(props: ToolProps<typeof ListTool>) {
 
 function WebFetch(props: ToolProps<typeof WebFetchTool>) {
   return (
-    <InlineTool icon="%" pending="Fetching from the web..." complete={(props.input as any).url} part={props.part} toolName="WebFetch" query={(props.input as any).url}>
+    <InlineTool
+      icon="%"
+      pending="Fetching from the web..."
+      complete={(props.input as any).url}
+      part={props.part}
+      toolName="WebFetch"
+      query={(props.input as any).url}
+    >
       WebFetch
     </InlineTool>
   )
@@ -1822,7 +1867,14 @@ function WebFetch(props: ToolProps<typeof WebFetchTool>) {
 function CodeSearch(props: ToolProps<any>) {
   const input = props.input as any
   return (
-    <InlineTool icon="◇" pending="Searching code..." complete={input.query} part={props.part} toolName="Search" query={input.query}>
+    <InlineTool
+      icon="◇"
+      pending="Searching code..."
+      complete={input.query}
+      part={props.part}
+      toolName="Search"
+      query={input.query}
+    >
       Search
     </InlineTool>
   )
@@ -1831,7 +1883,14 @@ function CodeSearch(props: ToolProps<any>) {
 function WebSearch(props: ToolProps<any>) {
   const input = props.input as any
   return (
-    <InlineTool icon="◈" pending="Searching web..." complete={input.query} part={props.part} toolName="Web Search" query={input.query}>
+    <InlineTool
+      icon="◈"
+      pending="Searching web..."
+      complete={input.query}
+      part={props.part}
+      toolName="Web Search"
+      query={input.query}
+    >
       Web Search
     </InlineTool>
   )
