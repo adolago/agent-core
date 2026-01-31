@@ -1335,10 +1335,9 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
 
 
   const duration = createMemo(() => {
-    if (!final()) return 0
     if (!props.message.time.completed) return 0
     const user = messages().find((x) => x.role === "user" && x.id === props.message.parentID)
-    if (!user || !user.time) return 0
+    if (!user?.time?.created) return 0
     return props.message.time.completed - user.time.created
   })
 
@@ -1384,15 +1383,15 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
                 style={{
                   fg: props.message.error?.name === "MessageAbortedError"
                     ? theme.textMuted
-                    : local.agent.color(props.message.agent),
+                    : theme.primary,
                 }}
               >●</span>
-              <span style={{ fg: theme.primary }}> {props.message.modelID}</span>
+              <span style={{ fg: theme.textMuted }}> {props.message.modelID}</span>
               <Show when={props.message.mode}>
                 <span style={{ fg: theme.textMuted }}> {props.message.mode}</span>
               </Show>
               <Show when={duration()}>
-                <span style={{ fg: theme.textMuted }}> worked for {Locale.duration(duration())}</span>
+                <span style={{ fg: theme.textMuted }}> · {Locale.duration(duration())}</span>
               </Show>
               <Show when={props.message.error?.name === "MessageAbortedError"}>
                 <span style={{ fg: theme.textMuted }}> interrupted</span>
