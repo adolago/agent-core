@@ -266,7 +266,32 @@ export namespace Ripgrep {
       if (buffer.length > 0) yield buffer
     } finally {
       reader.releaseLock()
-      await proc.exited
+      
+      // Kill the process if it's still running to prevent orphaning
+      // This happens when consumers break out of the generator early
+      try {
+        if (proc.exitCode === null) {
+          proc.kill()
+        }
+      } catch {
+        // Process may already be dead, ignore errors
+      }
+      
+      // Wait for process to exit with timeout protection
+      const PROCESS_EXIT_TIMEOUT_MS = 5000
+      await Promise.race([
+        proc.exited,
+        new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error('Process exit timeout')), PROCESS_EXIT_TIMEOUT_MS)
+        )
+      ]).catch(() => {
+        // Force kill if graceful termination failed
+        try {
+          proc.kill('SIGKILL')
+        } catch {
+          // Ignore errors - process may already be dead
+        }
+      })
     }
 
     input.signal?.throwIfAborted()
@@ -382,6 +407,7 @@ export namespace Ripgrep {
     glob?: string[]
     limit?: number
     follow?: boolean
+    signal?: AbortSignal
   }) {
     // Sentinel: Removed quotes around glob to support Bun.spawn (array args) and fixed command injection.
     const args = [`${await filepath()}`, "--json", "--hidden", "--glob=!.git/*"]
@@ -400,27 +426,51 @@ export namespace Ripgrep {
     args.push("--")
     args.push(input.pattern)
 
+    input.signal?.throwIfAborted()
+
     const proc = Bun.spawn(args, {
       cwd: input.cwd,
       stdout: "pipe",
       stderr: "ignore",
+      signal: input.signal,
     })
 
-    const stdout = await new Response(proc.stdout).text()
-    const exitCode = await proc.exited
-
-    if (exitCode !== 0) {
-      return []
+    // Set up abort handler to kill process if signal is triggered
+    const abortHandler = () => {
+      try {
+        proc.kill()
+      } catch {
+        // Ignore errors - process may already be dead
+      }
     }
+    input.signal?.addEventListener("abort", abortHandler, { once: true })
 
-    // Handle both Unix (\n) and Windows (\r\n) line endings
-    const lines = stdout.trim().split(/\r?\n/).filter(Boolean)
-    // Parse JSON lines from ripgrep output
+    try {
+      const stdout = await new Response(proc.stdout).text()
+      const exitCode = await proc.exited
+      
+      input.signal?.removeEventListener("abort", abortHandler)
+      
+      // Exit code 1 means no matches found, which is fine
+      // Exit code 0 means matches found
+      // Other non-zero codes indicate an error
+      if (exitCode !== 0 && exitCode !== 1) {
+        return []
+      }
 
-    return lines
-      .map((line) => JSON.parse(line))
-      .map((parsed) => Result.parse(parsed))
-      .filter((r) => r.type === "match")
-      .map((r) => r.data)
+      // Handle both Unix (\n) and Windows (\r\n) line endings
+      const lines = stdout.trim().split(/\r?\n/).filter(Boolean)
+      // Parse JSON lines from ripgrep output
+
+      return lines
+        .map((line) => JSON.parse(line))
+        .map((parsed) => Result.parse(parsed))
+        .filter((r) => r.type === "match")
+        .map((r) => r.data)
+    } catch (error) {
+      // Clean up abort listener on error
+      input.signal?.removeEventListener("abort", abortHandler)
+      throw error
+    }
   }
 }
