@@ -11,6 +11,7 @@ export interface ACPSessionState {
     modelID: string
     variant?: string
   }
+  variant?: string
   modeId?: string
 }
 

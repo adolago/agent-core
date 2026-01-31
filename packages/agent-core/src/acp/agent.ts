@@ -57,6 +57,7 @@ const withDirectory = (
 })
 
 const VARIANT_SEPARATOR = "#"
+const DEFAULT_VARIANT_VALUE = "default"
 
 function parseModelId(modelId: string): { providerID: string; modelID: string; variant?: string } {
   const [base, variant] = modelId.split(VARIANT_SEPARATOR)
@@ -523,7 +524,7 @@ export namespace ACP {
           sessionId,
           models: load.models,
           modes: load.modes,
-          _meta: {},
+          _meta: load._meta,
         }
       } catch (e) {
         const error = MessageV2.fromError(e, {
@@ -981,6 +982,8 @@ export namespace ACP {
         })
       }, 0)
 
+      const currentVariant = this.sessionManager.getVariant(sessionId)
+
       return {
         sessionId,
         models: {
@@ -991,7 +994,13 @@ export namespace ACP {
           availableModes,
           currentModeId,
         },
-        _meta: {},
+        _meta: {
+          opencode: {
+            modelId: `${currentModel.providerID}/${currentModel.modelID}`,
+            variant: currentVariant ?? null,
+            availableVariants: [],
+          },
+        },
       }
     }
 
@@ -1005,20 +1014,37 @@ export namespace ACP {
         modelID: model.modelID,
         variant: model.variant,
       })
+      this.sessionManager.setVariant(session.id, model.variant)
 
       return {
-        _meta: {},
+        _meta: {
+          opencode: {
+            modelId: `${model.providerID}/${model.modelID}`,
+            variant: model.variant ?? null,
+            availableVariants: [],
+          },
+        },
       }
     }
 
     async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse | void> {
       const session = this.sessionManager.get(params.sessionId)
-      await this.config.sdk.app
+      const agents = await this.config.sdk.app
         .agents(withDirectory(session.cwd, { throwOnError: true }))
-        .then((x) => x.data)
-        .then((agent) => {
-          if (!agent) throw new Error(`Agent not found: ${params.modeId}`)
-        })
+        .then((resp) => resp.data!)
+
+      const availableModes = agents
+        .filter((agent) => agent.mode !== "subagent" && !agent.hidden)
+        .map((agent) => ({
+          id: agent.name,
+          name: agent.name,
+          description: agent.description,
+        }))
+
+      if (!availableModes.some((mode) => mode.id === params.modeId)) {
+        throw new Error(`Agent not found: ${params.modeId}`)
+      }
+
       this.sessionManager.setMode(params.sessionId, params.modeId)
     }
 
