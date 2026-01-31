@@ -13,6 +13,9 @@ import { spawn } from "child_process";
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { Socket } from "net";
+import net from "net";
+import WebSocket from "ws";
 
 const log = Log.create({ service: "zee-browser-standalone" });
 
@@ -57,8 +60,9 @@ function createUserDataDir(): string {
 }
 
 async function isPortReachable(port: number, timeout = 5000): Promise<boolean> {
+  const net = await import("net");
   return new Promise((resolve) => {
-    const socket = new (await import("net")).Socket();
+    const socket = new net.Socket();
     const timer = setTimeout(() => {
       socket.destroy();
       resolve(false);
@@ -275,7 +279,6 @@ async function navigateTo(cdpPort: number, url: string): Promise<void> {
   const wsUrl = `ws://127.0.0.1:${cdpPort}/devtools/page/${tab.id}`;
   
   // Use CDP to navigate
-  const WebSocket = (await import("ws")).default;
   const ws = new WebSocket(wsUrl);
 
   await new Promise<void>((resolve, reject) => {
@@ -318,7 +321,6 @@ async function takeScreenshot(cdpPort: number, fullPage = false): Promise<string
   const screenshotUrl = `http://127.0.0.1:${cdpPort}/devtools/page/${tab.id}`;
   
   // Get screenshot via CDP
-  const WebSocket = (await import("ws")).default;
   const ws = new WebSocket(`ws://127.0.0.1:${cdpPort}/devtools/page/${tab.id}`);
 
   const screenshot = await new Promise<string>((resolve, reject) => {
@@ -389,7 +391,6 @@ async function getPageContent(cdpPort: number): Promise<string> {
   }
 
   const tab = tabs[0];
-  const WebSocket = (await import("ws")).default;
   const ws = new WebSocket(`ws://127.0.0.1:${cdpPort}/devtools/page/${tab.id}`);
 
   const content = await new Promise<string>((resolve, reject) => {

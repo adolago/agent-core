@@ -38,29 +38,29 @@ export function StatusBar() {
     welcome: false,
   })
 
-  onMount(() => {
-    const timeouts: ReturnType<typeof setTimeout>[] = []
+  // onMount(() => {
+  //   const timeouts: ReturnType<typeof setTimeout>[] = []
 
-    function tick() {
-      if (connected()) return
-      if (!store.welcome) {
-        setStore("welcome", true)
-        timeouts.push(setTimeout(() => tick(), 5000))
-        return
-      }
+  //   function tick() {
+  //     if (connected()) return
+  //     if (!store.welcome) {
+  //       setStore("welcome", true)
+  //       timeouts.push(setTimeout(() => tick(), 5000))
+  //       return
+  //     }
 
-      if (store.welcome) {
-        setStore("welcome", false)
-        timeouts.push(setTimeout(() => tick(), 10_000))
-        return
-      }
-    }
-    timeouts.push(setTimeout(() => tick(), 10_000))
+  //     if (store.welcome) {
+  //       setStore("welcome", false)
+  //       timeouts.push(setTimeout(() => tick(), 10_000))
+  //       return
+  //     }
+  //   }
+  //   timeouts.push(setTimeout(() => tick(), 10_000))
 
-    onCleanup(() => {
-      timeouts.forEach(clearTimeout)
-    })
-  })
+  //   onCleanup(() => {
+  //     timeouts.forEach(clearTimeout)
+  //   })
+  // })
 
   return (
     <box flexDirection="row" justifyContent="space-between" gap={0} flexShrink={0}>

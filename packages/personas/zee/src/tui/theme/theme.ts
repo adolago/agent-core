@@ -31,6 +31,10 @@ const palette = {
   link: "#7DD3A5",
   error: "#F97066",
   success: "#7DD3A5",
+  // Status bar box design - delicate and refined
+  statusBoxBorder: "#4A5568",
+  statusInnerBorder: "#63B3ED",
+  statusReminderText: "#A0AEC0",
 };
 
 const fg = (hex: string) => (text: string) => chalk.hex(hex)(text);
@@ -134,4 +138,13 @@ export const searchableSelectListTheme: SearchableSelectListTheme = {
   searchPrompt: (text) => fg(palette.accentSoft)(text),
   searchInput: (text) => fg(palette.text)(text),
   matchHighlight: (text) => chalk.bold(fg(palette.accent)(text)),
+};
+
+export const statusBarTheme = {
+  outerBorder: fg(palette.statusBoxBorder),
+  innerBorder: fg(palette.statusInnerBorder),
+  reminderText: fg(palette.statusReminderText),
+  statusText: fg(palette.text),
+  accentText: fg(palette.accent),
+  dimText: fg(palette.dim),
 };

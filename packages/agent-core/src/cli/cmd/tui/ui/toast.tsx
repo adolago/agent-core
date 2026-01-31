@@ -51,19 +51,37 @@ export function Toast() {
 function init() {
   const [store, setStore] = createStore({
     currentToast: null as ToastOptions | null,
+    queue: [] as ToastOptions[],
   })
 
   let timeoutHandle: NodeJS.Timeout | null = null
 
-  const toast = {
-    show(options: ToastOptions) {
-      const parsedOptions = TuiEvent.ToastShow.properties.parse(options)
+  const processQueue = () => {
+    if (store.currentToast) return // Already showing a toast
+
+    if (store.queue.length > 0) {
+      // Get next toast
+      const next = store.queue[0]
+      setStore("queue", (q) => q.slice(1))
+      
+      const parsedOptions = TuiEvent.ToastShow.properties.parse(next)
       const { duration, ...currentToast } = parsedOptions
+      
       setStore("currentToast", currentToast)
+      
       if (timeoutHandle) clearTimeout(timeoutHandle)
       timeoutHandle = setTimeout(() => {
         setStore("currentToast", null)
+        // Process next toast after a small delay
+        setTimeout(processQueue, 100)
       }, duration).unref()
+    }
+  }
+
+  const toast = {
+    show(options: ToastOptions) {
+      setStore("queue", (q) => [...q, options])
+      processQueue()
     },
     error: (err: any) => {
       if (err instanceof Error)

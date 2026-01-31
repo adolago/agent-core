@@ -97,7 +97,7 @@ async function getTerminalBackgroundColor(): Promise<"dark" | "light"> {
     timeout = setTimeout(() => {
       cleanup()
       resolve("dark")
-    }, 1000)
+    }, 50)
   })
 }
 
@@ -190,7 +190,7 @@ function App() {
   const route = useRoute()
   const dimensions = useTerminalDimensions()
   const renderer = useRenderer()
-  renderer.disableStdoutInterception()
+  // renderer.disableStdoutInterception()
   const dialog = useDialog()
   const local = useLocal()
   const kv = useKV()

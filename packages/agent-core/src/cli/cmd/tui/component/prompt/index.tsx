@@ -1217,6 +1217,9 @@ export function Prompt(props: PromptProps) {
         ? { edit: false, write: false, notebook_edit: false }
         : { edit: true, write: true, notebook_edit: true }
 
+      // Inject mode awareness into the message parts
+      const modeContext = `\n\n[System: Current Agent Mode is ${local.mode.isHold() ? "HOLD" : "RELEASE"}]`
+
       sdk.client.session
         .prompt({
           sessionID,
@@ -1226,11 +1229,12 @@ export function Prompt(props: PromptProps) {
           model: selectedModel,
           variant,
           tools: holdModeTools,
+          options: { skipPermissions: local.mode.isRelease() },
           parts: [
             {
               id: Identifier.ascending("part"),
               type: "text",
-              text: inputText,
+              text: inputText + modeContext,
             },
             ...nonTextParts.map((x) => ({
               id: Identifier.ascending("part"),
@@ -1345,7 +1349,7 @@ export function Prompt(props: PromptProps) {
   const highlight = createMemo(() => {
     if (keybind.leader) return theme.border
     if (store.mode === "shell") return theme.primary
-    return local.agent.color(local.agent.current().name)
+    return theme.primary
   })
 
   const showVariant = createMemo(() => {
@@ -1396,6 +1400,13 @@ export function Prompt(props: PromptProps) {
     </box>
   )
 
+  const [reminderText, setReminderText] = createSignal<string>(kv.get("zee_reminder", "Zee is online. No active reminders."))
+
+  // Persist reminder text changes
+  createEffect(() => {
+    kv.set("zee_reminder", reminderText())
+  })
+
   return (
     <>
       <Autocomplete
@@ -1438,9 +1449,26 @@ export function Prompt(props: PromptProps) {
           </Show>
           <text fg={theme.border}>─┐</text>
         </box>
+        
+        {/* Reminder Box (Non-interactive) */}
+        <Show when={reminderText()}>
+          <box flexDirection="row">
+            <text fg={theme.border}>│</text>
+            <box paddingLeft={1} paddingRight={1} flexGrow={1}>
+              <text fg={theme.warning} italic>{reminderText()}</text>
+            </box>
+            <text fg={theme.border}>│</text>
+          </box>
+          <box height={1} flexDirection="row">
+            <text fg={theme.border}>├</text>
+            <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
+            <text fg={theme.border}>┤</text>
+          </box>
+        </Show>
+
         {/* Input row with left and right border */}
         <box flexDirection="row">
-          <text fg={theme.border}>┃</text>
+          <text fg={theme.border}>│</text>
           <box
             paddingLeft={1}
             paddingRight={1}
@@ -1750,7 +1778,7 @@ export function Prompt(props: PromptProps) {
             />
           </box>
           {/* Right border character */}
-          <text fg={theme.border}>┃</text>
+          <text fg={theme.border}>│</text>
         </box>
         {/* Bottom border with path + branch (Amp style) */}
         <box height={1} flexDirection="row">
@@ -1848,7 +1876,15 @@ export function Prompt(props: PromptProps) {
               </Switch>
             }>
               <Match when={status().type === "idle"}>
-                <></>
+                {(() => {
+                  const parsed = local.model.parsed()
+                  return (
+                    <box flexDirection="row" gap={1}>
+                      <text fg={theme.textMuted}>{parsed.provider}</text>
+                      <text fg={theme.primary}>{parsed.model}</text>
+                    </box>
+                  )
+                })()}
               </Match>
               <Match when={true}>
                 <box flexDirection="row" gap={1}>

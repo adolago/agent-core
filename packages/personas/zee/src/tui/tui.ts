@@ -18,7 +18,9 @@ import { getSlashCommands } from "./commands.js";
 import { ChatLog } from "./components/chat-log.js";
 import { CustomEditor } from "./components/custom-editor.js";
 import { GatewayChatClient } from "./gateway-chat.js";
-import { editorTheme, theme } from "./theme/theme.js";
+import { editorTheme, statusBarTheme, theme } from "./theme/theme.js";
+import { StatusBar } from "./components/status-bar.js";
+import { getContextualTip } from "./reminder-tips.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import { formatTokens } from "./tui-formatters.js";
@@ -232,14 +234,17 @@ export async function runTui(opts: TuiOptions) {
   const tui = new TUI(new ProcessTerminal());
   const header = new Text("", 1, 0);
   const statusContainer = new Container();
-  const footer = new Text("", 1, 0);
+  const statusBar = new StatusBar(statusBarTheme, {
+    personaName: currentAgentId,
+    reminderText: getContextualTip({ isFirstMessage: true }),
+  });
   const chatLog = new ChatLog();
   const editor = new CustomEditor(tui, editorTheme);
   const root = new Container();
   root.addChild(header);
   root.addChild(chatLog);
   root.addChild(statusContainer);
-  root.addChild(footer);
+  root.addChild(statusBar);
   root.addChild(editor);
 
   const updateAutocompleteProvider = () => {
@@ -407,6 +412,8 @@ export async function runTui(opts: TuiOptions) {
         startStatusTimer();
       }
       updateBusyStatusMessage();
+      // Sync with status bar
+      statusBar.setStatus(activityStatus);
     } else {
       statusStartedAt = null;
       stopStatusTimer();
@@ -416,6 +423,8 @@ export async function runTui(opts: TuiOptions) {
       ensureStatusText();
       const text = activityStatus ? `${connectionStatus} | ${activityStatus}` : connectionStatus;
       statusText?.setText(theme.dim(text));
+      // Clear status bar spinner
+      statusBar.setStatus(activityStatus || undefined);
     }
     lastActivityStatus = activityStatus;
   };
@@ -438,32 +447,30 @@ export async function runTui(opts: TuiOptions) {
   };
 
   const updateFooter = () => {
-    const sessionKeyLabel = formatSessionKey(currentSessionKey);
-    const sessionLabel = sessionInfo.displayName
-      ? `${sessionKeyLabel} (${sessionInfo.displayName})`
-      : sessionKeyLabel;
     const agentLabel = formatAgentLabel(currentAgentId);
-    const modelLabel = sessionInfo.model
-      ? sessionInfo.modelProvider
-        ? `${sessionInfo.modelProvider}/${sessionInfo.model}`
-        : sessionInfo.model
-      : "unknown";
-    const tokens = formatTokens(sessionInfo.totalTokens ?? null, sessionInfo.contextTokens ?? null);
-    const think = sessionInfo.thinkingLevel ?? "off";
-    const verbose = sessionInfo.verboseLevel ?? "off";
-    const reasoning = sessionInfo.reasoningLevel ?? "off";
-    const reasoningLabel =
-      reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;
-    const footerParts = [
-      `agent ${agentLabel}`,
-      `session ${sessionLabel}`,
-      modelLabel,
-      think !== "off" ? `think ${think}` : null,
-      verbose !== "off" ? `verbose ${verbose}` : null,
-      reasoningLabel,
-      tokens,
-    ].filter(Boolean);
-    footer.setText(theme.dim(footerParts.join(" | ")));
+
+    // Calculate context percentage
+    const total = sessionInfo.totalTokens ?? null;
+    const context = sessionInfo.contextTokens ?? null;
+    const contextPercent =
+      typeof total === "number" && typeof context === "number" && context > 0
+        ? Math.min(999, Math.round((total / context) * 100))
+        : null;
+
+    // Format token count
+    const tokens = formatTokens(total, context);
+
+    // Update status bar with current state
+    statusBar.setState({
+      personaName: agentLabel,
+      contextPercent,
+      tokenCount: tokens,
+      reminderText: getContextualTip({
+        isWaiting: activityStatus === "waiting",
+        hasTools: toolsExpanded,
+        isFirstMessage: !historyLoaded,
+      }),
+    });
   };
 
   const { openOverlay, closeOverlay } = createOverlayHandlers(tui, editor);
