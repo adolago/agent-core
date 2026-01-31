@@ -3,18 +3,24 @@ import { realpath } from "fs/promises"
 import { dirname, join, relative } from "path"
 
 export namespace Filesystem {
-  export const sanitizePath = (value: string) => value.replace(/\0/g, "")
-  export const exists = (p: string) =>
-    Bun.file(sanitizePath(p))
+  export const sanitizePath = (value: string) => (value.includes("\0") ? value.replace(/\0/g, "") : value)
+  export const exists = async (p: string) => {
+    p = sanitizePath(p)
+    if (await Bun.file(p).exists()) return true
+    return Bun.file(p)
       .stat()
       .then(() => true)
       .catch(() => false)
+  }
 
-  export const isDir = (p: string) =>
-    Bun.file(sanitizePath(p))
+  export const isDir = async (p: string) => {
+    p = sanitizePath(p)
+    if (await Bun.file(p).exists()) return false
+    return Bun.file(p)
       .stat()
       .then((s) => s.isDirectory())
       .catch(() => false)
+  }
   /**
    * Check if child path is contained within parent, resolving symlinks.
    * This prevents symlink escape attacks where a symlink inside the project

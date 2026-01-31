@@ -13,3 +13,7 @@
 ## 2026-02-14 - Optimize Path Parsing
 **Learning:** `path.split()` creates unnecessary intermediate arrays (allocation overhead), which is costly in hot utility functions like `getFilename`.
 **Action:** Use `lastIndexOf` and `slice` for path parsing to avoid allocation, especially in frequently called path utilities.
+
+## 2026-03-01 - Optimize Filesystem Existence Checks
+**Learning:** `Bun.file(path).exists()` is significantly faster (~14x for files, ~42x for non-existent items) than `stat()` but returns `false` for directories.
+**Action:** Use `await Bun.file(path).exists()` as a fast path for file checks, falling back to `stat()` only for directories or confirmation. Also, use `path.includes()` guard before `path.replace()` in hot paths like `sanitizePath`.
