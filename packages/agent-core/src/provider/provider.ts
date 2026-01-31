@@ -90,7 +90,18 @@ export namespace Provider {
    * Providers listed here are permanently hidden from all menus and lists.
    * Use config.disabled_providers for per-user filtering instead.
    */
-  const PROVIDER_BLACKLIST = new Set<string>(["nebius"])
+  const PROVIDER_BLACKLIST = new Set<string>([
+    "nebius",           // Permanently disabled
+    "venice",           // Privacy proxy removed
+    "alibaba",          // Removed per request
+    "synthetic",        // Redundant HuggingFace proxy
+    "ollama",           // Local provider - use vLLM instead
+    "github-copilot",   // Subscription-based, limited models
+    "amazon-bedrock",   // Enterprise AWS only
+    "opencode",         // Unstable internal proxy
+    "qwen-portal",      // OAuth complexity, limited models
+    "moonshot",         // Duplicate of kimi-for-coding
+  ])
 
   export function isProviderBlocked(providerID: string): boolean {
     return PROVIDER_BLACKLIST.has(providerID)

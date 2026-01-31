@@ -55,7 +55,7 @@
       }
     }
   },
-  "disabled_providers": ["alibaba"],
+  // "disabled_providers": [],
   "fallback": {
     "enabled": true,
     "rules": [

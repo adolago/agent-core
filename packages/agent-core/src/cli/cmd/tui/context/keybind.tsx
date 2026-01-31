@@ -129,7 +129,8 @@ export const { use: useKeybind, provider: KeybindProvider } = createSimpleContex
 
         // Route single character commands (no modifiers except shift for uppercase)
         if (evt.name && evt.name.length === 1 && !evt.ctrl && !evt.meta) {
-          if (vimCommandHandler?.(evt.name, evt)) {
+          const key = evt.shift ? evt.name.toUpperCase() : evt.name
+          if (vimCommandHandler?.(key, evt)) {
             evt.stopPropagation()
             evt.preventDefault()
             return

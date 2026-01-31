@@ -171,7 +171,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         color(name: string) {
           const all = sync.data?.agent
           if (!all || !Array.isArray(all)) return colors()[0]
-          const agent = all.find((x) => x.name === name)
+          const agent = all.find((x) => x.name.toLowerCase() === name.toLowerCase())
 
           // First check for agent's custom color property
           if (agent?.color) return RGBA.fromHex(agent.color)
@@ -181,7 +181,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           if (personaColor) return personaColor
 
           // Fall back to indexed colors for other agents
-          const index = all.findIndex((x) => x.name === name)
+          const index = all.findIndex((x) => x.name.toLowerCase() === name.toLowerCase())
           if (index === -1) return colors()[0]
           return colors()[index % colors().length]
         },

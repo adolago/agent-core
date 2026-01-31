@@ -1,0 +1,48 @@
+#!/bin/bash
+# ac - Always runs the LOCAL dev binary, bypassing PATH entirely
+#
+# Usage: ./script/ac [args...]
+#   or: ln -sf ~/.local/src/agent-core/packages/agent-core/script/ac ~/bin/ac
+#
+# This guarantees you're running YOUR build, not some global install.
+
+set -e
+
+# Resolve the real script location (following symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Detect platform
+case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64)  PLATFORM="linux-x64" ;;
+    Linux-aarch64) PLATFORM="linux-arm64" ;;
+    Darwin-x86_64) PLATFORM="darwin-x64" ;;
+    Darwin-arm64)  PLATFORM="darwin-arm64" ;;
+    *)             echo "Unsupported platform: $(uname -s)-$(uname -m)"; exit 1 ;;
+esac
+
+LOCAL_BINARY="$REPO_ROOT/dist/@adolago/agent-core-$PLATFORM/bin/agent-core"
+
+# Check if binary exists
+if [[ ! -f "$LOCAL_BINARY" ]]; then
+    echo "Binary not found: $LOCAL_BINARY"
+    echo "Run: cd packages/agent-core && bun run build"
+    exit 1
+fi
+
+# Check if source is newer than binary (warn but still run)
+LOCAL_MTIME=$(stat -c %Y "$LOCAL_BINARY" 2>/dev/null || stat -f %m "$LOCAL_BINARY")
+SRC_NEWEST=$(find "$REPO_ROOT/src" -name "*.ts" -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)
+
+if [[ -n "$SRC_NEWEST" ]] && [[ "$SRC_NEWEST" -gt "$LOCAL_MTIME" ]]; then
+    echo -e "\033[1;33m[ac] Source newer than binary - rebuild recommended\033[0m" >&2
+fi
+
+# Run the local binary directly
+exec "$LOCAL_BINARY" "$@"
