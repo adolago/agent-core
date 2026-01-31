@@ -334,7 +334,7 @@ export namespace ProviderTransform {
       return {}
 
     // GLM models only support variants when using Z.AI/ZhipuAI
-    if (id.includes("glm") && !model.providerID.includes("zai") && model.providerID !== "zhipuai" && model.providerID !== "zhipu") {
+    if (id.includes("glm") && !model.providerID.includes("zai")) {
       return {}
     }
 
@@ -365,13 +365,37 @@ export namespace ProviderTransform {
       case "@ai-sdk/togetherai":
       case "@ai-sdk/xai":
       case "@ai-sdk/deepinfra":
+      case "@ai-sdk/cerebras":
+      case "@ai-sdk/togetherai":
+      case "@ai-sdk/xai":
+      case "@ai-sdk/deepinfra":
       case "@ai-sdk/openai-compatible":
-        if (model.providerID.includes("zai") || model.providerID === "zhipuai" || model.providerID === "zhipu") {
+        if (model.providerID.includes("zai")) {
           return {
-            low: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.low } },
-            medium: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.medium } },
-            high: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.high } },
-            max: { thinking: { type: "enabled", budget_tokens: THINKING_BUDGETS.max } },
+            low: {
+              thinking: {
+                type: "enabled",
+                budget_tokens: THINKING_BUDGETS.low,
+              },
+            },
+            medium: {
+              thinking: {
+                type: "enabled",
+                budget_tokens: THINKING_BUDGETS.medium,
+              },
+            },
+            high: {
+              thinking: {
+                type: "enabled",
+                budget_tokens: THINKING_BUDGETS.high,
+              },
+            },
+            max: {
+              thinking: {
+                type: "enabled",
+                budget_tokens: THINKING_BUDGETS.max,
+              },
+            },
           }
         }
         return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
@@ -598,9 +622,7 @@ export namespace ProviderTransform {
     // Enable thinking mode for Z.AI/ZhipuAI models
     // Use .includes() to match provider IDs like "zai-coding-plan"
     if (
-      (input.model.providerID.includes("zai") ||
-        input.model.providerID === "zhipuai" ||
-        input.model.providerID === "zhipu") &&
+      input.model.providerID.includes("zai") &&
       input.model.api.npm === "@ai-sdk/openai-compatible"
     ) {
       result["thinking"] = {

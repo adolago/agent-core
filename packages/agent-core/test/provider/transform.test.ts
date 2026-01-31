@@ -118,7 +118,7 @@ describe("ProviderTransform.variants - mapping parity", () => {
   test("glm models from Z.AI/ZhipuAI return thinking variants", () => {
     const glmModel = {
       id: "glm-4-plus",
-      providerID: "zhipuai",
+      providerID: "zai-coding-plan",
       api: { id: "glm-4-plus", npm: "@ai-sdk/openai-compatible" },
       capabilities: { reasoning: true },
     } as any
@@ -1289,23 +1289,6 @@ describe("ProviderTransform.options - persona thinking configs", () => {
         api: {
           id: "glm-4.7",
           url: "https://open.bigmodel.cn/api/paas/v4",
-          npm: "@ai-sdk/openai-compatible",
-        },
-      } as any
-      const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
-      expect(result.thinking).toEqual({
-        type: "enabled",
-        budget_tokens: 16000,
-      })
-    })
-
-    test("should enable preserved thinking mode for zhipuai provider", () => {
-      const model = {
-        id: "zhipuai/glm-4.7",
-        providerID: "zhipuai",
-        api: {
-          id: "glm-4.7",
-          url: "https://api.zhipuai.cn",
           npm: "@ai-sdk/openai-compatible",
         },
       } as any
