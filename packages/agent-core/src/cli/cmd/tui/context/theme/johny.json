@@ -1,31 +1,29 @@
 {
   "defs": {
-    "darkStep1": "#0a0a0a",
-    "darkStep2": "#141414",
-    "darkStep3": "#1e1e1e",
-    "darkStep4": "#282828",
-    "darkStep5": "#323232",
+    "stealthBlack": "#0A0A0A",
+    "crimsonVoid": "#1A0A0A",
+    "crimsonShadow": "#2D1512",
+    "crimsonObsidian": "#3D1C18",
+    "crimsonBronze": "#5C2A24",
+    "crimsonSteel": "#7A3B32",
+    "crimsonAlloy": "#9E4D42",
+    "crimsonFlux": "#C46356",
+    "crimsonPhosphor": "#E87D6E",
+    "crimsonWarning": "#FF4D3A",
+    "crimsonTrace": "#FF9A8F",
     "darkStep6": "#3c3c3c",
     "darkStep7": "#484848",
-    "darkStep8": "#606060",
     "darkStep11": "#808080",
     "darkStep12": "#eeeeee",
-    "johnyPrimary": "#9E4D42",
-    "johnyPrimaryLight": "#C46356",
-    "johnySecondary": "#7A3B32",
-    "johnyAccent": "#E87D6E",
-    "darkPanelBg": "#1e0a0a99",
+    "darkPanelBg": "#1A0A0A",
+    "darkMenuBg": "#2D1512",
     "lightPanelBg": "#fff0f099",
     "darkOrange": "#f5a742",
     "darkGreen": "#7fd88f",
     "darkCyan": "#56b6c2",
     "darkYellow": "#e5c07b",
-    "lightStep1": "#ffffff",
-    "lightStep2": "#fafafa",
-    "lightStep3": "#f5f5f5",
     "lightStep6": "#d4d4d4",
     "lightStep7": "#b8b8b8",
-    "lightStep8": "#a0a0a0",
     "lightStep11": "#8a8a8a",
     "lightStep12": "#1a1a1a",
     "lightOrange": "#d68c27",
@@ -35,20 +33,20 @@
   },
   "theme": {
     "primary": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonAlloy",
+      "light": "crimsonSteel"
     },
     "secondary": {
-      "dark": "johnySecondary",
-      "light": "johnyPrimary"
+      "dark": "crimsonSteel",
+      "light": "crimsonAlloy"
     },
     "accent": {
-      "dark": "johnyAccent",
-      "light": "johnyAccent"
+      "dark": "crimsonPhosphor",
+      "light": "crimsonFlux"
     },
     "error": {
-      "dark": "johnyPrimaryLight",
-      "light": "johnySecondary"
+      "dark": "crimsonWarning",
+      "light": "crimsonAlloy"
     },
     "warning": {
       "dark": "darkOrange",
@@ -59,7 +57,7 @@
       "light": "lightGreen"
     },
     "info": {
-      "dark": "darkCyan",
+      "dark": "crimsonTrace",
       "light": "lightCyan"
     },
     "text": {
@@ -67,35 +65,35 @@
       "light": "lightStep12"
     },
     "textMuted": {
-      "dark": "darkStep11",
+      "dark": "crimsonSteel",
       "light": "lightStep11"
     },
     "background": {
-      "dark": "transparent",
+      "dark": "stealthBlack",
       "light": "transparent"
     },
     "backgroundPanel": {
-      "dark": "transparent",
+      "dark": "darkPanelBg",
       "light": "transparent"
     },
     "backgroundElement": {
-      "dark": "transparent",
+      "dark": "crimsonShadow",
       "light": "transparent"
     },
     "backgroundMenu": {
-      "dark": "darkPanelBg",
+      "dark": "darkMenuBg",
       "light": "lightPanelBg"
     },
     "border": {
-      "dark": "darkStep7",
+      "dark": "crimsonObsidian",
       "light": "lightStep7"
     },
     "borderActive": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonFlux",
+      "light": "crimsonAlloy"
     },
     "borderSubtle": {
-      "dark": "darkStep6",
+      "dark": "crimsonShadow",
       "light": "lightStep6"
     },
     "diffAdded": {
@@ -103,15 +101,15 @@
       "light": "#1e725c"
     },
     "diffRemoved": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonFlux",
+      "light": "crimsonAlloy"
     },
     "diffContext": {
-      "dark": "#828bb8",
+      "dark": "crimsonSteel",
       "light": "#7086b5"
     },
     "diffHunkHeader": {
-      "dark": "#828bb8",
+      "dark": "crimsonSteel",
       "light": "#7086b5"
     },
     "diffHighlightAdded": {
@@ -119,8 +117,8 @@
       "light": "#4db380"
     },
     "diffHighlightRemoved": {
-      "dark": "johnyAccent",
-      "light": "johnyPrimary"
+      "dark": "crimsonWarning",
+      "light": "crimsonFlux"
     },
     "diffAddedBg": {
       "dark": "transparent",
@@ -135,7 +133,7 @@
       "light": "transparent"
     },
     "diffLineNumber": {
-      "dark": "#666666",
+      "dark": "crimsonBronze",
       "light": "#999999"
     },
     "diffAddedLineNumberBg": {
@@ -151,23 +149,23 @@
       "light": "lightStep12"
     },
     "markdownHeading": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonFlux",
+      "light": "crimsonAlloy"
     },
     "markdownLink": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonAlloy",
+      "light": "crimsonSteel"
     },
     "markdownLinkText": {
-      "dark": "johnyAccent",
-      "light": "johnyAccent"
+      "dark": "crimsonPhosphor",
+      "light": "crimsonFlux"
     },
     "markdownCode": {
       "dark": "darkGreen",
       "light": "lightGreen"
     },
     "markdownBlockQuote": {
-      "dark": "darkYellow",
+      "dark": "crimsonSteel",
       "light": "lightYellow"
     },
     "markdownEmph": {
@@ -175,48 +173,48 @@
       "light": "lightYellow"
     },
     "markdownStrong": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonPhosphor",
+      "light": "crimsonFlux"
     },
     "markdownHorizontalRule": {
-      "dark": "darkStep11",
+      "dark": "crimsonBronze",
       "light": "lightStep11"
     },
     "markdownListItem": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonAlloy",
+      "light": "crimsonSteel"
     },
     "markdownListEnumeration": {
-      "dark": "johnyAccent",
-      "light": "johnyAccent"
+      "dark": "crimsonPhosphor",
+      "light": "crimsonFlux"
     },
     "markdownImage": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonAlloy",
+      "light": "crimsonSteel"
     },
     "markdownImageText": {
-      "dark": "johnyAccent",
-      "light": "johnyAccent"
+      "dark": "crimsonPhosphor",
+      "light": "crimsonFlux"
     },
     "markdownCodeBlock": {
       "dark": "darkStep12",
       "light": "lightStep12"
     },
     "syntaxComment": {
-      "dark": "darkStep11",
+      "dark": "crimsonBronze",
       "light": "lightStep11"
     },
     "syntaxKeyword": {
-      "dark": "johnyPrimary",
-      "light": "johnySecondary"
+      "dark": "crimsonFlux",
+      "light": "crimsonAlloy"
     },
     "syntaxFunction": {
-      "dark": "johnyAccent",
-      "light": "johnyAccent"
+      "dark": "crimsonPhosphor",
+      "light": "crimsonFlux"
     },
     "syntaxVariable": {
-      "dark": "johnyPrimaryLight",
-      "light": "johnySecondary"
+      "dark": "crimsonWarning",
+      "light": "crimsonAlloy"
     },
     "syntaxString": {
       "dark": "darkGreen",
@@ -231,7 +229,7 @@
       "light": "lightYellow"
     },
     "syntaxOperator": {
-      "dark": "darkCyan",
+      "dark": "crimsonTrace",
       "light": "lightCyan"
     },
     "syntaxPunctuation": {
