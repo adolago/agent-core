@@ -341,6 +341,7 @@ export async function runEmbeddedAttempt(
       workspaceNotes,
       reactionGuidance,
       promptMode,
+      user: params.config?.user,
       runtimeInfo,
       messageToolHints,
       sandboxInfo,

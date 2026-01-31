@@ -52,7 +52,7 @@ export * from './domain';
 import { getToolRegistry } from './registry';
 import { getMcpServerManager, resetMcpServerManager } from './server';
 import { registerBuiltinTools } from './builtin';
-import { registerStanleyTools, registerZeeTools } from './domain';
+import { registerStanleyTools, registerZeeTools, registerJohnyTools, registerZeeFullTools, registerAllDomainTools } from './domain';
 import type { McpServerConfig, SurfaceType, AgentInfo } from './types';
 import { PermissionChecker } from './permission';
 
@@ -69,6 +69,10 @@ export async function initializeMcp(options?: {
   enableStanley?: boolean;
   /** Enable Zee domain tools */
   enableZee?: boolean;
+  /** Enable Johny domain tools */
+  enableJohny?: boolean;
+  /** Enable full domain tools (async load from src/domain/) */
+  enableFullDomainTools?: boolean;
   /** Permission configuration */
   permissions?: {
     surface?: SurfaceType;
@@ -96,6 +100,16 @@ export async function initializeMcp(options?: {
   }
   if (options?.enableZee !== false) {
     registerZeeTools();
+  }
+
+  // Register full domain tools (Johny + full Zee with WhatsApp/Splitwise/etc.)
+  if (options?.enableFullDomainTools !== false) {
+    await registerAllDomainTools();
+  } else {
+    // Register individual persona tools if full tools disabled
+    if (options?.enableJohny !== false) {
+      await registerJohnyTools();
+    }
   }
 
   // Initialize MCP servers if configured

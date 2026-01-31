@@ -257,7 +257,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
 
   return (
     <box
-      backgroundColor={theme.backgroundPanel}
+      backgroundColor={theme.backgroundMenu}
       border={["left", "top"]}
       borderColor={theme.accent}
       customBorderChars={SplitBorder.customBorderChars}

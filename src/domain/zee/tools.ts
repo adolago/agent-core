@@ -265,7 +265,9 @@ const MessagingParams = z.object({
   channel: z.enum(["whatsapp", "telegram"])
     .describe("Messaging channel: whatsapp (Zee) or telegram (Stanley/Johny bots)"),
   to: z.string().describe("Recipient: WhatsApp chatId or Telegram chatId (numeric)"),
-  message: z.string().describe("Message content"),
+  message: z.string().describe("Message content (text or caption for media)"),
+  mediaUrl: z.string().optional()
+    .describe("URL or local file path to media (audio, image, video, document). For voice notes, use audio/ogg with opus codec."),
   persona: z.enum(["zee", "stanley", "johny"]).optional()
     .describe("For Telegram: which persona's bot to use (default: stanley)"),
   account: z.string().optional()
@@ -294,14 +296,17 @@ Telegram:
 - \`persona\`: Which bot/account to use - "stanley" (default) or "johny"
 
 Examples:
-- WhatsApp via Zee's number: { channel: "whatsapp", to: "+15551234567", message: "Hello!" }
+- WhatsApp text: { channel: "whatsapp", to: "+15551234567", message: "Hello!" }
+- WhatsApp audio: { channel: "whatsapp", to: "+15551234567", message: "", mediaUrl: "/tmp/voice.ogg" }
+- WhatsApp image with caption: { channel: "whatsapp", to: "+15551234567", message: "Check this out!", mediaUrl: "/tmp/photo.jpg" }
 - WhatsApp via your number: { channel: "whatsapp", to: "+15551234567", message: "Hello!", account: "personal" }
 - Telegram via Stanley: { channel: "telegram", to: "123456789", message: "Market update!", persona: "stanley" }`,
     parameters: MessagingParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { channel, to, message, persona, account } = args;
+      const { channel, to, message, mediaUrl, persona, account } = args;
 
-      ctx.metadata({ title: `Sending via ${channel}` });
+      const hasMedia = Boolean(mediaUrl?.trim());
+      ctx.metadata({ title: `Sending via ${channel}${hasMedia ? " (media)" : ""}` });
 
       const rawBaseUrl =
         process.env.AGENT_CORE_URL ||
@@ -317,7 +322,12 @@ Examples:
           const response = await fetch(`${baseUrl}/gateway/whatsapp/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chatId: to, message, accountId }),
+            body: JSON.stringify({
+              chatId: to,
+              message,
+              accountId,
+              ...(mediaUrl?.trim() ? { mediaUrl: mediaUrl.trim() } : {}),
+            }),
           });
 
           const rawResult = await response.json();
@@ -350,12 +360,18 @@ Troubleshooting:
           }
 
           const accountLabel = accountId === "personal" ? "your personal WhatsApp" : `WhatsApp account "${accountId}"`;
+          const mediaLabel = hasMedia ? " with media" : "";
+          const preview = message.trim()
+            ? `Preview: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`
+            : hasMedia
+              ? `Media: ${mediaUrl}`
+              : "";
           return {
-            title: `WhatsApp Message Sent`,
-            metadata: { channel, to, account: accountId, success: true },
-            output: `Message sent via ${accountLabel} to ${to}
+            title: `WhatsApp Message Sent${mediaLabel}`,
+            metadata: { channel, to, account: accountId, hasMedia, success: true },
+            output: `Message sent via ${accountLabel} to ${to}${mediaLabel}
 
-Preview: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
+${preview}`,
           };
 
         } else if (channel === "telegram") {

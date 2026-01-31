@@ -327,6 +327,7 @@ export async function compactEmbeddedPiSessionDirect(
       docsPath: docsPath ?? undefined,
       ttsHint,
       promptMode,
+      user: params.config?.user,
       runtimeInfo,
       reactionGuidance,
       messageToolHints,

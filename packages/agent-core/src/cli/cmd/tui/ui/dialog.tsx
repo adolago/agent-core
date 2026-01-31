@@ -1,5 +1,5 @@
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
-import { batch, createContext, Show, useContext, type JSX, type ParentProps } from "solid-js"
+import { batch, createContext, createMemo, Show, useContext, type JSX, type ParentProps } from "solid-js"
 import { useTheme } from "@tui/context/theme"
 import { Renderable, RGBA, TextAttributes } from "@opentui/core"
 import { createStore } from "solid-js/store"
@@ -17,6 +17,11 @@ export function Dialog(
   const { theme } = useTheme()
   const renderer = useRenderer()
 
+  const overlayBg = createMemo(() => {
+    const menuBg = theme.backgroundMenu
+    return menuBg.a > 0 ? RGBA.fromInts(menuBg.r * 255, menuBg.g * 255, menuBg.b * 255, 180) : RGBA.fromInts(0, 0, 0, 150)
+  })
+
   return (
     <box
       onMouseUp={async () => {
@@ -31,7 +36,7 @@ export function Dialog(
       paddingTop={dimensions().height / 4}
       left={0}
       top={0}
-      backgroundColor={RGBA.fromInts(0, 0, 0, 150)}
+      backgroundColor={overlayBg()}
     >
       <box
         onMouseUp={async (e) => {
@@ -40,7 +45,7 @@ export function Dialog(
         }}
         width={props.size === "large" ? 80 : 60}
         maxWidth={dimensions().width - 2}
-        backgroundColor={theme.backgroundPanel}
+        backgroundColor={theme.backgroundMenu}
         paddingTop={1}
         border={["left", "right", "top", "bottom"]}
         borderColor={theme.borderActive}

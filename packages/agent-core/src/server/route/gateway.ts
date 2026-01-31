@@ -17,6 +17,9 @@ const WhatsAppSendInput = z.object({
   chatId: z.string().optional(),
   to: z.string().optional(),
   message: z.string(),
+  mediaUrl: z.string().optional(),
+  mediaUrls: z.array(z.string()).optional(),
+  gifPlayback: z.boolean().optional(),
   accountId: z.string().optional(),
   account: z.string().optional(),  // Alias for accountId (backward compatibility)
 })
@@ -250,12 +253,18 @@ async function sendViaGateway(input: {
   to: string
   message: string
   accountId?: string
+  mediaUrl?: string
+  mediaUrls?: string[]
+  gifPlayback?: boolean
 }): Promise<unknown> {
   return await callGateway("send", {
     to: input.to,
     message: input.message,
     channel: input.provider,
     ...(input.accountId ? { accountId: input.accountId } : {}),
+    ...(input.mediaUrl ? { mediaUrl: input.mediaUrl } : {}),
+    ...(input.mediaUrls?.length ? { mediaUrls: input.mediaUrls } : {}),
+    ...(input.gifPlayback ? { gifPlayback: input.gifPlayback } : {}),
     idempotencyKey: crypto.randomUUID(),
   }, { timeoutMs: DEFAULT_GATEWAY_SEND_TIMEOUT_MS })
 }
@@ -318,7 +327,15 @@ export const GatewayRoute = new Hono()
       try {
         const to = normalizeWhatsAppRecipient(toRaw)
         const accountId = parsed.data.accountId ?? parsed.data.account
-        const data = await sendViaGateway({ provider: "whatsapp", to, message: parsed.data.message, accountId })
+        const data = await sendViaGateway({
+          provider: "whatsapp",
+          to,
+          message: parsed.data.message,
+          accountId,
+          mediaUrl: parsed.data.mediaUrl,
+          mediaUrls: parsed.data.mediaUrls,
+          gifPlayback: parsed.data.gifPlayback,
+        })
         return c.json({ success: true, data } satisfies GatewayResponse)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)

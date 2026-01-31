@@ -78,6 +78,34 @@ function bundleTiara(distRoot: string) {
   })
 }
 
+function bundleSrcModules(distRoot: string) {
+  // Bundle src/ modules that are dynamically imported at runtime
+  // These are imported via relative paths like ../../../../../src/memory/unified
+  const srcRoot = path.join(repoRoot, "src")
+  if (!fs.existsSync(srcRoot)) return
+  
+  const destRoot = path.join(distRoot, "src")
+  fs.mkdirSync(destRoot, { recursive: true })
+  
+  // Modules needed at runtime (dynamically imported)
+  const modules = ["memory", "config"]
+  for (const mod of modules) {
+    const src = path.join(srcRoot, mod)
+    if (!fs.existsSync(src)) continue
+    const dest = path.join(destRoot, mod)
+    fs.cpSync(src, dest, {
+      recursive: true,
+      dereference: true,
+      filter: (srcPath) => {
+        const base = path.basename(srcPath)
+        // Skip test files and node_modules
+        if (base.includes(".test.") || base === "node_modules") return false
+        return true
+      },
+    })
+  }
+}
+
 function bundleAgentCoreAssets(distRoot: string) {
   if (!fs.existsSync(agentCoreAssetsRoot)) return
   const destRoot = path.join(distRoot, ".agent-core")
@@ -290,23 +318,24 @@ for (const item of targets) {
   })
 
   await $`rm -rf ./dist/${name}/bin/tui`
-  await Bun.file(`dist/${name}/package.json`).write(
-    JSON.stringify(
-      {
-        name,
-        version: Script.version,
-        os: [item.os],
-        cpu: [item.arch],
-      },
-      null,
-      2,
-    ),
+  const pkgJson = JSON.stringify(
+    {
+      name,
+      version: Script.version,
+      os: [item.os],
+      cpu: [item.arch],
+    },
+    null,
+    2,
   )
+  await Bun.file(`dist/${name}/package.json`).write(pkgJson)
+  await Bun.file(`dist/${name}/bin/package.json`).write(pkgJson)
   // Bundle personas so standalone installs can resolve them via AGENT_CORE_ROOT.
   bundlePersonas(path.join(dir, "dist", name))
   bundleTiara(path.join(dir, "dist", name))
   bundleAgentCoreAssets(path.join(dir, "dist", name))
   bundlePersonaSkills(path.join(dir, "dist", name))
+  bundleSrcModules(path.join(dir, "dist", name))
   binaries[name] = Script.version
 }
 

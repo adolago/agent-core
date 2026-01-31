@@ -339,3 +339,24 @@ export const rustfmt: Info = {
     return Bun.which("rustfmt") !== null
   },
 }
+
+export const pint: Info = {
+  name: "pint",
+  command: [BunProc.which(), "x", "laravel/pint", "$FILE"],
+  environment: {
+    BUN_BE_BUN: "1",
+  },
+  extensions: [".php"],
+  async enabled() {
+    for await (const item of Filesystem.up({
+      targets: ["composer.json"],
+      start: Instance.directory,
+      stop: Instance.worktree,
+    })) {
+      const json = await Bun.file(item).json()
+      if (json.require?.["laravel/pint"]) return true
+      if (json.require_dev?.["laravel/pint"]) return true
+    }
+    return false
+  },
+}

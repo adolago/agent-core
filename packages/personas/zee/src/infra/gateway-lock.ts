@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
@@ -14,6 +14,7 @@ type LockPayload = {
   createdAt: string;
   configPath: string;
   startTime?: number;
+  nonce?: string;
 };
 
 export type GatewayLockHandle = {
@@ -72,9 +73,8 @@ function isGatewayArgv(args: string[]): boolean {
     "dist/index.js",
     "dist/index.mjs",
     "dist/entry.js",
-    "zee.mjs",
-    "zee.mjs",
     "dist/entry.mjs",
+    "zee.mjs",
     "scripts/run-node.mjs",
     "src/index.ts",
   ];
@@ -83,14 +83,7 @@ function isGatewayArgv(args: string[]): boolean {
   }
 
   const exe = normalized[0] ?? "";
-  return (
-    exe.endsWith("/zee") ||
-    exe === "zee" ||
-    exe.endsWith("/zee") ||
-    exe === "zee" ||
-    exe.endsWith("/zee") ||
-    exe === "zee"
-  );
+  return exe.endsWith("/zee") || exe === "zee";
 }
 
 function readLinuxCmdline(pid: number): string[] | null {
@@ -144,11 +137,13 @@ async function readLockPayload(lockPath: string): Promise<LockPayload | null> {
     if (typeof parsed.createdAt !== "string") return null;
     if (typeof parsed.configPath !== "string") return null;
     const startTime = typeof parsed.startTime === "number" ? parsed.startTime : undefined;
+    const nonce = typeof parsed.nonce === "string" ? parsed.nonce : undefined;
     return {
       pid: parsed.pid,
       createdAt: parsed.createdAt,
       configPath: parsed.configPath,
       startTime,
+      nonce,
     };
   } catch {
     return null;
@@ -171,8 +166,6 @@ export async function acquireGatewayLock(
   const allowInTests = opts.allowInTests === true;
   if (
     env.ZEE_ALLOW_MULTI_GATEWAY === "1" ||
-    env.ZEE_ALLOW_MULTI_GATEWAY === "1" ||
-    env.ZEE_ALLOW_MULTI_GATEWAY === "1" ||
     (!allowInTests && (env.VITEST || env.NODE_ENV === "test"))
   ) {
     return null;
@@ -192,10 +185,12 @@ export async function acquireGatewayLock(
     try {
       const handle = await fs.open(lockPath, "wx");
       const startTime = platform === "linux" ? readLinuxStartTime(process.pid) : null;
+      const nonce = randomBytes(16).toString("hex");
       const payload: LockPayload = {
         pid: process.pid,
         createdAt: new Date().toISOString(),
         configPath,
+        nonce,
       };
       if (typeof startTime === "number" && Number.isFinite(startTime)) {
         payload.startTime = startTime;
@@ -206,7 +201,16 @@ export async function acquireGatewayLock(
         configPath,
         release: async () => {
           await handle.close().catch(() => undefined);
-          await fs.rm(lockPath, { force: true });
+          // Verify nonce before deletion to prevent TOCTOU race
+          // (don't delete another process's newly-acquired lock)
+          try {
+            const currentPayload = await readLockPayload(lockPath);
+            if (currentPayload?.nonce === nonce) {
+              await fs.rm(lockPath, { force: true });
+            }
+          } catch {
+            // Lock file already gone or unreadable, nothing to do
+          }
         },
       };
     } catch (err) {
@@ -216,11 +220,13 @@ export async function acquireGatewayLock(
       }
 
       lastPayload = await readLockPayload(lockPath);
-      const ownerPid = lastPayload?.pid;
-      const ownerStatus = ownerPid
-        ? resolveGatewayOwnerStatus(ownerPid, lastPayload, platform)
-        : "unknown";
-      if (ownerStatus === "dead" && ownerPid) {
+      if (!lastPayload) {
+        await fs.rm(lockPath, { force: true });
+        continue;
+      }
+      const ownerPid = lastPayload.pid;
+      const ownerStatus = resolveGatewayOwnerStatus(ownerPid, lastPayload, platform);
+      if (ownerStatus === "dead") {
         await fs.rm(lockPath, { force: true });
         continue;
       }

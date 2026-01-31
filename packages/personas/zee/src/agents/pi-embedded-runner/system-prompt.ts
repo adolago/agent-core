@@ -24,6 +24,15 @@ export function buildEmbeddedSystemPrompt(params: {
   workspaceNotes?: string[];
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
+  /** User identity from config */
+  user?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    language?: string;
+    location?: string;
+    notes?: string;
+  };
   runtimeInfo: {
     agentId?: string;
     host: string;
@@ -60,6 +69,7 @@ export function buildEmbeddedSystemPrompt(params: {
     workspaceNotes: params.workspaceNotes,
     reactionGuidance: params.reactionGuidance,
     promptMode: params.promptMode,
+    user: params.user,
     runtimeInfo: params.runtimeInfo,
     messageToolHints: params.messageToolHints,
     sandboxInfo: params.sandboxInfo,

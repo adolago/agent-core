@@ -122,7 +122,7 @@ export function WhichKey() {
         zIndex={1500}
       >
         <box
-          backgroundColor={theme.backgroundPanel}
+          backgroundColor={theme.backgroundMenu}
           border={["top", "bottom", "left", "right"]}
           borderColor={theme.primary}
           paddingLeft={1}

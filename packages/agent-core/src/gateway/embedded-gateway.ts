@@ -26,6 +26,7 @@ let gatewayLock: GatewayLockHandle | null = null
 let gatewayPort: number | undefined
 let injectedAgentCoreUrl = false
 let previousAgentCoreUrl: string | undefined
+let startPromise: Promise<void> | null = null
 
 function maybeInjectAgentCoreUrl(daemonUrl?: string) {
   if (!daemonUrl) return
@@ -57,21 +58,31 @@ export async function readEmbeddedGatewayConfigSnapshot(): Promise<EmbeddedGatew
 
 export async function startEmbeddedGateway(options: EmbeddedGatewayStartOptions = {}): Promise<void> {
   if (gatewayServer) return
-
-  maybeInjectAgentCoreUrl(options.daemonUrl)
+  if (startPromise) return startPromise
 
   const port = options.port ?? resolveEmbeddedGatewayPort()
-  gatewayPort = port
 
-  gatewayLock = await acquireGatewayLock()
+  startPromise = (async () => {
+    maybeInjectAgentCoreUrl(options.daemonUrl)
+    gatewayPort = port
+
+    try {
+      gatewayLock = await acquireGatewayLock()
+      gatewayServer = await startGatewayServer(port)
+      log.info("embedded gateway started", { port })
+    } catch (error) {
+      await gatewayLock?.release().catch(() => undefined)
+      gatewayLock = null
+      gatewayServer = null
+      restoreAgentCoreUrl()
+      throw error
+    }
+  })()
+
   try {
-    gatewayServer = await startGatewayServer(port)
-    log.info("embedded gateway started", { port })
-  } catch (error) {
-    await gatewayLock?.release().catch(() => undefined)
-    gatewayLock = null
-    restoreAgentCoreUrl()
-    throw error
+    await startPromise
+  } finally {
+    startPromise = null
   }
 }
 

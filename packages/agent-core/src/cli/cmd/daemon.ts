@@ -13,6 +13,7 @@ import { WeztermOrchestration } from "../../orchestration/wezterm"
 import { initPersonas } from "../../bootstrap/personas"
 import { CircuitBreaker } from "../../provider/circuit-breaker"
 import * as UsageTracker from "../../usage/tracker"
+import { initWorkStealing, getWorkStealingService, initConsensus, getConsensusGate } from "../../coordination"
 import { execSync } from "child_process"
 import fs from "fs/promises"
 import path from "path"
@@ -27,6 +28,7 @@ import {
   startEmbeddedGateway,
   stopEmbeddedGateway,
 } from "../../gateway/embedded-gateway"
+import { validateSetup, type SetupCheckResult } from "../setup-check"
 
 const log = Log.create({ service: "daemon" })
 
@@ -241,11 +243,15 @@ export namespace Daemon {
     return restoredCount
   }
 
+  let isShuttingDown = false
+
   export async function setupSignalHandlers(cleanup: (signal?: NodeJS.Signals) => Promise<void>) {
     const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"]
 
     for (const signal of signals) {
       process.on(signal, () => {
+        if (isShuttingDown) return
+        isShuttingDown = true
         log.info("received signal, shutting down", { signal })
         cleanup(signal)
           .then(() => {
@@ -773,11 +779,15 @@ export const DaemonCommand = cmd({
     const opts = await resolveNetworkOptions(args)
     const directory = args.directory as string
 
+    // Run setup check before starting server - fail fast if infrastructure missing
+    const setupResult = await validateSetup({ exitOnFail: true, verbose: true })
+
     log.info("starting daemon", {
       directory,
       hostname: opts.hostname,
       port: opts.port,
       restoreSessions: args["restore-sessions"],
+      setupOk: setupResult.ok,
     })
 
     // Start the server
@@ -883,6 +893,34 @@ export const DaemonCommand = cmd({
       console.error(`Warning: Usage tracking initialization failed: ${error instanceof Error ? error.message : error}`)
     }
 
+    // Initialize work stealing for load balancing
+    let workStealingEnabled = false
+    try {
+      const workStealingService = await initWorkStealing()
+      workStealingEnabled = workStealingService.getStats().enabled
+      if (workStealingEnabled) {
+        console.log("WorkSteal:  Load balancing enabled")
+      }
+    } catch (error) {
+      log.debug("Work stealing initialization skipped", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
+    // Initialize consensus gate for side effect approval
+    let consensusEnabled = false
+    try {
+      const consensusGate = await initConsensus()
+      consensusEnabled = consensusGate.getStats().enabled
+      if (consensusEnabled) {
+        console.log("Consensus:  Approval gate enabled")
+      }
+    } catch (error) {
+      log.debug("Consensus gate initialization skipped", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
     // Initialize WezTerm orchestration if enabled
     let weztermEnabled = false
     if (args.wezterm) {
@@ -965,6 +1003,22 @@ export const DaemonCommand = cmd({
       // RELIABILITY: Save circuit breaker state before shutdown
       await CircuitBreaker.shutdown().catch((e) => log.error("Circuit breaker shutdown error", { error: String(e) }))
 
+      // Shutdown work stealing service
+      try {
+        const workStealingService = getWorkStealingService()
+        workStealingService.shutdown()
+      } catch {
+        // Ignore if not initialized
+      }
+
+      // Shutdown consensus gate
+      try {
+        const consensusGate = getConsensusGate()
+        consensusGate.shutdown()
+      } catch {
+        // Ignore if not initialized
+      }
+
       await Daemon.removePidFile()
       await Daemon.releaseLock()
       await server.stop()
@@ -985,6 +1039,8 @@ export const DaemonCommand = cmd({
 
     const persistenceStatus = persistenceEnabled ? "Active (checkpoints + WAL)" : "Disabled"
     const usageStatus = usageEnabled ? "Active (SQLite)" : "Disabled"
+    const workStealingStatus = workStealingEnabled ? "Active (load balancing)" : "Disabled"
+    const consensusStatus = consensusEnabled ? "Active (approval gate)" : "Disabled"
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
     const gatewayState = GatewaySupervisor.getState()
     const gatewayStatus = gatewayStarted
@@ -992,6 +1048,15 @@ export const DaemonCommand = cmd({
       : args.gateway
         ? `Disabled (${gatewayState.error ?? "not configured"})`
         : "Disabled"
+
+    // Format infrastructure status
+    const qdrantStatus = setupResult.qdrant.available
+      ? `OK (${setupResult.qdrant.url})`
+      : `MISSING - ${setupResult.qdrant.error}`
+    const googleStatus = setupResult.googleApiKey.available
+      ? `OK (${setupResult.googleApiKey.source})`
+      : "MISSING - embeddings disabled"
+    const memoryStatus = setupResult.ok ? "Ready" : "Degraded (some features disabled)"
 
     console.log(`
 Agent-Core Daemon Started
@@ -1002,9 +1067,16 @@ Hostname:  ${server.hostname}
 Directory: ${directory}
 URL:       http://${server.hostname}:${server.port}
 
+Infrastructure:
+  Qdrant:      ${qdrantStatus}
+  Google:      ${googleStatus}
+  Memory:      ${memoryStatus}
+
 Services:
   Persistence: ${persistenceStatus}
   Usage:       ${usageStatus}
+  WorkSteal:   ${workStealingStatus}
+  Consensus:   ${consensusStatus}
   WezTerm:     ${weztermStatus}
   Gateway:     ${gatewayStatus}
 

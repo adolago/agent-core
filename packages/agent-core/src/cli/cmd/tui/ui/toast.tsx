@@ -29,9 +29,9 @@ export function Toast() {
           paddingRight={2}
           paddingTop={1}
           paddingBottom={1}
-          backgroundColor={theme.backgroundPanel}
+          backgroundColor={theme.backgroundMenu}
           borderColor={theme[current().variant]}
-          border={["left", "right", "top", "bottom"]}
+          border={[\"left\"]}
           customBorderChars={SplitBorder.customBorderChars}
         >
           <Show when={current().title}>

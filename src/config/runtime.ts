@@ -224,12 +224,22 @@ export function getMemoryEmbeddingConfig(): MemoryEmbeddingConfig {
 export function getMemoryRerankerConfig(): RerankerConfig {
   const config = loadRuntimeConfig();
   const reranker = config.memory?.reranker ?? {};
+  
+  // Environment variable overrides (highest priority)
+  const envEnabled = process.env.MEMORY_RERANKER_ENABLED;
+  const envProvider = process.env.MEMORY_RERANKER_PROVIDER as "voyage" | "vllm" | undefined;
+  const envModel = process.env.MEMORY_RERANKER_MODEL;
+  const envApiKey = process.env.VOYAGE_API_KEY || process.env.MEMORY_RERANKER_API_KEY;
+  const envBaseUrl = process.env.MEMORY_RERANKER_BASE_URL || process.env.VLLM_RERANKER_URL;
+  
   return {
-    enabled: reranker.enabled ?? false,
-    provider: reranker.provider ?? "voyage",
-    model: reranker.model?.trim() || undefined,
-    apiKey: reranker.apiKey?.trim() || undefined,
-    baseUrl: reranker.baseUrl?.trim() || undefined,
+    enabled: envEnabled !== undefined 
+      ? envEnabled === "true" || envEnabled === "1"
+      : (reranker.enabled ?? false),
+    provider: envProvider || reranker.provider || "voyage",
+    model: envModel?.trim() || reranker.model?.trim() || undefined,
+    apiKey: envApiKey?.trim() || reranker.apiKey?.trim() || undefined,
+    baseUrl: envBaseUrl?.trim() || reranker.baseUrl?.trim() || undefined,
   };
 }
 
@@ -262,4 +272,12 @@ export function getZeeSplitwiseConfig(): ZeeSplitwiseConfig {
 
 export function getZeeCodexbarConfig(): ZeeCodexbarConfig {
   return loadRuntimeConfig().zee?.codexbar ?? {};
+}
+
+/**
+ * Clear the cached runtime config.
+ * Call this when environment variables may have changed since initial load.
+ */
+export function clearRuntimeConfigCache(): void {
+  cachedConfig = null;
 }

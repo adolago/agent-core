@@ -228,7 +228,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                 props.onFilter?.(e)
               })
             }}
-            focusedBackgroundColor={theme.backgroundPanel}
+            focusedBackgroundColor={theme.backgroundMenu}
             cursorColor={theme.primary}
             focusedTextColor={theme.textMuted}
             ref={(r) => {

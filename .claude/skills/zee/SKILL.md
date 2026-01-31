@@ -39,7 +39,13 @@ npx tsx scripts/zee-memory.ts search "John Q4" --limit 5
 
 ### Messaging
 ```bash
+# Text message
 npx tsx scripts/zee-messaging.ts whatsapp --to "+1234567890" --message "Running late"
+# Audio/voice note (generate with TTS first)
+npx tsx scripts/zee-messaging.ts whatsapp --to "+1234567890" --message "" --media "/tmp/voice.ogg"
+# Image with caption
+npx tsx scripts/zee-messaging.ts whatsapp --to "+1234567890" --message "Check this!" --media "/tmp/photo.jpg"
+# Telegram
 npx tsx scripts/zee-messaging.ts telegram --to "@username" --message "Check this"
 ```
 
@@ -69,7 +75,7 @@ khard show "John Doe"           # Details
 |------|---------|
 | `zee:memory-store` | Store facts, preferences, tasks, notes |
 | `zee:memory-search` | Semantic search across memories |
-| `zee:messaging` | Send/receive on WhatsApp and Telegram |
+| `zee:messaging` | Send text/audio/media on WhatsApp and Telegram |
 | `zee:notification` | Proactive alerts and reminders |
 | `zee:browser-*` | Web automation (see `tools-reference.md`) |
 | `zee:pty-*` | Interactive terminal sessions |

@@ -93,7 +93,8 @@
   ],
   "overrides": {
     "@types/bun": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "baseline-browser-mapping": "2.9.19"
   },
   "patchedDependencies": {
     "ghostty-web@0.3.0": "patches/ghostty-web@0.3.0.patch",

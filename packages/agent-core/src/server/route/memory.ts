@@ -138,8 +138,10 @@ export const MemoryRoute = new Hono()
         log.info("Memory stored", { id: entry.id, category: input.category, namespace: input.namespace })
         return c.json(entry)
       } catch (err) {
-        log.error("Memory store failed", { error: err })
-        return c.json({ error: "Failed to store memory" }, 500)
+        const errMsg = err instanceof Error ? err.message : String(err)
+        const errStack = err instanceof Error ? err.stack : undefined
+        log.error("Memory store failed", { error: errMsg, stack: errStack })
+        return c.json({ error: "Failed to store memory", details: errMsg }, 500)
       }
     }
   )

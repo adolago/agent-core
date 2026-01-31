@@ -207,9 +207,11 @@ function publishStats(): void {
       Bus.publish(MemoryStatsEvent.Updated, {
         embedding: { ...stats.embedding },
         reranking: { ...stats.reranking },
+      }).catch(() => {
+        // Promise rejection (async)
       });
     } catch {
-      // Bus may not be initialized in some contexts (tests, standalone scripts)
+      // Synchronous error (Instance context not available)
     }
   });
 }

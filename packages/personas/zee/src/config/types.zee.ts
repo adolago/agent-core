@@ -24,6 +24,22 @@ import type { PluginsConfig } from "./types.plugins.js";
 import type { SkillsConfig } from "./types.skills.js";
 import type { ToolsConfig } from "./types.tools.js";
 
+/** User identity configuration for personalization. */
+export type UserConfig = {
+  /** User's display name (e.g., "Artur"). */
+  name?: string;
+  /** User's phone number in E164 format (e.g., "+1234567890"). */
+  phone?: string;
+  /** User's email address. */
+  email?: string;
+  /** User's preferred language (e.g., "en", "pt", "de"). */
+  language?: string;
+  /** User's location/city for context (e.g., "Vienna, Austria"). */
+  location?: string;
+  /** Additional notes about the user for context. */
+  notes?: string;
+};
+
 export type ZeeConfig = {
   meta?: {
     /** Last Zee version that wrote this config. */
@@ -31,6 +47,8 @@ export type ZeeConfig = {
     /** ISO timestamp when this config was last written. */
     lastTouchedAt?: string;
   };
+  /** User identity and preferences. Injected into system prompts. */
+  user?: UserConfig;
   auth?: AuthConfig;
   env?: {
     /** Opt-in: import missing secrets from a login shell environment (exec `$SHELL -l -c 'env -0'`). */

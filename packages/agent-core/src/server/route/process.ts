@@ -17,6 +17,7 @@ import {
   ProcessStatus,
 } from "../../process/types"
 import { getProcessRegistry, ProcessRegistryEvents } from "../../process/registry"
+import { getWorkStealingService, getConsensusGate } from "../../coordination"
 import { errors } from "../error"
 import { Log } from "../../util/log"
 
@@ -382,5 +383,435 @@ export const ProcessRoute = new Hono()
       }
 
       return c.json(true)
+    }
+  )
+
+  // =========================================================================
+  // Work Stealing Endpoints
+  // =========================================================================
+
+  // Get work stealing stats
+  .get(
+    "/process/workstealing/stats",
+    describeRoute({
+      summary: "Get work stealing statistics",
+      description: "Get current work stealing service statistics including workload distribution.",
+      operationId: "process.workstealing.stats",
+      tags: ["Process", "WorkStealing"],
+      responses: {
+        200: {
+          description: "Work stealing statistics",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.object({
+                  enabled: z.boolean(),
+                  totalAgents: z.number(),
+                  totalTasks: z.number(),
+                  avgTasksPerAgent: z.number(),
+                  imbalance: z.number(),
+                  stealRequests: z.number(),
+                  lastCheck: z.number().nullable(),
+                  workloads: z.record(
+                    z.string(),
+                    z.object({
+                      taskCount: z.number(),
+                      avgDuration: z.number(),
+                    })
+                  ),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      try {
+        const service = getWorkStealingService()
+        const stats = service.getStats()
+        return c.json(stats)
+      } catch {
+        return c.json({
+          enabled: false,
+          totalAgents: 0,
+          totalTasks: 0,
+          avgTasksPerAgent: 0,
+          imbalance: 0,
+          stealRequests: 0,
+          lastCheck: null,
+          workloads: {},
+        })
+      }
+    }
+  )
+
+  // Update agent workload
+  .post(
+    "/process/workstealing/workload",
+    describeRoute({
+      summary: "Update agent workload",
+      description: "Update the workload metrics for an agent for load balancing.",
+      operationId: "process.workstealing.updateWorkload",
+      tags: ["Process", "WorkStealing"],
+      responses: {
+        200: {
+          description: "Workload updated",
+          content: {
+            "application/json": {
+              schema: resolver(z.object({ success: z.boolean() })),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      z.object({
+        agentId: z.string(),
+        taskCount: z.number().optional(),
+        avgTaskDuration: z.number().optional(),
+        cpuUsage: z.number().optional(),
+        memoryUsage: z.number().optional(),
+        capabilities: z.array(z.string()).optional(),
+      })
+    ),
+    async (c) => {
+      const workload = c.req.valid("json")
+      try {
+        const service = getWorkStealingService()
+        service.updateAgentWorkload(workload.agentId, workload)
+        return c.json({ success: true })
+      } catch {
+        return c.json({ success: false })
+      }
+    }
+  )
+
+  // Record task duration
+  .post(
+    "/process/workstealing/task-duration",
+    describeRoute({
+      summary: "Record task duration",
+      description: "Record the duration of a completed task for workload estimation.",
+      operationId: "process.workstealing.recordDuration",
+      tags: ["Process", "WorkStealing"],
+      responses: {
+        200: {
+          description: "Duration recorded",
+          content: {
+            "application/json": {
+              schema: resolver(z.object({ success: z.boolean() })),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      z.object({
+        agentId: z.string(),
+        durationMs: z.number(),
+      })
+    ),
+    async (c) => {
+      const { agentId, durationMs } = c.req.valid("json")
+      try {
+        const service = getWorkStealingService()
+        service.recordTaskDuration(agentId, durationMs)
+        return c.json({ success: true })
+      } catch {
+        return c.json({ success: false })
+      }
+    }
+  )
+
+  // Find best agent for task
+  .post(
+    "/process/workstealing/find-best",
+    describeRoute({
+      summary: "Find best agent for task",
+      description: "Find the least loaded agent with matching capabilities.",
+      operationId: "process.workstealing.findBest",
+      tags: ["Process", "WorkStealing"],
+      responses: {
+        200: {
+          description: "Best agent ID or null",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.object({
+                  agentId: z.string().nullable(),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      z.object({
+        capabilities: z.array(z.string()).optional(),
+      })
+    ),
+    async (c) => {
+      const { capabilities } = c.req.valid("json")
+      try {
+        const service = getWorkStealingService()
+        const agentId = service.findBestAgent(capabilities)
+        return c.json({ agentId })
+      } catch {
+        return c.json({ agentId: null })
+      }
+    }
+  )
+
+  // =========================================================================
+  // Consensus Gate Endpoints
+  // =========================================================================
+
+  // Get consensus stats
+  .get(
+    "/process/consensus/stats",
+    describeRoute({
+      summary: "Get consensus gate statistics",
+      description: "Get current consensus gate statistics including approval/rejection counts.",
+      operationId: "process.consensus.stats",
+      tags: ["Process", "Consensus"],
+      responses: {
+        200: {
+          description: "Consensus statistics",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.object({
+                  enabled: z.boolean(),
+                  mode: z.string(),
+                  totalProposals: z.number(),
+                  approved: z.number(),
+                  rejected: z.number(),
+                  pending: z.number(),
+                  voterCount: z.number(),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      try {
+        const gate = getConsensusGate()
+        const stats = gate.getStats()
+        return c.json(stats)
+      } catch {
+        return c.json({
+          enabled: false,
+          mode: "auto",
+          totalProposals: 0,
+          approved: 0,
+          rejected: 0,
+          pending: 0,
+          voterCount: 0,
+        })
+      }
+    }
+  )
+
+  // Submit a proposal for approval
+  .post(
+    "/process/consensus/propose",
+    describeRoute({
+      summary: "Submit proposal for consensus",
+      description: "Submit an action for approval through the consensus gate.",
+      operationId: "process.consensus.propose",
+      tags: ["Process", "Consensus"],
+      responses: {
+        200: {
+          description: "Decision result",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.object({
+                  proposalId: z.string(),
+                  approved: z.boolean(),
+                  reason: z.string(),
+                  mode: z.string(),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      z.object({
+        type: z.string(),
+        description: z.string(),
+        content: z.unknown(),
+        proposer: z.string().optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+    ),
+    async (c) => {
+      const input = c.req.valid("json")
+      try {
+        const gate = getConsensusGate()
+        const decision = await gate.propose({
+          type: input.type as any,
+          description: input.description,
+          content: input.content,
+          proposer: input.proposer ?? "api",
+          metadata: input.metadata,
+        })
+        return c.json({
+          proposalId: decision.proposalId,
+          approved: decision.approved,
+          reason: decision.reason,
+          mode: decision.mode,
+        })
+      } catch (error) {
+        return c.json({
+          proposalId: "",
+          approved: false,
+          reason: error instanceof Error ? error.message : "Unknown error",
+          mode: "error",
+        })
+      }
+    }
+  )
+
+  // Register a voter
+  .post(
+    "/process/consensus/voter",
+    describeRoute({
+      summary: "Register a voter",
+      description: "Register an agent as a voter for consensus decisions.",
+      operationId: "process.consensus.registerVoter",
+      tags: ["Process", "Consensus"],
+      responses: {
+        200: {
+          description: "Voter registered",
+          content: {
+            "application/json": {
+              schema: resolver(z.object({ success: z.boolean() })),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        capabilities: z.array(z.string()).optional(),
+      })
+    ),
+    async (c) => {
+      const { id, name, capabilities } = c.req.valid("json")
+      try {
+        const gate = getConsensusGate()
+        gate.registerVoter(id, name, capabilities)
+        return c.json({ success: true })
+      } catch {
+        return c.json({ success: false })
+      }
+    }
+  )
+
+  // Cast a vote
+  .post(
+    "/process/consensus/vote",
+    describeRoute({
+      summary: "Cast a vote",
+      description: "Cast a vote on a pending proposal.",
+      operationId: "process.consensus.vote",
+      tags: ["Process", "Consensus"],
+      responses: {
+        200: {
+          description: "Vote recorded",
+          content: {
+            "application/json": {
+              schema: resolver(z.object({ success: z.boolean() })),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      z.object({
+        proposalId: z.string(),
+        voterId: z.string(),
+        approved: z.boolean(),
+        confidence: z.number().optional(),
+        reason: z.string().optional(),
+      })
+    ),
+    async (c) => {
+      const { proposalId, voterId, approved, confidence, reason } = c.req.valid("json")
+      try {
+        const gate = getConsensusGate()
+        const success = gate.vote(proposalId, voterId, approved, { confidence, reason })
+        return c.json({ success })
+      } catch {
+        return c.json({ success: false })
+      }
+    }
+  )
+
+  // Get decision history
+  .get(
+    "/process/consensus/history",
+    describeRoute({
+      summary: "Get decision history",
+      description: "Get recent consensus decision history.",
+      operationId: "process.consensus.history",
+      tags: ["Process", "Consensus"],
+      responses: {
+        200: {
+          description: "Decision history",
+          content: {
+            "application/json": {
+              schema: resolver(
+                z.array(
+                  z.object({
+                    proposalId: z.string(),
+                    approved: z.boolean(),
+                    mode: z.string(),
+                    decidedAt: z.number(),
+                    reason: z.string(),
+                  })
+                )
+              ),
+            },
+          },
+        },
+      },
+    }),
+    validator(
+      "query",
+      z.object({
+        limit: z.coerce.number().optional().default(100),
+      })
+    ),
+    async (c) => {
+      const { limit } = c.req.valid("query")
+      try {
+        const gate = getConsensusGate()
+        const history = gate.getDecisionHistory(limit)
+        return c.json(history.map((d) => ({
+          proposalId: d.proposalId,
+          approved: d.approved,
+          mode: d.mode,
+          decidedAt: d.decidedAt,
+          reason: d.reason,
+        })))
+      } catch {
+        return c.json([])
+      }
     }
   )

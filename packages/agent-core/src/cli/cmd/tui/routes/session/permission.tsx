@@ -320,7 +320,7 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
 
   return (
     <box
-      backgroundColor={theme.backgroundPanel}
+      backgroundColor={theme.backgroundMenu}
       border={["left"]}
       borderColor={theme.error}
       customBorderChars={SplitBorder.customBorderChars}
@@ -422,7 +422,7 @@ function Prompt<const T extends Record<string, string>>(props: {
 
   const content = () => (
     <box
-      backgroundColor={theme.backgroundPanel}
+      backgroundColor={theme.backgroundMenu}
       border={store.expanded ? ["left", "right", "top", "bottom"] : ["left"]}
       borderColor={theme.warning}
       customBorderChars={SplitBorder.customBorderChars}

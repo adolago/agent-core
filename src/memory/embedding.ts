@@ -249,7 +249,9 @@ class GoogleEmbeddingProvider implements EmbeddingProvider {
   private readonly outputDimensionality?: number;
 
   constructor(config: EmbeddingConfig) {
-    this.apiKey = config.apiKey ?? getApiKeySync("google") ?? "";
+    // Check config, then getApiKeySync (which checks GOOGLE_API_KEY + aliases like GEMINI_API_KEY),
+    // then fall back to direct env check for GEMINI_API_KEY
+    this.apiKey = config.apiKey ?? getApiKeySync("google") ?? process.env.GEMINI_API_KEY ?? "";
     this.model = config.model ?? "gemini-embedding-001";
     this.outputDimensionality =
       typeof config.dimensions === "number" ? config.dimensions : undefined;

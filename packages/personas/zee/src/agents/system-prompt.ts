@@ -44,9 +44,45 @@ function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<st
   ];
 }
 
-function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
-  if (!ownerLine || isMinimal) return [];
-  return ["## User Identity", ownerLine, ""];
+type UserIdentityParams = {
+  ownerLine?: string;
+  userName?: string;
+  userPhone?: string;
+  userEmail?: string;
+  userLanguage?: string;
+  userLocation?: string;
+  userNotes?: string;
+};
+
+function buildUserIdentitySection(params: UserIdentityParams, isMinimal: boolean) {
+  if (isMinimal) return [];
+  
+  const lines: string[] = [];
+  
+  if (params.userName) {
+    lines.push(`Name: ${params.userName}`);
+  }
+  if (params.userPhone) {
+    lines.push(`Phone: ${params.userPhone}`);
+  }
+  if (params.userEmail) {
+    lines.push(`Email: ${params.userEmail}`);
+  }
+  if (params.userLanguage) {
+    lines.push(`Preferred language: ${params.userLanguage}`);
+  }
+  if (params.userLocation) {
+    lines.push(`Location: ${params.userLocation}`);
+  }
+  if (params.userNotes) {
+    lines.push(`Notes: ${params.userNotes}`);
+  }
+  if (params.ownerLine) {
+    lines.push(params.ownerLine);
+  }
+  
+  if (lines.length === 0) return [];
+  return ["## User Identity", ...lines, ""];
 }
 
 function buildTimeSection(params: { userTimezone?: string }) {
@@ -143,6 +179,15 @@ export function buildAgentSystemPrompt(params: {
   ttsHint?: string;
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
+  /** User identity from config (name, phone, email, etc.) */
+  user?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    language?: string;
+    location?: string;
+    notes?: string;
+  };
   runtimeInfo?: {
     agentId?: string;
     host?: string;
@@ -438,7 +483,15 @@ export function buildAgentSystemPrompt(params: {
           .join("\n")
       : "",
     params.sandboxInfo?.enabled ? "" : "",
-    ...buildUserIdentitySection(ownerLine, isMinimal),
+    ...buildUserIdentitySection({
+      ownerLine,
+      userName: params.user?.name,
+      userPhone: params.user?.phone,
+      userEmail: params.user?.email,
+      userLanguage: params.user?.language,
+      userLocation: params.user?.location,
+      userNotes: params.user?.notes,
+    }, isMinimal),
     ...buildTimeSection({
       userTimezone,
     }),
