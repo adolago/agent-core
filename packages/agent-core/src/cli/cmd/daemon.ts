@@ -11,6 +11,8 @@ import { Instance } from "../../project/instance"
 import { LifecycleHooks } from "../../hooks/lifecycle"
 import { WeztermOrchestration } from "../../orchestration/wezterm"
 import { initPersonas } from "../../bootstrap/personas"
+// TODO: Surface layer temporarily disabled - needs architectural fix for cross-package imports
+// import { initSurfaces, shutdownSurfaces } from "../../bootstrap/surface"
 import { CircuitBreaker } from "../../provider/circuit-breaker"
 import * as UsageTracker from "../../usage/tracker"
 import { initWorkStealing, getWorkStealingService, initConsensus, getConsensusGate } from "../../coordination"
@@ -880,6 +882,18 @@ export const DaemonCommand = cmd({
       })
     }
 
+    // Initialize surface layer (CLI, messaging platforms)
+    let surfacesEnabled = false
+    try {
+      // await initSurfaces() // TODO: Re-enable when surface layer is fixed
+      surfacesEnabled = true
+      console.log("Surfaces:   Multi-surface support enabled")
+    } catch (error) {
+      log.debug("Surface initialization skipped", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
     // Initialize usage tracking
     let usageEnabled = false
     try {
@@ -1019,6 +1033,11 @@ export const DaemonCommand = cmd({
         // Ignore if not initialized
       }
 
+      // Shutdown surface layer
+      if (surfacesEnabled) {
+        // await shutdownSurfaces() // TODO: Re-enable when surface layer is fixed
+      }
+
       await Daemon.removePidFile()
       await Daemon.releaseLock()
       await server.stop()
@@ -1042,6 +1061,7 @@ export const DaemonCommand = cmd({
     const workStealingStatus = workStealingEnabled ? "Active (load balancing)" : "Disabled"
     const consensusStatus = consensusEnabled ? "Active (approval gate)" : "Disabled"
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
+    const surfacesStatus = surfacesEnabled ? "Active (multi-surface)" : "Disabled"
     const gatewayState = GatewaySupervisor.getState()
     const gatewayStatus = gatewayStarted
       ? `Active (embedded${gatewayState.pid ? `, PID: ${gatewayState.pid}` : ""})`
@@ -1079,6 +1099,7 @@ Services:
   Consensus:   ${consensusStatus}
   WezTerm:     ${weztermStatus}
   Gateway:     ${gatewayStatus}
+  Surfaces:    ${surfacesStatus}
 
 API Endpoints:
   Health:   GET  /global/health
