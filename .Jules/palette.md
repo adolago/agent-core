@@ -19,3 +19,7 @@
 ## 2025-02-14 - Manual Icon Buttons in Lit
 **Learning:** In the Lit-based UI (`zee` persona), icon-only buttons are often implemented as standard `<button>` elements with classes (e.g., `btn btn--icon`) rather than a dedicated component. These manual implementations frequently lack `aria-label`, relying only on `title` which is insufficient for all screen readers.
 **Action:** When working with `btn--icon` classes, explicitly verify that `aria-label` is present and descriptive.
+
+## 2024-05-24 - [TUI Input Discoverability]
+**Learning:** Terminal User Interfaces often assume power-user knowledge and omit placeholders. However, TUI textareas support placeholders just like web inputs, and adding them significantly improves feature discoverability (e.g., mentioning features like @file or /command).
+**Action:** Always check TUI text inputs for placeholders and add helpful context about available special syntax or commands.
