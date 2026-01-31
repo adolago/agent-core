@@ -71,22 +71,22 @@ const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
 };
 
 const TELEGRAM_OUTPUT = {
-  openai: "opus" as const,
+  openai: "opus",
   // ElevenLabs output formats use codec_sample_rate_bitrate naming.
   // Opus @ 48kHz/64kbps is a good voice-note tradeoff for Telegram.
   elevenlabs: "opus_48000_64",
   minimax: "opus",
   extension: ".opus",
   voiceCompatible: true,
-};
+} as const;
 
 const DEFAULT_OUTPUT = {
-  openai: "mp3" as const,
+  openai: "mp3",
   elevenlabs: "mp3_44100_128",
   minimax: "mp3",
   extension: ".mp3",
   voiceCompatible: false,
-};
+} as const;
 
 const TELEPHONY_OUTPUT = {
   openai: { format: "pcm" as const, sampleRate: 24000 },

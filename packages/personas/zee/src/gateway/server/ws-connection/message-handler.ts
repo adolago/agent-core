@@ -587,6 +587,9 @@ export function attachGatewayWsMessageHandler(params: {
           return;
         }
 
+        const allowControlUiBypass =
+          configSnapshot.gateway?.controlUi?.enabled === true &&
+          connectParams.client.mode === "ui";
         const skipPairing = allowControlUiBypass && hasSharedAuth;
         if (device && devicePublicKey && !skipPairing) {
           const requirePairing = async (reason: string, _paired?: { deviceId: string }) => {

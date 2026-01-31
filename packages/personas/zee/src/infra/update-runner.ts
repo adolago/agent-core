@@ -680,8 +680,6 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
         gitRoot,
         {
           ZEE_UPDATE_IN_PROGRESS: "1",
-          ZEE_UPDATE_IN_PROGRESS: "1",
-          ZEE_UPDATE_IN_PROGRESS: "1",
         },
       ),
     );

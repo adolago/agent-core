@@ -53,13 +53,12 @@ export function extractHookToken(req: IncomingMessage, url: URL): HookTokenResul
     const token = auth.slice(7).trim();
     if (token) return { token, fromQuery: false };
   }
+  const headerTokenValue = req.headers["x-zee-token"];
   const headerToken =
-    typeof req.headers["x-zee-token"] === "string"
-      ? req.headers["x-zee-token"].trim()
-      : typeof req.headers["x-zee-token"] === "string"
-        ? req.headers["x-zee-token"].trim()
-        : typeof req.headers["x-zee-token"] === "string"
-          ? req.headers["x-zee-token"].trim()
+    typeof headerTokenValue === "string"
+      ? headerTokenValue.trim()
+      : Array.isArray(headerTokenValue)
+        ? headerTokenValue.join(", ").trim()
         : "";
   if (headerToken) return { token: headerToken, fromQuery: false };
   const queryToken = url.searchParams.get("token");

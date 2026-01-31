@@ -262,6 +262,7 @@ for (const item of targets) {
 
   await Bun.build({
     conditions: ["browser"],
+    external: ["electron"],
     tsconfig: "./tsconfig.json",
     plugins: [solidPlugin],
     sourcemap: "external",

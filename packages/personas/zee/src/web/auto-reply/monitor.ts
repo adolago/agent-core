@@ -70,7 +70,7 @@ export async function monitorWebChannel(
   };
   emitStatus();
 
-  const disconnectCodes = DisconnectReason as Record<string, number | undefined>;
+  const disconnectCodes = DisconnectReason as unknown as Record<string, number | undefined>;
   const restartRequiredCode = disconnectCodes.restartRequired;
   const badSessionCode = disconnectCodes.badSession;
   const connectionReplacedCode = disconnectCodes.connectionReplaced;

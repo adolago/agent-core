@@ -54,26 +54,6 @@ export const TOOL_GROUPS: Record<string, string[]> = {
     "web_fetch",
     "image",
   ],
-  // Legacy alias
-  "group:zee": [
-    "browser",
-    "canvas",
-    "nodes",
-    "cron",
-    "message",
-    "gateway",
-    "agents_list",
-    "sessions_list",
-    "sessions_history",
-    "sessions_send",
-    "sessions_spawn",
-    "session_status",
-    "memory_search",
-    "memory_get",
-    "web_search",
-    "web_fetch",
-    "image",
-  ],
 };
 
 const TOOL_PROFILES: Record<ToolProfileId, ToolProfilePolicy> = {

@@ -552,8 +552,6 @@ const FIELD_HELP: Record<string, string> = {
     "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":
     "Allow Telegram to write config in response to channel events/commands (default: true).",
-  "channels.telegram.configWrites":
-    "Allow Telegram to write config in response to channel events/commands (default: true).",
   "channels.whatsapp.configWrites":
     "Allow WhatsApp to write config in response to channel events/commands (default: true).",
   "channels.telegram.commands.native": 'Override native commands for Telegram (bool or "auto").',

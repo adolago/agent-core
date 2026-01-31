@@ -27,7 +27,7 @@ export async function resolveZeeDocsPath(params: {
 }
 
 // Legacy alias
-export async function resolveZeeDocsPath(params: {
+export async function resolveZeeDocsPathLegacy(params: {
   workspaceDir?: string;
   argv1?: string;
   cwd?: string;

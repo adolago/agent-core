@@ -1,4 +1,5 @@
 import os from "node:os";
+import type { Protocol as CiaoProtocol } from "@homebridge/ciao";
 
 import { logDebug, logWarn } from "../logger.js";
 import { getLogger } from "../logging.js";
@@ -90,7 +91,7 @@ export async function startGatewayBonjourAdvertiser(
     return { stop: async () => {} };
   }
 
-  const { getResponder, Protocol } = await import("@homebridge/ciao");
+  const { getResponder } = await import("@homebridge/ciao");
   const responder = getResponder();
 
   // mDNS service instance names are single DNS labels; dots in hostnames (like
@@ -147,7 +148,7 @@ export async function startGatewayBonjourAdvertiser(
   const gateway = responder.createService({
     name: safeServiceName(instanceName),
     type: "zee-gw",
-    protocol: Protocol.TCP,
+    protocol: "tcp" as CiaoProtocol,
     port: opts.gatewayPort,
     domain: "local",
     hostname,
