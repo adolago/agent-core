@@ -84,7 +84,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("📄 SEC FILINGS");
+    console.log("SEC FILINGS");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;
@@ -111,7 +111,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("🔍 SCREEN RESULTS");
+    console.log("SCREEN RESULTS");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;

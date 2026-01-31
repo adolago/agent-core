@@ -31,10 +31,10 @@ Provides comprehensive performance optimization techniques for AgentDB vector da
 npx agentdb@latest benchmark
 
 # Results show:
-# ✅ Pattern Search: 150x faster (100µs vs 15ms)
-# ✅ Batch Insert: 500x faster (2ms vs 1s for 100 vectors)
-# ✅ Large-scale Query: 12,500x faster (8ms vs 100s at 1M vectors)
-# ✅ Memory Efficiency: 4-32x reduction with quantization
+# Pattern Search: 150x faster (100µs vs 15ms)
+# Batch Insert: 500x faster (2ms vs 1s for 100 vectors)
+# Large-scale Query: 12,500x faster (8ms vs 100s at 1M vectors)
+# Memory Efficiency: 4-32x reduction with quantization
 ```
 
 ### Enable Optimizations
@@ -227,12 +227,12 @@ console.log('Cache Hit Rate:', stats.cacheHitRate);
 ### Batch Insert (500x Faster)
 
 ```typescript
-// ❌ SLOW: Individual inserts
+// SLOW: Individual inserts
 for (const doc of documents) {
   await adapter.insertPattern({ /* ... */ });  // 1s for 100 docs
 }
 
-// ✅ FAST: Batch insert
+// FAST: Batch insert
 const patterns = documents.map(doc => ({
   id: '',
   type: 'document',

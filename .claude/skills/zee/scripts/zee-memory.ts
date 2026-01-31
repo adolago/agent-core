@@ -128,7 +128,7 @@ async function storeMemory(content: string, category: string, tags: string[]) {
     });
 
     console.log("\n" + "═".repeat(50));
-    console.log("💾 MEMORY STORED");
+    console.log("MEMORY STORED");
     console.log("═".repeat(50));
     console.log(`\nID: ${saved.id}`);
     console.log(`Category: ${saved.category}`);
@@ -153,7 +153,7 @@ async function storeMemory(content: string, category: string, tags: string[]) {
   saveMemories(memories);
 
   console.log("\n" + "═".repeat(50));
-  console.log("💾 MEMORY STORED");
+  console.log("MEMORY STORED");
   console.log("═".repeat(50));
   console.log(`\nID: ${entry.id}`);
   console.log(`Category: ${category}`);
@@ -239,7 +239,7 @@ async function recallMemory(id: string) {
     }
 
     console.log("\n" + "═".repeat(50));
-    console.log("📖 MEMORY RECALL");
+    console.log("MEMORY RECALL");
     console.log("═".repeat(50));
     console.log(`\nID: ${memory.id}`);
     console.log(`Category: ${memory.category}`);
@@ -258,7 +258,7 @@ async function recallMemory(id: string) {
   }
 
   console.log("\n" + "═".repeat(50));
-  console.log("📖 MEMORY RECALL");
+  console.log("MEMORY RECALL");
   console.log("═".repeat(50));
   console.log(`\nID: ${memory.id}`);
   console.log(`Category: ${memory.category}`);
@@ -292,12 +292,12 @@ async function showPatterns(category?: string) {
     }
   }
 
-  console.log("\n📊 By Category:");
+  console.log("\nBy Category:");
   for (const [cat, count] of Array.from(categories.entries()).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${cat}: ${count}`);
   }
 
-  console.log("\n🏷️  Top Tags:");
+  console.log("\nTop Tags:");
   for (const [tag, count] of Array.from(tags.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)) {
@@ -322,7 +322,7 @@ async function listMemories(category?: string, limit: number = 20) {
   }
 
   console.log("\n" + "═".repeat(50));
-  console.log("📚 MEMORY LIST");
+  console.log("MEMORY LIST");
   console.log("═".repeat(50));
   console.log(`\nTotal memories: ${memories.length}`);
   if (category) console.log(`Filtered by: ${category}`);

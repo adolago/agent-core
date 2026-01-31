@@ -710,14 +710,14 @@ mcp__claude-flow__memory_usage {
 **Batch all related operations in single message**:
 
 ```javascript
-// ✅ CORRECT: All operations together
+// CORRECT: All operations together
 [Single Message]:
   mcp__claude-flow__agent_spawn { type: "researcher" }
   mcp__claude-flow__agent_spawn { type: "coder" }
   mcp__claude-flow__agent_spawn { type: "tester" }
   TodoWrite { todos: [8-10 todos] }
 
-// ❌ WRONG: Multiple messages
+// WRONG: Multiple messages
 Message 1: mcp__claude-flow__agent_spawn { type: "researcher" }
 Message 2: mcp__claude-flow__agent_spawn { type: "coder" }
 Message 3: TodoWrite { todos: [...] }

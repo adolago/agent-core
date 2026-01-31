@@ -642,7 +642,7 @@ claude-flow pair --start \
 
 **Session Flow:**
 ```
-👥 Starting pair programming for authentication feature...
+Starting pair programming for authentication feature...
 
 [DRIVER: You - 10 minutes]
 /explain JWT authentication flow
@@ -670,7 +670,7 @@ claude-flow pair --start \
 > AI performs security review, suggests improvements
 
 /commit --message "feat: JWT authentication with refresh tokens"
-✅ Truth Score: 0.98 - Committed successfully
+Truth Score: 0.98 - Committed successfully
 ```
 
 #### Example 2: Bug Fixing
@@ -688,7 +688,7 @@ claude-flow pair --start \
 
 **Session Flow:**
 ```
-👥 Starting debugging session...
+Starting debugging session...
 
 /status
 > Analyzing application for memory issues...
@@ -709,7 +709,7 @@ claude-flow pair --start \
 > AI generates proper cleanup code
 
 /test
-> Memory stable at 150MB ✅
+> Memory stable at 150MB
 
 /commit --message "fix: memory leak in event emitters"
 ```
@@ -728,28 +728,28 @@ claude-flow pair --start \
 
 **Session Flow:**
 ```
-👥 TDD Session: Shopping Cart Feature
+TDD Session: Shopping Cart Feature
 
 [RED PHASE]
 /test-gen "add item to cart"
 > AI writes failing test:
-  ✗ should add item to cart
-  ✗ should update quantity for existing item
-  ✗ should calculate total price
+  [FAIL] should add item to cart
+  [FAIL] should update quantity for existing item
+  [FAIL] should calculate total price
 
 [GREEN PHASE]
 /implement minimal cart functionality
 > You write just enough code to pass tests
 
 /test
-> Tests passing: 3/3 ✅
+> Tests passing: 3/3
 
 [REFACTOR PHASE]
 /refactor --pattern repository
 > AI refactors to repository pattern
 
 /test
-> Tests still passing: 3/3 ✅
+> Tests still passing: 3/3
 
 [NEXT CYCLE]
 /test-gen "remove item from cart"
@@ -771,7 +771,7 @@ claude-flow pair --start \
 
 **Session Flow:**
 ```
-👥 Refactoring Session: Modernizing UserService
+Refactoring Session: Modernizing UserService
 
 /analyze UserService.js
 > AI identifies:
@@ -794,12 +794,12 @@ claude-flow pair --start \
 # You refactor with AI guidance
 
 /test
-> All tests passing ✅
+> All tests passing
 
 /review --compare
 > AI shows before/after comparison
 > Code complexity: 35 → 12
-> Truth score: 0.99 ✅
+> Truth score: 0.99
 
 /commit --message "refactor: modernize UserService with async/await"
 ```
@@ -819,7 +819,7 @@ claude-flow pair --start \
 
 **Session Flow:**
 ```
-👥 Performance Optimization Session
+Performance Optimization Session
 
 /perf --profile
 > React DevTools Profiler Results:
@@ -837,14 +837,14 @@ claude-flow pair --start \
 # You implement with AI guidance
 
 /perf --profile
-> ProductList: 45ms render (90% improvement!) ✅
+> ProductList: 45ms render (90% improvement!)
 
 /implement virtualization with react-window
 > AI implements virtual scrolling
 
 /perf --profile
-> ProductList: 12ms render (97% improvement!) ✅
-> FPS: 60 stable ✅
+> ProductList: 12ms render (97% improvement!)
+> FPS: 60 stable
 
 /commit --message "perf: optimize ProductList with memoization and virtualization"
 ```
@@ -864,7 +864,7 @@ claude-flow pair --start \
 
 **Session Flow:**
 ```
-👥 API Development Session
+API Development Session
 
 /design REST API for blog platform
 > AI designs endpoints:
@@ -891,7 +891,7 @@ claude-flow pair --start \
 > AI generates OpenAPI documentation
 
 /test --integration
-> All endpoints tested: 15/15 ✅
+> All endpoints tested: 15/15
 ```
 
 ### Session Templates
@@ -938,7 +938,7 @@ claude-flow pair --status
 
 **Output:**
 ```
-👥 Pair Programming Session
+Pair Programming Session
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Session ID: pair_1755021234567
@@ -950,16 +950,16 @@ Current Role: DRIVER (you)
 Mode: Switch (10m intervals)
 Next Switch: in 3 minutes
 
-📊 Metrics:
-├── Truth Score: 0.982 ✅
+Metrics:
+├── Truth Score: 0.982
 ├── Lines Changed: 234
 ├── Files Modified: 5
 ├── Tests Added: 12
 ├── Coverage: 87% ↑3%
 └── Commits: 3
 
-🎯 Focus: Implementation
-📝 Current File: src/auth/login.js
+Focus: Implementation
+Current File: src/auth/login.js
 ```
 
 #### Session History
@@ -970,7 +970,7 @@ claude-flow pair --history
 
 **Output:**
 ```
-📚 Session History
+Session History
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 1. 2024-01-15 14:30 - 16:45 (2h 15m)
@@ -1140,26 +1140,26 @@ claude-flow pair --start --ide vscode
 
 #### Truth Score Thresholds
 ```
-Error:   < 0.90 ❌
+Error:   < 0.90
 Warning: 0.90 - 0.95 ⚠️
-Good:    0.95 - 0.98 ✅
-Excellent: > 0.98 🌟
+Good:    0.95 - 0.98
+Excellent: > 0.98
 ```
 
 #### Coverage Thresholds
 ```
-Error:   < 70% ❌
+Error:   < 70%
 Warning: 70% - 80% ⚠️
-Good:    80% - 90% ✅
-Excellent: > 90% 🌟
+Good:    80% - 90%
+Excellent: > 90%
 ```
 
 #### Complexity Thresholds
 ```
-Error:   > 15 ❌
+Error:   > 15
 Warning: 10 - 15 ⚠️
-Good:    5 - 10 ✅
-Excellent: < 5 🌟
+Good:    5 - 10
+Excellent: < 5
 ```
 
 ### Environment Variables

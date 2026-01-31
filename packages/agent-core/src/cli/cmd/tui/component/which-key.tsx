@@ -124,7 +124,7 @@ export function WhichKey() {
         <box
           backgroundColor={theme.backgroundPanel}
           border={["top", "bottom", "left", "right"]}
-          borderColor={theme.border}
+          borderColor={theme.primary}
           paddingLeft={1}
           paddingRight={1}
           paddingTop={0}

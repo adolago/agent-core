@@ -8,7 +8,7 @@ homepage: https://github.com/Hyaxia/local_places
 metadata: {"zee":{"emoji":"📍","requires":{"bins":["uv"],"env":["GOOGLE_PLACES_API_KEY"]},"primaryEnv":"GOOGLE_PLACES_API_KEY"}}
 ---
 
-# 📍 Local Places
+# Local Places
 
 *Find places, Go fast*
 

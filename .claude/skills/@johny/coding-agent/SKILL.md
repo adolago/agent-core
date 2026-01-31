@@ -36,7 +36,7 @@ process action:write sessionId:XXX data:"y"
 process action:kill sessionId:XXX
 ```
 
-**Why workdir matters:** Agent wakes up in a focused directory, doesn't wander off reading unrelated files (like your soul.md 😅).
+**Why workdir matters:** Agent wakes up in a focused directory, doesn't wander off reading unrelated files (like your soul.md).
 
 ---
 
@@ -180,7 +180,7 @@ tmux -S "$SOCKET" capture-pane -p -t fix-78 -S -30
 tmux -S "$SOCKET" capture-pane -p -t fix-99 -S -30
 
 # 6. Check if done (prompt returned)
-tmux -S "$SOCKET" capture-pane -p -t fix-78 -S -3 | grep -q "❯" && echo "Done!"
+tmux -S "$SOCKET" capture-pane -p -t fix-78 -S -3 | grep -q ">" && echo "Done!"
 
 # 7. Create PRs after fixes
 cd /tmp/issue-78 && git push -u origin fix/issue-78
@@ -198,7 +198,7 @@ git worktree remove /tmp/issue-99
 
 ---
 
-## ⚠️ Rules
+## Rules
 
 1. **Respect tool choice** — if user asks for Codex, use Codex. NEVER offer to build it yourself!
 2. **Be patient** — don't kill sessions because they're "slow"
@@ -265,7 +265,7 @@ command example
 - [Detail 2]
 
 ---
-*Submitted by Razor 🥷 - Mariano's AI agent*
+*Submitted by Razor - Mariano's AI agent*
 ````
 
 **Key principles:**

@@ -240,7 +240,7 @@ const result = await migrateToAgentDB(
   '.agentdb/reasoningbank.db'   // Destination (AgentDB)
 );
 
-console.log(`✅ Migrated ${result.patternsMigrated} patterns`);
+console.log(`Migrated ${result.patternsMigrated} patterns`);
 
 // Train learning model
 const adapter = await createAgentDBAdapter({

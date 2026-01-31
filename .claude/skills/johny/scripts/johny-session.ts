@@ -82,7 +82,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("🎓 JOHNY SESSION");
+    console.log("JOHNY SESSION");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;

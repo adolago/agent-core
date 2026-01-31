@@ -81,7 +81,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("📌 PORTFOLIO STATUS");
+    console.log("PORTFOLIO STATUS");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;
@@ -94,7 +94,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("📊 PORTFOLIO PERFORMANCE");
+    console.log("PORTFOLIO PERFORMANCE");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;
@@ -107,7 +107,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("⚠️  PORTFOLIO RISK");
+    console.log("PORTFOLIO RISK");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;

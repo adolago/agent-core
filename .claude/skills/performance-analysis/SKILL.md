@@ -102,32 +102,32 @@ npx claude-flow bottleneck detect --threshold 10 --export critical-issues.json
 
 #### Output Format
 ```
-🔍 Bottleneck Analysis Report
+Bottleneck Analysis Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 Summary
+Summary
 ├── Time Range: Last 1 hour
 ├── Agents Analyzed: 6
 ├── Tasks Processed: 42
 └── Critical Issues: 2
 
-🚨 Critical Bottlenecks
+Critical Bottlenecks
 1. Agent Communication (35% impact)
    └── coordinator → coder-1 messages delayed by 2.3s avg
 
 2. Memory Access (28% impact)
    └── Neural pattern loading taking 1.8s per access
 
-⚠️ Warning Bottlenecks
+Warning Bottlenecks
 1. Task Queue (18% impact)
    └── 5 tasks waiting > 10s for assignment
 
-💡 Recommendations
+Recommendations
 1. Switch to hierarchical topology (est. 40% improvement)
 2. Enable memory caching (est. 25% improvement)
 3. Increase agent concurrency to 8 (est. 20% improvement)
 
-✅ Quick Fixes Available
+Quick Fixes Available
 Run with --fix to apply:
 - Enable smart caching
 - Optimize message routing

@@ -170,7 +170,7 @@ Trigger alerts when:
 - 10% Correction: -$12,500
 
 **Alerts**
-⚠️ Technology exposure at 45% (limit: 40%)
-✓ VaR within limits
-✓ Drawdown acceptable
+Technology exposure at 45% (limit: 40%)
+VaR within limits
+Drawdown acceptable
 ```

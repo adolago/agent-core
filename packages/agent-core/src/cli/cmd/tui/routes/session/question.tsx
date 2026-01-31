@@ -1,7 +1,7 @@
 import { createStore } from "solid-js/store"
 import { createMemo, For, Show } from "solid-js"
-import { useKeyboard } from "@opentui/solid"
-import type { TextareaRenderable } from "@opentui/core"
+import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
+import { RGBA, type TextareaRenderable } from "@opentui/core"
 import { useKeybind } from "../../context/keybind"
 import { tint, useTheme, selectedForeground } from "../../context/theme"
 import type { QuestionRequest as SDKQuestionRequest } from "@opencode-ai/sdk/v2"
@@ -253,10 +253,12 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
     }
   })
 
+  const dimensions = useTerminalDimensions()
+
   return (
     <box
       backgroundColor={theme.backgroundPanel}
-      border={["left"]}
+      border={["left", "top"]}
       borderColor={theme.accent}
       customBorderChars={SplitBorder.customBorderChars}
     >

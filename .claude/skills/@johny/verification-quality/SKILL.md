@@ -94,34 +94,34 @@ npx claude-flow@alpha truth --export .claude-flow/metrics/truth-$(date +%Y%m%d).
 
 Example dashboard output:
 ```
-📊 Truth Metrics Dashboard
+Truth Metrics Dashboard
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Overall Truth Score: 0.947 ✅
+Overall Truth Score: 0.947
 Trend: ↗️ +2.3% (7d)
 
 Top Performers:
   verification-agent   0.982 ⭐
   code-analyzer       0.971 ⭐
-  test-generator      0.958 ✅
+  test-generator      0.958
 
 Needs Attention:
   refactor-agent      0.821 ⚠️
   docs-generator      0.794 ⚠️
 
 Recent Tasks:
-  task-456  0.991 ✅  "Implement auth"
-  task-455  0.967 ✅  "Add tests"
-  task-454  0.743 ❌  "Refactor API"
+  task-456  0.991  "Implement auth"
+  task-455  0.967  "Add tests"
+  task-454  0.743  "Refactor API"
 ```
 
 #### Metrics Explained
 
 **Truth Scores (0.0-1.0):**
 - `1.0-0.95`: Excellent ⭐ (production-ready)
-- `0.94-0.85`: Good ✅ (acceptable quality)
+- `0.94-0.85`: Good (acceptable quality)
 - `0.84-0.75`: Warning ⚠️ (needs attention)
-- `<0.75`: Critical ❌ (requires immediate action)
+- `<0.75`: Critical (requires immediate action)
 
 **Trend Indicators:**
 - ↗️ Improving (positive trend)
@@ -552,12 +552,12 @@ npx claude-flow@alpha verify check --threshold 0.95 --json > /tmp/verify.json
 
 score=$(jq '.overallScore' /tmp/verify.json)
 if (( $(echo "$score < 0.95" | bc -l) )); then
-  echo "❌ Verification failed with score: $score"
+  echo "Verification failed with score: $score"
   echo "Run 'npx claude-flow@alpha verify check --verbose' for details"
   exit 1
 fi
 
-echo "✅ Verification passed with score: $score"
+echo "Verification passed with score: $score"
 ```
 
 ### Performance Metrics

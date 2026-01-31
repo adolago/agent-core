@@ -1,7 +1,7 @@
 import { createStore } from "solid-js/store"
 import { createMemo, For, Match, Show, Switch } from "solid-js"
 import { Portal, useKeyboard, useRenderer, useTerminalDimensions, type JSX } from "@opentui/solid"
-import type { TextareaRenderable } from "@opentui/core"
+import { RGBA, type TextareaRenderable } from "@opentui/core"
 import { useKeybind } from "../../context/keybind"
 import { useTheme, selectedForeground } from "../../context/theme"
 import type { PermissionRequest } from "@opencode-ai/sdk/v2"
@@ -423,7 +423,7 @@ function Prompt<const T extends Record<string, string>>(props: {
   const content = () => (
     <box
       backgroundColor={theme.backgroundPanel}
-      border={["left"]}
+      border={store.expanded ? ["left", "right", "top", "bottom"] : ["left"]}
       borderColor={theme.warning}
       customBorderChars={SplitBorder.customBorderChars}
       {...(store.expanded
@@ -492,7 +492,21 @@ function Prompt<const T extends Record<string, string>>(props: {
   )
 
   return (
-    <Show when={!store.expanded} fallback={<Portal>{content()}</Portal>}>
+    <Show when={!store.expanded} fallback={
+      <Portal>
+        <box
+          position="absolute"
+          top={0}
+          left={0}
+          width={dimensions().width}
+          height={dimensions().height}
+          backgroundColor={RGBA.fromInts(0, 0, 0, 100)}
+          zIndex={100}
+        >
+          {content()}
+        </box>
+      </Portal>
+    }>
       {content()}
     </Show>
   )

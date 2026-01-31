@@ -13,13 +13,13 @@ description: Quantum-resistant, self-learning version control for AI agents with
 ## When to Use This Skill
 
 Use **agentic-jujutsu** when you need:
-- ✅ Multiple AI agents modifying code simultaneously
-- ✅ Lock-free version control (23x faster than Git)
-- ✅ Self-learning AI that improves from experience
-- ✅ Quantum-resistant security for future-proof protection
-- ✅ Automatic conflict resolution (87% success rate)
-- ✅ Pattern recognition and intelligent suggestions
-- ✅ Multi-agent coordination without blocking
+- Multiple AI agents modifying code simultaneously
+- Lock-free version control (23x faster than Git)
+- Self-learning AI that improves from experience
+- Quantum-resistant security for future-proof protection
+- Automatic conflict resolution (87% success rate)
+- Pattern recognition and intelligent suggestions
+- Multi-agent coordination without blocking
 
 ## Quick Start
 
@@ -82,10 +82,10 @@ console.log('Expected Success:', (suggestion.expectedSuccessRate * 100).toFixed(
 ```
 
 **Validation (v2.3.1)**:
-- ✅ Tasks must be non-empty (max 10KB)
-- ✅ Success scores must be 0.0-1.0
-- ✅ Must have operations before finalizing
-- ✅ Contexts cannot be empty
+- Tasks must be non-empty (max 10KB)
+- Success scores must be 0.0-1.0
+- Must have operations before finalizing
+- Contexts cannot be empty
 
 ### 2. Pattern Discovery
 
@@ -274,7 +274,7 @@ async function smartMerge(jj, branch) {
     const failures = similar.filter(t => t.successScore < 0.5);
     
     if (failures.length > 0) {
-        console.log('⚠️ Similar merges failed in the past:');
+        console.log('Similar merges failed in the past:');
         failures.forEach(f => {
             if (f.critique) {
                 console.log(`  - ${f.critique}`);
@@ -286,7 +286,7 @@ async function smartMerge(jj, branch) {
     const suggestion = JSON.parse(jj.getSuggestion(`merge ${branch}`));
     
     if (suggestion.confidence < 0.7) {
-        console.log('⚠️ Low confidence. Recommended steps:');
+        console.log('Low confidence. Recommended steps:');
         suggestion.recommendedOperations.forEach(op => console.log(`  - ${op}`));
     }
     
@@ -432,23 +432,23 @@ for (let i = 1; i <= 10; i++) {
 ### 1. Trajectory Management
 
 ```javascript
-// ✅ Good: Meaningful task descriptions
+// Good: Meaningful task descriptions
 jj.startTrajectory('Implement user authentication with JWT');
 
-// ❌ Bad: Vague descriptions
+// Bad: Vague descriptions
 jj.startTrajectory('fix stuff');
 
-// ✅ Good: Honest success scores
+// Good: Honest success scores
 jj.finalizeTrajectory(0.7, 'Works but needs refactoring');
 
-// ❌ Bad: Always 1.0
+// Bad: Always 1.0
 jj.finalizeTrajectory(1.0, 'Perfect!'); // Prevents learning
 ```
 
 ### 2. Pattern Recognition
 
 ```javascript
-// ✅ Good: Let patterns emerge naturally
+// Good: Let patterns emerge naturally
 for (let i = 0; i < 10; i++) {
     jj.startTrajectory('Deploy feature');
     await deploy();
@@ -456,14 +456,14 @@ for (let i = 0; i < 10; i++) {
     jj.finalizeTrajectory(wasSuccessful ? 0.9 : 0.5);
 }
 
-// ❌ Bad: Not recording outcomes
+// Bad: Not recording outcomes
 await deploy(); // No learning
 ```
 
 ### 3. Multi-Agent Coordination
 
 ```javascript
-// ✅ Good: Concurrent operations
+// Good: Concurrent operations
 const agents = ['agent1', 'agent2', 'agent3'];
 await Promise.all(agents.map(async (agent) => {
     const jj = new JjWrapper();
@@ -471,7 +471,7 @@ await Promise.all(agents.map(async (agent) => {
     await jj.newCommit(`Changes by ${agent}`);
 }));
 
-// ❌ Bad: Sequential with locks
+// Bad: Sequential with locks
 for (const agent of agents) {
     await agent.waitForLock(); // Not needed!
     await agent.commit();
@@ -481,7 +481,7 @@ for (const agent of agents) {
 ### 4. Error Handling
 
 ```javascript
-// ✅ Good: Record failures with details
+// Good: Record failures with details
 try {
     await jj.execute(['complex-operation']);
     jj.finalizeTrajectory(0.9);
@@ -489,7 +489,7 @@ try {
     jj.finalizeTrajectory(0.3, `Failed: ${err.message}. Root cause: ...`);
 }
 
-// ❌ Bad: Silent failures
+// Bad: Silent failures
 try {
     await jj.execute(['operation']);
 } catch (err) {
@@ -500,21 +500,21 @@ try {
 ## Validation Rules (v2.3.1+)
 
 ### Task Description
-- ✅ Cannot be empty or whitespace-only
-- ✅ Maximum length: 10,000 bytes
-- ✅ Automatically trimmed
+- Cannot be empty or whitespace-only
+- Maximum length: 10,000 bytes
+- Automatically trimmed
 
 ### Success Score
-- ✅ Must be finite (not NaN or Infinity)
-- ✅ Must be between 0.0 and 1.0 (inclusive)
+- Must be finite (not NaN or Infinity)
+- Must be between 0.0 and 1.0 (inclusive)
 
 ### Operations
-- ✅ Must have at least one operation before finalizing
+- Must have at least one operation before finalizing
 
 ### Context
-- ✅ Cannot be empty
-- ✅ Keys cannot be empty or whitespace-only
-- ✅ Keys max 1,000 bytes, values max 10,000 bytes
+- Cannot be empty
+- Keys cannot be empty or whitespace-only
+- Keys max 1,000 bytes, values max 10,000 bytes
 
 ## Troubleshooting
 
@@ -642,6 +642,6 @@ async function agentSwarm(taskList) {
 
 ---
 
-**Status**: ✅ Production Ready
+**Status**: Production Ready
 **License**: MIT
 **Maintained**: Active

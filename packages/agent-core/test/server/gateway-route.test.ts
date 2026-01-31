@@ -81,7 +81,7 @@ describe("gateway routes", () => {
     expect(data.success).toBe(true)
 
     expect(lastSendParams).not.toBeNull()
-    expect(lastSendParams!.provider).toBe("whatsapp")
+    expect(lastSendParams!.channel).toBe("whatsapp")
     expect(lastSendParams!.message).toBe("Hello")
     expect(lastSendParams!.to).toBe("15551234567")
   })
@@ -99,7 +99,7 @@ describe("gateway routes", () => {
     expect(data.success).toBe(true)
 
     expect(lastSendParams).not.toBeNull()
-    expect(lastSendParams!.provider).toBe("telegram")
+    expect(lastSendParams!.channel).toBe("telegram")
     expect(lastSendParams!.accountId).toBe("johny")
     expect(lastSendParams!.message).toBe("Hi")
     expect(lastSendParams!.to).toBe("123456789")

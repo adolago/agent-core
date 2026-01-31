@@ -172,9 +172,9 @@ Voice output follows the same session as text:
 
 ```
 User (TUI):      "What's the weather?"
-Agent (Voice):   🔊 "It's 72°F and sunny in San Francisco"
+Agent (Voice):   "It's 72°F and sunny in San Francisco"
 User (WhatsApp): [Voice: "Add reminder for umbrella"]
-Agent (Voice):   🔊 Sent as voice note to WhatsApp
+Agent (Voice):   Sent as voice note to WhatsApp
 ```
 
 ## Integration Points

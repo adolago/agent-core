@@ -204,10 +204,10 @@ claude mcp add agentdb npx agentdb@latest mcp
 npx agentdb@latest benchmark
 
 # Results:
-# ✅ Pattern Search: 150x faster (100µs vs 15ms)
-# ✅ Batch Insert: 500x faster (2ms vs 1s for 100 vectors)
-# ✅ Large-scale Query: 12,500x faster (8ms vs 100s at 1M vectors)
-# ✅ Memory Efficiency: 4-32x reduction with quantization
+# Pattern Search: 150x faster (100µs vs 15ms)
+# Batch Insert: 500x faster (2ms vs 1s for 100 vectors)
+# Large-scale Query: 12,500x faster (8ms vs 100s at 1M vectors)
+# Memory Efficiency: 4-32x reduction with quantization
 ```
 
 ## Quantization Options

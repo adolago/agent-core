@@ -98,7 +98,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("💼 PAPER TRADE");
+    console.log("PAPER TRADE");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;
@@ -111,7 +111,7 @@ switch (command) {
       break;
     }
     console.log("\n" + "═".repeat(50));
-    console.log("📚 STRATEGY INFO");
+    console.log("STRATEGY INFO");
     console.log("═".repeat(50));
     renderJson(result.data);
     break;

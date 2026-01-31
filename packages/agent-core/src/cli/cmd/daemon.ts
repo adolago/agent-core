@@ -13,15 +13,20 @@ import { WeztermOrchestration } from "../../orchestration/wezterm"
 import { initPersonas } from "../../bootstrap/personas"
 import { CircuitBreaker } from "../../provider/circuit-breaker"
 import * as UsageTracker from "../../usage/tracker"
-import { execSync, spawn, spawnSync, type ChildProcess } from "child_process"
+import { execSync } from "child_process"
 import fs from "fs/promises"
-import fsSync from "fs"
 import path from "path"
 import net from "net"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
-import { Zee } from "../../paths"
 import { createAuthorizedFetch } from "../../server/auth"
+import {
+  getEmbeddedGatewayState,
+  readEmbeddedGatewayConfigSnapshot,
+  resolveEmbeddedGatewayPort,
+  startEmbeddedGateway,
+  stopEmbeddedGateway,
+} from "../../gateway/embedded-gateway"
 
 const log = Log.create({ service: "daemon" })
 
@@ -256,11 +261,9 @@ export namespace Daemon {
 }
 
 /**
- * Gateway supervisor - manages zee gateway as a child process
+ * Gateway supervisor - manages embedded Zee gateway runtime
  */
 export namespace GatewaySupervisor {
-  const ZEE_GATEWAY_DIR = Zee.repo()
-  const ZEE_CONFIG_FILES = ["zee.json", "zee.jsonc"]
   const GATEWAY_ENV_HINTS = [
     "ZEE_GATEWAY_TOKEN",
     "ZEE_GATEWAY_PASSWORD",
@@ -270,7 +273,6 @@ export namespace GatewaySupervisor {
     "TELEGRAM_API_HASH",
   ]
 
-  let gatewayProcess: ChildProcess | null = null
   let startInFlight = false
   let isShuttingDown = false
   let gatewayEnabled = false
@@ -289,10 +291,9 @@ export namespace GatewaySupervisor {
     issues: string[]
     warnings: string[]
     configPath?: string
+    configExists: boolean
+    configValid: boolean
     envHints: string[]
-    repoExists: boolean
-    packageJsonExists: boolean
-    pnpmAvailable: boolean
   }
 
   export interface GatewayState {
@@ -306,41 +307,6 @@ export namespace GatewaySupervisor {
     daemonUrl?: string
   }
 
-  let resolvedPnpmPath: string | undefined
-
-  function resolvePnpmPath(): string | undefined {
-    const envPath = process.env.PNPM_BIN?.trim()
-    if (envPath) return envPath
-
-    const home = process.env.HOME ?? ""
-    const candidates = [
-      "pnpm",
-      home ? path.join(home, ".local", "bin", "pnpm") : undefined,
-    ].filter(Boolean) as string[]
-
-    for (const candidate of candidates) {
-      if (candidate !== "pnpm" && fsSync.existsSync(candidate)) {
-        return candidate
-      }
-      try {
-        const result = spawnSync(candidate, ["--version"], { stdio: "ignore" })
-        if (result.status === 0) return candidate
-      } catch {
-        continue
-      }
-    }
-    return undefined
-  }
-
-  function hasPnpm(): boolean {
-    try {
-      resolvedPnpmPath = resolvePnpmPath()
-      return Boolean(resolvedPnpmPath)
-    } catch {
-      resolvedPnpmPath = undefined
-      return false
-    }
-  }
 
   function getEnvHints(): string[] {
     const hints: string[] = []
@@ -350,66 +316,51 @@ export namespace GatewaySupervisor {
     return hints
   }
 
-  async function findZeeConfig(): Promise<string | undefined> {
-    for (const file of ZEE_CONFIG_FILES) {
-      const candidate = path.join(Zee.dataDir(), file)
-      try {
-        await fs.access(candidate)
-        return candidate
-      } catch {
-        // Ignore missing config path
-      }
-    }
-    return undefined
-  }
 
   async function runPreflight(options: { force: boolean; checkPort: boolean }): Promise<GatewayPreflight> {
     const issues: string[] = []
     const warnings: string[] = []
+    const blockingWarnings: string[] = []
+    let configPath: string | undefined
+    let configExists = false
+    let configValid = false
 
-    let repoExists = true
     try {
-      await fs.access(ZEE_GATEWAY_DIR)
-    } catch {
-      repoExists = false
-      issues.push(`Zee gateway directory not found (${ZEE_GATEWAY_DIR})`)
-    }
-
-    let packageJsonExists = true
-    if (repoExists) {
-      try {
-        await fs.access(path.join(ZEE_GATEWAY_DIR, "package.json"))
-      } catch {
-        packageJsonExists = false
-        issues.push(`Zee gateway package.json not found (${ZEE_GATEWAY_DIR})`)
+      const snapshot = await readEmbeddedGatewayConfigSnapshot()
+      configPath = snapshot.path
+      configExists = snapshot.exists
+      configValid = snapshot.valid
+      if (!snapshot.valid) {
+        for (const issue of snapshot.issues) {
+          const location = issue.path?.trim() ? issue.path : "<root>"
+          issues.push(`Config ${location}: ${issue.message}`)
+        }
+      } else if (snapshot.warnings.length > 0) {
+        for (const warning of snapshot.warnings) {
+          const location = warning.path?.trim() ? warning.path : "<root>"
+          warnings.push(`Config ${location}: ${warning.message}`)
+        }
       }
-    } else {
-      packageJsonExists = false
-    }
-
-    // Check that the gateway entry point exists
-    let entryExists = false
-    if (repoExists) {
-      try {
-        await fs.access(path.join(ZEE_GATEWAY_DIR, "dist", "entry.js"))
-        entryExists = true
-      } catch {
-        issues.push(`Zee gateway dist/entry.js not found (run: cd ${ZEE_GATEWAY_DIR} && pnpm build)`)
+      if (snapshot.legacyIssues.length > 0) {
+        warnings.push("Legacy config entries detected (run \"zee doctor\")")
       }
+    } catch (error) {
+      issues.push(`Failed to read Zee config: ${String(error)}`)
     }
-    const pnpmAvailable = entryExists // Keep interface compat
 
-    const configPath = await findZeeConfig()
     const envHints = getEnvHints()
-    const configured = Boolean(configPath || envHints.length)
+    const configured = Boolean(configExists || envHints.length)
     if (!configured) {
-      warnings.push("Zee gateway not configured (no config in ~/.zee/zee.json* or provider env vars)")
+      const warning = "Zee gateway not configured (no config in ~/.zee/zee.json* or provider env vars)"
+      warnings.push(warning)
+      blockingWarnings.push(warning)
     }
 
     if (options.checkPort) {
       const gatewayPort = getGatewayPort()
       const portOpen = await isPortOpen("127.0.0.1", gatewayPort)
-      if (portOpen) {
+      const embeddedState = getEmbeddedGatewayState()
+      if (portOpen && !embeddedState.running) {
         const processes = listGatewayProcesses()
         if (processes.length > 0) {
           issues.push(`Existing Zee gateway process detected on port ${gatewayPort}`)
@@ -419,16 +370,15 @@ export namespace GatewaySupervisor {
       }
     }
 
-    const ok = issues.length === 0 && (warnings.length === 0 || options.force)
+    const ok = issues.length === 0 && (blockingWarnings.length === 0 || options.force)
     return {
       ok,
       issues,
       warnings,
       configPath,
+      configExists,
+      configValid,
       envHints,
-      repoExists,
-      packageJsonExists,
-      pnpmAvailable,
     }
   }
 
@@ -448,7 +398,7 @@ export namespace GatewaySupervisor {
 
     retryTimer = setTimeout(async () => {
       retryTimer = undefined
-      if (isShuttingDown || !gatewayEnabled || gatewayProcess) return
+      if (isShuttingDown || !gatewayEnabled || getEmbeddedGatewayState().running) return
       await start({ force: forceStart, daemonUrl: gatewayDaemonUrl })
     }, delay)
   }
@@ -463,9 +413,10 @@ export namespace GatewaySupervisor {
   }
 
   export function getState(): GatewayState {
+    const embeddedState = getEmbeddedGatewayState()
     return {
-      running: gatewayProcess !== null && !gatewayProcess.killed,
-      pid: gatewayProcess?.pid,
+      running: embeddedState.running,
+      pid: embeddedState.pid,
       error: lastError,
       enabled: gatewayEnabled,
       lastExit,
@@ -476,7 +427,7 @@ export namespace GatewaySupervisor {
   }
   export async function start(options: { force?: boolean; daemonUrl?: string } = {}): Promise<boolean> {
     if (isShuttingDown) return false
-    if (gatewayProcess) {
+    if (getEmbeddedGatewayState().running) {
       return true
     }
     if (startInFlight) return false
@@ -504,68 +455,14 @@ export namespace GatewaySupervisor {
     if (preflight.warnings.length > 0) {
       log.warn("zee gateway preflight warnings", { warnings: preflight.warnings })
     }
-
-    log.info("starting zee gateway", { dir: ZEE_GATEWAY_DIR })
+    log.info("starting embedded zee gateway")
 
     try {
-      // Use node to run the built gateway directly
-      const entryPath = path.join(ZEE_GATEWAY_DIR, "dist", "entry.js")
-      gatewayProcess = spawn("node", [entryPath, "gateway"], {
-        cwd: ZEE_GATEWAY_DIR,
-        stdio: ["ignore", "pipe", "pipe"],
-        detached: false,
-        env: {
-          ...process.env,
-          // Ensure gateway connects back to this daemon
-          AGENT_CORE_URL:
-            gatewayDaemonUrl ??
-            process.env.AGENT_CORE_URL ??
-            `http://127.0.0.1:${process.env.PORT || 3210}`,
-        },
-      })
-
-      gatewayEnabled = true
+      const gatewayPort = getGatewayPort()
+      await startEmbeddedGateway({ port: gatewayPort, daemonUrl: gatewayDaemonUrl })
       lastExit = undefined
       retryCount = 0
-
-      gatewayProcess.stdout?.on("data", (data: Buffer) => {
-        const lines = data.toString().trim().split("\n")
-        for (const line of lines) {
-          if (line.trim()) {
-            log.info("[zee-gateway]", { message: line })
-          }
-        }
-      })
-
-      gatewayProcess.stderr?.on("data", (data: Buffer) => {
-        const lines = data.toString().trim().split("\n")
-        for (const line of lines) {
-          if (line.trim()) {
-            log.warn("[zee-gateway]", { message: line })
-          }
-        }
-      })
-
-      gatewayProcess.on("exit", (code, signal) => {
-        const pid = gatewayProcess?.pid
-        gatewayProcess = null
-        lastExit = { code, signal }
-
-        if (isShuttingDown) {
-          log.info("zee gateway stopped during shutdown", { pid, code, signal })
-          return
-        }
-
-        log.warn("zee gateway exited", { pid, code, signal })
-        lastError = `zee gateway exited (code: ${code ?? "unknown"}, signal: ${signal ?? "unknown"})`
-      })
-
-      gatewayProcess.on("error", (err) => {
-        log.error("zee gateway process error", { error: err.message })
-        lastError = err.message
-      })
-
-      log.info("zee gateway started", { pid: gatewayProcess.pid })
+      log.info("embedded zee gateway started", { port: gatewayPort })
       return true
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error)
@@ -582,29 +479,7 @@ export namespace GatewaySupervisor {
     gatewayEnabled = false
     forceStart = false
     clearRetryTimer()
-
-    if (!gatewayProcess) return
-
-    const pid = gatewayProcess.pid
-    log.info("stopping zee gateway", { pid })
-
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        if (gatewayProcess && !gatewayProcess.killed) {
-          log.warn("zee gateway did not stop gracefully, sending SIGKILL", { pid })
-          gatewayProcess.kill("SIGKILL")
-        }
-        resolve()
-      }, 5000)
-
-      gatewayProcess!.once("exit", () => {
-        clearTimeout(timeout)
-        log.info("zee gateway stopped", { pid })
-        resolve()
-      })
-
-      gatewayProcess!.kill("SIGTERM")
-    })
+    await stopEmbeddedGateway({ reason: "gateway stopping" })
   }
 
   export function isEnabled(): boolean {
@@ -633,8 +508,7 @@ async function isPortOpen(host: string, port: number): Promise<boolean> {
 }
 
 function getGatewayPort(): number {
-  const portRaw = Number.parseInt(process.env.ZEE_GATEWAY_PORT ?? "", 10)
-  return Number.isFinite(portRaw) ? portRaw : 18789
+  return resolveEmbeddedGatewayPort()
 }
 
 function listGatewayProcesses(): Array<{ pid: number; cmd: string }> {
@@ -1114,7 +988,7 @@ export const DaemonCommand = cmd({
     const weztermStatus = weztermEnabled ? "Active (status pane)" : args.wezterm ? "No display" : "Disabled"
     const gatewayState = GatewaySupervisor.getState()
     const gatewayStatus = gatewayStarted
-      ? `Active (PID: ${gatewayState.pid})`
+      ? `Active (embedded${gatewayState.pid ? `, PID: ${gatewayState.pid}` : ""})`
       : args.gateway
         ? `Disabled (${gatewayState.error ?? "not configured"})`
         : "Disabled"
@@ -1263,28 +1137,35 @@ export const GatewayStatusCommand = cmd({
   describe: "Check Zee gateway configuration and reachability",
   handler: async () => {
     const preflight = await GatewaySupervisor.preflight({ force: true })
-    const zeeDir = Zee.repo()
     const port = getGatewayPort()
     const portOpen = await isPortOpen("127.0.0.1", port)
     const processes = listGatewayProcesses()
     const gatewayState = GatewaySupervisor.getState()
+    const embeddedState = getEmbeddedGatewayState()
+    const configLabel = preflight.configExists
+      ? preflight.configPath ?? "Configured"
+      : preflight.configPath
+        ? `Not found (${preflight.configPath})`
+        : "Not found"
 
     console.log("Zee Gateway Status")
-    console.log(`  Repo:      ${preflight.repoExists ? zeeDir : `Missing (${zeeDir})`}`)
-    console.log(`  Config:    ${preflight.configPath ?? "Not found"}`)
-    console.log(`  pnpm:      ${preflight.pnpmAvailable ? "Found" : "Missing"}`)
+    console.log(`  Mode:      embedded`)
+    console.log(`  Config:    ${configLabel}`)
     console.log(`  Port:      ${port} (${portOpen ? "listening" : "closed"})`)
     console.log(`  Daemon:    ${gatewayState.daemonUrl ?? "unknown"}`)
     console.log(`  Enabled:   ${gatewayState.enabled ? "yes" : "no"}`)
+    console.log(
+      `  Process:   ${embeddedState.running ? `embedded (pid ${embeddedState.pid ?? process.pid})` : "none"}`,
+    )
     console.log(`  Env:       ${preflight.envHints.length ? preflight.envHints.join(", ") : "none"}`)
 
     if (processes.length > 0) {
-      console.log("  Processes:")
+      console.log("  External:")
       for (const proc of processes) {
         console.log(`    ${proc.pid} ${proc.cmd}`)
       }
     } else {
-      console.log("  Processes: none")
+      console.log("  External:  none")
     }
 
     const issues = [...preflight.issues, ...preflight.warnings]

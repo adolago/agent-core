@@ -78,7 +78,7 @@ function printError(message: string) {
 
 async function getQuotes(symbols: string[]) {
   console.log("\n" + "═".repeat(50));
-  console.log("📈 MARKET QUOTES");
+  console.log("MARKET QUOTES");
   console.log("═".repeat(50));
 
   const result = runStanleyCli(["market", "quote", ...symbols]);
@@ -105,7 +105,7 @@ async function getQuotes(symbols: string[]) {
 
 async function getChart(symbol: string, period?: string, indicators?: string) {
   console.log("\n" + "═".repeat(50));
-  console.log(`📊 ${symbol} CHART`);
+  console.log(`${symbol} CHART`);
   console.log("═".repeat(50));
 
   console.log(`\nPeriod: ${period || "6mo"}`);
@@ -128,7 +128,7 @@ async function getChart(symbol: string, period?: string, indicators?: string) {
 
 async function getFundamentals(symbol: string, metrics?: string) {
   console.log("\n" + "═".repeat(50));
-  console.log(`📋 ${symbol} FUNDAMENTALS`);
+  console.log(`${symbol} FUNDAMENTALS`);
   console.log("═".repeat(50));
 
   console.log(`\nRequested metrics: ${metrics || "all"}`);
@@ -159,7 +159,7 @@ async function getFundamentals(symbol: string, metrics?: string) {
 
 async function getNews(symbol: string, limit?: number) {
   console.log("\n" + "═".repeat(50));
-  console.log(`📰 ${symbol} NEWS`);
+  console.log(`${symbol} NEWS`);
   console.log("═".repeat(50));
 
   console.log(`\nLimit: ${limit || 10} articles`);
@@ -176,7 +176,7 @@ async function getNews(symbol: string, limit?: number) {
 
 async function screenStocks(criteria?: string) {
   console.log("\n" + "═".repeat(50));
-  console.log("🔍 STOCK SCREENER");
+  console.log("STOCK SCREENER");
   console.log("═".repeat(50));
 
   console.log(`\nCriteria: ${criteria || "none specified"}`);
