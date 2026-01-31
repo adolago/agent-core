@@ -1418,45 +1418,17 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Zee messages box - persistent across persona changes */}
-        <box
-          border={["top", "left", "right"]}
-          borderColor={theme.border}
-        >
-          {/* Header: reminders left, persona + agent count right */}
-          <box
-            flexDirection="row"
-            justifyContent="flex-end"
-            paddingLeft={1}
-            paddingRight={1}
-          >
-            <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
-            <text fg={theme.textMuted}>—{sync.data.agent?.length ?? 0} agents</text>
-          </box>
-          {/* Zee reminders based on time/agenda */}
-          <box paddingLeft={1} paddingRight={1} height={1}>
-            {(() => {
-              const [reminder, setReminder] = createSignal("")
-              onMount(() => {
-                const update = () => {
-                  const hour = new Date().getHours()
-                  if (hour < 9) setReminder("Good morning. Check your calendar for today.")
-                  else if (hour < 12) setReminder("Focus time. Review pending tasks.")
-                  else if (hour < 14) setReminder("Lunch break reminder.")
-                  else if (hour < 17) setReminder("Afternoon focus. Keep momentum.")
-                  else if (hour < 20) setReminder("Evening. Wrap up and plan tomorrow.")
-                  else setReminder("Rest well. Tomorrow awaits.")
-                }
-                update()
-                const timer = setInterval(update, 60000)
-                onCleanup(() => clearInterval(timer))
-              })
-              return <text fg={theme.textMuted}>{reminder()}</text>
-            })()}
-          </box>
-        </box>
-        {/* Horizontal separator with repo/branch + file changes */}
+        {/* Persona + agent count line with dashes on both sides (like Amp) */}
         <box height={1} flexDirection="row" justifyContent="flex-end">
+          <text fg={theme.border}>{"─".repeat(500)}</text>
+          <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
+          <text fg={theme.border}>─</text>
+          <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} agents</text>
+          <text fg={theme.border}>─</text>
+        </box>
+        {/* Horizontal separator with repo/branch */}
+        <box height={1} flexDirection="row" justifyContent="flex-end">
+          <text fg={theme.border}>{"─".repeat(500)}</text>
           <text fg={theme.textMuted}>
             <Show when={sync.data.path?.directory}>
               {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
@@ -1465,11 +1437,12 @@ export function Prompt(props: PromptProps) {
               {` (${sync.data.vcs?.branch})`}
             </Show>
           </text>
-          <text fg={theme.border}>{"─".repeat(500)}</text>
+          <text fg={theme.border}>─</text>
         </box>
+        {/* File changes line */}
         <Show when={diffStats()}>
           {(stats) => (
-            <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={1}>
+            <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={2}>
               <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
               <Show when={stats().additions > 0}>
                 <text fg={theme.success}>+{stats().additions} </text>
