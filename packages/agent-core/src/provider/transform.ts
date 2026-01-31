@@ -285,7 +285,10 @@ export namespace ProviderTransform {
     if (id.includes("glm-4.7")) return 1.0
     if (id.includes("minimax-m2")) return 1.0
     if (id.includes("kimi-k2")) {
-      if (id.includes("thinking")) return 1.0
+      // kimi-k2-thinking & kimi-k2.5 && kimi-k2p5
+      if (id.includes("thinking") || id.includes("k2.") || id.includes("k2p")) {
+        return 1.0
+      }
       return 0.6
     }
     return undefined
@@ -300,6 +303,7 @@ export namespace ProviderTransform {
     if (id.includes("minimax-m2")) {
       return 0.95
     }
+    if (id.includes("kimi-k2.5") || id.includes("kimi-k2p5")) return 0.95
     if (id.includes("gemini")) return 0.95
     return undefined
   }
