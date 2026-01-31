@@ -196,10 +196,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         sessionID: string | null
         // Fallback toggle state (per agent, session-scoped)
         useFallback: Record<string, boolean>
-        recent: {
-          providerID: string
-          modelID: string
-        }[]
         favorite: {
           providerID: string
           modelID: string
@@ -210,7 +206,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         sessionModel: {},
         sessionID: null,
         useFallback: {},
-        recent: [],
         favorite: [],
         variant: {},
       })
@@ -226,11 +221,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           return
         }
         state.pending = false
-        // Only persist recent, favorite, variant - NOT session model
+        // Only persist favorite, variant - NOT session model
         Bun.write(
           file,
           JSON.stringify({
-            recent: modelStore.recent,
             favorite: modelStore.favorite,
             variant: modelStore.variant,
           }),
@@ -240,7 +234,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       file
         .json()
         .then((x) => {
-          if (Array.isArray(x.recent)) setModelStore("recent", x.recent)
           if (Array.isArray(x.favorite)) setModelStore("favorite", x.favorite)
           if (typeof x.variant === "object" && x.variant !== null) setModelStore("variant", x.variant)
         })
@@ -273,12 +266,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
               providerID,
               modelID,
             }
-          }
-        }
-
-        for (const item of modelStore.recent) {
-          if (isModelValid(item)) {
-            return item
           }
         }
 
@@ -324,9 +311,6 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         current: currentModel,
         get ready() {
           return modelStore.ready
-        },
-        recent() {
-          return modelStore.recent
         },
         favorite() {
           return modelStore.favorite
@@ -383,41 +367,17 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             reasoning: info?.capabilities?.reasoning ?? false,
           }
         }),
-        cycle(direction: 1 | -1) {
-          const current = currentModel()
-          if (!current) return
-          const recent = modelStore.recent
-          const index = recent.findIndex((x) => x.providerID === current.providerID && x.modelID === current.modelID)
-          if (index === -1) return
-          let next = index + direction
-          if (next < 0) next = recent.length - 1
-          if (next >= recent.length) next = 0
-          const val = recent[next]
-          if (!val) return
-          setModelStore("sessionModel", agent.current().name, { ...val })
-        },
-        set(model: { providerID: string; modelID: string }, options?: { recent?: boolean }) {
-          batch(() => {
-            if (!isModelValid(model)) {
-              toast.show({
-                message: `Model ${model.providerID}/${model.modelID} is not valid`,
-                variant: "warning",
-                duration: 3000,
-              })
-              return
-            }
-            // Store in session-scoped model (not persisted)
-            setModelStore("sessionModel", agent.current().name, model)
-            if (options?.recent) {
-              const uniq = uniqueBy([model, ...modelStore.recent], (x) => `${x.providerID}/${x.modelID}`)
-              if (uniq.length > 10) uniq.pop()
-              setModelStore(
-                "recent",
-                uniq.map((x) => ({ providerID: x.providerID, modelID: x.modelID })),
-              )
-              save() // Only save recent list, not the session model
-            }
-          })
+        set(model: { providerID: string; modelID: string }) {
+          if (!isModelValid(model)) {
+            toast.show({
+              message: `Model ${model.providerID}/${model.modelID} is not valid`,
+              variant: "warning",
+              duration: 3000,
+            })
+            return
+          }
+          // Store in session-scoped model (not persisted)
+          setModelStore("sessionModel", agent.current().name, model)
         },
         variant: {
           current() {

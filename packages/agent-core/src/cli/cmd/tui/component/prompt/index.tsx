@@ -1427,36 +1427,35 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Tips box (Amp-style ad box) */}
-        <Tips />
-        
-        {/* Shared border: Tips bottom + Input top (Amp style) */}
-        <box height={1} flexDirection="row">
-          <text fg={theme.border} flexShrink={0}>╰</text>
-          <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
-          <text fg={highlight()} flexShrink={0}>{Locale.titlecase(local.agent.current().name)}</text>
-          <text fg={theme.border} flexShrink={0}>─</text>
-          <text fg={theme.textMuted} flexShrink={0}>{sync.data.agent?.length ?? 0} skills</text>
-          <Show when={vim.enabled && store.mode !== "shell"}>
+        {/* Tips box with shared middle border (T-junctions) */}
+        <Tips bottomBorder={
+          <box height={1} flexDirection="row">
+            <text fg={theme.border} flexShrink={0}>├</text>
+            <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
+            <text fg={highlight()} flexShrink={0}>{Locale.titlecase(local.agent.current().name)}</text>
             <text fg={theme.border} flexShrink={0}>─</text>
-            <text
-              fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
-              attributes={TextAttributes.BOLD}
-              flexShrink={0}
-            >
-              {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
-            </text>
-          </Show>
-          <text fg={theme.border} flexShrink={0}>─╯</text>
-        </box>
+            <text fg={theme.textMuted} flexShrink={0}>{sync.data.agent?.length ?? 0} skills</text>
+            <Show when={vim.enabled && store.mode !== "shell"}>
+              <text fg={theme.border} flexShrink={0}>─</text>
+              <text
+                fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
+                attributes={TextAttributes.BOLD}
+                flexShrink={0}
+              >
+                {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
+              </text>
+            </Show>
+            <text fg={theme.border} flexShrink={0}>─┤</text>
+          </box>
+        } />
         
-        {/* Input row (no side borders - Amp style) */}
+        {/* Input row with side borders (stacked box style) */}
         <box flexDirection="row">
+          <text fg={theme.border} flexShrink={0}>│ </text>
           <box
-            paddingLeft={1}
-            paddingRight={1}
-            flexShrink={0}
+            flexShrink={1}
             flexGrow={1}
+            overflow="hidden"
           >
             <textarea
               placeholder={null}
@@ -1760,11 +1759,14 @@ export function Prompt(props: PromptProps) {
               syntaxStyle={syntax()}
             />
           </box>
+          <text fg={theme.border} flexShrink={0}> │</text>
         </box>
-        {/* Diff stats line (Amp style - below box, right-aligned) */}
+        {/* Diff stats line inside box */}
         <Show when={diffStats()}>
           {(stats) => (
-            <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={2}>
+            <box height={1} flexDirection="row">
+              <text fg={theme.border} flexShrink={0}>│</text>
+              <box flexGrow={1} flexDirection="row" justifyContent="flex-end" paddingRight={1}>
               <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
               <Show when={stats().additions > 0}>
                 <text fg={theme.success}>+{stats().additions}</text>
@@ -1781,12 +1783,15 @@ export function Prompt(props: PromptProps) {
               <Show when={stats().deletions > 0}>
                 <text fg={theme.error}>-{stats().deletions}</text>
               </Show>
+              </box>
+              <text fg={theme.border} flexShrink={0}>│</text>
             </box>
           )}
         </Show>
-        {/* Bottom line: vim hints on left, model+path on right (Amp style) */}
+        {/* Bottom border with embedded status info */}
         <box height={1} flexDirection="row">
-          {/* Left: spinner + vim hints */}
+          <text fg={theme.border} flexShrink={0}>╰</text>
+          {/* Left: spinner only */}
           <Show
             when={status().type === "busy"}
             fallback={<text fg={highlight()}>~</text>}
@@ -1796,15 +1801,6 @@ export function Prompt(props: PromptProps) {
               frames={spinnerDef().frames}
               interval={60}
             />
-          </Show>
-          <text> </text>
-          <Show when={vim.enabled && store.mode !== "shell" && status().type === "idle"}>
-            <Show when={vim.isNormal}>
-              <text fg={theme.textMuted}>i:insert Space:leader</text>
-            </Show>
-            <Show when={vim.isVisual}>
-              <text fg={theme.textMuted}>v:normal esc:normal</text>
-            </Show>
           </Show>
           <Show when={status().type === "busy"}>
             <text fg={theme.textMuted}> Esc to cancel</text>
@@ -1832,7 +1828,7 @@ export function Prompt(props: PromptProps) {
               {` (${sync.data.vcs?.branch})`}
             </Show>
           </text>
-          <text fg={theme.border} flexShrink={0}>─</text>
+          <text fg={theme.border} flexShrink={0}>─╯</text>
         </box>
       </box>
     </>

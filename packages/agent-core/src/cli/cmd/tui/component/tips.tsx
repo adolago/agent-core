@@ -1,5 +1,6 @@
-import { For } from "solid-js"
+import { For, Show } from "solid-js"
 import { DEFAULT_THEMES, useTheme } from "@tui/context/theme"
+import type { JSX } from "solid-js"
 
 const themeCount = Object.keys(DEFAULT_THEMES).length
 const themeTip = `Use {highlight}:theme{/highlight} or {highlight}Space T{/highlight} to preview and switch between ${themeCount} built-in themes.`
@@ -30,7 +31,11 @@ function parse(tip: string): TipPart[] {
   return parts
 }
 
-export function Tips() {
+export type TipsProps = {
+  bottomBorder?: JSX.Element
+}
+
+export function Tips(props: TipsProps) {
   const theme = useTheme().theme
   const parts = parse(TIPS[Math.floor(Math.random() * TIPS.length)])
 
@@ -52,7 +57,16 @@ export function Tips() {
         </text>
         <text fg={theme.border} flexShrink={0}> │</text>
       </box>
-      {/* No bottom border - shared with input area's top border */}
+      {/* Bottom border - either custom or default rounded */}
+      <Show when={props.bottomBorder} fallback={
+        <box height={1} flexDirection="row">
+          <text fg={theme.border} flexShrink={0}>╰</text>
+          <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
+          <text fg={theme.border} flexShrink={0}>╯</text>
+        </box>
+      }>
+        {props.bottomBorder}
+      </Show>
     </box>
   )
 }
@@ -78,7 +92,6 @@ export const TIPS = [
   "Press {highlight}Space C{/highlight} to see all available actions and commands.",
   "Run {highlight}:connect{/highlight} to add API keys for 75+ supported LLM providers.",
   "The default leader key is {highlight}Space{/highlight}; combine with other keys for quick actions.",
-  "Press {highlight}F2{/highlight} to quickly switch between recently used models.",
   "Press {highlight}Space B{/highlight} to show/hide the sidebar panel.",
   "Use {highlight}PageUp{/highlight}/{highlight}PageDown{/highlight} to navigate through conversation history.",
   "Press {highlight}Ctrl+G{/highlight} or {highlight}Home{/highlight} to jump to the beginning of the conversation.",

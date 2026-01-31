@@ -752,8 +752,6 @@ export namespace Config {
         .default("<leader>/")
         .describe("Toggle code block concealment in messages"),
       model_list: z.string().optional().default("<leader>m").describe("List available models"),
-      model_cycle_recent: z.string().optional().default("f2").describe("Next recently used model"),
-      model_cycle_recent_reverse: z.string().optional().default("shift+f2").describe("Previous recently used model"),
       model_fallback_toggle: z.string().optional().default("f3").describe("Toggle between primary and fallback model"),
       command_list: z.string().optional().default("<leader>c").describe("List available commands"),
       agent_list: z.string().optional().default("<leader>a").describe("List agents"),

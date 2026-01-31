@@ -137,6 +137,8 @@ const MODEL_COSTS: Record<
     cacheWrite: 0,
   },
   "gpt-5.2": { input: 1.75, output: 14, cacheRead: 0.175, cacheWrite: 0 },
+  "kimi-k2.5": { input: 0.6, output: 3, cacheRead: 0.08, cacheWrite: 0 },
+  "kimi-k2.5-thinking": { input: 0.6, output: 3, cacheRead: 0.08, cacheWrite: 0 },
 };
 
 const DEFAULT_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -151,6 +153,8 @@ const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   "gemini-3-flash": 1048576,
   "gpt-5.1-codex-max": 400000,
   "gpt-5.2": 400000,
+  "kimi-k2.5": 256000,
+  "kimi-k2.5-thinking": 256000,
 };
 
 function getDefaultContextWindow(modelId: string): number {
@@ -167,6 +171,8 @@ const MODEL_MAX_TOKENS: Record<string, number> = {
   "gemini-3-flash": 65536,
   "gpt-5.1-codex-max": 128000,
   "gpt-5.2": 128000,
+  "kimi-k2.5": 32768,
+  "kimi-k2.5-thinking": 32768,
 };
 
 function getDefaultMaxTokens(modelId: string): number {
@@ -203,6 +209,8 @@ const MODEL_NAMES: Record<string, string> = {
   "gemini-3-flash": "Gemini 3 Flash",
   "gpt-5.1-codex-max": "GPT-5.1 Codex Max",
   "gpt-5.2": "GPT-5.2",
+  "kimi-k2.5": "Kimi K2.5",
+  "kimi-k2.5-thinking": "Kimi K2.5 Thinking",
 };
 
 function formatModelName(modelId: string): string {
@@ -230,6 +238,8 @@ export function getOpencodeZenStaticFallbackModels(): ModelDefinitionConfig[] {
     "gemini-3-flash",
     "gpt-5.1-codex-max",
     "gpt-5.2",
+    "kimi-k2.5",
+    "kimi-k2.5-thinking",
   ];
 
   return modelIds.map(buildModelDefinition);

@@ -1378,7 +1378,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
           {/* Codex-style: all on one line with horizontal line */}
           <box marginTop={1} flexDirection="row" height={1}>
             <text fg={theme.border}>─ </text>
-            <text>
+            <text flexShrink={0}>
               <span
                 style={{
                   fg: props.message.error?.name === "MessageAbortedError"
@@ -1397,7 +1397,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
                 <span style={{ fg: theme.textMuted }}> interrupted</span>
               </Show>
             </text>
-            <text fg={theme.border}> {"─".repeat(500)}</text>
+            <text fg={theme.border} flexGrow={1} flexShrink={1}> {"─".repeat(500)}</text>
           </box>
         </Match>
       </Switch>
