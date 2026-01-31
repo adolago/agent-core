@@ -219,6 +219,7 @@ export class TelegramHandler implements MessagingPlatformHandler {
 
   private async loadTelegraf(): Promise<any | null> {
     try {
+      // @ts-expect-error - telegraf is an optional dependency
       const module = await import('telegraf');
       return module;
     } catch {

@@ -7,7 +7,6 @@
  */
 
 import { getApiKeySync } from "../config/providers";
-import { recordReranking } from "./stats";
 
 // =============================================================================
 // Types
@@ -96,9 +95,6 @@ class VoyageReranker implements Reranker {
       data: Array<{ index: number; relevance_score: number }>;
     };
 
-    // Record reranking stats
-    recordReranking({ provider: this.id });
-
     return data.data
       .sort((a, b) => b.relevance_score - a.relevance_score)
       .slice(0, options?.topK)
@@ -152,9 +148,6 @@ class VLLMReranker implements Reranker {
     const data = (await response.json()) as {
       results: Array<{ index: number; relevance_score: number }>;
     };
-
-    // Record reranking stats
-    recordReranking({ provider: this.id });
 
     return data.results
       .sort((a, b) => b.relevance_score - a.relevance_score)

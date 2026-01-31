@@ -135,8 +135,7 @@ async function registerCLISurface(): Promise<void> {
   log.info('Registering CLI surface');
 
   const cliSurface = createCLISurface({
-    interactive: true,
-    streaming: true,
+    streamOutput: true,
   });
 
   await router.registerSurface(cliSurface);
@@ -156,9 +155,11 @@ async function registerWhatsAppSurface(config: NonNullable<SurfaceBootstrapConfi
     });
 
     const surface = createMessagingSurface(handler, {
-      allowGroups: true,
       groups: {
+        enabled: true,
         requireMention: config.requireMention ?? true,
+        mentionPatterns: [],
+        allowedGroups: config.allowedGroups ?? [],
       },
     });
 
@@ -186,9 +187,11 @@ async function registerTelegramSurface(config: NonNullable<SurfaceBootstrapConfi
     });
 
     const surface = createMessagingSurface(handler, {
-      allowGroups: true,
       groups: {
+        enabled: true,
         requireMention: config.requireMention ?? true,
+        mentionPatterns: [],
+        allowedGroups: config.allowedGroups?.map(String) ?? [],
       },
     });
 
@@ -211,12 +214,29 @@ async function loadSurfaceConfig(): Promise<SurfaceBootstrapConfig> {
     const config = await Config.get();
 
     // Extract surface configuration from agent-core config
+    const whatsappConfig = config.experimental?.surfaces?.whatsapp;
+    const telegramConfig = config.experimental?.surfaces?.telegram;
+
     const surfaceConfig: SurfaceBootstrapConfig = {
       enableCLI: config.experimental?.surfaces?.cli?.enabled ?? true,
-      enableWhatsApp: config.experimental?.surfaces?.whatsapp?.enabled ?? false,
-      enableTelegram: config.experimental?.surfaces?.telegram?.enabled ?? false,
-      whatsapp: config.experimental?.surfaces?.whatsapp,
-      telegram: config.experimental?.surfaces?.telegram,
+      enableWhatsApp: whatsappConfig?.enabled ?? false,
+      enableTelegram: telegramConfig?.enabled ?? false,
+      whatsapp: whatsappConfig?.sessionName
+        ? {
+            sessionName: whatsappConfig.sessionName,
+            allowedNumbers: whatsappConfig.allowedNumbers,
+            allowedGroups: whatsappConfig.allowedGroups,
+            requireMention: whatsappConfig.requireMention,
+          }
+        : undefined,
+      telegram: telegramConfig?.botToken
+        ? {
+            botToken: telegramConfig.botToken,
+            allowedUsers: telegramConfig.allowedUsers,
+            allowedGroups: telegramConfig.allowedGroups,
+            requireMention: telegramConfig.requireMention,
+          }
+        : undefined,
       enableAnalytics: config.experimental?.surfaces?.analytics?.enabled ?? true,
       enableHotReload: config.experimental?.surfaces?.hotReload?.enabled ?? false,
     };

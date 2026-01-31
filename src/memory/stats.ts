@@ -1,204 +1,70 @@
 /**
- * Memory Operations Statistics
+ * Embedding Model Configuration
  *
- * Tracks embedding and reranking operations for visibility in the TUI.
- * Uses a simple event bus to publish stats updates.
+ * Provides embedding model limits and configuration.
+ * Max context is determined by the embedding model being used.
  */
 
-import { Bus } from "../../packages/agent-core/src/bus";
-import { BusEvent } from "../../packages/agent-core/src/bus/bus-event";
-import z from "zod";
-
 // =============================================================================
-// Types
+// Embedding Model Limits
 // =============================================================================
 
-export interface MemoryOpStats {
-  /** Embedding operations */
-  embedding: {
-    /** Total embedding calls this session */
-    calls: number;
-    /** Estimated tokens (chars / 4) */
-    estimatedTokens: number;
-    /** Last operation timestamp */
-    lastCallAt?: number;
-    /** Provider ID (google, openai, voyage, etc.) */
-    provider?: string;
-  };
-  /** Reranking operations */
-  reranking: {
-    /** Total rerank calls this session */
-    calls: number;
-    /** Last operation timestamp */
-    lastCallAt?: number;
-    /** Provider ID (voyage, vllm) */
-    provider?: string;
-  };
-}
-
-// =============================================================================
-// State
-// =============================================================================
-
-const stats: MemoryOpStats = {
-  embedding: {
-    calls: 0,
-    estimatedTokens: 0,
-  },
-  reranking: {
-    calls: 0,
-  },
+/**
+ * Max input tokens for known embedding models.
+ * Source: Model documentation and API specifications.
+ */
+export const EMBEDDING_MODEL_LIMITS: Record<string, number> = {
+  // Google
+  "gemini-embedding-001": 2048,
+  "text-embedding-004": 2048,
+  // OpenAI
+  "text-embedding-3-large": 8191,
+  "text-embedding-3-small": 8191,
+  "text-embedding-ada-002": 8191,
+  // Voyage
+  "voyage-3-large": 32000,
+  "voyage-3": 32000,
+  "voyage-3-lite": 32000,
+  // Cohere
+  "embed-english-v3.0": 512,
+  "embed-multilingual-v3.0": 512,
 };
 
-// =============================================================================
-// Events
-// =============================================================================
-
-export const MemoryStatsEvent = {
-  Updated: BusEvent.define(
-    "memory.stats.updated",
-    z.object({
-      embedding: z.object({
-        calls: z.number(),
-        estimatedTokens: z.number(),
-        lastCallAt: z.number().optional(),
-        provider: z.string().optional(),
-      }),
-      reranking: z.object({
-        calls: z.number(),
-        lastCallAt: z.number().optional(),
-        provider: z.string().optional(),
-      }),
-    })
-  ),
-};
-
-// =============================================================================
-// Recording Functions
-// =============================================================================
+/** Default max context when model is unknown */
+export const DEFAULT_EMBEDDING_MAX_CONTEXT = 2048;
 
 /**
- * Record an embedding operation
+ * Get the max input tokens for an embedding model.
  */
-export function recordEmbedding(input: {
-  texts: string[];
-  provider?: string;
-}): void {
-  const charCount = input.texts.reduce((sum, t) => sum + t.length, 0);
-  const estimatedTokens = Math.ceil(charCount / 4);
-
-  stats.embedding.calls += 1;
-  stats.embedding.estimatedTokens += estimatedTokens;
-  stats.embedding.lastCallAt = Date.now();
-  if (input.provider) {
-    stats.embedding.provider = input.provider;
-  }
-
-  publishStats();
-}
-
-/**
- * Record a single embedding operation
- */
-export function recordSingleEmbedding(input: {
-  text: string;
-  provider?: string;
-}): void {
-  recordEmbedding({ texts: [input.text], provider: input.provider });
-}
-
-/**
- * Record a reranking operation
- */
-export function recordReranking(input: {
-  provider?: string;
-}): void {
-  stats.reranking.calls += 1;
-  stats.reranking.lastCallAt = Date.now();
-  if (input.provider) {
-    stats.reranking.provider = input.provider;
-  }
-
-  publishStats();
-}
-
-/**
- * Get current stats (read-only copy)
- */
-export function getStats(): MemoryOpStats {
-  return {
-    embedding: { ...stats.embedding },
-    reranking: { ...stats.reranking },
-  };
-}
-
-/**
- * Reset stats (for testing or session boundaries)
- */
-export function resetStats(): void {
-  stats.embedding = {
-    calls: 0,
-    estimatedTokens: 0,
-  };
-  stats.reranking = {
-    calls: 0,
-  };
-  publishStats();
-}
-
-/**
- * Format stats for display
- */
-export function formatStats(): string {
-  const parts: string[] = [];
-
-  if (stats.embedding.calls > 0) {
-    parts.push(`emb: ${stats.embedding.estimatedTokens}tok`);
-  }
-
-  if (stats.reranking.calls > 0) {
-    parts.push(`rerank: ${stats.reranking.calls}`);
-  }
-
-  return parts.join(" | ") || "no memory ops";
-}
-
-/**
- * Format stats for compact display (status bar)
- */
-export function formatStatsCompact(): string | null {
-  const parts: string[] = [];
-
-  if (stats.embedding.estimatedTokens > 0) {
-    const tokens = stats.embedding.estimatedTokens;
-    const display = tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}k` : String(tokens);
-    parts.push(`E:${display}`);
-  }
-
-  if (stats.reranking.calls > 0) {
-    parts.push(`R:${stats.reranking.calls}`);
-  }
-
-  return parts.length > 0 ? parts.join("/") : null;
+export function getEmbeddingMaxContext(model?: string): number {
+  if (!model) return DEFAULT_EMBEDDING_MAX_CONTEXT;
+  return EMBEDDING_MODEL_LIMITS[model] ?? DEFAULT_EMBEDDING_MAX_CONTEXT;
 }
 
 // =============================================================================
-// Internal
+// Current Embedding Model State
 // =============================================================================
 
-function publishStats(): void {
-  // Defer the publish to avoid errors when Bus/Instance is not initialized
-  // This is safe because stats are read synchronously when needed
-  queueMicrotask(() => {
-    try {
-      Bus.publish(MemoryStatsEvent.Updated, {
-        embedding: { ...stats.embedding },
-        reranking: { ...stats.reranking },
-      }).catch(() => {
-        // Promise rejection (async)
-      });
-    } catch {
-      // Synchronous error (Instance context not available)
-    }
-  });
+let currentEmbeddingModel: string | undefined;
+
+/**
+ * Set the current embedding model being used.
+ * Called by the embedding provider when initialized.
+ */
+export function setCurrentEmbeddingModel(model: string): void {
+  currentEmbeddingModel = model;
+}
+
+/**
+ * Get the current embedding model.
+ */
+export function getCurrentEmbeddingModel(): string | undefined {
+  return currentEmbeddingModel;
+}
+
+/**
+ * Get the max context for the current embedding model.
+ */
+export function getCurrentEmbeddingMaxContext(): number {
+  return getEmbeddingMaxContext(currentEmbeddingModel);
 }

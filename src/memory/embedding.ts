@@ -18,7 +18,7 @@ import type {
   MultimodalContent,
 } from "./types";
 import { getApiKeySync } from "../config/providers";
-import { recordSingleEmbedding, recordEmbedding } from "./stats";
+import { setCurrentEmbeddingModel } from "./stats";
 
 // =============================================================================
 // Configuration Types
@@ -478,9 +478,6 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
     const embedding = await this.inner.embed(text);
     this.cache.set(text, embedding);
 
-    // Record stats for actual API call (not cache hit)
-    recordSingleEmbedding({ text, provider: this.id });
-
     return embedding;
   }
 
@@ -503,11 +500,6 @@ class CachedEmbeddingProvider implements EmbeddingProvider {
     // Fetch uncached embeddings
     const uncachedTexts = uncachedIndices.map((i) => texts[i]);
     const fetched = await this.inner.embedBatch(uncachedTexts);
-
-    // Record stats for actual API calls (not cache hits)
-    if (uncachedTexts.length > 0) {
-      recordEmbedding({ texts: uncachedTexts, provider: this.id });
-    }
 
     // Merge results and update cache
     for (let j = 0; j < uncachedIndices.length; j++) {
@@ -608,6 +600,9 @@ export function createEmbeddingProvider(
       throw new Error(`Unknown embedding provider: ${providerType}`);
   }
 
+  // Track current model for max context lookup
+  setCurrentEmbeddingModel(provider.model);
+
   // Wrap with cache unless disabled
   if (options?.noCache) {
     return provider;
@@ -642,6 +637,9 @@ export async function createEmbeddingProviderAsync(
     default:
       throw new Error(`Unknown embedding provider: ${providerType}`);
   }
+
+  // Track current model for max context lookup
+  setCurrentEmbeddingModel(provider.model);
 
   // Wrap with cache unless disabled
   if (options?.noCache) {

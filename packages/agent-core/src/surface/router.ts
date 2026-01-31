@@ -420,7 +420,6 @@ export class SurfaceRouter {
         await surface.sendResponse(
           {
             text: 'Sorry, I encountered an error processing your message.',
-            metadata: { error: true },
           },
           threadId
         );
@@ -552,7 +551,7 @@ export class SurfaceRouter {
    */
   on<K extends keyof typeof this.eventEmitter['events']>(
     event: K,
-    handler: (typeof this.eventEmitter)['events'][K]
+    handler: (data: (typeof this.eventEmitter)['events'][K]) => void
   ): () => void {
     return this.eventEmitter.on(event, handler);
   }

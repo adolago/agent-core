@@ -87,9 +87,9 @@ export function Prompt(props: PromptProps) {
     charsReceived?: number
     estimatedTokens?: number
     requestCount?: number
-    memoryStats?: {
-      embedding: { calls: number; estimatedTokens: number; provider?: string }
-      reranking: { calls: number; provider?: string }
+    embeddingConfig?: {
+      model: string
+      maxContext: number
     }
   }
   const streamHealth = createMemo((): StreamHealthExtended | undefined => {
@@ -121,57 +121,6 @@ export function Prompt(props: PromptProps) {
       rcvd += m.tokens.output ?? 0
     }
     return { snt, rcvd }
-  })
-  // Session-wise memory stats accumulator (persisted in kv)
-  const memTotalsKey = () => props.sessionID ? `mem_totals_${props.sessionID}` : undefined
-  const [memTotals, setMemTotals] = createSignal<{ mbd: number; rrnk: number; lastReqCount: number }>({ mbd: 0, rrnk: 0, lastReqCount: 0 })
-  // Load from kv on mount
-  createEffect(() => {
-    const key = memTotalsKey()
-    if (!key) return
-    const stored = kv.get(key, { mbd: 0, rrnk: 0, lastReqCount: 0 })
-    setMemTotals(stored)
-  })
-  // Commit memory stats when turn finishes (busy → idle transition)
-  const [wasBusy, setWasBusy] = createSignal(false)
-  const [lastBusyHealth, setLastBusyHealth] = createSignal<StreamHealthExtended | undefined>(undefined)
-  createEffect(() => {
-    const s = status()
-    const health = s.type === "busy" ? (s.streamHealth as StreamHealthExtended | undefined) : undefined
-    if (s.type === "busy") {
-      setWasBusy(true)
-      if (health) setLastBusyHealth(health)
-    } else if (wasBusy() && s.type === "idle") {
-      // Transition busy → idle: commit memory stats
-      const lbh = lastBusyHealth()
-      if (lbh?.memoryStats) {
-        const reqCount = lbh.requestCount ?? 0
-        const current = memTotals()
-        if (reqCount > current.lastReqCount) {
-          const updated = {
-            mbd: current.mbd + (lbh.memoryStats.embedding.estimatedTokens ?? 0),
-            rrnk: current.rrnk + (lbh.memoryStats.reranking.calls ?? 0),
-            lastReqCount: reqCount,
-          }
-          setMemTotals(updated)
-          const key = memTotalsKey()
-          if (key) kv.set(key, updated)
-        }
-      }
-      setWasBusy(false)
-      setLastBusyHealth(undefined)
-    }
-  })
-  // Live memory stats (completed + in-flight)
-  const memStatsLive = createMemo(() => {
-    const base = memTotals()
-    const health = streamHealth()
-    if (!health?.memoryStats) return base
-    return {
-      mbd: base.mbd + (health.memoryStats.embedding.estimatedTokens ?? 0),
-      rrnk: base.rrnk + (health.memoryStats.reranking.calls ?? 0),
-      lastReqCount: base.lastReqCount,
-    }
   })
   // Live received tokens (completed + in-flight)
   const rcvdLive = createMemo(() => sessionTokenTotals().rcvd + (streamHealth()?.estimatedTokens ?? 0))
@@ -1953,15 +1902,14 @@ export function Prompt(props: PromptProps) {
                     return m > 0 ? `${h}h${m}m` : `${h}h`
                   }
                   const totals = sessionTokenTotals()
-                  const mem = memStatsLive()
+                  const embConfig = streamHealth()?.embeddingConfig
                   return (
                   <box flexDirection="row" gap={0}>
-                    <text fg={theme.warning}>◆</text>
-                    {formatFixedTokens(mem.mbd)}
-                    <text> </text>
-                    <text fg={theme.secondary}>●</text>
-                    <text fg={theme.textMuted}>{String(mem.rrnk).padStart(4, "0")}</text>
-                    <text> </text>
+                    <Show when={embConfig}>
+                      <text fg={theme.warning}>◆</text>
+                      <text fg={theme.textMuted}>{embConfig?.maxContext ?? 0}</text>
+                      <text> </text>
+                    </Show>
                     <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
                   </box>
                   )
@@ -2055,7 +2003,7 @@ export function Prompt(props: PromptProps) {
                       )
                     }
                     const totalTime = () => completedWorkTime() + elapsed()
-                    const mem = memStatsLive()
+                    const embConfig = streamHealth()?.embeddingConfig
                     return (
                       <>
                         <Show when={retry()}>
@@ -2067,12 +2015,11 @@ export function Prompt(props: PromptProps) {
                           <box flexDirection="row" gap={0}>
                             <text fg={theme.accent}>{phaseLabel()}</text>
                             <text> </text>
-                            <text fg={theme.warning}>◆</text>
-                            {formatFixedTokens(mem.mbd)}
-                            <text> </text>
-                            <text fg={theme.secondary}>●</text>
-                            <text fg={theme.textMuted}>{String(mem.rrnk).padStart(4, "0")}</text>
-                            <text> </text>
+                            <Show when={embConfig}>
+                              <text fg={theme.warning}>◆</text>
+                              <text fg={theme.textMuted}>{embConfig?.maxContext ?? 0}</text>
+                              <text> </text>
+                            </Show>
                             <text fg={theme.textMuted}>{formatElapsed(totalTime())}</text>
                           </box>
                         </Show>
