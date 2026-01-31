@@ -104,7 +104,7 @@ describe("ProviderTransform.options - setCacheKey", () => {
 })
 
 describe("ProviderTransform.variants - mapping parity", () => {
-  test("excludes minimax models from reasoning variants", () => {
+  test("minimax models return reasoning variants", () => {
     const minimaxModel = {
       id: "minimax-model",
       providerID: "minimax",
@@ -112,7 +112,7 @@ describe("ProviderTransform.variants - mapping parity", () => {
       capabilities: { reasoning: true },
     } as any
 
-    expect(Object.keys(ProviderTransform.variants(minimaxModel))).toHaveLength(0)
+    expect(Object.keys(ProviderTransform.variants(minimaxModel))).toEqual(["low", "medium", "high"])
   })
 
   test("glm models from Z.AI/ZhipuAI return thinking variants", () => {
@@ -991,18 +991,20 @@ describe("ProviderTransform.variants", () => {
     expect(result).toEqual({})
   })
 
-  test("minimax returns empty object", () => {
+  test("minimax returns reasoning variants", () => {
     const model = createMockModel({
-      id: "minimax/minimax-model",
+      id: "minimax-model",
       providerID: "minimax",
       api: {
         id: "minimax-model",
         url: "https://api.minimax.com",
         npm: "@ai-sdk/openai-compatible",
       },
+      capabilities: { reasoning: true },
     })
     const result = ProviderTransform.variants(model)
-    expect(result).toEqual({})
+    expect(Object.keys(result)).toEqual(["low", "medium", "high"])
+    expect(result.high).toEqual({ reasoningEffort: "high" })
   })
 
   test("glm returns empty object", () => {

@@ -325,13 +325,6 @@ export namespace ProviderTransform {
     if (!model.capabilities.reasoning) return {}
 
     const id = model.id.toLowerCase()
-    if (
-      id.includes("deepseek") ||
-      id.includes("minimax") ||
-      id.includes("mistral") ||
-      id.includes("kimi")
-    )
-      return {}
 
     // GLM models only support variants when using Z.AI/ZhipuAI
     if (id.includes("glm") && !model.providerID.includes("zai")) {
@@ -361,10 +354,6 @@ export namespace ProviderTransform {
       case "@ai-sdk/gateway":
         return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
 
-      case "@ai-sdk/cerebras":
-      case "@ai-sdk/togetherai":
-      case "@ai-sdk/xai":
-      case "@ai-sdk/deepinfra":
       case "@ai-sdk/cerebras":
       case "@ai-sdk/togetherai":
       case "@ai-sdk/xai":
