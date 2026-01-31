@@ -1423,19 +1423,15 @@ export function Prompt(props: PromptProps) {
           border={["top", "left", "right"]}
           borderColor={theme.border}
         >
-          {/* Header: Zee + skill count */}
+          {/* Header: reminders left, persona + agent count right */}
           <box
             flexDirection="row"
-            justifyContent="space-between"
+            justifyContent="flex-end"
             paddingLeft={1}
             paddingRight={1}
           >
-            <box flexDirection="row" gap={1}>
-              <text fg={theme.accent}>Zee</text>
-            </box>
-            <box flexDirection="row" gap={1}>
-              <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} agents</text>
-            </box>
+            <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
+            <text fg={theme.textMuted}>—{sync.data.agent?.length ?? 0} agents</text>
           </box>
           {/* Zee reminders based on time/agenda */}
           <box paddingLeft={1} paddingRight={1} height={1}>
@@ -2108,11 +2104,6 @@ export function Prompt(props: PromptProps) {
                           </>
                         )}
                       </Show>
-                      {chip(
-                        <text fg={highlight()}>
-                          {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
-                        </text>
-                      )}
                     </>
                   )
                 })()}
