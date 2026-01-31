@@ -1,0 +1,321 @@
+bun test v1.2.14 (6a363a38)
+
+test/config/hold-mode.test.ts:
+(pass) HoldMode.matchesPattern > matches exact commands [0.32ms]
+(pass) HoldMode.matchesPattern > matches command prefixes [0.51ms]
+(pass) HoldMode.matchesPattern > matches wildcards [0.24ms]
+(pass) HoldMode.matchesPattern > is case insensitive [0.21ms]
+(pass) HoldMode.matchesPattern > returns false for empty patterns [0.13ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions bypasses always_block in hold mode [96.68ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions bypasses always_block in release mode [76.96ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions bypasses release_confirm in release mode [57.06ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions allows tools in hold mode [0.46ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions allows write in hold mode [0.16ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions allows apply_patch in hold mode [0.15ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions allows todowrite in hold mode [0.21ms]
+1 | import { AsyncLocalStorage } from "async_hooks"
+2 |
+3 | export namespace Context {
+4 |   export class NotFound extends Error {
+5 |     constructor(public override readonly name: string) {
+6 |       super(`No context found for ${name}`)
+          ^
+instance: No context found for instance
+      at new NotFound (/app/packages/agent-core/src/util/context.ts:6:7)
+      at use (/app/packages/agent-core/src/util/context.ts:16:17)
+      at directory (/app/packages/agent-core/src/project/instance.ts:43:20)
+      at projectConfigPath (/app/packages/agent-core/src/config/hold-mode.ts:64:22)
+      at load (/app/packages/agent-core/src/config/hold-mode.ts:137:46)
+(fail) HoldMode.skipPermissions bypass > skipPermissions false still respects hold mode restrictions [2.38ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions false still respects hold mode command blocks [100.89ms]
+(pass) HoldMode.skipPermissions bypass > skipPermissions true still blocks always_block when holdMode is false [63.61ms]
+(pass) HoldMode.findMatchingPattern > returns the matched pattern for command prefixes [0.13ms]
+(pass) HoldMode.findMatchingPattern > returns the matched pattern for wildcards [0.08ms]
+(pass) HoldMode.findMatchingPattern > preserves original pattern case in return value [0.06ms]
+(pass) HoldMode.findMatchingPattern > returns null for empty patterns [0.09ms]
+(pass) HoldMode.findMatchingPattern > returns first matching pattern when multiple match [0.05ms]
+(pass) HoldMode.getEffectiveBlocklist > normal profile includes standard blocklist [0.69ms]
+(pass) HoldMode.getEffectiveBlocklist > strict profile adds interpreters and network tools [0.20ms]
+(pass) HoldMode.getEffectiveBlocklist > permissive profile removes touch and mkdir [0.21ms]
+(pass) HoldMode.ConfigSchema > provides defaults for missing fields [0.15ms]
+(pass) HoldMode.ConfigSchema > accepts valid profiles [0.17ms]
+(pass) HoldMode.ConfigSchema > rejects invalid profiles [1.13ms]
+(pass) HoldMode.isToolAllowedInHold > returns false by default for unconfigured tools [68.85ms]
+(pass) HoldMode.isToolAllowedInHold > returns true when tools.edit: true is set [71.37ms]
+(pass) HoldMode.isToolAllowedInHold > returns false when tools.edit: false is set [62.78ms]
+(pass) HoldMode.isToolAllowedInHold > works for all four tool types [85.71ms]
+(pass) HoldMode.isToolAllowedInHold > handles mixed tool settings [79.83ms]
+(pass) HoldMode.checkCommand > always_block patterns block in hold mode [66.74ms]
+(pass) HoldMode.checkCommand > always_block patterns block in release mode [53.79ms]
+(pass) HoldMode.checkCommand > hold_allow patterns bypass blocklist in hold mode [55.18ms]
+(pass) HoldMode.checkCommand > hold_allow does NOT bypass always_block [77.23ms]
+333 |
+334 |   test("release_confirm returns requiresConfirmation: true in release mode", async () => {
+335 |     await withTempConfig({ release_confirm: ["confirm-cmd"] }, async () => {
+336 |       const result = await HoldMode.checkCommand("confirm-cmd --arg", { holdMode: false })
+337 |       expect(result.blocked).toBe(false)
+338 |       expect(result.requiresConfirmation).toBe(true)
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: undefined
+
+      at <anonymous> (/app/packages/agent-core/test/config/hold-mode.test.ts:338:43)
+(fail) HoldMode.checkCommand > release_confirm returns requiresConfirmation: true in release mode [51.83ms]
+(pass) HoldMode.checkCommand > release_confirm does NOT trigger in hold mode [58.25ms]
+(pass) HoldMode.checkCommand > commands not matching any pattern are allowed [53.72ms]
+(pass) HoldMode.checkCommand > wildcard patterns work in always_block [54.35ms]
+(pass) HoldMode.checkCommand > wildcard patterns work in hold_allow [56.21ms]
+376 |
+377 |   test("wildcard patterns work in release_confirm", async () => {
+378 |     await withTempConfig({ release_confirm: ["deploy*"] }, async () => {
+379 |       const result = await HoldMode.checkCommand("deploy-production", { holdMode: false })
+380 |       expect(result.blocked).toBe(false)
+381 |       expect(result.requiresConfirmation).toBe(true)
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: undefined
+
+      at <anonymous> (/app/packages/agent-core/test/config/hold-mode.test.ts:381:43)
+(fail) HoldMode.checkCommand > wildcard patterns work in release_confirm [48.11ms]
+(pass) HoldMode.checkCommand > case insensitivity works for always_block [50.92ms]
+(pass) HoldMode.checkCommand > case insensitivity works for hold_allow [47.43ms]
+398 |   })
+399 |
+400 |   test("case insensitivity works for release_confirm", async () => {
+401 |     await withTempConfig({ release_confirm: ["Confirm-Cmd"] }, async () => {
+402 |       const result = await HoldMode.checkCommand("confirm-cmd", { holdMode: false })
+403 |       expect(result.requiresConfirmation).toBe(true)
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: undefined
+
+      at toBe (/app/packages/agent-core/test/config/hold-mode.test.ts:403:43)
+(fail) HoldMode.checkCommand > case insensitivity works for release_confirm [56.80ms]
+(pass) HoldMode.checkCommand edge cases > empty command string is allowed [55.30ms]
+(pass) HoldMode.checkCommand edge cases > command with only whitespace is allowed [51.40ms]
+(pass) HoldMode.checkCommand edge cases > command with shell metacharacters is checked correctly [49.22ms]
+(pass) HoldMode.checkCommand edge cases > command with pipes is checked on first command only [56.81ms]
+(pass) HoldMode.checkCommand edge cases > command with semicolons is not split - pattern needs exact match or space after [55.35ms]
+(pass) HoldMode.checkCommand edge cases > command with leading whitespace is trimmed [54.53ms]
+(pass) HoldMode.checkCommand edge cases > multiple patterns in always_block all work [55.13ms]
+(pass) HoldMode.checkCommand edge cases > order of precedence: always_block checked before hold_allow [51.49ms]
+
+4 tests failed:
+(fail) HoldMode.skipPermissions bypass > skipPermissions false still respects hold mode restrictions [2.38ms]
+(fail) HoldMode.checkCommand > release_confirm returns requiresConfirmation: true in release mode [51.83ms]
+(fail) HoldMode.checkCommand > wildcard patterns work in release_confirm [48.11ms]
+(fail) HoldMode.checkCommand > case insensitivity works for release_confirm [56.80ms]
+----------------------------------------------------------------------------------------|---------|---------|-------------------
+File                                                                                    | % Funcs | % Lines | Uncovered Line #s
+----------------------------------------------------------------------------------------|---------|---------|-------------------
+All files                                                                               |   22.55 |   41.13 |
+ src/agent/agent.ts                                                                     |   16.67 |   19.12 | 66-255,259,263-269,273-286,290-335
+ src/auth/index.ts                                                                      |   10.00 |   31.18 | 58-59,63-73,77-80,84-88,97-98,105-106,113-158,166-187,194-216
+ src/bun/index.ts                                                                       |   50.00 |   17.60 | 15-48,64-132
+ src/bus/bus-event.ts                                                                   |   66.67 |   39.39 | 21-40
+ src/bus/global.ts                                                                      |  100.00 |  100.00 |
+ src/bus/index.ts                                                                       |   12.50 |   24.42 | 19-23,26-36,41-62,66-69,73-81,85,89-101
+ src/cli/cmd/tui/event.ts                                                               |  100.00 |  100.00 |
+ src/cli/cmd/tui/util/dictation.ts                                                      |    5.88 |    4.07 | 63-103,107-181,185-213,217-277,281-335,339-354,358-372,376-404,408-423,428-438,442-464,468-534,538-543,547-552,556-574,578-579
+ src/command/index.ts                                                                   |   20.00 |   36.67 | 45-51,60-126,130
+ src/config/config.ts                                                                   |    4.55 |   63.88 | 28-35,39-204,208-229,233-237,241-242,247-281,286-328,333-365,370-380,394-401,416-432,519-522,526-534,639-693,1345-1353,1513-1537,1541-1550,1554-1647,1676,1680-1691
+ src/config/hold-mode.ts                                                                |   87.50 |   81.05 | 73-74,109,114,116,122-123,147-149,151-154,169-171,191,213,217,257-277,300,305,320,325-329,334,349,385-391
+ src/config/markdown.ts                                                                 |   20.00 |   20.48 | 9,13,18-65,69-84
+ src/coordination/consensus-gate.ts                                                     |    0.00 |    6.21 | 114-115,122-130,137-156,163-166,173-174,181-182,189-256,263-289,296-307,314,321-361,365-398,402-414,418-431,443-468,476,480-483,491-512
+ src/coordination/index.ts                                                              |  100.00 |  100.00 |
+ src/coordination/work-stealing.ts                                                      |    0.00 |    5.51 | 90-91,98-107,114-162,169-178,185-195,202-263,270-297,304-316,328-360,368,372-375
+ src/env/index.ts                                                                       |   16.67 |   46.67 | 4,8-9,13,17-18,22-23
+ src/file/ignore.ts                                                                     |   66.67 |   69.57 | 60-80
+ src/file/index.ts                                                                      |   12.50 |   20.68 | 76-109,122-196,200,204-270,274-316,320-365,369-405
+ src/file/ripgrep.ts                                                                    |   16.67 |   27.20 | 123-194,198-199,203-271,275-375,379-423
+ src/file/time.ts                                                                       |   16.67 |   18.37 | 10-19,23-26,30,34-50,55-62
+ src/file/watcher.ts                                                                    |   20.00 |   28.44 | 35-38,43-110,113-114,119-122
+ src/flag/flag.ts                                                                       |   75.00 |   91.18 | 12-13
+ src/format/formatter.ts                                                                |    0.00 |   60.59 | 18-19,27-28,66-76,87-97,135-143,151-152,160-162,170-171,179-195,203-221,230-237,245-246,254-255,263-264,272-273,281-284,292-293,301-302,310-311,319-320,328-329,337-338,349-359
+ src/format/index.ts                                                                    |   16.67 |   20.49 | 26-62,66-72,76-85,89-99,103-134
+ src/global/index.ts                                                                    |   68.42 |   60.44 | 8-16,20-34,54-59,81-83,115,118-119
+ src/hooks/lifecycle.ts                                                                 |   20.00 |   34.65 | 170-184,192-202,212-216,220-227,231-241,255-281,285-304,308-333,337-349,353-360,368-408,413-435,440-461,469-480,488-507,514-515
+ src/id/id.ts                                                                           |   25.00 |   39.06 | 27,31,35-42,46-52,56-73,78-81
+ src/installation/index.ts                                                              |   16.67 |   22.11 | 21-46,50-58,63-70,101-104,108,112,131-133,137,141-145,149-154,159-223,234-238,242-289,308-324,328-364
+ src/lsp/client.ts                                                                      |   50.00 |   12.35 | 42-261
+ src/lsp/index.ts                                                                       |   12.00 |   26.84 | 16-19,70-74,79-137,140,145,161-172,176-259,263-272,276-286,290-298,302-317,361-372,376-390,394-404,408-419,423-433,437-447,451-468,472-489,493-495,499-501,506-517
+ src/lsp/language.ts                                                                    |  100.00 |  100.00 |
+ src/lsp/server.ts                                                                      |    4.35 |   12.88 | 15-18,29-47,62-70,73-83,94-112,120-160,168-217,233-288,322-350,357-359,362-391,399-431,447-491,499-544,552-605,613-718,726-757,765-796,803-829,832-842,850-986,994-1025,1033-1075,1083-1173,1181-1266,1274-1313,1329-1453,1461-1491,1499-1509,1517-1527,1535-1545,1552-1582,1590-1671,1679-1764,1772-1802,1810-1820,1828-1841,1849-1872,1880-1965,1973-1983
+ src/mcp/auth.ts                                                                        |    7.14 |   40.86 | 34-35,43-52,56-57,61-68,72-76,80-82,86-88,92-94,98-102,106-108,112-113,117-121,129-132
+ src/mcp/index.ts                                                                       |    2.33 |    2.80 | 37-1222,1227-1251,1255-1278,1286-1354,1363-1429,1436-1472,1480-1484,1491-1495,1502-1503,1512-1515
+ src/mcp/oauth-callback.ts                                                              |   12.50 |    8.23 | 26-41,57-148,152-157,161-179,183-193
+ src/mcp/oauth-provider.ts                                                              |    0.00 |    6.15 | 27-148
+ src/patch/index.ts                                                                     |   20.00 |    7.01 | 75-104,108-158,162-177,181-186,190-244,249-301,311-342,346-398,402-417,422-427,433-460,464-486,490-513,518-570,575-576,581-676
+ src/paths.ts                                                                           |    0.00 |   35.78 | 12-20,31-48,56,60,64,68,72,81,85,93-111,118-121,125,134,138,147,155,159,168,172,181,185,189,193
+ src/permission/arity.ts                                                                |   50.00 |   95.24 | 1-8
+ src/permission/next.ts                                                                 |    7.14 |    0.70 | 1-282
+ src/pkg/sdk/client.ts                                                                  |    0.00 |   16.00 | 8-28
+ src/pkg/sdk/gen/client.gen.ts                                                          |  100.00 |  100.00 |
+ src/pkg/sdk/gen/client/client.gen.ts                                                   |   25.00 |   15.93 | 25-26,32-62,66-177,183-190
+ src/pkg/sdk/gen/client/index.ts                                                        |  100.00 |  100.00 |
+ src/pkg/sdk/gen/client/utils.gen.ts                                                    |   35.29 |   34.84 | 11-50,59-87,91-102,106-140,144-152,209,213-216,220-221,225-228,232-237,242-243
+ src/pkg/sdk/gen/core/auth.gen.ts                                                       |    0.00 |    5.26 | 22-39
+ src/pkg/sdk/gen/core/bodySerializer.gen.ts                                             |    0.00 |   22.00 | 15-20,25-28,34-47,53,58-71
+ src/pkg/sdk/gen/core/params.gen.ts                                                     |    0.00 |   11.11 | 50-67,78-82,86-142
+ src/pkg/sdk/gen/core/pathSerializer.gen.ts                                             |    0.00 |    4.76 | 28-36,41-49,54-62,67-105,109-119,123-165
+ src/pkg/sdk/gen/core/serverSentEvents.gen.ts                                           |    0.00 |    0.69 | 66-208
+ src/pkg/sdk/gen/core/utils.gen.ts                                                      |    0.00 |    4.40 | 18-79,83-107
+ src/pkg/sdk/gen/sdk.gen.ts                                                             |    0.00 |   25.90 | 223,226-228,237-240,249-252,259-262,271-274,281-288,295-298,305-308,315-322,329-332,341-344,351-358,365-368,377-380,387-390,399-402,411-414,423-426,435-438,445-452,459-462,469-472,479-482,489-496,503-506,513-516,523-530,537-544,551-554,561-564,571-574,581-584,591-598,605-608,615-622,629-632,639-646,653-660,667-674,681-688,695-698,707-710,719-730,737-748,757-760,767-770,780-783,790-793,800-803,812-815,822-825,832-835,844-851,858-861,870-873,880-883,890-897,904-909,916-923,932-935,942-949,956-959,966-969,980-983,992-995,1004-1007,1014-1021,1030-1037,1044-1047,1054-1057,1064-1067,1074-1077,1084-1087,1094-1097,1104-1111,1118-1125,1132-1139,1149-1152,1161-1174
+ src/pkg/sdk/gen/types.gen.ts                                                           |  100.00 |  100.00 |
+ src/pkg/util/error.ts                                                                  |   42.86 |   80.00 | 1-2,29,33,37-40
+ src/pkg/util/fn.ts                                                                     |   33.33 |   71.43 | 4-5
+ src/pkg/util/lazy.ts                                                                   |   50.00 |   37.50 | 5-9
+ src/pkg/util/slug.ts                                                                   |   50.00 |   94.29 | 68-71
+ src/plugin/codex.ts                                                                    |    0.00 |    3.85 | 20-25,29-33,37-39,43,56-61,66-69,74-83,87-99,110-124,128-140,186-228,244-311,315-319,323-346,350-582
+ src/plugin/index.ts                                                                    |   20.00 |   15.17 | 25-118,122-135,139,143-156
+ src/plugin/kimi-log.ts                                                                 |    0.00 |   19.00 | 17,21-26,30-53,57-69,73-78,82-86,90,95,98,101,104,109-117,121-132
+ src/plugin/kimi.ts                                                                     |    0.00 |    4.12 | 46-49,54,58,62,66,70,74,78-81,86-120,124-143,147-159,163-196,200-216,220-221,225-226,230-231,235-246,250-252,256-324,328-340,344-361,365-372,376-390,394-447,451-498,502-681
+ src/process/registry.ts                                                                |   28.57 |   17.48 | 66-106,113-125,132-149,156-184,191,198-218,225,232,239-268,275-278,288,309-330,337-346,353-362
+ src/process/types.ts                                                                   |  100.00 |  100.00 |
+ src/project/instance.ts                                                                |   76.19 |   82.89 | 43-48,56-60,83-84
+ src/project/project.ts                                                                 |   53.13 |   62.41 | 67-72,92-97,109-114,126-131,144,149-154,163,165-169,232-242,250-251,253,255-263,265,270-272,276-281,291-309,314-321,325-336
+ src/project/state.ts                                                                   |   55.56 |   28.30 | 13-26,36,46,48,50-57,59-61,63-65,67,69-74
+ src/project/vcs.ts                                                                     |   16.67 |   50.00 | 31-37,42-61,64,69
+ src/provider/auth.ts                                                                   |   16.67 |   39.20 | 19-25,39-47,68-87,99-158,169-179
+ src/provider/circuit-breaker.ts                                                        |   29.17 |   17.09 | 68-138,146-147,154-158,165-166,173,180-190,199-219,226-256,263-295,302-307,314-342,349,356-362,369-372,389-392
+ src/provider/constants.ts                                                              |  100.00 |  100.00 |
+ src/provider/equivalence.ts                                                            |   16.67 |   22.40 | 55-60,74,82-86,94-102,112-133,143-149,161-250,257-261,268-270
+ src/provider/fallback-chain.ts                                                         |   16.67 |   15.83 | 86-190,197-204,217-286,293-300,307-317
+ src/provider/fallback.ts                                                               |   11.11 |   13.88 | 82-126,133-199,209-362,369-370,377-378,385,392
+ src/provider/models.ts                                                                 |   25.00 |   84.34 | 12,82-93
+ src/provider/provider.ts                                                               |    4.35 |   15.44 | 83,87-94,98-102,129-152,157-166,169-175,178-185,276-344,348-355,359-976,980,984,988-1084,1089,1093-1109,1113-1135,1140-1151,1155-1190,1195-1200,1204-1216,1220-1224,1244-1281
+ src/provider/sdk/openai-compatible/src/index.ts                                        |  100.00 |  100.00 |
+ src/provider/sdk/openai-compatible/src/openai-compatible-provider.ts                   |   16.67 |   61.11 | 56,68-73,77-82
+ src/provider/sdk/openai-compatible/src/responses/convert-to-openai-responses-input.ts  |    0.00 |    3.50 | 16-17,21-294
+ src/provider/sdk/openai-compatible/src/responses/map-openai-responses-finish-reason.ts |    0.00 |    0.00 | 3-30
+ src/provider/sdk/openai-compatible/src/responses/openai-error.ts                       |    0.00 |  100.00 |
+ src/provider/sdk/openai-compatible/src/responses/openai-responses-language-model.ts    |    0.00 |   19.29 | 15-17,146-147,154-1451,1673-1675,1679-1681,1685-1689,1693-1695,1699-1701,1705-1707,1710-1712,1716-1718,1722-1724,1728-1730,1734-1738,1742-1744,1748-1750,1754-1756,1760,1772-1823
+ src/provider/sdk/openai-compatible/src/responses/openai-responses-prepare-tools.ts     |    0.00 |    3.53 | 13-176
+ src/provider/sdk/openai-compatible/src/responses/tool/code-interpreter.ts              |    0.00 |   91.67 | 83-85
+ src/provider/sdk/openai-compatible/src/responses/tool/file-search.ts                   |    0.00 |  100.00 |
+ src/provider/sdk/openai-compatible/src/responses/tool/image-generation.ts              |    0.00 |   91.18 | 110-112
+ src/provider/sdk/openai-compatible/src/responses/tool/local-shell.ts                   |  100.00 |  100.00 |
+ src/provider/sdk/openai-compatible/src/responses/tool/web-search-preview.ts            |  100.00 |  100.00 |
+ src/provider/sdk/openai-compatible/src/responses/tool/web-search.ts                    |    0.00 |   93.48 | 98-100
+ src/provider/transform.ts                                                              |    4.55 |   11.91 | 17,23-27,31,37-51,57-67,71-149,153-189,193-227,233-275,279-293,297-307,311-317,324-519,523-600,604-623,804-833,841-853,857-864,868-910,914-974
+ src/pty/index.ts                                                                       |    8.33 |    4.88 | 16-249
+ src/question/index.ts                                                                  |   14.29 |   52.05 | 82-93,97-119,123-139,143-158,163
+ src/scheduler.ts                                                                       |   33.33 |   21.88 | 25-28,40,45-62,66-92
+ src/security/external-content.ts                                                       |   20.00 |   36.84 | 79-99,126-160,171-181,193-197
+ src/server/auth.ts                                                                     |    0.00 |   12.24 | 11-15,19-22,26-30,34-39,43-59,63-68
+ src/server/error.ts                                                                    |  100.00 |  100.00 |
+ src/server/mdns.ts                                                                     |   33.33 |   12.12 | 31-77,82-92
+ src/server/route/app.ts                                                                |    0.00 |   51.47 | 22-66,100-118,139-140
+ src/server/route/auth.ts                                                               |    0.00 |   67.35 | 44-71,99-102
+ src/server/route/command.ts                                                            |    0.00 |   70.45 | 32-44
+ src/server/route/config.ts                                                             |    0.00 |   66.49 | 25,48-50,81-133,159-160,193-196
+ src/server/route/filesystem.ts                                                         |    0.00 |   84.66 | 34-40,70-80,107-108,135-137,164-166
+ src/server/route/gateway.ts                                                            |    0.00 |   26.68 | 57-62,66-76,80-104,108-247,251-268,306-342,380-414
+ src/server/route/global.ts                                                             |    0.00 |   56.74 | 54-55,76-101,118-164,185-186
+ src/server/route/instance.ts                                                           |    0.00 |   86.36 | 29-30,63-69,92-94,115-116,137-140
+ src/server/route/lsp.ts                                                                |    0.00 |   95.35 | 24
+ src/server/route/mcp.ts                                                                |    0.00 |   85.02 | 26,56-59,88-90,117-126,156-159,182-191,214-216,237-239,260-262,284-286,307-308,329-330
+ src/server/route/memory.ts                                                             |    0.00 |   72.26 | 97-103,133-143,170-184,211-219,245-251,281-291,318-330,364-372,399-407,441-449,475-482,513-528
+ src/server/route/model.ts                                                              |    0.00 |   63.93 | 20-27,54-59,86-154,175,210,244-250,286-294
+ src/server/route/permission.ts                                                         |    0.00 |   81.82 | 28-35,56-57
+ src/server/route/process.ts                                                            |    0.00 |   71.55 | 48-51,84-87,119-121,140-185,210-213,243-246,272-280,306-314,341-350,376-384,429-443,479-485,517-523,558-564,603-616,658-680,713-719,754-760,801-813
+ src/server/route/project.ts                                                            |    0.00 |   90.28 | 27-28,49,73-76
+ src/server/route/pty.ts                                                                |    0.00 |   89.83 | 27,50-51,74-78,102-103,125-126
+ src/server/route/question.ts                                                           |    0.00 |   86.36 | 26-27,56-62,90-92
+ src/server/route/session.ts                                                            |    0.00 |   64.42 | 25-26,30-32,36-37,71-81,104-106,140-153,175-176,205-208,247-257,285-306,335-344,373-375,421-445,482-507,530-532,557-560,583-586,609-610,633-639,675-676,707-730,754-759,787-792,814-820,843-853,873-881,910-913,937-940,964-970,993-995,1020-1025,1049-1051,1074-1076,1096-1190,1222-1245,1263-1333
+ src/server/route/stt.ts                                                                |    0.00 |   58.33 | 55-89
+ src/server/route/tool.ts                                                               |    0.00 |   85.71 | 28,70-79
+ src/server/route/tui.ts                                                                |    8.33 |   81.79 | 29-30,51-52,73-76,97-100,121-124,145-148,169-172,195-212,234-235,272-274,297-300
+ src/server/server.ts                                                                   |   14.29 |   18.63 | 53-66,78,88-262,267-278,290-299,303-339
+ src/server/state.ts                                                                    |   50.00 |   77.78 | 5
+ src/session/compaction.ts                                                              |   20.00 |   19.91 | 30-37,49-88,92-199,213-229
+ src/session/index.ts                                                                   |    4.17 |    2.34 | 1-452,458,470-476
+ src/session/instruction.ts                                                             |    8.33 |   16.67 | 19-23,27,32-34,38-40,44-50,54,58-95,99-124,128-141,145-148,152-174
+ src/session/llm.ts                                                                     |   14.29 |    6.35 | 33-41,47-80,84-85,104-381,385-393,399-405
+ src/session/message-v2.ts                                                              |   12.50 |   60.78 | 440-572,576-582,586-592,601-604,609-622,626-629,633-716
+ src/session/persistence.ts                                                             |    3.13 |   10.26 | 86-95,104-113,119-121,129-169,173-208,216-249,253-263,267-272,276-289,293-317,321-344,353-404,408-426,431-443,452-477,481-498,508-533,537-542,546-550,555,574-576,580-584,592-597,604-640,647-655,669-713,731-749,756-770,794-813,821-826,834-839
+ src/session/processor.ts                                                               |   50.00 |    3.64 | 27-662
+ src/session/prompt.ts                                                                  |    3.57 |    9.16 | 62-72,75-80,87-95,100-104,108-115,119-127,134-156,160-163,167-221,225-226,297-326,330-377,381-388,392-405,412-453,457-466,471-475,479-908,912-929,933-936,940-1131,1135-1508,1512-1559,1575-1790,1821-1868,1877-2023,2027-2095
+ src/session/retry.ts                                                                   |   25.00 |    4.95 | 6-61,65-104
+ src/session/revert.ts                                                                  |   25.00 |   18.92 | 23-76,80-88,92-118
+ src/session/status.ts                                                                  |   20.00 |   75.00 | 72-73,77-80,85,89-101
+ src/session/stream-events.ts                                                           |  100.00 |  100.00 |
+ src/session/stream-health.ts                                                           |    3.57 |   12.66 | 32,39,162-183,211-240,250-315,323-483,490-521,528-546,553-581,588-597,605-608,616-618,626-628,635,642,649,653-656,660-663,680-686,693,700-705,712-717,724-727,734-738
+ src/session/summary.ts                                                                 |   16.67 |   22.90 | 28-32,37-60,64-109,118,123-147
+ src/session/system.ts                                                                  |   20.00 |   28.26 | 14-15,19,23-28,32-55
+ src/session/thread.ts                                                                  |   11.11 |   15.22 | 69-117,124-148,156,163-170,177-181,188-210,221-249,256-271
+ src/session/todo.ts                                                                    |   25.00 |   67.31 | 31-36,50-51,55-63
+ src/shell/shell.ts                                                                     |   20.00 |   20.00 | 9-32,38-51,55-57,61-63
+ src/skill/index.ts                                                                     |  100.00 |  100.00 |
+ src/skill/skill.ts                                                                     |   20.00 |   27.22 | 27-28,54-152,156,165-177
+ src/snapshot/index.ts                                                                  |    9.09 |   11.99 | 13-46,50-74,84-108,112-127,131-159,163-181,197-243,247-306,310-311
+ src/storage/storage.ts                                                                 |   75.86 |   36.00 | 28-35,37-57,59-61,63-74,76-99,101-118,126-139,161-165,179-187,206-207,212-223
+ src/tool/apply_patch.ts                                                                |    0.00 |    7.83 | 23-281
+ src/tool/bash.ts                                                                       |    0.00 |    6.86 | 33-46,50-53,57-74,80-369
+ src/tool/batch.ts                                                                      |    0.00 |    3.49 | 8-173
+ src/tool/codesearch.ts                                                                 |    0.00 |   25.71 | 51-128
+ src/tool/edit.ts                                                                       |    0.00 |    6.04 | 23,34-153,167-181,185,189-225,229-360,364-404,408-432,436-481,485-495,499-521,525-579,583-615,619-654
+ src/tool/external-directory.ts                                                         |    0.00 |    9.52 | 12-30
+ src/tool/glob.ts                                                                       |    0.00 |   25.00 | 19-75
+ src/tool/grep.ts                                                                       |    0.00 |    9.47 | 18-170
+ src/tool/invalid.ts                                                                    |    0.00 |   60.00 | 9-14
+ src/tool/ls.ts                                                                         |    0.00 |   34.48 | 42-117
+ src/tool/lsp.ts                                                                        |    0.00 |   31.18 | 30-93
+ src/tool/plan.ts                                                                       |    0.00 |   15.87 | 13-16,22-71,78-129
+ src/tool/question.ts                                                                   |    0.00 |   32.26 | 10-30
+ src/tool/read.ts                                                                       |    0.00 |    9.41 | 33-66,76-218,223-276
+ src/tool/registry.ts                                                                   |   14.29 |   23.29 | 34-59,63-83,87-93,97-121,125,129-160
+ src/tool/skill.ts                                                                      |    0.00 |    8.54 | 8-82
+ src/tool/task.ts                                                                       |    0.00 |    9.59 | 23-89,105-301
+ src/tool/todo.ts                                                                       |    0.00 |   23.81 | 11-42,49-64
+ src/tool/tool.ts                                                                       |   66.67 |   26.19 | 56-86
+ src/tool/truncation.ts                                                                 |   20.00 |    7.84 | 10-103
+ src/tool/webfetch.ts                                                                   |    0.00 |   10.56 | 20-142,148-176,180-188
+ src/tool/websearch.ts                                                                  |    0.00 |    9.38 | 40-155
+ src/tool/write.ts                                                                      |    0.00 |   26.14 | 24-88
+ src/usage/pricing.ts                                                                   |    0.00 |   12.16 | 21-31,38-59,67-90,97,104-107,114-116
+ src/usage/route.ts                                                                     |    0.00 |    6.86 | 16-38,47-60,69-88,97-115,124-135,144-160,169-210,219-234
+ src/usage/storage.ts                                                                   |    0.00 |    3.80 | 34-76,83-87,94-97,104-142,149-191,198-318,325-355,362-453,460-463,470-472,480-502,506-527
+ src/usage/tracker.ts                                                                   |    0.00 |   15.38 | 29-34,41-46,54-105,113-146
+ src/util/archive.ts                                                                    |   50.00 |   33.33 | 5-12
+ src/util/context.ts                                                                    |  100.00 |  100.00 |
+ src/util/defer.ts                                                                      |    0.00 |    0.00 | 1-10
+ src/util/filesystem.ts                                                                 |   47.37 |   27.50 | 25-34,42-49,58-63,67-71,75-77,81-93,97-108,121-125,129-153
+ src/util/fn.ts                                                                         |   33.33 |   71.43 | 4-5
+ src/util/iife.ts                                                                       |  100.00 |  100.00 |
+ src/util/lazy.ts                                                                       |  100.00 |  100.00 |
+ src/util/lock.ts                                                                       |   84.62 |   68.66 | 30-32,37-38,59-66,85-92
+ src/util/log.ts                                                                        |   56.00 |   69.77 | 60,63-64,96,100-103,115,138-140,143-145,153-155,158-160,163-164,167,170-184
+ src/util/net.ts                                                                        |    0.00 |    5.94 | 20-44,56-74,93-119,132-149,153-158
+ src/util/queue.ts                                                                      |    0.00 |   21.43 | 5-16,21-30
+ src/util/timeout.ts                                                                    |    0.00 |    0.00 | 1-12
+ src/util/timestamp.ts                                                                  |    0.00 |   35.71 | 40-44,52,65-68,75-82
+ src/util/token.ts                                                                      |   50.00 |   40.00 | 1-4
+ src/util/wide-events.ts                                                                |    0.00 |   11.43 | 55,59-60,64-82,86-87,91-114,118,122-135,139-150,154-158,162-171,175-208
+ src/util/wildcard.ts                                                                   |   20.00 |   12.28 | 5-25,29-37,41-51,55-63
+ src/worktree/index.ts                                                                  |    8.33 |   39.84 | 164,168-173,177,181-184,188-189,193,197-211,215-218,222-248,252-297,301-421
+ test/fixture/fixture.ts                                                                |   77.78 |   71.43 | 21-25,42-48,54,61,67,80-82
+ test/preload.ts                                                                        |   63.16 |   80.70 | 49-53,57-65,70-78,82-85,89-90,93-94,139
+ ../../src/agent/personas.ts                                                            |    0.00 |   98.85 | 417,422
+ ../../src/awareness/config-injector.ts                                                 |    0.00 |    3.45 | 24-58,65-85
+ ../../src/awareness/index.ts                                                           |    0.00 |   11.19 | 51-101,109-138,145-190
+ ../../src/awareness/knowledge-loader.ts                                                |    0.00 |    5.56 | 21-43,50-82,86-97
+ ../../src/awareness/mcp-catalog.ts                                                     |    0.00 |    2.54 | 34-71,79-124,128-137,144-164
+ ../../src/awareness/tool-catalog.ts                                                    |    0.00 |   22.56 | 97-149,156-227,231-244,248-250,254-264,268-286,290-300,304-326
+ ../../src/config/embedding-profiles.ts                                                 |    0.00 |   81.82 | 32-35
+ ../../src/config/runtime.ts                                                            |    0.00 |   12.42 | 104-121,125-164,168-177,181-191,195-212,216,220,224-242,246-265,269,273
+ ../../src/mcp/servers/index.ts                                                         |   33.33 |   73.68 | 67,81-89
+ ../../src/memory/stats.ts                                                              |    0.00 |   60.00 | 34-40,54,61
+ ../../src/paths.ts                                                                     |   13.04 |   50.59 | 20,30,34,38,42,46,55,59,67-85,92-95,99,108,112,121,129,133,142,146,159,163
+----------------------------------------------------------------------------------------|---------|---------|-------------------
+
+ 48 pass
+ 4 fail
+ 103 expect() calls
+Ran 52 tests across 1 files. [3.94s]
