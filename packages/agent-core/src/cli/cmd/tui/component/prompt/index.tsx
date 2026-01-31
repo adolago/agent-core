@@ -166,6 +166,10 @@ export function Prompt(props: PromptProps) {
     return { files: diffs.length, additions, deletions, modified }
   })
   const gitBranch = createMemo(() => sync.data.vcs?.branch)
+  const formatTokens = (n: number) => {
+    if (n >= 1000) return `${Math.round(n / 1000)}k`
+    return `${n}`
+  }
   const history = usePromptHistory()
   const stash = usePromptStash()
   const command = useCommandDialog()
@@ -1858,7 +1862,7 @@ export function Prompt(props: PromptProps) {
                   return (
                     <box flexDirection="row" gap={1}>
                       <Show when={contextUsage()?.percent}>
-                        <text fg={theme.textMuted}>{contextUsage()?.percent}%</text>
+                        <text fg={theme.textMuted}>{contextUsage()?.percent}% · {formatTokens(contextUsage()?.count ?? 0)}/{formatTokens(contextUsage()?.limit ?? 0)}</text>
                       </Show>
                     </box>
                   )
@@ -1965,7 +1969,7 @@ export function Prompt(props: PromptProps) {
                             <text fg={theme.accent}>{phaseLabel()}</text>
                             <text> </text>
                             <Show when={contextUsage()?.percent}>
-                              <text fg={theme.textMuted}>{contextUsage()?.percent}%</text>
+                              <text fg={theme.textMuted}>{contextUsage()?.percent}% · {formatTokens(contextUsage()?.count ?? 0)}/{formatTokens(contextUsage()?.limit ?? 0)}</text>
                               <text> </text>
                             </Show>
                             <Show when={embConfig}>
