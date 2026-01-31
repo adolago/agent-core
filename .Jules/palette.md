@@ -19,3 +19,7 @@
 ## 2025-02-14 - Manual Icon Buttons in Lit
 **Learning:** In the Lit-based UI (`zee` persona), icon-only buttons are often implemented as standard `<button>` elements with classes (e.g., `btn btn--icon`) rather than a dedicated component. These manual implementations frequently lack `aria-label`, relying only on `title` which is insufficient for all screen readers.
 **Action:** When working with `btn--icon` classes, explicitly verify that `aria-label` is present and descriptive.
+
+## 2026-01-27 - Static Assets Accessibility
+**Learning:** Static HTML assets (like extension pages) are often overlooked by lint/test pipelines but are critical touchpoints. Direct verification via Playwright file:// protocol is effective for these.
+**Action:** When auditing a monorepo, check `assets/` folders for hidden UI surfaces that bypass standard build checks.
