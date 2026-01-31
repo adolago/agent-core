@@ -38,6 +38,7 @@ import { Dictation } from "@tui/util/dictation"
 import { DialogGrammar } from "../dialog-grammar"
 import { Grammar } from "../../util/grammar"
 import { createGrammarChecker, type GrammarError } from "../../util/grammar-realtime"
+import { Tips } from "../tips"
 
 export type PromptProps = {
   sessionID?: string
@@ -1418,22 +1419,28 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Top border with persona + skills (Amp style box) */}
-        <box height={1} flexDirection="row" justifyContent="flex-end">
-          <text fg={theme.border}>{"─".repeat(500)}</text>
+        {/* Top border with persona + skills + VIM (Amp style) */}
+        <box height={1} flexDirection="row">
+          <text fg={theme.border}>┌</text>
+          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
           <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
           <text fg={theme.border}>──</text>
-          <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} agents</text>
+          <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} skills</text>
+          <Show when={vim.enabled && store.mode !== "shell"}>
+            <text fg={theme.border}>──</text>
+            <text fg={theme.textMuted}>VIM </text>
+            <text
+              fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
+              attributes={TextAttributes.BOLD}
+            >
+              {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
+            </text>
+          </Show>
           <text fg={theme.border}>─┐</text>
         </box>
-        <box
-          border={["right"]}
-          borderColor={theme.border}
-          customBorderChars={{
-            ...EmptyBorder,
-            vertical: "│",
-          }}
-        >
+        {/* Input row with left and right border */}
+        <box flexDirection="row">
+          <text fg={theme.border}>│</text>
           <box
             paddingLeft={1}
             paddingRight={1}
@@ -1742,10 +1749,13 @@ export function Prompt(props: PromptProps) {
               syntaxStyle={syntax()}
             />
           </box>
+          {/* Right border character */}
+          <text fg={theme.border}>│</text>
         </box>
-        {/* Bottom border with path + branch (Amp style box) */}
-        <box height={1} flexDirection="row" justifyContent="flex-end">
-          <text fg={theme.border}>{"─".repeat(500)}</text>
+        {/* Bottom border with path + branch (Amp style) */}
+        <box height={1} flexDirection="row">
+          <text fg={theme.border}>└</text>
+          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
           <text fg={theme.textMuted}>
             <Show when={sync.data.path?.directory}>
               {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
@@ -1756,7 +1766,30 @@ export function Prompt(props: PromptProps) {
           </text>
           <text fg={theme.border}>─┘</text>
         </box>
-        {/* Status bar (outside the box) */}
+        {/* Diff stats line (Amp style - below box, right-aligned) */}
+        <Show when={diffStats()}>
+          {(stats) => (
+            <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={2}>
+              <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
+              <Show when={stats().additions > 0}>
+                <text fg={theme.success}>+{stats().additions}</text>
+              </Show>
+              <Show when={stats().additions > 0 && stats().modified > 0}>
+                <text> </text>
+              </Show>
+              <Show when={stats().modified > 0}>
+                <text fg={theme.warning}>~{stats().modified}</text>
+              </Show>
+              <Show when={(stats().additions > 0 || stats().modified > 0) && stats().deletions > 0}>
+                <text> </text>
+              </Show>
+              <Show when={stats().deletions > 0}>
+                <text fg={theme.error}>-{stats().deletions}</text>
+              </Show>
+            </box>
+          )}
+        </Show>
+        {/* Status bar (Amp style) */}
         <box
           flexDirection="row"
           justifyContent="space-between"
@@ -1947,92 +1980,42 @@ export function Prompt(props: PromptProps) {
               </Match>
               <Match when={store.mode === "normal"}>
                 {(() => {
-                  const formatLimit = (n: number) => {
-                    if (n >= 1000000) return `${(n / 1000000).toFixed(0)}M`
-                    if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
-                    return n.toString()
-                  }
-                  const usage = contextUsage()
-                  const usageColor = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
                   const parsed = local.model.parsed()
                   const variant = local.model.variant.current()
+                  const formatElapsed = (s: number) => {
+                    if (s < 60) return `${s}`
+                    if (s < 3600) {
+                      const m = Math.floor(s / 60)
+                      const sec = s % 60
+                      return sec > 0 ? `${m}m${sec}` : `${m}m`
+                    }
+                    const h = Math.floor(s / 3600)
+                    const m = Math.floor((s % 3600) / 60)
+                    return m > 0 ? `${h}h${m}m` : `${h}h`
+                  }
                   return (
-                    <>
-                      <Show when={usage}>
-                        {chip(<text fg={usageColor}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>)}
-                      </Show>
-                      {chip(
-                        <>
-                          <text fg={theme.textMuted}>{parsed.provider}</text>
-                          <text fg={theme.textMuted}>·</text>
-                          <text fg={theme.textMuted}>{parsed.model}</text>
-                          <Show when={variant}>
-                            <text fg={theme.textMuted}>·</text>
-                            <text fg={highlight()}>{variant}</text>
-                          </Show>
-                        </>
-                      )}
-                      <Show when={gitBranch()}>
-                        {chip(<text fg={theme.success}>{gitBranch()}</text>)}
-                      </Show>
-                      <Show when={diffStats()}>
-                        {(stats) => chip(
-                          <>
-                            <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
-                            <Show when={stats().additions > 0}>
-                              <text fg={theme.success}>+{stats().additions}</text>
-                            </Show>
-                            <Show when={stats().additions > 0 && stats().modified > 0}>
-                              <text> </text>
-                            </Show>
-                            <Show when={stats().modified > 0}>
-                              <text fg={theme.warning}>~{stats().modified}</text>
-                            </Show>
-                            <Show when={(stats().additions > 0 || stats().modified > 0) && stats().deletions > 0}>
-                              <text> </text>
-                            </Show>
-                            <Show when={stats().deletions > 0}>
-                              <text fg={theme.error}>-{stats().deletions}</text>
-                            </Show>
-                          </>
-                        )}
-                      </Show>
-                      <Show when={vim.enabled && store.mode !== "shell"}>
-                        {chip(
-                          <>
-                            <text fg={theme.textMuted}>VIM</text>
-                            <text
-                              fg={vim.isVisual ? theme.warning : vim.isNormal ? theme.accent : theme.success}
-                              attributes={TextAttributes.BOLD}
-                            >
-                              {vim.isVisual ? "V" : vim.isNormal ? "N" : "I"}
-                            </text>
-                          </>
-                        )}
-                      </Show>
-                      {/* Elapsed work time (Amp style) */}
+                    <box flexDirection="row" gap={0}>
+                      {/* Elapsed · model (Amp style) */}
                       <Show when={completedWorkTime() > 0}>
-                        {(() => {
-                          const formatElapsed = (s: number) => {
-                            if (s < 60) return `${s}s`
-                            if (s < 3600) {
-                              const m = Math.floor(s / 60)
-                              const sec = s % 60
-                              return sec > 0 ? `${m}m${sec}s` : `${m}m`
-                            }
-                            const h = Math.floor(s / 3600)
-                            const m = Math.floor((s % 3600) / 60)
-                            return m > 0 ? `${h}h${m}m` : `${h}h`
-                          }
-                          return <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
-                        })()}
+                        <text fg={theme.border}>{formatElapsed(completedWorkTime())}</text>
+                        <text fg={theme.border}> · </text>
                       </Show>
-                    </>
+                      <text fg={highlight()}>{variant || parsed.model}</text>
+                      {/* Branch */}
+                      <Show when={gitBranch()}>
+                        <text fg={theme.border}>    </text>
+                        <text fg={theme.success}>{gitBranch()}</text>
+                      </Show>
+                    </box>
                   )
                 })()}
               </Match>
             </Switch>
           </box>
+        </box>
+        {/* Zee announcement/tips (like Amp's ad box) */}
+        <box paddingTop={1} paddingLeft={2}>
+          <Tips />
         </box>
       </box>
     </>
