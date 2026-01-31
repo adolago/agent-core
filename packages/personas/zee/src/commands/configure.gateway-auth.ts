@@ -66,7 +66,7 @@ export async function promptAuthConfig(
       allowKeep: true,
       ignoreAllowlist: true,
       preferredProvider: resolvePreferredProviderForAuthChoice(authChoice),
-    });
+    } as any);
     if (modelSelection.model) {
       next = applyPrimaryModel(next, modelSelection.model);
     }

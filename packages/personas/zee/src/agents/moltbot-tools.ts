@@ -1,1 +1,1 @@
-export { createZeeTools, createZeeTools } from "./zee-tools.js";
+export { createZeeTools } from "./zee-tools.js";

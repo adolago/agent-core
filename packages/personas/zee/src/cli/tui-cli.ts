@@ -22,7 +22,7 @@ export function registerTuiCli(program: Command) {
       "after",
       () =>
         `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/tui", "docs.zee/cli/tui")}\n` +
-        `${theme.muted("Tip:")} Use ${theme.bold("agent-core")} directly for the primary TUI.\n`,
+        `${theme.muted("Tip:")} Use ${theme.accent("agent-core")} directly for the primary TUI.\n`,
     )
     .action(async (opts) => {
       try {

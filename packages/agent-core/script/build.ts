@@ -45,6 +45,10 @@ function bundlePersonas(distRoot: string) {
     filter: (srcPath) => {
       const base = path.basename(srcPath)
       if (base === ".git" || base === ".venv" || base === "venv") return false
+      // Avoid recursive symlink loop in extensions
+      if (srcPath.includes("/extensions/") && base === "node_modules") return false
+      // Avoid recursive symlink loop in pnpm structure
+      if (srcPath.includes("node_modules/zee")) return false
       // Skip broken symlinks (e.g., skills -> absolute path that doesn't exist in CI)
       try {
         const stats = fs.lstatSync(srcPath)

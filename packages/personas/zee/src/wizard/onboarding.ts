@@ -382,7 +382,7 @@ export async function runOnboardingWizard(
       allowKeep: true,
       ignoreAllowlist: true,
       preferredProvider: resolvePreferredProviderForAuthChoice(authChoice),
-    });
+    } as any);
     if (modelSelection.model) {
       nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
     }

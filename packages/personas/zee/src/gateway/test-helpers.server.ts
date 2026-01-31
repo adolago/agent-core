@@ -116,7 +116,7 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
   testTailnetIPv4.value = undefined;
   testState.gatewayBind = undefined;
   testState.gatewayAuth = { mode: "token", token: "test-gateway-token-1234567890" };
-  testState.gatewayControlUi = undefined;
+  // testState.gatewayControlUi = undefined;
   testState.hooksConfig = undefined;
   testState.canvasHostPort = undefined;
   testState.legacyIssues = [];

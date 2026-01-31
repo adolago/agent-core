@@ -1400,13 +1400,6 @@ export function Prompt(props: PromptProps) {
     </box>
   )
 
-  const [reminderText, setReminderText] = createSignal<string>(kv.get("zee_reminder", "Zee is online. No active reminders."))
-
-  // Persist reminder text changes
-  createEffect(() => {
-    kv.set("zee_reminder", reminderText())
-  })
-
   return (
     <>
       <Autocomplete
@@ -1450,22 +1443,6 @@ export function Prompt(props: PromptProps) {
           <text fg={theme.border}>─┐</text>
         </box>
         
-        {/* Reminder Box (Non-interactive) */}
-        <Show when={reminderText()}>
-          <box flexDirection="row">
-            <text fg={theme.border}>│</text>
-            <box paddingLeft={1} paddingRight={1} flexGrow={1}>
-              <text fg={theme.warning} attributes={TextAttributes.ITALIC}>{reminderText()}</text>
-            </box>
-            <text fg={theme.border}>│</text>
-          </box>
-          <box height={1} flexDirection="row">
-            <text fg={theme.border}>├</text>
-            <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
-            <text fg={theme.border}>┤</text>
-          </box>
-        </Show>
-
         {/* Input row with left and right border */}
         <box flexDirection="row">
           <text fg={theme.border}>│</text>
@@ -1880,8 +1857,9 @@ export function Prompt(props: PromptProps) {
                   const parsed = local.model.parsed()
                   return (
                     <box flexDirection="row" gap={1}>
-                      <text fg={theme.textMuted}>{parsed.provider}</text>
-                      <text fg={theme.primary}>{parsed.model}</text>
+                      <Show when={contextUsage()?.percent}>
+                        <text fg={theme.textMuted}>{contextUsage()?.percent}%</text>
+                      </Show>
                     </box>
                   )
                 })()}
@@ -1986,6 +1964,10 @@ export function Prompt(props: PromptProps) {
                           <box flexDirection="row" gap={0}>
                             <text fg={theme.accent}>{phaseLabel()}</text>
                             <text> </text>
+                            <Show when={contextUsage()?.percent}>
+                              <text fg={theme.textMuted}>{contextUsage()?.percent}%</text>
+                              <text> </text>
+                            </Show>
                             <Show when={embConfig}>
                               <text fg={theme.warning}>◆</text>
                               <text fg={theme.textMuted}>{embConfig?.maxContext ?? 0}</text>
@@ -2031,12 +2013,20 @@ export function Prompt(props: PromptProps) {
                   }
                   return (
                     <box flexDirection="row" gap={0}>
-                      {/* Elapsed · model (Amp style) */}
+                      {/* Elapsed · persona · model (Amp style) */}
                       <Show when={completedWorkTime() > 0}>
                         <text fg={theme.border}>{formatElapsed(completedWorkTime())}</text>
                         <text fg={theme.border}> · </text>
                       </Show>
-                      <text fg={highlight()}>{variant || parsed.model}</text>
+                      <text fg={theme.text}>{Locale.titlecase(local.agent.current().name)}</text>
+                      <text fg={theme.border}> · </text>
+                      <text fg={theme.textMuted}>{parsed.provider}</text>
+                      <text fg={theme.textMuted}> </text>
+                      <text fg={theme.textMuted}>{parsed.model}</text>
+                      <Show when={variant}>
+                        <text fg={theme.textMuted}> </text>
+                        <text fg={theme.accent}>{variant}</text>
+                      </Show>
                       {/* Branch */}
                       <Show when={gitBranch()}>
                         <text fg={theme.border}>    </text>

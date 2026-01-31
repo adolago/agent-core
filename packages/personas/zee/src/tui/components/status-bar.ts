@@ -157,15 +157,15 @@ export class StatusBar extends Container {
       parts.push(this.theme.statusText(this.state.statusLabel));
     }
 
+    if (this.state.contextPercent != null) {
+      parts.push(this.theme.dimText(`${this.state.contextPercent}%`));
+    }
+
     const leftSide = parts.join(" ");
 
     // Right side: persona | context % | tokens
     const rightParts: string[] = [];
     rightParts.push(this.theme.accentText(this.state.personaName));
-
-    if (this.state.contextPercent != null) {
-      rightParts.push(this.theme.dimText(`${this.state.contextPercent}%`));
-    }
 
     if (this.state.tokenCount) {
       rightParts.push(this.theme.dimText(this.state.tokenCount));
