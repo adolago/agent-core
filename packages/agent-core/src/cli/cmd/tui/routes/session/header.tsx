@@ -41,8 +41,10 @@ export function Header() {
   return (
     <box flexShrink={0}>
       <box
-        {...HeaderStyles.style}
-        borderColor={theme.border}
+        paddingTop={HeaderStyles.padding.top}
+        paddingBottom={HeaderStyles.padding.bottom}
+        paddingLeft={HeaderStyles.padding.left}
+        paddingRight={HeaderStyles.padding.right}
         backgroundColor={theme.backgroundPanel}
       >
         <Switch>

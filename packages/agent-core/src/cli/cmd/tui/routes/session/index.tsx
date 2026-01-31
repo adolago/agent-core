@@ -1036,7 +1036,15 @@ export function Session() {
       }}
     >
       <box flexDirection="row">
-        <box flexGrow={1} paddingTop={1} paddingLeft={1} paddingRight={1}>
+        <box
+          flexGrow={1}
+          paddingTop={1}
+          paddingLeft={1}
+          paddingRight={1}
+          {...SplitBorder}
+          border={["left", "right", "top"]}
+          borderColor={theme.border}
+        >
           <Show when={session()}>
             <Show when={!sidebarVisible() || !wide()}>
               <Header />

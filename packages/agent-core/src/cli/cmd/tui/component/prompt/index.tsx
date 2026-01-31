@@ -1440,7 +1440,7 @@ export function Prompt(props: PromptProps) {
         </box>
         {/* Input row with left and right border */}
         <box flexDirection="row">
-          <text fg={theme.border}>│</text>
+          <text fg={theme.border}>┃</text>
           <box
             paddingLeft={1}
             paddingRight={1}
@@ -1750,7 +1750,7 @@ export function Prompt(props: PromptProps) {
             />
           </box>
           {/* Right border character */}
-          <text fg={theme.border}>│</text>
+          <text fg={theme.border}>┃</text>
         </box>
         {/* Bottom border with path + branch (Amp style) */}
         <box height={1} flexDirection="row">
