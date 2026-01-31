@@ -77,11 +77,53 @@ khard show "John Doe"           # Details
 | `zee:memory-search` | Semantic search across memories |
 | `zee:messaging` | Send text/audio/media on WhatsApp and Telegram |
 | `zee:notification` | Proactive alerts and reminders |
+| `zee:reminder-status` | TUI banner with calendar/memory status |
 | `zee:browser-*` | Web automation (see `tools-reference.md`) |
 | `zee:pty-*` | Interactive terminal sessions |
 | `zee:node-*` | Node host control |
 | `zee:cron-*` | Scheduled task automation |
 | `zee:sentinel-*` | Session persistence on restart |
+
+## Reminder Status Banner
+
+Display a status banner in the TUI showing upcoming reminders from calendar and memory.
+
+### Setup (One-Time)
+```bash
+# Enable automatic status updates
+agent-core tool zee:reminder-status '{"autoSave": true, "setupCron": true}'
+```
+
+This creates a cron job that refreshes the banner every 15 minutes with:
+- Today's events from Google Calendar
+- Upcoming tasks from memory
+
+### Manual Usage
+```bash
+# Check current status
+agent-core tool zee:reminder-status
+
+# Detailed format (shows next upcoming reminder)
+agent-core tool zee:reminder-status '{"format": "detailed"}'
+
+# Save to banner without setting up cron
+agent-core tool zee:reminder-status '{"autoSave": true}'
+```
+
+### Banner Display
+The banner appears in the TUI home screen when `zee_status_banner` is set in KV store.
+
+### Manage Auto-Refresh
+```bash
+# List cron jobs (find the reminder-status job ID)
+agent-core tool zee:cron-list
+
+# Disable auto-refresh
+agent-core tool zee:cron-update '{"jobId": "<id>", "patch": {"enabled": false}}'
+
+# Remove completely
+agent-core tool zee:cron-remove '{"jobId": "<id>"}'
+```
 
 ## Memory Categories
 
