@@ -6,7 +6,7 @@ import { UI } from "./ui"
 
 export function FormatError(input: unknown) {
   if (MCP.Failed.isInstance(input))
-    return `MCP server "${input.data.name}" failed. Note, agent-core does not support MCP authentication yet.`
+    return `MCP server "${input.data.name}" failed. Note, agent-core does not support MCP authentication yet`
   if (Provider.ModelNotFoundError.isInstance(input)) {
     const { providerID, modelID, suggestions } = input.data
     return [
@@ -17,7 +17,7 @@ export function FormatError(input: unknown) {
     ].join("\n")
   }
   if (Provider.InitError.isInstance(input)) {
-    return `Failed to initialize provider "${input.data.providerID}". Check credentials and configuration.`
+    return `Failed to initialize provider "${input.data.providerID}". Check credentials and configuration`
   }
   if (Config.JsonError.isInstance(input)) {
     return (
@@ -25,7 +25,7 @@ export function FormatError(input: unknown) {
     )
   }
   if (Config.ConfigDirectoryTypoError.isInstance(input)) {
-    return `Directory "${input.data.dir}" in ${input.data.path} is not valid. Rename the directory to "${input.data.suggestion}" or remove it. This is a common typo.`
+    return `Directory "${input.data.dir}" in ${input.data.path} is not valid. Rename the directory to "${input.data.suggestion}" or remove it. This is a common typo`
   }
   if (ConfigMarkdown.FrontmatterError.isInstance(input)) {
     return input.data.message

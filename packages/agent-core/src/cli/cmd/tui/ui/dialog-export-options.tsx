@@ -102,10 +102,10 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
           keyBindings={[{ name: "return", action: "submit" }]}
           ref={(val: TextareaRenderable) => (textarea = val)}
           initialValue={props.defaultFilename}
-          placeholder="Enter filename"
+          placeholder="Enter filename..."
           textColor={theme.text}
           focusedTextColor={theme.text}
-          cursorColor={theme.text}
+          cursorColor={theme.primary}
         />
       </box>
       <box flexDirection="column">

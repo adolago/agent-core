@@ -14,7 +14,6 @@ import {
   useContext,
 } from "solid-js"
 import "opentui-spinner/solid"
-// createColors, createFrames removed - thinking spinner consolidated to prompt
 import { Dynamic } from "solid-js/web"
 import path from "path"
 import { useRoute, useRouteData } from "@tui/context/route"
@@ -198,7 +197,7 @@ export function Session() {
   const [showAssistantMetadata, setShowAssistantMetadata] = kv.signal("assistant_metadata_visibility", true)
   const [showScrollbar, setShowScrollbar] = kv.signal("scrollbar_visible", false)
   const [diffWrapMode, setDiffWrapMode] = createSignal<"word" | "none">("word")
-  const [animationsEnabled, setAnimationsEnabled] = kv.signal("animations_enabled", true)
+
 
   const wide = createMemo(() => dimensions().width > 120)
   const sidebarVisible = createMemo(() => {
@@ -657,15 +656,7 @@ export function Session() {
         dialog.clear()
       },
     },
-    {
-      title: animationsEnabled() ? "Disable animations" : "Enable animations",
-      value: "session.toggle.animations",
-      category: "Session",
-      onSelect: (dialog) => {
-        setAnimationsEnabled((prev) => !prev)
-        dialog.clear()
-      },
-    },
+
     {
       title: "Page up",
       value: "session.page.up",
@@ -1297,6 +1288,7 @@ function UserMessage(props: {
           title=" Compaction "
           titleAlignment="center"
           borderColor={theme.borderActive}
+          customBorderChars={SplitBorder.customBorderChars}
         />
       </Show>
     </>
@@ -1309,7 +1301,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
   const { theme } = useTheme()
   const sync = useSync()
   const messages = createMemo(() => sync.data.message[props.message.sessionID] ?? [])
-  // streamHealth memo removed - spinner consolidated to prompt area
+
 
   const final = createMemo(() => {
     return props.message.finish && !["tool-calls", "unknown"].includes(props.message.finish)
@@ -1332,7 +1324,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
     () => hasVisibleText() || hasVisibleTool() || hasVisibleReasoning(),
   )
   const isStreaming = createMemo(() => !props.message.time.completed && !props.message.error)
-  // showThinkingPlaceholder removed - spinner consolidated to prompt area
+
 
   const duration = createMemo(() => {
     if (!final()) return 0
@@ -1359,7 +1351,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
           )
         }}
       </For>
-      {/* Thinking placeholder removed - status now shown in prompt spinner */}
+
       <Show when={props.message.error && props.message.error.name !== "MessageAbortedError"}>
         <box
           border={["left"]}
@@ -1715,7 +1707,7 @@ function Bash(props: ToolProps<typeof BashTool>) {
             </Show>
           </text>
           <Show when={expanded()}>
-            <box paddingLeft={1} border={["left"]} borderColor={theme.backgroundElement}>
+            <box paddingLeft={1} border={["left"]} borderColor={theme.backgroundElement} customBorderChars={SplitBorder.customBorderChars}>
               <text fg={theme.textMuted}>{output()}</text>
             </box>
             <text fg={theme.textMuted}>Click to collapse</text>

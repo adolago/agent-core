@@ -1,6 +1,7 @@
 import { cmd } from "../cmd"
 import { Session } from "../../../session"
 import { SessionStatus } from "../../../session/status"
+import { Timestamp } from "../../../util/timestamp"
 import { bootstrap } from "../../bootstrap"
 
 export const TasksCommand = cmd({
@@ -91,7 +92,7 @@ export const TasksCommand = cmd({
       for (const task of tasks.slice(0, 10)) {
         const statusIcon = task.status === "idle" ? " " : "*"
         const updated = task.updated === "-" ? task.created : task.updated
-        const time = new Date(updated).toLocaleTimeString()
+        const time = Timestamp.time(new Date(updated))
         console.log(`  ${statusIcon} ${task.sessionId.slice(0, 8)}  ${time}  ${task.title.slice(0, 40)}`)
       }
     })

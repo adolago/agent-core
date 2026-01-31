@@ -4,6 +4,7 @@ import { useDialog } from "@tui/ui/dialog"
 import { Grammar } from "../util/grammar"
 import { useTheme, selectedForeground } from "@tui/context/theme"
 import { TextAttributes } from "@opentui/core"
+import { SplitBorder } from "@tui/component/border"
 
 export function DialogGrammar(props: {
   originalText: string
@@ -94,7 +95,7 @@ export function DialogGrammar(props: {
         >
           <box flexDirection="column" paddingBottom={1}>
             <text fg={theme.warning}>{match().message}</text>
-            <box flexDirection="row" marginTop={1} padding={1} border={["top", "bottom", "left", "right"]} borderColor={theme.border}>
+            <box flexDirection="row" marginTop={1} padding={1} border={["top", "bottom", "left", "right"]} borderColor={theme.border} customBorderChars={SplitBorder.customBorderChars}>
               <text fg={theme.textMuted}>{contextPreview()?.before}</text>
               <text fg={theme.error} attributes={TextAttributes.BOLD}>{contextPreview()?.mistake}</text>
               <text fg={theme.textMuted}>{contextPreview()?.after}</text>

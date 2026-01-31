@@ -10,8 +10,11 @@ export const TodoWriteTool = Tool.define("todowrite", {
     todos: z.array(z.object(Todo.InfoInput.shape)).describe("The updated todo list"),
   }),
   async execute(params, ctx) {
-    if (ctx.extra?.holdMode === true) {
-      const allowed = await HoldMode.isToolAllowedInHold("todowrite")
+    const holdMode = ctx.extra?.holdMode === true
+    const skipPermissions = ctx.extra?.skipPermissions === true
+
+    if (holdMode && !skipPermissions) {
+      const allowed = await HoldMode.isToolAllowedInHold("todowrite", skipPermissions)
       if (!allowed) {
         throw new Error("HOLD MODE: Cannot modify todos. Switch to RELEASE mode to update todos.")
       }

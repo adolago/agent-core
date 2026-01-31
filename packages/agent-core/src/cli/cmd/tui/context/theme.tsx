@@ -1,3 +1,13 @@
+/**
+ * @file Theme Context
+ * @description Theme management for the TUI with NO_COLOR support
+ * 
+ * NO_COLOR Support:
+ * This module respects the NO_COLOR environment variable (https://no-color.org/).
+ * When NO_COLOR is set, a monochrome theme is used with only black, white, and gray colors.
+ * This ensures the TUI remains functional but without any color output.
+ */
+
 import { SyntaxStyle, RGBA, type TerminalColors } from "@opentui/core"
 import path from "path"
 import { createEffect, createMemo, onMount } from "solid-js"
@@ -141,6 +151,95 @@ type ThemeJson = {
   }
 }
 
+/**
+ * Generate a monochrome theme for NO_COLOR mode.
+ * Uses only black, white, and gray colors.
+ */
+export function generateMonochromeTheme(mode: "dark" | "light"): ThemeJson {
+  // Define monochrome colors based on mode
+  const white = RGBA.fromInts(255, 255, 255)
+  const black = RGBA.fromInts(0, 0, 0)
+  const gray1 = RGBA.fromInts(mode === "dark" ? 20 : 240, mode === "dark" ? 20 : 240, mode === "dark" ? 20 : 240)
+  const gray2 = RGBA.fromInts(mode === "dark" ? 40 : 220, mode === "dark" ? 40 : 220, mode === "dark" ? 40 : 220)
+  const gray3 = RGBA.fromInts(mode === "dark" ? 60 : 200, mode === "dark" ? 60 : 200, mode === "dark" ? 60 : 200)
+  const gray4 = RGBA.fromInts(mode === "dark" ? 80 : 180, mode === "dark" ? 80 : 180, mode === "dark" ? 80 : 180)
+  const gray5 = RGBA.fromInts(mode === "dark" ? 100 : 160, mode === "dark" ? 100 : 160, mode === "dark" ? 100 : 160)
+  const gray6 = RGBA.fromInts(mode === "dark" ? 120 : 140, mode === "dark" ? 120 : 140, mode === "dark" ? 120 : 140)
+  const gray7 = RGBA.fromInts(mode === "dark" ? 140 : 120, mode === "dark" ? 140 : 120, mode === "dark" ? 140 : 120)
+  const gray8 = RGBA.fromInts(mode === "dark" ? 160 : 100, mode === "dark" ? 160 : 100, mode === "dark" ? 160 : 100)
+  const gray9 = RGBA.fromInts(mode === "dark" ? 180 : 80, mode === "dark" ? 180 : 80, mode === "dark" ? 180 : 80)
+  
+  const bg = mode === "dark" ? black : white
+  const fg = mode === "dark" ? white : black
+  const textMuted = gray6
+
+  return {
+    theme: {
+      // All monochrome - no colors
+      primary: fg,
+      secondary: fg,
+      accent: fg,
+      error: fg,
+      warning: fg,
+      success: fg,
+      info: fg,
+      text: fg,
+      textMuted,
+      selectedListItemText: bg,
+      background: bg,
+      backgroundPanel: gray1,
+      backgroundElement: gray2,
+      backgroundMenu: gray3,
+      borderSubtle: gray4,
+      border: gray5,
+      borderActive: gray7,
+      diffAdded: gray7,
+      diffRemoved: gray7,
+      diffContext: gray5,
+      diffHunkHeader: gray6,
+      diffHighlightAdded: gray8,
+      diffHighlightRemoved: gray8,
+      diffAddedBg: gray2,
+      diffRemovedBg: gray2,
+      diffContextBg: gray1,
+      diffLineNumber: gray5,
+      diffAddedLineNumberBg: gray3,
+      diffRemovedLineNumberBg: gray3,
+      markdownText: fg,
+      markdownHeading: fg,
+      markdownLink: fg,
+      markdownLinkText: fg,
+      markdownCode: gray7,
+      markdownBlockQuote: gray6,
+      markdownEmph: fg,
+      markdownStrong: fg,
+      markdownHorizontalRule: gray5,
+      markdownListItem: fg,
+      markdownListEnumeration: gray6,
+      markdownImage: fg,
+      markdownImageText: fg,
+      markdownCodeBlock: gray7,
+      syntaxComment: textMuted,
+      syntaxKeyword: fg,
+      syntaxFunction: fg,
+      syntaxVariable: fg,
+      syntaxString: fg,
+      syntaxNumber: fg,
+      syntaxType: fg,
+      syntaxOperator: fg,
+      syntaxPunctuation: fg,
+    },
+  }
+}
+
+/**
+ * Check if NO_COLOR environment variable is set.
+ * Follows the no-color.org standard.
+ */
+export function isNoColorEnabled(): boolean {
+  return process.env.NO_COLOR !== undefined
+}
+
 export const DEFAULT_THEMES: Record<string, ThemeJson> = {
   aura,
   ayu,
@@ -180,7 +279,7 @@ export const DEFAULT_THEMES: Record<string, ThemeJson> = {
   johny,
 }
 
-function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
+export function resolveTheme(theme: ThemeJson, mode: "dark" | "light") {
   const defs = theme.defs ?? {}
   function resolveColor(c: ColorValue): RGBA {
     if (c instanceof RGBA) return c
@@ -323,13 +422,11 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     onMount(init)
 
     function resolveSystemTheme() {
-      console.log("resolveSystemTheme")
       renderer
         .getPalette({
           size: 16,
         })
         .then((colors) => {
-          console.log(colors.palette)
           if (!colors.palette[0]) {
             if (store.active === "system") {
               setStore(
@@ -359,6 +456,10 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     })
 
     const values = createMemo(() => {
+      // Use monochrome theme when NO_COLOR is set
+      if (isNoColorEnabled()) {
+        return resolveTheme(generateMonochromeTheme(store.mode), store.mode)
+      }
       return resolveTheme(store.themes[store.active] ?? store.themes.opencode, store.mode)
     })
 

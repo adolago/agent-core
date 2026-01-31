@@ -345,7 +345,20 @@ fi
 # Step 4: Link binary (direct symlink to built binary)
 log "Linking binary..."
 if [[ -f "$BINARY_SRC" ]]; then
+  # Ensure binary is fully written before linking (race condition fix)
+  sync
+  sleep 1
   ln -sf "$BINARY_SRC" "$BINARY_LINK"
+  # Verify the link resolves correctly
+  if [[ ! -x "$BINARY_LINK" ]]; then
+    err "Symlink created but binary not executable"
+    exit 1
+  fi
+  # Quick sanity check that binary runs
+  if ! "$BINARY_LINK" --version >/dev/null 2>&1; then
+    err "Binary linked but fails to execute"
+    exit 1
+  fi
   ok "Linked $BINARY_LINK -> $BINARY_SRC"
 else
   err "Binary not found at $BINARY_SRC"
@@ -411,6 +424,108 @@ if ! $NO_DAEMON; then
 else
   warn "Skipping daemon start (--no-daemon)"
 fi
+
+# Step 6: Verify all providers and models (embedding, reranking, LLMs)
+log "Verifying providers and models..."
+verify_providers() {
+  local all_ok=true
+  
+  echo ""
+  echo "Provider Health Check:"
+  echo "----------------------"
+  
+  # Check Qdrant connectivity
+  local qdrant_url="${QDRANT_URL:-http://localhost:6333}"
+  if curl -sf "$qdrant_url/health" >/dev/null 2>&1; then
+    ok "Qdrant:     $qdrant_url"
+  else
+    warn "Qdrant:     NOT AVAILABLE ($qdrant_url)"
+    all_ok=false
+  fi
+  
+  # Check embedding provider (Google/Voyage)
+  local google_key="${GEMINI_API_KEY:-${GOOGLE_API_KEY:-}}"
+  if [[ -n "$google_key" ]]; then
+    # Test Google embedding API endpoint (lightweight check)
+    if curl -sf "https://generativelanguage.googleapis.com/v1/models?key=$google_key" >/dev/null 2>&1; then
+      ok "Embedding:  Google (API key valid)"
+    else
+      warn "Embedding:  Google (API key invalid or expired)"
+      all_ok=false
+    fi
+  elif [[ -n "${VOYAGE_API_KEY:-}" ]]; then
+    ok "Embedding:  Voyage (configured)"
+  else
+    warn "Embedding:  NOT CONFIGURED (set GEMINI_API_KEY or VOYAGE_API_KEY)"
+    all_ok=false
+  fi
+  
+  # Check reranker (Voyage)
+  if [[ -n "${VOYAGE_API_KEY:-}" ]]; then
+    # Light test - just verify API endpoint reachable
+    local voyage_test=$(curl -sf -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $VOYAGE_API_KEY" "https://api.voyageai.com/v1/models" 2>&1)
+    if [[ "$voyage_test" == "200" || "$voyage_test" == "401" ]]; then
+      ok "Reranker:   Voyage (reachable)"
+    else
+      warn "Reranker:   Voyage (unreachable: HTTP $voyage_test)"
+    fi
+  else
+    echo "  Reranker:   Not configured (optional)"
+  fi
+  
+  # Check LLM providers
+  echo ""
+  echo "LLM Providers:"
+  
+  # Anthropic
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    local anthropic_test=$(curl -sf -o /dev/null -w "%{http_code}" -H "x-api-key: $ANTHROPIC_API_KEY" "https://api.anthropic.com/v1/messages" -X POST -H "content-type: application/json" -d '{}' 2>&1)
+    if [[ "$anthropic_test" == "400" || "$anthropic_test" == "401" ]]; then
+      ok "  Anthropic:  Reachable"
+    else
+      warn "  Anthropic:  Unreachable (HTTP $anthropic_test)"
+    fi
+  else
+    echo "    Anthropic:  Not configured"
+  fi
+  
+  # OpenAI
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    local openai_test=$(curl -sf -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $OPENAI_API_KEY" "https://api.openai.com/v1/models" 2>&1)
+    if [[ "$openai_test" == "200" ]]; then
+      ok "  OpenAI:     Reachable"
+    else
+      warn "  OpenAI:     Unreachable (HTTP $openai_test)"
+    fi
+  else
+    echo "    OpenAI:     Not configured"
+  fi
+  
+  # Google Gemini (LLM)
+  if [[ -n "$google_key" ]]; then
+    ok "  Gemini:     Reachable (uses embedding key)"
+  fi
+  
+  # Ollama (local)
+  local ollama_url="${OLLAMA_HOST:-http://localhost:11434}"
+  local ollama_test=$(curl -sf "$ollama_url/api/tags" 2>&1)
+  if [[ $? -eq 0 ]]; then
+    local model_count=$(echo "$ollama_test" | grep -o '"name"' | wc -l)
+    ok "  Ollama:     $model_count model(s) available"
+  else
+    echo "    Ollama:     Not running (optional)"
+  fi
+  
+  echo ""
+  
+  if $all_ok; then
+    ok "All critical providers verified"
+  else
+    warn "Some providers unavailable (memory features may be limited)"
+  fi
+}
+
+verify_providers
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"

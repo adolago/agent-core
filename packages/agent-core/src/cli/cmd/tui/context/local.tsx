@@ -479,7 +479,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             saveMode()
             toast.show({
               variant: modeStore.hold ? "info" : "success",
-              message: modeStore.hold ? "▣ HOLD mode - Research only" : "▢ RELEASE mode - Can edit files",
+              message: modeStore.hold ? "◼ HOLD mode - Research only" : "◻ RELEASE mode - Can edit files",
               duration: 2000,
             })
           })
@@ -584,14 +584,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           mode.setHold()
           toast.show({
             variant: "info",
-            message: "▣ HOLD mode - Research only (from tool)",
+            message: "◼ HOLD mode - Research only (from tool)",
             duration: 2000,
           })
         } else if (pending === "release") {
           mode.setRelease()
           toast.show({
             variant: "success",
-            message: "▢ RELEASE mode - Can edit files (from tool)",
+            message: "◻ RELEASE mode - Can edit files (from tool)",
             duration: 2000,
           })
         }

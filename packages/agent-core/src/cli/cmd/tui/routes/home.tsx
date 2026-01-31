@@ -14,6 +14,8 @@ import { usePromptRef } from "../context/prompt"
 import { Installation } from "@/installation"
 import { useKV } from "../context/kv"
 import { useCommandDialog } from "../component/dialog-command"
+import { StatusBar as StatusBarStyle } from "../../../style"
+import { Header as HeaderStyles } from "@tui/ui/header-footer"
 
 // Module-level flag to prevent initial prompt from being set multiple times
 // This ensures the prompt is only auto-filled once per app lifecycle
@@ -62,15 +64,19 @@ export function Home() {
 
   const Hint = (
     <Show when={connectedMcpCount() > 0}>
-      <box flexShrink={0} flexDirection="row" gap={1}>
+      <box flexShrink={0} flexDirection="row" gap={0}>
+        <text fg={theme.textMuted}>{StatusBarStyle.separator}</text>
         <text fg={theme.text}>
           <Switch>
             <Match when={mcpError()}>
-              <span style={{ fg: theme.error }}>•</span> mcp errors{" "}
+              <span style={{ fg: theme.error }}>⊙</span>
+              <span style={{ fg: theme.textMuted }}> </span>
+              mcp errors{" "}
               <span style={{ fg: theme.textMuted }}>space s</span>
             </Match>
             <Match when={true}>
-              <span style={{ fg: theme.success }}>•</span>{" "}
+              <span style={{ fg: theme.success }}>⊙</span>
+              <span style={{ fg: theme.textMuted }}> </span>
               {Locale.pluralize(connectedMcpCount(), "{} mcp server", "{} mcp servers")}
             </Match>
           </Switch>
@@ -117,24 +123,35 @@ export function Home() {
         </box>
         <Toast />
       </box>
-      <box paddingTop={1} paddingBottom={1} paddingLeft={2} paddingRight={2} flexDirection="row" flexShrink={0} gap={2}>
+      <box
+        paddingTop={HeaderStyles.padding.top}
+        paddingBottom={HeaderStyles.padding.bottom}
+        paddingLeft={HeaderStyles.padding.left}
+        paddingRight={HeaderStyles.padding.right}
+        flexDirection="row"
+        flexShrink={HeaderStyles.flexShrink}
+        gap={0}
+      >
         <text fg={theme.textMuted}>{directory()}</text>
-        <box gap={1} flexDirection="row" flexShrink={0}>
-          <Show when={mcp()}>
+        <Show when={mcp()}>
+          <text fg={theme.border}>{StatusBarStyle.separator}</text>
+          <box gap={0} flexDirection="row" flexShrink={0}>
             <text fg={theme.text}>
               <Switch>
                 <Match when={mcpError()}>
-                  <span style={{ fg: theme.error }}>⊙ </span>
+                  <span style={{ fg: theme.error }}>⊙</span>
                 </Match>
                 <Match when={true}>
-                  <span style={{ fg: connectedMcpCount() > 0 ? theme.success : theme.textMuted }}>⊙ </span>
+                  <span style={{ fg: connectedMcpCount() > 0 ? theme.success : theme.textMuted }}>⊙</span>
                 </Match>
               </Switch>
+              <span style={{ fg: theme.textMuted }}> </span>
               {connectedMcpCount()} MCP
             </text>
+            <text fg={theme.border}>{StatusBarStyle.separator}</text>
             <text fg={theme.textMuted}>:status</text>
-          </Show>
-        </box>
+          </box>
+        </Show>
         <box flexGrow={1} />
         <box flexShrink={0}>
           <text fg={theme.textMuted}>{runtimeLabel()}</text>

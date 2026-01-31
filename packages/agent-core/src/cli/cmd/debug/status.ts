@@ -10,6 +10,8 @@ import fsSync from "node:fs"
 import path from "path"
 import net from "net"
 import { Zee } from "../../../paths"
+import { Style, Symbols } from "../../style"
+import { Timestamp } from "../../../util/timestamp"
 
 const GATEWAY_ENV_HINTS = [
   "ZEE_GATEWAY_TOKEN",
@@ -431,26 +433,28 @@ async function collectStatus(verbose: boolean): Promise<SystemStatus> {
   return status
 }
 
+/**
+ * Prints the system status with theme-aware colors.
+ * Uses shared color constants from style.ts for consistency.
+ *
+ * CLI Mode: Uses ANSI colors mapped from theme
+ * TUI Mode: Would use full RGB colors from theme.tsx
+ */
 function printStatus(status: SystemStatus, verbose: boolean) {
-  const GREEN = "\x1b[32m"
-  const RED = "\x1b[31m"
-  const YELLOW = "\x1b[33m"
-  const BLUE = "\x1b[34m"
-  const DIM = "\x1b[2m"
-  const RESET = "\x1b[0m"
+  // Use shared style constants instead of hardcoded ANSI codes
+  const ok = (s: string) => `${Style.success}${Symbols.check}${Style.reset} ${s}`
+  const err = (s: string) => `${Style.error}${Symbols.cross}${Style.reset} ${s}`
+  const warn = (s: string) => `${Style.warning}${Symbols.warning}${Style.reset} ${s}`
 
-  const ok = (s: string) => `${GREEN}✓${RESET} ${s}`
-  const err = (s: string) => `${RED}✗${RESET} ${s}`
-  const warn = (s: string) => `${YELLOW}!${RESET} ${s}`
-
+  // Header with theme-aware colors
   console.log("")
-  console.log("═══════════════════════════════════════════════════════════════")
-  console.log("                    AGENT-CORE STATUS")
-  console.log("═══════════════════════════════════════════════════════════════")
+  console.log(`${Style.theme.border}${Symbols.hDoubleLine.repeat(63)}${Style.reset}`)
+  console.log(`${Style.theme.border}${Symbols.vDoubleLine}${Style.reset}${" ".repeat(19)}${Style.bold}AGENT-CORE STATUS${Style.reset}${" ".repeat(24)}${Style.theme.border}${Symbols.vDoubleLine}${Style.reset}`)
+  console.log(`${Style.theme.border}${Symbols.hDoubleLine.repeat(63)}${Style.reset}`)
   console.log("")
 
   // Runtime
-  console.log(`${BLUE}Runtime:${RESET}`)
+  console.log(`${Style.info}Runtime:${Style.reset}`)
   console.log(`  Version: ${status.runtime.version} (${status.runtime.channel}/${status.runtime.mode})`)
   console.log(`  Exec: ${status.runtime.execPath}`)
   if (status.runtime.entry) {
@@ -459,14 +463,14 @@ function printStatus(status: SystemStatus, verbose: boolean) {
   console.log("")
 
   // Binary
-  console.log(`${BLUE}Binary:${RESET}`)
+  console.log(`${Style.info}Binary:${Style.reset}`)
   if (status.binary.exists) {
     console.log(`  ${ok(`${status.binary.path} [${status.binary.source}]`)}`)
     if (status.binary.modifiedAt) {
-      console.log(`  ${DIM}Modified: ${new Date(status.binary.modifiedAt).toLocaleString()}${RESET}`)
+      console.log(`  ${Style.dim}Modified: ${Timestamp.pretty(new Date(status.binary.modifiedAt))}${Style.reset}`)
     }
     if (verbose && status.binary.resolved && status.binary.resolved !== status.binary.path) {
-      console.log(`  ${DIM}Resolved: ${status.binary.resolved}${RESET}`)
+      console.log(`  ${Style.dim}Resolved: ${status.binary.resolved}${Style.reset}`)
     }
   } else {
     console.log(`  ${err(`Not found at ${status.binary.path} [${status.binary.source}]`)}`)
@@ -485,7 +489,7 @@ function printStatus(status: SystemStatus, verbose: boolean) {
   console.log("")
 
   // Processes
-  console.log(`${BLUE}Processes:${RESET}`)
+  console.log(`${Style.info}Processes:${Style.reset}`)
   if (status.processes.length === 0) {
     console.log(`  ${warn("No agent-core processes running")}`)
   } else {
@@ -493,14 +497,14 @@ function printStatus(status: SystemStatus, verbose: boolean) {
       const typeLabel = proc.type.charAt(0).toUpperCase() + proc.type.slice(1)
       console.log(`  ${ok(`${typeLabel}: PID ${proc.pid}`)}`)
       if (verbose) {
-        console.log(`    ${DIM}${proc.cmd}${RESET}`)
+        console.log(`    ${Style.dim}${proc.cmd}${Style.reset}`)
       }
     }
   }
   console.log("")
 
   // Daemon
-  console.log(`${BLUE}Daemon:${RESET}`)
+  console.log(`${Style.info}Daemon:${Style.reset}`)
   if (status.daemon.url) {
     console.log(`  URL: ${status.daemon.url}`)
   } else {
@@ -514,15 +518,15 @@ function printStatus(status: SystemStatus, verbose: boolean) {
     const suffix = channel && mode ? ` (${channel}/${mode})` : ""
     console.log(`  ${ok(`Healthy (version: ${version}${suffix})`)}`)
     if (verbose && daemonRuntime?.execPath) {
-      console.log(`  ${DIM}Exec: ${daemonRuntime.execPath}${RESET}`)
+      console.log(`  ${Style.dim}Exec: ${daemonRuntime.execPath}${Style.reset}`)
     }
     if (verbose && daemonRuntime?.entry) {
-      console.log(`  ${DIM}Entry: ${daemonRuntime.entry}${RESET}`)
+      console.log(`  ${Style.dim}Entry: ${daemonRuntime.entry}${Style.reset}`)
     }
   } else if (status.daemon.running) {
     console.log(`  ${warn("Process running but not healthy")}`)
     if (status.daemon.error) {
-      console.log(`  ${DIM}Error: ${status.daemon.error}${RESET}`)
+      console.log(`  ${Style.dim}Error: ${status.daemon.error}${Style.reset}`)
     }
   } else {
     console.log(`  ${err("Not running")}`)
@@ -530,7 +534,7 @@ function printStatus(status: SystemStatus, verbose: boolean) {
   console.log("")
 
   // Gateway
-  console.log(`${BLUE}Gateway:${RESET}`)
+  console.log(`${Style.info}Gateway:${Style.reset}`)
   console.log(`  Port: ${status.gateway.port}`)
   if (status.gateway.listening) {
     console.log(`  ${ok("Listening")}`)
@@ -549,16 +553,16 @@ function printStatus(status: SystemStatus, verbose: boolean) {
     if (status.gateway.processes.length > 0) {
       console.log("  Processes:")
       for (const proc of status.gateway.processes) {
-        console.log(`    ${DIM}${proc.pid} ${proc.cmd}${RESET}`)
+        console.log(`    ${Style.dim}${proc.pid} ${proc.cmd}${Style.reset}`)
       }
     } else {
-      console.log(`  ${DIM}Processes: none${RESET}`)
+      console.log(`  ${Style.dim}Processes: none${Style.reset}`)
     }
   }
   console.log("")
 
   // Tools
-  console.log(`${BLUE}Tools:${RESET}`)
+  console.log(`${Style.info}Tools:${Style.reset}`)
   if (status.tools.directories.length === 0) {
     console.log(`  ${warn("No tool directories found")}`)
   } else {
@@ -567,7 +571,7 @@ function printStatus(status: SystemStatus, verbose: boolean) {
       console.log(`  ${ok(dir)} (${tools.length} tools)`)
       if (verbose) {
         for (const tool of tools) {
-          console.log(`    ${DIM}- ${path.basename(tool)}${RESET}`)
+          console.log(`    ${Style.dim}- ${path.basename(tool)}${Style.reset}`)
         }
       }
     }
@@ -576,9 +580,9 @@ function printStatus(status: SystemStatus, verbose: boolean) {
 
   // Source timestamps (verbose only)
   if (verbose && status.sources.length > 0) {
-    console.log(`${BLUE}Sources:${RESET}`)
+    console.log(`${Style.info}Sources:${Style.reset}`)
     for (const src of status.sources) {
-      const modified = new Date(src.modifiedAt).toLocaleTimeString()
+      const modified = Timestamp.time(new Date(src.modifiedAt))
       if (src.newerThanBinary) {
         console.log(`  ${warn(`${src.file} (${modified}) - NEWER than binary`)}`)
       } else {
@@ -590,19 +594,20 @@ function printStatus(status: SystemStatus, verbose: boolean) {
 
   // Issues
   if (status.issues.length > 0) {
-    console.log(`${BLUE}Issues:${RESET}`)
+    console.log(`${Style.info}Issues:${Style.reset}`)
     for (const issue of status.issues) {
       console.log(`  ${err(issue)}`)
     }
     console.log("")
   }
 
-  console.log("═══════════════════════════════════════════════════════════════")
+  // Footer with theme-aware border color
+  console.log(`${Style.theme.border}${Symbols.hDoubleLine.repeat(63)}${Style.reset}`)
 
   // Quick fix suggestions
   if (status.issues.length > 0) {
     console.log("")
-    console.log(`${BLUE}Quick fixes:${RESET}`)
+    console.log(`${Style.info}Quick fixes:${Style.reset}`)
     if (status.issues.some((i) => i.includes("bun link") || i.includes("PATH agent-core"))) {
       console.log(`  Link: cd ${Global.Path.source}/packages/agent-core && bun link`)
     }

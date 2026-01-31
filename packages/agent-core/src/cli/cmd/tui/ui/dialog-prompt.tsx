@@ -53,10 +53,10 @@ export function DialogPrompt(props: DialogPromptProps) {
           keyBindings={[{ name: "return", action: "submit" }]}
           ref={(val: TextareaRenderable) => (textarea = val)}
           initialValue={props.value}
-          placeholder={props.placeholder ?? "Enter text"}
+          placeholder={props.placeholder ?? "Enter text..."}
           textColor={theme.text}
           focusedTextColor={theme.text}
-          cursorColor={theme.text}
+          cursorColor={theme.primary}
         />
       </box>
       <box paddingBottom={1} gap={1} flexDirection="row">

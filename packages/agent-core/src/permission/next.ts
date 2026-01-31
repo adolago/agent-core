@@ -127,10 +127,19 @@ export namespace PermissionNext {
   export const ask = fn(
     Request.partial({ id: true }).extend({
       ruleset: Ruleset,
+      holdMode: z.boolean().optional(),
     }),
     async (input) => {
       const s = await state()
-      const { ruleset, ...request } = input
+      const { ruleset, holdMode, ...request } = input
+
+      // RELEASE mode (holdMode: false): auto-approve all permissions
+      // This makes RELEASE mode equivalent to --dangerous / skip-all
+      if (holdMode === false) {
+        log.info("auto-allow in RELEASE mode", { permission: request.permission })
+        return
+      }
+
       for (const pattern of request.patterns ?? []) {
         const rule = evaluate(request.permission, pattern, ruleset, s.approved)
         log.info("evaluated", { permission: request.permission, pattern, action: rule })

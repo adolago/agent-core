@@ -3,10 +3,18 @@
  *
  * Terminal-based interaction with streaming text output and interactive permission prompts.
  * Designed for agent-core and similar terminal-based agent interfaces.
+ * 
+ * NO_COLOR Support:
+ * This surface respects the NO_COLOR environment variable (https://no-color.org/).
+ * When NO_COLOR is set:
+ * - All ANSI color codes are disabled
+ * - ASCII spinner characters are used instead of Unicode
+ * - Plain text formatting is used for all output
+ * Use FORCE_COLOR to explicitly enable colors.
  */
 
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
-import { stdin, stdout } from 'node:process';
+import { stdin, stdout, env } from 'node:process';
 
 import {
   BaseSurface,
@@ -30,6 +38,29 @@ import {
   type ToolCall,
   type ToolResult,
 } from './types.js';
+
+// =============================================================================
+// NO_COLOR Detection
+// =============================================================================
+
+/**
+ * Determine if colors should be used based on environment variables.
+ * Follows the no-color.org standard.
+ */
+function shouldUseColors(): boolean {
+  if (env.NO_COLOR !== undefined) return false;
+  if (env.FORCE_COLOR !== undefined) return true;
+  return stdout.isTTY ?? false;
+}
+
+/**
+ * Determine if Unicode characters should be used.
+ * When NO_COLOR is set, defaults to ASCII for consistent plain-text output.
+ */
+function shouldUseUnicode(): boolean {
+  if (env.NO_COLOR !== undefined) return false;
+  return stdout.isTTY ?? false;
+}
 
 // =============================================================================
 // CLI Surface Capabilities
@@ -64,15 +95,22 @@ export class CLISurface extends BaseSurface implements Surface {
   private config: CLISurfaceConfig;
   private readline: ReadlineInterface | null = null;
   private spinnerInterval: NodeJS.Timeout | null = null;
-  private spinnerFrames = ['|', '/', '-', '\\'];
+  // Use ASCII spinner when NO_COLOR is set, Unicode otherwise
+  private spinnerFrames: string[];
   private spinnerIndex = 0;
   private isStreaming = false;
   private streamBuffer = '';
   private abortController: AbortController | null = null;
+  private useColors: boolean;
 
   constructor(config: Partial<CLISurfaceConfig> = {}) {
     super();
     this.config = { ...DEFAULT_CLI_CONFIG, ...config };
+    this.useColors = this.config.colors && shouldUseColors();
+    // Choose spinner frames based on Unicode support (NO_COLOR disables Unicode)
+    this.spinnerFrames = shouldUseUnicode() 
+      ? ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+      : ['|', '/', '-', '\\'];
   }
 
   // ---------------------------------------------------------------------------
@@ -385,11 +423,12 @@ export class CLISurface extends BaseSurface implements Surface {
   private showPrompt(): void {
     if (this.config.promptStyle === 'none') return;
 
-    const prompt = this.config.promptStyle === 'full'
-      ? this.format('> ', 'green')
-      : '> ';
-
-    this.write(prompt);
+    if (this.useColors && this.config.promptStyle === 'full') {
+      const prompt = this.format('> ', 'green');
+      this.write(prompt);
+    } else {
+      this.write('> ');
+    }
   }
 
   private startSpinner(): void {
@@ -398,7 +437,10 @@ export class CLISurface extends BaseSurface implements Surface {
     this.spinnerInterval = setInterval(() => {
       const frame = this.spinnerFrames[this.spinnerIndex];
       this.spinnerIndex = (this.spinnerIndex + 1) % this.spinnerFrames.length;
-      this.write(`\r${this.format(frame, 'cyan')} `);
+      const spinnerOutput = this.useColors 
+        ? this.format(frame, 'cyan') 
+        : frame;
+      this.write(`\r${spinnerOutput} `);
     }, 80);
   }
 
@@ -419,6 +461,16 @@ export class CLISurface extends BaseSurface implements Surface {
   }
 
   private formatResponse(text: string): string {
+    if (!this.useColors) {
+      // Return plain text when colors are disabled
+      return text
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/`(.+?)`/g, '$1')
+        .replace(/^# (.+)$/gm, '$1')
+        .replace(/^## (.+)$/gm, '$1')
+        .replace(/^- /gm, '  - ');
+    }
+    
     // Simple markdown-like formatting for CLI
     return text
       .replace(/\*\*(.+?)\*\*/g, this.format('$1', 'bold'))
@@ -429,7 +481,7 @@ export class CLISurface extends BaseSurface implements Surface {
   }
 
   private format(text: string, style: string): string {
-    if (!this.config.colors) return text;
+    if (!this.useColors) return text;
 
     const styles: Record<string, string> = {
       bold: '\x1b[1m',

@@ -6,6 +6,7 @@ import { useLocal } from "../context/local"
 import { useRoute } from "../context/route"
 import { useDirectory } from "../context/directory"
 import { useConnected } from "../component/dialog-model"
+import { StatusBar as StatusBarStyle } from "../../../style"
 
 export function StatusBar() {
   const { theme } = useTheme()
@@ -78,12 +79,12 @@ export function StatusBar() {
             <text fg={local.mode.isHold() ? theme.warning : theme.success}>
               {local.mode.isHold() ? "◼ HOLD" : "◻ RELEASE"}
             </text>
-            <text fg={theme.border}> │ </text>
+            <text fg={theme.border}>{StatusBarStyle.separator}</text>
             <Show when={permissions().length > 0}>
               <text fg={theme.warning}>
-                △{permissions().length}
+                ⚠{permissions().length}
               </text>
-              <text fg={theme.border}> │ </text>
+              <text fg={theme.border}>{StatusBarStyle.separator}</text>
             </Show>
             <Show when={streamHealth()}>
               {(() => {
@@ -94,8 +95,8 @@ export function StatusBar() {
                 if (health.isStalled) {
                   return (
                     <>
-                      <text fg={theme.error}>⛔ stalled {elapsedSeconds}s</text>
-                      <text fg={theme.border}> │ </text>
+                      <text fg={theme.error}>⊘ stalled {elapsedSeconds}s</text>
+                      <text fg={theme.border}>{StatusBarStyle.separator}</text>
                     </>
                   )
                 }
@@ -104,8 +105,8 @@ export function StatusBar() {
                   const thinkingSeconds = Math.round((health.timeSinceContentMs ?? 0) / 1000)
                   return (
                     <>
-                      <text fg={theme.warning}>🧠 thinking {thinkingSeconds}s</text>
-                      <text fg={theme.border}> │ </text>
+                      <text fg={theme.warning}>◐ thinking {thinkingSeconds}s</text>
+                      <text fg={theme.border}>{StatusBarStyle.separator}</text>
                     </>
                   )
                 }
@@ -114,7 +115,7 @@ export function StatusBar() {
                   return (
                     <>
                       <text fg={theme.error}>⚠ delayed {elapsedSeconds}s</text>
-                      <text fg={theme.border}> │ </text>
+                      <text fg={theme.border}>{StatusBarStyle.separator}</text>
                     </>
                   )
                 }
@@ -122,8 +123,8 @@ export function StatusBar() {
                 if (elapsed >= 30_000) {
                   return (
                     <>
-                      <text fg={theme.warning}>⏳ waiting {elapsedSeconds}s</text>
-                      <text fg={theme.border}> │ </text>
+                      <text fg={theme.warning}>◐ waiting {elapsedSeconds}s</text>
+                      <text fg={theme.border}>{StatusBarStyle.separator}</text>
                     </>
                   )
                 }
@@ -131,7 +132,7 @@ export function StatusBar() {
                 return null
               })()}
             </Show>
-            {/* Network & Models Group */}
+            {/* Network & Providers & LSP & MCP Group */}
             <box flexDirection="row" gap={0}>
               <Switch>
                 <Match when={internet() === "ok"}>
@@ -145,13 +146,13 @@ export function StatusBar() {
                 </Match>
               </Switch>
               <Show when={connectedProviders() > 0}>
-                <text fg={theme.border}>│</text>
+                <text fg={theme.border}>{StatusBarStyle.innerSeparator}</text>
                 <text fg={theme.success}>◈{connectedProviders()}</text>
               </Show>
-              <text fg={theme.border}>│</text>
+              <text fg={theme.border}>{StatusBarStyle.innerSeparator}</text>
               <text fg={lsp().length > 0 ? theme.success : theme.textMuted}>●{lsp().length}</text>
               <Show when={mcp() > 0}>
-                <text fg={theme.border}>│</text>
+                <text fg={theme.border}>{StatusBarStyle.innerSeparator}</text>
                 <Switch>
                   <Match when={mcpError()}>
                     <text fg={theme.error}>⊘{mcp()}</text>
@@ -162,7 +163,7 @@ export function StatusBar() {
                 </Switch>
               </Show>
             </box>
-            <text fg={theme.border}> │ </text>
+            <text fg={theme.border}>{StatusBarStyle.separator}</text>
             <text fg={theme.textMuted}>:help</text>
           </Match>
         </Switch>

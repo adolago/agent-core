@@ -1,3 +1,4 @@
+import { Timestamp } from "../../../util/timestamp"
 import { cmd } from "../cmd"
 import { bootstrap } from "../../bootstrap"
 import { Config } from "../../../config/config"
@@ -199,7 +200,7 @@ const SearchMemoryCommand = cmd({
           if (entry.metadata) {
             const meta = entry.metadata as Record<string, unknown>
             if (meta.source) console.log(`   Source: ${meta.source}`)
-            if (meta.extractedAt) console.log(`   Extracted: ${new Date(meta.extractedAt as number).toLocaleString()}`)
+            if (meta.extractedAt) console.log(`   Extracted: ${Timestamp.pretty(new Date(meta.extractedAt as number))}`)
           }
           console.log("")
         }

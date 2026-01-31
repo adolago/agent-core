@@ -99,6 +99,10 @@ export const RunCommand = cmd({
         type: "string",
         describe: "model variant (provider-specific reasoning effort, e.g., high, max, minimal)",
       })
+      .option("skip-permissions", {
+        type: "boolean",
+        describe: "skip all permission checks (no cuffs mode, equivalent to release mode)",
+      })
   },
   handler: async (args) => {
     await checkEnvironment()
@@ -282,6 +286,7 @@ export const RunCommand = cmd({
           model: modelParam,
           variant: args.variant,
           tools: holdModeTools,
+          options: { skipPermissions: args.skipPermissions },
           parts: [...fileParts, { type: "text", text: message }],
         })
       }

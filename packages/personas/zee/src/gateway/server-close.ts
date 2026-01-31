@@ -6,6 +6,8 @@ import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
 import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
 
+let closeLogged = false;
+
 export function createGatewayCloseHandler(params: {
   bonjourStop: (() => Promise<void>) | null;
   tailscaleCleanup: (() => Promise<void>) | null;
@@ -33,6 +35,16 @@ export function createGatewayCloseHandler(params: {
   return async (opts?: { reason?: string; restartExpectedMs?: number | null }) => {
     const reasonRaw = typeof opts?.reason === "string" ? opts.reason.trim() : "";
     const reason = reasonRaw || "gateway stopping";
+
+    if (!closeLogged) {
+      closeLogged = true;
+      const stack = new Error(`Gateway close invoked: ${reason}`).stack;
+      console.error("[gateway] CLOSE CALLED", {
+        reason,
+        restartExpectedMs: opts?.restartExpectedMs,
+        stack,
+      });
+    }
     const restartExpectedMs =
       typeof opts?.restartExpectedMs === "number" && Number.isFinite(opts.restartExpectedMs)
         ? Math.max(0, Math.floor(opts.restartExpectedMs))

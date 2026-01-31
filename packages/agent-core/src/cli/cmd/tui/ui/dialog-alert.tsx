@@ -32,8 +32,8 @@ export function DialogAlert(props: DialogAlertProps) {
       </box>
       <box flexDirection="row" justifyContent="flex-end" paddingBottom={1}>
         <box
-          paddingLeft={3}
-          paddingRight={3}
+          paddingLeft={2}
+          paddingRight={2}
           backgroundColor={theme.primary}
           onMouseUp={() => {
             props.onConfirm?.()

@@ -1,5 +1,5 @@
 import { createStore } from "solid-js/store"
-import { createMemo, For, Match, Show, Switch } from "solid-js"
+import { createMemo, For, Match, onMount, Show, Switch } from "solid-js"
 import { Portal, useKeyboard, useRenderer, useTerminalDimensions, type JSX } from "@opentui/solid"
 import { RGBA, type TextareaRenderable } from "@opentui/core"
 import { useKeybind } from "../../context/keybind"
@@ -15,6 +15,7 @@ import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
 import { Keybind } from "@/util/keybind"
 import { Locale } from "@/util/locale"
 import { Global } from "@/global"
+import { useLocal } from "../../context/local"
 
 type PermissionStage = "permission" | "always" | "reject"
 
@@ -119,11 +120,22 @@ function TextBody(props: { title: string; description?: string; icon?: string })
 export function PermissionPrompt(props: { request: PermissionRequest }) {
   const sdk = useSDK()
   const sync = useSync()
+  const local = useLocal()
   const [store, setStore] = createStore({
     stage: "permission" as PermissionStage,
   })
 
   const session = createMemo(() => sync.data.session.find((s) => s.id === props.request.sessionID))
+
+  // RELEASE mode: auto-approve all permissions without prompting
+  onMount(() => {
+    if (local.mode.isRelease()) {
+      sdk.client.permission.reply({
+        reply: "once",
+        requestID: props.request.id,
+      })
+    }
+  })
 
   const input = createMemo(() => {
     const tool = props.request.tool
@@ -327,7 +339,7 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
     >
       <box gap={1} paddingLeft={1} paddingRight={3} paddingTop={1} paddingBottom={1}>
         <box flexDirection="row" gap={1} paddingLeft={1}>
-          <text fg={theme.error}>{"△"}</text>
+          <text fg={theme.error}>{"⚠"}</text>
           <text fg={theme.text}>Reject permission</text>
         </box>
         <box paddingLeft={1}>
@@ -439,7 +451,7 @@ function Prompt<const T extends Record<string, string>>(props: {
     >
       <box gap={1} paddingLeft={1} paddingRight={3} paddingTop={1} paddingBottom={1} flexGrow={1}>
         <box flexDirection="row" gap={1} paddingLeft={1} flexShrink={0}>
-          <text fg={theme.warning}>{"△"}</text>
+          <text fg={theme.warning}>{"⚠"}</text>
           <text fg={theme.text}>{props.title}</text>
         </box>
         {props.body}

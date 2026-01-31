@@ -5,6 +5,8 @@ import { bootstrap } from "../bootstrap"
 import { Storage } from "../../storage/storage"
 import { Project } from "../../project/project"
 import { Instance } from "../../project/instance"
+import { Style, Symbols } from "../style"
+import { Output } from "../output"
 
 interface SessionStats {
   totalSessions: number
@@ -156,7 +158,7 @@ export async function aggregateSessionStats(days?: number, projectFilter?: strin
   }
 
   if (filteredSessions.length > 1000) {
-    console.log(`Large dataset detected (${filteredSessions.length} sessions). This may take a while...`)
+    Output.log(`Large dataset detected (${filteredSessions.length} sessions). This may take a while...`)
   }
 
   if (filteredSessions.length === 0) {
@@ -284,6 +286,24 @@ export async function aggregateSessionStats(days?: number, projectFilter?: strin
   return stats
 }
 
+/**
+ * Box drawing characters with theme-aware colors.
+ * Uses ANSI colors mapped from theme semantics for CLI mode.
+ * In TUI mode, full RGB colors would be used instead.
+ */
+const box = {
+  // Use theme-mapped border colors
+  hLine: Style.theme.border + Symbols.hLine + Style.reset,
+  vLine: Style.theme.border + Symbols.vLine + Style.reset,
+  cornerTL: Style.theme.border + Symbols.cornerTL + Style.reset,
+  cornerTR: Style.theme.border + Symbols.cornerTR + Style.reset,
+  cornerBL: Style.theme.border + Symbols.cornerBL + Style.reset,
+  cornerBR: Style.theme.border + Symbols.cornerBR + Style.reset,
+  cross: Style.theme.border + "┼" + Style.reset,
+  tDown: Style.theme.border + "┬" + Style.reset,
+  tUp: Style.theme.border + "┴" + Style.reset,
+}
+
 export function displayStats(stats: SessionStats, toolLimit?: number, modelLimit?: number) {
   const width = 56
 
@@ -291,84 +311,105 @@ export function displayStats(stats: SessionStats, toolLimit?: number, modelLimit
     const availableWidth = width - 1
     const paddingNeeded = availableWidth - label.length - value.length
     const padding = Math.max(0, paddingNeeded)
-    return `│${label}${" ".repeat(padding)}${value} │`
+    return `${box.vLine}${label}${" ".repeat(padding)}${value} ${box.vLine}`
+  }
+
+  function renderHeader(text: string): string {
+    const padding = Math.max(0, width - 2 - text.length)
+    const leftPad = Math.floor(padding / 2)
+    const rightPad = padding - leftPad
+    return `${box.vLine}${" ".repeat(leftPad)}${Style.bold}${text}${Style.reset}${" ".repeat(rightPad)}${box.vLine}`
+  }
+
+  function renderTopBorder(): string {
+    return box.cornerTL + box.hLine.repeat(width - 2) + box.cornerTR
+  }
+
+  function renderSeparator(): string {
+    return `${box.vLine}${Style.theme.border}${Symbols.hLine.repeat(width - 2)}${Style.reset}${box.vLine}`
+  }
+
+  function renderBottomBorder(): string {
+    return box.cornerBL + box.hLine.repeat(width - 2) + box.cornerBR
   }
 
   // Overview section
-  console.log("┌────────────────────────────────────────────────────────┐")
-  console.log("│                       OVERVIEW                         │")
-  console.log("├────────────────────────────────────────────────────────┤")
-  console.log(renderRow("Sessions", stats.totalSessions.toLocaleString()))
-  console.log(renderRow("Messages", stats.totalMessages.toLocaleString()))
-  console.log(renderRow("Days", stats.days.toString()))
-  console.log("└────────────────────────────────────────────────────────┘")
-  console.log()
+  Output.log(renderTopBorder())
+  Output.log(renderHeader("OVERVIEW"))
+  Output.log(renderSeparator())
+  Output.log(renderRow("Sessions", stats.totalSessions.toLocaleString()))
+  Output.log(renderRow("Messages", stats.totalMessages.toLocaleString()))
+  Output.log(renderRow("Days", stats.days.toString()))
+  Output.log(renderBottomBorder())
+  Output.log("")
 
   // Token usage section
-  console.log("┌────────────────────────────────────────────────────────┐")
-  console.log("│                       TOKENS                           │")
-  console.log("├────────────────────────────────────────────────────────┤")
+  Output.log(renderTopBorder())
+  Output.log(renderHeader("TOKENS"))
+  Output.log(renderSeparator())
   const tokensPerSession = isNaN(stats.tokensPerSession) ? 0 : stats.tokensPerSession
-  console.log(renderRow("Avg Tokens/Session", formatNumber(Math.round(tokensPerSession))))
+  Output.log(renderRow("Avg Tokens/Session", formatNumber(Math.round(tokensPerSession))))
   const medianTokensPerSession = isNaN(stats.medianTokensPerSession) ? 0 : stats.medianTokensPerSession
-  console.log(renderRow("Median Tokens/Session", formatNumber(Math.round(medianTokensPerSession))))
-  console.log(renderRow("Input", formatNumber(stats.totalTokens.input)))
-  console.log(renderRow("Output", formatNumber(stats.totalTokens.output)))
-  console.log(renderRow("Cache Read", formatNumber(stats.totalTokens.cache.read)))
-  console.log(renderRow("Cache Write", formatNumber(stats.totalTokens.cache.write)))
-  console.log("└────────────────────────────────────────────────────────┘")
-  console.log()
+  Output.log(renderRow("Median Tokens/Session", formatNumber(Math.round(medianTokensPerSession))))
+  Output.log(renderRow("Input", formatNumber(stats.totalTokens.input)))
+  Output.log(renderRow("Output", formatNumber(stats.totalTokens.output)))
+  Output.log(renderRow("Cache Read", formatNumber(stats.totalTokens.cache.read)))
+  Output.log(renderRow("Cache Write", formatNumber(stats.totalTokens.cache.write)))
+  Output.log(renderBottomBorder())
+  Output.log("")
 
   // Model Usage section
   if (modelLimit !== undefined && Object.keys(stats.modelUsage).length > 0) {
     const sortedModels = Object.entries(stats.modelUsage).sort(([, a], [, b]) => b.messages - a.messages)
     const modelsToDisplay = modelLimit === Infinity ? sortedModels : sortedModels.slice(0, modelLimit)
 
-    console.log("┌────────────────────────────────────────────────────────┐")
-    console.log("│                      MODEL USAGE                       │")
-    console.log("├────────────────────────────────────────────────────────┤")
+    Output.log(renderTopBorder())
+    Output.log(renderHeader("MODEL USAGE"))
+    Output.log(renderSeparator())
 
-    for (const [model, usage] of modelsToDisplay) {
-      console.log(`│ ${model.padEnd(54)} │`)
-      console.log(renderRow("  Messages", usage.messages.toLocaleString()))
-      console.log(renderRow("  Input Tokens", formatNumber(usage.tokens.input)))
-      console.log(renderRow("  Output Tokens", formatNumber(usage.tokens.output)))
-      console.log("├────────────────────────────────────────────────────────┤")
+    for (let i = 0; i < modelsToDisplay.length; i++) {
+      const [model, usage] = modelsToDisplay[i]
+      Output.log(`${box.vLine} ${Style.info}${model.padEnd(54)}${Style.reset} ${box.vLine}`)
+      Output.log(renderRow("  Messages", usage.messages.toLocaleString()))
+      Output.log(renderRow("  Input Tokens", formatNumber(usage.tokens.input)))
+      Output.log(renderRow("  Output Tokens", formatNumber(usage.tokens.output)))
+      if (i < modelsToDisplay.length - 1) {
+        Output.log(renderSeparator())
+      }
     }
-    // Remove last separator and add bottom border
-    process.stdout.write("\x1B[1A") // Move up one line
-    console.log("└────────────────────────────────────────────────────────┘")
+    Output.log(renderBottomBorder())
+    Output.log("")
   }
-  console.log()
 
   // Tool Usage section
   if (Object.keys(stats.toolUsage).length > 0) {
     const sortedTools = Object.entries(stats.toolUsage).sort(([, a], [, b]) => b - a)
     const toolsToDisplay = toolLimit ? sortedTools.slice(0, toolLimit) : sortedTools
 
-    console.log("┌────────────────────────────────────────────────────────┐")
-    console.log("│                      TOOL USAGE                        │")
-    console.log("├────────────────────────────────────────────────────────┤")
+    Output.log(renderTopBorder())
+    Output.log(renderHeader("TOOL USAGE"))
+    Output.log(renderSeparator())
 
     const maxCount = Math.max(...toolsToDisplay.map(([, count]) => count))
     const totalToolUsage = Object.values(stats.toolUsage).reduce((a, b) => a + b, 0)
 
     for (const [tool, count] of toolsToDisplay) {
       const barLength = Math.max(1, Math.floor((count / maxCount) * 20))
-      const bar = "█".repeat(barLength)
+      // Use theme-mapped success color for bars
+      const bar = Style.theme.success + "█".repeat(barLength) + Style.reset
       const percentage = ((count / totalToolUsage) * 100).toFixed(1)
 
       const maxToolLength = 18
       const truncatedTool = tool.length > maxToolLength ? tool.substring(0, maxToolLength - 2) + ".." : tool
       const toolName = truncatedTool.padEnd(maxToolLength)
 
-      const content = ` ${toolName} ${bar.padEnd(20)} ${count.toString().padStart(3)} (${percentage.padStart(4)}%)`
+      const content = ` ${toolName} ${bar}${" ".repeat(20 - barLength)} ${count.toString().padStart(3)} (${percentage.padStart(4)}%)`
       const padding = Math.max(0, width - content.length - 1)
-      console.log(`│${content}${" ".repeat(padding)} │`)
+      Output.log(`${box.vLine}${content}${" ".repeat(padding)} ${box.vLine}`)
     }
-    console.log("└────────────────────────────────────────────────────────┘")
+    Output.log(renderBottomBorder())
   }
-  console.log()
+  Output.log("")
 }
 
 function formatNumber(num: number): string {

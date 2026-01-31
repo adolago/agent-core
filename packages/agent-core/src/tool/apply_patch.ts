@@ -22,8 +22,11 @@ export const ApplyPatchTool = Tool.define("apply_patch", {
   description: DESCRIPTION,
   parameters: PatchParams,
   async execute(params, ctx) {
-    if (ctx.extra?.holdMode === true) {
-      const allowed = await HoldMode.isToolAllowedInHold("apply_patch")
+    const holdMode = ctx.extra?.holdMode === true
+    const skipPermissions = ctx.extra?.skipPermissions === true
+
+    if (holdMode && !skipPermissions) {
+      const allowed = await HoldMode.isToolAllowedInHold("apply_patch", skipPermissions)
       if (!allowed) {
         throw new Error("HOLD MODE: Cannot apply patches. Switch to RELEASE mode to modify files.")
       }

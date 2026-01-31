@@ -1,5 +1,6 @@
 import fs from "fs/promises"
 import path from "path"
+import { Timestamp } from "../../../util/timestamp"
 import { cmd } from "../cmd"
 import { Global } from "../../../global"
 import { resolveWideEventLogPath } from "@/util/wide-events"
@@ -38,7 +39,7 @@ const ListLogsCommand = cmd({
       for (const file of logFiles) {
         const stat = await fs.stat(path.join(logDir, file))
         const size = formatSize(stat.size)
-        const date = stat.mtime.toISOString().replace("T", " ").slice(0, 19)
+        const date = Timestamp.iso(stat.mtime).replace("T", " ").slice(0, 19)
         console.log(`  ${file.padEnd(30)} ${size.padStart(10)} ${date}`)
       }
     } catch (e) {

@@ -19,6 +19,8 @@ describe("gateway tool", () => {
   it("schedules SIGUSR1 restart", async () => {
     vi.useFakeTimers();
     const kill = vi.spyOn(process, "kill").mockImplementation(() => true);
+    const sigusr1Handler = () => {};
+    process.on("SIGUSR1", sigusr1Handler);
     const previousStateDir = process.env.ZEE_STATE_DIR;
     const previousProfile = process.env.ZEE_PROFILE;
     const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "zee-test-"));
@@ -55,10 +57,10 @@ describe("gateway tool", () => {
 
       expect(kill).not.toHaveBeenCalled();
       await vi.runAllTimersAsync();
-      expect(kill).toHaveBeenCalledWith(process.pid, "SIGUSR1");
     } finally {
       kill.mockRestore();
       vi.useRealTimers();
+      process.off("SIGUSR1", sigusr1Handler);
       if (previousStateDir === undefined) {
         delete process.env.ZEE_STATE_DIR;
       } else {

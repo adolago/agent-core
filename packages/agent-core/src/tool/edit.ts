@@ -33,8 +33,11 @@ export const EditTool = Tool.define("edit", {
     replaceAll: z.boolean().optional().describe("Replace all occurrences of oldString (default false)"),
   }),
   async execute(params, ctx) {
-    if (ctx.extra?.holdMode === true) {
-      const allowed = await HoldMode.isToolAllowedInHold("edit")
+    const holdMode = ctx.extra?.holdMode === true
+    const skipPermissions = ctx.extra?.skipPermissions === true
+
+    if (holdMode && !skipPermissions) {
+      const allowed = await HoldMode.isToolAllowedInHold("edit", skipPermissions)
       if (!allowed) {
         throw new Error("HOLD MODE: Cannot edit files. Switch to RELEASE mode to modify files.")
       }
@@ -127,7 +130,7 @@ export const EditTool = Tool.define("edit", {
       },
     })
 
-    let output = "Edit applied successfully."
+    let output = "Edit applied successfully"
     await LSP.touchFile(filePath, true)
     const diagnostics = await LSP.diagnostics()
     const normalizedFilePath = Filesystem.normalizePath(filePath)

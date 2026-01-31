@@ -35,7 +35,7 @@ export function DialogHelp() {
         </text>
       </box>
       <box flexDirection="row" justifyContent="flex-end" paddingBottom={1}>
-        <box paddingLeft={3} paddingRight={3} backgroundColor={theme.primary} onMouseUp={() => dialog.clear()}>
+        <box paddingLeft={2} paddingRight={2} backgroundColor={theme.primary} onMouseUp={() => dialog.clear()}>
           <text fg={theme.selectedListItemText}>ok</text>
         </box>
       </box>

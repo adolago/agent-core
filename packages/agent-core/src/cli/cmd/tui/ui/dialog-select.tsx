@@ -213,7 +213,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
 
   return (
     <box gap={1} paddingBottom={1}>
-      <box paddingLeft={4} paddingRight={4}>
+      <box paddingLeft={2} paddingRight={2}>
         <box flexDirection="row" justifyContent="space-between">
           <text fg={theme.text} attributes={TextAttributes.BOLD}>
             {props.title}
@@ -230,7 +230,8 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
             }}
             focusedBackgroundColor={theme.backgroundMenu}
             cursorColor={theme.primary}
-            focusedTextColor={theme.textMuted}
+            textColor={theme.text}
+            focusedTextColor={theme.text}
             ref={(r) => {
               input = r
               setTimeout(() => {
@@ -238,7 +239,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                 input.focus()
               }, 1)
             }}
-            placeholder={props.placeholder ?? "Search"}
+            placeholder={props.placeholder ?? "Search..."}
           />
         </box>
       </box>
@@ -246,7 +247,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
       <Show
         when={grouped().length > 0}
         fallback={
-          <box paddingLeft={4} paddingRight={4} paddingTop={1}>
+          <box paddingLeft={2} paddingRight={2} paddingTop={1}>
             <text fg={theme.textMuted}>No results found</text>
           </box>
         }
@@ -317,7 +318,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         </scrollbox>
       </Show>
       <Show when={keybinds().length} fallback={<box flexShrink={0} />}>
-        <box paddingRight={2} paddingLeft={4} flexDirection="row" gap={2} flexShrink={0} paddingTop={1}>
+        <box paddingLeft={2} paddingRight={2} flexDirection="row" gap={2} flexShrink={0} paddingTop={1}>
           <For each={keybinds()}>
             {(item) => (
               <text>

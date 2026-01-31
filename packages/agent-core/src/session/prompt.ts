@@ -666,6 +666,7 @@ export namespace SessionPrompt {
               ...req,
               sessionID: sessionID,
               ruleset: PermissionNext.merge(taskAgent.permission, session.permission ?? []),
+              holdMode: false, // Task tools are always in RELEASE mode (they're system-initiated)
             })
           },
         }
@@ -981,6 +982,7 @@ export namespace SessionPrompt {
           sessionID: input.session.id,
           tool: { messageID: input.processor.message.id, callID: options.toolCallId },
           ruleset: PermissionNext.merge(input.agent.permission, input.session.permission ?? []),
+          holdMode: input.tools?.edit === false,
         })
       },
     })

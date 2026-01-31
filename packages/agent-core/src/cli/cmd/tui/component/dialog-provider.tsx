@@ -252,7 +252,7 @@ function CodeMethod(props: CodeMethodProps) {
   return (
     <DialogPrompt
       title={props.title}
-      placeholder="Authorization code"
+      placeholder="Enter authorization code..."
       onConfirm={async (value) => {
         const { error } = await sdk.client.provider.oauth.callback({
           providerID: props.providerID,
@@ -296,7 +296,7 @@ function ApiMethod(props: ApiMethodProps) {
   return (
     <DialogPrompt
       title={props.title}
-      placeholder="API key"
+      placeholder="Enter API key..."
       description={() => (
         <box gap={1}>
           {error() ? <text fg={theme.error}>{error()}</text> : null}
@@ -343,7 +343,7 @@ function LanguageToolMethod() {
       fallback={
         <DialogPrompt
           title="LanguageTool API Key"
-          placeholder={currentConfig().apiKey ? "••••" + currentConfig().apiKey.slice(-4) : "your-api-key"}
+          placeholder={currentConfig().apiKey ? "••••" + currentConfig().apiKey.slice(-4) : "Enter API key..."}
           description={() => (
             <box gap={1}>
               <text fg={theme.textMuted}>Enter your LanguageTool API key</text>
@@ -380,7 +380,7 @@ function LanguageToolMethod() {
     >
       <DialogPrompt
         title="LanguageTool Username"
-        placeholder={currentConfig().username || "email@example.com (optional)"}
+        placeholder={currentConfig().username || "Enter email (optional)..."}
         description={() => (
           <box gap={1}>
             <text fg={theme.textMuted}>Enter your LanguageTool account email</text>

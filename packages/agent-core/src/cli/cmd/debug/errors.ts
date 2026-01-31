@@ -4,6 +4,7 @@ import fs from "fs/promises"
 import path from "path"
 import { Global } from "../../../global"
 import { Log } from "../../../util/log"
+import { toLogString } from "../../../util/timestamp"
 
 export const ErrorsCommand = cmd({
   command: "errors",
@@ -96,7 +97,8 @@ export const ErrorsCommand = cmd({
 
         for (let i = 0; i < recentErrors.length; i++) {
           const err = recentErrors[i]
-          console.log(`${i + 1}. [${err.timestamp}] [${err.service}]`)
+          const ts = err.timestamp !== "unknown" ? toLogString(err.timestamp) : "unknown"
+          console.log(`${i + 1}. [${ts}] [${err.service}]`)
           console.log(`   ${err.message}`)
           if (err.error) {
             console.log(`   Error: ${err.error}`)
@@ -132,8 +134,8 @@ export const ErrorsCommand = cmd({
                   try {
                     const parsed = JSON.parse(line)
                     if (parsed.level === "ERROR") {
-                      const timestamp = parsed.timestamp || parsed.time || "now"
-                      console.log(`[${timestamp}] [${parsed.service || "unknown"}] ${parsed.message || "Error"}`)
+                      const ts = toLogString(parsed.timestamp || parsed.time)
+                      console.log(`[${ts}] [${parsed.service || "unknown"}] ${parsed.message || "Error"}`)
                       if (parsed.error) console.log(`  Error: ${parsed.error}`)
                     }
                   } catch {

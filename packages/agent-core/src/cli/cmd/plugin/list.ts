@@ -26,7 +26,7 @@ export const ListCommand = cmd({
           }
 
           if (installed.length === 0) {
-            UI.println(UI.Style.TEXT_WARNING + "No plugins installed" + UI.Style.TEXT_NORMAL)
+            UI.warn("No plugins installed")
             UI.println(UI.Style.TEXT_DIM + "Search for plugins with: agent-core plugin search" + UI.Style.TEXT_NORMAL)
             return
           }
@@ -38,7 +38,7 @@ export const ListCommand = cmd({
             const name = plugin.registryInfo?.displayName ?? plugin.name
             const badge = plugin.fromRegistry
               ? UI.Style.TEXT_SUCCESS + "✓" + UI.Style.TEXT_NORMAL
-              : UI.Style.TEXT_WARNING + "?" + UI.Style.TEXT_NORMAL
+              : UI.Style.TEXT_WARNING + "⚠" + UI.Style.TEXT_NORMAL
 
             UI.println(`${badge} ${UI.Style.TEXT_HIGHLIGHT_BOLD}${name}${UI.Style.TEXT_NORMAL}`)
             UI.println(UI.Style.TEXT_DIM + `  ${plugin.spec}` + UI.Style.TEXT_NORMAL)

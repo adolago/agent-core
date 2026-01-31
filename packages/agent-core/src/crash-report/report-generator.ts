@@ -14,6 +14,7 @@ import {
   collectSession,
   collectDiagnostics,
 } from "./collectors";
+import { Output } from "../cli/output";
 import type { CrashReport, CrashReportOptions, ReportMeta } from "./types";
 
 const REPORT_VERSION = "1.0.0";
@@ -38,27 +39,27 @@ export class ReportGenerator {
    * Generate a complete crash report
    */
   async generate(): Promise<{ report: CrashReport; archivePath: string }> {
-    console.log("📋 Generating crash report...\n");
+    Output.log("Generating crash report...\n");
 
     // Collect all data
-    console.log("  ▸ Collecting system info...");
+    Output.log("  * Collecting system info...");
     const system = await collectSystemInfo();
 
-    console.log("  ▸ Collecting configuration...");
+    Output.log("  * Collecting configuration...");
     const config = await collectConfig(this.redactor);
 
-    console.log("  ▸ Collecting logs...");
+    Output.log("  * Collecting logs...");
     const logs = await collectLogs(this.redactor, { lineCount: this.options.logLines });
 
     let session;
     if (this.options.includeSession) {
-      console.log("  ▸ Collecting session data...");
+      Output.log("  * Collecting session data...");
       session = await collectSession(this.redactor);
     }
 
     let diagnostics;
     if (!this.options.skipDiagnostics) {
-      console.log("  ▸ Running diagnostics...");
+      Output.log("  * Running diagnostics...");
       diagnostics = await collectDiagnostics();
     }
 
@@ -74,11 +75,11 @@ export class ReportGenerator {
     };
 
     // Create archive
-    console.log("\n  ▸ Creating archive...");
+    Output.log("\n  * Creating archive...");
     const archivePath = await this.createArchive(report);
 
-    console.log(`\n+ Report generated: ${archivePath}`);
-    console.log(`   Redacted ${report.redactionStats.totalRedactions} sensitive items\n`);
+    Output.log(`\n+ Report generated: ${archivePath}`);
+    Output.log(`   Redacted ${report.redactionStats.totalRedactions} sensitive items\n`);
 
     return { report, archivePath };
   }

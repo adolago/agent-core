@@ -21,7 +21,7 @@ import { CommandProvider, useCommandDialog } from "@tui/component/dialog-command
 import { DialogAgent } from "@tui/component/dialog-agent"
 import { DialogSessionList } from "@tui/component/dialog-session-list"
 import { KeybindProvider } from "@tui/context/keybind"
-import { ThemeProvider, useTheme } from "@tui/context/theme"
+import { ThemeProvider, useTheme, isNoColorEnabled, generateMonochromeTheme, resolveTheme } from "@tui/context/theme"
 import { Home } from "@tui/routes/home"
 import { Session } from "@tui/routes/session"
 import { PromptHistoryProvider } from "./component/prompt/history"
@@ -651,6 +651,32 @@ function App() {
   )
 }
 
+/**
+ * Monochrome fallback colors when theme context is unavailable.
+ * Respects NO_COLOR environment variable.
+ */
+const MonochromeColors = (mode: "dark" | "light") => {
+  // If NO_COLOR is set, use monochrome theme
+  if (isNoColorEnabled()) {
+    const theme = resolveTheme(generateMonochromeTheme(mode), mode)
+    return {
+      bg: theme.background,
+      text: theme.text,
+      muted: theme.textMuted,
+      primary: theme.text,
+    }
+  }
+
+  // Otherwise use mode-appropriate colors from the default theme
+  const isLight = mode === "light"
+  return {
+    bg: isLight ? "#fafafa" : "#0a0a0a",
+    text: isLight ? "#1a1a1a" : "#eeeeee",
+    muted: isLight ? "#6a6a6a" : "#888888",
+    primary: isLight ? "#3b7dd8" : "#fab283",
+  }
+}
+
 function ErrorComponent(props: {
   error: Error
   reset: () => void
@@ -675,14 +701,8 @@ function ErrorComponent(props: {
 
   const issueURL = new URL("https://github.com/adolago/agent-core/issues/new?template=bug-report.yml")
 
-  // Choose safe fallback colors per mode since theme context may not be available
-  const isLight = props.mode === "light"
-  const colors = {
-    bg: isLight ? "#ffffff" : "#0a0a0a",
-    text: isLight ? "#1a1a1a" : "#eeeeee",
-    muted: isLight ? "#8a8a8a" : "#808080",
-    primary: isLight ? "#3b7dd8" : "#fab283",
-  }
+  // Use theme-aware colors with NO_COLOR support
+  const colors = MonochromeColors(props.mode ?? "dark")
 
   if (props.error.message) {
     issueURL.searchParams.set("title", `opentui: fatal: ${props.error.message}`)

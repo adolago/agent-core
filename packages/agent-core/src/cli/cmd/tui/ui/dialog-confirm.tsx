@@ -46,8 +46,8 @@ export function DialogConfirm(props: DialogConfirmProps) {
         <For each={["cancel", "confirm"]}>
           {(key) => (
             <box
-              paddingLeft={1}
-              paddingRight={1}
+              paddingLeft={2}
+              paddingRight={2}
               backgroundColor={key === store.active ? theme.primary : undefined}
               onMouseUp={(evt) => {
                 if (key === "confirm") props.onConfirm?.()

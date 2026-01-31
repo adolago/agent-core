@@ -22,7 +22,7 @@ export const RemoveCommand = cmd({
         try {
           // Check if installed
           if (!(await isInstalled(name))) {
-            UI.println(UI.Style.TEXT_WARNING + `Plugin "${name}" is not installed` + UI.Style.TEXT_NORMAL)
+            UI.warn(`Plugin "${name}" is not installed`)
             UI.println(
               UI.Style.TEXT_DIM + "Use 'agent-core plugin list' to see installed plugins" + UI.Style.TEXT_NORMAL,
             )
@@ -34,10 +34,10 @@ export const RemoveCommand = cmd({
           const result = await removePlugin(name)
 
           if (result.success) {
-            UI.println(UI.Style.TEXT_SUCCESS + "✓" + UI.Style.TEXT_NORMAL + " " + result.message)
+            UI.success(result.message)
             UI.println(UI.Style.TEXT_DIM + "Restart agent-core for changes to take effect" + UI.Style.TEXT_NORMAL)
           } else {
-            UI.println(UI.Style.TEXT_DANGER + "✗" + UI.Style.TEXT_NORMAL + " " + result.message)
+            UI.error(result.message)
             process.exit(1)
           }
         } catch (error) {

@@ -147,16 +147,24 @@ export function scheduleGatewaySigusr1Restart(opts?: {
     typeof opts?.reason === "string" && opts.reason.trim()
       ? opts.reason.trim().slice(0, 200)
       : undefined;
-  authorizeGatewaySigusr1Restart(delayMs);
   const pid = process.pid;
   const hasListener = process.listenerCount("SIGUSR1") > 0;
+
+  if (!hasListener) {
+    return {
+      ok: false,
+      pid,
+      signal: "SIGUSR1",
+      delayMs,
+      reason,
+      mode: "signal",
+    };
+  }
+
+  authorizeGatewaySigusr1Restart(delayMs);
   setTimeout(() => {
     try {
-      if (hasListener) {
-        process.emit("SIGUSR1");
-      } else {
-        process.kill(pid, "SIGUSR1");
-      }
+      process.emit("SIGUSR1");
     } catch {
       /* ignore */
     }
@@ -167,7 +175,7 @@ export function scheduleGatewaySigusr1Restart(opts?: {
     signal: "SIGUSR1",
     delayMs,
     reason,
-    mode: hasListener ? "emit" : "signal",
+    mode: "emit",
   };
 }
 

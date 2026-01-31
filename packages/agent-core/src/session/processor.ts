@@ -343,6 +343,7 @@ export namespace SessionProcessor {
                           },
                           always: [value.toolName],
                           ruleset: agent.permission,
+                          holdMode: true, // doom_loop check is always in hold mode (safety feature)
                         })
                       }
                     }

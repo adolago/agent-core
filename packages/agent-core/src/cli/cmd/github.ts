@@ -28,6 +28,7 @@ import { MessageV2 } from "../../session/message-v2"
 import { SessionPrompt } from "@/session/prompt"
 import { $ } from "bun"
 import { normalizeHttpUrl } from "@/util/net"
+import { Output } from "../output"
 
 type GitHubAuthor = {
   login: string
@@ -512,10 +513,10 @@ export const GithubRunCommand = cmd({
         })
         subscribeSessionEvents()
         if (share === true && !shareBaseUrl) {
-          console.log("Share enabled but SHARE_BASE_URL is not set; skipping share links.")
+          Output.log("Share enabled but SHARE_BASE_URL is not set; skipping share links.")
         }
         shareId = undefined // Sharing disabled for personal use
-        console.log("agent-core session", session.id)
+        Output.log(`agent-core session ${session.id}`)
 
         // Handle event types:
         // REPO_EVENTS (schedule, workflow_dispatch): no issue/PR context, output to logs/PR only
@@ -524,7 +525,7 @@ export const GithubRunCommand = cmd({
         if (isRepoEvent) {
           // Repo event - no issue/PR context, output goes to logs
           if (isWorkflowDispatchEvent && actor) {
-            console.log(`Triggered by: ${actor}`)
+            Output.log(`Triggered by: ${actor}`)
           }
           const branchPrefix = isWorkflowDispatchEvent ? "dispatch" : "schedule"
           const branch = await checkoutNewBranch(branchPrefix)
@@ -542,9 +543,9 @@ export const GithubRunCommand = cmd({
               summary,
               `${response}\n\nTriggered by ${triggerType}${footer({ image: true })}`,
             )
-            console.log(`Created PR #${pr}`)
+            Output.log(`Created PR #${pr}`)
           } else {
-            console.log("Response:", response)
+            Output.log(`Response: ${response}`)
           }
         } else if (
           ["pull_request", "pull_request_review_comment"].includes(context.eventName) ||
@@ -614,7 +615,7 @@ export const GithubRunCommand = cmd({
         }
       } catch (e: any) {
         exitCode = 1
-        console.error(e instanceof Error ? e.message : String(e))
+        Output.error(e instanceof Error ? e.message : String(e))
         let msg = e
         if (e instanceof $.ShellError) {
           msg = e.stderr.toString()
@@ -770,7 +771,7 @@ export const GithubRunCommand = cmd({
         const mdMatches = prompt.matchAll(/!?\[.*?\]\((https:\/\/github\.com\/user-attachments\/[^)]+)\)/gi)
         const tagMatches = prompt.matchAll(/<img .*?src="(https:\/\/github\.com\/user-attachments\/[^"]+)" \/>/gi)
         const matches = [...mdMatches, ...tagMatches].sort((a, b) => a.index - b.index)
-        console.log("Images", JSON.stringify(matches, null, 2))
+        Output.log(`Images: ${JSON.stringify(matches, null, 2)}`)
 
         let offset = 0
         for (const m of matches) {
@@ -787,7 +788,7 @@ export const GithubRunCommand = cmd({
             },
           })
           if (!res.ok) {
-            console.error(`Failed to download image: ${url}`)
+            Output.error(`Failed to download image: ${url}`)
             continue
           }
 
@@ -844,7 +845,7 @@ export const GithubRunCommand = cmd({
               part.state.title || Object.keys(part.state.input).length > 0
                 ? JSON.stringify(part.state.input)
                 : "Unknown"
-            console.log()
+            Output.log("")
             printEvent(color, tool, title)
           }
 
@@ -874,7 +875,7 @@ export const GithubRunCommand = cmd({
       }
 
       async function chat(message: string, files: PromptFiles = []) {
-        console.log("Sending message to agent-core...")
+        Output.log("Sending message to agent-core...")
 
         const result = await SessionPrompt.prompt({
           sessionID: session.id,
@@ -913,7 +914,7 @@ export const GithubRunCommand = cmd({
 
         // result should always be assistant just satisfying type checker
         if (result.info.role === "assistant" && result.info.error) {
-          console.error("Agent error:", result.info.error)
+          Output.error(`Agent error: ${result.info.error}`)
           throw new Error(
             `${result.info.error.name}: ${"message" in result.info.error ? result.info.error.message : ""}`,
           )
@@ -923,7 +924,7 @@ export const GithubRunCommand = cmd({
         if (text) return text
 
         // No text part (tool-only or reasoning-only) - ask agent to summarize
-        console.log("Requesting summary from agent...")
+        Output.log("Requesting summary from agent...")
         const summary = await SessionPrompt.prompt({
           sessionID: session.id,
           messageID: Identifier.ascending("message"),
@@ -942,7 +943,7 @@ export const GithubRunCommand = cmd({
         })
 
         if (summary.info.role === "assistant" && summary.info.error) {
-          console.error("Summary agent error:", summary.info.error)
+          Output.error(`Summary agent error: ${summary.info.error}`)
           throw new Error(
             `${summary.info.error.name}: ${"message" in summary.info.error ? summary.info.error.message : ""}`,
           )
@@ -960,7 +961,7 @@ export const GithubRunCommand = cmd({
         try {
           return await core.getIDToken(OIDC_AUDIENCE)
         } catch (error) {
-          console.error("Failed to get OIDC token:", error instanceof Error ? error.message : error)
+          Output.error(`Failed to get OIDC token: ${error instanceof Error ? error.message : String(error)}`)
           throw new Error(
             "Could not fetch an OIDC token. Make sure to add `id-token: write` to your workflow permissions.",
           )
@@ -1001,7 +1002,7 @@ export const GithubRunCommand = cmd({
         // Do not change git config when running locally
         if (isMock) return
 
-        console.log("Configuring git...")
+        Output.log("Configuring git...")
         const config = "http.https://github.com/.extraheader"
         // actions/checkout@v6 no longer stores credentials in .git/config,
         // so this may not exist - use nothrow() to handle gracefully
@@ -1025,14 +1026,14 @@ export const GithubRunCommand = cmd({
       }
 
       async function checkoutNewBranch(type: "issue" | "schedule" | "dispatch") {
-        console.log("Checking out new branch...")
+        Output.log("Checking out new branch...")
         const branch = generateBranchName(type)
         await $`git checkout -b ${branch}`
         return branch
       }
 
       async function checkoutLocalBranch(pr: GitHubPullRequest) {
-        console.log("Checking out local branch...")
+        Output.log("Checking out local branch...")
 
         const branch = pr.headRefName
         const depth = Math.max(pr.commits.totalCount, 20)
@@ -1042,7 +1043,7 @@ export const GithubRunCommand = cmd({
       }
 
       async function checkoutForkBranch(pr: GitHubPullRequest) {
-        console.log("Checking out fork branch...")
+        Output.log("Checking out fork branch...")
 
         const remoteBranch = pr.headRefName
         const localBranch = generateBranchName("pr")
@@ -1068,7 +1069,7 @@ export const GithubRunCommand = cmd({
       }
 
       async function pushToNewBranch(summary: string, branch: string, commit: boolean, isSchedule: boolean) {
-        console.log("Pushing to new branch...")
+        Output.log("Pushing to new branch...")
         if (commit) {
           await $`git add .`
           if (isSchedule) {
@@ -1084,7 +1085,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
       }
 
       async function pushToLocalBranch(summary: string, commit: boolean) {
-        console.log("Pushing to local branch...")
+        Output.log("Pushing to local branch...")
         if (commit) {
           await $`git add .`
           await $`git commit -m "${summary}
@@ -1095,7 +1096,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
       }
 
       async function pushToForkBranch(summary: string, pr: GitHubPullRequest, commit: boolean) {
-        console.log("Pushing to fork branch...")
+        Output.log("Pushing to fork branch...")
 
         const remoteBranch = pr.headRefName
 
@@ -1109,7 +1110,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
       }
 
       async function branchIsDirty(originalHead: string) {
-        console.log("Checking if branch is dirty...")
+        Output.log("Checking if branch is dirty...")
         const ret = await $`git status --porcelain`
         const status = ret.stdout.toString().trim()
         if (status.length > 0) {
@@ -1127,7 +1128,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
 
       async function assertPermissions() {
         // Only called for non-schedule events, so actor is defined
-        console.log(`Asserting permissions for user ${actor}...`)
+        Output.log(`Asserting permissions for user ${actor}...`)
 
         let permission
         try {
@@ -1138,9 +1139,9 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
           })
 
           permission = response.data.permission
-          console.log(`  permission: ${permission}`)
+          Output.log(`  permission: ${permission}`)
         } catch (error) {
-          console.error(`Failed to check permissions: ${error}`)
+          Output.error(`Failed to check permissions: ${error}`)
           throw new Error(`Failed to check permissions for user ${actor}: ${error}`)
         }
 
@@ -1149,7 +1150,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
 
       async function addReaction(commentType?: "issue" | "pr_review") {
         // Only called for non-schedule events, so triggerCommentId is defined
-        console.log("Adding reaction...")
+        Output.log("Adding reaction...")
         if (triggerCommentId) {
           if (commentType === "pr_review") {
             return await octoRest.rest.reactions.createForPullRequestReviewComment({
@@ -1176,7 +1177,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
 
       async function removeReaction(commentType?: "issue" | "pr_review") {
         // Only called for non-schedule events, so triggerCommentId is defined
-        console.log("Removing reaction...")
+        Output.log("Removing reaction...")
         if (triggerCommentId) {
           if (commentType === "pr_review") {
             const reactions = await octoRest.rest.reactions.listForPullRequestReviewComment({
@@ -1235,7 +1236,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
 
       async function createComment(body: string) {
         // Only called for non-schedule events, so issueId is defined
-        console.log("Creating comment...")
+        Output.log("Creating comment...")
         return await octoRest.rest.issues.createComment({
           owner,
           repo,
@@ -1245,7 +1246,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
       }
 
       async function createPR(base: string, branch: string, title: string, body: string) {
-        console.log("Creating pull request...")
+        Output.log("Creating pull request...")
 
         // Check if an open PR already exists for this head→base combination
         // This handles the case where the agent created a PR via gh pr create during its run
@@ -1261,12 +1262,12 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
           )
 
           if (existing.data.length > 0) {
-            console.log(`PR #${existing.data[0].number} already exists for branch ${branch}`)
+            Output.log(`PR #${existing.data[0].number} already exists for branch ${branch}`)
             return existing.data[0].number
           }
         } catch (e) {
           // If the check fails, proceed to create - we'll get a clear error if a PR already exists
-          console.log(`Failed to check for existing PR: ${e}`)
+          Output.log(`Failed to check for existing PR: ${e}`)
         }
 
         const pr = await withRetry(() =>
@@ -1287,7 +1288,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
           return await fn()
         } catch (e) {
           if (retries > 0) {
-            console.log(`Retrying after ${delayMs}ms...`)
+            Output.log(`Retrying after ${delayMs}ms...`)
             await Bun.sleep(delayMs)
             return withRetry(fn, retries - 1, delayMs)
           }
@@ -1306,7 +1307,7 @@ Co-authored-by: ${actor} <${actor}@users.noreply.github.com>"`
       }
 
       async function fetchIssue() {
-        console.log("Fetching prompt data for issue...")
+        Output.log("Fetching prompt data for issue...")
         const issueResult = await octoGraph<IssueQueryResponse>(
           `
 query($owner: String!, $repo: String!, $number: Int!) {
@@ -1377,7 +1378,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
       }
 
       async function fetchPR() {
-        console.log("Fetching prompt data for PR...")
+        Output.log("Fetching prompt data for PR...")
         const prResult = await octoGraph<PullRequestQueryResponse>(
           `
 query($owner: String!, $repo: String!, $number: Int!) {

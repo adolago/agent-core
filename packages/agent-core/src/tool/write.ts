@@ -23,8 +23,11 @@ export const WriteTool = Tool.define("write", {
     filePath: z.string().describe("The absolute path to the file to write (must be absolute, not relative)"),
   }),
   async execute(params, ctx) {
-    if (ctx.extra?.holdMode === true) {
-      const allowed = await HoldMode.isToolAllowedInHold("write")
+    const holdMode = ctx.extra?.holdMode === true
+    const skipPermissions = ctx.extra?.skipPermissions === true
+
+    if (holdMode && !skipPermissions) {
+      const allowed = await HoldMode.isToolAllowedInHold("write", skipPermissions)
       if (!allowed) {
         throw new Error("HOLD MODE: Cannot write files. Switch to RELEASE mode to modify files.")
       }
@@ -55,7 +58,7 @@ export const WriteTool = Tool.define("write", {
     })
     FileTime.read(ctx.sessionID, filepath)
 
-    let output = "Wrote file successfully."
+    let output = "Wrote file successfully"
     await LSP.touchFile(filepath, true)
     const diagnostics = await LSP.diagnostics()
     const normalizedFilepath = Filesystem.normalizePath(filepath)

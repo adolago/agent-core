@@ -62,6 +62,21 @@ function bundlePersonas(distRoot: string) {
       return true
     },
   })
+
+  // Also copy extensions to bin/extensions so bundled-dir.ts can find them
+  // as a sibling of the executable (process.execPath/../extensions)
+  const extensionsSrc = path.join(src, "extensions")
+  const extensionsDest = path.join(distRoot, "bin", "extensions")
+  if (fs.existsSync(extensionsSrc)) {
+    fs.cpSync(extensionsSrc, extensionsDest, {
+      recursive: true,
+      dereference: true,
+      filter: (srcPath) => {
+        const base = path.basename(srcPath)
+        return base !== ".git" && base !== "node_modules"
+      },
+    })
+  }
 }
 
 function bundleTiara(distRoot: string) {

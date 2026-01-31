@@ -105,7 +105,8 @@ export const BashTool = Tool.define("bash", async () => {
 
       // Use unified checkCommand for all hold-mode checks
       const holdMode = ctx.extra?.holdMode === true
-      const checkResult = await HoldMode.checkCommand(params.command, { holdMode })
+      const skipPermissions = ctx.extra?.skipPermissions === true
+      const checkResult = await HoldMode.checkCommand(params.command, { holdMode, skipPermissions })
 
       if (checkResult.blocked) {
         // Command is blocked (either always_block or profile-based blocklist in HOLD mode)
@@ -161,35 +162,11 @@ To modify state, the user must switch to RELEASE mode.`
         }
       }
 
-      // Handle release_confirm (requires user confirmation)
-      if (checkResult.requiresConfirmation && checkResult.matchedPattern) {
-        log.info("command requires confirmation in RELEASE mode", { command: params.command, pattern: checkResult.matchedPattern })
-        try {
-          await ctx.ask({
-            permission: "release_confirm",
-            patterns: [params.command],
-            always: [],
-            metadata: {
-              matchedPattern: checkResult.matchedPattern,
-              message: `This command requires confirmation because it matches the pattern "${checkResult.matchedPattern}" in your release_confirm list.`,
-            },
-          })
-        } catch (error) {
-          // User denied the confirmation
-          const deniedOutput = `DENIED: Command "${params.command}" was blocked by user.
-The pattern "${checkResult.matchedPattern}" in your release_confirm list requires explicit confirmation for this command.`
-          log.info("user denied release_confirm command", { command: params.command, pattern: checkResult.matchedPattern })
-          return {
-            title: "Denied by user",
-            metadata: {
-              output: deniedOutput,
-              exit: 1 as number | null,
-              description: params.description,
-            },
-            output: deniedOutput,
-          }
-        }
-      }
+      // RELEASE mode: release_confirm checks are handled by HoldMode.checkCommand
+      // In RELEASE mode (holdMode: false), all commands are auto-approved except:
+      // - Commands in always_block (blocked entirely)
+      // - Commands blocked by profile-based blocklist in HOLD mode
+      // The requiresConfirmation flag is no longer used in RELEASE mode
 
       if (params.timeout !== undefined && params.timeout < 0) {
         throw new Error(`Invalid timeout value: ${params.timeout}. Timeout must be a positive number.`)

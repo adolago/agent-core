@@ -167,6 +167,9 @@ export async function monitorWebChannel(
 
   let sigintStop = false;
   const handleSigint = () => {
+    console.error("[gateway/whatsapp] SIGINT received", {
+      stack: new Error("SIGINT handler").stack,
+    });
     sigintStop = true;
   };
   process.once("SIGINT", handleSigint);
@@ -459,6 +462,13 @@ export async function monitorWebChannel(
     emitStatus();
 
     if (stopRequested() || sigintStop || reason === "aborted") {
+      console.error("[gateway/whatsapp] EXIT - stop condition met", {
+        stopRequested: stopRequested(),
+        sigintStop,
+        reasonIsAborted: reason === "aborted",
+        reason: typeof reason === "string" ? reason : JSON.stringify(reason),
+        abortSignalAborted: abortSignal?.aborted,
+      });
       await closeListener();
       break;
     }

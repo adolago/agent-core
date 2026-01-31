@@ -1,5 +1,6 @@
 import type { Argv } from "yargs"
 import { Session } from "../../session"
+import { Timestamp } from "../../util/timestamp"
 import { cmd } from "./cmd"
 import { bootstrap } from "../bootstrap"
 import { UI } from "../ui"
@@ -49,7 +50,7 @@ export const ExportCommand = cmd({
           options: sessions.map((session) => ({
             label: session.title,
             value: session.id,
-            hint: `${new Date(session.time.updated).toLocaleString()} • ${session.id.slice(-8)}`,
+            hint: `${Timestamp.pretty(new Date(session.time.updated))} • ${session.id.slice(-8)}`,
           })),
           output: process.stderr,
         })

@@ -129,6 +129,18 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
         }
 
         const abort = new AbortController();
+        abort.signal.addEventListener(
+          "abort",
+          () => {
+            console.error("[gateway] CHANNEL ABORTED", {
+              channelId,
+              accountId: id,
+              reason: (abort.signal as { reason?: unknown }).reason,
+              stack: new Error("Abort observed at").stack,
+            });
+          },
+          { once: true },
+        );
         store.aborts.set(id, abort);
         setRuntime(channelId, id, {
           accountId: id,
@@ -169,6 +181,11 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
   };
 
   const stopChannel = async (channelId: ChannelId, accountId?: string) => {
+    console.error("[gateway] stopChannel() invoked", {
+      channelId,
+      accountId,
+      stack: new Error("stopChannel called from").stack,
+    });
     const plugin = getChannelPlugin(channelId);
     const cfg = loadConfig();
     const store = getStore(channelId);
@@ -187,7 +204,7 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
         const abort = store.aborts.get(id);
         const task = store.tasks.get(id);
         if (!abort && !task && !plugin?.gateway?.stopAccount) return;
-        abort?.abort();
+        abort?.abort(new Error(`Gateway shutdown: channel=${channelId} account=${id}`));
         if (plugin?.gateway?.stopAccount) {
           const account = plugin.config.resolveAccount(cfg, id);
           await plugin.gateway.stopAccount({

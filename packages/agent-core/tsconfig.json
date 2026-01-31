@@ -20,5 +20,5 @@
       "@opencode-ai/script": ["./src/pkg/script/index"]
     }
   },
-  "exclude": ["dist"]
+  "exclude": ["dist", "dist.bak"]
 }

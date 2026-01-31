@@ -20,6 +20,7 @@ import { Session } from "."
 import { MessageV2 } from "./message-v2"
 import { Instance } from "../project/instance"
 import { Log } from "../util/log"
+import { Timestamp } from "../util/timestamp"
 
 export namespace Thread {
   const log = Log.create({ service: "thread" })
@@ -253,10 +254,10 @@ export namespace Thread {
    * Get thread summary for display
    */
   export function getSummary(thread: Info): string {
-    const personaEmoji = {
-      zee: "💬",
-      stanley: "📊",
-      johny: "📚",
+    const personaIcon = {
+      zee: "★",
+      stanley: "♦",
+      johny: "◎",
     }[thread.persona]
 
     const channelLabel = {
@@ -266,8 +267,8 @@ export namespace Thread {
       api: "API",
     }[thread.channel]
 
-    const lastActive = new Date(thread.lastActiveAt).toLocaleString()
+    const lastActive = Timestamp.pretty(new Date(thread.lastActiveAt))
 
-    return `${personaEmoji} ${thread.persona.charAt(0).toUpperCase() + thread.persona.slice(1)} via ${channelLabel} (${thread.messageCount} msgs, last: ${lastActive})`
+    return `${personaIcon} ${thread.persona.charAt(0).toUpperCase() + thread.persona.slice(1)} via ${channelLabel} (${thread.messageCount} msgs, last: ${lastActive})`
   }
 }

@@ -3,6 +3,7 @@ import { Config } from "../../../config/config"
 import { bootstrap } from "../../bootstrap"
 import { cmd } from "../cmd"
 import { UI } from "../../ui"
+import { Symbols } from "../../style"
 import path from "path"
 
 const DEPRECATIONS = [
@@ -64,7 +65,7 @@ export const MigrateCommand = cmd({
               foundDeprecations = true
               console.log(`${dim("●")} ${filepath}`)
               for (const issue of issues) {
-                console.log(`  ${warn("△")} ${issue}`)
+                console.log(`  ${warn("⚠")} ${issue}`)
               }
               console.log()
             }
@@ -85,7 +86,7 @@ export const MigrateCommand = cmd({
             if (content.includes("maxSteps:")) {
               foundDeprecations = true
               console.log(`${dim("●")} ${item}`)
-              console.log(`  ${warn("△")} The 'maxSteps' field is deprecated. Use 'steps' instead.`)
+              console.log(`  ${warn("⚠")} The 'maxSteps' field is deprecated. Use 'steps' instead.`)
               console.log()
             }
           }
@@ -95,9 +96,9 @@ export const MigrateCommand = cmd({
       }
 
       if (!foundDeprecations) {
-        console.log(`${success("✓")} No deprecated fields found in configuration.`)
+        console.log(`${success(Symbols.check)} No deprecated fields found in configuration.`)
       } else {
-        console.log(`${dim("─".repeat(60))}`)
+        console.log(`${dim(Symbols.hLine.repeat(60))}`)
         console.log()
         console.log("These deprecated fields still work but will be removed in a future version.")
         console.log("Please update your configuration to use the recommended replacements.")

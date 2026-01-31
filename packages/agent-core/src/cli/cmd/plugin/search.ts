@@ -37,7 +37,7 @@ export const SearchCommand = cmd({
       }
 
       if (plugins.length === 0) {
-        UI.println(UI.Style.TEXT_WARNING + "No plugins found" + UI.Style.TEXT_NORMAL)
+        UI.warn("No plugins found")
         if (args.query) {
           UI.println(
             UI.Style.TEXT_DIM +

@@ -22,8 +22,11 @@ export const MultiEditTool = Tool.define("multiedit", {
       .describe("Array of edit operations to perform sequentially on the file"),
   }),
   async execute(params, ctx) {
-    if (ctx.extra?.holdMode === true) {
-      const allowed = await HoldMode.isToolAllowedInHold("edit")
+    const holdMode = ctx.extra?.holdMode === true
+    const skipPermissions = ctx.extra?.skipPermissions === true
+
+    if (holdMode && !skipPermissions) {
+      const allowed = await HoldMode.isToolAllowedInHold("edit", skipPermissions)
       if (!allowed) {
         throw new Error("HOLD MODE: Cannot edit files. Switch to RELEASE mode to modify files.")
       }

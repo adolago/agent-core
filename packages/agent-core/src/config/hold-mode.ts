@@ -241,6 +241,7 @@ export namespace HoldMode {
     requiresConfirmation?: boolean
     matchedPattern?: string
     profile?: Profile
+    skipPermissions?: boolean
   }
 
   // Wrapper commands that should be unwrapped to find the actual command
@@ -339,13 +340,24 @@ export namespace HoldMode {
 
   export async function checkCommand(
     command: string,
-    options: { holdMode: boolean }
+    options: { holdMode: boolean; skipPermissions?: boolean }
   ): Promise<CheckResult> {
     // PERFORMANCE: Check cache first
-    const cacheKey = `${command}::${options.holdMode}`
+    const cacheKey = `${command}::${options.holdMode}::${options.skipPermissions ?? false}`
     const cached = checkCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CHECK_CACHE_TTL_MS) {
       return cached.result
+    }
+
+    // Skip ALL checks if skipPermissions is true (no cuffs mode)
+    if (options.skipPermissions === true) {
+      const result: CheckResult = {
+        blocked: false,
+        skipPermissions: true,
+        profile: undefined
+      }
+      checkCache.set(cacheKey, { result, timestamp: Date.now() })
+      return result
     }
 
     const config = await load()
@@ -380,14 +392,15 @@ export namespace HoldMode {
       }
     }
 
-    // RELEASE mode - check if confirmation is required
+    // RELEASE mode - skip release_confirm checks (auto-approve all permissions)
+    // The release_confirm feature is disabled when holdMode is false (RELEASE mode)
+    // This makes RELEASE mode equivalent to --dangerous / skip-all
     if (!options.holdMode) {
-      const confirmPattern = findMatchingPattern(command, config.release_confirm)
-      if (confirmPattern) {
-        const result: CheckResult = { blocked: false, requiresConfirmation: true, matchedPattern: confirmPattern, profile: config.profile }
-        checkCache.set(cacheKey, { result, timestamp: Date.now() })
-        return result
-      }
+      // In RELEASE mode, we skip the release_confirm check entirely
+      // All permissions are auto-approved except for always_block
+      const result: CheckResult = { blocked: false, profile: config.profile }
+      checkCache.set(cacheKey, { result, timestamp: Date.now() })
+      return result
     }
 
     const result: CheckResult = { blocked: false, profile: config.profile }
@@ -396,8 +409,14 @@ export namespace HoldMode {
   }
 
   export async function isToolAllowedInHold(
-    tool: "edit" | "write" | "apply_patch" | "todowrite"
+    tool: "edit" | "write" | "apply_patch" | "todowrite",
+    skipPermissions?: boolean
   ): Promise<boolean> {
+    // Always allow if skipPermissions is true (no cuffs mode)
+    if (skipPermissions === true) {
+      return true
+    }
+
     const config = await load()
     const toolSetting = config.tools[tool]
     if (toolSetting !== undefined) return toolSetting

@@ -46,13 +46,19 @@ const IS_PREVIEW = CHANNEL !== "latest"
 const VERSION = await (async () => {
   if (env.AGENT_CORE_VERSION) return env.AGENT_CORE_VERSION
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
-  // Use package.json version if available (for local builds)
-  if (packageJsonVersion && packageJsonVersion !== "0.0.0") return packageJsonVersion
+  // For dev/preview builds, generate nightly version (increments daily)
   if (IS_PREVIEW) {
+    const [major, minor] = (packageJsonVersion?.replace(/-.*$/, "") || "0.2.0").split(".").map(Number)
+    // Nightly number = days since Jan 30, 2026 (so Jan 31 = 1)
     const now = new Date()
-    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-    return `0.0.0-${CHANNEL}-${local.toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
+    const startYear = 2026, startMonth = 0, startDay = 30 // Jan 30, 2026
+    const startDate = new Date(startYear, startMonth, startDay)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const nightly = Math.round((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000))
+    return `${major}.${minor}.${nightly}-nightly`
   }
+  // Use package.json version if available (for release builds)
+  if (packageJsonVersion && packageJsonVersion !== "0.0.0") return packageJsonVersion
   const version = await fetch(`${registry}/${encodedPackage}/latest`)
     .then((res) => {
       if (!res.ok) throw new Error(res.statusText)

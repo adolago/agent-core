@@ -77,8 +77,9 @@ export const InfoCommand = cmd({
             if (installed) {
               UI.println(
                 UI.Style.TEXT_SUCCESS +
-                  "✓ Installed" +
+                  "✓" +
                   UI.Style.TEXT_NORMAL +
+                  " Installed" +
                   UI.Style.TEXT_DIM +
                   ` (${installed.spec})` +
                   UI.Style.TEXT_NORMAL,
@@ -95,14 +96,7 @@ export const InfoCommand = cmd({
             UI.empty()
             UI.println(UI.Style.TEXT_NORMAL_BOLD + "Package:" + UI.Style.TEXT_NORMAL + ` ${installed.spec}`)
             UI.empty()
-            UI.println(
-              UI.Style.TEXT_WARNING +
-                "⚠" +
-                UI.Style.TEXT_NORMAL +
-                UI.Style.TEXT_DIM +
-                " This plugin is not in the official registry" +
-                UI.Style.TEXT_NORMAL,
-            )
+            UI.warn("This plugin is not in the official registry")
           }
         } catch (error) {
           UI.error(`Failed to get plugin info: ${error instanceof Error ? error.message : error}`)

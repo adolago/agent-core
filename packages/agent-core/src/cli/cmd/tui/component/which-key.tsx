@@ -4,6 +4,7 @@ import { useKeybind, type KeybindsConfig } from "@tui/context/keybind"
 import { useTerminalDimensions } from "@opentui/solid"
 import { TextAttributes } from "@opentui/core"
 import { Keybind } from "@/util/keybind"
+import { SplitBorder } from "@tui/component/border"
 
 type KeybindEntry = {
   key: string
@@ -125,6 +126,7 @@ export function WhichKey() {
           backgroundColor={theme.backgroundMenu}
           border={["top", "bottom", "left", "right"]}
           borderColor={theme.primary}
+          customBorderChars={SplitBorder.customBorderChars}
           paddingLeft={1}
           paddingRight={1}
           paddingTop={0}

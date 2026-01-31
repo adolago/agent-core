@@ -2,13 +2,12 @@ import { useDialog } from "@tui/ui/dialog"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
-import { createMemo, createSignal, createResource, onMount, Show, type JSX } from "solid-js"
+import { createMemo, createSignal, createResource, onMount, type JSX } from "solid-js"
 import { Locale } from "@/util/locale"
 import { useKeybind } from "../context/keybind"
 import { useTheme } from "../context/theme"
 import { useSDK } from "../context/sdk"
 import { DialogSessionRename } from "./dialog-session-rename"
-import { useKV } from "../context/kv"
 import { createDebouncedSignal } from "../util/signal"
 import { useToast } from "../ui/toast"
 import "opentui-spinner/solid"
@@ -20,7 +19,6 @@ export function DialogSessionList() {
   const keybind = useKeybind()
   const { theme } = useTheme()
   const sdk = useSDK()
-  const kv = useKV()
   const toast = useToast()
 
   const [toDelete, setToDelete] = createSignal<string>()
@@ -58,11 +56,7 @@ export function DialogSessionList() {
         // Build gutter indicator
         let gutter: JSX.Element | undefined
         if (isWorking) {
-          gutter = (
-            <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-              <spinner frames={spinnerFrames} interval={80} color={theme.primary} />
-            </Show>
-          )
+          gutter = <spinner frames={spinnerFrames} interval={60} color={theme.primary} />
         } else if (incompleteTodoCount > 0) {
           gutter = <text fg={theme.warning}>◐{incompleteTodoCount}</text>
         }

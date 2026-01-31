@@ -205,7 +205,7 @@ const AgentCreateCommand = cmd({
         const file = Bun.file(filePath)
         if (await file.exists()) {
           if (isFullyNonInteractive) {
-            console.error(`Error: Agent file already exists: ${filePath}`)
+            UI.error(`Agent file already exists: ${filePath}`)
             process.exit(1)
           }
           prompts.log.error(`Agent file already exists: ${filePath}`)

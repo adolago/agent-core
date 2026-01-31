@@ -137,27 +137,27 @@ export namespace Log {
     const result: Logger = {
       trace(message?: any, extra?: Record<string, any>) {
         if (shouldLog("TRACE")) {
-          write("TRACE " + build(message, extra))
+          write("TRC " + build(message, extra))
         }
       },
       debug(message?: any, extra?: Record<string, any>) {
         if (shouldLog("DEBUG")) {
-          write("DEBUG " + build(message, extra))
+          write("DBG " + build(message, extra))
         }
       },
       info(message?: any, extra?: Record<string, any>) {
         if (shouldLog("INFO")) {
-          write("INFO  " + build(message, extra))
+          write("INF " + build(message, extra))
         }
       },
       error(message?: any, extra?: Record<string, any>) {
         if (shouldLog("ERROR")) {
-          write("ERROR " + build(message, extra))
+          write("ERR " + build(message, extra))
         }
       },
       warn(message?: any, extra?: Record<string, any>) {
         if (shouldLog("WARN")) {
-          write("WARN  " + build(message, extra))
+          write("WRN " + build(message, extra))
         }
       },
       tag(key: string, value: string) {

@@ -14,6 +14,7 @@
 import { exec } from "node:child_process"
 import { promisify } from "node:util"
 import { Log } from "../util/log"
+import { Timestamp } from "../util/timestamp"
 import { Bus } from "../bus"
 import { LifecycleHooks } from "../hooks/lifecycle"
 import { Session } from "../session"
@@ -360,8 +361,7 @@ export namespace WeztermOrchestration {
       lines.push("╠════════════════════════════════════════════════════════╣")
 
       // Time
-      const now = new Date()
-      lines.push(`║ Last Update: ${now.toLocaleTimeString().padEnd(42)}║`)
+      lines.push(`║ Last Update: ${Timestamp.time().padEnd(42)}║`)
 
       lines.push("╚════════════════════════════════════════════════════════╝")
 

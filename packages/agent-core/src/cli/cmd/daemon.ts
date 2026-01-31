@@ -21,6 +21,7 @@ import path from "path"
 import net from "net"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
+import { Output } from "../output"
 import { createAuthorizedFetch } from "../../server/auth"
 import {
   getEmbeddedGatewayState,
@@ -811,7 +812,7 @@ export const DaemonCommand = cmd({
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       log.error("startup sanity check failed", { error: message })
-      console.error(`Error: Failed to load agents (${message}).`)
+      UI.error(`Failed to load agents (${message}).`)
       await server.stop().catch((stopErr) => {
         log.debug("failed to stop server after sanity check failure", { error: String(stopErr) })
       })
@@ -852,19 +853,19 @@ export const DaemonCommand = cmd({
           persistenceEnabled = true
         },
       })
-      console.log("Persistence: Enabled (checkpoints + WAL)")
+      Output.log("Persistence: Enabled (checkpoints + WAL)")
     } catch (error) {
       log.error("Failed to initialize persistence", {
         error: error instanceof Error ? error.message : String(error),
       })
-      console.error(`Warning: Persistence initialization failed: ${error instanceof Error ? error.message : error}`)
+      UI.warn(`Persistence initialization failed: ${error instanceof Error ? error.message : error}`)
     }
 
     // RELIABILITY: Initialize circuit breaker with persisted state
     // This prevents immediate retries of failing providers after daemon restart
     try {
       await CircuitBreaker.init()
-      console.log("Circuit Breaker: Initialized with persisted state")
+      Output.log("Circuit Breaker: Initialized with persisted state")
     } catch (error) {
       log.error("Failed to initialize circuit breaker", {
         error: error instanceof Error ? error.message : String(error),
@@ -874,7 +875,7 @@ export const DaemonCommand = cmd({
     // Initialize persona hooks (cross-session memory, fact extraction)
     try {
       await initPersonas()
-      console.log("Personas:   Hooks initialized")
+      Output.log("Personas:   Hooks initialized")
     } catch (error) {
       log.debug("Personas initialization skipped", {
         error: error instanceof Error ? error.message : String(error),
@@ -886,7 +887,7 @@ export const DaemonCommand = cmd({
     try {
       await initSurfaces()
       surfacesEnabled = true
-      console.log("Surfaces:   Multi-surface support enabled")
+      Output.log("Surfaces:   Multi-surface support enabled")
     } catch (error) {
       log.debug("Surface initialization skipped", {
         error: error instanceof Error ? error.message : String(error),
@@ -898,12 +899,12 @@ export const DaemonCommand = cmd({
     try {
       await UsageTracker.init()
       usageEnabled = true
-      console.log("Usage:      Tracking enabled")
+      Output.log("Usage:      Tracking enabled")
     } catch (error) {
       log.error("Failed to initialize usage tracking", {
         error: error instanceof Error ? error.message : String(error),
       })
-      console.error(`Warning: Usage tracking initialization failed: ${error instanceof Error ? error.message : error}`)
+      UI.warn(`Usage tracking initialization failed: ${error instanceof Error ? error.message : error}`)
     }
 
     // Initialize work stealing for load balancing
@@ -912,7 +913,7 @@ export const DaemonCommand = cmd({
       const workStealingService = await initWorkStealing()
       workStealingEnabled = workStealingService.getStats().enabled
       if (workStealingEnabled) {
-        console.log("WorkSteal:  Load balancing enabled")
+        Output.log("WorkSteal:  Load balancing enabled")
       }
     } catch (error) {
       log.debug("Work stealing initialization skipped", {
@@ -926,7 +927,7 @@ export const DaemonCommand = cmd({
       const consensusGate = await initConsensus()
       consensusEnabled = consensusGate.getStats().enabled
       if (consensusEnabled) {
-        console.log("Consensus:  Approval gate enabled")
+        Output.log("Consensus:  Approval gate enabled")
       }
     } catch (error) {
       log.debug("Consensus gate initialization skipped", {
@@ -946,9 +947,9 @@ export const DaemonCommand = cmd({
           statusRefreshInterval: 5000,
         })
         if (weztermEnabled) {
-          console.log("WezTerm:   Visual orchestration enabled")
+          Output.log("WezTerm:   Visual orchestration enabled")
         } else {
-          console.log("WezTerm:   Not available (no display or WezTerm CLI)")
+          Output.log("WezTerm:   Not available (no display or WezTerm CLI)")
         }
       } catch (error) {
         log.debug("WezTerm initialization failed", {
@@ -967,16 +968,18 @@ export const DaemonCommand = cmd({
       })
       const gatewayState = GatewaySupervisor.getState()
       if (gatewayStarted) {
-        console.log("Gateway:    Messaging gateway started")
+        Output.log("Gateway:    Messaging gateway started")
       } else {
         const reason = gatewayState.error ?? "Not available"
-        console.log(`Gateway:    Disabled (${reason})`)
+        Output.log(`Gateway:    Disabled (${reason})`)
       }
     }
 
     // Setup cleanup handlers
     const cleanup = async (signal?: NodeJS.Signals, error?: Error) => {
-      log.info("daemon shutting down")
+      const cleanupStack = new Error("cleanup called from").stack
+      log.info("daemon shutting down", { signal, error: error?.message, cleanupStack })
+      Output.error(`[daemon] CLEANUP CALLED: ${JSON.stringify({ signal, error: error?.message, cleanupStack })}`)
 
       const shutdownReason: "signal" | "error" | "manual" = error ? "error" : signal ? "signal" : "manual"
 
@@ -1077,7 +1080,7 @@ export const DaemonCommand = cmd({
       : "MISSING - embeddings disabled"
     const memoryStatus = setupResult.ok ? "Ready" : "Degraded (some features disabled)"
 
-    console.log(`
+    Output.log(`
 Agent-Core Daemon Started
 ========================
 PID:       ${process.pid}
@@ -1118,7 +1121,7 @@ Press Ctrl+C to stop the daemon.
         async fn() {
           sessionsWithIncompleteTodos = await Daemon.restoreSessionsWithTodos(directory)
           if (sessionsWithIncompleteTodos > 0) {
-            console.log(`Found ${sessionsWithIncompleteTodos} session(s) with incomplete todos ready for continuation.`)
+            Output.log(`Found ${sessionsWithIncompleteTodos} session(s) with incomplete todos ready for continuation.`)
           }
         },
       })
@@ -1151,15 +1154,15 @@ export const DaemonStatusCommand = cmd({
     const state = await Daemon.readPidFile()
 
     if (running && state) {
-      console.log(`Daemon is running`)
-      console.log(`  PID:       ${state.pid}`)
-      console.log(`  Port:      ${state.port}`)
-      console.log(`  Hostname:  ${state.hostname}`)
-      console.log(`  Directory: ${state.directory}`)
-      console.log(`  Started:   ${new Date(state.startTime).toISOString()}`)
-      console.log(`  URL:       http://${state.hostname}:${state.port}`)
+      Output.log(`Daemon is running`)
+      Output.log(`  PID:       ${state.pid}`)
+      Output.log(`  Port:      ${state.port}`)
+      Output.log(`  Hostname:  ${state.hostname}`)
+      Output.log(`  Directory: ${state.directory}`)
+      Output.log(`  Started:   ${new Date(state.startTime).toISOString()}`)
+      Output.log(`  URL:       http://${state.hostname}:${state.port}`)
     } else {
-      console.log(`Daemon is not running`)
+      Output.log(`Daemon is not running`)
       process.exit(1)
     }
   },
@@ -1180,7 +1183,7 @@ export const DaemonStopCommand = cmd({
     const state = await Daemon.readPidFile()
 
     if (!state) {
-      console.log("No daemon PID file found")
+      Output.log("No daemon PID file found")
       await stopDaemonProcesses("daemon-stop (pid missing)")
       if (!keepGateway) await stopGatewayProcesses("daemon-stop (pid missing)")
       process.exit(1)
@@ -1188,14 +1191,14 @@ export const DaemonStopCommand = cmd({
 
     try {
       process.kill(state.pid, "SIGTERM")
-      console.log(`Sent SIGTERM to daemon (PID: ${state.pid})`)
+      Output.log(`Sent SIGTERM to daemon (PID: ${state.pid})`)
 
       // Wait for it to stop
       let attempts = 0
       while (attempts < 10) {
         await new Promise((resolve) => setTimeout(resolve, 500))
         if (!(await Daemon.isRunning())) {
-          console.log("Daemon stopped successfully")
+          Output.log("Daemon stopped successfully")
           await stopDaemonProcesses("daemon-stop (cleanup)")
           if (!keepGateway) await stopGatewayProcesses("daemon-stop (graceful)")
           return
@@ -1204,7 +1207,7 @@ export const DaemonStopCommand = cmd({
       }
 
       // Force kill if still running
-      console.log("Daemon did not stop gracefully, sending SIGKILL")
+      Output.log("Daemon did not stop gracefully, sending SIGKILL")
       process.kill(state.pid, "SIGKILL")
       await Daemon.removePidFile()
       await Daemon.releaseLock()
@@ -1212,7 +1215,7 @@ export const DaemonStopCommand = cmd({
       if (!keepGateway) await stopGatewayProcesses("daemon-stop (forced)")
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code === "ESRCH") {
-        console.log("Daemon process not found, cleaning up PID file")
+        Output.log("Daemon process not found, cleaning up PID file")
         await Daemon.removePidFile()
         await Daemon.releaseLock()
         await stopDaemonProcesses("daemon-stop (pid missing)")
@@ -1240,31 +1243,31 @@ export const GatewayStatusCommand = cmd({
         ? `Not found (${preflight.configPath})`
         : "Not found"
 
-    console.log("Zee Gateway Status")
-    console.log(`  Mode:      embedded`)
-    console.log(`  Config:    ${configLabel}`)
-    console.log(`  Port:      ${port} (${portOpen ? "listening" : "closed"})`)
-    console.log(`  Daemon:    ${gatewayState.daemonUrl ?? "unknown"}`)
-    console.log(`  Enabled:   ${gatewayState.enabled ? "yes" : "no"}`)
-    console.log(
+    Output.log("Zee Gateway Status")
+    Output.log(`  Mode:      embedded`)
+    Output.log(`  Config:    ${configLabel}`)
+    Output.log(`  Port:      ${port} (${portOpen ? "listening" : "closed"})`)
+    Output.log(`  Daemon:    ${gatewayState.daemonUrl ?? "unknown"}`)
+    Output.log(`  Enabled:   ${gatewayState.enabled ? "yes" : "no"}`)
+    Output.log(
       `  Process:   ${embeddedState.running ? `embedded (pid ${embeddedState.pid ?? process.pid})` : "none"}`,
     )
-    console.log(`  Env:       ${preflight.envHints.length ? preflight.envHints.join(", ") : "none"}`)
+    Output.log(`  Env:       ${preflight.envHints.length ? preflight.envHints.join(", ") : "none"}`)
 
     if (processes.length > 0) {
-      console.log("  External:")
+      Output.log("  External:")
       for (const proc of processes) {
-        console.log(`    ${proc.pid} ${proc.cmd}`)
+        Output.log(`    ${proc.pid} ${proc.cmd}`)
       }
     } else {
-      console.log("  External:  none")
+      Output.log("  External:  none")
     }
 
     const issues = [...preflight.issues, ...preflight.warnings]
     if (issues.length > 0) {
-      console.log("  Issues:")
+      Output.log("  Issues:")
       for (const issue of issues) {
-        console.log(`    - ${issue}`)
+        Output.log(`    - ${issue}`)
       }
     }
   },

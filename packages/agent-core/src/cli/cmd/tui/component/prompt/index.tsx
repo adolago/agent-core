@@ -505,7 +505,7 @@ export function Prompt(props: PromptProps) {
 
   createEffect(() => {
     if (props.disabled) input.cursorColor = theme.backgroundElement
-    if (!props.disabled) input.cursorColor = theme.text
+    if (!props.disabled) input.cursorColor = theme.primary
   })
 
   const lastUserMessage = createMemo(() => {
@@ -1740,12 +1740,12 @@ export function Prompt(props: PromptProps) {
                 vim.registerFocusCallback(() => input?.focus())
                 props.ref?.(ref)
                 setTimeout(() => {
-                  input.cursorColor = theme.text
+                  input.cursorColor = theme.primary
                 }, 0)
               }}
               onMouseDown={(r: MouseEvent) => r.target?.focus()}
               focusedBackgroundColor={theme.backgroundElement}
-              cursorColor={theme.text}
+              cursorColor={theme.primary}
               syntaxStyle={syntax()}
             />
           </box>
@@ -1806,7 +1806,7 @@ export function Prompt(props: PromptProps) {
               <spinner
                 color={spinnerDef().color}
                 frames={spinnerDef().frames}
-                interval={40}
+                interval={60}
               />
             </Show>
             {/* Vim hints (mode indicator moved to right-side chip) */}
