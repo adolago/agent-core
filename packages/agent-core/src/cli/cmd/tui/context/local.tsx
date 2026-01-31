@@ -1,7 +1,7 @@
 import { createStore } from "solid-js/store"
 import { batch, createEffect, createMemo } from "solid-js"
 import { useSync } from "@tui/context/sync"
-import { useTheme } from "@tui/context/theme"
+import { useTheme, resolveTheme } from "@tui/context/theme"
 import { uniqueBy } from "remeda"
 import path from "path"
 import { Global } from "@/global"
@@ -75,14 +75,15 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           themeCtx.set(agentName)
         }
       })
-      // Agent/Persona colors: derived from theme, cycled by index
-      // - Zee: theme.secondary (first agent)
-      // - Stanley: theme.accent
-      // - Johny: theme.success
+
       // Vim mode colors (defined in prompt/index.tsx):
       // - Normal: theme.accent (blue) - matches "N" indicator
       // - Insert: theme.success (green) - "I" indicator
       // - Visual: theme.warning (yellow) - "V" indicator
+      // Note: User message colors now use persona's theme primary color:
+      // - Zee: zeePrimary (#3F5E99)
+      // - Stanley: stanleyPrimary (#458A5C)
+      // - Johny: johnyPrimary (#9E4D42)
       const colors = createMemo(() => [
         theme.secondary,
         theme.accent,
@@ -91,6 +92,30 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         theme.primary,
         theme.error,
       ])
+
+      // Get persona's primary color from their theme
+      function getPersonaPrimaryColor(agentName: string): RGBA | null {
+        const name = agentName.toLowerCase()
+
+        // Map persona names to their theme keys
+        const personaThemes: Record<string, string> = {
+          zee: "zee",
+          stanley: "stanley",
+          johny: "johny",
+        }
+
+        const themeKey = personaThemes[name]
+        if (!themeKey) return null
+
+        // Get the persona's theme
+        const personaTheme = themeCtx.all()[themeKey]
+        if (!personaTheme) return null
+
+        // Return primary color from that theme
+        const resolvedTheme = resolveTheme(personaTheme, themeCtx.mode())
+        return resolvedTheme.primary
+      }
+
       // Placeholder agent for when no agents are loaded yet
       const placeholderAgent = {
         name: "",
@@ -147,7 +172,15 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           const all = sync.data?.agent
           if (!all || !Array.isArray(all)) return colors()[0]
           const agent = all.find((x) => x.name === name)
+
+          // First check for agent's custom color property
           if (agent?.color) return RGBA.fromHex(agent.color)
+
+          // Check if this is a persona and use their theme's primary color
+          const personaColor = getPersonaPrimaryColor(name)
+          if (personaColor) return personaColor
+
+          // Fall back to indexed colors for other agents
           const index = all.findIndex((x) => x.name === name)
           if (index === -1) return colors()[0]
           return colors()[index % colors().length]

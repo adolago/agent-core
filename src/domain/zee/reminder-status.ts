@@ -13,10 +13,17 @@ import {
   type CalendarEvent,
 } from "./google/calendar.js";
 import { getMemory } from "../../memory/unified.js";
+import { Global } from "../../../packages/agent-core/src/global/index.js";
+import path from "path";
+import fs from "fs/promises";
 
 const ReminderStatusParams = z.object({
   format: z.enum(["short", "detailed"]).default("short")
     .describe("Status format: short (one line) or detailed (with next reminder)"),
+  autoSave: z.boolean().default(false)
+    .describe("Automatically save status to KV store for TUI display"),
+  setupCron: z.boolean().default(false)
+    .describe("Set up automatic refresh every 15 minutes via cron job"),
 });
 
 interface ReminderInfo {
@@ -44,6 +51,117 @@ function formatTimeUntil(minutes: number): string {
   return `${hours} hr ${mins} min`;
 }
 
+/**
+ * Save a value to the KV store by directly writing to the JSON file.
+ * This is used when the tool runs outside the TUI context.
+ */
+async function saveToKV(key: string, value: unknown): Promise<void> {
+  const kvPath = path.join(Global.Path.state, "kv.json");
+
+  try {
+    // Read existing KV data
+    let kvData: Record<string, unknown> = {};
+    try {
+      const content = await fs.readFile(kvPath, "utf-8");
+      kvData = JSON.parse(content);
+    } catch {
+      // File doesn't exist or is invalid, start with empty object
+    }
+
+    // Update the value
+    kvData[key] = value;
+
+    // Write back to file
+    await fs.mkdir(Global.Path.state, { recursive: true });
+    await fs.writeFile(kvPath, JSON.stringify(kvData, null, 2));
+  } catch (error) {
+    throw new Error(`Failed to save to KV store: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Create a cron job to refresh the reminder status every 15 minutes.
+ */
+async function createRefreshCronJob(): Promise<ToolExecutionResult> {
+  const rawBaseUrl =
+    process.env.AGENT_CORE_URL ||
+    process.env.AGENT_CORE_DAEMON_URL ||
+    `http://127.0.0.1:${process.env.AGENT_CORE_PORT || process.env.AGENT_CORE_DAEMON_PORT || "3210"}`;
+  const baseUrl = rawBaseUrl.replace(/\/$/, "");
+
+  const gatewayHttpUrl = process.env.ZEE_GATEWAY_URL ||
+    process.env.GATEWAY_URL ||
+    "http://127.0.0.1:18789";
+
+  try {
+    const response = await fetch(`${gatewayHttpUrl}/rpc`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: Date.now(),
+        method: "cron.add",
+        params: {
+          name: "zee-reminder-status-refresh",
+          description: "Auto-refresh Zee reminder status every 15 minutes for TUI display",
+          enabled: true,
+          schedule: { kind: "every", everyMs: 900000 }, // 15 minutes
+          sessionTarget: "main",
+          wakeMode: "next-heartbeat",
+          payload: {
+            kind: "agentTurn",
+            message: "Run zee:reminder-status with autoSave=true",
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Gateway error: ${response.status} ${text}`);
+    }
+
+    const result = await response.json() as { result?: { id: string }; error?: { message: string } };
+
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    return {
+      title: "Cron Job Created",
+      metadata: { jobId: result.result?.id },
+      output: `Created cron job "zee-reminder-status-refresh" to refresh status every 15 minutes.
+
+Job ID: ${result.result?.id}
+Schedule: Every 15 minutes
+Action: Run zee:reminder-status with autoSave=true
+
+The TUI banner will automatically update with fresh reminder status.`,
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    if (errorMsg.includes("ECONNREFUSED") || errorMsg.includes("fetch failed")) {
+      return {
+        title: "Cron Setup Failed",
+        metadata: { error: "connection_failed" },
+        output: `Could not connect to Zee gateway to create cron job.
+
+Ensure agent-core daemon is running with gateway enabled:
+  agent-core daemon --gateway
+
+Error: ${errorMsg}`,
+      };
+    }
+
+    return {
+      title: "Cron Setup Error",
+      metadata: { error: errorMsg },
+      output: `Failed to create cron job: ${errorMsg}`,
+    };
+  }
+}
+
 export const reminderStatusTool: ToolDefinition = {
   id: "zee:reminder-status",
   category: "domain",
@@ -53,15 +171,31 @@ export const reminderStatusTool: ToolDefinition = {
 Returns a formatted status string suitable for display in the TUI banner.
 Checks Google Calendar for today's events and memory for reminder entries.
 
+Parameters:
+- format: "short" (default) or "detailed"
+- autoSave: Save status to KV store for TUI display (default: false)
+- setupCron: Create a cron job to auto-refresh every 15 minutes (default: false)
+
 Examples:
 - Check status: { }
-- Detailed format: { format: "detailed" }`,
+- Detailed format: { format: "detailed" }
+- Save to TUI: { autoSave: true }
+- Full setup: { autoSave: true, setupCron: true }`,
     parameters: ReminderStatusParams,
     execute: async (args, ctx): Promise<ToolExecutionResult> => {
-      const { format } = args;
+      const { format, autoSave, setupCron } = args;
       const now = new Date();
       const reminders: ReminderInfo[] = [];
       let calendarError: string | null = null;
+
+      // Handle setupCron first if requested
+      let cronResult: ToolExecutionResult | null = null;
+      if (setupCron) {
+        cronResult = await createRefreshCronJob();
+        if (cronResult.metadata?.error) {
+          return cronResult;
+        }
+      }
 
       // Check Google Calendar for today's events
       const hasCredentials = await checkCredentialsExist();
@@ -152,14 +286,40 @@ Examples:
         }
       }
 
+      // Save to KV store if autoSave is enabled
+      let savedToKV = false;
+      if (autoSave) {
+        try {
+          await saveToKV("zee_status_banner", statusMessage);
+          savedToKV = true;
+        } catch (error) {
+          // Non-fatal error, we'll include it in output
+        }
+      }
+
+      // Build output combining cron result and status
+      let output = statusMessage;
+
+      if (savedToKV) {
+        output += "\n\n[Saved to KV store: zee_status_banner]";
+      }
+
+      if (cronResult) {
+        output += `\n\n${cronResult.output}`;
+      }
+
       return {
         title: "Reminder Status",
         metadata: {
           reminderCount: reminders.length,
           format,
+          autoSave,
+          savedToKV,
+          setupCron,
+          cronJobId: cronResult?.metadata?.jobId,
           calendarError: calendarError ?? undefined,
         },
-        output: statusMessage,
+        output,
       };
     },
   }),

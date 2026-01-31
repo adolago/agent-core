@@ -39,6 +39,8 @@ export const SplitBorder = {
   customBorderChars: {
     ...EmptyBorder,
     vertical: "┃",
+    topLeft: "┏",
+    topRight: "┓",
   },
 }
 
