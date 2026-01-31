@@ -649,7 +649,7 @@ function rgbToAnsi(r: number, g: number, b: number): string {
  *
  * @internal
  */
-function hexToAnsi(hex: string): string {
+function _hexToAnsi(hex: string): string {
   if (!_useColors) return "";
 
   const clean = hex.replace("#", "");

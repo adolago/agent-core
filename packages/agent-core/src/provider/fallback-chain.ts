@@ -1,5 +1,4 @@
 import { Log } from "@/util/log"
-import { MessageV2 } from "@/session/message-v2"
 import { ModelEquivalence } from "./equivalence"
 import type { NamedError } from "@opencode-ai/util/error"
 

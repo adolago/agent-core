@@ -3,7 +3,6 @@ import { Log } from "../util/log"
 import path from "path"
 import z from "zod"
 import { data } from "./models-macro" with { type: "macro" }
-import { Installation } from "../installation"
 
 export namespace ModelsDev {
   const log = Log.create({ service: "models.dev" })

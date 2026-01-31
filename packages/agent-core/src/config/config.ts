@@ -636,7 +636,7 @@ export namespace Config {
       mcpServers: z.array(z.string()).optional().describe("MCP server names to auto-start for this agent"),
     })
     .catchall(z.any())
-    .transform((agent, ctx) => {
+    .transform((agent, _ctx) => {
       const knownKeys = new Set([
         "name",
         "model",

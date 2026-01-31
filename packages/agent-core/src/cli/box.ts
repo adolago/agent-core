@@ -25,7 +25,7 @@
  * ```
  */
 
-import { Style, Symbols, shouldUseUnicode } from "./style";
+import { Style, shouldUseUnicode } from "./style";
 
 /**
  * Border style presets

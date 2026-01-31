@@ -3,12 +3,12 @@ import { Log } from "../util/log"
 import { describeRoute, generateSpecs, resolver } from "hono-openapi"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
-import { basicAuth } from "hono/basic-auth"
+
 import { HTTPException } from "hono/http-exception"
-import { streamSSE } from "hono/streaming"
+
 import { proxy } from "hono/proxy"
 import z from "zod"
-import { Flag } from "../flag/flag"
+
 import { Provider } from "../provider/provider"
 import { NamedError } from "@opencode-ai/util/error"
 import { lazy } from "../util/lazy"
@@ -16,11 +16,11 @@ import { Storage } from "../storage/storage"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { websocket } from "hono/bun"
 import { bodyLimit } from "hono/body-limit"
-import { Installation } from "@/installation"
+
 import { MDNS } from "./mdns"
 import { ServerState } from "./state"
 import { Instance } from "../project/instance"
-import { getAuthConfig, isAuthorized } from "./auth"
+import { isAuthorized } from "./auth"
 
 // Routes
 import { ProjectRoute } from "./route/project"

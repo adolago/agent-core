@@ -26,7 +26,7 @@ import { THINKING_BUDGETS } from "./constants"
 // Direct imports for bundled providers
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { createOpenAI } from "@ai-sdk/openai"
+
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { createOpenRouter } from "@openrouter/ai-sdk-provider"
 import { createOpenaiCompatible as createPatchedOpenAI } from "./sdk/openai-compatible/src"
@@ -142,40 +142,6 @@ export namespace Provider {
     getModel?: CustomModelLoader
     options?: Record<string, any>
   }>
-
-  type GoogleServiceAccountCredentials = {
-    client_email: string
-    private_key: string
-    private_key_id?: string
-  }
-
-  function parseGoogleServiceAccountKey(
-    value: string,
-  ): { credentials: GoogleServiceAccountCredentials; project?: string } | undefined {
-    const trimmed = value.trim()
-    if (!trimmed.startsWith("{")) return
-    try {
-      const parsed = JSON.parse(trimmed) as Record<string, unknown>
-      const clientEmail = parsed["client_email"]
-      const privateKey = parsed["private_key"]
-      if (typeof clientEmail !== "string" || !clientEmail.trim()) return
-      if (typeof privateKey !== "string" || !privateKey.trim()) return
-
-      const privateKeyId = parsed["private_key_id"]
-      const projectId = parsed["project_id"]
-
-      return {
-        credentials: {
-          client_email: clientEmail,
-          private_key: privateKey.replace(/\\n/g, "\n"),
-          ...(typeof privateKeyId === "string" && privateKeyId.trim() ? { private_key_id: privateKeyId } : {}),
-        },
-        ...(typeof projectId === "string" && projectId.trim() ? { project: projectId } : {}),
-      }
-    } catch {
-      return
-    }
-  }
 
   const CUSTOM_LOADERS: Record<string, CustomLoader> = {
     async anthropic() {

@@ -5,13 +5,11 @@
 
 import type {
   ILogger,
-  ITransport,
   LogLevel,
   LogEntry,
   LoggerConfig,
   ErrorInfo,
   TimerHandle,
-  LOG_LEVELS,
 } from "./types";
 import { getCorrelationId, getSessionId } from "./context";
 
