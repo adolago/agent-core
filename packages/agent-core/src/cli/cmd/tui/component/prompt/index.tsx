@@ -2017,13 +2017,11 @@ export function Prompt(props: PromptProps) {
                   }
                   return (
                     <box flexDirection="row" gap={0}>
-                      {/* Elapsed · persona · model (Amp style) */}
+                      {/* Elapsed · model (Amp style) */}
                       <Show when={completedWorkTime() > 0}>
                         <text fg={theme.border}>{formatElapsed(completedWorkTime())}</text>
                         <text fg={theme.border}> · </text>
                       </Show>
-                      <text fg={theme.text}>{Locale.titlecase(local.agent.current().name)}</text>
-                      <text fg={theme.border}> · </text>
                       <text fg={theme.textMuted}>{parsed.provider}</text>
                       <text fg={theme.textMuted}> </text>
                       <text fg={theme.textMuted}>{parsed.model}</text>

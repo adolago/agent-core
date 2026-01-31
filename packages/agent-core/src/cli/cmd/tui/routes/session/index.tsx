@@ -1042,7 +1042,7 @@ export function Session() {
           paddingLeft={1}
           paddingRight={1}
           {...SplitBorder}
-          border={["left", "right", "top"]}
+          border={["right", "top"]}
           borderColor={theme.border}
         >
           <Show when={session()}>
