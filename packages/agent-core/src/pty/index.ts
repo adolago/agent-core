@@ -8,6 +8,7 @@ import type { WSContext } from "hono/ws"
 import { Instance } from "../project/instance"
 import { lazy } from "@opencode-ai/util/lazy"
 import { Shell } from "@/shell/shell"
+import { Filesystem } from "../util/filesystem"
 
 export namespace Pty {
   const log = Log.create({ service: "pty" })
@@ -102,6 +103,12 @@ export namespace Pty {
     }
 
     const cwd = input.cwd || Instance.directory
+
+    // Sentinel: Prevent PTY creation in directories outside the project
+    if (!(await Filesystem.containsResolved(Instance.directory, cwd))) {
+      throw new Error(`Access denied: path escapes project directory`)
+    }
+
     const env = { ...process.env, ...input.env, TERM: "xterm-256color" } as Record<string, string>
     log.info("creating session", { id, cmd: command, args, cwd })
 
