@@ -59,7 +59,7 @@ export const ORCHESTRATION_PERSONAS: Record<PersonaId, OrchestrationPersona> = {
       "You help with daily tasks, research, and communication.",
       "You maintain context across conversations.",
     ],
-    color: "#6366f1", // Indigo
+    color: "#3F5E99", // Sapphire Shadow - Blue (Zee)
     icon: "★",
   },
   stanley: {
@@ -78,7 +78,7 @@ export const ORCHESTRATION_PERSONAS: Record<PersonaId, OrchestrationPersona> = {
       "You help with market analysis, portfolio management, and trading decisions.",
       "You think in terms of risk/reward and macro trends.",
     ],
-    color: "#22c55e", // Green
+    color: "#458A5C", // Emerald Phantom - Green (Stanley)
     icon: "♦",
   },
   johny: {
@@ -97,7 +97,7 @@ export const ORCHESTRATION_PERSONAS: Record<PersonaId, OrchestrationPersona> = {
       "You help with understanding complex topics, spaced repetition, and knowledge retention.",
       "You think systematically and build knowledge graphs.",
     ],
-    color: "#f59e0b", // Amber
+    color: "#9E4D42", // Crimson Specter - Red (Johny)
     icon: "◎",
   },
 };

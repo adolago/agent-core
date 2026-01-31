@@ -711,18 +711,18 @@ export const themeToAnsi = {
  */
 export const personaColors = {
   zee: {
-    /** Zee blue (#2563EB) */
-    logo: _useColors ? "\x1b[38;2;37;99;235m" : "",
-    primary: _useColors ? "\x1b[38;2;37;99;235m" : "",
+    /** Zee - Sapphire Shadow Blue (#3F5E99) */
+    logo: _useColors ? "\x1b[38;2;63;94;153m" : "",
+    primary: _useColors ? "\x1b[38;2;63;94;153m" : "",
   },
   stanley: {
-    /** Stanley green (#00FF88) */
-    logo: _useColors ? "\x1b[38;2;0;255;136m" : "",
-    primary: _useColors ? "\x1b[38;2;0;255;136m" : "",
+    /** Stanley - Emerald Phantom Green (#458A5C) */
+    logo: _useColors ? "\x1b[38;2;69;138;92m" : "",
+    primary: _useColors ? "\x1b[38;2;69;138;92m" : "",
   },
   johny: {
-    /** Johny orange (#FFA500) */
-    logo: _useColors ? "\x1b[38;2;255;165;0m" : "",
-    primary: _useColors ? "\x1b[38;2;255;165;0m" : "",
+    /** Johny - Crimson Specter Red (#9E4D42) */
+    logo: _useColors ? "\x1b[38;2;158;77;66m" : "",
+    primary: _useColors ? "\x1b[38;2;158;77;66m" : "",
   },
 } as const;

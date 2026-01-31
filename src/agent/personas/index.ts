@@ -169,7 +169,7 @@ export const STANLEY_ANALYST: PersonaDefinition = {
   description: "Comprehensive financial analysis agent for institutional investment",
   mode: "primary",
   useCase: "stanley",
-  color: "#2563eb",
+  color: "#458A5C", // Emerald Phantom - Green (Stanley)
   model: "openrouter/anthropic/claude-sonnet-4",
   temperature: 0.3,
   permission: NO_EXECUTION_PERMISSIONS,
@@ -205,7 +205,7 @@ export const STANLEY_RESEARCHER: PersonaDefinition = {
   description: "Deep research and due diligence agent for thorough analysis",
   mode: "primary",
   useCase: "stanley",
-  color: "#7c3aed",
+  color: "#5DB87A", // Emerald Flux (Stanley variant)
   model: "openrouter/anthropic/claude-sonnet-4",
   temperature: 0.4,
   permission: NO_EXECUTION_PERMISSIONS,
@@ -254,7 +254,7 @@ export const STANLEY_QUANT: PersonaDefinition = {
   description: "Quantitative analysis and backtesting agent for systematic strategies",
   mode: "primary",
   useCase: "stanley",
-  color: "#059669",
+  color: "#336144", // Emerald Steel (Stanley variant)
   model: "openrouter/anthropic/claude-sonnet-4",
   temperature: 0.2,
   permission: NO_EXECUTION_PERMISSIONS,
@@ -302,7 +302,7 @@ export const STANLEY_MACRO: PersonaDefinition = {
   description: "Macroeconomic analysis subagent for economic regime and cross-asset analysis",
   mode: "subagent",
   useCase: "stanley",
-  color: "#dc2626",
+  color: "#254533", // Emerald Bronze (Stanley variant)
   permission: NO_EXECUTION_PERMISSIONS,
   tools: {
     dbnomics: true,
@@ -351,7 +351,7 @@ export const ZEE_ASSISTANT: PersonaDefinition = {
   mode: "primary",
   useCase: "zee",
   default: true,
-  color: "#6366f1",
+  color: "#3F5E99", // Sapphire Shadow - Blue (Zee)
   temperature: 0.7,
   identityFiles: ["~/.zee/IDENTITY.md", "~/.zee/SOUL.md"],
   tools: {
@@ -383,7 +383,7 @@ export const ZEE_CODER: PersonaDefinition = {
   description: "Technical help mode for coding assistance",
   mode: "primary",
   useCase: "zee",
-  color: "#10b981",
+  color: "#5078C2", // Sapphire Flux (Zee variant)
   extends: "agent-core/release",
   temperature: 0.3,
   identityFiles: ["~/.zee/IDENTITY.md", "~/.zee/SOUL.md"],
@@ -406,7 +406,7 @@ export const ZEE_RESEARCHER: PersonaDefinition = {
   description: "Information gathering and research mode",
   mode: "primary",
   useCase: "zee",
-  color: "#8b5cf6",
+  color: "#304572", // Sapphire Steel (Zee variant)
   temperature: 0.5,
   identityFiles: ["~/.zee/IDENTITY.md", "~/.zee/SOUL.md"],
   tools: {

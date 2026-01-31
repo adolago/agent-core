@@ -13,36 +13,36 @@ import type { AgentPersonaConfig } from "../config/types";
 // =============================================================================
 
 /**
- * Stanley - Emerald/Green theme
- * RGB(5, 150, 105) = #059669
+ * Stanley - Emerald Phantom (Green Team)
+ * Stealth matte metallic green theme
  */
 export const STANLEY_THEME: PersonaTheme = {
-  primaryColor: "#059669",
-  accentColor: "#34D399",
-  borderColor: "rgba(5, 150, 105, 0.45)",
-  bgGradient: "linear-gradient(135deg, rgba(5, 150, 105, 0.16) 0%, rgba(5, 150, 105, 0.08) 100%)",
+  primaryColor: "#458A5C",
+  accentColor: "#5DB87A",
+  borderColor: "rgba(69, 138, 92, 0.45)",
+  bgGradient: "linear-gradient(135deg, rgba(69, 138, 92, 0.16) 0%, rgba(69, 138, 92, 0.08) 100%)",
 };
 
 /**
- * Zee - Blue theme
- * RGB(37, 99, 235) = #2563EB
+ * Zee - Sapphire Shadow (Blue Team)
+ * Stealth matte metallic blue theme
  */
 export const ZEE_THEME: PersonaTheme = {
-  primaryColor: "#2563EB",
-  accentColor: "#60A5FA",
-  borderColor: "rgba(37, 99, 235, 0.45)",
-  bgGradient: "linear-gradient(135deg, rgba(37, 99, 235, 0.16) 0%, rgba(37, 99, 235, 0.08) 100%)",
+  primaryColor: "#3F5E99",
+  accentColor: "#5078C2",
+  borderColor: "rgba(63, 94, 153, 0.45)",
+  bgGradient: "linear-gradient(135deg, rgba(63, 94, 153, 0.16) 0%, rgba(63, 94, 153, 0.08) 100%)",
 };
 
 /**
- * Johny - Red theme
- * RGB(220, 38, 38) = #DC2626
+ * Johny - Crimson Specter (Red Team)
+ * Stealth matte metallic red theme
  */
 export const JOHNY_THEME: PersonaTheme = {
-  primaryColor: "#DC2626",
-  accentColor: "#F87171",
-  borderColor: "rgba(220, 38, 38, 0.45)",
-  bgGradient: "linear-gradient(135deg, rgba(220, 38, 38, 0.16) 0%, rgba(220, 38, 38, 0.08) 100%)",
+  primaryColor: "#9E4D42",
+  accentColor: "#C46356",
+  borderColor: "rgba(158, 77, 66, 0.45)",
+  bgGradient: "linear-gradient(135deg, rgba(158, 77, 66, 0.16) 0%, rgba(158, 77, 66, 0.08) 100%)",
 };
 
 // =============================================================================
@@ -77,7 +77,7 @@ export const STANLEY_AGENT_CONFIG: AgentConfig = {
   default: false,
   temperature: 0.3,
   topP: 0.9, // More focused sampling for analytical work
-  color: "#1a365d",
+  color: "#254533", // Emerald Bronze (Stanley dark)
   permission: {
     edit: "allow",
     bash: {
@@ -195,7 +195,7 @@ export const ZEE_AGENT_CONFIG: AgentConfig = {
   default: true,
   temperature: 0.7,
   topP: 0.95, // Balanced sampling for conversational flexibility
-  color: "#6b46c1",
+  color: "#111426", // Sapphire Shadow dark (Zee dark)
   permission: {
     edit: "allow",
     bash: {
@@ -311,7 +311,7 @@ export const JOHNY_AGENT_CONFIG: AgentConfig = {
   default: false,
   temperature: 0.5,
   topP: 0.92, // Balanced sampling for teaching variety
-  color: "#DC2626",
+  color: "#5C2A24", // Crimson Bronze (Johny dark)
   permission: {
     edit: "allow",
     bash: {
