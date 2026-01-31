@@ -1348,6 +1348,12 @@ export function Prompt(props: PromptProps) {
     return local.agent.color(local.agent.current().name)
   })
 
+  const placeholder = createMemo(() => {
+    if (props.showPlaceholder === false) return null
+    const agentName = Locale.titlecase(local.agent.current().name)
+    return `Message ${agentName}... (Space for menu)`
+  })
+
   const showVariant = createMemo(() => {
     const variants = local.model.variant.list()
     if (variants.length === 0) return false
@@ -1448,7 +1454,7 @@ export function Prompt(props: PromptProps) {
             flexGrow={1}
           >
             <textarea
-              placeholder={null}
+              placeholder={placeholder()}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}
               minHeight={1}
