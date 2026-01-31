@@ -1418,51 +1418,20 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Persona + agent count line with dashes on both sides (like Amp) */}
+        {/* Top border with persona + skills (Amp style box) */}
         <box height={1} flexDirection="row" justifyContent="flex-end">
           <text fg={theme.border}>{"─".repeat(500)}</text>
           <text fg={highlight()}>{Locale.titlecase(local.agent.current().name)}</text>
-          <text fg={theme.border}>─</text>
+          <text fg={theme.border}>──</text>
           <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} agents</text>
-          <text fg={theme.border}>─</text>
+          <text fg={theme.border}>─┐</text>
         </box>
-        {/* Horizontal separator with repo/branch */}
-        <box height={1} flexDirection="row" justifyContent="flex-end">
-          <text fg={theme.border}>{"─".repeat(500)}</text>
-          <text fg={theme.textMuted}>
-            <Show when={sync.data.path?.directory}>
-              {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
-            </Show>
-            <Show when={sync.data.vcs?.branch}>
-              {` (${sync.data.vcs?.branch})`}
-            </Show>
-          </text>
-          <text fg={theme.border}>─</text>
-        </box>
-        {/* File changes line */}
-        <Show when={diffStats()}>
-          {(stats) => (
-            <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={2}>
-              <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
-              <Show when={stats().additions > 0}>
-                <text fg={theme.success}>+{stats().additions} </text>
-              </Show>
-              <Show when={stats().modified > 0}>
-                <text fg={theme.warning}>~{stats().modified} </text>
-              </Show>
-              <Show when={stats().deletions > 0}>
-                <text fg={theme.error}>-{stats().deletions}</text>
-              </Show>
-            </box>
-          )}
-        </Show>
         <box
-          border={["left"]}
-          borderColor={highlight()}
+          border={["right"]}
+          borderColor={theme.border}
           customBorderChars={{
             ...EmptyBorder,
-            vertical: "┃",
-            bottomLeft: "╹",
+            vertical: "│",
           }}
         >
           <box
@@ -1774,32 +1743,37 @@ export function Prompt(props: PromptProps) {
             />
           </box>
         </box>
-        {/* Simple separator line */}
-        <box height={1} flexDirection="row">
+        {/* Bottom border with path + branch (Amp style box) */}
+        <box height={1} flexDirection="row" justifyContent="flex-end">
           <text fg={theme.border}>{"─".repeat(500)}</text>
+          <text fg={theme.textMuted}>
+            <Show when={sync.data.path?.directory}>
+              {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
+            </Show>
+            <Show when={sync.data.vcs?.branch}>
+              {` (${sync.data.vcs?.branch})`}
+            </Show>
+          </text>
+          <text fg={theme.border}>─┘</text>
         </box>
+        {/* Status bar (outside the box) */}
         <box
           flexDirection="row"
           justifyContent="space-between"
-          border={["left"]}
-          borderColor={highlight()}
-          customBorderChars={{
-            ...EmptyBorder,
-            vertical: "┃",
-          }}
           paddingLeft={2}
           paddingRight={2}
         >
-          {/* Left side: spinner + vim + mode + stats + abort hint */}
+          {/* Left side: spinner + phase + abort hint (Amp style) */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
+            {/* Animated spinner when busy, accent ~ when idle */}
             <Show
-              when={kv.get("animations_enabled", true)}
-              fallback={<text fg={theme.textMuted}>[...]</text>}
+              when={status().type === "busy"}
+              fallback={<text fg={highlight()}>~</text>}
             >
               <spinner
                 color={spinnerDef().color}
-                frames={status().type === "idle" ? idleFrames() : spinnerDef().frames}
-                interval={status().type === "idle" ? 1000 : 40}
+                frames={spinnerDef().frames}
+                interval={40}
               />
             </Show>
             {/* Vim hints (mode indicator moved to right-side chip) */}
@@ -1841,48 +1815,7 @@ export function Prompt(props: PromptProps) {
               </Switch>
             }>
               <Match when={status().type === "idle"}>
-                {/* Session-wise stats when idle */}
-                {(() => {
-                  const formatFixedTokens = (n: number, width = 4) => {
-                    const inK = Math.round(n / 1000)
-                    const numStr = inK.toString().padStart(width, "0")
-                    const firstNonZero = numStr.search(/[1-9]/)
-                    const zeroCount = firstNonZero === -1 ? width - 1 : firstNonZero
-                    const zeros = numStr.slice(0, zeroCount)
-                    const rest = numStr.slice(zeroCount)
-                    return (
-                      <>
-                        <Show when={zeros.length > 0}>
-                          <text fg={theme.textMuted} attributes={TextAttributes.DIM}>{zeros}</text>
-                        </Show>
-                        <text fg={theme.textMuted}>{rest}</text>
-                      </>
-                    )
-                  }
-                  const formatElapsed = (s: number) => {
-                    if (s < 60) return `${s}s`
-                    if (s < 3600) {
-                      const m = Math.floor(s / 60)
-                      const sec = s % 60
-                      return sec > 0 ? `${m}m${sec}s` : `${m}m`
-                    }
-                    const h = Math.floor(s / 3600)
-                    const m = Math.floor((s % 3600) / 60)
-                    return m > 0 ? `${h}h${m}m` : `${h}h`
-                  }
-                  const totals = sessionTokenTotals()
-                  const embConfig = streamHealth()?.embeddingConfig
-                  return (
-                  <box flexDirection="row" gap={0}>
-                    <Show when={embConfig}>
-                      <text fg={theme.warning}>◆</text>
-                      <text fg={theme.textMuted}>{embConfig?.maxContext ?? 0}</text>
-                      <text> </text>
-                    </Show>
-                    <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
-                  </box>
-                  )
-                })()}
+                <></>
               </Match>
               <Match when={true}>
                 <box flexDirection="row" gap={1}>
@@ -1947,12 +1880,12 @@ export function Prompt(props: PromptProps) {
                     }
                     const phaseLabel = createMemo(() => {
                       const health = streamHealth()
-                      if (!health?.phase) return "Starting..."
+                      if (!health?.phase) return "Streaming response..."
                       switch (health.phase) {
                         case "thinking": return "Thinking..."
                         case "tool_calling": return "Running tools..."
-                        case "generating": return "Generating..."
-                        default: return "Starting..."
+                        case "generating": return "Streaming response..."
+                        default: return "Streaming response..."
                       }
                     })
                     const formatFixedTokens = (n: number, width = 4) => {
@@ -2032,10 +1965,10 @@ export function Prompt(props: PromptProps) {
                         <>
                           <text fg={theme.textMuted}>{parsed.provider}</text>
                           <text fg={theme.textMuted}>·</text>
-                          <text fg={theme.text}>{parsed.model}</text>
+                          <text fg={theme.textMuted}>{parsed.model}</text>
                           <Show when={variant}>
                             <text fg={theme.textMuted}>·</text>
-                            <text fg={theme.text}>{variant}</text>
+                            <text fg={highlight()}>{variant}</text>
                           </Show>
                         </>
                       )}
@@ -2076,6 +2009,23 @@ export function Prompt(props: PromptProps) {
                             </text>
                           </>
                         )}
+                      </Show>
+                      {/* Elapsed work time (Amp style) */}
+                      <Show when={completedWorkTime() > 0}>
+                        {(() => {
+                          const formatElapsed = (s: number) => {
+                            if (s < 60) return `${s}s`
+                            if (s < 3600) {
+                              const m = Math.floor(s / 60)
+                              const sec = s % 60
+                              return sec > 0 ? `${m}m${sec}s` : `${m}m`
+                            }
+                            const h = Math.floor(s / 3600)
+                            const m = Math.floor((s % 3600) / 60)
+                            return m > 0 ? `${h}h${m}m` : `${h}h`
+                          }
+                          return <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
+                        })()}
                       </Show>
                     </>
                   )

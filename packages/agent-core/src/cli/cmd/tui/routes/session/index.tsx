@@ -69,7 +69,6 @@ import { Toast, useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv.tsx"
 import { Editor } from "../../util/editor"
 import stripAnsi from "strip-ansi"
-import { Footer } from "./footer.tsx"
 import { usePromptRef } from "../../context/prompt"
 import { useExit } from "../../context/exit"
 import { Filesystem } from "@/util/filesystem"
@@ -1164,11 +1163,7 @@ export function Session() {
                 </For>
               </scrollbox>
             </Show>
-            <Show when={messages().length > 0}>
-              <box height={1} flexDirection="row">
-                <text fg={theme.border}>{"─".repeat(500)}</text>
-              </box>
-            </Show>
+
             <box flexShrink={0}>
               <Show when={permissions().length > 0}>
                 <PermissionPrompt request={permissions()[0]} />
