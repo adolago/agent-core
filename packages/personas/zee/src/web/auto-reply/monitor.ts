@@ -513,12 +513,12 @@ export async function monitorWebChannel(
       );
       const message =
         fatalReason === "logged-out"
-          ? `WhatsApp session logged out. Run \\`${relinkHint}\\` to relink.`
+          ? `WhatsApp session logged out. Run \`${relinkHint}\` to relink.`
           : fatalReason === "bad-session"
-            ? `WhatsApp session is corrupted. Run \\`${relinkHint}\\` to relink.`
+            ? `WhatsApp session is corrupted. Run \`${relinkHint}\` to relink.`
             : fatalReason === "connection-replaced"
-              ? `WhatsApp session was replaced by another login. Run \\`${relinkHint}\\` to relink.`
-              : `WhatsApp session mismatch detected. Run \\`${relinkHint}\\` to relink.`;
+              ? `WhatsApp session was replaced by another login. Run \`${relinkHint}\` to relink.`
+              : `WhatsApp session mismatch detected. Run \`${relinkHint}\` to relink.`;
       if (fatalReason === "logged-out" || fatalReason === "bad-session") {
         try {
           await logoutWeb({

@@ -231,6 +231,10 @@ export type GatewayConfig = {
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
   daemonBridge?: GatewayDaemonBridgeConfig;
+  /** Optional control UI config (currently unused). */
+  controlUi?: {
+    enabled?: boolean;
+  };
   reload?: GatewayReloadConfig;
   tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;

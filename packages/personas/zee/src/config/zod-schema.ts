@@ -354,6 +354,12 @@ export const ZeeSchema = z
           })
           .strict()
           .optional(),
+        controlUi: z
+          .object({
+            enabled: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
         reload: z
           .object({
             mode: z
