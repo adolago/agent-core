@@ -49,6 +49,9 @@ export function Home() {
     return !tipsHidden()
   })
 
+  // Read Zee status banner from KV store
+  const zeeStatusBanner = createMemo(() => kv.get("zee_status_banner", ""))
+
   command.register(() => [
     {
       title: tipsHidden() ? "Show tips" : "Hide tips",
@@ -123,6 +126,18 @@ export function Home() {
         </box>
         <Toast />
       </box>
+      {/* Zee status banner */}
+      <Show when={zeeStatusBanner()}>
+        <box
+          paddingTop={HeaderStyles.padding.top}
+          paddingLeft={HeaderStyles.padding.left}
+          paddingRight={HeaderStyles.padding.right}
+          flexDirection="row"
+          flexShrink={0}
+        >
+          <text fg={theme.accent}>{zeeStatusBanner()}</text>
+        </box>
+      </Show>
       <box
         paddingTop={HeaderStyles.padding.top}
         paddingBottom={HeaderStyles.padding.bottom}

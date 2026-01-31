@@ -52,6 +52,7 @@ import { PTY_SESSION_TOOLS } from "./pty-sessions.js";
 import { ZEE_BROWSER_TOOLS } from "./browser.js";
 import { ZEE_STANDALONE_BROWSER_TOOLS } from "./browser-standalone.js";
 import { WHATSAPP_TOOLS } from "./whatsapp.js";
+import { reminderStatusTool } from "./reminder-status.js";
 
 // =============================================================================
 // Memory Store Tool
@@ -1231,6 +1232,7 @@ export const ZEE_TOOLS = [
   splitwiseTool,
   codexbarTool,
   whatsappReactionTool,
+  reminderStatusTool,
   ...CLAUDE_CODE_TOOLS,
   ...RESTART_SENTINEL_TOOLS,
   ...CRON_TOOLS,
