@@ -1455,7 +1455,7 @@ export function Prompt(props: PromptProps) {
           <box flexDirection="row">
             <text fg={theme.border}>│</text>
             <box paddingLeft={1} paddingRight={1} flexGrow={1}>
-              <text fg={theme.warning} italic>{reminderText()}</text>
+              <text fg={theme.warning} attributes={TextAttributes.ITALIC}>{reminderText()}</text>
             </box>
             <text fg={theme.border}>│</text>
           </box>
