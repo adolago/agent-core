@@ -2040,6 +2040,12 @@ export function Prompt(props: PromptProps) {
             </Switch>
           </box>
         </box>
+        {/* Bottom border to close the box */}
+        <box height={1} flexDirection="row">
+          <text fg={theme.border}>└</text>
+          <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
+          <text fg={theme.border}>┘</text>
+        </box>
         {/* Zee announcement/tips (like Amp's ad box) */}
         {/* <box paddingTop={1} paddingLeft={2}>
           <Tips />
