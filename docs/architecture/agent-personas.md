@@ -33,7 +33,7 @@ The agent persona system provides a unified approach to agent identity and behav
 ```
 Global Identity (~/.zee/)
     |
-    +-- Project Personas (.agent-core/persona/)
+    +-- Project Personas (.agent-core/agent/)
     |       |
     |       +-- Session Overrides (runtime)
     |
@@ -340,7 +340,7 @@ export namespace PermissionEvaluator {
 
 ## Persona Sources
 
-Personas are defined in `.claude/skills/` and loaded at runtime. The core repo does not ship built-in development agents; add or override personas per project under `.agent-core/persona` or `~/.agent-core/persona` as needed.
+Personas are defined in `.claude/skills/` and loaded at runtime. The core repo does not ship built-in development agents; add or override personas per project under `.agent-core/agent/` or `~/.agent-core/agent/` as needed.
 
 ## Configuration Files
 
@@ -353,8 +353,8 @@ Personas are defined in `.claude/skills/` and loaded at runtime. The core repo d
     "identityPath": "~/.zee/IDENTITY.md",
     "soulPath": "~/.zee/SOUL.md",
     "personaDirs": [
-      ".agent-core/persona",
-      "~/.agent-core/persona"
+      ".agent-core/agent",
+      "~/.agent-core/agent"
     ]
   },
   "agent": {

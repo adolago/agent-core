@@ -27,7 +27,7 @@ import {
   type ToolResult,
   type ThreadContext,
 } from './types.js';
-import { Log } from '../../packages/agent-core/src/util/log';
+import { Log } from '../util/log';
 
 const log = Log.create({ service: 'messaging-surface' });
 

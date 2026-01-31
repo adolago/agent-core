@@ -88,8 +88,8 @@ export function Prompt(props: PromptProps) {
     estimatedTokens?: number
     requestCount?: number
     memoryStats?: {
-      embedding: { calls: number; texts: number; estimatedTokens: number; provider?: string }
-      reranking: { calls: number; documents: number; provider?: string }
+      embedding: { calls: number; estimatedTokens: number; provider?: string }
+      reranking: { calls: number; provider?: string }
     }
   }
   const streamHealth = createMemo((): StreamHealthExtended | undefined => {
@@ -150,7 +150,7 @@ export function Prompt(props: PromptProps) {
         if (reqCount > current.lastReqCount) {
           const updated = {
             mbd: current.mbd + (lbh.memoryStats.embedding.estimatedTokens ?? 0),
-            rrnk: current.rrnk + (lbh.memoryStats.reranking.documents ?? 0),
+            rrnk: current.rrnk + (lbh.memoryStats.reranking.calls ?? 0),
             lastReqCount: reqCount,
           }
           setMemTotals(updated)
@@ -169,7 +169,7 @@ export function Prompt(props: PromptProps) {
     if (!health?.memoryStats) return base
     return {
       mbd: base.mbd + (health.memoryStats.embedding.estimatedTokens ?? 0),
-      rrnk: base.rrnk + (health.memoryStats.reranking.documents ?? 0),
+      rrnk: base.rrnk + (health.memoryStats.reranking.calls ?? 0),
       lastReqCount: base.lastReqCount,
     }
   })
@@ -1162,12 +1162,20 @@ export function Prompt(props: PromptProps) {
       promptModelWarning()
       return
     }
-    const sessionID = props.sessionID
-      ? props.sessionID
-      : await (async () => {
-          const sessionID = await sdk.client.session.create({}).then((x) => x.data!.id)
-          return sessionID
-        })()
+    let sessionID: string
+    if (props.sessionID) {
+      sessionID = props.sessionID
+    } else {
+      const result = await sdk.client.session.create({})
+      if (!result.data?.id) {
+        toast.show({
+          message: "Failed to create session. Please try again.",
+          variant: "error",
+        })
+        return
+      }
+      sessionID = result.data.id
+    }
     const messageID = Identifier.ascending("message")
     let inputText = store.prompt.input
 
@@ -1461,41 +1469,59 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        {/* Zee reminders/agenda section (replaces Amp ads) */}
+        {/* Zee messages box - persistent across persona changes */}
         <box
-          flexDirection="row"
-          justifyContent="space-between"
-          height={1}
-          paddingLeft={1}
-          paddingRight={1}
+          border={["top", "left", "right"]}
+          borderColor={theme.border}
         >
-          {/* Left: Zee reminders placeholder */}
-          <box flexDirection="row" gap={1}>
-            <text fg={theme.textMuted}>
-              {/* TODO: Integrate with Zee's calendar/reminders */}
-            </text>
+          {/* Header: Zee + skill count */}
+          <box
+            flexDirection="row"
+            justifyContent="space-between"
+            paddingLeft={1}
+            paddingRight={1}
+          >
+            <box flexDirection="row" gap={1}>
+              <text fg={theme.accent}>Zee</text>
+            </box>
+            <box flexDirection="row" gap={1}>
+              <text fg={theme.textMuted}>{sync.data.agent?.length ?? 0} agents</text>
+            </box>
           </box>
-          {/* Right: agent mode, knowledge count */}
-          <box flexDirection="row" gap={1}>
-            <text fg={local.agent.color(local.agent.current().name)}>{Locale.titlecase(local.agent.current().name)}</text>
-            <Show when={local.agent.current().knowledge?.length}>
-              <text fg={theme.textMuted}>{local.agent.current().knowledge?.length} knowledge</text>
-            </Show>
+          {/* Zee reminders based on time/agenda */}
+          <box paddingLeft={1} paddingRight={1} height={1}>
+            {(() => {
+              const [reminder, setReminder] = createSignal("")
+              onMount(() => {
+                const update = () => {
+                  const hour = new Date().getHours()
+                  if (hour < 9) setReminder("Good morning. Check your calendar for today.")
+                  else if (hour < 12) setReminder("Focus time. Review pending tasks.")
+                  else if (hour < 14) setReminder("Lunch break reminder.")
+                  else if (hour < 17) setReminder("Afternoon focus. Keep momentum.")
+                  else if (hour < 20) setReminder("Evening. Wrap up and plan tomorrow.")
+                  else setReminder("Rest well. Tomorrow awaits.")
+                }
+                update()
+                const timer = setInterval(update, 60000)
+                onCleanup(() => clearInterval(timer))
+              })
+              return <text fg={theme.textMuted}>{reminder()}</text>
+            })()}
           </box>
         </box>
-        {/* Horizontal separator with repo/branch info */}
+        {/* Horizontal separator with repo/branch + file changes */}
         <box height={1} flexDirection="row" justifyContent="flex-end">
           <text fg={theme.textMuted}>
             <Show when={sync.data.path?.directory}>
-              {sync.data.path?.directory ? `~${sync.data.path.directory.replace(process.env.HOME ?? "", "")}` : ""}
+              {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
             </Show>
             <Show when={sync.data.vcs?.branch}>
               {` (${sync.data.vcs?.branch})`}
             </Show>
           </text>
-          <text fg={theme.border}> {"─".repeat(500)}</text>
+          <text fg={theme.border}>{"─".repeat(500)}</text>
         </box>
-        {/* Git status: files changed +additions ~modified -deletions */}
         <Show when={diffStats()}>
           {(stats) => (
             <box height={1} flexDirection="row" justifyContent="flex-end" paddingRight={1}>
@@ -1846,12 +1872,8 @@ export function Prompt(props: PromptProps) {
           paddingLeft={2}
           paddingRight={2}
         >
-          {/* Left side: persona + spinner + vim + mode + stats + abort hint */}
+          {/* Left side: spinner + vim + mode + stats + abort hint */}
           <box flexDirection="row" gap={1} flexShrink={1} overflow="hidden">
-            {/* Persona name */}
-            <text fg={highlight()}>
-              {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
-            </text>
             <Show
               when={kv.get("animations_enabled", true)}
               fallback={<text fg={theme.textMuted}>[...]</text>}
@@ -1933,21 +1955,15 @@ export function Prompt(props: PromptProps) {
                   const totals = sessionTokenTotals()
                   const mem = memStatsLive()
                   return (
-                    <box flexDirection="row" gap={0}>
-                      <text fg={theme.info}>↑</text>
-                      {formatFixedTokens(totals.snt)}
-                      <text> </text>
-                      <text fg={theme.success}>↓</text>
-                      {formatFixedTokens(totals.rcvd)}
-                      <text> </text>
-                      <text fg={theme.warning}>◆</text>
-                      {formatFixedTokens(mem.mbd)}
-                      <text> </text>
-                      <text fg={theme.secondary}>●</text>
-                      <text fg={theme.textMuted}>{String(mem.rrnk).padStart(4, "0")}</text>
-                      <text> </text>
-                      <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
-                    </box>
+                  <box flexDirection="row" gap={0}>
+                    <text fg={theme.warning}>◆</text>
+                    {formatFixedTokens(mem.mbd)}
+                    <text> </text>
+                    <text fg={theme.secondary}>●</text>
+                    <text fg={theme.textMuted}>{String(mem.rrnk).padStart(4, "0")}</text>
+                    <text> </text>
+                    <text fg={theme.textMuted}>{formatElapsed(completedWorkTime())}</text>
+                  </box>
                   )
                 })()}
               </Match>
@@ -2014,12 +2030,12 @@ export function Prompt(props: PromptProps) {
                     }
                     const phaseLabel = createMemo(() => {
                       const health = streamHealth()
-                      if (!health?.phase) return "starting"
+                      if (!health?.phase) return "Starting..."
                       switch (health.phase) {
-                        case "thinking": return "thinking"
-                        case "tool_calling": return "tools"
-                        case "generating": return "generate"
-                        default: return "starting"
+                        case "thinking": return "Thinking..."
+                        case "tool_calling": return "Running tools..."
+                        case "generating": return "Generating..."
+                        default: return "Starting..."
                       }
                     })
                     const formatFixedTokens = (n: number, width = 4) => {
@@ -2051,12 +2067,6 @@ export function Prompt(props: PromptProps) {
                           <box flexDirection="row" gap={0}>
                             <text fg={theme.accent}>{phaseLabel()}</text>
                             <text> </text>
-                            <text fg={theme.info}>↑</text>
-                            {formatFixedTokens(sessionTokenTotals().snt)}
-                            <text> </text>
-                            <text fg={theme.success}>↓</text>
-                            {formatFixedTokens(rcvdLive())}
-                            <text> </text>
                             <text fg={theme.warning}>◆</text>
                             {formatFixedTokens(mem.mbd)}
                             <text> </text>
@@ -2073,7 +2083,8 @@ export function Prompt(props: PromptProps) {
               </Match>
             </Switch>
             <Show when={status().type === "busy"}>
-              <text fg={theme.textMuted}>Ctrl+C: abort</text>
+              <text fg={theme.textMuted}>Esc</text>
+              <text fg={theme.textMuted}> to cancel</text>
             </Show>
           </box>
           {/* Right side: context usage + provider model variant */}
@@ -2093,13 +2104,13 @@ export function Prompt(props: PromptProps) {
                     return n.toString()
                   }
                   const usage = contextUsage()
-                  const color = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
+                  const usageColor = usage && usage.percent >= 80 ? theme.error : usage && usage.percent >= 60 ? theme.warning : theme.textMuted
                   const parsed = local.model.parsed()
                   const variant = local.model.variant.current()
                   return (
                     <>
                       <Show when={usage}>
-                        {chip(<text fg={color}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>)}
+                        {chip(<text fg={usageColor}>{usage!.percent}% of {formatLimit(usage!.limit)}</text>)}
                       </Show>
                       {chip(
                         <>
@@ -2112,28 +2123,27 @@ export function Prompt(props: PromptProps) {
                           </Show>
                         </>
                       )}
-                      <Show when={gitBranch() || diffStats()}>
-                        {chip(
+                      <Show when={gitBranch()}>
+                        {chip(<text fg={theme.success}>{gitBranch()}</text>)}
+                      </Show>
+                      <Show when={diffStats()}>
+                        {(stats) => chip(
                           <>
-                            <Show when={gitBranch()}>
-                              <text fg={theme.success}>{gitBranch()}</text>
+                            <text fg={theme.textMuted}>{stats().files} file{stats().files !== 1 ? "s" : ""} changed </text>
+                            <Show when={stats().additions > 0}>
+                              <text fg={theme.success}>+{stats().additions}</text>
                             </Show>
-                            <Show when={gitBranch() && diffStats()}>
-                              <text fg={theme.textMuted}>·</text>
+                            <Show when={stats().additions > 0 && stats().modified > 0}>
+                              <text> </text>
                             </Show>
-                            <Show when={diffStats()}>
-                              {(stats) => (
-                                <>
-                                  <text fg={theme.textMuted}>{stats().files}</text>
-                                  <text fg={theme.textMuted}>•</text>
-                                  <Show when={stats().additions > 0}>
-                                    <text fg={theme.success}>+{stats().additions}</text>
-                                  </Show>
-                                  <Show when={stats().deletions > 0}>
-                                    <text fg={theme.error}>-{stats().deletions}</text>
-                                  </Show>
-                                </>
-                              )}
+                            <Show when={stats().modified > 0}>
+                              <text fg={theme.warning}>~{stats().modified}</text>
+                            </Show>
+                            <Show when={(stats().additions > 0 || stats().modified > 0) && stats().deletions > 0}>
+                              <text> </text>
+                            </Show>
+                            <Show when={stats().deletions > 0}>
+                              <text fg={theme.error}>-{stats().deletions}</text>
                             </Show>
                           </>
                         )}
@@ -2151,6 +2161,11 @@ export function Prompt(props: PromptProps) {
                           </>
                         )}
                       </Show>
+                      {chip(
+                        <text fg={highlight()}>
+                          {store.mode === "shell" ? "Shell" : Locale.titlecase(local.agent.current().name)}
+                        </text>
+                      )}
                     </>
                   )
                 })()}

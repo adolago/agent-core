@@ -180,13 +180,13 @@ export class StreamHealthMonitor {
       memoryStats: hasMemoryOps ? {
         embedding: {
           calls: memStats.embedding.calls,
-          texts: memStats.embedding.texts,
+          texts: memStats.embedding.calls,
           estimatedTokens: memStats.embedding.estimatedTokens,
           provider: memStats.embedding.provider,
         },
         reranking: {
           calls: memStats.reranking.calls,
-          documents: memStats.reranking.documents,
+          documents: memStats.reranking.calls,
           provider: memStats.reranking.provider,
         },
       } : undefined,

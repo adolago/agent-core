@@ -18,8 +18,6 @@ export interface MemoryOpStats {
   embedding: {
     /** Total embedding calls this session */
     calls: number;
-    /** Total texts embedded */
-    texts: number;
     /** Estimated tokens (chars / 4) */
     estimatedTokens: number;
     /** Last operation timestamp */
@@ -31,8 +29,6 @@ export interface MemoryOpStats {
   reranking: {
     /** Total rerank calls this session */
     calls: number;
-    /** Total documents reranked */
-    documents: number;
     /** Last operation timestamp */
     lastCallAt?: number;
     /** Provider ID (voyage, vllm) */
@@ -47,12 +43,10 @@ export interface MemoryOpStats {
 const stats: MemoryOpStats = {
   embedding: {
     calls: 0,
-    texts: 0,
     estimatedTokens: 0,
   },
   reranking: {
     calls: 0,
-    documents: 0,
   },
 };
 
@@ -66,14 +60,12 @@ export const MemoryStatsEvent = {
     z.object({
       embedding: z.object({
         calls: z.number(),
-        texts: z.number(),
         estimatedTokens: z.number(),
         lastCallAt: z.number().optional(),
         provider: z.string().optional(),
       }),
       reranking: z.object({
         calls: z.number(),
-        documents: z.number(),
         lastCallAt: z.number().optional(),
         provider: z.string().optional(),
       }),
@@ -96,7 +88,6 @@ export function recordEmbedding(input: {
   const estimatedTokens = Math.ceil(charCount / 4);
 
   stats.embedding.calls += 1;
-  stats.embedding.texts += input.texts.length;
   stats.embedding.estimatedTokens += estimatedTokens;
   stats.embedding.lastCallAt = Date.now();
   if (input.provider) {
@@ -120,11 +111,9 @@ export function recordSingleEmbedding(input: {
  * Record a reranking operation
  */
 export function recordReranking(input: {
-  documentCount: number;
   provider?: string;
 }): void {
   stats.reranking.calls += 1;
-  stats.reranking.documents += input.documentCount;
   stats.reranking.lastCallAt = Date.now();
   if (input.provider) {
     stats.reranking.provider = input.provider;
@@ -149,12 +138,10 @@ export function getStats(): MemoryOpStats {
 export function resetStats(): void {
   stats.embedding = {
     calls: 0,
-    texts: 0,
     estimatedTokens: 0,
   };
   stats.reranking = {
     calls: 0,
-    documents: 0,
   };
   publishStats();
 }
@@ -166,11 +153,11 @@ export function formatStats(): string {
   const parts: string[] = [];
 
   if (stats.embedding.calls > 0) {
-    parts.push(`emb: ${stats.embedding.texts}/${stats.embedding.estimatedTokens}tok`);
+    parts.push(`emb: ${stats.embedding.estimatedTokens}tok`);
   }
 
   if (stats.reranking.calls > 0) {
-    parts.push(`rerank: ${stats.reranking.documents}docs`);
+    parts.push(`rerank: ${stats.reranking.calls}`);
   }
 
   return parts.join(" | ") || "no memory ops";
@@ -188,8 +175,8 @@ export function formatStatsCompact(): string | null {
     parts.push(`E:${display}`);
   }
 
-  if (stats.reranking.documents > 0) {
-    parts.push(`R:${stats.reranking.documents}`);
+  if (stats.reranking.calls > 0) {
+    parts.push(`R:${stats.reranking.calls}`);
   }
 
   return parts.length > 0 ? parts.join("/") : null;

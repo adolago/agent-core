@@ -4,7 +4,7 @@
  * This module handles loading and managing agent personas from various sources:
  * - Built-in personas (src/agent/personas/)
  * - Identity files (IDENTITY.md, SOUL.md)
- * - Project personas (.agent-core/persona/)
+ * - Project personas (.agent-core/agent/)
  * - Config overrides
  */
 

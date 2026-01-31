@@ -13,7 +13,7 @@ import type { AuthMethod, SubscriptionProvider } from "../provider/types";
 import type { AgentConfig, AgentPersona } from "../agent/types";
 import type { McpServerConfig as MCPConfig } from "../mcp/types";
 import type { MemoryConfig } from "../memory/types";
-import type { SurfaceType } from "../surface/types";
+import type { SurfaceType } from "../../packages/agent-core/src/surface/types";
 import type { LogLevel, DmPolicy, GroupPolicy, RetryConfig } from "./shared";
 import {
   QDRANT_URL,

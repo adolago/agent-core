@@ -10,13 +10,11 @@ export namespace SessionStatus {
   export const MemoryStats = z.object({
     embedding: z.object({
       calls: z.number(),
-      texts: z.number(),
       estimatedTokens: z.number(),
       provider: z.string().optional(),
     }),
     reranking: z.object({
       calls: z.number(),
-      documents: z.number(),
       provider: z.string().optional(),
     }),
   })

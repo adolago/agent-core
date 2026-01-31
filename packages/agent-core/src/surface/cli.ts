@@ -181,7 +181,7 @@ export class CLISurface extends BaseSurface implements Surface {
     }
   }
 
-  async sendStreamChunk(chunk: StreamChunk, _threadId?: string): Promise<void> {
+  override async sendStreamChunk(chunk: StreamChunk, _threadId?: string): Promise<void> {
     if (chunk.type === 'text' && chunk.text) {
       if (!this.isStreaming) {
         this.isStreaming = true;
@@ -209,7 +209,7 @@ export class CLISurface extends BaseSurface implements Surface {
     }
   }
 
-  async sendTypingIndicator(_threadId?: string): Promise<void> {
+  override async sendTypingIndicator(_threadId?: string): Promise<void> {
     this.startSpinner();
   }
 
@@ -323,7 +323,7 @@ export class CLISurface extends BaseSurface implements Surface {
   // Tool Notifications
   // ---------------------------------------------------------------------------
 
-  async notifyToolStart(toolCall: ToolCall): Promise<void> {
+  override async notifyToolStart(toolCall: ToolCall): Promise<void> {
     if (this.config.showToolDetails) {
       this.showToolStart(toolCall.name, toolCall.input);
     } else {
@@ -331,7 +331,7 @@ export class CLISurface extends BaseSurface implements Surface {
     }
   }
 
-  async notifyToolEnd(result: ToolResult): Promise<void> {
+  override async notifyToolEnd(result: ToolResult): Promise<void> {
     this.stopSpinner();
     if (this.config.showToolDetails) {
       this.showToolEnd(

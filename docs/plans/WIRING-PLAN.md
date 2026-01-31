@@ -24,11 +24,18 @@ Establish what "wired" means and create verification tests before making changes
 
 ### Tasks
 
-- [ ] Create test: "Tool registry lists Johny tools when persona=johny"
-- [ ] Create test: "Tool registry lists WhatsApp/Splitwise tools when persona=zee"
-- [ ] Create test: "Memory search calls reranker when `rerank: true` param passed"
-- [ ] Verify daemon starts without errors: `agent-core daemon`
-- [ ] Baseline test suite: `bun test`
+- [x] Create test: "Tool registry lists Johny tools when persona=johny"
+  - Location: `packages/agent-core/test/wiring/phase0.test.ts`
+  - Verifies: `johny:study`, `johny:knowledge`, `johny:mastery`, `johny:review`, `johny:practice`
+- [x] Create test: "Tool registry lists WhatsApp/Splitwise tools when persona=zee"
+  - Location: `packages/agent-core/test/wiring/phase0.test.ts`
+  - Verifies: `zee:splitwise`, `WHATSAPP_TOOLS` integration
+- [x] Create test: "Memory search calls reranker when `rerank: true` param passed"
+  - Location: `packages/agent-core/test/wiring/phase0.test.ts`
+  - Verifies: `rerank?: boolean` param, `VoyageReranker`, `VLLMReranker`
+- [x] Verify daemon starts without errors: `agent-core daemon`
+- [x] Baseline test suite: `bun test`
+  - 14 tests passing in phase0.test.ts
 
 ---
 

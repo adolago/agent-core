@@ -11,8 +11,7 @@ import { Instance } from "../../project/instance"
 import { LifecycleHooks } from "../../hooks/lifecycle"
 import { WeztermOrchestration } from "../../orchestration/wezterm"
 import { initPersonas } from "../../bootstrap/personas"
-// TODO: Surface layer temporarily disabled - needs architectural fix for cross-package imports
-// import { initSurfaces, shutdownSurfaces } from "../../bootstrap/surface"
+import { initSurfaces, shutdownSurfaces } from "../../bootstrap/surface"
 import { CircuitBreaker } from "../../provider/circuit-breaker"
 import * as UsageTracker from "../../usage/tracker"
 import { initWorkStealing, getWorkStealingService, initConsensus, getConsensusGate } from "../../coordination"
@@ -885,7 +884,7 @@ export const DaemonCommand = cmd({
     // Initialize surface layer (CLI, messaging platforms)
     let surfacesEnabled = false
     try {
-      // await initSurfaces() // TODO: Re-enable when surface layer is fixed
+      await initSurfaces()
       surfacesEnabled = true
       console.log("Surfaces:   Multi-surface support enabled")
     } catch (error) {
@@ -1035,7 +1034,7 @@ export const DaemonCommand = cmd({
 
       // Shutdown surface layer
       if (surfacesEnabled) {
-        // await shutdownSurfaces() // TODO: Re-enable when surface layer is fixed
+        await shutdownSurfaces()
       }
 
       await Daemon.removePidFile()

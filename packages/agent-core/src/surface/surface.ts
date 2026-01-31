@@ -17,7 +17,7 @@ import type {
   ToolCall,
   ToolResult,
 } from './types.js';
-import { Log } from '../../packages/agent-core/src/util/log';
+import { Log } from '../util/log';
 
 const log = Log.create({ service: 'surface' });
 

@@ -28,7 +28,7 @@ import {
   type ToolCall,
   type ToolResult,
 } from './types.js';
-import { Log } from '../../packages/agent-core/src/util/log';
+import { Log } from '../util/log';
 
 const log = Log.create({ service: 'gui-surface' });
 
@@ -367,7 +367,7 @@ export class GUISurface extends BaseSurface implements Surface {
     });
   }
 
-  async sendStreamChunk(chunk: StreamChunk, threadId?: string): Promise<void> {
+  override async sendStreamChunk(chunk: StreamChunk, threadId?: string): Promise<void> {
     // For GUI, we send stream events instead of requests
     this.send({
       type: 'event',
@@ -376,7 +376,7 @@ export class GUISurface extends BaseSurface implements Surface {
     });
   }
 
-  async sendTypingIndicator(threadId?: string): Promise<void> {
+  override async sendTypingIndicator(threadId?: string): Promise<void> {
     this.send({
       type: 'event',
       event: 'typing',
@@ -431,7 +431,7 @@ export class GUISurface extends BaseSurface implements Surface {
   // Tool Notifications
   // ---------------------------------------------------------------------------
 
-  async notifyToolStart(toolCall: ToolCall): Promise<void> {
+  override async notifyToolStart(toolCall: ToolCall): Promise<void> {
     this.send({
       type: 'event',
       event: 'tool_start',
@@ -439,7 +439,7 @@ export class GUISurface extends BaseSurface implements Surface {
     });
   }
 
-  async notifyToolEnd(result: ToolResult): Promise<void> {
+  override async notifyToolEnd(result: ToolResult): Promise<void> {
     this.send({
       type: 'event',
       event: 'tool_end',

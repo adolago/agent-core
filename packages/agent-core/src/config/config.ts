@@ -1410,6 +1410,43 @@ export namespace Config {
             .positive()
             .optional()
             .describe("Timeout in milliseconds for model context protocol (MCP) requests"),
+          surfaces: z
+            .object({
+              cli: z
+                .object({
+                  enabled: z.boolean().optional(),
+                })
+                .optional(),
+              whatsapp: z
+                .object({
+                  enabled: z.boolean().optional(),
+                  sessionName: z.string().optional(),
+                  allowedNumbers: z.string().array().optional(),
+                  allowedGroups: z.string().array().optional(),
+                  requireMention: z.boolean().optional(),
+                })
+                .optional(),
+              telegram: z
+                .object({
+                  enabled: z.boolean().optional(),
+                  botToken: z.string().optional(),
+                  allowedUsers: z.number().array().optional(),
+                  allowedGroups: z.number().array().optional(),
+                  requireMention: z.boolean().optional(),
+                })
+                .optional(),
+              analytics: z
+                .object({
+                  enabled: z.boolean().optional(),
+                })
+                .optional(),
+              hotReload: z
+                .object({
+                  enabled: z.boolean().optional(),
+                })
+                .optional(),
+            })
+            .optional(),
         })
         .optional(),
       fallback: z

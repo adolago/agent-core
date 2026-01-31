@@ -4,6 +4,7 @@ import { DialogSelect } from "@tui/ui/dialog-select"
 import { useSDK } from "@tui/context/sdk"
 import { useRoute } from "@tui/context/route"
 import { Clipboard } from "@tui/util/clipboard"
+import { useToast } from "@tui/ui/toast"
 import type { PromptInfo } from "@tui/component/prompt/history"
 
 export function DialogMessage(props: {
@@ -15,6 +16,7 @@ export function DialogMessage(props: {
   const sdk = useSDK()
   const message = createMemo(() => sync.data.message[props.sessionID]?.find((x) => x.id === props.messageID))
   const route = useRoute()
+  const toast = useToast()
 
   return (
     <DialogSelect
@@ -80,6 +82,10 @@ export function DialogMessage(props: {
               sessionID: props.sessionID,
               messageID: props.messageID,
             })
+            if (!result.data?.id) {
+              toast.show({ message: "Failed to fork session", variant: "error" })
+              return
+            }
             const initialPrompt = (() => {
               const msg = message()
               if (!msg) return undefined
@@ -96,7 +102,7 @@ export function DialogMessage(props: {
               )
             })()
             route.navigate({
-              sessionID: result.data!.id,
+              sessionID: result.data.id,
               type: "session",
               initialPrompt,
             })

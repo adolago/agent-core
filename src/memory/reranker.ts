@@ -97,7 +97,7 @@ class VoyageReranker implements Reranker {
     };
 
     // Record reranking stats
-    recordReranking({ documentCount: documents.length, provider: this.id });
+    recordReranking({ provider: this.id });
 
     return data.data
       .sort((a, b) => b.relevance_score - a.relevance_score)
@@ -154,7 +154,7 @@ class VLLMReranker implements Reranker {
     };
 
     // Record reranking stats
-    recordReranking({ documentCount: documents.length, provider: this.id });
+    recordReranking({ provider: this.id });
 
     return data.results
       .sort((a, b) => b.relevance_score - a.relevance_score)

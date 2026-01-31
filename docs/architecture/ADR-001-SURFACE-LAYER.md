@@ -226,15 +226,33 @@ interface MessagingPlatformHandler {
 - [x] GUI adapter (gui.ts)
 - [x] Messaging adapter (messaging.ts)
 
-### Phase 3: Integration (Future)
-- [ ] Connect to agent core
-- [ ] Implement platform handlers (Baileys, Telegraf)
-- [ ] Add surface router
+### Phase 3: Integration (COMPLETED)
+- [x] Connect to agent core
+  - Surface bootstrap module: `packages/agent-core/src/bootstrap/surface.ts`
+  - Integrated into daemon startup/shutdown sequence
+  - Status output in daemon startup message
+- [x] Implement platform handlers (Baileys, Telegraf)
+  - WhatsApp handler: `src/surface/platforms/whatsapp.ts` (Baileys)
+  - Telegram handler: `src/surface/platforms/telegram.ts` (Telegraf)
+  - Both implement `MessagingPlatformHandler` interface
+- [x] Add surface router
+  - Router: `src/surface/router.ts`
+  - Message routing between surfaces and agent core
+  - Surface lifecycle management
 
-### Phase 4: Enhancement (Future)
-- [ ] Surface analytics
-- [ ] Hot-reload configuration
-- [ ] Multi-surface orchestration
+### Phase 4: Enhancement (COMPLETED)
+- [x] Surface analytics
+  - Event tracking: messages, errors, connect/disconnect
+  - Session statistics: active sessions, message counts
+  - Query interface: `getAnalytics()`, `getSessionStats()`
+- [x] Hot-reload configuration
+  - Configurable via `enableHotReload` option
+  - 30-second config check interval
+  - Per-surface hot-reload support
+- [x] Multi-surface orchestration
+  - Register/unregister surfaces at runtime
+  - Multiple concurrent surfaces (CLI + WhatsApp + Telegram)
+  - Surface registry with conflict detection
 
 ## Related ADRs
 

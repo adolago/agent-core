@@ -159,6 +159,26 @@ export {
   createMessagingSurface,
 } from './messaging.js';
 
+// Platform Handlers
+export * from './platforms/index.js';
+
+// =============================================================================
+// Router
+// =============================================================================
+
+export type {
+  MessageHandler,
+  SurfaceAnalyticsEvent,
+  SurfaceRouterConfig,
+} from './router.js';
+
+export {
+  SurfaceRouter,
+  getSurfaceRouter,
+  setSurfaceRouter,
+  resetSurfaceRouter,
+} from './router.js';
+
 // =============================================================================
 // Convenience Functions
 // =============================================================================

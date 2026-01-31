@@ -349,18 +349,32 @@ async function resolveTargetPaneId(): Promise<string | undefined> {
 
   // 4. Fallback: CWD matching with improved tab detection
   // When WEZTERM_PANE is not set and TTY matching fails, we try to find
-  // the pane by matching CWD. To avoid opening in the wrong tab, we prioritize
-  // panes that have the most specific CWD match.
+  // pane by matching CWD. To avoid opening in the wrong tab, we prioritize
+  // exact CWD matches over prefix/suffix matches.
   const cwd = process.cwd()
 
-  // Filter panes that match our current working directory
+  // Filter panes that match our current working directory - prefer exact matches first
+  const exactMatches = list.filter((entry) => {
+    const paneCwd = normalizeCwd(entry.cwd)
+    return paneCwd === cwd
+  })
+
+  // If we have exact CWD matches, use the active one among them
+  if (exactMatches.length > 0) {
+    const activeExact = exactMatches.find((x) => x.is_active)
+    const target = activeExact ?? exactMatches[0]
+    const paneId = getPaneId(target)
+    if (paneId) return paneId
+  }
+
+  // Fallback to prefix/suffix matches only if no exact match
   const cwdMatches = list.filter((entry) => {
     const paneCwd = normalizeCwd(entry.cwd)
-    return paneCwd && (paneCwd === cwd || paneCwd.startsWith(cwd + "/") || cwd.startsWith(paneCwd + "/"))
+    return paneCwd && (paneCwd.startsWith(cwd + "/") || cwd.startsWith(paneCwd + "/"))
   })
 
   if (cwdMatches.length > 0) {
-    // Prefer the active pane among CWD matches (highest chance of being current)
+    // Prefer active pane among CWD matches (highest chance of being current)
     const activeInCwd = cwdMatches.find((x) => x.is_active)
     const target = activeInCwd ?? cwdMatches[0]
     const paneId = getPaneId(target)
@@ -442,7 +456,7 @@ function buildPanePayload(title: string, kind: CanvasKind, id: string, body: str
   return clear + setTitle + header + body + footer
 }
 
-async function ensureCanvasPane(id: string, kind: CanvasKind): Promise<{ paneId: string; created: boolean }> {
+async function ensureCanvasPane(id: string, kind: CanvasKind, requestedPaneId?: string): Promise<{ paneId: string; created: boolean }> {
   const state = await loadCanvasState()
   const existing = state.canvases[id]
 
@@ -458,7 +472,7 @@ async function ensureCanvasPane(id: string, kind: CanvasKind): Promise<{ paneId:
       return { paneId: existing.paneId, created: false }
     }
 
-    // If pane exists but in wrong tab, or doesn't exist at all, clean up the stale entry
+    // If pane exists but in wrong tab, or doesn't exist at all, clean up stale entry
     if (!paneStillExists || existingTabId !== currentTabId) {
       delete state.canvases[id]
       // Don't save yet - we'll save after creating the new one
@@ -478,7 +492,10 @@ async function ensureCanvasPane(id: string, kind: CanvasKind): Promise<{ paneId:
     return Math.round(num)
   })()
 
-  const targetPaneId = await resolveTargetPaneId()
+  // Use requested pane ID if provided and valid, otherwise auto-detect
+  const targetPaneId = requestedPaneId && isPaneId(requestedPaneId)
+    ? requestedPaneId
+    : await resolveTargetPaneId()
 
   const splitPane = async (paneId: string | undefined): Promise<string> => {
     // Start a "display" pane that doesn't echo input; content is rendered by sending text to stdin.
@@ -548,8 +565,12 @@ Config options by kind:
 - document: { title: string, content: string (markdown) }
 - table: { title: string, headers: string[], rows: string[][] }
 
+Parameters:
+- paneId: Optional. Explicitly specify which pane ID to split from. If not provided, will auto-detect the current pane. Use this when canvases are opening in the wrong tab.
+
 Examples:
 - Display poem: { kind: "text", id: "poem", config: '{"title": "My Poem", "content": "Roses are red..."}' }
+- Display poem in specific pane: { kind: "text", id: "poem", paneId: "7", config: '{"title": "My Poem", "content": "Roses are red..."}' }
 - Show calendar: { kind: "calendar", id: "cal", config: '{"date": "2026-01-15", "events": []}' }
 - Show table: { kind: "table", id: "data", config: '{"title": "Portfolio", "headers": ["Symbol", "Value"], "rows": [["AAPL", "$100"]]}' }`,
   args: {
@@ -558,6 +579,7 @@ Examples:
       .describe("Canvas type"),
     id: tool.schema.string().describe("Unique canvas identifier"),
     config: tool.schema.string().describe("JSON configuration for the canvas content"),
+    paneId: tool.schema.string().optional().describe("Explicit pane ID to split from (auto-detect if not provided)"),
   },
   async execute(args) {
     let config: Record<string, unknown>
@@ -581,7 +603,7 @@ Note: WezTerm canvas panes are unavailable (not running in WezTerm or \`wezterm 
     }
 
     try {
-      const { paneId, created } = await ensureCanvasPane(args.id, kind)
+      const { paneId, created } = await ensureCanvasPane(args.id, kind, args.paneId)
       const payload = buildPanePayload(title, kind, args.id, body)
       await renderToPane(paneId, payload)
       return `${created ? "Canvas created" : "Canvas updated"}: "${args.id}" (${kind}) in WezTerm pane ${paneId}.`
