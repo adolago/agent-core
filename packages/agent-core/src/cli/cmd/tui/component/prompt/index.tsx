@@ -1760,19 +1760,11 @@ export function Prompt(props: PromptProps) {
           {/* Right border character */}
           <text fg={theme.border}>│</text>
         </box>
-        {/* Bottom border with path + branch (Amp style) */}
+        {/* Bottom border to close the box */}
         <box height={1} flexDirection="row">
           <text fg={theme.border}>└</text>
-          <text fg={theme.border} flexGrow={1}>{"─".repeat(500)}</text>
-          <text fg={theme.textMuted}>
-            <Show when={sync.data.path?.directory}>
-              {`~${sync.data.path!.directory.replace(process.env.HOME ?? "", "")}`}
-            </Show>
-            <Show when={sync.data.vcs?.branch}>
-              {` (${sync.data.vcs?.branch})`}
-            </Show>
-          </text>
-          <text fg={theme.border}>─┘</text>
+          <text fg={theme.border} flexGrow={1} flexShrink={1}>{"─".repeat(200)}</text>
+          <text fg={theme.border}>┘</text>
         </box>
         {/* Diff stats line (Amp style - below box, right-aligned) */}
         <Show when={diffStats()}>
