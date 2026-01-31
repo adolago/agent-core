@@ -68,11 +68,11 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       const themeCtx = useTheme()
       const { theme } = themeCtx
 
-      // Effect to switch theme when agent changes (if agent has a theme defined)
+      // Effect to switch theme when agent changes (based on agent name)
       createEffect(() => {
-        const currentAgent = agents().find((x) => x.name === agentStore.current)
-        if (currentAgent?.theme && themeCtx.all()[currentAgent.theme]) {
-          themeCtx.set(currentAgent.theme)
+        const agentName = agentStore.current?.toLowerCase()
+        if (agentName && themeCtx.all()[agentName]) {
+          themeCtx.set(agentName)
         }
       })
       // Agent/Persona colors: derived from theme, cycled by index
